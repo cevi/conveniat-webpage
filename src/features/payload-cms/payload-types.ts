@@ -6909,6 +6909,47 @@ export interface Header {
                       email?: string | null;
                       openInNewTab?: boolean | null;
                     };
+                    subMenu?:
+                      | {
+                          label: string;
+                          linkField?: {
+                            type?: ('reference' | 'custom' | 'email') | null;
+                            reference?:
+                              | ({
+                                  relationTo: 'blog';
+                                  value: string | Blog;
+                                } | null)
+                              | ({
+                                  relationTo: 'generic-page';
+                                  value: string | GenericPage;
+                                } | null)
+                              | ({
+                                  relationTo: 'images';
+                                  value: string | Image;
+                                } | null)
+                              | ({
+                                  relationTo: 'documents';
+                                  value: string | Document;
+                                } | null)
+                              | ({
+                                  relationTo: 'camp-map-annotations';
+                                  value: string | CampMapAnnotation;
+                                } | null)
+                              | ({
+                                  relationTo: 'camp-schedule-entry';
+                                  value: string | CampScheduleEntry;
+                                } | null);
+                            /**
+                             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+                             */
+                            fragment?: string | null;
+                            url?: string | null;
+                            email?: string | null;
+                            openInNewTab?: boolean | null;
+                          };
+                          id?: string | null;
+                        }[]
+                      | null;
                     id?: string | null;
                   }[]
                 | null;
@@ -7609,6 +7650,22 @@ export interface HeaderSelect<T extends boolean = true> {
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
+                        };
+                    subMenu?:
+                      | T
+                      | {
+                          label?: T;
+                          linkField?:
+                            | T
+                            | {
+                                type?: T;
+                                reference?: T;
+                                fragment?: T;
+                                url?: T;
+                                email?: T;
+                                openInNewTab?: T;
+                              };
+                          id?: T;
                         };
                     id?: T;
                   };

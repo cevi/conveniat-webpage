@@ -76,6 +76,16 @@ const isLinkConfigured = (linkFieldData?: LinkFieldDataType): boolean => {
   return false;
 };
 
+interface ProcessedSubSubSubMenuItem {
+  id: string;
+  label: string;
+  linkField?: LinkFieldDataType | undefined;
+  hasPerm: boolean;
+  isVisible: boolean;
+  itemLink?: string | undefined;
+  openInNewTab: boolean;
+}
+
 interface ProcessedSubSubMenuItem {
   id: string;
   label: string;
@@ -84,6 +94,7 @@ interface ProcessedSubSubMenuItem {
   isVisible: boolean;
   itemLink?: string | undefined;
   openInNewTab: boolean;
+  subMenu?: ProcessedSubSubSubMenuItem[] | undefined;
 }
 
 interface ProcessedSubMenuItem {
@@ -144,7 +155,44 @@ const processMenuTree = async (
             const subSubItemLink = getURLForLinkField(subSubLinkField, locale);
             const subSubOpenInNewTab = openURLInNewTab(subSubLinkField);
 
-            const subSubIsVisible = subSubHasLink ? subSubHasPerm : true;
+            const subSubSubMenuItems: ProcessedSubSubSubMenuItem[] = [];
+            if (subSubItem.subMenu && subSubItem.subMenu.length > 0) {
+              for (const subSubSubItem of subSubItem.subMenu) {
+                const subSubSubLinkField = subSubSubItem.linkField as LinkFieldDataType | undefined;
+                const subSubSubHasLink = isLinkConfigured(subSubSubLinkField);
+                const subSubSubHasPerm = subSubSubHasLink
+                  ? await hasPermissionsForLinkField(subSubSubLinkField)
+                  : true;
+                const subSubSubItemLink = getURLForLinkField(subSubSubLinkField, locale);
+                const subSubSubOpenInNewTab = openURLInNewTab(subSubSubLinkField);
+
+                const subSubSubIsVisible = subSubSubHasLink ? subSubSubHasPerm : true;
+
+                subSubSubMenuItems.push({
+                  id: subSubSubItem.id || Math.random().toString(),
+                  label: subSubSubItem.label,
+                  linkField: subSubSubLinkField,
+                  hasPerm: subSubSubHasPerm,
+                  isVisible: subSubSubIsVisible,
+                  itemLink: subSubSubItemLink,
+                  openInNewTab: subSubSubOpenInNewTab,
+                });
+              }
+            }
+
+            const hasVisibleSubSubSubItems = subSubSubMenuItems.some(
+              (s) => s.isVisible || showPreview,
+            );
+            const hasSubSubSub = subSubSubMenuItems.length > 0;
+
+            let subSubIsVisible = false;
+            if (subSubHasLink) {
+              subSubIsVisible = subSubHasPerm;
+            } else if (hasSubSubSub) {
+              subSubIsVisible = hasVisibleSubSubSubItems;
+            } else {
+              subSubIsVisible = true;
+            }
 
             subSubMenuItems.push({
               id: subSubItem.id || Math.random().toString(),
@@ -154,6 +202,7 @@ const processMenuTree = async (
               isVisible: subSubIsVisible,
               itemLink: subSubItemLink,
               openInNewTab: subSubOpenInNewTab,
+              subMenu: subSubSubMenuItems,
             });
           }
         }
@@ -318,6 +367,90 @@ const MenuItemsList = async ({
                               {subItem.subMenu?.map((subSubItem) => {
                                 if (!subSubItem.isVisible && !showPreviewForMainMenu) {
                                   return <></>;
+                                }
+
+                                const hasSubSubSub =
+                                  subSubItem.subMenu && subSubItem.subMenu.length > 0;
+
+                                if (hasSubSubSub) {
+                                  return (
+                                    <SafeErrorBoundary fallback={<></>} key={subSubItem.id}>
+                                      <Disclosure as="div" className="pl-3">
+                                        {isLinkConfigured(subSubItem.linkField) ? (
+                                          <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
+                                            {subSubItem.hasPerm ? (
+                                              <LinkComponent
+                                                href={subSubItem.itemLink ?? '/'}
+                                                openInNewTab={subSubItem.openInNewTab}
+                                                className="closeNavOnClick flex-grow py-2 pl-3 text-xs/7 font-semibold text-gray-500"
+                                                prefetch
+                                              >
+                                                {subSubItem.label}
+                                              </LinkComponent>
+                                            ) : (
+                                              <DeletedMenuEntry
+                                                message={subSubItem.label}
+                                                className="flex-grow pl-3"
+                                              />
+                                            )}
+                                            <DisclosureButton className="group p-2 text-gray-400 hover:text-gray-600">
+                                              <ChevronDown
+                                                aria-hidden="true"
+                                                className="size-3.5 flex-none group-data-open:rotate-180"
+                                              />
+                                            </DisclosureButton>
+                                          </div>
+                                        ) : (
+                                          <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-xs/7 font-semibold text-gray-500 hover:bg-gray-50">
+                                            {subSubItem.label}
+                                            <ChevronDown
+                                              aria-hidden="true"
+                                              className="size-3.5 flex-none group-data-open:rotate-180"
+                                            />
+                                          </DisclosureButton>
+                                        )}
+                                        <DisclosurePanel className="mt-1 mb-2 space-y-1">
+                                          {subSubItem.subMenu?.map((subSubSubItem) => {
+                                            if (
+                                              !subSubSubItem.isVisible &&
+                                              !showPreviewForMainMenu
+                                            ) {
+                                              return <></>;
+                                            }
+
+                                            if (isLinkConfigured(subSubSubItem.linkField)) {
+                                              return subSubSubItem.hasPerm ? (
+                                                <LinkComponent
+                                                  key={subSubSubItem.id}
+                                                  href={subSubSubItem.itemLink ?? '/'}
+                                                  openInNewTab={subSubSubItem.openInNewTab}
+                                                  className="closeNavOnClick block rounded-lg py-2 pr-3 pl-9 text-xs/7 font-semibold text-gray-400 hover:bg-gray-50"
+                                                  prefetch
+                                                >
+                                                  {subSubSubItem.label}
+                                                </LinkComponent>
+                                              ) : (
+                                                <DeletedMenuEntry
+                                                  key={subSubSubItem.id}
+                                                  message={subSubSubItem.label}
+                                                  className="pl-9"
+                                                />
+                                              );
+                                            }
+
+                                            return (
+                                              <span
+                                                key={subSubSubItem.id}
+                                                className="closeNavOnClick block rounded-lg py-2 pr-3 pl-9 text-xs/7 font-semibold text-gray-400"
+                                              >
+                                                {subSubSubItem.label}
+                                              </span>
+                                            );
+                                          })}
+                                        </DisclosurePanel>
+                                      </Disclosure>
+                                    </SafeErrorBoundary>
+                                  );
                                 }
 
                                 if (isLinkConfigured(subSubItem.linkField)) {
