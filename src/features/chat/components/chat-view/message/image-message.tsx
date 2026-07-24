@@ -14,15 +14,16 @@ interface MessagePayload {
 
 export const ImageMessage: React.FC<{ message: ChatMessage }> = ({ message }) => {
   const chatId = useChatId();
-  const messageData = message.messagePayload as unknown as MessagePayload;
-  const isS3Key = messageData.url.startsWith('chat-images/');
+  const messageData = message.messagePayload as unknown as MessagePayload | undefined;
+  const isS3Key =
+    typeof messageData?.url === 'string' && messageData.url.startsWith('chat-images/');
 
   const { data: downloadData, isLoading } = trpc.chat.getDownloadUrl.useQuery(
-    { chatId, key: messageData.url },
-    { enabled: !!messageData.url && isS3Key },
+    { chatId, key: typeof messageData?.url === 'string' ? messageData.url : '' },
+    { enabled: isS3Key },
   );
 
-  if (!messageData.url) return <></>;
+  if (typeof messageData?.url !== 'string' || !messageData.url) return <></>;
 
   const displayUrl = isS3Key ? downloadData?.url : messageData.url;
 

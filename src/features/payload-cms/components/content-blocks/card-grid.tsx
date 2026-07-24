@@ -84,7 +84,7 @@ const CardGridItem: React.FC<{
   const url = getURLForLinkField(card.linkField, locale) ?? '';
 
   const renderIcon = (): React.ReactNode => {
-    if (card.iconType === 'image' && card.customImage?.url) {
+    if (card.iconType === 'image' && typeof card.customImage === 'object' && card.customImage.url) {
       return (
         <ImageNode
           src={getRelativeImageUrl(card.customImage.url)}
@@ -104,7 +104,11 @@ const CardGridItem: React.FC<{
         <div
           className={cn(
             'bg-conveniat-green/5 text-conveniat-green mb-4 inline-flex size-12 items-center justify-center overflow-hidden rounded-xl',
-            card.iconType === 'image' && card.customImage?.url ? 'p-0' : 'p-3',
+            card.iconType === 'image' &&
+              typeof card.customImage === 'object' &&
+              card.customImage.url
+              ? 'p-0'
+              : 'p-3',
           )}
         >
           {renderIcon()}
