@@ -119,8 +119,10 @@ export const getURLForLinkField = (
     if (baseUrl !== undefined) {
       const fragment = linkFieldData.fragment?.trim();
       if (fragment && fragment !== '') {
-        const hash = fragment.startsWith('#') ? fragment : `#${fragment}`;
-        return `${baseUrl}${hash}`;
+        const cleanFragment = fragment.startsWith('#') ? fragment.slice(1) : fragment;
+        if (cleanFragment !== '') {
+          return `${baseUrl}#${encodeURIComponent(cleanFragment)}`;
+        }
       }
       return baseUrl;
     }

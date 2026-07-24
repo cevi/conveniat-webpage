@@ -82,7 +82,7 @@ describe('getURLForLinkField', () => {
     expect(url).toBe('/ressort#projektleitung');
   });
 
-  it('should ignore empty fragment string', () => {
+  it('should ignore empty fragment string or single hash', () => {
     const linkField: LinkFieldDataType = {
       type: 'reference',
       reference: {
@@ -94,5 +94,31 @@ describe('getURLForLinkField', () => {
 
     const url = getURLForLinkField(linkField, 'de');
     expect(url).toBe('/ressort');
+
+    const hashOnlyLinkField: LinkFieldDataType = {
+      type: 'reference',
+      reference: {
+        relationTo: 'generic-page',
+        value: mockGenericPage,
+      },
+      fragment: ' # ',
+    };
+
+    const hashOnlyUrl = getURLForLinkField(hashOnlyLinkField, 'de');
+    expect(hashOnlyUrl).toBe('/ressort');
+  });
+
+  it('should percent-encode special characters and spaces in fragment', () => {
+    const linkField: LinkFieldDataType = {
+      type: 'reference',
+      reference: {
+        relationTo: 'generic-page',
+        value: mockGenericPage,
+      },
+      fragment: 'projekt leitung & team',
+    };
+
+    const url = getURLForLinkField(linkField, 'de');
+    expect(url).toBe('/ressort#projekt%20leitung%20%26%20team');
   });
 });

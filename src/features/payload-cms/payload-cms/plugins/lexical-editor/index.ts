@@ -34,7 +34,14 @@ export const minimalEditorFeatures = [
           fr: 'Ancre / Fragment',
         },
         admin: {
-          condition: (_, siblingData): boolean => siblingData['linkType'] === 'internal',
+          condition: (_, siblingData): boolean => {
+            if (siblingData['linkType'] !== 'internal') {
+              return false;
+            }
+            const targetDocument = siblingData['doc'] as { relationTo?: string } | undefined;
+            const relationTo = targetDocument?.relationTo;
+            return !relationTo || relationTo === 'generic-page' || relationTo === 'blog';
+          },
           description: {
             de: 'Optionale Sprungmarke / Anker (z. B. "projektleitung" für den Akkordeon-Block)',
             en: 'Optional fragment / anchor (e.g. "projektleitung" for accordion block)',

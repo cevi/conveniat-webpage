@@ -108,8 +108,10 @@ const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string
   const finalUrl = baseUrl ?? `/${url}`;
   const fragment = fields.fragment?.trim();
   if (fragment && fragment !== '') {
-    const hash = fragment.startsWith('#') ? fragment : `#${fragment}`;
-    return `${finalUrl}${hash}`;
+    const cleanFragment = fragment.startsWith('#') ? fragment.slice(1) : fragment;
+    if (cleanFragment !== '') {
+      return `${finalUrl}#${encodeURIComponent(cleanFragment)}`;
+    }
   }
 
   return finalUrl;

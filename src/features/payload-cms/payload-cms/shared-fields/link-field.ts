@@ -156,7 +156,14 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
         name: 'fragment',
         type: 'text',
         admin: {
-          condition: (_, siblingData): boolean => siblingData['type'] === 'reference',
+          condition: (_, siblingData): boolean => {
+            if (siblingData['type'] !== 'reference') {
+              return false;
+            }
+            const reference = siblingData['reference'] as { relationTo?: string } | undefined;
+            const relationTo = reference?.relationTo;
+            return !relationTo || relationTo === 'generic-page' || relationTo === 'blog';
+          },
           description: {
             de: 'Optionale Sprungmarke / Anker (z. B. "projektleitung" für den Akkordeon-Block)',
             en: 'Optional fragment / anchor (e.g. "projektleitung" for accordion block)',
