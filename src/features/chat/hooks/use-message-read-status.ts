@@ -5,7 +5,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { MessageType } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface MessageReadStatusProperties {
   chatId: string;
@@ -13,8 +13,8 @@ interface MessageReadStatusProperties {
   sortedMessages: ChatMessage[];
 }
 
-// Module-level watermark cache to persist last read message IDs across hook re-mounts/routes within the session
-const sessionReadWatermarks = new Map<string, string>();
+// Module-level watermark cache to record confirmed read message IDs per chat
+const confirmedReadWatermarks = new Map<string, string>();
 
 export const useMessageReadStatus = ({
   chatId,
@@ -22,9 +22,11 @@ export const useMessageReadStatus = ({
   sortedMessages,
 }: MessageReadStatusProperties): void => {
   const trpcUtils = trpc.useUtils();
-  const [lastMarkedReadId, setLastMarkedReadId] = useState<string | undefined>(() => {
-    return sessionReadWatermarks.get(chatId);
-  });
+  const lastMarkedReadIdReference = useRef<string | undefined>(confirmedReadWatermarks.get(chatId));
+
+  useEffect(() => {
+    lastMarkedReadIdReference.current = confirmedReadWatermarks.get(chatId);
+  }, [chatId]);
 
   const { mutate: markChatAsRead } = trpc.chat.markChatAsRead.useMutation({
     retry: false,
@@ -43,6 +45,10 @@ export const useMessageReadStatus = ({
         });
       });
     },
+    onSuccess: (_data, variables) => {
+      confirmedReadWatermarks.set(variables.chatId, variables.lastMessageId);
+      lastMarkedReadIdReference.current = variables.lastMessageId;
+    },
     onSettled: () => {
       trpcUtils.chat.chats.invalidate().catch(console.error);
     },
@@ -50,29 +56,24 @@ export const useMessageReadStatus = ({
 
   useEffect(() => {
     if (currentUser !== undefined && sortedMessages.length > 0) {
-      // Find the latest message (system message or message not sent by current user)
-      const latestMessageToRead = [...sortedMessages]
-        .reverse()
-        .find(
-          (message) =>
-            message.type === MessageType.SYSTEM_MSG ||
-            message.senderId === SYSTEM_SENDER_ID ||
-            (message.senderId !== currentUser && message.senderId !== undefined),
-        );
+      // Find the latest message to mark as read (system message or message not sent by current user)
+      const latestMessageToRead = [...sortedMessages].reverse().find((message) => {
+        if (message.type === MessageType.SYSTEM_MSG) return true;
+        if (message.senderId === SYSTEM_SENDER_ID) return true;
+        if (typeof message.senderId !== 'string') return true;
+        return message.senderId !== currentUser;
+      });
 
       if (
         latestMessageToRead !== undefined &&
-        (lastMarkedReadId === undefined || latestMessageToRead.id > lastMarkedReadId)
+        (lastMarkedReadIdReference.current === undefined ||
+          latestMessageToRead.id > lastMarkedReadIdReference.current)
       ) {
         markChatAsRead({
           chatId: chatId,
           lastMessageId: latestMessageToRead.id,
         });
-        sessionReadWatermarks.set(chatId, latestMessageToRead.id);
-        queueMicrotask(() => {
-          setLastMarkedReadId(latestMessageToRead.id);
-        });
       }
     }
-  }, [markChatAsRead, currentUser, sortedMessages, chatId, lastMarkedReadId]);
+  }, [markChatAsRead, currentUser, sortedMessages, chatId]);
 };
