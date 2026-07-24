@@ -24,6 +24,8 @@ model User {
   pushNotificationLogs PushNotificationLog[]
   reactions            MessageReaction[]
   presenceLogs         PresenceLog[]
+  photoContestImages   PhotoContestImage[]
+  photoContestVotes    PhotoContestVote[]
 
   @@index([name])
 }
@@ -344,3 +346,81 @@ model PresenceLog {
   @@index([userUuid])
   @@index([timestamp])
 }
+
+enum PhotoContestStatus {
+  DRAFT
+  UPLOADING
+  VOTING
+  CLOSED
+}
+
+enum PhotoContestType {
+  PRESELECTED
+  LIVE_EVENT
+}
+
+model PhotoContest {
+  id                 String             @id @default(uuid(7))
+  slug               String             @unique
+  title              String
+  description        String?
+  contestType        PhotoContestType   @default(PRESELECTED)
+  status             PhotoContestStatus @default(DRAFT)
+
+  votingStart        DateTime?
+  votingEnd          DateTime?
+
+  maxPointsPerUser   Int                @default(2)
+  maxPointsPerImage  Int                @default(2)
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  images             PhotoContestImage[]
+  votes              PhotoContestVote[]
+
+  @@index([status])
+  @@index([slug])
+}
+
+model PhotoContestImage {
+  id                 String             @id @default(uuid(7))
+  contestId          String
+  contest            PhotoContest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+
+  imageUrl           String
+  thumbnailUrl       String?
+  title              String?
+  description        String?
+  uploadedById       String?
+  uploadedBy         User?              @relation(fields: [uploadedById], references: [uuid])
+
+  order              Int                @default(0)
+  createdAt          DateTime           @default(now())
+
+  votes              PhotoContestVote[]
+
+  @@index([contestId])
+  @@index([uploadedById])
+}
+
+model PhotoContestVote {
+  id                 String            @id @default(uuid(7))
+  contestId          String
+  contest            PhotoContest      @relation(fields: [contestId], references: [id], onDelete: Cascade)
+
+  imageId            String
+  image              PhotoContestImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  userId             String
+  user               User              @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  points             Int               @default(1)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@unique([contestId, userId, imageId])
+  @@index([contestId, userId])
+  @@index([imageId])
+}
+
