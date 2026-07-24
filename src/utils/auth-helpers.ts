@@ -51,10 +51,14 @@ export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload
   const nextAuthUser = validationResult.data;
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
+  if (!user) {
+    return { user: undefined };
+  }
+
   return {
     user: {
-      collection: 'users',
       ...user,
+      collection: 'users',
     },
   };
 };
