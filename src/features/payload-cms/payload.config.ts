@@ -231,9 +231,7 @@ const jobsConfig: JobsConfig = {
                   (slug: string | undefined): slug is string =>
                     typeof slug === 'string' && slug.length > 0,
                 );
-              if (slugs.length > 0) {
-                setQueriedJobSlugs(slugs);
-              }
+              setQueriedJobSlugs(slugs);
             }
             return result;
           }) as CollectionAfterOperationHook,

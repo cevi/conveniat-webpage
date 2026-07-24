@@ -10,9 +10,7 @@ let lastQueriedJobSlugs: string[] = [];
  * Update the list of recently queried job slugs so logger hooks can associate job names with queue executions.
  */
 export function setQueriedJobSlugs(slugs: string[]): void {
-  if (slugs.length > 0) {
-    lastQueriedJobSlugs = slugs;
-  }
+  lastQueriedJobSlugs = slugs;
 }
 
 /**
@@ -24,12 +22,17 @@ export function formatRunningJobsLogMessage(message: string): string {
 
   const countString = match[1] ?? '0';
   const count = Number.parseInt(countString, 10);
-  let details = '';
 
-  details = lastQueriedJobSlugs.length > 0 ? lastQueriedJobSlugs
-      .slice(0, count)
-      .map((slug) => `${slug}/${nodeName}`)
-      .join(', ') : `node:${nodeName}`;
+  const slugs = lastQueriedJobSlugs;
+  lastQueriedJobSlugs = [];
+
+  const details =
+    slugs.length > 0
+      ? slugs
+          .slice(0, count)
+          .map((slug) => `${slug}/${nodeName}`)
+          .join(', ')
+      : `node:${nodeName}`;
 
   return `Running ${count} jobs <${details}>.`;
 }
@@ -41,14 +44,24 @@ export const customPayloadLoggerConfig = {
   options: {
     hooks: {
       logMethod(inputArguments: unknown[], method: (...args: unknown[]) => void): void {
-        if (
-          inputArguments.length > 0 &&
-          typeof inputArguments[0] === 'object' &&
-          inputArguments[0] !== null &&
-          'msg' in inputArguments[0] &&
-          typeof inputArguments[0].msg === 'string'
-        ) {
-          (inputArguments[0] as { msg: string }).msg = formatRunningJobsLogMessage(inputArguments[0].msg);
+        if (inputArguments.length > 0) {
+          const firstArgument = inputArguments[0];
+          if (typeof firstArgument === 'string') {
+            inputArguments[0] = formatRunningJobsLogMessage(firstArgument);
+          } else if (
+            typeof firstArgument === 'object' &&
+            firstArgument !== null &&
+            'msg' in firstArgument &&
+            typeof (firstArgument as Record<string, unknown>)['msg'] === 'string'
+          ) {
+            const messageObject = firstArgument as Record<string, unknown> & { msg: string };
+            messageObject.msg = formatRunningJobsLogMessage(messageObject.msg);
+          }
+
+          const secondArgument = inputArguments[1];
+          if (typeof secondArgument === 'string') {
+            inputArguments[1] = formatRunningJobsLogMessage(secondArgument);
+          }
         }
         method.apply(this, inputArguments);
       },
