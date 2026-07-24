@@ -59,8 +59,7 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
   // Extract candidates from resolveUser task output
   const resolveUserLog = job.log?.find((l) => l.taskSlug === 'resolveUser');
   const candidatesOutput = resolveUserLog?.output as
-    | { candidates?: Candidate[] | undefined }
-    | undefined;
+    { candidates?: Candidate[] | undefined } | undefined;
   const candidates = [...(candidatesOutput?.candidates ?? [])].sort((a, b) => {
     const scoreA = a.score ?? 0;
     const scoreB = b.score ?? 0;

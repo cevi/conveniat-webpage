@@ -121,8 +121,7 @@ const nextConfig: NextConfig = {
         ? [
             {
               protocol: new URL(process.env['APP_HOST_URL']).protocol.replace(':', '') as
-                | 'http'
-                | 'https',
+                'http' | 'https',
               hostname: new URL(process.env['APP_HOST_URL']).hostname,
               port: new URL(process.env['APP_HOST_URL']).port,
             },

@@ -22,13 +22,7 @@ export interface LinkFields {
   newTab?: boolean;
   doc: {
     value:
-      | string
-      | Blog
-      | GenericPage
-      | CampMapAnnotation
-      | CampScheduleEntry
-      | Document
-      | PayloadImage;
+      string | Blog | GenericPage | CampMapAnnotation | CampScheduleEntry | Document | PayloadImage;
     relationTo: string;
   };
 }

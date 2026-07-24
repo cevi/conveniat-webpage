@@ -139,8 +139,7 @@ export const mapRouter = createTRPCRouter({
         .map((document_) => {
           const isInteractive = (document_ as { isInteractive?: boolean }).isInteractive ?? true;
           const rawCoords = document_.polygonCoordinates as unknown as
-            | { longitude: number; latitude: number }[]
-            | undefined;
+            { longitude: number; latitude: number }[] | undefined;
           return {
             id: document_.id,
             title: document_.title,

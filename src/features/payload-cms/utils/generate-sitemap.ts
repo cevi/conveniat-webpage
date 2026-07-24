@@ -107,8 +107,7 @@ const getPublishedLocalizedPageUrls = (
   const localizedUrls: Partial<Record<Locale, string>> = {};
 
   const publishingStatus = page.publishingStatus as
-    | Record<Locale, { published: boolean }>
-    | undefined;
+    Record<Locale, { published: boolean }> | undefined;
   const multiLangSlug = page.seo.urlSlug as unknown as Record<Locale, string>;
 
   for (const locale of Object.values(LOCALE)) {

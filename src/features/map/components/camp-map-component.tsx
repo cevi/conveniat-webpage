@@ -20,8 +20,7 @@ import 'server-only';
 function parseEnvironmentMapCenter(): [number, number] {
   // this may still be undefined during build
   const environmentVariable = environmentVariables.CAMP_MAP_INITIAL_MAP_CENTER as
-    | string
-    | undefined;
+    string | undefined;
   const parts = environmentVariable?.split('/');
   if (parts?.length !== 2) {
     return [8.301_211, 46.502_822];
@@ -106,8 +105,7 @@ export const CampMapComponent: React.FC<{
     .map((document_) => {
       const isInteractive = (document_ as { isInteractive?: boolean }).isInteractive ?? true;
       const rawCoords = document_.polygonCoordinates as unknown as
-        | { longitude: number; latitude: number }[]
-        | undefined;
+        { longitude: number; latitude: number }[] | undefined;
       return {
         id: document_.id,
         title: document_.title,

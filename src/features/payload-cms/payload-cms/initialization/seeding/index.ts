@@ -625,15 +625,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     title_en: string;
     title_fr: string;
     colorTheme:
-      | 'purple'
-      | 'green'
-      | 'blue'
-      | 'gray'
-      | 'indigo'
-      | 'amber'
-      | 'rose'
-      | 'cyan'
-      | 'orange';
+      'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
   }> = [
     {
       key: 'workshop',

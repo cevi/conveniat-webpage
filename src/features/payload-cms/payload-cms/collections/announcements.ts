@@ -349,8 +349,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             draft: true,
           });
           const allLocalizedStatus = fetchedDocument['_localized_status'] as
-            | Record<string, { published?: boolean }>
-            | undefined;
+            Record<string, { published?: boolean }> | undefined;
           if (allLocalizedStatus !== undefined) {
             for (const lang of ['de', 'en', 'fr']) {
               if (lang !== locale && allLocalizedStatus[lang]?.published === true) {

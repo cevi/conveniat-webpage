@@ -1140,13 +1140,7 @@ export interface Form {
                           fieldMapping?:
                             | {
                                 jwtField:
-                                  | 'name'
-                                  | 'firstName'
-                                  | 'lastName'
-                                  | 'email'
-                                  | 'nickname'
-                                  | 'uuid'
-                                  | 'cevi_db_uuid';
+                                  'name' | 'firstName' | 'lastName' | 'email' | 'nickname' | 'uuid' | 'cevi_db_uuid';
                                 formField: string;
                                 id?: string | null;
                               }[]
@@ -1285,7 +1279,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        workflow: 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;

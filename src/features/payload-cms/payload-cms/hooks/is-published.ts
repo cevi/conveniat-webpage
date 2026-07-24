@@ -7,9 +7,7 @@ import { useMemo } from 'react';
 
 type LocalizedStatus = Record<Config['locale'], boolean> | undefined;
 type LocalizedPublishingStatus =
-  | Record<Config['locale'], { published: boolean } | undefined>
-  | undefined
-  | null;
+  Record<Config['locale'], { published: boolean } | undefined> | undefined | null;
 
 /**
  * Hook to check if a document is published in all locales
