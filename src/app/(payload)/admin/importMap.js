@@ -64,6 +64,7 @@ import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a83
 import { default as default_841c75d2a11733c455bbe07946842305 } from '@/features/payload-cms/payload-cms/components/form/trigger-workflows-button'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
 import { FormSubmissionCount as FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81 } from '@/features/payload-cms/payload-cms/components/form-submission-count'
+import { default as default_5a1afd3768a7bf55d4be4961f0c79351 } from '@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field'
 import { default as default_6f32ab4bbcf6fb111c3fe87675a4a1c3 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell'
 import { default as default_c671a40aa094e16dd185957e6f1a1b99 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field'
 import { default as default_168c8ff1f0fec04eb904cf9d3e9d2f4b } from '@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell'
@@ -177,6 +178,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/form/trigger-workflows-button#default": default_841c75d2a11733c455bbe07946842305,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
   "@/features/payload-cms/payload-cms/components/form-submission-count#FormSubmissionCount": FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81,
+  "@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field#default": default_5a1afd3768a7bf55d4be4961f0c79351,
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell#default": default_6f32ab4bbcf6fb111c3fe87675a4a1c3,
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field#default": default_c671a40aa094e16dd185957e6f1a1b99,
   "@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell#default": default_168c8ff1f0fec04eb904cf9d3e9d2f4b,

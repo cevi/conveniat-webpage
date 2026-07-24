@@ -19,12 +19,12 @@ export const resetServerData = async (): Promise<void> => {
     throw new Error('Unauthorized');
   }
 
-  const isAuthenticated = hasAccessToThisUser({
+  const isAuthorized = hasAccessToThisUser({
     user,
     requiredRoles: [Roles.FullAdmin],
   });
 
-  if (!isAuthenticated) {
+  if (!isAuthorized) {
     throw new Error('Unauthorized');
   }
 

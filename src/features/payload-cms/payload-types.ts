@@ -64,6 +64,7 @@ export interface Config {
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
+    form_collection: FormCollection;
     users: User;
     permissions: Permission;
     'push-notification-subscriptions': PushNotificationSubscription;
@@ -125,6 +126,7 @@ export interface Config {
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
+    form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
@@ -214,6 +216,7 @@ export interface Config {
       syncParticipants: TaskSyncParticipants;
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
+      cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -319,6 +322,7 @@ export interface Blog {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
           id?: string | null;
@@ -697,6 +701,10 @@ export interface Form {
   id: string;
   title: string;
   autocomplete?: boolean | null;
+  /**
+   * Maximum allowed file size in megabytes for file uploads in this form.
+   */
+  fileUploadLimitMB?: number | null;
   sections: {
     formSection: {
       sectionTitle: string;
@@ -927,6 +935,21 @@ export interface Form {
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'jobSelection';
+              }
+            | {
+                name: string;
+                label: string;
+                allowedFileTypes?: ('all' | 'pdf' | 'images' | 'documents' | 'custom') | null;
+                customAllowedFileTypes?: string | null;
+                allowMultiple?: boolean | null;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'fileUpload';
               }
             | {
                 displayCondition?: {
@@ -1167,6 +1190,21 @@ export interface Form {
                           blockName?: string | null;
                           blockType: 'jobSelection';
                         }
+                      | {
+                          name: string;
+                          label: string;
+                          allowedFileTypes?: ('all' | 'pdf' | 'images' | 'documents' | 'custom') | null;
+                          customAllowedFileTypes?: string | null;
+                          allowMultiple?: boolean | null;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'fileUpload';
+                        }
                     )[]
                   | null;
                 /**
@@ -1216,6 +1254,10 @@ export interface Form {
         replyTo?: string | null;
         emailFrom?: string | null;
         subject: string;
+        /**
+         * If checked, files uploaded in this form submission will be attached to this email.
+         */
+        attachFiles?: boolean | null;
         /**
          * Enter the message that should be sent in this email.
          */
@@ -1305,6 +1347,10 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Approve this submission to display it on the website
+   */
+  approved?: boolean | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -1388,6 +1434,56 @@ export interface HelperJob {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ApprovedFormSubmissionsBlock".
+ */
+export interface ApprovedFormSubmissionsBlock {
+  form: string | Form;
+  /**
+   * Optional heading (e.g. "Registered Stands", "Approved Submissions")
+   */
+  heading?: string | null;
+  /**
+   * Name of the form field to display as main title (e.g. title, name_des_standes).
+   */
+  titleFieldName?: string | null;
+  /**
+   * Name of the form field to use for category search/filtering (e.g. kategorie, category).
+   */
+  categoryFieldName?: string | null;
+  /**
+   * Name of the form field for uploaded PDFs or documents (e.g. konzept, file, pdf).
+   */
+  fileFieldName?: string | null;
+  /**
+   * Optional placeholder for the search input (e.g. "Search entries...")
+   */
+  searchPlaceholder?: string | null;
+  /**
+   * Optional label for the file download button (e.g. "Download Concept (PDF)")
+   */
+  fileDownloadButtonLabel?: string | null;
+  /**
+   * Select specific form fields to display dynamically when expanding submission details.
+   */
+  displayFields?:
+    | {
+        /**
+         * e.g. name_vom_hof, stand_grosse, ressourcen, programmdauer
+         */
+        fieldName: string;
+        /**
+         * Human readable label (e.g. "Farm/Group", "Stand size")
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'approvedFormSubmissionsBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1754,6 +1850,7 @@ export interface GenericPage {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
           id?: string | null;
@@ -3451,6 +3548,31 @@ export interface UserSubmittedImage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form_collection".
+ */
+export interface FormCollection {
+  id: string;
+  /**
+   * Temporary files are deleted automatically after 24 hours if the form is not submitted.
+   */
+  isTemporary: boolean;
+  form?: (string | null) | Form;
+  formSubmission?: (string | null) | FormSubmission;
+  originalFilename?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "push-notification-subscriptions".
  */
 export interface PushNotificationSubscription {
@@ -3957,6 +4079,7 @@ export interface PayloadJob {
           | 'syncParticipants'
           | 'generateBills'
           | 'sendBills'
+          | 'cleanupTemporaryFormFiles'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -4011,6 +4134,7 @@ export interface PayloadJob {
         | 'syncParticipants'
         | 'generateBills'
         | 'sendBills'
+        | 'cleanupTemporaryFormFiles'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -4092,6 +4216,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'documents';
         value: string | Document;
+      } | null)
+    | ({
+        relationTo: 'form_collection';
+        value: string | FormCollection;
       } | null)
     | ({
         relationTo: 'users';
@@ -4244,6 +4372,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
                 | T
                 | {
@@ -4359,6 +4488,28 @@ export interface BlogSelect<T extends boolean = true> {
  */
 export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ApprovedFormSubmissionsBlock_select".
+ */
+export interface ApprovedFormSubmissionsBlockSelect<T extends boolean = true> {
+  form?: T;
+  heading?: T;
+  titleFieldName?: T;
+  categoryFieldName?: T;
+  fileFieldName?: T;
+  searchPlaceholder?: T;
+  fileDownloadButtonLabel?: T;
+  displayFields?:
+    | T
+    | {
+        fieldName?: T;
+        label?: T;
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }
@@ -5091,6 +5242,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
                 | T
                 | {
@@ -5596,6 +5748,27 @@ export interface DocumentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form_collection_select".
+ */
+export interface FormCollectionSelect<T extends boolean = true> {
+  isTemporary?: T;
+  form?: T;
+  formSubmission?: T;
+  originalFilename?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -5862,6 +6035,7 @@ export interface PresenceLogsSelect<T extends boolean = true> {
 export interface FormsSelect<T extends boolean = true> {
   title?: T;
   autocomplete?: T;
+  fileUploadLimitMB?: T;
   sections?:
     | T
     | {
@@ -6008,6 +6182,19 @@ export interface FormsSelect<T extends boolean = true> {
                           dateRangeCategory?: T;
                           category?: T;
                           required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    fileUpload?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          allowedFileTypes?: T;
+                          customAllowedFileTypes?: T;
+                          allowMultiple?: T;
+                          required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -6161,6 +6348,19 @@ export interface FormsSelect<T extends boolean = true> {
                                       id?: T;
                                       blockName?: T;
                                     };
+                                fileUpload?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      allowedFileTypes?: T;
+                                      customAllowedFileTypes?: T;
+                                      allowMultiple?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
                               };
                           placement?: T;
                           id?: T;
@@ -6187,6 +6387,7 @@ export interface FormsSelect<T extends boolean = true> {
         replyTo?: T;
         emailFrom?: T;
         subject?: T;
+        attachFiles?: T;
         message?: T;
         id?: T;
       };
@@ -6228,6 +6429,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  approved?: T;
   smtpResults?: T;
   workflowResults?: T;
   'helper-jobs'?: T;
@@ -6819,6 +7021,7 @@ export interface AppLandingPage {
             blockType: 'blogPostsOverview';
           }
         | FormBlock
+        | ApprovedFormSubmissionsBlock
         | {
             images: (string | Image)[];
             id?: string | null;
@@ -7357,6 +7560,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               blockName?: T;
             };
         formBlock?: T | FormBlockSelect<T>;
+        approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
           | T
           | {
@@ -7839,6 +8043,14 @@ export interface TaskSendBills {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupTemporaryFormFiles".
+ */
+export interface TaskCleanupTemporaryFormFiles {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -7861,6 +8073,7 @@ export interface TaskCreateCollectionExport {
       | 'images'
       | 'userSubmittedImages'
       | 'documents'
+      | 'form_collection'
       | 'users'
       | 'permissions'
       | 'push-notification-subscriptions'
