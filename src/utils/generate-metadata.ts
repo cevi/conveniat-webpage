@@ -33,6 +33,12 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
 
       publisher,
 
+      openGraph: {
+        type: 'website',
+        title: defaultTitle,
+        description: defaultDescription,
+      },
+
       verification: {
         google: googleSearchConsoleVerification ?? '',
       },
