@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, unicorn/no-null, unicorn/prefer-ternary */
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import prisma from '@/lib/db/prisma';
 import type { CollectionConfig } from 'payload';
 
@@ -54,6 +55,8 @@ export const PhotoContestCollection: CollectionConfig = {
               order: number;
             }[] = [];
 
+            let hasResolutionError = false;
+
             for (let index = 0; index < doc.images.length; index += 1) {
               const item = doc.images[index];
               let resolvedUrl: string | null = null;
@@ -78,6 +81,7 @@ export const PhotoContestCollection: CollectionConfig = {
                     resolvedUrl = mediaObject.url ?? mediaObject.sizes?.large?.url ?? null;
                   } catch (error) {
                     console.error('Could not fetch image from media library:', error);
+                    hasResolutionError = true;
                   }
                 }
               }
@@ -102,9 +106,15 @@ export const PhotoContestCollection: CollectionConfig = {
 
             const validImageUrls = new Set(resolvedItems.map((img) => img.imageUrl));
 
-            for (const img of currentImages) {
-              if (!validImageUrls.has(img.imageUrl)) {
-                await prisma.photoContestImage.delete({ where: { id: img.id } });
+            if (hasResolutionError) {
+              console.warn(
+                'Skipping deletion of missing photo contest images due to media library resolution errors.',
+              );
+            } else {
+              for (const img of currentImages) {
+                if (!validImageUrls.has(img.imageUrl)) {
+                  await prisma.photoContestImage.delete({ where: { id: img.id } });
+                }
               }
             }
 
@@ -251,6 +261,27 @@ export const PhotoContestCollection: CollectionConfig = {
         de: 'Wettbewerbs-Bilder',
         en: 'Contest Images',
         fr: 'Images du concours',
+      },
+      validate: (value, { req }): string | true => {
+        if (Array.isArray(value)) {
+          for (const [index, itemRaw] of value.entries()) {
+            const item = itemRaw as {
+              image?: unknown;
+              imageUrl?: unknown;
+            };
+            const hasImage = Boolean(item.image);
+            const hasImageUrl = typeof item.imageUrl === 'string' && item.imageUrl.trim() !== '';
+
+            if (!hasImage && !hasImageUrl) {
+              return getValidationMessage(req.i18n.language, {
+                en: `Image entry #${index + 1} requires at least one of 'Image from Media Library' or 'Image URL'.`,
+                de: `Bildeintrag #${index + 1} benötigt mindestens ein 'Bild aus Mediathek' oder eine 'Bild URL'.`,
+                fr: `L'entrée d'image #${index + 1} nécessite au moins une 'Image de la médiathèque' ou une 'URL d'image'.`,
+              });
+            }
+          }
+        }
+        return true;
       },
       fields: [
         {
