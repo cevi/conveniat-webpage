@@ -1,5 +1,3 @@
-'use server';
-
 import type { Locale } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
