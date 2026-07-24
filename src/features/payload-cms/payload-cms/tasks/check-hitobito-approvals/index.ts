@@ -29,9 +29,6 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
 
           const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
           if (!isEnabled || !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) {
-            req.payload.logger.info(
-              'checkHitobitoApprovals task scheduler bypassed: task is disabled via feature flag.',
-            );
             return {
               shouldSchedule: false,
               input: {},
@@ -45,7 +42,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
             onlyScheduled: true,
           });
 
-          req.payload.logger.info(
+          req.payload.logger.debug(
             `Scheduler evaluated checkHitobitoApprovals. Active/Runnable jobs: ${runnableOrActiveJobsForQueue}`,
           );
 
@@ -68,7 +65,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
 
     const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
     if (!isEnabled || !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) {
-      logger.info('checkHitobitoApprovals task bypassed: task is disabled via feature flag.');
+      logger.debug('checkHitobitoApprovals task bypassed: task is disabled via feature flag.');
       return { output: {} };
     }
 
@@ -90,7 +87,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
     });
 
     if (blockedJobs.docs.length === 0) {
-      logger.info('No pending blocked registration workflows waiting for approval.');
+      logger.debug('No pending blocked registration workflows waiting for approval.');
       return { output: {} };
     }
 

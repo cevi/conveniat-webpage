@@ -47,11 +47,21 @@ import { fileURLToPath } from 'node:url';
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
 import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
+  customPayloadLoggerConfig,
+  setQueriedJobSlugs,
+} from '@/features/payload-cms/payload-cms/utils/job-logger';
+import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type { CollectionBeforeChangeHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
+import type {
+  CollectionAfterOperationHook,
+  CollectionBeforeChangeHook,
+  Endpoint,
+  JobsConfig,
+  MetaConfig,
+} from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -208,6 +218,27 @@ const jobsConfig: JobsConfig = {
       },
       hooks: {
         ...defaultJobsCollection.hooks,
+        afterOperation: [
+          (({ operation, result }) => {
+            if (operation === 'find' && 'docs' in result && Array.isArray(result.docs)) {
+              const slugs = (result.docs as Record<string, unknown>[])
+                .map(
+                  (document_) =>
+                    (document_['taskSlug'] as string | undefined) ||
+                    (document_['workflowSlug'] as string | undefined),
+                )
+                .filter(
+                  (slug: string | undefined): slug is string =>
+                    typeof slug === 'string' && slug.length > 0,
+                );
+              if (slugs.length > 0) {
+                setQueriedJobSlugs(slugs);
+              }
+            }
+            return result;
+          }) as CollectionAfterOperationHook,
+          ...(defaultJobsCollection.hooks?.afterOperation ?? []),
+        ],
         beforeOperation: [
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (hookArguments: any): void => {
@@ -366,6 +397,7 @@ const customEndpoints: Endpoint[] = [
 ];
 
 export const payloadConfig: RoutableConfig = {
+  logger: customPayloadLoggerConfig,
   serverURL: env.APP_HOST_URL,
   onInit: onPayloadInit,
   admin: payloadConfigAdminSettings,
