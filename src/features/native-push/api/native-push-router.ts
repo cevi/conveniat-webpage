@@ -1,4 +1,4 @@
-import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
@@ -109,7 +109,7 @@ export const nativePushRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  sendWebPushNotification: trpcBaseProcedure
+  sendWebPushNotification: trpcAdminProcedure
     .input(
       z.object({
         subscription: z.object({

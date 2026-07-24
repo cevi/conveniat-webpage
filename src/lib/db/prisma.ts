@@ -28,7 +28,7 @@ if (isBuild) {
 } else {
   const adapter = new PrismaPg({
     connectionString: environmentVariables.CHAT_DATABASE_URL,
-    max: 50,
+    max: 30,
   });
   prisma =
     globalForPrisma.prisma ??
