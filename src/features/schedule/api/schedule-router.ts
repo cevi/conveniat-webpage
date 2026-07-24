@@ -39,6 +39,12 @@ export const scheduleRouter = createTRPCRouter({
     return getById(input.id, locale);
   }),
 
+  getHelperShifts: publicProcedure.query(async ({ ctx }) => {
+    const { locale } = ctx;
+    const { getHelperShifts } = await import('./get-helper-shifts');
+    return getHelperShifts({}, locale);
+  }),
+
   getCourseStatus: publicProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
     const { prisma, user } = ctx;
     const { courseId } = input;

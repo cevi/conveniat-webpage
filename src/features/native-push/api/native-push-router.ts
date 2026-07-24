@@ -108,4 +108,29 @@ export const nativePushRouter = createTRPCRouter({
       );
       return { success: true };
     }),
+
+  sendWebPushNotification: trpcBaseProcedure
+    .input(
+      z.object({
+        subscription: z.object({
+          endpoint: z.string(),
+          keys: z.object({
+            p256dh: z.string(),
+            auth: z.string(),
+          }),
+        }),
+        message: z.string(),
+        url: z.string().optional(),
+        userId: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
+      return sendNotificationToSubscription(
+        input.subscription,
+        input.message,
+        input.url,
+        input.userId,
+      );
+    }),
 });
