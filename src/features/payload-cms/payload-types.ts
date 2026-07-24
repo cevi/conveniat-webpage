@@ -323,13 +323,13 @@ export interface Blog {
         }
       | FormBlock
       | ApprovedFormSubmissionsBlock
-      | PhotoContestBlock
       | {
           images: (string | Image)[];
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | PhotoContestBlock
       | {
           image: string | Image;
           /**
@@ -1285,7 +1285,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'brevoContactWorkflow';
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;
@@ -1491,6 +1491,9 @@ export interface ApprovedFormSubmissionsBlock {
  * via the `definition` "PhotoContestBlock".
  */
 export interface PhotoContestBlock {
+  /**
+   * Default loaded photo contest
+   */
   initialContestSlug?: string | null;
   id?: string | null;
   blockName?: string | null;
@@ -1868,6 +1871,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | PhotoContestBlock
       | {
           image: string | Image;
           /**
@@ -4391,6 +4395,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              photoContestBlock?: T | PhotoContestBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -4521,6 +4526,15 @@ export interface ApprovedFormSubmissionsBlockSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PhotoContestBlock_select".
+ */
+export interface PhotoContestBlockSelect<T extends boolean = true> {
+  initialContestSlug?: T;
   id?: T;
   blockName?: T;
 }
@@ -5261,6 +5275,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              photoContestBlock?: T | PhotoContestBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -7043,6 +7058,7 @@ export interface AppLandingPage {
             blockName?: string | null;
             blockType: 'photoCarousel';
           }
+        | PhotoContestBlock
         | {
             image: string | Image;
             /**
@@ -7584,6 +7600,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        photoContestBlock?: T | PhotoContestBlockSelect<T>;
         singlePicture?:
           | T
           | {
