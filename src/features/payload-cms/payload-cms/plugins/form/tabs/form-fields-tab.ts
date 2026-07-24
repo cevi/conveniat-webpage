@@ -768,6 +768,95 @@ const formJobSelectionBlock: Block = {
   labels: { plural: 'Job Selection Blocks', singular: 'Job Selection' },
 };
 
+const formFileUploadBlock: Block = {
+  slug: 'fileUpload',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'File Upload Field',
+            de: 'Datei Upload Feld',
+            fr: 'Champ de téléversement de fichier',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'allowedFileTypes',
+          type: 'select',
+          label: {
+            en: 'Allowed File Types',
+            de: 'Erlaubte Dateitypen',
+            fr: 'Types de fichiers autorisés',
+          },
+          defaultValue: 'all',
+          options: [
+            { label: 'All File Types (*)', value: 'all' },
+            { label: 'PDF Documents (.pdf)', value: 'pdf' },
+            { label: 'Images (.png, .jpg, .jpeg, .webp, .gif)', value: 'images' },
+            { label: 'Documents (.pdf, .doc, .docx, .xls, .xlsx, .txt)', value: 'documents' },
+            { label: 'Custom File Extensions', value: 'custom' },
+          ],
+          admin: { width: '50%' },
+        },
+        {
+          name: 'customAllowedFileTypes',
+          type: 'text',
+          label: {
+            en: 'Custom File Extensions (e.g. .pdf,.png,.docx)',
+            de: 'Benutzerdefinierte Dateiendungen (z.B. .pdf,.png,.docx)',
+            fr: 'Extensions de fichier personnalisées (ex. .pdf,.png,.docx)',
+          },
+          admin: {
+            width: '50%',
+            condition: (_, siblingData) => siblingData['allowedFileTypes'] === 'custom',
+          },
+        },
+      ],
+    },
+    {
+      name: 'allowMultiple',
+      type: 'checkbox',
+      label: {
+        en: 'Allow Multiple Files',
+        de: 'Mehrere Dateien erlauben',
+        fr: 'Autoriser plusieurs fichiers',
+      },
+    },
+    { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
+  ],
+  labels: { plural: 'File Upload Fields', singular: 'File Upload' },
+};
+
 const formBlocks: Block[] = [
   formCheckboxBlock,
   formCountryBlock,
@@ -780,6 +869,7 @@ const formBlocks: Block[] = [
   formDateBlock,
   formCeviDatabaseLoginBlock,
   formJobSelectionBlock,
+  formFileUploadBlock,
 ];
 
 const conditionedBlock: Block = {

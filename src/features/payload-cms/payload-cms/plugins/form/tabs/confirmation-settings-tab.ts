@@ -130,6 +130,23 @@ const formEmailField: Field = {
       required: true,
     },
     {
+      name: 'attachFiles',
+      type: 'checkbox',
+      defaultValue: false,
+      label: {
+        en: 'Attach Uploaded Files',
+        de: 'Hochgeladene Dateien als Anhang mitsenden',
+        fr: 'Joindre les fichiers téléversés',
+      },
+      admin: {
+        description: {
+          en: 'If checked, files uploaded in this form submission will be attached to this email.',
+          de: 'Wenn aktiviert, werden mit diesem Formular hochgeladene Dateien an diese E-Mail angehängt.',
+          fr: 'Si cette option est cochée, les fichiers téléversés dans ce formulaire seront joints à cet e-mail.',
+        },
+      },
+    },
+    {
       name: 'message',
       type: 'richText',
       admin: { description: 'Enter the message that should be sent in this email.' },

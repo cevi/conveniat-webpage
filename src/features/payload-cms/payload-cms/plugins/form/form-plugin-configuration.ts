@@ -24,6 +24,8 @@ import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import type { Field, TabsField } from 'payload';
 
+import { markUploadedFilesPermanent } from '@/features/payload-cms/payload-cms/plugins/form/hooks/mark-uploaded-files-permanent';
+
 /**
  * Field for the internal form title.
  */
@@ -55,6 +57,28 @@ const formAllowAutocompleteField: Field = {
 };
 
 /**
+ * Field for configuring file upload size limit (MB).
+ */
+const formFileUploadLimitField: Field = {
+  name: 'fileUploadLimitMB',
+  type: 'number',
+  defaultValue: 10,
+  min: 1,
+  label: {
+    en: 'File Upload Limit (MB)',
+    de: 'Datei-Upload-Limit (MB)',
+    fr: 'Limite de téléversement de fichier (Mo)',
+  },
+  admin: {
+    description: {
+      en: 'Maximum allowed file size in megabytes for file uploads in this form.',
+      de: 'Maximale zulässige Dateigröße in Megabyte für Datei-Uploads in diesem Formular.',
+      fr: 'Taille maximale de fichier autorisée en mégaoctets pour ce formulaire.',
+    },
+  },
+};
+
+/**
  * Tabs for the form builder.
  */
 const formBuilderTabs: TabsField = {
@@ -62,7 +86,12 @@ const formBuilderTabs: TabsField = {
   tabs: [formFieldsTab, confirmationSettingsTab, workflowTab, formResultsTab],
 };
 
-const formFields: Field[] = [formTitleField, formAllowAutocompleteField, formBuilderTabs];
+const formFields: Field[] = [
+  formTitleField,
+  formAllowAutocompleteField,
+  formFileUploadLimitField,
+  formBuilderTabs,
+];
 
 const formLocalizationFields: Field[] = [
   {
@@ -222,7 +251,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     ],
     hooks: {
       beforeChange: [validateFormSubmission, linkJobSubmission],
-      afterChange: [workflowTriggerOnFormSubmission],
+      afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent],
     },
   },
   formOverrides: {
