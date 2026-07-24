@@ -21,7 +21,7 @@ import Cookies from 'js-cookie';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 
 export const useOnboarding = (): UseOnboardingReturn => {
   const [state, dispatch] = useReducer(onboardingReducer, initialOnboardingState);
@@ -55,9 +55,24 @@ export const useOnboarding = (): UseOnboardingReturn => {
   const { isSubscribed: hasPushSubscription } = usePushNotificationState({ locale });
 
   const { status } = useSession();
+  const [authTimeoutReached, setAuthTimeoutReached] = useState(false);
   const searchParameters = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Fallback timeout if NextAuth session check hangs or delays (e.g. during database/Redis connection issues)
+  useEffect(() => {
+    if (status !== 'loading') return;
+
+    const timer = setTimeout(() => {
+      setAuthTimeoutReached(true);
+    }, 3000);
+
+    return (): void => clearTimeout(timer);
+  }, [status]);
+
+  const effectiveAuthStatus =
+    status === 'loading' && authTimeoutReached ? 'unauthenticated' : status;
 
   // Mounted check still useful for effects that might run after unmount
   const isMounted = useRef(true);
@@ -84,7 +99,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
       type: OnboardingAction.UPDATE_CONTEXT,
       payload: {
         hasAcceptedCookieBanner,
-        authStatus: status,
+        authStatus: effectiveAuthStatus,
         hasSkippedLogin: hasSkippedAuth,
         hasSkippedPush,
         hasSkippedOffline,
@@ -98,7 +113,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
         ...(isNativeAppWebView() ? {} : { hasPushSubscription }),
       },
     });
-  }, [status, isOnline, offlineContentHandled, hasCachedContent, hasPushSubscription]);
+  }, [effectiveAuthStatus, isOnline, offlineContentHandled, hasCachedContent, hasPushSubscription]);
 
   // Clear skip auth cookie if signalled by query param
   useEffect(() => {

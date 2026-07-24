@@ -143,7 +143,8 @@ class IgnoreTempoErrorLogger implements DiagLogger {
         argument.includes('getaddrinfo ENOTFOUND tempo') ||
         argument.includes('ECONNREFUSED tempo') ||
         argument.includes('ECONNREFUSED 127.0.0.1:4318') ||
-        argument.includes('ECONNREFUSED localhost:4318')
+        argument.includes('ECONNREFUSED localhost:4318') ||
+        argument.includes(':4318')
       );
     }
 
@@ -152,7 +153,8 @@ class IgnoreTempoErrorLogger implements DiagLogger {
         argument.message.includes('getaddrinfo ENOTFOUND tempo') ||
         argument.message.includes('ECONNREFUSED tempo') ||
         argument.message.includes('ECONNREFUSED 127.0.0.1:4318') ||
-        argument.message.includes('ECONNREFUSED localhost:4318')
+        argument.message.includes('ECONNREFUSED localhost:4318') ||
+        argument.message.includes(':4318')
       );
     }
 
@@ -164,10 +166,7 @@ class IgnoreTempoErrorLogger implements DiagLogger {
         (record['code'] === 'ECONNREFUSED' &&
           record['address'] === '127.0.0.1' &&
           record['port'] === 4318) ||
-        (typeof record['message'] === 'string' &&
-          (record['message'].includes('tempo') ||
-            record['message'].includes('127.0.0.1:4318') ||
-            record['message'].includes('localhost:4318')))
+        (record['code'] === 'ECONNREFUSED' && record['port'] === 4318)
       );
     }
 
@@ -201,7 +200,7 @@ const postHogTraceExporter = new OTLPTraceExporter({
 
 export const sdk = new NodeSDK({
   traceExporter,
-  metricReader: metricsReader,
+  metricReaders: [metricsReader],
   idGenerator: new CryptoIdGenerator(),
   spanProcessors: [
     new BatchSpanProcessor(traceExporter, {
