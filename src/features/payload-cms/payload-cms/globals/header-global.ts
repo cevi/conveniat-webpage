@@ -63,6 +63,28 @@ const MainMenu: Field = {
               required: true,
             },
             LinkField(false),
+            {
+              name: 'subMenu',
+              label: 'Sub Sub Sub Menu Items',
+              admin: {
+                components: {
+                  RowLabel: {
+                    path: '@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel',
+                  },
+                },
+              },
+              type: 'array',
+              localized: true,
+              fields: [
+                {
+                  name: 'label',
+                  label: 'Label',
+                  type: 'text',
+                  required: true,
+                },
+                LinkField(false),
+              ],
+            },
           ],
         },
       ],
