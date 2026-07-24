@@ -699,6 +699,8 @@ export interface ApprovedFormSubmissionsBlock {
   titleFieldName?: string | null;
   categoryFieldName?: string | null;
   fileFieldName?: string | null;
+  searchPlaceholder?: string | null;
+  fileDownloadButtonLabel?: string | null;
   displayFields?:
     | {
         fieldName: string;

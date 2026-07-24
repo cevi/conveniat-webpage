@@ -14,6 +14,8 @@ export const ApprovedFormSubmissions: React.FC<ApprovedFormSubmissionsBlockPrope
   titleFieldName,
   categoryFieldName,
   fileFieldName,
+  searchPlaceholder,
+  fileDownloadButtonLabel,
   displayFields,
   locale,
 }) => {
@@ -28,6 +30,8 @@ export const ApprovedFormSubmissions: React.FC<ApprovedFormSubmissionsBlockPrope
       titleFieldName={titleFieldName}
       categoryFieldName={categoryFieldName}
       fileFieldName={fileFieldName}
+      searchPlaceholder={searchPlaceholder}
+      fileDownloadButtonLabel={fileDownloadButtonLabel}
       displayFields={displayFields}
       locale={locale}
     />

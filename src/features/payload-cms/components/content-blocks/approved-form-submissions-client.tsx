@@ -25,46 +25,48 @@ export interface ApprovedFormSubmissionsClientProperties {
   titleFieldName?: string | null;
   categoryFieldName?: string | null;
   fileFieldName?: string | null;
+  searchPlaceholder?: string | null;
+  fileDownloadButtonLabel?: string | null;
   displayFields?: DisplayFieldConfiguration[] | null;
   locale: Locale;
 }
 
 const translations = {
   de: {
-    searchPlaceholder: 'Stände oder Konzepte durchsuchen...',
+    searchPlaceholder: 'Einträge durchsuchen...',
     allCategories: 'Alle Kategorien',
-    downloadPdf: 'Konzept / PDF herunterladen',
+    downloadPdf: 'Datei / PDF herunterladen',
     showDetails: 'Details anzeigen',
     hideDetails: 'Details ausblenden',
-    noSubmissions: 'Derzeit sind noch keine Stände freigegeben.',
-    noResults: 'Keine passenden Stände für diese Filterkriterien gefunden.',
+    noSubmissions: 'Derzeit sind noch keine freigegebenen Einträge vorhanden.',
+    noResults: 'Keine passenden Einträge für diese Filterkriterien gefunden.',
     resetFilters: 'Filter zurücksetzen',
     approvedTag: 'Freigegeben',
-    itemsFound: 'Stände gefunden',
+    itemsFound: 'Einträge gefunden',
   },
   en: {
-    searchPlaceholder: 'Search stands or concepts...',
+    searchPlaceholder: 'Search entries...',
     allCategories: 'All Categories',
-    downloadPdf: 'Download Concept / PDF',
+    downloadPdf: 'Download File / PDF',
     showDetails: 'Show details',
     hideDetails: 'Hide details',
-    noSubmissions: 'No approved stands available yet.',
-    noResults: 'No matching stands found for these filter criteria.',
+    noSubmissions: 'No approved entries available yet.',
+    noResults: 'No matching entries found for these filter criteria.',
     resetFilters: 'Reset filters',
     approvedTag: 'Approved',
-    itemsFound: 'Stands found',
+    itemsFound: 'Entries found',
   },
   fr: {
-    searchPlaceholder: 'Rechercher des stands ou des concepts...',
+    searchPlaceholder: 'Rechercher...',
     allCategories: 'Toutes les catégories',
-    downloadPdf: 'Télécharger le concept / PDF',
+    downloadPdf: 'Télécharger le fichier / PDF',
     showDetails: 'Afficher les détails',
     hideDetails: 'Masquer les détails',
-    noSubmissions: 'Aucun stand approuvé disponible pour le moment.',
-    noResults: 'Aucun stand correspondant trouvé pour ces critères de recherche.',
+    noSubmissions: 'Aucune entrée approuvée disponible pour le moment.',
+    noResults: 'Aucun résultat correspondant trouvé.',
     resetFilters: 'Réinitialiser les filtres',
     approvedTag: 'Approuvé',
-    itemsFound: 'Stands trouvés',
+    itemsFound: 'Entrées trouvées',
   },
 };
 
@@ -104,13 +106,26 @@ const getFieldValue = (
 export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClientProperties> = ({
   submissions,
   heading,
-  titleFieldName = 'name_des_standes',
-  categoryFieldName = 'kategorie',
-  fileFieldName = 'konzept',
+  titleFieldName = 'title',
+  categoryFieldName = 'category',
+  fileFieldName = 'file',
+  searchPlaceholder,
+  fileDownloadButtonLabel,
   displayFields,
   locale,
 }) => {
   const t = translations[locale];
+  const activeSearchPlaceholder =
+    searchPlaceholder !== null && searchPlaceholder !== undefined && searchPlaceholder.trim() !== ''
+      ? searchPlaceholder
+      : t.searchPlaceholder;
+  const activeDownloadLabel =
+    fileDownloadButtonLabel !== null &&
+    fileDownloadButtonLabel !== undefined &&
+    fileDownloadButtonLabel.trim() !== ''
+      ? fileDownloadButtonLabel
+      : t.downloadPdf;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -129,39 +144,44 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
 
       // Determine Title
       let title = getFieldValue(data, titleFieldName);
-      if (title === '') {
+      if (title.length === 0) {
         const titleField = getFieldValue(data, 'title');
         const standNameField = getFieldValue(data, 'name_des_standes');
         const hofNameField = getFieldValue(data, 'name_vom_hof');
-        const standNameAltField = getFieldValue(data, 'stand_name');
+        const nameField = getFieldValue(data, 'name');
 
-        if (titleField !== '') {
+        if (titleField.length > 0) {
           title = titleField;
-        } else if (standNameField !== '') {
+        } else if (standNameField.length > 0) {
           title = standNameField;
-        } else if (hofNameField !== '') {
+        } else if (hofNameField.length > 0) {
           title = hofNameField;
-        } else if (standNameAltField === '') {
-          title = data[0]?.value ?? 'Stand';
+        } else if (nameField.length > 0) {
+          title = nameField;
         } else {
-          title = standNameAltField;
+          title = data[0]?.value ?? 'Eintrag';
         }
       }
 
       // Determine Category
       let category = getFieldValue(data, categoryFieldName);
-      if (category === '') {
-        const catField = getFieldValue(data, 'category');
-        const catStandField = getFieldValue(data, 'kategorie_des_standes');
-        category = catField === '' ? catStandField : catField;
+      if (category.length === 0) {
+        const catField = getFieldValue(data, 'kategorie');
+        const catAltField = getFieldValue(data, 'category');
+        category = catField.length > 0 ? catField : catAltField;
       }
 
       // Determine File / PDF URL
       let fileUrl = getFieldValue(data, fileFieldName);
-      if (fileUrl === '') {
-        // Fallback: look for any field containing a file URL
-        const fileField = data.find((dataItem) => isFileUrl(dataItem.value));
-        fileUrl = fileField?.value ?? '';
+      if (fileUrl.length === 0) {
+        const conceptField = getFieldValue(data, 'konzept');
+        if (conceptField.length > 0) {
+          fileUrl = conceptField;
+        } else {
+          // Fallback: look for any field containing a file URL
+          const fileField = data.find((dataItem) => isFileUrl(dataItem.value));
+          fileUrl = fileField?.value ?? '';
+        }
       }
 
       return {
@@ -179,7 +199,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
   const categories = useMemo(() => {
     const set = new Set<string>();
     for (const item of processedItems) {
-      if (item.category !== '') {
+      if (item.category.length > 0) {
         set.add(item.category);
       }
     }
@@ -195,7 +215,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
       }
 
       // Search query filter
-      if (searchQuery.trim() !== '') {
+      if (searchQuery.trim().length > 0) {
         const query = searchQuery.toLowerCase();
         const matchesTitle = item.title.toLowerCase().includes(query);
         const matchesCategory = item.category.toLowerCase().includes(query);
@@ -209,7 +229,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
     });
   }, [processedItems, selectedCategory, searchQuery]);
 
-  const hasHeading = heading !== null && heading !== undefined && heading !== '';
+  const hasHeading = heading !== null && heading !== undefined && heading.length > 0;
 
   return (
     <div className="my-8 w-full space-y-6">
@@ -234,10 +254,10 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
             type="text"
             value={searchQuery}
             onChange={(event_) => setSearchQuery(event_.target.value)}
-            placeholder={t.searchPlaceholder}
+            placeholder={activeSearchPlaceholder}
             className="focus:border-conveniat-green focus:ring-conveniat-green/20 right-3.5 block w-full rounded-xl border border-gray-200 bg-white py-2.5 pr-9 pl-10 text-sm transition placeholder:text-gray-400 focus:ring-2 focus:outline-hidden"
           />
-          {searchQuery !== '' && (
+          {searchQuery.length > 0 && (
             <button
               onClick={() => setSearchQuery('')}
               className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
@@ -291,7 +311,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
           <p className="text-sm font-medium text-gray-600">
             {processedItems.length === 0 ? t.noSubmissions : t.noResults}
           </p>
-          {(searchQuery !== '' || selectedCategory !== 'ALL') && (
+          {(searchQuery.length > 0 || selectedCategory !== 'ALL') && (
             <button
               onClick={() => {
                 setSearchQuery('');
@@ -319,13 +339,13 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
                 return {
                   key: cfg.fieldName,
                   label:
-                    cfg.label !== null && cfg.label !== undefined && cfg.label !== ''
+                    cfg.label !== null && cfg.label !== undefined && cfg.label.trim().length > 0
                       ? cfg.label
                       : cfg.fieldName,
                   value: val,
                 };
               })
-              .filter((row) => row.value !== '');
+              .filter((row) => row.value.length > 0);
 
             return (
               <div
@@ -335,7 +355,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
                 {/* Main Card Header */}
                 <div className="p-4 sm:p-6">
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-2">
-                    {item.category !== '' && (
+                    {item.category.length > 0 && (
                       <span className="bg-conveniat-green/10 text-conveniat-green rounded-full px-3 py-1 text-xs font-semibold">
                         {item.category}
                       </span>
@@ -352,7 +372,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
                   </h3>
 
                   {/* PDF Download Button (if fileUrl exists) */}
-                  {item.fileUrl !== '' && (
+                  {item.fileUrl.length > 0 && (
                     <div className="mt-3">
                       <a
                         href={item.fileUrl}
@@ -363,7 +383,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
                         onClick={(event_) => event_.stopPropagation()}
                       >
                         <FileText className="mr-2 h-4 w-4" />
-                        <span>{t.downloadPdf}</span>
+                        <span>{activeDownloadLabel}</span>
                         <Download className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-y-0.5" />
                       </a>
                     </div>

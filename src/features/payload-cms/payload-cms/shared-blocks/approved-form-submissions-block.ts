@@ -46,8 +46,8 @@ export const approvedFormSubmissionsBlock: Block = {
       },
       admin: {
         description: {
-          de: 'Optionale Überschrift (z.B. "Bereits angemeldete Stände")',
-          en: 'Optional heading (e.g. "Registered Stands")',
+          de: 'Optionale Überschrift (z.B. "Bereits angemeldete Stände", "Freigegebene Beiträge")',
+          en: 'Optional heading (e.g. "Registered Stands", "Approved Submissions")',
           fr: 'Titre optionnel',
         },
       },
@@ -56,7 +56,7 @@ export const approvedFormSubmissionsBlock: Block = {
       name: 'titleFieldName',
       type: 'text',
       required: false,
-      defaultValue: 'name_des_standes',
+      defaultValue: 'title',
       label: {
         de: 'Feldname für den Titel',
         en: 'Title Field Name',
@@ -64,8 +64,8 @@ export const approvedFormSubmissionsBlock: Block = {
       },
       admin: {
         description: {
-          de: 'Name des Formularfelds, das als Haupttitel angezeigt werden soll (z.B. name_des_standes oder title).',
-          en: 'Name of the form field to display as main title (e.g. name_des_standes or title).',
+          de: 'Name des Formularfelds für den Haupttitel (z.B. title, name_des_standes, name_vom_hof).',
+          en: 'Name of the form field to display as main title (e.g. title, name_des_standes).',
           fr: 'Nom du champ de formulaire à afficher comme titre principal.',
         },
       },
@@ -82,8 +82,8 @@ export const approvedFormSubmissionsBlock: Block = {
       },
       admin: {
         description: {
-          de: 'Name des Formularfelds, das für die Kategoriesuche/Filterung verwendet werden soll (z.B. kategorie).',
-          en: 'Name of the form field to use for category search/filtering (e.g. kategorie).',
+          de: 'Name des Formularfelds für die Kategoriesuche/Filterung (z.B. kategorie, category).',
+          en: 'Name of the form field to use for category search/filtering (e.g. kategorie, category).',
           fr: 'Nom du champ de formulaire pour le filtrage par catégorie.',
         },
       },
@@ -92,7 +92,7 @@ export const approvedFormSubmissionsBlock: Block = {
       name: 'fileFieldName',
       type: 'text',
       required: false,
-      defaultValue: 'konzept',
+      defaultValue: 'file',
       label: {
         de: 'Feldname für PDF/Datei-Download',
         en: 'PDF/File Field Name',
@@ -100,9 +100,43 @@ export const approvedFormSubmissionsBlock: Block = {
       },
       admin: {
         description: {
-          de: 'Name des Formularfelds für hochgeladene PDFs oder Konzepte (z.B. konzept).',
-          en: 'Name of the form field for uploaded PDFs or documents (e.g. konzept).',
+          de: 'Name des Formularfelds für hochgeladene PDFs/Dateien (z.B. konzept, file, pdf).',
+          en: 'Name of the form field for uploaded PDFs or documents (e.g. konzept, file, pdf).',
           fr: 'Nom du champ de formulaire pour les PDF ou documents téléchargés.',
+        },
+      },
+    },
+    {
+      name: 'searchPlaceholder',
+      type: 'text',
+      localized: true,
+      label: {
+        de: 'Benutzerdefinierter Such-Platzhalter',
+        en: 'Custom Search Placeholder',
+        fr: 'Espace réservé de recherche personnalisé',
+      },
+      admin: {
+        description: {
+          de: 'Optionaler Text für das Suchfeld (z.B. "Stände oder Konzepte durchsuchen...")',
+          en: 'Optional placeholder for the search input (e.g. "Search entries...")',
+          fr: 'Texte optionnel pour le champ de recherche',
+        },
+      },
+    },
+    {
+      name: 'fileDownloadButtonLabel',
+      type: 'text',
+      localized: true,
+      label: {
+        de: 'Benutzerdefinierter Download-Button Text',
+        en: 'Custom Download Button Text',
+        fr: 'Texte du bouton de téléchargement personnalisé',
+      },
+      admin: {
+        description: {
+          de: 'Optionaler Text für den Download-Button (z.B. "Konzept / PDF herunterladen")',
+          en: 'Optional label for the file download button (e.g. "Download Concept (PDF)")',
+          fr: 'Texte optionnel pour le bouton de téléchargement',
         },
       },
     },
