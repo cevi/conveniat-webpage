@@ -22,15 +22,10 @@ export interface LinkFields {
   newTab?: boolean;
   doc: {
     value:
-      | string
-      | Blog
-      | GenericPage
-      | CampMapAnnotation
-      | CampScheduleEntry
-      | Document
-      | PayloadImage;
+      string | Blog | GenericPage | CampMapAnnotation | CampScheduleEntry | Document | PayloadImage;
     relationTo: string;
   };
+  fragment?: string;
 }
 
 /**
@@ -44,67 +39,82 @@ export interface LinkFields {
 
 const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string => {
   const url = fields.url ?? '';
+  let baseUrl: string | undefined;
 
   if (typeof fields.doc.value === 'string') {
-    return `/${url}`;
-  }
+    baseUrl = `/${url}`;
+  } else {
+    const documentValue = fields.doc.value;
 
-  const documentValue = fields.doc.value;
+    if (fields.linkType === 'internal') {
+      switch (fields.doc.relationTo) {
+        case 'generic-page':
+        case 'blog': {
+          // We cast to any to access _locale because it might not be present on all types in the union
+          // or the specific generated type might differ slightly.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+          const locale = currentLocale ?? ((documentValue as any)._locale as Locale);
+          let langPrefix = getLanguagePrefix(locale);
+          langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
 
-  if (fields.linkType === 'internal') {
-    switch (fields.doc.relationTo) {
-      case 'generic-page':
-      case 'blog': {
-        // We cast to any to access _locale because it might not be present on all types in the union
-        // or the specific generated type might differ slightly.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-        const locale = currentLocale ?? ((documentValue as any)._locale as Locale);
-        let langPrefix = getLanguagePrefix(locale);
-        langPrefix = langPrefix === '' ? '' : `${langPrefix}/`;
-
-        // Cast to a type that has seo.urlSlug. Blog and GenericPage both have it.
-        const valueWithSeo = documentValue as Blog | GenericPage;
-        const urlSlug = `${valueWithSeo.seo.urlSlug}`;
-        const collectionName = fields.doc.relationTo as string;
-        for (const mappingValue of Object.values(slugToUrlMapping)) {
-          if (mappingValue.slug === collectionName) {
-            // might be undefined if locale is undefined
-            const urlPrefix = mappingValue.urlPrefix[locale] as string | undefined;
-            return urlPrefix === '' || urlPrefix === undefined
-              ? `/${langPrefix}${urlSlug}`
-              : `/${langPrefix}${urlPrefix}/${urlSlug}`;
+          // Cast to a type that has seo.urlSlug. Blog and GenericPage both have it.
+          const valueWithSeo = documentValue as Blog | GenericPage;
+          const urlSlug = `${valueWithSeo.seo.urlSlug}`;
+          const collectionName = fields.doc.relationTo as string;
+          for (const mappingValue of Object.values(slugToUrlMapping)) {
+            if (mappingValue.slug === collectionName) {
+              // might be undefined if locale is undefined
+              const urlPrefix = mappingValue.urlPrefix[locale] as string | undefined;
+              baseUrl =
+                urlPrefix === '' || urlPrefix === undefined
+                  ? `/${langPrefix}${urlSlug}`
+                  : `/${langPrefix}${urlPrefix}/${urlSlug}`;
+              break;
+            }
           }
-        }
 
-        break;
-      }
-      case 'camp-map-annotations': {
-        const campAnnotation = documentValue as CampMapAnnotation;
-        return `/app/map?locationId=${campAnnotation.id}`;
-      }
-      case 'images':
-      case 'documents': {
-        const media = documentValue as Document | PayloadImage;
-        return `${media.url ?? ''}`;
-      }
-      case 'camp-schedule-entry': {
-        const entry = documentValue as CampScheduleEntry;
-        return `/app/schedule/${entry.id}`;
-      }
-      default: {
-        console.warn(`Unhandled link relationTo: ${fields.doc.relationTo}`);
-        if (typeof document !== 'undefined') {
-          void import('posthog-js').then(({ default: posthog }) => {
-            posthog.capture('rich_text_link_unhandled_relation', {
-              relationTo: fields.doc.relationTo,
+          break;
+        }
+        case 'camp-map-annotations': {
+          const campAnnotation = documentValue as CampMapAnnotation;
+          baseUrl = `/app/map?locationId=${campAnnotation.id}`;
+          break;
+        }
+        case 'images':
+        case 'documents': {
+          const media = documentValue as Document | PayloadImage;
+          baseUrl = `${media.url ?? ''}`;
+          break;
+        }
+        case 'camp-schedule-entry': {
+          const entry = documentValue as CampScheduleEntry;
+          baseUrl = `/app/schedule/${entry.id}`;
+          break;
+        }
+        default: {
+          console.warn(`Unhandled link relationTo: ${fields.doc.relationTo}`);
+          if (typeof document !== 'undefined') {
+            void import('posthog-js').then(({ default: posthog }) => {
+              posthog.capture('rich_text_link_unhandled_relation', {
+                relationTo: fields.doc.relationTo,
+              });
             });
-          });
+          }
         }
       }
     }
   }
 
-  return `/${url}`;
+  const finalUrl = baseUrl ?? `/${url}`;
+  const fragment = fields.fragment?.trim();
+  if (fragment && fragment !== '') {
+    const cleanFragment = fragment.startsWith('#') ? fragment.slice(1) : fragment;
+    if (cleanFragment !== '') {
+      return `${finalUrl}#${encodeURIComponent(cleanFragment)}`;
+    }
+  }
+
+  return finalUrl;
 };
 
 const createLinkConverter =

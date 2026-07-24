@@ -8,13 +8,7 @@ import { useServiceWorkerStatus } from '@/hooks/use-service-worker-status';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 export type OfflineDownloadStatus =
-  | 'idle'
-  | 'checking'
-  | 'downloading'
-  | 'success'
-  | 'error'
-  | 'sw-error'
-  | 'has-content';
+  'idle' | 'checking' | 'downloading' | 'success' | 'error' | 'sw-error' | 'has-content';
 
 export interface OfflineDownloadProgress {
   total: number;

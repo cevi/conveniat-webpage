@@ -47,6 +47,7 @@ import type {
   TimelineCategory,
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
+import { PhotoContestView } from '@/features/photo-contest/components/photo-contest-view';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
@@ -61,6 +62,8 @@ export type ContentBlockTypeNames =
   | 'blogPostsOverview'
   | 'richTextSection'
   | 'formBlock'
+  | 'approvedFormSubmissionsBlock'
+  | 'photoContestBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
   | 'instagramEmbed'
@@ -147,8 +150,8 @@ export const RenderTimelineEntries: SectionRenderer<TimelineEntries> = async ({
     : getTimelineEntriesCachedPersistent(timelineEntryUuids, locale));
 
   const timelineEntries = timelineEntriesUnsorted
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    .filter((entry: Timeline) => entry.date !== undefined && entry.date !== '')
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, unicorn/no-null
+    .filter((entry: Timeline) => entry.date != null && entry.date !== '')
     .sort((entry1: Timeline, entry2: Timeline) => entry2.date.localeCompare(entry1.date));
 
   return (
@@ -836,6 +839,58 @@ export const RenderTabsBlock: SectionRenderer<TabsBlockPayloadType> = ({
       {...rest}
     >
       <TabsBlock {...block} {...rest} />
+    </SectionWrapper>
+  );
+};
+
+import { ApprovedFormSubmissions } from '@/features/payload-cms/components/content-blocks/approved-form-submissions';
+import type { ApprovedFormSubmissionsBlock as ApprovedFormSubmissionsBlockType } from '@/features/payload-cms/payload-types';
+
+export const RenderApprovedFormSubmissions: SectionRenderer<ApprovedFormSubmissionsBlockType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Die freigegebenen Formular-Antworten',
+          en: 'approved form submissions',
+          fr: 'les soumissions de formulaires approuvées',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <ApprovedFormSubmissions {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderPhotoContestBlock: SectionRenderer<{
+  initialContestSlug?: string;
+}> = ({ block, sectionClassName, sectionOverrides, locale }) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Foto-Wettbewerb Block',
+          en: 'photo contest block',
+          fr: 'le bloc concours photo',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <PhotoContestView initialContestSlug={block.initialContestSlug ?? 'cevi-schweiz'} />
     </SectionWrapper>
   );
 };

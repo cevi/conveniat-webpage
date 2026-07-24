@@ -1,4 +1,5 @@
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
+import { approvedFormSubmissionsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/approved-form-submissions-block';
 import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
 import { callToActionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/call-to-action-block';
 import { campScheduleEntryBlock } from '@/features/payload-cms/payload-cms/shared-blocks/camp-schedule-entry.block';
@@ -12,6 +13,7 @@ import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
+import { photoContestBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-contest-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { sponsorGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/sponsor-grid-block';
@@ -28,7 +30,9 @@ export const mainContentBlocks: Block[] = [
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,
+  approvedFormSubmissionsBlock,
   photoCarouselBlock,
+  photoContestBlock,
   singlePictureBlock,
   youtubeEmbedBlock,
   instagramEmbedBlock,

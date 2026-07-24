@@ -176,7 +176,7 @@ export const AnnotationDetailsDrawer: React.FC<{
 
           {schedule && <AnnotationScheduleTableComponent locale={locale} schedule={schedule} />}
 
-          {annotation.enableSupportChat !== false && (
+          {(annotation.enableSupportChat ?? true) && (
             <AnnotationForumAndReportSection
               coordinates={((): [number, number] | undefined => {
                 if (!('geometry' in annotation)) return undefined;

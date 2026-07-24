@@ -153,12 +153,12 @@ const pageCaching: RuntimeCaching = {
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.PAGES,
     networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [200],
+      }) as SerwistPlugin,
+    ],
   }),
-};
-
-const adminBlockImageCaching: RuntimeCaching = {
-  matcher: new RegExp(/\/admin-block-images\//),
-  handler: new NetworkOnly(),
 };
 
 const runtimeCaching: RuntimeCaching[] = [
@@ -167,7 +167,6 @@ const runtimeCaching: RuntimeCaching[] = [
   rscCaching,
   fontCaching,
   nextFontCaching,
-  adminBlockImageCaching,
   imageCaching,
   apiCaching,
   pageCaching,

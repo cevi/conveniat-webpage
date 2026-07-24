@@ -8,6 +8,7 @@ interface ParticipantsListProperties {
     id: string;
     name: string;
     chatPermission: string;
+    description?: string | null;
   }>;
   currentUser: string | undefined;
   isGroupChat: boolean;
@@ -92,6 +93,9 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
                     </span>
                   )}
                 </div>
+                {participant.description && (
+                  <div className="font-body text-xs text-gray-500">{participant.description}</div>
+                )}
               </div>
             </div>
             {isManaging && participant.id !== currentUser && (

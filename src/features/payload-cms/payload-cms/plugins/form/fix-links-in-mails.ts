@@ -4,6 +4,8 @@ import {
   escapeHTML,
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
+import { MINIO_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import type { BeforeEmail, FormattedEmail } from '@payloadcms/plugin-form-builder/types';
 import {
@@ -11,7 +13,7 @@ import {
   defaultHTMLConverters,
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
-import { getPayload } from 'payload';
+import { getPayload, type Where } from 'payload';
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
   beforeChangeParameters: unknown,
@@ -80,6 +82,113 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }
   }
 
+  // --- Attachments start ---
+  interface EmailAttachment {
+    filename: string;
+    content: Buffer;
+    contentType: string;
+  }
+
+  const submissionAttachments: EmailAttachment[] = [];
+  const formEmailsArray = Array.isArray(formDocument_?.['emails'])
+    ? (formDocument_['emails'] as Array<{ attachFiles?: boolean }>)
+    : [];
+  const hasAnyEmailAttachments =
+    formEmailsArray.length === 0 ||
+    formEmailsArray.some((emailConfig) => emailConfig.attachFiles === true);
+
+  if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+    try {
+      const submissionDataArrayForFiles =
+        (formSubmissionDocument as { submissionData?: unknown[] }).submissionData ?? [];
+      const potentialFileIds = new Set<string>();
+
+      for (const item of submissionDataArrayForFiles) {
+        if (item !== null && typeof item === 'object' && 'value' in item) {
+          let valString = '';
+          if (typeof item.value === 'string') {
+            valString = item.value;
+          } else if (typeof item.value === 'number' || typeof item.value === 'boolean') {
+            valString = String(item.value);
+          }
+          if (valString.length > 0) {
+            const parts = valString.split(',').map((p) => p.trim());
+            for (const part of parts) {
+              if (/^[0-9a-fA-F]{24}$/.test(part)) {
+                potentialFileIds.add(part);
+              }
+            }
+          }
+        }
+      }
+
+      const whereConditions: Where[] = [{ formSubmission: { equals: formSubmissionId } }];
+      if (potentialFileIds.size > 0) {
+        whereConditions.push({ id: { in: [...potentialFileIds] } });
+      }
+
+      const formFiles = await payload.find({
+        collection: 'form_collection',
+        where: {
+          or: whereConditions,
+        },
+        limit: 50,
+        depth: 0,
+      });
+
+      for (const fileDocument of formFiles.docs) {
+        if (fileDocument.isTemporary || fileDocument.formSubmission !== formSubmissionId) {
+          void payload
+            .update({
+              collection: 'form_collection',
+              id: fileDocument.id,
+              data: {
+                isTemporary: false,
+                formSubmission: formSubmissionId,
+              },
+            })
+            .catch(() => {});
+        }
+
+        if (typeof fileDocument.filename === 'string' && fileDocument.filename.length > 0) {
+          try {
+            const getCommand = new GetObjectCommand({
+              Bucket: MINIO_BUCKET_NAME,
+              Key: fileDocument.filename,
+            });
+            const s3Response = await s3Client.send(getCommand);
+            const fileByteArray = await s3Response.Body?.transformToByteArray();
+            if (fileByteArray !== undefined) {
+              const buffer = Buffer.from(fileByteArray);
+              const attachmentFilename =
+                typeof fileDocument.originalFilename === 'string' &&
+                fileDocument.originalFilename.length > 0
+                  ? fileDocument.originalFilename
+                  : fileDocument.filename;
+              submissionAttachments.push({
+                filename: attachmentFilename,
+                content: buffer,
+                contentType:
+                  typeof fileDocument.mimeType === 'string' && fileDocument.mimeType.length > 0
+                    ? fileDocument.mimeType
+                    : 'application/octet-stream',
+              });
+            }
+          } catch (s3Error) {
+            payload.logger.error(
+              `Failed to fetch attachment ${fileDocument.filename} from S3: ${String(s3Error)}`,
+            );
+          }
+        }
+      }
+    } catch (findError) {
+      payload.logger.error(
+        `Failed to find uploaded form files for submission ${formSubmissionId}: ${String(findError)}`,
+      );
+    }
+  }
+  // --- Attachments end ---
+
   // --- Lexical Re-generation start ---
   const submissionDataArray =
     (formSubmissionDocument as { submissionData?: unknown[] }).submissionData ?? [];
@@ -145,7 +254,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     // 1. Rebuild HTML if it was Lexical
     const formEmails = formDocument_?.['emails'];
     const originalEmailConfig = Array.isArray(formEmails)
-      ? (formEmails as Array<{ message?: unknown }>)[index]
+      ? (formEmails as Array<{ message?: unknown; attachFiles?: boolean }>)[index]
       : undefined;
     if (
       originalEmailConfig !== undefined &&
@@ -196,9 +305,17 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     updatedHtml = updatedHtml.replaceAll('{{*}}', () => wildcardHtmlText);
     updatedHtml = updatedHtml.replaceAll('{{*:table}}', () => wildcardHtmlTable);
 
+    const shouldAttachFiles =
+      originalEmailConfig === undefined
+        ? hasAnyEmailAttachments
+        : originalEmailConfig.attachFiles === true;
+
     return {
       ...email,
       html: updatedHtml,
+      ...(shouldAttachFiles && submissionAttachments.length > 0
+        ? { attachments: submissionAttachments }
+        : {}),
     };
   });
 

@@ -13,7 +13,8 @@ import type React from 'react';
 
 export interface SponsorGridSponsor {
   id?: string | null;
-  image: ImageType;
+  image?: ImageType | string | null;
+  name?: string | null;
   linkField?: LinkFieldDataType;
 }
 
@@ -41,17 +42,32 @@ const SponsorCard: React.FC<{
   locale: Locale;
 }> = ({ sponsor, locale }) => {
   const url = getURLForLinkField(sponsor.linkField, locale);
+  const image =
+    typeof sponsor.image === 'object' && sponsor.image !== null ? sponsor.image : undefined;
 
-  const cardContent = (
-    <div className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-xs transition-all duration-300 hover:border-gray-200 hover:shadow-md md:p-6">
+  let innerContent: React.ReactNode;
+  if (image?.url) {
+    innerContent = (
       <div className="relative size-full">
         <ImageNode
-          src={sponsor.image.url ?? ''}
-          alt={getImageAltInLocale(locale, sponsor.image)}
+          src={image.url}
+          alt={getImageAltInLocale(locale, image)}
           fill
           className="object-contain p-2 transition-transform duration-500 group-hover:scale-105"
         />
       </div>
+    );
+  } else if (sponsor.name !== undefined && sponsor.name !== null && sponsor.name !== '') {
+    innerContent = (
+      <span className="font-heading text-conveniat-green p-2 text-center text-base font-bold whitespace-pre-line transition-transform duration-500 group-hover:scale-105 sm:text-lg md:text-xl">
+        {sponsor.name}
+      </span>
+    );
+  }
+
+  const cardContent = (
+    <div className="group relative flex aspect-video w-full items-center justify-center overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-xs transition-all duration-300 hover:border-gray-200 hover:shadow-md md:p-6">
+      {innerContent}
     </div>
   );
 

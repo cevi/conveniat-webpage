@@ -35,6 +35,8 @@ const features_folder = [
   'registration_process',
   'billing',
   'native-push',
+  'presence',
+  'photo-contest',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');
@@ -281,6 +283,12 @@ const config = defineConfig([
     'build/**',
     'next-env.d.ts',
 
+    // Worktrees
+    '*-worktree/**',
+    '**/*-worktree/**',
+    'worktrees/**',
+    '**/worktrees/**',
+
     // this config file
     'eslint.config.mjs',
 
@@ -296,6 +304,9 @@ const config = defineConfig([
     'src/app/(payload)/admin/importMap.js',
     'postcss.config.js',
     '**/*.cjs',
+
+    // Worktrees
+    '**/*-worktree/**',
 
     // code coverage
     'coverage/**',

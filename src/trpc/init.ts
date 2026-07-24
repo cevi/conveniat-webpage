@@ -1,3 +1,4 @@
+import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
 import {
   type HitobitoNextAuthUser,
@@ -59,3 +60,29 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 });
 
 export const trpcBaseProcedure = t.procedure.use(isAuthed);
+
+const isAdmin = t.middleware(({ ctx, next }) => {
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'User not authenticated.',
+    });
+  }
+
+  const hasAccess = hasAccessToThisUser({
+    user: ctx.user,
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+  });
+
+  if (!hasAccess) {
+    throw new TRPCError({ code: 'FORBIDDEN' });
+  }
+
+  return next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
+});
+
+export const trpcAdminProcedure = t.procedure.use(isAdmin);

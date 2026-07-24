@@ -169,6 +169,14 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                     },
                     {
                       label: {
+                        en: 'Blue',
+                        de: 'Blau',
+                        fr: 'Bleu',
+                      },
+                      value: '1e88e5',
+                    },
+                    {
+                      label: {
                         en: 'Red',
                         de: 'Rot',
                         fr: 'Rouge',
@@ -333,6 +341,23 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                   en: 'If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.',
                   de: 'Wenn aktiviert, ist das Polygon anklickbar und zeigt Metadaten an. Wenn deaktiviert, ist es nur eine Hintergrundform.',
                   fr: "Si coché, le polygone sera cliquable et affichera les métadonnées. Si décoché, ce sera une forme d'arrière-plan uniquement.",
+                },
+              },
+            },
+            {
+              name: 'hiddenOnDefaultMap',
+              label: {
+                en: 'Hidden on Default Map',
+                de: 'Auf Hauptkarte verstecken',
+                fr: 'Caché sur la carte par défaut',
+              },
+              type: 'checkbox',
+              defaultValue: false,
+              admin: {
+                description: {
+                  en: 'If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.',
+                  de: 'Wenn aktiviert, wird diese Markierung nicht auf der Hauptkarte angezeigt, kann aber trotzdem aus dem Programm verlinkt werden.',
+                  fr: 'Si coché, cette annotation ne sera pas affichée sur la carte principale, mais peut toujours être liée depuis les programmes.',
                 },
               },
             },

@@ -1,7 +1,14 @@
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
+import {
+  createSponsorItemValidation,
+  isSponsorMediaPresent,
+  isSponsorNamePresent,
+} from '@/features/payload-cms/payload-cms/utils/sponsor-validation';
 import type { GlobalConfig } from 'payload';
+
+const validateFooterSponsorItem = createSponsorItemValidation('logo');
 
 export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
@@ -72,9 +79,9 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
       },
       admin: {
         description: {
-          en: 'Up to 6 sponsor logos displayed in the footer',
-          de: 'Bis zu 6 Sponsoren-Logos, die in der Fusszeile angezeigt werden',
-          fr: "Jusqu'à 6 logos de sponsors affichés dans le pied de page",
+          en: 'Up to 6 sponsors displayed in the footer (image logo or text name)',
+          de: 'Bis zu 6 Sponsoren, die in der Fusszeile angezeigt werden (Bild-Logo oder Text-Name)',
+          fr: "Jusqu'à 6 sponsors affichés dans le pied de page (logo image ou nom texte)",
         },
       },
       fields: [
@@ -82,12 +89,37 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
           name: 'logo',
           type: 'upload',
           relationTo: 'images',
-          required: true,
+          required: false,
           label: {
             en: 'Logo',
             de: 'Logo',
             fr: 'Logo',
           },
+          admin: {
+            condition: (_, siblingData) =>
+              !isSponsorNamePresent(siblingData as Record<string, unknown>),
+          },
+          validate: validateFooterSponsorItem,
+        },
+        {
+          name: 'name',
+          type: 'text',
+          required: false,
+          label: {
+            en: 'Name (Text sponsor)',
+            de: 'Name (Text-Sponsor)',
+            fr: 'Nom (Sponsor texte)',
+          },
+          admin: {
+            description: {
+              en: 'Name of the sponsor if no logo is selected',
+              de: 'Name des Sponsors, falls kein Logo ausgewählt ist',
+              fr: 'Nom du sponsor si aucun logo n’est sélectionné',
+            },
+            condition: (_, siblingData) =>
+              !isSponsorMediaPresent(siblingData as Record<string, unknown>, 'logo'),
+          },
+          validate: validateFooterSponsorItem,
         },
         LinkField(false),
       ],

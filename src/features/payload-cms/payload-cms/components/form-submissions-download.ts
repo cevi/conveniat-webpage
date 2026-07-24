@@ -1,8 +1,10 @@
 'use server';
 
+import { environmentVariables } from '@/config/environment-variables';
+import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
-import { getPayload } from 'payload';
+import { getPayload, type Payload } from 'payload';
 
 /**
  * Helper function to escape a value for CSV format.
@@ -10,11 +12,9 @@ import { getPayload } from 'payload';
  * Existing double quotes within the value are also escaped by doubling them.
  */
 const escapeCsvValue = (value: string | undefined): string => {
-  // Handle null/undefined by converting to an empty string
   const stringValue = String(value ?? '');
 
   if (/[",\n\r]/.test(stringValue)) {
-    // If the string contains special characters, wrap it in quotes
     return `"${stringValue.replaceAll('"', '""')}"`;
   }
 
@@ -22,36 +22,132 @@ const escapeCsvValue = (value: string | undefined): string => {
 };
 
 /**
- * Downloads all submissions for a given form ID and converts them into a CSV formatted string.
- * This function does not use any external libraries for CSV generation.
- *
- * @param formId The ID of the form to download submissions for.
- * @returns A promise that resolves to a string containing the CSV data.
+ * Fetches all form submissions for a form ID, paginating through results to prevent silent truncation.
  */
-export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<string> => {
-  return await withSpan('downloadFormSubmissionsAsCSV', async () => {
-    const payload = await getPayload({ config });
+const fetchAllSubmissions = async (payload: Payload, formId: string): Promise<FormSubmission[]> => {
+  const allSubmissions: FormSubmission[] = [];
+  let page = 1;
+  let hasMore = true;
 
-    console.log('Downloading form submissions for form ID:', formId);
-    const formSubmissions = await payload.find({
+  while (hasMore) {
+    const result = await payload.find({
       collection: 'form-submissions',
       where: {
         form: {
           equals: formId,
         },
       },
-      limit: 1000,
+      limit: 250,
+      page,
+      depth: 0,
     });
 
-    const { docs: submissions } = formSubmissions;
+    allSubmissions.push(...result.docs);
+
+    if (result.hasNextPage && typeof result.nextPage === 'number') {
+      page = result.nextPage;
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allSubmissions;
+};
+
+/**
+ * Resolves raw document IDs in submission values to human readable filenames with downloadable URLs.
+ */
+const resolveFileValues = async (
+  submissions: Array<{ submissionData?: Array<{ field: string; value: unknown }> | null }>,
+  payload: Payload,
+): Promise<Map<string, string>> => {
+  const allPotentialIds = new Set<string>();
+
+  for (const sub of submissions) {
+    for (const item of sub.submissionData ?? []) {
+      const rawValue = item.value;
+      let valString = '';
+      if (typeof rawValue === 'string') {
+        valString = rawValue;
+      } else if (typeof rawValue === 'number' || typeof rawValue === 'boolean') {
+        valString = String(rawValue);
+      }
+
+      if (valString.length > 0) {
+        const parts = valString.split(',').map((p) => p.trim());
+        for (const part of parts) {
+          if (part.length > 0 && /^[0-9a-fA-F]{24}$/.test(part)) {
+            allPotentialIds.add(part);
+          }
+        }
+      }
+    }
+  }
+
+  if (allPotentialIds.size === 0) return new Map();
+
+  const fileMap = new Map<string, string>();
+  try {
+    const fileResult = await payload.find({
+      collection: 'form_collection',
+      where: {
+        id: { in: [...allPotentialIds] },
+      },
+      limit: allPotentialIds.size,
+      depth: 0,
+    });
+
+    for (const fileDocument of fileResult.docs) {
+      const filename =
+        typeof fileDocument.originalFilename === 'string' &&
+        fileDocument.originalFilename.length > 0
+          ? fileDocument.originalFilename
+          : fileDocument.filename;
+      const downloadUrl = `${environmentVariables.APP_HOST_URL}/api/form-file/${fileDocument.id}`;
+      fileMap.set(fileDocument.id, `${filename} (${downloadUrl})`);
+    }
+  } catch {
+    // ignore lookup errors
+  }
+
+  return fileMap;
+};
+
+const formatFieldValue = (val: unknown, fileMap: Map<string, string>): string => {
+  if (val === null || val === undefined) return '';
+  let valString = '';
+  if (typeof val === 'string') {
+    valString = val;
+  } else if (typeof val === 'number' || typeof val === 'boolean') {
+    valString = String(val);
+  }
+
+  if (valString.length === 0) return '';
+
+  const parts = valString.split(',').map((p) => p.trim());
+
+  const resolvedParts = parts.map((part) => fileMap.get(part) ?? part);
+  return resolvedParts.join(', ');
+};
+
+/**
+ * Downloads all submissions for a given form ID and converts them into a CSV formatted string.
+ */
+export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<string> => {
+  return await withSpan('downloadFormSubmissionsAsCSV', async () => {
+    const payload = await getPayload({ config });
+
+    console.log('Downloading form submissions for form ID:', formId);
+    const submissions = await fetchAllSubmissions(payload, formId);
 
     if (submissions.length === 0) {
       console.log('No submissions found for this form.');
       return '';
     }
 
+    const fileMap = await resolveFileValues(submissions, payload);
+
     // 1. Create headers dynamically from all unique field names across all submissions.
-    // This ensures all columns are included even if forms evolve over time.
     const headerSet = new Set<string>();
     for (const sub of submissions) {
       for (const field of sub.submissionData ?? []) {
@@ -66,7 +162,8 @@ export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<stri
       const rowData = headers.map((header) => {
         if (header === 'submissionId') return sub.id;
         if (header === 'createdAt') return sub.createdAt;
-        return dataMap.get(header) ?? '';
+        const rawValue = dataMap.get(header);
+        return formatFieldValue(rawValue, fileMap);
       });
 
       return rowData.map((element) => escapeCsvValue(element)).join(',');
@@ -80,31 +177,20 @@ export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<stri
 
 /**
  * Downloads all submissions for a given form ID and converts them into an Excel (xlsx) formatted base64 string.
- *
- * @param formId The ID of the form to download submissions for.
- * @returns A promise that resolves to a base64 encoded string containing the Excel file.
  */
 export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<string> => {
   return await withSpan('downloadFormSubmissionsAsExcel', async () => {
     const payload = await getPayload({ config });
 
     console.log('Downloading form submissions as Excel for form ID:', formId);
-    const formSubmissions = await payload.find({
-      collection: 'form-submissions',
-      where: {
-        form: {
-          equals: formId,
-        },
-      },
-      limit: 1000,
-    });
-
-    const { docs: submissions } = formSubmissions;
+    const submissions = await fetchAllSubmissions(payload, formId);
 
     if (submissions.length === 0) {
       console.log('No submissions found for this form.');
       return '';
     }
+
+    const fileMap = await resolveFileValues(submissions, payload);
 
     // 1. Create headers dynamically from all unique field names across all submissions.
     const headerSet = new Set<string>();
@@ -128,7 +214,8 @@ export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<st
         } else if (header === 'createdAt') {
           rowObject[header] = sub.createdAt;
         } else {
-          rowObject[header] = dataMap.get(header) ?? '';
+          const rawValue = dataMap.get(header);
+          rowObject[header] = formatFieldValue(rawValue, fileMap);
         }
       }
       return rowObject;

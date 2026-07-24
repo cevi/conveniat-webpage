@@ -10,8 +10,7 @@ import type React from 'react';
  */
 export const FormSectionRowLabel: React.FC = () => {
   const rowLabel = useRowLabel<{ formSection?: { sectionTitle?: string } }>() as
-    | { data?: { formSection?: { sectionTitle?: string } } }
-    | undefined;
+    { data?: { formSection?: { sectionTitle?: string } } } | undefined;
 
   if (rowLabel?.data === undefined) {
     return <></>;

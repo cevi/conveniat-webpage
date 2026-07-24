@@ -64,6 +64,7 @@ import { WorkflowFieldMapping as WorkflowFieldMapping_250a2659e1c657e86d416a8a83
 import { default as default_841c75d2a11733c455bbe07946842305 } from '@/features/payload-cms/payload-cms/components/form/trigger-workflows-button'
 import { FormExportButton as FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4 } from '@/features/payload-cms/payload-cms/components/form-export-button'
 import { FormSubmissionCount as FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81 } from '@/features/payload-cms/payload-cms/components/form-submission-count'
+import { default as default_5a1afd3768a7bf55d4be4961f0c79351 } from '@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field'
 import { default as default_6f32ab4bbcf6fb111c3fe87675a4a1c3 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell'
 import { default as default_c671a40aa094e16dd185957e6f1a1b99 } from '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field'
 import { default as default_168c8ff1f0fec04eb904cf9d3e9d2f4b } from '@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell'
@@ -96,12 +97,15 @@ import { default as default_8d520ff6bc17ad01077b15db1b6b9440 } from '@/features/
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
+import { default as default_cd35b3d8d72e9d0e9e863a18826ee991 } from '@/features/presence/payload-cms/components/density-plot-field'
+import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/presence/payload-cms/components/open-people-list-field'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
+import { default as default_f2e2a798db2c97cbd7f7b11ab9c64d45 } from '@/features/presence/payload-cms/widgets/presence-count-widget'
 import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/payload-cms/payload-cms/widgets/user-count-widget'
 import { default as default_ff22a191d3f87d6a73e8d33d6e422fd0 } from '@/features/payload-cms/payload-cms/widgets/email-stats-widget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
@@ -174,6 +178,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/form/trigger-workflows-button#default": default_841c75d2a11733c455bbe07946842305,
   "@/features/payload-cms/payload-cms/components/form-export-button#FormExportButton": FormExportButton_fe5d55229fbe6ce6db571a8c425d41f4,
   "@/features/payload-cms/payload-cms/components/form-submission-count#FormSubmissionCount": FormSubmissionCount_fa7a19089a3d6737b1d85b7fdf6c8f81,
+  "@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field#default": default_5a1afd3768a7bf55d4be4961f0c79351,
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell#default": default_6f32ab4bbcf6fb111c3fe87675a4a1c3,
   "@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field#default": default_c671a40aa094e16dd185957e6f1a1b99,
   "@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell#default": default_168c8ff1f0fec04eb904cf9d3e9d2f4b,
@@ -206,12 +211,15 @@ export const importMap = {
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
+  "@/features/presence/payload-cms/components/density-plot-field#default": default_cd35b3d8d72e9d0e9e863a18826ee991,
+  "@/features/presence/payload-cms/components/open-people-list-field#default": default_95aac01a1d24126400a908467acf9d8a,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,
+  "@/features/presence/payload-cms/widgets/presence-count-widget#default": default_f2e2a798db2c97cbd7f7b11ab9c64d45,
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,
   "@/features/payload-cms/payload-cms/widgets/email-stats-widget#default": default_ff22a191d3f87d6a73e8d33d6e422fd0,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1

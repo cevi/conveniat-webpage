@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import type React from 'react';
 import { useEffect } from 'react';
 
@@ -26,59 +25,69 @@ import { useEffect } from 'react';
  * effectively updating the user to the latest version automatically.
  */
 export const ChunkErrorHandler: React.FC = () => {
-  const router = useRouter();
-
   useEffect(() => {
-    const handleError = (event: ErrorEvent): void => {
-      // 1. Ignore errors if we are offline.
-      //    When a user is offline, requests naturally fail. We don't want to force a reload
-      //    because it would just show the "No Internet" dino page.
+    const triggerReloadIfNeeded = (error: unknown, message: string): void => {
       if (!navigator.onLine) {
         console.warn(
           '[ChunkErrorHandler] Offline: Ignoring chunk error to prevent reload loop.',
-          event.error,
+          error,
         );
         return;
       }
 
-      // Check for the "Unexpected token '<'" SyntaxError (which happens when HTML is served as JS)
-      const isSyntaxError =
-        event.error instanceof SyntaxError && event.error.message.includes("Unexpected token '<'");
+      let errorMessage = message;
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
 
-      // Check for standard Webpack ChunkLoadError
+      const isSyntaxError =
+        (error instanceof SyntaxError && errorMessage.includes("Unexpected token '<'")) ||
+        errorMessage.includes("Unexpected token '<'");
+
       const isChunkLoadError =
-        (event.error as Error | null)?.name === 'ChunkLoadError' ||
-        event.message.includes('Loading chunk');
+        (error as Error | null)?.name === 'ChunkLoadError' ||
+        errorMessage.includes('Loading chunk') ||
+        errorMessage.includes('Failed to fetch dynamically imported module');
 
       if (isSyntaxError || isChunkLoadError) {
         console.warn(
-          'Chunk load error detected! Invalidating page to pick up new version...',
-          event.error,
+          '[ChunkErrorHandler] Chunk load error detected! Reloading page to fetch updated assets...',
+          error,
         );
 
-        // Prevent infinite reload loops: check if we just reloaded
         const lastReload = sessionStorage.getItem('chunk_reload_time');
         const now = Date.now();
 
-        // 10 second debounce to prevent rapid-fire reloads
-        if (lastReload && now - Number(lastReload) < 10_000) {
-          console.error('Reload loop detected, stopping auto-reload.');
+        if (lastReload !== null && now - Number(lastReload) < 10_000) {
+          console.error('[ChunkErrorHandler] Reload loop detected, stopping auto-reload.');
           return;
         }
 
         sessionStorage.setItem('chunk_reload_time', String(now));
-
-        // 2. Use Soft Refresh (Invalidation) instead of Hard Reload
-        //    Next.js `router.refresh()` will re-fetch the current route's data and
-        //    re-render server components without losing client-side state (like scroll position)
-        //    if possible. This is less disruptive than a full `location.reload()`.
-        router.refresh();
+        globalThis.location.reload();
       }
     };
 
+    const handleError = (event: ErrorEvent): void => {
+      triggerReloadIfNeeded(event.error, event.message);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent): void => {
+      const reason = event.reason as unknown;
+      const message = reason instanceof Error ? reason.message : String(reason);
+      triggerReloadIfNeeded(reason, message);
+    };
+
     globalThis.addEventListener('error', handleError);
-    return (): void => globalThis.removeEventListener('error', handleError);
-  }, [router]);
+    globalThis.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return (): void => {
+      globalThis.removeEventListener('error', handleError);
+      globalThis.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   return null; // eslint-disable-line unicorn/no-null
 };

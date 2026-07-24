@@ -53,6 +53,7 @@ export interface Config {
     blog: Blog;
     'generic-page': GenericPage;
     timeline: Timeline;
+    'photo-contests': PhotoContest;
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
@@ -64,6 +65,7 @@ export interface Config {
     images: Image;
     userSubmittedImages: UserSubmittedImage;
     documents: Document;
+    form_collection: FormCollection;
     users: User;
     permissions: Permission;
     'push-notification-subscriptions': PushNotificationSubscription;
@@ -76,6 +78,7 @@ export interface Config {
     'bill-pdfs': BillPdf;
     'piket-schedules': PiketSchedule;
     'payload-workers': PayloadWorker;
+    'presence-logs': PresenceLog;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
@@ -92,6 +95,9 @@ export interface Config {
   collectionsJoins: {
     'helper-jobs': {
       submissions: 'form-submissions';
+    };
+    users: {
+      presenceLogs: 'presence-logs';
     };
     timelineCategory: {
       relatedTimelineEntries: 'timeline';
@@ -110,6 +116,7 @@ export interface Config {
     blog: BlogSelect<false> | BlogSelect<true>;
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
+    'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
@@ -121,6 +128,7 @@ export interface Config {
     images: ImagesSelect<false> | ImagesSelect<true>;
     userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
     documents: DocumentsSelect<false> | DocumentsSelect<true>;
+    form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
@@ -133,6 +141,7 @@ export interface Config {
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
+    'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
@@ -163,6 +172,7 @@ export interface Config {
     'all-chats-management': AllChatsManagement;
     'registration-management': RegistrationManagement;
     'bill-settings': BillSetting;
+    'campsite-presence': CampsitePresence;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -178,11 +188,13 @@ export interface Config {
     'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
+    'campsite-presence': CampsitePresenceSelect<false> | CampsitePresenceSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
   widgets: {
     'emergency-alerts': EmergencyAlertsWidget;
+    'presence-count': PresenceCountWidget;
     'user-count': UserCountWidget;
     'email-stats': EmailStatsWidget;
     collections: CollectionsWidget;
@@ -206,6 +218,7 @@ export interface Config {
       syncParticipants: TaskSyncParticipants;
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
+      cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -311,12 +324,14 @@ export interface Blog {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | PhotoContestBlock
       | {
           image: string | Image;
           /**
@@ -379,6 +394,10 @@ export interface Blog {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -419,6 +438,10 @@ export interface Blog {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -532,11 +555,43 @@ export interface User {
    * The Quartier of the user.
    */
   quartier?: number | null;
+  /**
+   * An additional description of the user shown in the chat.
+   */
+  description?: string | null;
+  /**
+   * Hide this user from the chat creation selection.
+   */
+  hidden?: boolean | null;
+  /**
+   * Whether the user is currently present on the campsite.
+   */
+  presentAtCamp?: boolean | null;
+  /**
+   * Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).
+   */
+  presenceLogs?: {
+    docs?: (string | PresenceLog)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
   collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs".
+ */
+export interface PresenceLog {
+  id: string;
+  user: string | User;
+  isPresent: boolean;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -657,6 +712,10 @@ export interface Form {
   id: string;
   title: string;
   autocomplete?: boolean | null;
+  /**
+   * Maximum allowed file size in megabytes for file uploads in this form.
+   */
+  fileUploadLimitMB?: number | null;
   sections: {
     formSection: {
       sectionTitle: string;
@@ -889,6 +948,21 @@ export interface Form {
                 blockType: 'jobSelection';
               }
             | {
+                name: string;
+                label: string;
+                allowedFileTypes?: ('all' | 'pdf' | 'images' | 'documents' | 'custom') | null;
+                customAllowedFileTypes?: string | null;
+                allowMultiple?: boolean | null;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'fileUpload';
+              }
+            | {
                 displayCondition?: {
                   field?: string | null;
                   value?: string | null;
@@ -1076,13 +1150,7 @@ export interface Form {
                           fieldMapping?:
                             | {
                                 jwtField:
-                                  | 'name'
-                                  | 'firstName'
-                                  | 'lastName'
-                                  | 'email'
-                                  | 'nickname'
-                                  | 'uuid'
-                                  | 'cevi_db_uuid';
+                                  'name' | 'firstName' | 'lastName' | 'email' | 'nickname' | 'uuid' | 'cevi_db_uuid';
                                 formField: string;
                                 id?: string | null;
                               }[]
@@ -1126,6 +1194,21 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'jobSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          allowedFileTypes?: ('all' | 'pdf' | 'images' | 'documents' | 'custom') | null;
+                          customAllowedFileTypes?: string | null;
+                          allowMultiple?: boolean | null;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'fileUpload';
                         }
                     )[]
                   | null;
@@ -1176,6 +1259,10 @@ export interface Form {
         replyTo?: string | null;
         emailFrom?: string | null;
         subject: string;
+        /**
+         * If checked, files uploaded in this form submission will be attached to this email.
+         */
+        attachFiles?: boolean | null;
         /**
          * Enter the message that should be sent in this email.
          */
@@ -1265,6 +1352,10 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Approve this submission to display it on the website
+   */
+  approved?: boolean | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -1348,6 +1439,69 @@ export interface HelperJob {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ApprovedFormSubmissionsBlock".
+ */
+export interface ApprovedFormSubmissionsBlock {
+  form: string | Form;
+  /**
+   * Optional heading (e.g. "Registered Stands", "Approved Submissions")
+   */
+  heading?: string | null;
+  /**
+   * Name of the form field to display as main title (e.g. title, name_des_standes).
+   */
+  titleFieldName?: string | null;
+  /**
+   * Name of the form field to use for category search/filtering (e.g. kategorie, category).
+   */
+  categoryFieldName?: string | null;
+  /**
+   * Name of the form field for uploaded PDFs or documents (e.g. konzept, file, pdf).
+   */
+  fileFieldName?: string | null;
+  /**
+   * Optional placeholder for the search input (e.g. "Search entries...")
+   */
+  searchPlaceholder?: string | null;
+  /**
+   * Optional label for the file download button (e.g. "Download Concept (PDF)")
+   */
+  fileDownloadButtonLabel?: string | null;
+  /**
+   * Select specific form fields to display dynamically when expanding submission details.
+   */
+  displayFields?:
+    | {
+        /**
+         * e.g. name_vom_hof, stand_grosse, ressourcen, programmdauer
+         */
+        fieldName: string;
+        /**
+         * Human readable label (e.g. "Farm/Group", "Stand size")
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'approvedFormSubmissionsBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PhotoContestBlock".
+ */
+export interface PhotoContestBlock {
+  /**
+   * Default loaded photo contest
+   */
+  initialContestSlug?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'photoContestBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1626,6 +1780,10 @@ export interface TeamMembersBlock {
           relationTo: 'camp-schedule-entry';
           value: string | CampScheduleEntry;
         } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
     url?: string | null;
     email?: string | null;
     openInNewTab?: boolean | null;
@@ -1714,12 +1872,14 @@ export interface GenericPage {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
         }
+      | PhotoContestBlock
       | {
           image: string | Image;
           /**
@@ -1782,6 +1942,10 @@ export interface GenericPage {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -1822,6 +1986,10 @@ export interface GenericPage {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -2043,6 +2211,10 @@ export interface Timeline {
                     relationTo: 'camp-schedule-entry';
                     value: string | CampScheduleEntry;
                   } | null);
+              /**
+               * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+               */
+              fragment?: string | null;
               url?: string | null;
               email?: string | null;
               openInNewTab?: boolean | null;
@@ -2088,7 +2260,7 @@ export interface CampMapAnnotation {
    * The title of the annotation.
    */
   title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | 'f64955') | null;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
     | (
@@ -2129,6 +2301,10 @@ export interface CampMapAnnotation {
    * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
   isInteractive?: boolean | null;
+  /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
   /**
    * If checked, users will be able to report issues and start a support chat from this location.
    */
@@ -2346,6 +2522,10 @@ export interface CardGridBlock {
             relationTo: 'camp-schedule-entry';
             value: string | CampScheduleEntry;
           } | null);
+      /**
+       * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+       */
+      fragment?: string | null;
       url?: string | null;
       email?: string | null;
       openInNewTab?: boolean | null;
@@ -2393,6 +2573,10 @@ export interface ContactPersonBlock {
           relationTo: 'camp-schedule-entry';
           value: string | CampScheduleEntry;
         } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
     url?: string | null;
     email?: string | null;
     openInNewTab?: boolean | null;
@@ -2512,6 +2696,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2552,6 +2740,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2686,6 +2878,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2726,6 +2922,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2775,7 +2975,11 @@ export interface SponsorGridBlock {
     title?: string | null;
     columnsDesktop: '2' | '3' | '4' | '5' | '6';
     sponsors: {
-      image: string | Image;
+      image?: (string | null) | Image;
+      /**
+       * Name of the sponsor if no logo is selected
+       */
+      name?: string | null;
       linkField?: {
         type?: ('reference' | 'custom' | 'email') | null;
         reference?:
@@ -2803,6 +3007,10 @@ export interface SponsorGridBlock {
               relationTo: 'camp-schedule-entry';
               value: string | CampScheduleEntry;
             } | null);
+        /**
+         * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+         */
+        fragment?: string | null;
         url?: string | null;
         email?: string | null;
         openInNewTab?: boolean | null;
@@ -2852,6 +3060,10 @@ export interface FeaturedSectionBlock {
             relationTo: 'camp-schedule-entry';
             value: string | CampScheduleEntry;
           } | null);
+      /**
+       * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+       */
+      fragment?: string | null;
       url?: string | null;
       email?: string | null;
       openInNewTab?: boolean | null;
@@ -2891,6 +3103,10 @@ export interface FeaturedSectionBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -3004,6 +3220,10 @@ export interface TabsBlock {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -3044,6 +3264,10 @@ export interface TabsBlock {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -3149,6 +3373,32 @@ export interface NestedAccordionBlocks {
   id?: string | null;
   blockName?: string | null;
   blockType: 'nestedAccordion';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-contests".
+ */
+export interface PhotoContest {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  contestType?: ('PRESELECTED' | 'LIVE_EVENT') | null;
+  status?: ('DRAFT' | 'UPLOADING' | 'VOTING' | 'CLOSED') | null;
+  maxPointsPerUser?: number | null;
+  maxPointsPerImage?: number | null;
+  images?:
+    | {
+        image?: (string | null) | Image;
+        imageUrl?: string | null;
+        title?: string | null;
+        description?: string | null;
+        order?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3404,6 +3654,31 @@ export interface UserSubmittedImage {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form_collection".
+ */
+export interface FormCollection {
+  id: string;
+  /**
+   * Temporary files are deleted automatically after 24 hours if the form is not submitted.
+   */
+  isTemporary: boolean;
+  form?: (string | null) | Form;
+  formSubmission?: (string | null) | FormSubmission;
+  originalFilename?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3913,6 +4188,7 @@ export interface PayloadJob {
           | 'syncParticipants'
           | 'generateBills'
           | 'sendBills'
+          | 'cleanupTemporaryFormFiles'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -3967,6 +4243,7 @@ export interface PayloadJob {
         | 'syncParticipants'
         | 'generateBills'
         | 'sendBills'
+        | 'cleanupTemporaryFormFiles'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -4004,6 +4281,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'timeline';
         value: string | Timeline;
+      } | null)
+    | ({
+        relationTo: 'photo-contests';
+        value: string | PhotoContest;
       } | null)
     | ({
         relationTo: 'camp-map-annotations';
@@ -4048,6 +4329,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'documents';
         value: string | Document;
+      } | null)
+    | ({
+        relationTo: 'form_collection';
+        value: string | FormCollection;
       } | null)
     | ({
         relationTo: 'users';
@@ -4096,6 +4381,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payload-workers';
         value: string | PayloadWorker;
+      } | null)
+    | ({
+        relationTo: 'presence-logs';
+        value: string | PresenceLog;
       } | null)
     | ({
         relationTo: 'forms';
@@ -4196,6 +4485,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
                 | T
                 | {
@@ -4203,6 +4493,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              photoContestBlock?: T | PhotoContestBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -4242,6 +4533,7 @@ export interface BlogSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -4258,6 +4550,7 @@ export interface BlogSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -4311,6 +4604,37 @@ export interface BlogSelect<T extends boolean = true> {
  */
 export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ApprovedFormSubmissionsBlock_select".
+ */
+export interface ApprovedFormSubmissionsBlockSelect<T extends boolean = true> {
+  form?: T;
+  heading?: T;
+  titleFieldName?: T;
+  categoryFieldName?: T;
+  fileFieldName?: T;
+  searchPlaceholder?: T;
+  fileDownloadButtonLabel?: T;
+  displayFields?:
+    | T
+    | {
+        fieldName?: T;
+        label?: T;
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PhotoContestBlock_select".
+ */
+export interface PhotoContestBlockSelect<T extends boolean = true> {
+  initialContestSlug?: T;
   id?: T;
   blockName?: T;
 }
@@ -4440,6 +4764,7 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
     | {
         type?: T;
         reference?: T;
+        fragment?: T;
         url?: T;
         email?: T;
         openInNewTab?: T;
@@ -4576,6 +4901,7 @@ export interface CardGridBlockSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -4600,6 +4926,7 @@ export interface ContactPersonBlockSelect<T extends boolean = true> {
     | {
         type?: T;
         reference?: T;
+        fragment?: T;
         url?: T;
         email?: T;
         openInNewTab?: T;
@@ -4677,6 +5004,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -4693,6 +5021,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -4778,6 +5107,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -4794,6 +5124,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -4833,11 +5164,13 @@ export interface SponsorGridBlockSelect<T extends boolean = true> {
           | T
           | {
               image?: T;
+              name?: T;
               linkField?:
                 | T
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -4866,6 +5199,7 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -4884,6 +5218,7 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -4965,6 +5300,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -4981,6 +5317,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5043,6 +5380,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
                 | T
                 | {
@@ -5050,6 +5388,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              photoContestBlock?: T | PhotoContestBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -5089,6 +5428,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5105,6 +5445,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5195,6 +5536,7 @@ export interface TimelineSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -5216,6 +5558,31 @@ export interface TimelineSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-contests_select".
+ */
+export interface PhotoContestsSelect<T extends boolean = true> {
+  slug?: T;
+  title?: T;
+  description?: T;
+  contestType?: T;
+  status?: T;
+  maxPointsPerUser?: T;
+  maxPointsPerImage?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        imageUrl?: T;
+        title?: T;
+        description?: T;
+        order?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "camp-map-annotations_select".
  */
 export interface CampMapAnnotationsSelect<T extends boolean = true> {
@@ -5227,6 +5594,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   geometry?: T;
   polygonCoordinates?: T;
   isInteractive?: T;
+  hiddenOnDefaultMap?: T;
   enableSupportChat?: T;
   description?: T;
   openingHours?:
@@ -5547,6 +5915,27 @@ export interface DocumentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form_collection_select".
+ */
+export interface FormCollectionSelect<T extends boolean = true> {
+  isTemporary?: T;
+  form?: T;
+  formSubmission?: T;
+  originalFilename?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -5559,6 +5948,10 @@ export interface UsersSelect<T extends boolean = true> {
   groups?: T;
   hof?: T;
   quartier?: T;
+  description?: T;
+  hidden?: T;
+  presentAtCamp?: T;
+  presenceLogs?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -5793,11 +6186,23 @@ export interface PayloadWorkersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs_select".
+ */
+export interface PresenceLogsSelect<T extends boolean = true> {
+  user?: T;
+  isPresent?: T;
+  timestamp?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
   title?: T;
   autocomplete?: T;
+  fileUploadLimitMB?: T;
   sections?:
     | T
     | {
@@ -5944,6 +6349,19 @@ export interface FormsSelect<T extends boolean = true> {
                           dateRangeCategory?: T;
                           category?: T;
                           required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    fileUpload?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          allowedFileTypes?: T;
+                          customAllowedFileTypes?: T;
+                          allowMultiple?: T;
+                          required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -6097,6 +6515,19 @@ export interface FormsSelect<T extends boolean = true> {
                                       id?: T;
                                       blockName?: T;
                                     };
+                                fileUpload?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      allowedFileTypes?: T;
+                                      customAllowedFileTypes?: T;
+                                      allowMultiple?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
                               };
                           placement?: T;
                           id?: T;
@@ -6123,6 +6554,7 @@ export interface FormsSelect<T extends boolean = true> {
         replyTo?: T;
         emailFrom?: T;
         subject?: T;
+        attachFiles?: T;
         message?: T;
         id?: T;
       };
@@ -6164,6 +6596,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
+  approved?: T;
   smtpResults?: T;
   workflowResults?: T;
   'helper-jobs'?: T;
@@ -6392,6 +6825,10 @@ export interface Header {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -6426,10 +6863,96 @@ export interface Header {
                       relationTo: 'camp-schedule-entry';
                       value: string | CampScheduleEntry;
                     } | null);
+                /**
+                 * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+                 */
+                fragment?: string | null;
                 url?: string | null;
                 email?: string | null;
                 openInNewTab?: boolean | null;
               };
+              subMenu?:
+                | {
+                    label: string;
+                    linkField?: {
+                      type?: ('reference' | 'custom' | 'email') | null;
+                      reference?:
+                        | ({
+                            relationTo: 'blog';
+                            value: string | Blog;
+                          } | null)
+                        | ({
+                            relationTo: 'generic-page';
+                            value: string | GenericPage;
+                          } | null)
+                        | ({
+                            relationTo: 'images';
+                            value: string | Image;
+                          } | null)
+                        | ({
+                            relationTo: 'documents';
+                            value: string | Document;
+                          } | null)
+                        | ({
+                            relationTo: 'camp-map-annotations';
+                            value: string | CampMapAnnotation;
+                          } | null)
+                        | ({
+                            relationTo: 'camp-schedule-entry';
+                            value: string | CampScheduleEntry;
+                          } | null);
+                      /**
+                       * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+                       */
+                      fragment?: string | null;
+                      url?: string | null;
+                      email?: string | null;
+                      openInNewTab?: boolean | null;
+                    };
+                    subMenu?:
+                      | {
+                          label: string;
+                          linkField?: {
+                            type?: ('reference' | 'custom' | 'email') | null;
+                            reference?:
+                              | ({
+                                  relationTo: 'blog';
+                                  value: string | Blog;
+                                } | null)
+                              | ({
+                                  relationTo: 'generic-page';
+                                  value: string | GenericPage;
+                                } | null)
+                              | ({
+                                  relationTo: 'images';
+                                  value: string | Image;
+                                } | null)
+                              | ({
+                                  relationTo: 'documents';
+                                  value: string | Document;
+                                } | null)
+                              | ({
+                                  relationTo: 'camp-map-annotations';
+                                  value: string | CampMapAnnotation;
+                                } | null)
+                              | ({
+                                  relationTo: 'camp-schedule-entry';
+                                  value: string | CampScheduleEntry;
+                                } | null);
+                            /**
+                             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+                             */
+                            fragment?: string | null;
+                            url?: string | null;
+                            email?: string | null;
+                            openInNewTab?: boolean | null;
+                          };
+                          id?: string | null;
+                        }[]
+                      | null;
+                    id?: string | null;
+                  }[]
+                | null;
               id?: string | null;
             }[]
           | null;
@@ -6493,6 +7016,10 @@ export interface Footer {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -6505,11 +7032,15 @@ export interface Footer {
     youtube?: string | null;
   };
   /**
-   * Up to 6 sponsor logos displayed in the footer
+   * Up to 6 sponsors displayed in the footer (image logo or text name)
    */
   sponsors?:
     | {
-        logo: string | Image;
+        logo?: (string | null) | Image;
+        /**
+         * Name of the sponsor if no logo is selected
+         */
+        name?: string | null;
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
@@ -6537,6 +7068,10 @@ export interface Footer {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -6661,6 +7196,10 @@ export interface AppFeatureFlag {
    */
   imageUploadEnabled?: boolean | null;
   /**
+   * Toggles visibility of the Photo Contest menu item in the app.
+   */
+  photoContestEnabled?: boolean | null;
+  /**
    * Toggles visibility of the Reservations menu item in the app.
    */
   reservationsEnabled?: boolean | null;
@@ -6718,12 +7257,14 @@ export interface AppLandingPage {
             blockType: 'blogPostsOverview';
           }
         | FormBlock
+        | ApprovedFormSubmissionsBlock
         | {
             images: (string | Image)[];
             id?: string | null;
             blockName?: string | null;
             blockType: 'photoCarousel';
           }
+        | PhotoContestBlock
         | {
             image: string | Image;
             /**
@@ -6786,6 +7327,10 @@ export interface AppLandingPage {
                     relationTo: 'camp-schedule-entry';
                     value: string | CampScheduleEntry;
                   } | null);
+              /**
+               * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+               */
+              fragment?: string | null;
               url?: string | null;
               email?: string | null;
               openInNewTab?: boolean | null;
@@ -6826,6 +7371,10 @@ export interface AppLandingPage {
                     relationTo: 'camp-schedule-entry';
                     value: string | CampScheduleEntry;
                   } | null);
+              /**
+               * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+               */
+              fragment?: string | null;
               url?: string | null;
               email?: string | null;
               openInNewTab?: boolean | null;
@@ -7024,6 +7573,17 @@ export interface BillSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campsite-presence".
+ */
+export interface CampsitePresence {
+  id: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -7058,6 +7618,7 @@ export interface HeaderSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -7071,9 +7632,42 @@ export interface HeaderSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
+                  };
+              subMenu?:
+                | T
+                | {
+                    label?: T;
+                    linkField?:
+                      | T
+                      | {
+                          type?: T;
+                          reference?: T;
+                          fragment?: T;
+                          url?: T;
+                          email?: T;
+                          openInNewTab?: T;
+                        };
+                    subMenu?:
+                      | T
+                      | {
+                          label?: T;
+                          linkField?:
+                            | T
+                            | {
+                                type?: T;
+                                reference?: T;
+                                fragment?: T;
+                                url?: T;
+                                email?: T;
+                                openInNewTab?: T;
+                              };
+                          id?: T;
+                        };
+                    id?: T;
                   };
               id?: T;
             };
@@ -7102,6 +7696,7 @@ export interface FooterSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -7118,11 +7713,13 @@ export interface FooterSelect<T extends boolean = true> {
     | T
     | {
         logo?: T;
+        name?: T;
         linkField?:
           | T
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -7200,6 +7797,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
   imageUploadEnabled?: T;
+  photoContestEnabled?: T;
   reservationsEnabled?: T;
   forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;
@@ -7230,6 +7828,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               blockName?: T;
             };
         formBlock?: T | FormBlockSelect<T>;
+        approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
           | T
           | {
@@ -7237,6 +7836,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        photoContestBlock?: T | PhotoContestBlockSelect<T>;
         singlePicture?:
           | T
           | {
@@ -7276,6 +7876,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -7292,6 +7893,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -7414,6 +8016,17 @@ export interface BillSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "campsite-presence_select".
+ */
+export interface CampsitePresenceSelect<T extends boolean = true> {
+  startDate?: T;
+  endDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats_select".
  */
 export interface PayloadJobsStatsSelect<T extends boolean = true> {
@@ -7427,6 +8040,16 @@ export interface PayloadJobsStatsSelect<T extends boolean = true> {
  * via the `definition` "emergency-alerts_widget".
  */
 export interface EmergencyAlertsWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-count_widget".
+ */
+export interface PresenceCountWidget {
   data?: {
     [k: string]: unknown;
   };
@@ -7691,6 +8314,14 @@ export interface TaskSendBills {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCleanupTemporaryFormFiles".
+ */
+export interface TaskCleanupTemporaryFormFiles {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCreateCollectionExport".
  */
 export interface TaskCreateCollectionExport {
@@ -7702,6 +8333,7 @@ export interface TaskCreateCollectionExport {
       | 'blog'
       | 'generic-page'
       | 'timeline'
+      | 'photo-contests'
       | 'camp-map-annotations'
       | 'camp-categories'
       | 'camp-schedule-entry'
@@ -7713,6 +8345,7 @@ export interface TaskCreateCollectionExport {
       | 'images'
       | 'userSubmittedImages'
       | 'documents'
+      | 'form_collection'
       | 'users'
       | 'permissions'
       | 'push-notification-subscriptions'
@@ -7725,6 +8358,7 @@ export interface TaskCreateCollectionExport {
       | 'bill-pdfs'
       | 'piket-schedules'
       | 'payload-workers'
+      | 'presence-logs'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'

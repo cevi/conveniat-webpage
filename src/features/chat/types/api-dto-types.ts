@@ -18,6 +18,7 @@ export interface ChatWithMessagePreview {
   description: string | null;
   status: ChatStatus;
   chatType: ChatType;
+  caseNumber?: string | undefined;
   lastMessage: PreviewMessage;
   lastUpdate: Date;
   unreadCount: number;

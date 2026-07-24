@@ -78,10 +78,7 @@ export const useFormSteps = (
         if (field.blockType === 'conditionedBlock') {
           const { field: conditionField, value: targetValue } = field.displayCondition;
           const watchValue = formMethods.watch(conditionField) as
-            | string
-            | boolean
-            | number
-            | undefined;
+            string | boolean | number | undefined;
           const condition = (watchValue ?? '').toString() === targetValue;
 
           if (condition) {

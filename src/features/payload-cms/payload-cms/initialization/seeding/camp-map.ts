@@ -427,6 +427,7 @@ export const createRandomCampAnnotation = (
       'f848c7',
       'b56aff',
       '16a672',
+      '1e88e5',
     ]),
     geometry: randomCoordinates,
     openingHours: [

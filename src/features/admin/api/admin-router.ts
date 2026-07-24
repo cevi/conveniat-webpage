@@ -7,7 +7,11 @@ import {
 } from '@/lib/chat-shared';
 import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 // eslint-disable-next-line import/no-restricted-paths
+import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
+// eslint-disable-next-line import/no-restricted-paths
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
+// eslint-disable-next-line import/no-restricted-paths
+import { getJoinGroupMessagePayload } from '@/features/chat/api/utils/system-message-helpers';
 // eslint-disable-next-line import/no-restricted-paths
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 // eslint-disable-next-line import/no-restricted-paths
@@ -25,6 +29,7 @@ import {
 } from '@/lib/prisma/client';
 import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Prisma } from '@prisma/client';
@@ -127,6 +132,7 @@ export const adminRouter = createTRPCRouter({
           description: chat.description,
           status: chat.status,
           type: chat.type,
+          caseNumber: formatCaseNumber(chat.caseNumber),
           capabilities: chat.capabilities,
           lastUpdate: chat.lastUpdate,
           messageCount: chat._count.messages,
@@ -462,10 +468,32 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
 
+      const now = new Date();
+
       await prisma.chat.update({
         where: { uuid: input.chatId },
-        data: { adminReadAt: new Date() },
+        data: { adminReadAt: now },
       });
+
+      const lastMessage = await prisma.message.findFirst({
+        where: { chatId: input.chatId },
+        orderBy: [{ createdAt: 'desc' }, { uuid: 'desc' }],
+        select: { uuid: true },
+      });
+
+      if (lastMessage) {
+        await prisma.chatMembership
+          .updateMany({
+            where: {
+              userId: user.uuid,
+              chatId: input.chatId,
+            },
+            data: {
+              lastReadMessageId: lastMessage.uuid,
+            },
+          })
+          .catch(() => {});
+      }
 
       // Publish real-time event to update standard users' checkmarks instantly
       void chatPubSub.publish({
@@ -916,6 +944,7 @@ export const adminRouter = createTRPCRouter({
         email: u.email,
         hof: u.hof ?? undefined,
         quartier: u.quartier ?? undefined,
+        description: u.description ?? undefined,
       }));
     }),
 
@@ -947,16 +976,18 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
+      const formattedName = formatUserFullName(userDocument.fullName, userDocument.nickname);
+
       // Ensure the user exists in PostgreSQL to satisfy foreign key constraints
       await prisma.user.upsert({
         where: { uuid: userId },
         create: {
           uuid: userId,
-          name: userDocument.fullName,
+          name: formattedName,
           lastSeen: new Date('1970-01-01T00:00:00Z'),
         },
         update: {
-          name: userDocument.fullName,
+          name: formattedName,
         },
       });
 
@@ -977,6 +1008,8 @@ export const adminRouter = createTRPCRouter({
       });
 
       // Create a SYSTEM_MSG so it gets stored in history and displayed in the UI
+      const joinMessagePayload = getJoinGroupMessagePayload(formattedName);
+
       const systemMessage = await prisma.message.create({
         data: {
           chatId,
@@ -984,7 +1017,7 @@ export const adminRouter = createTRPCRouter({
           contentVersions: {
             create: [
               {
-                payload: `${userDocument.fullName} joined the group`,
+                payload: joinMessagePayload,
               },
             ],
           },
@@ -1010,7 +1043,7 @@ export const adminRouter = createTRPCRouter({
           message: {
             id: systemMessage.uuid,
             createdAt: systemMessage.createdAt,
-            messagePayload: `${userDocument.fullName} joined the group`,
+            messagePayload: joinMessagePayload,
             senderId: SYSTEM_SENDER_ID,
             status: MessageEventType.STORED,
             type: MessageType.SYSTEM_MSG,

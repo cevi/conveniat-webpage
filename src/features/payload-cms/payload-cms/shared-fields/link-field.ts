@@ -40,6 +40,7 @@ export interface LinkFieldDataType {
       };
   url?: string | null;
   openInNewTab?: boolean | null;
+  fragment?: string | null;
 }
 
 const validateEmail: TextFieldSingleValidation = (email, options) => {
@@ -150,6 +151,30 @@ export const LinkField = (required: boolean = true): NamedGroupField => {
         required: required,
         hasMany: false,
         filterOptions: filterOptionsOnlyPublished,
+      },
+      {
+        name: 'fragment',
+        type: 'text',
+        admin: {
+          condition: (_, siblingData): boolean => {
+            if (siblingData['type'] !== 'reference') {
+              return false;
+            }
+            const reference = siblingData['reference'] as { relationTo?: string } | undefined;
+            const relationTo = reference?.relationTo;
+            return !relationTo || relationTo === 'generic-page' || relationTo === 'blog';
+          },
+          description: {
+            de: 'Optionale Sprungmarke / Anker (z. B. "projektleitung" für den Akkordeon-Block)',
+            en: 'Optional fragment / anchor (e.g. "projektleitung" for accordion block)',
+            fr: 'Ancre / fragment optionnel (par ex. "projektleitung" pour le bloc accordéon)',
+          },
+        },
+        label: {
+          de: 'Anker / Fragment',
+          en: 'Anchor / Fragment',
+          fr: 'Ancre / Fragment',
+        },
       },
       {
         name: 'url',

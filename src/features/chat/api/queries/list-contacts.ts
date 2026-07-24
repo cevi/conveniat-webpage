@@ -4,6 +4,7 @@ import { z } from 'zod';
 export interface Contact {
   userId: string;
   name: string;
+  description?: string | null;
 }
 
 /**
@@ -19,15 +20,20 @@ export const listContacts = trpcBaseProcedure
     const { user, prisma } = ctx;
 
     const _contacts = await prisma.user.findMany({
-      where: { uuid: { not: user.uuid } },
+      where: {
+        uuid: { not: user.uuid },
+        hidden: false,
+      },
       select: {
         uuid: true,
         name: true,
+        description: true,
       },
     });
 
     return _contacts.map((contact) => ({
       userId: contact.uuid,
       name: contact.name,
+      description: contact.description,
     }));
   });

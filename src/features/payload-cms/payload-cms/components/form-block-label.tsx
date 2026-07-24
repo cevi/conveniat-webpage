@@ -13,8 +13,7 @@ export const FormBlockLabel: React.FC<{
   label: StaticTranslationString;
 }> = ({ label }) => {
   const rowLabel = useRowLabel<{ name?: string; required?: boolean }>() as
-    | { data: { name?: string; required?: boolean } }
-    | undefined;
+    { data: { name?: string; required?: boolean } } | undefined;
   const { code } = useLocale();
 
   if (!rowLabel) {

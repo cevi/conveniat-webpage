@@ -9,6 +9,7 @@ import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { EmergencyCardsCollection } from '@/features/payload-cms/payload-cms/collections/emergency-cards';
+import { FormCollection } from '@/features/payload-cms/payload-cms/collections/form-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/collections/helper-shifts-collection';
@@ -16,6 +17,7 @@ import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PayloadWorkersCollection } from '@/features/payload-cms/payload-cms/collections/payload-workers';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
+import { PhotoContestCollection } from '@/features/payload-cms/payload-cms/collections/photo-contest-collection';
 import { PiketScheduleCollection } from '@/features/payload-cms/payload-cms/collections/piket-schedule-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
@@ -25,6 +27,7 @@ import { UserCollection } from '@/features/payload-cms/payload-cms/collections/u
 import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cms/collections/user-submitted-images-collection';
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
+import { PresenceLogCollection } from '@/features/presence/payload-cms/collections/presence-log-collection';
 import { BlockedJobs } from '@/features/registration_process/collections/blocked-jobs';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
@@ -38,6 +41,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   TimelineCollection,
 
   // app content collections
+  PhotoContestCollection,
   CampMapAnnotationsCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
@@ -51,6 +55,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   ImageCollection,
   UserSubmittedImagesCollection,
   DocumentsCollection,
+  FormCollection,
   UserCollection,
   PermissionsCollection,
   PushNotificationSubscriptions,
@@ -63,6 +68,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BillPdfsCollection,
   PiketScheduleCollection,
   PayloadWorkersCollection,
+  PresenceLogCollection,
 ];
 
 /**

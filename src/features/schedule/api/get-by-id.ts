@@ -1,5 +1,3 @@
-'use server';
-
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import type { Locale } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';

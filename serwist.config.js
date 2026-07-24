@@ -8,4 +8,5 @@ export default await serwist({
   swSrc: 'src/features/service-worker/sw.ts',
   swDest: 'public/sw.js',
   precachePrerendered: false,
+  globIgnores: ['**/node_modules/**/*', '**/admin-block-images/**/*'],
 });

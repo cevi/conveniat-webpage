@@ -1,4 +1,8 @@
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat'; // eslint-disable-line import/no-restricted-paths
+import {
+  getJoinGroupMessagePayload,
+  getLeftGroupMessagePayload,
+} from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import {
@@ -33,6 +37,12 @@ export const scheduleRouter = createTRPCRouter({
     const { locale } = ctx;
     const { getById } = await import('./get-by-id');
     return getById(input.id, locale);
+  }),
+
+  getHelperShifts: publicProcedure.query(async ({ ctx }) => {
+    const { locale } = ctx;
+    const { getHelperShifts } = await import('./get-helper-shifts');
+    return getHelperShifts({}, locale);
   }),
 
   getCourseStatus: publicProcedure.input(enrollInCourseSchema).query(async ({ input, ctx }) => {
@@ -332,7 +342,7 @@ export const scheduleRouter = createTRPCRouter({
               chatId: courseChat.uuid,
               type: MessageType.SYSTEM_MSG,
               contentVersions: {
-                create: [{ payload: `${user.name} joined the group` }],
+                create: [{ payload: getJoinGroupMessagePayload(user.name) }],
               },
               messageEvents: {
                 create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
@@ -559,7 +569,7 @@ export const scheduleRouter = createTRPCRouter({
               chatId: fromCourseChat.uuid,
               type: MessageType.SYSTEM_MSG,
               contentVersions: {
-                create: [{ payload: `${user.name} left the group` }],
+                create: [{ payload: getLeftGroupMessagePayload(user.name) }],
               },
               messageEvents: {
                 create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
@@ -607,7 +617,7 @@ export const scheduleRouter = createTRPCRouter({
               chatId: toCourseChat.uuid,
               type: MessageType.SYSTEM_MSG,
               contentVersions: {
-                create: [{ payload: `${user.name} joined the group` }],
+                create: [{ payload: getJoinGroupMessagePayload(user.name) }],
               },
               messageEvents: {
                 create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],
@@ -684,7 +694,7 @@ export const scheduleRouter = createTRPCRouter({
               chatId: courseChat.uuid,
               type: MessageType.SYSTEM_MSG,
               contentVersions: {
-                create: [{ payload: `${user.name} left the group` }],
+                create: [{ payload: getLeftGroupMessagePayload(user.name) }],
               },
               messageEvents: {
                 create: [{ type: MessageEventType.CREATED }, { type: MessageEventType.STORED }],

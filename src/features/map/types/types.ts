@@ -47,6 +47,7 @@ export interface CampMapAnnotationPoint {
   color: string;
   importance: 'high' | 'medium' | 'low';
   enableSupportChat?: boolean;
+  hiddenOnDefaultMap?: boolean;
 }
 
 export interface CampMapAnnotationPolygon {
@@ -61,6 +62,7 @@ export interface CampMapAnnotationPolygon {
   isInteractive: boolean;
   importance: 'high' | 'medium' | 'low';
   enableSupportChat?: boolean;
+  hiddenOnDefaultMap?: boolean;
 }
 
 export interface MapControlOptions {

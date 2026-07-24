@@ -137,7 +137,16 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                         {contact.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <span className="font-body text-sm font-medium">{contact.name}</span>
+                    <div className="flex flex-col">
+                      <span className="font-body text-sm font-medium text-gray-900">
+                        {contact.name}
+                      </span>
+                      {contact.description && (
+                        <span className="font-body text-xs text-gray-500">
+                          {contact.description}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {isSelected && (
                     <div className="bg-conveniat-green flex h-5 w-5 items-center justify-center rounded-full">

@@ -11,3 +11,6 @@ src/features/payload-cms/payload-types.ts
 coverage
 media
 test-results
+**/*-worktree
+worktrees/**
+**/worktrees/**

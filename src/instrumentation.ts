@@ -67,12 +67,32 @@ export const onRequestError = async (
         properties['x-forwarded-for'] = request.headers['x-forwarded-for'];
 
       let errorMessage = '';
+      let digest: string | undefined;
       if (error !== null && typeof error === 'object') {
-        if ('digest' in error) properties['digest'] = error.digest;
+        if ('digest' in error) {
+          properties['digest'] = error.digest;
+          if (typeof error.digest === 'string') {
+            digest = error.digest;
+          }
+        }
         if ('message' in error && typeof error.message === 'string') {
           errorMessage = error.message;
           properties['errorMessage'] = error.message;
         }
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      const is404 =
+        digest === 'NEXT_NOT_FOUND' ||
+        digest?.includes('404') === true ||
+        errorMessage.includes('NEXT_NOT_FOUND') ||
+        errorMessage.includes('404') ||
+        errorMessage.includes('PAGE_NOT_FOUND_ERROR') ||
+        errorMessage.includes('PAGE_NOT_FOUND');
+
+      if (is404) {
+        return;
       }
 
       const { noiseMessages } = await import('@/utils/posthog-filters');

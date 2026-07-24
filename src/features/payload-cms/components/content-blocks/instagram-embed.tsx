@@ -24,8 +24,9 @@ export const InstagramEmbed: React.FC<InstagramEmbedType & { locale: Locale }> =
     return;
   }
 
-  // split by /p/ or /reel/
-  const postId = link.split(/\/(p|reel)\//)[2]?.split('/')[0];
+  // extract post ID from /p/, /reel/, /reels/, or /tv/
+  const match = link.match(/\/(p|reel|reels|tv)\/([^/?#]+)/);
+  const postId = match ? match[2] : undefined;
 
   if (postId == undefined) {
     console.error(`InstagramEmbed: Invalid URL ${link}`);

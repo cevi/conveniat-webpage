@@ -33,9 +33,12 @@ function groupByDate(
     dateMap.set(dateKey, existing);
   }
 
-  return [...dateMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, groupShifts]) => ({ date, shifts: groupShifts }));
+  return (
+    [...dateMap.entries()]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      .sort(([a], [b]) => (a ?? '').localeCompare(b ?? ''))
+      .map(([date, groupShifts]) => ({ date, shifts: groupShifts }))
+  );
 }
 
 /**

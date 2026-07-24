@@ -1,11 +1,12 @@
 'use client';
 
-import { sendNotificationToSubscriptionAction } from '@/utils/push-notification-actions';
+import { trpc } from '@/trpc/client';
 import { useDocumentInfo } from '@payloadcms/ui';
 import type webpush from 'web-push';
 
 const SendPushNotification: React.FC = () => {
   const { savedDocumentData } = useDocumentInfo();
+  const sendNotificationMutation = trpc.nativePush.sendWebPushNotification.useMutation();
 
   // check if the document has data
   const hasData =
@@ -27,17 +28,28 @@ const SendPushNotification: React.FC = () => {
       userId = (userField as { id: string }).id;
     }
 
-    const success = await sendNotificationToSubscriptionAction(
-      subscription,
-      (document.querySelector('#send-push-content') as HTMLInputElement).value,
-      (document.querySelector('#send-push-url') as HTMLInputElement).value,
-      userId,
-    );
-    if (success.success) {
-      (document.querySelector('#send-push-content') as HTMLInputElement).value = '';
-      (document.querySelector('#send-push-url') as HTMLInputElement).value = '';
-      alert('Push notification sent successfully');
-    } else {
+    try {
+      const result = await sendNotificationMutation.mutateAsync({
+        subscription: {
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: subscription.keys.p256dh,
+            auth: subscription.keys.auth,
+          },
+        },
+        message: (document.querySelector('#send-push-content') as HTMLInputElement).value,
+        url: (document.querySelector('#send-push-url') as HTMLInputElement).value,
+        userId,
+      });
+
+      if (result.success) {
+        (document.querySelector('#send-push-content') as HTMLInputElement).value = '';
+        (document.querySelector('#send-push-url') as HTMLInputElement).value = '';
+        alert('Push notification sent successfully');
+      } else {
+        alert('Failed to send push notification');
+      }
+    } catch {
       alert('Failed to send push notification');
     }
   };

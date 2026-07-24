@@ -222,10 +222,16 @@ catch errors at compile time and improves code reliability.
   custom rules for conventions and import restrictions.
 - **Prettier:** Used for automatic code formatting to ensure a consistent style. Integrated via
   `eslint-plugin-prettier`.
-- **Run Checks:** (Ensure these scripts exist in your `package.json`)
+- **Run Checks:**
   ```bash
+  # Run type checking
+  pnpm typecheck
+
   # Run ESLint checks and fix issues
-  pnpm run lint
+  pnpm lint
+
+  # Run full verification suite (Prettier, Typecheck, ESLint, Tests)
+  pnpm verify
   ```
 
 ### Import Restrictions

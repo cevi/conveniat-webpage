@@ -1,5 +1,6 @@
 import { type Locale, type StaticTranslationString } from '@/types/types';
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
 
 const nextStepText: StaticTranslationString = {
   en: 'Next',
@@ -17,6 +18,12 @@ const pleaseWaitText: StaticTranslationString = {
   en: 'Loading, please wait...',
   de: 'Laden, bitte warten...',
   fr: 'Chargement, veuillez patienter',
+};
+
+const uploadingText: StaticTranslationString = {
+  en: 'Uploading file...',
+  de: 'Datei wird hochgeladen...',
+  fr: 'Téléversement du fichier...',
 };
 
 interface FormControlsProperties {
@@ -40,6 +47,26 @@ export const FormControls: React.FC<FormControlsProperties> = ({
   submitLabel,
   formId,
 }) => {
+  const { control } = useFormContext();
+  const formValues = useWatch({ control }) as Record<string, unknown> | undefined;
+
+  const isFileUploading = useMemo(() => {
+    if (formValues === undefined) {
+      return false;
+    }
+    return Object.entries(formValues).some(
+      ([key, value]) => key.startsWith('_isUploading_') && value === true,
+    );
+  }, [formValues]);
+
+  const isDisabled = isSubmitting || isFileUploading;
+
+  const getActionButtonLabel = (defaultLabel: string): string => {
+    if (isSubmitting) return pleaseWaitText[locale];
+    if (isFileUploading) return uploadingText[locale];
+    return defaultLabel;
+  };
+
   return (
     <div className="mt-2 flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
       {isFirst ? (
@@ -48,7 +75,7 @@ export const FormControls: React.FC<FormControlsProperties> = ({
         <button
           type="button"
           onClick={onPrev}
-          disabled={isSubmitting}
+          disabled={isDisabled}
           className="h-10 w-full cursor-pointer rounded-lg border-2 border-gray-500 px-5 py-2 text-base font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:opacity-50 sm:w-auto"
         >
           {previousStepText[locale]}
@@ -58,20 +85,20 @@ export const FormControls: React.FC<FormControlsProperties> = ({
       {isLast ? (
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isDisabled}
           form={formId}
           className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto"
         >
-          {isSubmitting ? pleaseWaitText[locale] : submitLabel}
+          {getActionButtonLabel(submitLabel ?? '')}
         </button>
       ) : (
         <button
           type="button"
           onClick={onNext}
-          disabled={isSubmitting}
+          disabled={isDisabled}
           className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto"
         >
-          {nextStepText[locale]}
+          {getActionButtonLabel(nextStepText[locale])}
         </button>
       )}
     </div>

@@ -27,12 +27,7 @@ export interface RegistrationJob {
 }
 
 export type JobStatusFilter =
-  | 'queued'
-  | 'processing'
-  | 'completed'
-  | 'failed'
-  | 'awaiting_approval'
-  | 'retrying';
+  'queued' | 'processing' | 'completed' | 'failed' | 'awaiting_approval' | 'retrying';
 
 // --- Constants ---
 export const STATUS_CONFIG: Record<

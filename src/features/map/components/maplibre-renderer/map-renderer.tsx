@@ -15,12 +15,15 @@ import type {
   InitialMapPose,
   MapControlOptions,
 } from '@/features/map/types/types';
+import { useOnlineStatus } from '@/hooks/use-online-status';
+import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
+import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 /**
  * Factory function to create a DOM element with the Cevi Logo SVG.
@@ -77,6 +80,77 @@ export const MapLibreRenderer = ({
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
+  const isOnline = useOnlineStatus();
+
+  const [annotationPoints, setAnnotationPoints] =
+    useState<CampMapAnnotationPoint[]>(campMapAnnotationPoints);
+  const [annotationPolygons, setAnnotationPolygons] =
+    useState<CampMapAnnotationPolygon[]>(campMapAnnotationPolygons);
+  const [schedulesState, setSchedulesState] = useState<{ [id: string]: CampScheduleEntry[] }>(
+    schedules,
+  );
+
+  // Sync state if props change (e.g. key/prop changes)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAnnotationPoints(campMapAnnotationPoints);
+  }, [campMapAnnotationPoints]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAnnotationPolygons(campMapAnnotationPolygons);
+  }, [campMapAnnotationPolygons]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSchedulesState(schedules);
+  }, [schedules]);
+
+  // Fetch updated map data when online
+  const { data: updatedMapData } = trpc.map.getMapAnnotations.useQuery(
+    { locale },
+    {
+      enabled: isOnline,
+      staleTime: 0, // fetch fresh data
+    },
+  );
+
+  useEffect(() => {
+    if (updatedMapData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnnotationPoints(updatedMapData.campMapAnnotationPoints);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnnotationPolygons(updatedMapData.campMapAnnotationPolygons);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSchedulesState(updatedMapData.schedules);
+
+      // Trigger background update of the PWA offline cache for `/app/map` page & RSC
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: ServiceWorkerMessages.UPDATE_MAP_CACHE,
+          locale,
+        });
+      }
+    }
+  }, [updatedMapData, locale]);
+
+  // Sync openAnnotation reference when state updates
+  useEffect(() => {
+    if (openAnnotation) {
+      const updatedPoint = annotationPoints.find((a) => a.id === openAnnotation.id);
+      if (updatedPoint && updatedPoint !== openAnnotation) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setOpenAnnotation(updatedPoint);
+        return;
+      }
+      const updatedPolygon = annotationPolygons.find((a) => a.id === openAnnotation.id);
+      if (updatedPolygon && updatedPolygon !== openAnnotation) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setOpenAnnotation(updatedPolygon);
+      }
+    }
+  }, [annotationPoints, annotationPolygons, openAnnotation]);
+
   const map = useMapInitialization(mapContainer, {
     initialMapPose,
     limitUsage,
@@ -87,31 +161,44 @@ export const MapLibreRenderer = ({
     openAnnotation,
     setOpenAnnotation,
     closeDrawer,
-    campMapAnnotationPoints,
-    campMapAnnotationPolygons,
+    annotationPoints,
+    annotationPolygons,
     !disableUrlSync,
   );
+
+  // Filter annotations based on hiddenOnDefaultMap and open status
+  const visibleAnnotationPoints = useMemo(() => {
+    return annotationPoints.filter(
+      (annotation) => !annotation.hiddenOnDefaultMap || annotation.id === openAnnotation?.id,
+    );
+  }, [annotationPoints, openAnnotation?.id]);
+
+  const visibleAnnotationPolygons = useMemo(() => {
+    return annotationPolygons.filter(
+      (annotation) => !annotation.hiddenOnDefaultMap || annotation.id === openAnnotation?.id,
+    );
+  }, [annotationPolygons, openAnnotation?.id]);
 
   // Filter annotations based on search term
   const filteredAnnotationPoints = useMemo(() => {
     if (searchTerm === '') {
-      return campMapAnnotationPoints;
+      return visibleAnnotationPoints;
     }
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return campMapAnnotationPoints.filter((annotation) =>
+    return visibleAnnotationPoints.filter((annotation) =>
       annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
     );
-  }, [campMapAnnotationPoints, searchTerm]);
+  }, [visibleAnnotationPoints, searchTerm]);
 
   const filteredAnnotationPolygons = useMemo(() => {
     if (searchTerm === '') {
-      return campMapAnnotationPolygons;
+      return visibleAnnotationPolygons;
     }
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    return campMapAnnotationPolygons.filter((annotation) =>
+    return visibleAnnotationPolygons.filter((annotation) =>
       annotation.title.toLowerCase().includes(lowerCaseSearchTerm),
     );
-  }, [campMapAnnotationPolygons, searchTerm]);
+  }, [visibleAnnotationPolygons, searchTerm]);
 
   const handleSearch = useCallback(
     (term: string) => {
@@ -135,7 +222,7 @@ export const MapLibreRenderer = ({
           closeDrawer={closeDrawer}
           annotation={openAnnotation}
           locale={locale}
-          schedule={schedules[openAnnotation.id]}
+          schedule={schedulesState[openAnnotation.id]}
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />

@@ -96,6 +96,11 @@ module.exports = {
 
       white: colors.white,
 
+      emerald: colors.emerald,
+      teal: colors.teal,
+      amber: colors.amber,
+      slate: colors.slate,
+
       orange: {
         500: '#FFA500',
       },

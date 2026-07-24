@@ -73,6 +73,11 @@ export function buildMetadata({
     ...(seo.metaTitle && { title: seo.metaTitle }),
     ...(seo.metaDescription && { description: seo.metaDescription }),
     ...(seo.keywords && { keywords: seo.keywords }),
+    openGraph: {
+      type: 'website',
+      ...(seo.metaTitle && { title: seo.metaTitle }),
+      ...(seo.metaDescription && { description: seo.metaDescription }),
+    },
     ...(canonicalLocale &&
       canonicalSlug && {
         alternates: {

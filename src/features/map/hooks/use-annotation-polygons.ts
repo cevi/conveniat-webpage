@@ -331,7 +331,11 @@ export const useAnnotationPolygons = (
       // to avoid side-effects (setCurrentAnnotation) inside reducer
       const previousState = clickedPolygonState;
 
-      const sortedClickedPolygons = clickedPolygons.sort((a, b) => a.id.localeCompare(b.id));
+      /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+      const sortedClickedPolygons = clickedPolygons.sort((a, b) =>
+        (a.id ?? '').localeCompare(b.id ?? ''),
+      );
+      /* eslint-enable @typescript-eslint/no-unnecessary-condition */
       const currentIds = previousState?.polygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
       const newIds = sortedClickedPolygons.map((p: CampMapAnnotationPolygon) => p.id).sort();
 

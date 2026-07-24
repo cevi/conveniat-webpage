@@ -17,7 +17,7 @@ services:
 
       update_config:
         parallelism: 1 # Update one replica at a time
-        delay: 0s # No delay between updates
+        delay: 15s # 15s delay between updates for Traefik health checks
         order: start-first # Start new containers before stopping old ones
         monitor: 5s # Time to wait after an update to monitor for failure
         failure_action: pause # What to do if an update fails

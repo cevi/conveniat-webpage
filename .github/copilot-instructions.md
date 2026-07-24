@@ -141,11 +141,7 @@ interface MyComponentProps {
   // ...
 }
 
-export const MyComponent: React.FC<MyComponentProps> = (
-  {
-    /* ... */
-  },
-) => {
+export const MyComponent: React.FC<MyComponentProps> = ({/* ... */}) => {
   // ...
 };
 ```
@@ -155,11 +151,7 @@ export const MyComponent: React.FC<MyComponentProps> = (
 ```tsx
 import React from 'react'; // Avoid this for type usage
 
-export const MyComponent: React.FC<MyComponentProps> = (
-  {
-    /* ... */
-  },
-) => {
+export const MyComponent: React.FC<MyComponentProps> = ({/* ... */}) => {
   // ...
 };
 ```

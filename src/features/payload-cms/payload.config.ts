@@ -16,7 +16,12 @@ import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
-import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  DEFAULT_QUEUE,
+  MAIL_QUEUE,
+} from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+
+import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cms/tasks/cleanup-temporary-form-files';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
@@ -42,11 +47,21 @@ import { fileURLToPath } from 'node:url';
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
 import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
+  customPayloadLoggerConfig,
+  setQueriedJobSlugs,
+} from '@/features/payload-cms/payload-cms/utils/job-logger';
+import {
   enabledWidgets,
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type { CollectionBeforeChangeHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
+import type {
+  CollectionAfterOperationHook,
+  CollectionBeforeChangeHook,
+  Endpoint,
+  JobsConfig,
+  MetaConfig,
+} from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -203,6 +218,25 @@ const jobsConfig: JobsConfig = {
       },
       hooks: {
         ...defaultJobsCollection.hooks,
+        afterOperation: [
+          (({ operation, result }) => {
+            if (operation === 'find' && 'docs' in result && Array.isArray(result.docs)) {
+              const slugs = (result.docs as Record<string, unknown>[])
+                .map(
+                  (document_) =>
+                    (document_['taskSlug'] as string | undefined) ||
+                    (document_['workflowSlug'] as string | undefined),
+                )
+                .filter(
+                  (slug: string | undefined): slug is string =>
+                    typeof slug === 'string' && slug.length > 0,
+                );
+              setQueriedJobSlugs(slugs);
+            }
+            return result;
+          }) as CollectionAfterOperationHook,
+          ...(defaultJobsCollection.hooks?.afterOperation ?? []),
+        ],
         beforeOperation: [
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (hookArguments: any): void => {
@@ -327,6 +361,7 @@ const jobsConfig: JobsConfig = {
     syncParticipantsTask,
     generateBillsTask,
     sendBillsTask,
+    cleanupTemporaryFormFilesTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
@@ -340,6 +375,11 @@ const jobsConfig: JobsConfig = {
           cron: '*/10 * * * * *', // Every 10 seconds
           limit: 10,
           queue: DEFAULT_QUEUE,
+        },
+        {
+          cron: '*/10 * * * * *', // Every 10 seconds
+          limit: 10,
+          queue: MAIL_QUEUE,
         },
       ]
     : [],
@@ -355,6 +395,7 @@ const customEndpoints: Endpoint[] = [
 ];
 
 export const payloadConfig: RoutableConfig = {
+  logger: customPayloadLoggerConfig,
   serverURL: env.APP_HOST_URL,
   onInit: onPayloadInit,
   admin: payloadConfigAdminSettings,

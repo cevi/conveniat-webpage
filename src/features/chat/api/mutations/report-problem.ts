@@ -1,6 +1,6 @@
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -128,12 +128,12 @@ export const reportProblem = trpcBaseProcedure
       .publish({
         type: 'new_message',
         chatId: chat.uuid,
-        senderId: user.uuid,
+        senderId: SYSTEM_SENDER_ID,
         message: {
           id: systemMessage.uuid,
           createdAt: systemMessage.createdAt,
           messagePayload: payloadContent,
-          senderId: user.uuid,
+          senderId: SYSTEM_SENDER_ID,
           status: MessageEventType.STORED,
           type: MessageType.SYSTEM_MSG,
         },

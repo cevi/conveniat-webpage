@@ -18,8 +18,7 @@ export const JobOverviewError: React.FC<JobOverviewErrorProperties> = ({ job }) 
 
   // Parse error if it exists and looks like the Zod/Validation error from the user's screenshot
   const errorObject = job.log?.find((l) => l.state === 'failed')?.error as
-    | { message?: string | string[] }
-    | undefined;
+    { message?: string | string[] } | undefined;
 
   const handleCopyError = (): void => {
     if (!errorObject) return;

@@ -161,11 +161,18 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
                   )}
 
                   <div className="flex items-start justify-between gap-2">
-                    <span
-                      className={`truncate text-sm font-semibold transition-colors ${titleTextClass}`}
-                    >
-                      {chat.name}
-                    </span>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span
+                        className={`truncate text-sm font-semibold transition-colors ${titleTextClass}`}
+                      >
+                        {chat.name}
+                      </span>
+                      {chat.caseNumber != undefined && chat.caseNumber !== '' && (
+                        <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-700">
+                          {chat.caseNumber}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       {showUnread && (
                         <span

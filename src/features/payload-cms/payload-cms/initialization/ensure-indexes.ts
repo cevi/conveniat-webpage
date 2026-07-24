@@ -188,8 +188,14 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
   await deduplicatePushSubscriptions(connection);
 
   // Kick off Entity Processing (Promise)
-  const entityPromises = entities.map(async (entity) => {
-    const isLocalized = entity.fields.some((f) => 'name' in f && f.name === '_localized_status');
+  interface EntityMinimal {
+    slug: string;
+    fields: Record<string, unknown>[];
+    type: 'collection' | 'global';
+    versions?: { drafts?: unknown };
+  }
+  const entityPromises = (entities as EntityMinimal[]).map(async (entity) => {
+    const isLocalized = entity.fields.some((f) => 'name' in f && f['name'] === '_localized_status');
     const versionsCollectionName = `_${entity.slug}_versions`;
 
     const entityTasks: Promise<void>[] = [];

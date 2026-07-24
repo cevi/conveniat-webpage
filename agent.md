@@ -1,5 +1,6 @@
 # Agent Instructions
 
+- Always run `pnpm verify` before declaring any task complete or submitting code.
 - Always use `pnpm prettier` instead of `npx` (or `npx prettier`) to run Prettier formatting in this repository.
 - **Environment Pathing**: Because the terminal runs commands using a non-login bash shell, it does not load the user's interactive `zsh` settings (like NVM/pnpm initializations in `.zshrc`). You must prepend the correct Node version binary directory to the `PATH` when executing package manager and git commands (e.g., `export PATH="$HOME/.nvm/versions/node/v24.11.1/bin:$PATH"`). This ensures `pnpm`, `node`, `eslint`, and pre-commit hooks execute correctly.
-- **Core Rules & Conventions**: Coding standards, modular feature-based architecture, styling guidelines, and framework conventions are located in [.github/copilot-instructions.md](file:///.github/copilot-instructions.md). Refer to it for all coding conventions.
+- **Core Rules & Conventions**: Full rules and workflow instructions are defined in [AGENTS.md](file:///AGENTS.md) and [.github/copilot-instructions.md](file:///.github/copilot-instructions.md).

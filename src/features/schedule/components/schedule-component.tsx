@@ -23,12 +23,6 @@ import React, { useMemo } from 'react';
 
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 
-const noEventsText: StaticTranslationString = {
-  en: 'No events match your filters for this date',
-  de: 'Keine Veranstaltungen entsprechen deinen Filtern für dieses Datum',
-  fr: 'Aucun événement ne correspond à vos filtres pour cette date',
-};
-
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
   de: '{{count}} Veranstaltung{{plural}} gefunden für ',
@@ -176,7 +170,7 @@ export const ScheduleComponent: React.FC = () => {
   }
 
   return (
-    <article className="mx-auto w-full max-w-2xl px-4 py-8">
+    <article className="mx-auto w-full max-w-2xl p-4 sm:p-6">
       <DateCarousel
         allDates={allDates}
         currentDate={currentDate}
@@ -188,7 +182,7 @@ export const ScheduleComponent: React.FC = () => {
       />
 
       {/* Search and Filter Bar */}
-      <div className="mt-6 mb-4">
+      <div className="mt-3 mb-3">
         <SearchFilterBar
           filters={filters}
           onFiltersChange={handleFiltersChange}
@@ -198,22 +192,18 @@ export const ScheduleComponent: React.FC = () => {
       </div>
 
       {/* Results Summary */}
-      {hasActiveFilters && (
-        <div className="mb-4 text-sm text-gray-600">
-          {hasProgram ? (
-            <span>
-              {foundEventsText[locale]
-                .replace('{{count}}', String(totalEventsCount))
-                .replace('{{plural}}', pluralSuffix)}
-              {currentDate.toLocaleDateString(locale, {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </span>
-          ) : (
-            <span>{noEventsText[locale]}</span>
-          )}
+      {hasActiveFilters && hasProgram && (
+        <div className="mb-3 text-xs font-medium text-gray-500">
+          <span>
+            {foundEventsText[locale]
+              .replace('{{count}}', String(totalEventsCount))
+              .replace('{{plural}}', pluralSuffix)}
+            {currentDate.toLocaleDateString(locale, {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </span>
         </div>
       )}
 
