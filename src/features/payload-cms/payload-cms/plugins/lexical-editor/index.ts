@@ -23,7 +23,33 @@ export const minimalEditorFeatures = [
   BoldFeature(),
   ParagraphFeature(),
   LinkFeature({
-    fields: ({ defaultFields }) => [...defaultFields],
+    fields: ({ defaultFields }) => [
+      ...defaultFields,
+      {
+        name: 'fragment',
+        type: 'text',
+        label: {
+          de: 'Anker / Fragment',
+          en: 'Anchor / Fragment',
+          fr: 'Ancre / Fragment',
+        },
+        admin: {
+          condition: (_, siblingData): boolean => {
+            if (siblingData['linkType'] !== 'internal') {
+              return false;
+            }
+            const targetDocument = siblingData['doc'] as { relationTo?: string } | undefined;
+            const relationTo = targetDocument?.relationTo;
+            return !relationTo || relationTo === 'generic-page' || relationTo === 'blog';
+          },
+          description: {
+            de: 'Optionale Sprungmarke / Anker (z. B. "projektleitung" für den Akkordeon-Block)',
+            en: 'Optional fragment / anchor (e.g. "projektleitung" for accordion block)',
+            fr: 'Ancre / fragment optionnel (par ex. "projektleitung" pour le bloc accordéon)',
+          },
+        },
+      },
+    ],
     // we only allow links to pages or blog posts
     // TODO: we should list the title or slug instead of the ID in the overview
     /* ATTENTION: if a collection was added here:
