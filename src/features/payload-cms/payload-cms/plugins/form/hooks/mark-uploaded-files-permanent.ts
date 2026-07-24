@@ -29,6 +29,19 @@ export const markUploadedFilesPermanent: CollectionAfterChangeHook<FormSubmissio
           id: documentId,
         });
 
+        const currentFormId = typeof doc.form === 'string' ? doc.form : doc.form.id;
+
+        let fileFormId: string | undefined;
+        if (fileDocument.form !== null && fileDocument.form !== undefined) {
+          fileFormId =
+            typeof fileDocument.form === 'string' ? fileDocument.form : fileDocument.form.id;
+        }
+
+        // Verify that the file belongs to the form being submitted to prevent cross-submission file claiming
+        if (fileFormId !== undefined && fileFormId !== currentFormId) {
+          continue;
+        }
+
         if (fileDocument.isTemporary) {
           await req.payload.update({
             collection: 'form_collection',
@@ -36,7 +49,7 @@ export const markUploadedFilesPermanent: CollectionAfterChangeHook<FormSubmissio
             data: {
               isTemporary: false,
               formSubmission: doc.id,
-              form: typeof doc.form === 'string' ? doc.form : doc.form.id,
+              form: currentFormId,
             },
           });
         }

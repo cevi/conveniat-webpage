@@ -47,16 +47,27 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
 
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    const staleFiles = await payload.find({
-      collection: 'form_collection',
-      where: {
-        and: [{ isTemporary: { equals: true } }, { createdAt: { less_than: twentyFourHoursAgo } }],
-      },
-      limit: 100,
-      depth: 0,
-    });
+    let totalDeleted = 0;
+    let hasMore = true;
 
-    if (staleFiles.docs.length > 0) {
+    while (hasMore) {
+      const staleFiles = await payload.find({
+        collection: 'form_collection',
+        where: {
+          and: [
+            { isTemporary: { equals: true } },
+            { createdAt: { less_than: twentyFourHoursAgo } },
+          ],
+        },
+        limit: 100,
+        depth: 0,
+      });
+
+      if (staleFiles.docs.length === 0) {
+        hasMore = false;
+        break;
+      }
+
       logger.info(
         `Found ${staleFiles.docs.length} temporary form file(s) older than 24 hours. Deleting...`,
       );
@@ -67,12 +78,21 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
             collection: 'form_collection',
             id: fileDocument.id,
           });
+          totalDeleted += 1;
         } catch (error) {
           logger.error(`Error deleting temporary form file ${fileDocument.id}: ${String(error)}`);
         }
       }
+
+      if (staleFiles.docs.length < 100) {
+        hasMore = false;
+      }
     }
 
-    return { output: {} };
+    if (totalDeleted > 0) {
+      logger.info(`Cleanup completed. Total temporary form files deleted: ${totalDeleted}`);
+    }
+
+    return { output: { totalDeleted } };
   },
 };

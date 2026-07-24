@@ -61,6 +61,59 @@ function isFileTypeAllowed(
   );
 }
 
+export async function GET(request: Request): Promise<NextResponse> {
+  try {
+    const { searchParams } = new URL(request.url);
+    const idsParameter = searchParams.get('ids');
+
+    if (idsParameter === null || idsParameter.trim() === '') {
+      return NextResponse.json({ docs: [] });
+    }
+
+    const ids = idsParameter
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+
+    if (ids.length === 0) {
+      return NextResponse.json({ docs: [] });
+    }
+
+    const payload = await getPayload({ config });
+
+    const result = await payload.find({
+      collection: 'form_collection',
+      where: {
+        id: { in: ids },
+      },
+      limit: ids.length,
+      depth: 0,
+    });
+
+    const documents = result.docs.map((fileDocument) => ({
+      id: fileDocument.id,
+      docId: fileDocument.id,
+      originalFilename:
+        typeof fileDocument.originalFilename === 'string' &&
+        fileDocument.originalFilename.length > 0
+          ? fileDocument.originalFilename
+          : fileDocument.filename,
+      filename: fileDocument.filename,
+      filesize: fileDocument.filesize ?? 0,
+      mimeType: fileDocument.mimeType,
+      url: typeof fileDocument.url === 'string' ? fileDocument.url : undefined,
+    }));
+
+    return NextResponse.json({ docs: documents });
+  } catch (error) {
+    console.error('Failed to fetch form upload details:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal Server Error' },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const formData = await request.formData();

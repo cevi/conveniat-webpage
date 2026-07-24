@@ -6,7 +6,7 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertCircle, Check, FileText, Loader2, Upload, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   useController,
   useFormContext,
@@ -114,18 +114,95 @@ export const FileUpload: React.FC<
   const [filesList, setFilesList] = useState<FileUploadItem[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const hasInteractedReference = useRef(false);
+  const fetchedIdsReference = useRef<string>('');
+
   const isDisabled =
     !allowMultiple &&
     filesList.some((item) => item.status === 'uploading' || item.status === 'success');
 
-  // Sync internal uploaded document IDs with react-hook-form state
+  // Restore uploaded file details if field.value already has document IDs (e.g. after step change, validation error, or page refresh)
+  useEffect(() => {
+    if (typeof rawFieldValue !== 'string' || rawFieldValue.trim() === '') {
+      return;
+    }
+
+    const currentDocumentIds = rawFieldValue
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0);
+
+    if (currentDocumentIds.length === 0) return;
+
+    // Check if all current document IDs are already present in filesList
+    const existingDocumentIds = new Set(
+      filesList
+        .filter((item) => item.status === 'success' && typeof item.docId === 'string')
+        .map((item) => item.docId),
+    );
+
+    const missingIds = currentDocumentIds.filter((id) => !existingDocumentIds.has(id));
+
+    if (missingIds.length === 0 || fetchedIdsReference.current === rawFieldValue) {
+      return;
+    }
+
+    fetchedIdsReference.current = rawFieldValue;
+
+    const fetchDocumentInfo = async (): Promise<void> => {
+      try {
+        const response = await fetch(`/api/form-upload?ids=${encodeURIComponent(rawFieldValue)}`);
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          docs?: Array<{
+            id: string;
+            docId: string;
+            originalFilename?: string;
+            filesize?: number;
+          }>;
+        };
+
+        if (Array.isArray(data.docs) && data.docs.length > 0) {
+          const restoredItems: FileUploadItem[] = data.docs.map((documentItem) => ({
+            id: documentItem.id,
+            docId: documentItem.id,
+            name:
+              typeof documentItem.originalFilename === 'string' &&
+              documentItem.originalFilename.length > 0
+                ? documentItem.originalFilename
+                : documentItem.id,
+            size: typeof documentItem.filesize === 'number' ? documentItem.filesize : 0,
+            status: 'success',
+          }));
+
+          setFilesList((previous) => {
+            const previousNonFetched = previous.filter(
+              (item) => item.status !== 'success' || !currentDocumentIds.includes(item.docId ?? ''),
+            );
+            return [...restoredItems, ...previousNonFetched];
+          });
+        }
+      } catch (fetchError) {
+        console.error('Failed to restore uploaded file info:', fetchError);
+      }
+    };
+
+    void fetchDocumentInfo();
+  }, [rawFieldValue, filesList]);
+
+  // Sync internal uploaded document IDs with react-hook-form state when filesList changes
   useEffect(() => {
     const successDocumentIds = filesList
       .filter((item) => item.status === 'success' && typeof item.docId === 'string')
       .map((item) => item.docId)
       .join(', ');
 
-    if (rawFieldValue !== successDocumentIds) {
+    // Only set value if there are files or if the user actively removed/modified files
+    if (
+      (filesList.length > 0 || hasInteractedReference.current) &&
+      rawFieldValue !== successDocumentIds
+    ) {
       setValue(name, successDocumentIds, { shouldValidate: true });
     }
   }, [filesList, name, rawFieldValue, setValue]);
@@ -220,6 +297,8 @@ export const FileUpload: React.FC<
   const processSelectedFiles = useCallback(
     (newFiles: FileList | File[]): void => {
       if (isDisabled) return;
+      hasInteractedReference.current = true;
+
       const selected = [...newFiles];
       if (selected.length === 0) return;
 
@@ -276,6 +355,7 @@ export const FileUpload: React.FC<
   };
 
   const removeFile = (id: string): void => {
+    hasInteractedReference.current = true;
     setFilesList((previous) => previous.filter((item) => item.id !== id));
   };
 
