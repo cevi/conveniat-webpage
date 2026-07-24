@@ -4,6 +4,11 @@ import type { CaptureResult } from 'posthog-js';
  * Filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
  */
 export const noiseMessages = [
+  // see: https://github.com/cevi/conveniat-webpage/issues/708
+  'NEXT_NOT_FOUND',
+  'PAGE_NOT_FOUND',
+  '404',
+
   // see: https://github.com/cevi/conveniat-webpage/issues/1012
   'Object Not Found Matching Id',
 
