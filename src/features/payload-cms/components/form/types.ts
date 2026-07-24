@@ -4,7 +4,18 @@ import type {
 } from '@payloadcms/plugin-form-builder/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 
-export type FormFieldBlock = PayloadFormFieldBlock & {
+export interface FileUploadBlock {
+  blockType: 'fileUpload';
+  name: string;
+  label?: string;
+  required?: boolean;
+  allowedFileTypes?: 'all' | 'pdf' | 'images' | 'documents' | 'custom';
+  customAllowedFileTypes?: string;
+  allowMultiple?: boolean;
+  placement?: 'sidebar' | 'main';
+}
+
+export type FormFieldBlock = (PayloadFormFieldBlock | FileUploadBlock) & {
   placement?: 'sidebar' | 'main';
 };
 
@@ -38,6 +49,7 @@ export interface FormSection {
 
 export type ExtendedFormType = PayloadFormType & {
   autocomplete: boolean;
+  fileUploadLimitMB?: number;
   sections: {
     id: string;
     formSection: FormSection;

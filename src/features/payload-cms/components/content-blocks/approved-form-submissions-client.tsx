@@ -21,13 +21,13 @@ export interface DisplayFieldConfiguration {
 
 export interface ApprovedFormSubmissionsClientProperties {
   submissions: FormSubmission[];
-  heading?: string | null;
-  titleFieldName?: string | null;
-  categoryFieldName?: string | null;
-  fileFieldName?: string | null;
-  searchPlaceholder?: string | null;
-  fileDownloadButtonLabel?: string | null;
-  displayFields?: DisplayFieldConfiguration[] | null;
+  heading?: string | null | undefined;
+  titleFieldName?: string | null | undefined;
+  categoryFieldName?: string | null | undefined;
+  fileFieldName?: string | null | undefined;
+  searchPlaceholder?: string | null | undefined;
+  fileDownloadButtonLabel?: string | null | undefined;
+  displayFields?: DisplayFieldConfiguration[] | null | undefined;
   locale: Locale;
 }
 
