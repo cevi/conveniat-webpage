@@ -4,6 +4,11 @@ import type { CaptureResult } from 'posthog-js';
  * Filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
  */
 export const noiseMessages = [
+  // see: https://github.com/cevi/conveniat-webpage/issues/708
+  'NEXT_NOT_FOUND',
+  'PAGE_NOT_FOUND',
+  '404',
+
   // see: https://github.com/cevi/conveniat-webpage/issues/1012
   'Object Not Found Matching Id',
 
@@ -46,12 +51,17 @@ export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1148
   // DOMException in Mobile Safari usually related to Private Browsing, ITP,
   // or network flakiness when trying to load/register the service worker.
-  'SecurityError: Script https://conveniat27.ch/sw.js load failed',
+  'sw.js load failed',
 
   // see: https://github.com/cevi/conveniat-webpage/issues/1124
   // Mobile Safari AbortError when registering/updating the Service Worker,
   // often due to the tab being closed mid-load or aggressive battery saving.
-  "AbortError: Failed to register a ServiceWorker for scope ('https://conveniat27.ch/') with script ('https://conveniat27.ch/sw.js')",
+  'Failed to register a ServiceWorker',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1080
+  'Error in input stream',
+  'controller[kState].transformAlgorithm',
+  'Load failed',
 
   // react-youtube / youtube-player internal bug when unmounting quickly.
   // The internal container ref becomes null but createPlayer still executes.
@@ -64,6 +74,10 @@ export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1065
   'Minified React error #4412',
   'Minified invariant #4412',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1087
+  'TypeError: Invalid URL',
+  'Invalid URL',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {

@@ -16,7 +16,13 @@ const isExternalURL = (url: string): boolean => {
     return false;
   }
 
-  const environmentHost = new URL(environmentVariables.NEXT_PUBLIC_APP_HOST_URL).host;
+  let environmentHost = '';
+  try {
+    environmentHost = new URL(environmentVariables.NEXT_PUBLIC_APP_HOST_URL).host;
+  } catch {
+    // If NEXT_PUBLIC_APP_HOST_URL is missing or invalid, default to empty host
+  }
+
   const currentHost =
     // this might be undefined in some environments, e.g. during server-side rendering
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
