@@ -10,6 +10,7 @@ import {
   MessageCircle,
   Settings,
   Siren,
+  Trophy,
   Truck,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -50,6 +51,7 @@ const FeatureCard: React.FC<FeatureCardProperties> = ({
 type AppFeatureFlagKey =
   | 'helperShiftsEnabled'
   | 'imageUploadEnabled'
+  | 'photoContestEnabled'
   | 'reservationsEnabled'
   | 'forumEnabled';
 
@@ -124,6 +126,17 @@ export const DashboardAppFeatures: React.FC<{
       href: '/app/upload-images',
       icon: ImageUp,
       featureFlagKey: 'imageUploadEnabled',
+    },
+    {
+      title: { en: 'Photo Contest', de: 'Foto-Wettbewerb', fr: 'Concours photo' }[locale],
+      description: {
+        en: 'Vote for your favorite photos and submit live event pictures',
+        de: 'Stimme für deine Lieblingsfotos ab und lade Live-Event-Fotos hoch',
+        fr: 'Votez pour vos photos préférées et envoyez vos photos en direct',
+      }[locale],
+      href: '/app/photo-contest',
+      icon: Trophy,
+      featureFlagKey: 'photoContestEnabled',
     },
     {
       title: { en: 'conveniat27 Forum', de: 'conveniat27 Forum', fr: 'Forum conveniat27' }[locale],

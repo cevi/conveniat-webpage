@@ -104,7 +104,11 @@ export const getAppFeatureFlagsCached = cache(
   async (): Promise<
     Pick<
       AppFeatureFlag,
-      'helperShiftsEnabled' | 'imageUploadEnabled' | 'reservationsEnabled' | 'forumEnabled'
+      | 'helperShiftsEnabled'
+      | 'imageUploadEnabled'
+      | 'photoContestEnabled'
+      | 'reservationsEnabled'
+      | 'forumEnabled'
     >
   > => {
     return await withSpan('getAppFeatureFlagsCached', async () => {
@@ -114,6 +118,7 @@ export const getAppFeatureFlagsCached = cache(
         select: {
           helperShiftsEnabled: true,
           imageUploadEnabled: true,
+          photoContestEnabled: true,
           reservationsEnabled: true,
           forumEnabled: true,
         },

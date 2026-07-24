@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   Siren,
+  Trophy,
   Truck,
 } from 'lucide-react';
 import { connection } from 'next/server';
@@ -56,6 +57,12 @@ const helperShiftsFeatureTranslation: StaticTranslationString = {
   en: 'Helper Shifts',
   de: 'Schichteinsätze',
   fr: 'Services de helpers',
+};
+
+const photoContestFeatureTranslation: StaticTranslationString = {
+  en: 'Photo Contest',
+  de: 'Foto-Wettbewerb',
+  fr: 'Concours Photo',
 };
 
 const uploadPicturesFeatureTranslation: StaticTranslationString = {
@@ -159,6 +166,13 @@ export const AppFeatures: React.FC<{
             href="/app/upload-images"
             Icon={ImageUp}
             text={uploadPicturesFeatureTranslation[locale]}
+          />
+        )}
+        {featureFlags.photoContestEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/photo-contest"
+            Icon={Trophy}
+            text={photoContestFeatureTranslation[locale]}
           />
         )}
         {featureFlags.reservationsEnabled !== false && (

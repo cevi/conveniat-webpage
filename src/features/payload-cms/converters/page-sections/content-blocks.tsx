@@ -47,6 +47,7 @@ import type {
   TimelineCategory,
   TimelineEntries,
 } from '@/features/payload-cms/payload-types';
+import { PhotoContestView } from '@/features/photo-contest/components/photo-contest-view';
 import type { Locale, LocalizedPageType, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import config from '@payload-config';
@@ -62,6 +63,7 @@ export type ContentBlockTypeNames =
   | 'richTextSection'
   | 'formBlock'
   | 'approvedFormSubmissionsBlock'
+  | 'photoContestBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
   | 'instagramEmbed'
@@ -866,6 +868,29 @@ export const RenderApprovedFormSubmissions: SectionRenderer<ApprovedFormSubmissi
       locale={locale}
     >
       <ApprovedFormSubmissions {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderPhotoContestBlock: SectionRenderer<{
+  initialContestSlug?: string;
+}> = ({ block, sectionClassName, sectionOverrides, locale }) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Foto-Wettbewerb Block',
+          en: 'photo contest block',
+          fr: 'le bloc concours photo',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <PhotoContestView initialContestSlug={block.initialContestSlug ?? 'cevi-schweiz'} />
     </SectionWrapper>
   );
 };

@@ -4,6 +4,7 @@ import { emergencyRouter } from '@/features/emergency/api/emergency-router';
 import { mapRouter } from '@/features/map/api/map-router';
 import { nativePushRouter } from '@/features/native-push/api/native-push-router';
 import { uploadRouter } from '@/features/payload-cms/api/upload-router';
+import { photoContestRouter } from '@/features/photo-contest/api/photo-contest-router';
 import { presenceRouter } from '@/features/presence/api/presence-router';
 import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-router';
 import { registrationRouter } from '@/features/registration_process/api/registration-router';
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
   registration: registrationRouter,
   upload: uploadRouter,
   nativePush: nativePushRouter,
+  photoContest: photoContestRouter,
 });
 
 // export type definition of API
