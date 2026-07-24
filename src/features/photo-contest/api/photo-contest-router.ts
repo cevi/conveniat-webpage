@@ -14,7 +14,15 @@ export const photoContestRouter = createTRPCRouter({
    * Get all active/public photo contests with optional current user's vote allocations.
    */
   getContests: publicProcedure.query(async ({ ctx }) => {
+    const isAdmin = ctx.user
+      ? hasAccessToThisUser({
+          user: ctx.user,
+          requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+        })
+      : false;
+
     const contests = await ctx.prisma.photoContest.findMany({
+      where: isAdmin ? {} : { status: { not: 'DRAFT' } },
       orderBy: { createdAt: 'desc' },
       include: {
         images: {
@@ -72,7 +80,14 @@ export const photoContestRouter = createTRPCRouter({
         },
       });
 
-      if (!contest) {
+      const isAdmin = ctx.user
+        ? hasAccessToThisUser({
+            user: ctx.user,
+            requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+          })
+        : false;
+
+      if (!contest || (!isAdmin && contest.status === 'DRAFT')) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Fotowettbewerb nicht gefunden.',
@@ -92,13 +107,6 @@ export const photoContestRouter = createTRPCRouter({
       const totalPointsUsed = myVotes.reduce((sum, v) => sum + v.points, 0);
 
       // Count votes per image if voting is closed or user is admin
-      const isAdmin = ctx.user
-        ? hasAccessToThisUser({
-            user: ctx.user,
-            requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-          })
-        : false;
-
       let voteCounts: Record<string, number> = {};
       if (contest.status === 'CLOSED' || isAdmin) {
         const aggregated = await ctx.prisma.photoContestVote.groupBy({
@@ -130,7 +138,8 @@ export const photoContestRouter = createTRPCRouter({
    * 1) Total points assigned by user across images <= maxPointsPerUser (default 2 points).
    * 2) Maximum points assigned to a single image <= maxPointsPerImage (default 2 points).
    * 3) User can assign 2 points to 1 image, OR 1 point each to 2 different images.
-   * 4) Atomic update inside a database transaction prevents duplicate voting.
+   * 4) Verified all submitted imageIds belong to the target contestId.
+   * 5) Atomic update inside a database transaction prevents duplicate voting.
    */
   castVotes: trpcBaseProcedure
     .input(
@@ -183,6 +192,25 @@ export const photoContestRouter = createTRPCRouter({
       // Filter out zero-point allocations
       const validAllocations = input.allocations.filter((a) => a.points > 0);
 
+      // Verify all submitted imageIds belong to the target contest
+      if (validAllocations.length > 0) {
+        const submittedImageIds = [...new Set(validAllocations.map((a) => a.imageId))];
+        const validImages = await ctx.prisma.photoContestImage.findMany({
+          where: {
+            id: { in: submittedImageIds },
+            contestId: contest.id,
+          },
+          select: { id: true },
+        });
+
+        if (validImages.length !== submittedImageIds.length) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'Ein oder mehrere ausgewählte Bilder gehören nicht zu diesem Wettbewerb.',
+          });
+        }
+      }
+
       // Validate max points per user
       const totalPoints = validAllocations.reduce((sum, a) => sum + a.points, 0);
       if (totalPoints > contest.maxPointsPerUser) {
@@ -232,6 +260,127 @@ export const photoContestRouter = createTRPCRouter({
     }),
 
   /**
+   * Admin / Event Uploader: Add image to contest.
+   * Admins can upload anytime (DRAFT, UPLOADING, VOTING, CLOSED).
+   * Authenticated users can upload when contest.status is UPLOADING.
+   */
+  addImage: trpcBaseProcedure
+    .input(
+      z.object({
+        contestId: z.string(),
+        imageUrl: z.string().url(),
+        thumbnailUrl: z.string().url().optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const isAdmin = hasAccessToThisUser({
+        user: ctx.user,
+        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+      });
+
+      const contest = await ctx.prisma.photoContest.findUnique({
+        where: { id: input.contestId },
+      });
+
+      if (!contest) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Wettbewerb nicht gefunden.',
+        });
+      }
+
+      // Allow image uploads if user is admin, or if contest status is UPLOADING
+      if (!isAdmin && contest.status !== 'UPLOADING') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Bilder-Upload ist für diesen Wettbewerb aktuell nicht geöffnet.',
+        });
+      }
+
+      const maxOrder = await ctx.prisma.photoContestImage.findFirst({
+        where: { contestId: input.contestId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+
+      const nextOrder = (maxOrder?.order ?? 0) + 1;
+
+      const newImage = await ctx.prisma.photoContestImage.create({
+        data: {
+          contestId: input.contestId,
+          imageUrl: input.imageUrl,
+          thumbnailUrl: input.thumbnailUrl ?? input.imageUrl,
+          title: input.title ?? null,
+          description: input.description ?? null,
+          uploadedById: ctx.user.uuid,
+          order: nextOrder,
+        },
+      });
+
+      return newImage;
+    }),
+
+  /**
+   * Alias for addImage for backward compatibility.
+   */
+  adminAddImage: trpcBaseProcedure
+    .input(
+      z.object({
+        contestId: z.string(),
+        imageUrl: z.string().url(),
+        thumbnailUrl: z.string().url().optional(),
+        title: z.string().optional(),
+        description: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const isAdmin = hasAccessToThisUser({
+        user: ctx.user,
+        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
+      });
+
+      const contest = await ctx.prisma.photoContest.findUnique({
+        where: { id: input.contestId },
+      });
+
+      if (!contest) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'Wettbewerb nicht gefunden.',
+        });
+      }
+
+      if (!isAdmin && contest.status !== 'UPLOADING') {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'Bilder-Upload ist für diesen Wettbewerb aktuell nicht geöffnet.',
+        });
+      }
+
+      const maxOrder = await ctx.prisma.photoContestImage.findFirst({
+        where: { contestId: input.contestId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+
+      const nextOrder = (maxOrder?.order ?? 0) + 1;
+
+      return await ctx.prisma.photoContestImage.create({
+        data: {
+          contestId: input.contestId,
+          imageUrl: input.imageUrl,
+          thumbnailUrl: input.thumbnailUrl ?? input.imageUrl,
+          title: input.title ?? null,
+          description: input.description ?? null,
+          uploadedById: ctx.user.uuid,
+          order: nextOrder,
+        },
+      });
+    }),
+
+  /**
    * Admin: Create a new Photo Contest
    */
   adminCreateContest: trpcAdminProcedure
@@ -275,67 +424,6 @@ export const photoContestRouter = createTRPCRouter({
       });
 
       return contest;
-    }),
-
-  /**
-   * Admin / On-site Uploader: Add image to contest (e.g. for Cevi Mil live event uploads on-site)
-   */
-  adminAddImage: trpcBaseProcedure
-    .input(
-      z.object({
-        contestId: z.string(),
-        imageUrl: z.string().url(),
-        thumbnailUrl: z.string().url().optional(),
-        title: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const isAdmin = hasAccessToThisUser({
-        user: ctx.user,
-        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-      });
-
-      const contest = await ctx.prisma.photoContest.findUnique({
-        where: { id: input.contestId },
-      });
-
-      if (!contest) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Wettbewerb nicht gefunden.',
-        });
-      }
-
-      // Allow image uploads if status is UPLOADING, DRAFT, or user is admin
-      if (!isAdmin && contest.status !== 'UPLOADING' && contest.status !== 'DRAFT') {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Bilder-Upload ist für diesen Wettbewerb aktuell nicht geöffnet.',
-        });
-      }
-
-      const maxOrder = await ctx.prisma.photoContestImage.findFirst({
-        where: { contestId: input.contestId },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-      });
-
-      const nextOrder = (maxOrder?.order ?? 0) + 1;
-
-      const newImage = await ctx.prisma.photoContestImage.create({
-        data: {
-          contestId: input.contestId,
-          imageUrl: input.imageUrl,
-          thumbnailUrl: input.thumbnailUrl ?? input.imageUrl,
-          title: input.title ?? null,
-          description: input.description ?? null,
-          uploadedById: ctx.user.uuid,
-          order: nextOrder,
-        },
-      });
-
-      return newImage;
     }),
 
   /**

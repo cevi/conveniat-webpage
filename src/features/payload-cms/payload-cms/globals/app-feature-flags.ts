@@ -12,6 +12,7 @@ import {
   FEATURE_FLAG_FORUM_ENABLED,
   FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
   FEATURE_FLAG_IMAGE_UPLOAD_ENABLED,
+  FEATURE_FLAG_PHOTO_CONTEST_ENABLED,
   FEATURE_FLAG_RESERVATIONS_ENABLED,
   FEATURE_FLAG_SEND_MESSAGES,
   FEATURE_HIDE_HOF_AND_QUARTIER,
@@ -145,6 +146,30 @@ export const AppFeatureFlags: GlobalConfig = {
         afterChange: [
           async ({ value }): Promise<void> => {
             await setFeatureFlag(FEATURE_FLAG_IMAGE_UPLOAD_ENABLED, Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'photoContestEnabled',
+      label: {
+        en: 'Show Photo Contest',
+        de: 'Foto-Wettbewerb anzeigen',
+        fr: 'Afficher le concours photo',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: 'Toggles visibility of the Photo Contest menu item in the app.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag(FEATURE_FLAG_PHOTO_CONTEST_ENABLED, Boolean(value));
           },
         ],
       },

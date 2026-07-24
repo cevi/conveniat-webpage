@@ -162,18 +162,18 @@ export const AppFeatures: React.FC<{
           />
         )}
         {featureFlags.imageUploadEnabled !== false && (
-          <>
-            <AppFeatureMenuItem
-              href="/app/upload-images"
-              Icon={ImageUp}
-              text={uploadPicturesFeatureTranslation[locale]}
-            />
-            <AppFeatureMenuItem
-              href="/app/photo-contest"
-              Icon={Trophy}
-              text={photoContestFeatureTranslation[locale]}
-            />
-          </>
+          <AppFeatureMenuItem
+            href="/app/upload-images"
+            Icon={ImageUp}
+            text={uploadPicturesFeatureTranslation[locale]}
+          />
+        )}
+        {featureFlags.photoContestEnabled !== false && (
+          <AppFeatureMenuItem
+            href="/app/photo-contest"
+            Icon={Trophy}
+            text={photoContestFeatureTranslation[locale]}
+          />
         )}
         {featureFlags.reservationsEnabled !== false && (
           <AppFeatureMenuItem

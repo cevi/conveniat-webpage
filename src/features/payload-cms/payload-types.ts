@@ -323,6 +323,7 @@ export interface Blog {
         }
       | FormBlock
       | ApprovedFormSubmissionsBlock
+      | PhotoContestBlock
       | {
           images: (string | Image)[];
           id?: string | null;
@@ -1484,6 +1485,16 @@ export interface ApprovedFormSubmissionsBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'approvedFormSubmissionsBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PhotoContestBlock".
+ */
+export interface PhotoContestBlock {
+  initialContestSlug?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'photoContestBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -6964,6 +6975,10 @@ export interface AppFeatureFlag {
    */
   imageUploadEnabled?: boolean | null;
   /**
+   * Toggles visibility of the Photo Contest menu item in the app.
+   */
+  photoContestEnabled?: boolean | null;
+  /**
    * Toggles visibility of the Reservations menu item in the app.
    */
   reservationsEnabled?: boolean | null;
@@ -7530,6 +7545,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
   imageUploadEnabled?: T;
+  photoContestEnabled?: T;
   reservationsEnabled?: T;
   forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;

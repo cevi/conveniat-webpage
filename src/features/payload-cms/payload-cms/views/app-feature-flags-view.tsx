@@ -50,6 +50,7 @@ export const AppFeatureFlagsActions: React.FC = () => {
       { key: 'createChatsEnabled', label: 'Create Chats' },
       { key: 'helperShiftsEnabled', label: 'Helper Shifts (Schichteinsätze)' },
       { key: 'imageUploadEnabled', label: 'Image Upload' },
+      { key: 'photoContestEnabled', label: 'Photo Contest' },
       { key: 'reservationsEnabled', label: 'Reservations' },
     ];
 
