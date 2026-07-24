@@ -107,12 +107,11 @@ class IgnoreTempoErrorLogger implements DiagLogger {
   private shouldIgnore(message: string, args: unknown[]): boolean {
     const message_ = typeof message === 'string' ? message : '';
 
-    // Suppress tempo and localhost/127.0.0.1 OTLP connection errors
+    // Suppress tempo and OTLP port 4318 connection errors
     if (
-      message_.includes('getaddrinfo ENOTFOUND tempo') ||
-      message_.includes('ECONNREFUSED tempo') ||
-      message_.includes('ECONNREFUSED 127.0.0.1:4318') ||
-      message_.includes('ECONNREFUSED localhost:4318')
+      message_.includes('tempo') ||
+      message_.includes('4318') ||
+      message_.includes('ECONNREFUSED')
     ) {
       return true;
     }
@@ -136,41 +135,15 @@ class IgnoreTempoErrorLogger implements DiagLogger {
   }
 
   private checkArgument(argument: unknown): boolean {
-    if (!argument) return false;
+    if (argument === null || argument === undefined) return false;
 
-    if (typeof argument === 'string') {
-      return (
-        argument.includes('getaddrinfo ENOTFOUND tempo') ||
-        argument.includes('ECONNREFUSED tempo') ||
-        argument.includes('ECONNREFUSED 127.0.0.1:4318') ||
-        argument.includes('ECONNREFUSED localhost:4318') ||
-        argument.includes(':4318')
-      );
-    }
-
-    if (argument instanceof Error) {
-      return (
-        argument.message.includes('getaddrinfo ENOTFOUND tempo') ||
-        argument.message.includes('ECONNREFUSED tempo') ||
-        argument.message.includes('ECONNREFUSED 127.0.0.1:4318') ||
-        argument.message.includes('ECONNREFUSED localhost:4318') ||
-        argument.message.includes(':4318')
-      );
-    }
-
-    if (typeof argument === 'object') {
-      const record = argument as Record<string, unknown>;
-      return (
-        (record['code'] === 'ENOTFOUND' && record['hostname'] === 'tempo') ||
-        (record['code'] === 'ECONNREFUSED' && record['address'] === 'tempo') ||
-        (record['code'] === 'ECONNREFUSED' &&
-          record['address'] === '127.0.0.1' &&
-          record['port'] === 4318) ||
-        (record['code'] === 'ECONNREFUSED' && record['port'] === 4318)
-      );
-    }
-
-    return false;
+    const serialized = typeof argument === 'string' ? argument : JSON.stringify(argument);
+    return (
+      serialized.includes('tempo') ||
+      serialized.includes('4318') ||
+      serialized.includes('ENOTFOUND') ||
+      serialized.includes('ECONNREFUSED')
+    );
   }
 }
 
