@@ -71,6 +71,10 @@ export const noiseMessages = [
   // Next.js App Router error when a client sends a malformed or outdated Next-Router-State-Tree header.
   'The router state header was sent but could not be parsed',
 
+  // see: https://github.com/cevi/conveniat-webpage/issues/1065
+  'Minified React error #4412',
+  'Minified invariant #4412',
+
   // see: https://github.com/cevi/conveniat-webpage/issues/1087
   'TypeError: Invalid URL',
   'Invalid URL',
