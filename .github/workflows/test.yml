@@ -35,6 +35,11 @@ jobs:
       - name: Generate Build Info
         run: bash create_build_info.sh
 
+      - name: Apply database migrations (Issue #570)
+        env:
+          CHAT_DATABASE_URL: postgres://user:myTopSecretPassword@localhost:5432/conveniat27
+        run: pnpm exec prisma migrate deploy
+
       - name: Check database migrations status (Issue #570)
         env:
           CHAT_DATABASE_URL: postgres://user:myTopSecretPassword@localhost:5432/conveniat27
