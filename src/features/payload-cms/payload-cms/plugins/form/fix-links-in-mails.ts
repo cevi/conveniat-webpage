@@ -13,7 +13,7 @@ import {
   defaultHTMLConverters,
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
-import { getPayload } from 'payload';
+import { getPayload, type Where } from 'payload';
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
   beforeChangeParameters: unknown,
@@ -93,26 +93,63 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   const formEmailsArray = Array.isArray(formDocument_?.['emails'])
     ? (formDocument_['emails'] as Array<{ attachFiles?: boolean }>)
     : [];
-  const hasAnyEmailAttachments = formEmailsArray.some(
-    (emailConfig) => emailConfig.attachFiles === true,
-  );
+  const hasAnyEmailAttachments =
+    formEmailsArray.length === 0 ||
+    formEmailsArray.some((emailConfig) => emailConfig.attachFiles === true);
 
-  if (
-    hasAnyEmailAttachments &&
-    typeof formSubmissionId === 'string' &&
-    formSubmissionId.length > 0
-  ) {
+  if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
     try {
+      const submissionDataArrayForFiles =
+        (formSubmissionDocument as { submissionData?: unknown[] }).submissionData ?? [];
+      const potentialFileIds = new Set<string>();
+
+      for (const item of submissionDataArrayForFiles) {
+        if (item !== null && typeof item === 'object' && 'value' in item) {
+          let valString = '';
+          if (typeof item.value === 'string') {
+            valString = item.value;
+          } else if (typeof item.value === 'number' || typeof item.value === 'boolean') {
+            valString = String(item.value);
+          }
+          if (valString.length > 0) {
+            const parts = valString.split(',').map((p) => p.trim());
+            for (const part of parts) {
+              if (/^[0-9a-fA-F]{24}$/.test(part)) {
+                potentialFileIds.add(part);
+              }
+            }
+          }
+        }
+      }
+
+      const whereConditions: Where[] = [{ formSubmission: { equals: formSubmissionId } }];
+      if (potentialFileIds.size > 0) {
+        whereConditions.push({ id: { in: [...potentialFileIds] } });
+      }
+
       const formFiles = await payload.find({
         collection: 'form_collection',
         where: {
-          formSubmission: { equals: formSubmissionId },
+          or: whereConditions,
         },
         limit: 50,
         depth: 0,
       });
 
       for (const fileDocument of formFiles.docs) {
+        if (fileDocument.isTemporary || fileDocument.formSubmission !== formSubmissionId) {
+          void payload
+            .update({
+              collection: 'form_collection',
+              id: fileDocument.id,
+              data: {
+                isTemporary: false,
+                formSubmission: formSubmissionId,
+              },
+            })
+            .catch(() => {});
+        }
+
         if (typeof fileDocument.filename === 'string' && fileDocument.filename.length > 0) {
           try {
             const getCommand = new GetObjectCommand({
@@ -268,7 +305,10 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     updatedHtml = updatedHtml.replaceAll('{{*}}', () => wildcardHtmlText);
     updatedHtml = updatedHtml.replaceAll('{{*:table}}', () => wildcardHtmlTable);
 
-    const shouldAttachFiles = originalEmailConfig?.attachFiles === true;
+    const shouldAttachFiles =
+      originalEmailConfig === undefined
+        ? hasAnyEmailAttachments
+        : originalEmailConfig.attachFiles === true;
 
     return {
       ...email,

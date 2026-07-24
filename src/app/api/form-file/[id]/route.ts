@@ -10,27 +10,65 @@ export async function GET(
 ): Promise<NextResponse | Response> {
   try {
     const { id } = await params;
-    if (typeof id !== 'string' || id.trim() === '') {
-      return NextResponse.json({ error: 'Missing file ID' }, { status: 400 });
+    if (typeof id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return NextResponse.json({ error: 'Invalid file ID' }, { status: 400 });
     }
 
     const payload = await getPayload({ config });
 
     // Authenticate requester
     const { user } = await payload.auth({ headers: request.headers });
-    if (user === null) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     let fileDocument;
     try {
       fileDocument = await payload.findByID({
         collection: 'form_collection',
         id,
-        req: { user },
+        depth: 1,
+        overrideAccess: true,
       });
     } catch {
       return NextResponse.json({ error: 'File document not found' }, { status: 404 });
+    }
+
+    // If user is not authenticated, verify that the file belongs to an approved submission
+    if (user === null) {
+      let isApproved = false;
+
+      if (
+        fileDocument.isTemporary === false &&
+        fileDocument.formSubmission !== null &&
+        fileDocument.formSubmission !== undefined
+      ) {
+        let submission =
+          typeof fileDocument.formSubmission === 'object' ? fileDocument.formSubmission : undefined;
+
+        if (submission === undefined && typeof fileDocument.formSubmission === 'string') {
+          try {
+            submission = await payload.findByID({
+              collection: 'form-submissions',
+              id: fileDocument.formSubmission,
+              depth: 0,
+              overrideAccess: true,
+            });
+          } catch {
+            submission = undefined;
+          }
+        }
+
+        if (
+          submission !== undefined &&
+          typeof submission === 'object' &&
+          'approved' in submission &&
+          submission.approved === true
+        ) {
+          isApproved = true;
+        }
+      }
+
+      if (!isApproved) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     if (typeof fileDocument.filename !== 'string' || fileDocument.filename.length === 0) {

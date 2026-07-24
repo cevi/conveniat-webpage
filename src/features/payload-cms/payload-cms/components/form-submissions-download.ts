@@ -76,7 +76,7 @@ const resolveFileValues = async (
       if (valString.length > 0) {
         const parts = valString.split(',').map((p) => p.trim());
         for (const part of parts) {
-          if (part.length > 0) {
+          if (part.length > 0 && /^[0-9a-fA-F]{24}$/.test(part)) {
             allPotentialIds.add(part);
           }
         }

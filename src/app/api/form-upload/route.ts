@@ -97,7 +97,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const ids = idsParameter
       .split(',')
       .map((id) => id.trim())
-      .filter((id) => id.length > 0);
+      .filter((id) => /^[0-9a-fA-F]{24}$/.test(id));
 
     if (ids.length === 0) {
       return NextResponse.json({ docs: [] });

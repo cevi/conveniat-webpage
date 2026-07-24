@@ -20,7 +20,7 @@ export const markUploadedFilesPermanent: CollectionAfterChangeHook<FormSubmissio
     const documentIds = valueString
       .split(',')
       .map((id) => id.trim())
-      .filter((id) => id.length > 0);
+      .filter((id) => /^[0-9a-fA-F]{24}$/.test(id));
 
     for (const documentId of documentIds) {
       try {

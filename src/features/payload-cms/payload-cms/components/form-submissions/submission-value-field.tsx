@@ -32,7 +32,7 @@ export const SubmissionValueField: React.FC<{
     const potentialIds = value
       .split(',')
       .map((id) => id.trim())
-      .filter((id) => id.length > 0);
+      .filter((id) => /^[0-9a-fA-F]{24}$/.test(id));
 
     if (potentialIds.length === 0) {
       return;
@@ -40,7 +40,9 @@ export const SubmissionValueField: React.FC<{
 
     const fetchDocumentInfo = async (): Promise<void> => {
       try {
-        const response = await fetch(`/api/form-upload?ids=${encodeURIComponent(value)}`);
+        const response = await fetch(
+          `/api/form-upload?ids=${encodeURIComponent(potentialIds.join(','))}`,
+        );
         if (!response.ok) {
           setDocuments([]);
           return;

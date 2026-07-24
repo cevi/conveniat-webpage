@@ -53,6 +53,7 @@ export interface Config {
     blog: Blog;
     'generic-page': GenericPage;
     timeline: Timeline;
+    'photo-contests': PhotoContest;
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
@@ -115,6 +116,7 @@ export interface Config {
     blog: BlogSelect<false> | BlogSelect<true>;
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
+    'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
@@ -3306,6 +3308,31 @@ export interface NestedAccordionBlocks {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-contests".
+ */
+export interface PhotoContest {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  contestType?: ('PRESELECTED' | 'LIVE_EVENT') | null;
+  status?: ('DRAFT' | 'UPLOADING' | 'VOTING' | 'CLOSED') | null;
+  maxPointsPerUser?: number | null;
+  maxPointsPerImage?: number | null;
+  images?:
+    | {
+        imageUrl: string;
+        title?: string | null;
+        description?: string | null;
+        order?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "helper-shifts".
  */
 export interface HelperShift {
@@ -4185,6 +4212,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'timeline';
         value: string | Timeline;
+      } | null)
+    | ({
+        relationTo: 'photo-contests';
+        value: string | PhotoContest;
       } | null)
     | ({
         relationTo: 'camp-map-annotations';
@@ -5438,6 +5469,30 @@ export interface TimelineSelect<T extends boolean = true> {
   createdAt?: T;
   deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "photo-contests_select".
+ */
+export interface PhotoContestsSelect<T extends boolean = true> {
+  slug?: T;
+  title?: T;
+  description?: T;
+  contestType?: T;
+  status?: T;
+  maxPointsPerUser?: T;
+  maxPointsPerImage?: T;
+  images?:
+    | T
+    | {
+        imageUrl?: T;
+        title?: T;
+        description?: T;
+        order?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8099,6 +8154,7 @@ export interface TaskCreateCollectionExport {
       | 'blog'
       | 'generic-page'
       | 'timeline'
+      | 'photo-contests'
       | 'camp-map-annotations'
       | 'camp-categories'
       | 'camp-schedule-entry'

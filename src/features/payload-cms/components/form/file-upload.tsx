@@ -207,6 +207,13 @@ export const FileUpload: React.FC<
     }
   }, [filesList, name, rawFieldValue, setValue]);
 
+  // Sync background upload state to form state so form controls can disable submit buttons
+  const isUploadingThisField = filesList.some((item) => item.status === 'uploading');
+
+  useEffect(() => {
+    setValue(`_isUploading_${name}`, isUploadingThisField);
+  }, [isUploadingThisField, name, setValue]);
+
   // Compute accept attribute for HTML file input based on allowedFileTypes
   const acceptAttribute = useMemo(() => {
     switch (allowedFileTypes) {

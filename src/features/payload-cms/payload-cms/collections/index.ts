@@ -17,6 +17,7 @@ import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PayloadWorkersCollection } from '@/features/payload-cms/payload-cms/collections/payload-workers';
 import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collections/permission-collection';
+import { PhotoContestCollection } from '@/features/payload-cms/payload-cms/collections/photo-contest-collection';
 import { PiketScheduleCollection } from '@/features/payload-cms/payload-cms/collections/piket-schedule-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
 import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
@@ -40,6 +41,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   TimelineCollection,
 
   // app content collections
+  PhotoContestCollection,
   CampMapAnnotationsCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
