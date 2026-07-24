@@ -394,6 +394,10 @@ export interface Blog {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -434,6 +438,10 @@ export interface Blog {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -1772,6 +1780,10 @@ export interface TeamMembersBlock {
           relationTo: 'camp-schedule-entry';
           value: string | CampScheduleEntry;
         } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
     url?: string | null;
     email?: string | null;
     openInNewTab?: boolean | null;
@@ -1930,6 +1942,10 @@ export interface GenericPage {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -1970,6 +1986,10 @@ export interface GenericPage {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -2191,6 +2211,10 @@ export interface Timeline {
                     relationTo: 'camp-schedule-entry';
                     value: string | CampScheduleEntry;
                   } | null);
+              /**
+               * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+               */
+              fragment?: string | null;
               url?: string | null;
               email?: string | null;
               openInNewTab?: boolean | null;
@@ -2498,6 +2522,10 @@ export interface CardGridBlock {
             relationTo: 'camp-schedule-entry';
             value: string | CampScheduleEntry;
           } | null);
+      /**
+       * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+       */
+      fragment?: string | null;
       url?: string | null;
       email?: string | null;
       openInNewTab?: boolean | null;
@@ -2545,6 +2573,10 @@ export interface ContactPersonBlock {
           relationTo: 'camp-schedule-entry';
           value: string | CampScheduleEntry;
         } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
     url?: string | null;
     email?: string | null;
     openInNewTab?: boolean | null;
@@ -2664,6 +2696,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2704,6 +2740,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2838,6 +2878,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2878,6 +2922,10 @@ export interface TwoColumnBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -2959,6 +3007,10 @@ export interface SponsorGridBlock {
               relationTo: 'camp-schedule-entry';
               value: string | CampScheduleEntry;
             } | null);
+        /**
+         * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+         */
+        fragment?: string | null;
         url?: string | null;
         email?: string | null;
         openInNewTab?: boolean | null;
@@ -3008,6 +3060,10 @@ export interface FeaturedSectionBlock {
             relationTo: 'camp-schedule-entry';
             value: string | CampScheduleEntry;
           } | null);
+      /**
+       * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+       */
+      fragment?: string | null;
       url?: string | null;
       email?: string | null;
       openInNewTab?: boolean | null;
@@ -3047,6 +3103,10 @@ export interface FeaturedSectionBlock {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -3160,6 +3220,10 @@ export interface TabsBlock {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -3200,6 +3264,10 @@ export interface TabsBlock {
                   relationTo: 'camp-schedule-entry';
                   value: string | CampScheduleEntry;
                 } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
             url?: string | null;
             email?: string | null;
             openInNewTab?: boolean | null;
@@ -4464,6 +4532,7 @@ export interface BlogSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -4480,6 +4549,7 @@ export interface BlogSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -4693,6 +4763,7 @@ export interface TeamMembersBlockSelect<T extends boolean = true> {
     | {
         type?: T;
         reference?: T;
+        fragment?: T;
         url?: T;
         email?: T;
         openInNewTab?: T;
@@ -4829,6 +4900,7 @@ export interface CardGridBlockSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -4853,6 +4925,7 @@ export interface ContactPersonBlockSelect<T extends boolean = true> {
     | {
         type?: T;
         reference?: T;
+        fragment?: T;
         url?: T;
         email?: T;
         openInNewTab?: T;
@@ -4930,6 +5003,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -4946,6 +5020,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -5031,6 +5106,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -5047,6 +5123,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -5092,6 +5169,7 @@ export interface SponsorGridBlockSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -5120,6 +5198,7 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -5138,6 +5217,7 @@ export interface FeaturedSectionBlockSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -5219,6 +5299,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5235,6 +5316,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5345,6 +5427,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5361,6 +5444,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -5451,6 +5535,7 @@ export interface TimelineSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -6738,6 +6823,10 @@ export interface Header {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -6772,6 +6861,10 @@ export interface Header {
                       relationTo: 'camp-schedule-entry';
                       value: string | CampScheduleEntry;
                     } | null);
+                /**
+                 * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+                 */
+                fragment?: string | null;
                 url?: string | null;
                 email?: string | null;
                 openInNewTab?: boolean | null;
@@ -6806,6 +6899,10 @@ export interface Header {
                             relationTo: 'camp-schedule-entry';
                             value: string | CampScheduleEntry;
                           } | null);
+                      /**
+                       * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+                       */
+                      fragment?: string | null;
                       url?: string | null;
                       email?: string | null;
                       openInNewTab?: boolean | null;
@@ -6876,6 +6973,10 @@ export interface Footer {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -6924,6 +7025,10 @@ export interface Footer {
                 relationTo: 'camp-schedule-entry';
                 value: string | CampScheduleEntry;
               } | null);
+          /**
+           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+           */
+          fragment?: string | null;
           url?: string | null;
           email?: string | null;
           openInNewTab?: boolean | null;
@@ -7179,6 +7284,10 @@ export interface AppLandingPage {
                     relationTo: 'camp-schedule-entry';
                     value: string | CampScheduleEntry;
                   } | null);
+              /**
+               * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+               */
+              fragment?: string | null;
               url?: string | null;
               email?: string | null;
               openInNewTab?: boolean | null;
@@ -7219,6 +7328,10 @@ export interface AppLandingPage {
                     relationTo: 'camp-schedule-entry';
                     value: string | CampScheduleEntry;
                   } | null);
+              /**
+               * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+               */
+              fragment?: string | null;
               url?: string | null;
               email?: string | null;
               openInNewTab?: boolean | null;
@@ -7462,6 +7575,7 @@ export interface HeaderSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -7475,6 +7589,7 @@ export interface HeaderSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -7488,6 +7603,7 @@ export interface HeaderSelect<T extends boolean = true> {
                       | {
                           type?: T;
                           reference?: T;
+                          fragment?: T;
                           url?: T;
                           email?: T;
                           openInNewTab?: T;
@@ -7521,6 +7637,7 @@ export interface FooterSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -7543,6 +7660,7 @@ export interface FooterSelect<T extends boolean = true> {
           | {
               type?: T;
               reference?: T;
+              fragment?: T;
               url?: T;
               email?: T;
               openInNewTab?: T;
@@ -7699,6 +7817,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;
@@ -7715,6 +7834,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
                 | {
                     type?: T;
                     reference?: T;
+                    fragment?: T;
                     url?: T;
                     email?: T;
                     openInNewTab?: T;

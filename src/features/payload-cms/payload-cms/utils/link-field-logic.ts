@@ -71,38 +71,58 @@ export const getURLForLinkField = (
     let langPrefix = getLanguagePrefix(locale);
     langPrefix = langPrefix === '' ? '' : `/${langPrefix}`;
 
+    let baseUrl: string | undefined = undefined;
+
     switch (relationTo) {
       case 'blog': {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (typeof value !== 'object' || value === null || !('seo' in value) || !value.seo)
           return undefined;
         const urlSlug = value.seo.urlSlug;
-        return urlSlug === '' ? undefined : `${langPrefix}/blog/${urlSlug}`;
+        if (urlSlug !== '') {
+          baseUrl = `${langPrefix}/blog/${urlSlug}`;
+        }
+        break;
       }
       case 'generic-page': {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (typeof value !== 'object' || value === null || !('seo' in value) || !value.seo) {
-          return langPrefix === '' ? '/' : langPrefix;
+          baseUrl = langPrefix === '' ? '/' : langPrefix;
+        } else {
+          const urlSlug = value.seo.urlSlug;
+          if (urlSlug === '') {
+            baseUrl = langPrefix === '' ? '/' : langPrefix;
+          } else {
+            baseUrl = `${langPrefix}/${urlSlug}`;
+          }
         }
-        const urlSlug = value.seo.urlSlug;
-        if (urlSlug === '') {
-          return langPrefix === '' ? '/' : langPrefix;
-        }
-        return `${langPrefix}/${urlSlug}`;
+        break;
       }
       case 'images':
       case 'documents': {
-        return (value as unknown as { url: string }).url;
+        baseUrl = (value as unknown as { url: string }).url;
+        break;
       }
       case 'camp-schedule-entry': {
         const entryId = (value as CampScheduleEntry).id;
-        return `/app/schedule/${entryId}`;
+        baseUrl = `/app/schedule/${entryId}`;
+        break;
       }
       case 'camp-map-annotations': {
         const locationId = (value as CampMapAnnotation).id;
-        return `/app/map?locationId=${locationId}`;
+        baseUrl = `/app/map?locationId=${locationId}`;
+        break;
       }
       // No default
+    }
+
+    if (baseUrl !== undefined) {
+      const fragment = linkFieldData.fragment?.trim();
+      if (fragment && fragment !== '') {
+        const hash = fragment.startsWith('#') ? fragment : `#${fragment}`;
+        return `${baseUrl}${hash}`;
+      }
+      return baseUrl;
     }
   }
 
