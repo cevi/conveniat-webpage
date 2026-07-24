@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, unicorn/no-null, unicorn/prefer-ternary */
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import prisma from '@/lib/db/prisma';
 import type { CollectionConfig } from 'payload';
 
@@ -19,7 +20,7 @@ export const PhotoContestCollection: CollectionConfig = {
   },
   hooks: {
     afterChange: [
-      async ({ doc }): Promise<void> => {
+      async ({ doc, req }): Promise<void> => {
         try {
           const contest = await prisma.photoContest.upsert({
             where: { slug: doc.slug },
@@ -43,31 +44,89 @@ export const PhotoContestCollection: CollectionConfig = {
           });
 
           if (Array.isArray(doc.images)) {
-            // Delete images not present in payload doc
             const currentImages = await prisma.photoContestImage.findMany({
               where: { contestId: contest.id },
             });
-            const validImageUrls = new Set(
-              doc.images.map((img: { imageUrl: string }) => img.imageUrl),
-            );
 
-            for (const img of currentImages) {
-              if (!validImageUrls.has(img.imageUrl)) {
-                await prisma.photoContestImage.delete({ where: { id: img.id } });
+            const resolvedItems: {
+              imageUrl: string;
+              title: string | null;
+              description: string | null;
+              order: number;
+            }[] = [];
+
+            let hasResolutionError = false;
+
+            for (let index = 0; index < doc.images.length; index += 1) {
+              const item = doc.images[index];
+              let resolvedUrl: string | null = null;
+
+              if (Boolean(item.image)) {
+                if (typeof item.image === 'object' && item.image !== null) {
+                  const mediaObject = item.image as {
+                    url?: string;
+                    sizes?: { large?: { url?: string } };
+                  };
+                  resolvedUrl = mediaObject.url ?? mediaObject.sizes?.large?.url ?? null;
+                } else if (typeof item.image === 'string' || typeof item.image === 'number') {
+                  try {
+                    const mediaDocument = await req.payload.findByID({
+                      collection: 'images',
+                      id: item.image,
+                    });
+                    const mediaObject = mediaDocument as unknown as {
+                      url?: string;
+                      sizes?: { large?: { url?: string } };
+                    };
+                    resolvedUrl = mediaObject.url ?? mediaObject.sizes?.large?.url ?? null;
+                  } catch (error) {
+                    console.error('Could not fetch image from media library:', error);
+                    hasResolutionError = true;
+                  }
+                }
+              }
+
+              if (
+                resolvedUrl === null &&
+                typeof item.imageUrl === 'string' &&
+                item.imageUrl.trim() !== ''
+              ) {
+                resolvedUrl = item.imageUrl.trim();
+              }
+
+              if (typeof resolvedUrl === 'string' && resolvedUrl !== '') {
+                resolvedItems.push({
+                  imageUrl: resolvedUrl,
+                  title: typeof item.title === 'string' ? item.title : null,
+                  description: typeof item.description === 'string' ? item.description : null,
+                  order: typeof item.order === 'number' ? item.order : index,
+                });
               }
             }
 
-            // Sync images from payload doc
-            for (let index = 0; index < doc.images.length; index += 1) {
-              const item = doc.images[index];
+            const validImageUrls = new Set(resolvedItems.map((img) => img.imageUrl));
+
+            if (hasResolutionError) {
+              console.warn(
+                'Skipping deletion of missing photo contest images due to media library resolution errors.',
+              );
+            } else {
+              for (const img of currentImages) {
+                if (!validImageUrls.has(img.imageUrl)) {
+                  await prisma.photoContestImage.delete({ where: { id: img.id } });
+                }
+              }
+            }
+
+            for (const item of resolvedItems) {
               const existingImage = currentImages.find((img) => img.imageUrl === item.imageUrl);
               if (existingImage) {
                 await prisma.photoContestImage.update({
                   where: { id: existingImage.id },
                   data: {
-                    title: item.title ?? null,
-                    description: item.description ?? null,
-                    order: item.order ?? index,
+                    title: item.title,
+                    description: item.description,
+                    order: item.order,
                   },
                 });
               } else {
@@ -75,9 +134,9 @@ export const PhotoContestCollection: CollectionConfig = {
                   data: {
                     contestId: contest.id,
                     imageUrl: item.imageUrl,
-                    title: item.title ?? null,
-                    description: item.description ?? null,
-                    order: item.order ?? index,
+                    title: item.title,
+                    description: item.description,
+                    order: item.order,
                   },
                 });
               }
@@ -203,15 +262,47 @@ export const PhotoContestCollection: CollectionConfig = {
         en: 'Contest Images',
         fr: 'Images du concours',
       },
+      validate: (value, { req }): string | true => {
+        if (Array.isArray(value)) {
+          for (const [index, itemRaw] of value.entries()) {
+            const item = itemRaw as {
+              image?: unknown;
+              imageUrl?: unknown;
+            };
+            const hasImage = Boolean(item.image);
+            const hasImageUrl = typeof item.imageUrl === 'string' && item.imageUrl.trim() !== '';
+
+            if (!hasImage && !hasImageUrl) {
+              return getValidationMessage(req.i18n.language, {
+                en: `Image entry #${index + 1} requires at least one of 'Image from Media Library' or 'Image URL'.`,
+                de: `Bildeintrag #${index + 1} benötigt mindestens ein 'Bild aus Mediathek' oder eine 'Bild URL'.`,
+                fr: `L'entrée d'image #${index + 1} nécessite au moins une 'Image de la médiathèque' ou une 'URL d'image'.`,
+              });
+            }
+          }
+        }
+        return true;
+      },
       fields: [
+        {
+          name: 'image',
+          type: 'relationship',
+          relationTo: 'images',
+          hasMany: false,
+          label: {
+            de: 'Bild aus Mediathek',
+            en: 'Image from Media Library',
+            fr: 'Image de la médiathèque',
+          },
+        },
         {
           name: 'imageUrl',
           type: 'text',
-          required: true,
+          required: false,
           label: {
-            de: 'Bild URL',
-            en: 'Image URL',
-            fr: "URL de l'image",
+            de: 'Bild URL (falls nicht aus Mediathek)',
+            en: 'Image URL (if not from Media Library)',
+            fr: "URL de l'image (si pas de la médiathèque)",
           },
         },
         {
