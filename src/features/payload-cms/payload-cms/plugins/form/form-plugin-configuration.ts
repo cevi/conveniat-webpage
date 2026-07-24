@@ -24,6 +24,8 @@ import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import type { Field, TabsField } from 'payload';
 
+import { markUploadedFilesPermanent } from '@/features/payload-cms/payload-cms/plugins/form/hooks/mark-uploaded-files-permanent';
+
 /**
  * Field for the internal form title.
  */
@@ -55,6 +57,28 @@ const formAllowAutocompleteField: Field = {
 };
 
 /**
+ * Field for configuring file upload size limit (MB).
+ */
+const formFileUploadLimitField: Field = {
+  name: 'fileUploadLimitMB',
+  type: 'number',
+  defaultValue: 10,
+  min: 1,
+  label: {
+    en: 'File Upload Limit (MB)',
+    de: 'Datei-Upload-Limit (MB)',
+    fr: 'Limite de téléversement de fichier (Mo)',
+  },
+  admin: {
+    description: {
+      en: 'Maximum allowed file size in megabytes for file uploads in this form.',
+      de: 'Maximale zulässige Dateigröße in Megabyte für Datei-Uploads in diesem Formular.',
+      fr: 'Taille maximale de fichier autorisée en mégaoctets pour ce formulaire.',
+    },
+  },
+};
+
+/**
  * Tabs for the form builder.
  */
 const formBuilderTabs: TabsField = {
@@ -62,7 +86,12 @@ const formBuilderTabs: TabsField = {
   tabs: [formFieldsTab, confirmationSettingsTab, workflowTab, formResultsTab],
 };
 
-const formFields: Field[] = [formTitleField, formAllowAutocompleteField, formBuilderTabs];
+const formFields: Field[] = [
+  formTitleField,
+  formAllowAutocompleteField,
+  formFileUploadLimitField,
+  formBuilderTabs,
+];
 
 const formLocalizationFields: Field[] = [
   {
@@ -153,76 +182,102 @@ export const formPluginConfiguration = formBuilderPlugin({
       update: () => false, // disable update for submissions
       delete: () => false, // disable delete for submissions
     },
-    fields: ({ defaultFields }) => [
-      ...defaultFields,
-      {
-        name: 'smtpResults',
-        type: 'json',
-        hooks: {
-          afterRead: [parseSmtpResultsHook],
-        },
-        admin: {
-          readOnly: true,
-          position: 'sidebar',
-          components: {
-            Field: {
-              path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
-              clientProps: {
-                smtpDomain:
-                  typeof environmentVariables.SMTP_USER === 'string' &&
-                  (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
-                    ? environmentVariables.SMTP_USER.split('@')[1]
-                    : 'cevi.tools',
-                systemEmails: [
-                  typeof environmentVariables.SMTP_USER === 'string'
-                    ? environmentVariables.SMTP_USER
-                    : 'noreply@cevi.tools',
-                ].filter((email) => email.length > 0),
-              },
-            },
+    fields: ({ defaultFields }) => {
+      const updatedFields = defaultFields.map((field) => {
+        if (field.name === 'submissionData' && field.type === 'array') {
+          return {
+            ...field,
+            fields: field.fields.map((subField) => {
+              if (subField.name === 'value') {
+                return {
+                  ...subField,
+                  admin: {
+                    ...subField.admin,
+                    components: {
+                      Field:
+                        '@/features/payload-cms/payload-cms/components/form-submissions/submission-value-field',
+                    },
+                  },
+                };
+              }
+              return subField;
+            }),
+          };
+        }
+        return field;
+      });
 
-            Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
+      return [
+        ...updatedFields,
+        {
+          name: 'smtpResults',
+          type: 'json',
+          hooks: {
+            afterRead: [parseSmtpResultsHook],
           },
-        },
-      },
-      {
-        name: 'workflowResults',
-        type: 'json',
-        admin: {
-          readOnly: true,
-          position: 'sidebar',
-          components: {
-            Field: {
-              path: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field',
+          admin: {
+            readOnly: true,
+            position: 'sidebar',
+            components: {
+              Field: {
+                path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
+                clientProps: {
+                  smtpDomain:
+                    typeof environmentVariables.SMTP_USER === 'string' &&
+                    (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
+                      ? environmentVariables.SMTP_USER.split('@')[1]
+                      : 'cevi.tools',
+                  systemEmails: [
+                    typeof environmentVariables.SMTP_USER === 'string'
+                      ? environmentVariables.SMTP_USER
+                      : 'noreply@cevi.tools',
+                  ].filter((email) => email.length > 0),
+                },
+              },
+
+              Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
             },
-            Cell: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell',
           },
         },
-      },
-      {
-        name: 'resendMail',
-        type: 'ui',
-        admin: {
-          position: 'sidebar',
-          components: {
-            Cell: '@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell',
+        {
+          name: 'workflowResults',
+          type: 'json',
+          admin: {
+            readOnly: true,
+            position: 'sidebar',
+            components: {
+              Field: {
+                path: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field',
+              },
+              Cell: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell',
+            },
           },
         },
-      },
-      {
-        name: 'helper-jobs',
-        type: 'relationship',
-        relationTo: 'helper-jobs',
-        hasMany: true,
-        admin: {
-          readOnly: true,
-          position: 'sidebar',
+        {
+          name: 'resendMail',
+          type: 'ui',
+          admin: {
+            position: 'sidebar',
+            components: {
+              Cell: '@/features/payload-cms/payload-cms/components/form-submissions/resend-mail-cell',
+            },
+          },
         },
-      },
-    ],
+        {
+          name: 'helper-jobs',
+          type: 'relationship',
+          relationTo: 'helper-jobs',
+          hasMany: true,
+          admin: {
+            readOnly: true,
+            position: 'sidebar',
+          },
+        },
+      ];
+    },
     hooks: {
       beforeChange: [validateFormSubmission, linkJobSubmission],
-      afterChange: [workflowTriggerOnFormSubmission],
+      afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent],
     },
   },
   formOverrides: {

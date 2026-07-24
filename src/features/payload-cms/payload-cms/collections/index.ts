@@ -9,6 +9,7 @@ import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
 import { EmergencyCardsCollection } from '@/features/payload-cms/payload-cms/collections/emergency-cards';
+import { FormCollection } from '@/features/payload-cms/payload-cms/collections/form-collection';
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/collections/helper-shifts-collection';
@@ -52,6 +53,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   ImageCollection,
   UserSubmittedImagesCollection,
   DocumentsCollection,
+  FormCollection,
   UserCollection,
   PermissionsCollection,
   PushNotificationSubscriptions,
