@@ -296,7 +296,11 @@ export const EmergencyComponent: React.FC = () => {
                   return (
                     <a
                       key={documentOrId.id}
-                      href={documentOrId.url ?? undefined}
+                      href={
+                        typeof documentOrId === 'object'
+                          ? (documentOrId.url ?? undefined)
+                          : undefined
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
@@ -366,13 +370,13 @@ export const EmergencyComponent: React.FC = () => {
                       className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
                     >
                       <a
-                        href={imgOrId.url ?? undefined}
+                        href={typeof imgOrId === 'object' ? (imgOrId.url ?? undefined) : undefined}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block overflow-hidden"
                       >
                         <img
-                          src={imgOrId.url ?? undefined}
+                          src={typeof imgOrId === 'object' ? (imgOrId.url ?? undefined) : undefined}
                           alt={altText}
                           className="h-28 w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
