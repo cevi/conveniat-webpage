@@ -12,7 +12,7 @@ export const BlogArticleConverter: React.FC<{
   article: Blog;
   locale: Locale;
 }> = ({ article, locale }) => {
-  if (typeof article.content.bannerImage === 'string') {
+  if (!article.content.bannerImage || typeof article.content.bannerImage === 'string') {
     throw new TypeError(
       'Expected bannerImage to be an object, you may got the ID instead of the object',
     );
