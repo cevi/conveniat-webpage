@@ -2916,7 +2916,11 @@ export interface SponsorGridBlock {
     title?: string | null;
     columnsDesktop: '2' | '3' | '4' | '5' | '6';
     sponsors: {
-      image: string | Image;
+      image?: (string | null) | Image;
+      /**
+       * Name of the sponsor if no logo is selected
+       */
+      name?: string | null;
       linkField?: {
         type?: ('reference' | 'custom' | 'email') | null;
         reference?:
@@ -5032,6 +5036,7 @@ export interface SponsorGridBlockSelect<T extends boolean = true> {
           | T
           | {
               image?: T;
+              name?: T;
               linkField?:
                 | T
                 | {
@@ -6808,11 +6813,15 @@ export interface Footer {
     youtube?: string | null;
   };
   /**
-   * Up to 6 sponsor logos displayed in the footer
+   * Up to 6 sponsors displayed in the footer (image logo or text name)
    */
   sponsors?:
     | {
-        logo: string | Image;
+        logo?: (string | null) | Image;
+        /**
+         * Name of the sponsor if no logo is selected
+         */
+        name?: string | null;
         linkField?: {
           type?: ('reference' | 'custom' | 'email') | null;
           reference?:
@@ -7448,6 +7457,7 @@ export interface FooterSelect<T extends boolean = true> {
     | T
     | {
         logo?: T;
+        name?: T;
         linkField?:
           | T
           | {

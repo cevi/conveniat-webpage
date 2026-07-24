@@ -1,5 +1,12 @@
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
+import {
+  createSponsorItemValidation,
+  isSponsorMediaPresent,
+  isSponsorNamePresent,
+} from '@/features/payload-cms/payload-cms/utils/sponsor-validation';
 import type { Block } from 'payload';
+
+const validateSponsorGridItem = createSponsorItemValidation('image');
 
 export const sponsorGridBlock: Block = {
   slug: 'sponsorGrid',
@@ -83,12 +90,37 @@ export const sponsorGridBlock: Block = {
               name: 'image',
               type: 'relationship',
               relationTo: 'images',
-              required: true,
+              required: false,
               label: {
                 de: 'Logo',
                 en: 'Logo',
                 fr: 'Logo',
               },
+              admin: {
+                condition: (_, siblingData) =>
+                  !isSponsorNamePresent(siblingData as Record<string, unknown>),
+              },
+              validate: validateSponsorGridItem,
+            },
+            {
+              name: 'name',
+              type: 'text',
+              required: false,
+              label: {
+                de: 'Name (Text-Sponsor)',
+                en: 'Name (Text sponsor)',
+                fr: 'Nom (Sponsor texte)',
+              },
+              admin: {
+                description: {
+                  de: 'Name des Sponsors, falls kein Logo ausgewählt ist',
+                  en: 'Name of the sponsor if no logo is selected',
+                  fr: 'Nom du sponsor si aucun logo n’est sélectionné',
+                },
+                condition: (_, siblingData) =>
+                  !isSponsorMediaPresent(siblingData as Record<string, unknown>, 'image'),
+              },
+              validate: validateSponsorGridItem,
             },
             LinkField(false),
           ],
