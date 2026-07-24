@@ -8,7 +8,7 @@ interface DocumentInfo {
   id: string;
   originalFilename: string;
   filesize: number;
-  url?: string;
+  url?: string | undefined;
 }
 
 function formatFileSize(bytes: number): string {

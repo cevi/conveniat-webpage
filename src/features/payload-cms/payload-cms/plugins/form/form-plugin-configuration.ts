@@ -184,11 +184,11 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
     fields: ({ defaultFields }) => {
       const updatedFields = defaultFields.map((field) => {
-        if (field.name === 'submissionData' && field.type === 'array') {
+        if ('name' in field && field.name === 'submissionData' && field.type === 'array') {
           return {
             ...field,
             fields: field.fields.map((subField) => {
-              if (subField.name === 'value') {
+              if ('name' in subField && subField.name === 'value') {
                 return {
                   ...subField,
                   admin: {
@@ -202,7 +202,7 @@ export const formPluginConfiguration = formBuilderPlugin({
               }
               return subField;
             }),
-          };
+          } as Field;
         }
         return field;
       });
@@ -273,7 +273,7 @@ export const formPluginConfiguration = formBuilderPlugin({
             position: 'sidebar',
           },
         },
-      ];
+      ] as Field[];
     },
     hooks: {
       beforeChange: [validateFormSubmission, linkJobSubmission],

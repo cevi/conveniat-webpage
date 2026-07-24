@@ -29,7 +29,12 @@ const config: Config = {
 
   transformIgnorePatterns: [String.raw`/node_modules/(?!(\.pnpm|@t3-oss)/)`],
 
-  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/', '<rootDir>/e2e/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/.next/',
+    '<rootDir>/e2e/',
+    '<rootDir>/worktrees/',
+  ],
 };
 
 export default config;
