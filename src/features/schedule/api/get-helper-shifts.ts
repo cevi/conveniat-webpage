@@ -73,8 +73,7 @@ const getHelperShiftsCached = async (
       if (dateA !== dateB) return dateA - dateB;
       const timeA = a.timeslot.time.split(' - ')[0] ?? '00:00';
       const timeB = b.timeslot.time.split(' - ')[0] ?? '00:00';
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      return (timeA ?? '').localeCompare(timeB ?? '');
+      return timeA.localeCompare(timeB);
     });
 };
 
