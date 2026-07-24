@@ -210,7 +210,7 @@ export const formPluginConfiguration = formBuilderPlugin({
               }
               return subField;
             }),
-          };
+          } as Field;
         }
         return field;
       });
