@@ -161,18 +161,12 @@ const pageCaching: RuntimeCaching = {
   }),
 };
 
-const adminBlockImageCaching: RuntimeCaching = {
-  matcher: new RegExp(/\/admin-block-images\//),
-  handler: new NetworkOnly(),
-};
-
 const runtimeCaching: RuntimeCaching[] = [
   cssCaching,
   jsCaching,
   rscCaching,
   fontCaching,
   nextFontCaching,
-  adminBlockImageCaching,
   imageCaching,
   apiCaching,
   pageCaching,
