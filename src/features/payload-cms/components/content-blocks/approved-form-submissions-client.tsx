@@ -35,7 +35,9 @@ const translations = {
   de: {
     searchPlaceholder: 'Einträge durchsuchen...',
     allCategories: 'Alle Kategorien',
+    categoryLabel: 'Kategorie:',
     downloadPdf: 'Datei / PDF herunterladen',
+    downloadOrOpen: 'Herunterladen / Öffnen',
     showDetails: 'Details anzeigen',
     hideDetails: 'Details ausblenden',
     noSubmissions: 'Derzeit sind noch keine freigegebenen Einträge vorhanden.',
@@ -47,7 +49,9 @@ const translations = {
   en: {
     searchPlaceholder: 'Search entries...',
     allCategories: 'All Categories',
+    categoryLabel: 'Category:',
     downloadPdf: 'Download File / PDF',
+    downloadOrOpen: 'Download / Open',
     showDetails: 'Show details',
     hideDetails: 'Hide details',
     noSubmissions: 'No approved entries available yet.',
@@ -59,7 +63,9 @@ const translations = {
   fr: {
     searchPlaceholder: 'Rechercher...',
     allCategories: 'Toutes les catégories',
+    categoryLabel: 'Catégorie :',
     downloadPdf: 'Télécharger le fichier / PDF',
+    downloadOrOpen: 'Télécharger / Ouvrir',
     showDetails: 'Afficher les détails',
     hideDetails: 'Masquer les détails',
     noSubmissions: 'Aucune entrée approuvée disponible pour le moment.',
@@ -273,7 +279,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span className="mr-1 flex items-center text-xs font-semibold text-gray-500">
               <Filter className="mr-1 h-3.5 w-3.5" />
-              Kategorie:
+              {t.categoryLabel}
             </span>
             <button
               onClick={() => setSelectedCategory('ALL')}
@@ -427,7 +433,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
                                   rel="noopener noreferrer"
                                   className="text-conveniat-green inline-flex items-center gap-1 hover:underline"
                                 >
-                                  <span>Download / Öffnen</span>
+                                  <span>{t.downloadOrOpen}</span>
                                   <Download className="h-3.5 w-3.5" />
                                 </a>
                               ) : (
