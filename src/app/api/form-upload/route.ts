@@ -61,6 +61,30 @@ function isFileTypeAllowed(
   );
 }
 
+interface FormFieldObject {
+  blockType?: string;
+  name?: string;
+  fields?: FormFieldObject[];
+  allowedFileTypes?: string;
+  customAllowedFileTypes?: string;
+}
+
+function findFileUploadField(
+  fields: FormFieldObject[],
+  targetName: string,
+): FormFieldObject | undefined {
+  for (const field of fields) {
+    if (field.blockType === 'fileUpload' && field.name === targetName) {
+      return field;
+    }
+    if (Array.isArray(field.fields)) {
+      const nestedMatch = findFileUploadField(field.fields, targetName);
+      if (nestedMatch !== undefined) return nestedMatch;
+    }
+  }
+  return undefined;
+}
+
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
@@ -121,9 +145,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const formId = formData.get('formId') as string | null;
     const fieldName = formData.get('fieldName') as string | null;
 
-    if (file === null || formId === null) {
+    if (file === null || formId === null || fieldName === null || fieldName.trim() === '') {
       return NextResponse.json(
-        { error: 'Missing required fields: file and formId' },
+        { error: 'Missing required fields: file, formId, and fieldName' },
         { status: 400 },
       );
     }
@@ -152,50 +176,36 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Validate file type if field name was supplied
-    if (fieldName !== null && fieldName.length > 0 && Array.isArray(form.sections)) {
-      let matchedField: { allowedFileTypes?: string; customAllowedFileTypes?: string } | undefined;
+    // Resolve matched fileUpload block recursively across form sections
+    let matchedField: FormFieldObject | undefined;
 
+    if (Array.isArray(form.sections)) {
       for (const sectionWrapper of form.sections) {
-        const fields = sectionWrapper.formSection.fields;
+        const fields = sectionWrapper.formSection.fields as FormFieldObject[] | undefined;
         if (!Array.isArray(fields)) continue;
 
-        for (const field of fields) {
-          if (field.blockType === 'fileUpload' && field.name === fieldName) {
-            matchedField = field as unknown as {
-              allowedFileTypes?: string;
-              customAllowedFileTypes?: string;
-            };
-            break;
-          }
-          if (field.blockType === 'conditionedBlock' && Array.isArray(field.fields)) {
-            for (const subField of field.fields) {
-              if (subField.blockType === 'fileUpload' && subField.name === fieldName) {
-                matchedField = subField as unknown as {
-                  allowedFileTypes?: string;
-                  customAllowedFileTypes?: string;
-                };
-                break;
-              }
-            }
-          }
-        }
+        matchedField = findFileUploadField(fields, fieldName);
         if (matchedField !== undefined) break;
       }
+    }
 
-      if (matchedField !== undefined) {
-        const isAllowed = isFileTypeAllowed(
-          file,
-          matchedField.allowedFileTypes,
-          matchedField.customAllowedFileTypes,
-        );
-        if (!isAllowed) {
-          return NextResponse.json(
-            { error: `File type "${file.name}" is not allowed` },
-            { status: 400 },
-          );
-        }
-      }
+    if (matchedField === undefined) {
+      return NextResponse.json(
+        { error: `Field "${fieldName}" is not a valid file upload field for this form` },
+        { status: 400 },
+      );
+    }
+
+    const isAllowed = isFileTypeAllowed(
+      file,
+      matchedField.allowedFileTypes,
+      matchedField.customAllowedFileTypes,
+    );
+    if (!isAllowed) {
+      return NextResponse.json(
+        { error: `File type "${file.name}" is not allowed` },
+        { status: 400 },
+      );
     }
 
     const arrayBuffer = await file.arrayBuffer();

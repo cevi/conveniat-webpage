@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getPayload } from 'payload';
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse | Response> {
   try {
@@ -15,6 +15,12 @@ export async function GET(
     }
 
     const payload = await getPayload({ config });
+
+    // Authenticate requester
+    const { user } = await payload.auth({ headers: request.headers });
+    if (user === null) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     let fileDocument;
     try {
@@ -36,13 +42,12 @@ export async function GET(
     });
 
     const s3Response = await s3Client.send(getCommand);
-    const fileByteArray = await s3Response.Body?.transformToByteArray();
+    const webStream = s3Response.Body?.transformToWebStream();
 
-    if (fileByteArray === undefined) {
+    if (webStream === undefined) {
       return NextResponse.json({ error: 'Failed to read file content' }, { status: 500 });
     }
 
-    const buffer = Buffer.from(fileByteArray);
     const mimeType =
       typeof fileDocument.mimeType === 'string' && fileDocument.mimeType.length > 0
         ? fileDocument.mimeType
@@ -52,12 +57,12 @@ export async function GET(
         ? fileDocument.originalFilename
         : fileDocument.filename;
 
-    return new Response(buffer, {
+    return new Response(webStream, {
       status: 200,
       headers: {
         'Content-Type': mimeType,
         'Content-Disposition': `inline; filename="${encodeURIComponent(originalFilename)}"`,
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'private, max-age=3600',
       },
     });
   } catch (error) {

@@ -9,6 +9,8 @@ interface DocumentInfo {
   filesize: number;
 }
 
+const ID_LOOKUP_REGEX = /^[a-f0-9-]{12,36}$/i;
+
 export const FormSubmissionFilesCell: React.FC<{
   rowData?: { submissionData?: Array<{ field: string; value: unknown }> } & Record<string, unknown>;
 }> = ({ rowData }) => {
@@ -17,15 +19,10 @@ export const FormSubmissionFilesCell: React.FC<{
   const submissionDataArray = Array.isArray(rowData?.submissionData) ? rowData.submissionData : [];
 
   const rawIds = submissionDataArray
-    .map((item) => {
-      const rawValue = item.value;
-      if (typeof rawValue === 'string') return rawValue;
-      if (typeof rawValue === 'number' || typeof rawValue === 'boolean') return String(rawValue);
-      return '';
-    })
+    .map((item) => (typeof item.value === 'string' ? item.value : ''))
     .flatMap((val) => val.split(','))
     .map((id) => id.trim())
-    .filter((id) => id.length > 0)
+    .filter((id) => ID_LOOKUP_REGEX.test(id))
     .join(',');
 
   useEffect(() => {

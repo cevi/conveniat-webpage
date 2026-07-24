@@ -28,7 +28,7 @@ export const FormCollection: CollectionConfig = {
   },
   access: {
     read: hasAdminOrWebAccess,
-    create: () => true,
+    create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
   },
