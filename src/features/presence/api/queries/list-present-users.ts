@@ -25,21 +25,6 @@ export const listPresentUsers = trpcAdminProcedure
     if (globalData.endDate) {
       const endDate = new Date(globalData.endDate);
       if (now > endDate) {
-        await prisma.user.updateMany({
-          where: { presentAtCamp: true },
-          data: { presentAtCamp: false },
-        });
-        await payload.update({
-          collection: 'users',
-          where: {
-            presentAtCamp: {
-              equals: true,
-            },
-          },
-          data: {
-            presentAtCamp: false,
-          },
-        });
         return {
           users: [],
           totalCount: 0,

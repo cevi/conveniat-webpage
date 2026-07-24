@@ -27,6 +27,7 @@ export async function GET(
       fileDocument = await payload.findByID({
         collection: 'form_collection',
         id,
+        req: { user },
       });
     } catch {
       return NextResponse.json({ error: 'File document not found' }, { status: 404 });

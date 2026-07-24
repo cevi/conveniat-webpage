@@ -24,21 +24,6 @@ export const getPresence = trpcBaseProcedure.query(async ({ ctx }) => {
     const endDate = new Date(globalData.endDate);
     if (now > endDate) {
       isOutsideTrackingPeriod = true;
-      await prisma.user.updateMany({
-        where: { presentAtCamp: true },
-        data: { presentAtCamp: false },
-      });
-      await payload.update({
-        collection: 'users',
-        where: {
-          presentAtCamp: {
-            equals: true,
-          },
-        },
-        data: {
-          presentAtCamp: false,
-        },
-      });
     }
   }
 

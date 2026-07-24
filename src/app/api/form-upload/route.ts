@@ -105,6 +105,11 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     const payload = await getPayload({ config });
 
+    const { user } = await payload.auth({ headers: request.headers });
+    if (user === null) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const result = await payload.find({
       collection: 'form_collection',
       where: {
@@ -112,6 +117,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       },
       limit: ids.length,
       depth: 0,
+      req: { user },
     });
 
     const documents = result.docs.map((fileDocument) => ({
@@ -153,6 +159,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const payload = await getPayload({ config });
+
+    const { user } = await payload.auth({ headers: request.headers });
+    if (user === null) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // Fetch form configuration
     let form;
@@ -224,6 +235,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         name: file.name,
         size: file.size,
       },
+      req: { user },
     });
 
     return NextResponse.json({

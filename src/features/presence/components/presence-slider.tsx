@@ -276,6 +276,13 @@ export const PresenceSlider: React.FC = () => {
     [handlePointerMove, handlePointerUp, isProcessing, isPresent, isOutsideTrackingPeriod],
   );
 
+  useEffect((): (() => void) => {
+    return (): void => {
+      globalThis.removeEventListener('pointermove', handlePointerMove);
+      globalThis.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [handlePointerMove, handlePointerUp]);
+
   if (status !== 'authenticated' || isLoading) {
     // eslint-disable-next-line unicorn/no-null
     return null;
