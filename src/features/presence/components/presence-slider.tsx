@@ -177,10 +177,6 @@ export const PresenceSlider: React.FC = () => {
         handleReference.current.style.transform = `translateX(${clampedTranslateX}px)`;
       }
       trackReference.current.style.setProperty('--translate-x-clamped', `${clampedTranslateX}px`);
-
-      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-        navigator.vibrate(5);
-      }
     },
     [isProcessing],
   );

@@ -49,6 +49,7 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
 
     let totalDeleted = 0;
     let hasMore = true;
+    const failedIds: string[] = [];
 
     while (hasMore) {
       const staleFiles = await payload.find({
@@ -57,6 +58,7 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
           and: [
             { isTemporary: { equals: true } },
             { createdAt: { less_than: twentyFourHoursAgo } },
+            ...(failedIds.length > 0 ? [{ id: { not_in: failedIds } }] : []),
           ],
         },
         limit: 100,
@@ -81,6 +83,7 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
           totalDeleted += 1;
         } catch (error) {
           logger.error(`Error deleting temporary form file ${fileDocument.id}: ${String(error)}`);
+          failedIds.push(fileDocument.id);
         }
       }
 

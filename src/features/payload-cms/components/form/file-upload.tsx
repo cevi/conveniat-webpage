@@ -351,7 +351,6 @@ export const FileUpload: React.FC<
     event.preventDefault();
     if (isDisabled) return;
     setIsDragOver(false);
-    processSelectedFiles(event.dataTransfer.files);
   };
 
   const removeFile = (id: string): void => {
@@ -399,7 +398,7 @@ export const FileUpload: React.FC<
           )}
         />
 
-        <div className="flex flex-col items-center text-center">
+        <div className="pointer-events-none flex flex-col items-center text-center">
           <Upload className="mb-2 h-8 w-8 text-gray-400" />
           <p className="font-['Inter'] text-sm font-medium text-gray-700">
             {isDragOver
