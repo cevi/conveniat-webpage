@@ -1387,6 +1387,10 @@ export interface FormSubmission {
    * Approve this submission to display it on the website
    */
   approved?: boolean | null;
+  /**
+   * Pre-signed token for approving this submission
+   */
+  approvalToken?: string | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -6672,6 +6676,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         id?: T;
       };
   approved?: T;
+  approvalToken?: T;
   smtpResults?: T;
   workflowResults?: T;
   'helper-jobs'?: T;

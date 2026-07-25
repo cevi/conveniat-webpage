@@ -13,6 +13,7 @@ import {
   defaultHTMLConverters,
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
+import { randomUUID } from 'node:crypto';
 import { getPayload, type Where } from 'payload';
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
@@ -190,10 +191,36 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   // --- Attachments end ---
 
   // --- Lexical Re-generation start ---
+  const typedSubmissionDocument = formSubmissionDocument as {
+    id: string;
+    form?: string | { id?: string };
+    approvalToken?: string;
+  };
+  let approvalToken = typedSubmissionDocument.approvalToken;
+  if (typeof approvalToken !== 'string' || approvalToken.length === 0) {
+    approvalToken = randomUUID();
+    if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
+      try {
+        await payload.update({
+          collection: 'form-submissions',
+          id: formSubmissionId,
+          data: { approvalToken },
+        });
+      } catch {
+        // ignore fallback update error
+      }
+    }
+  }
+
+  const approvalUrl = `${environmentVariables.APP_HOST_URL}/api/form-submissions/approve?token=${approvalToken}`;
+
   const submissionDataArray =
     (formSubmissionDocument as { submissionData?: unknown[] }).submissionData ?? [];
   const submissionDict: Record<string, string> = {
     formSubmissionID: String(formSubmissionId),
+    approvalLink: approvalUrl,
+    approvalUrl: approvalUrl,
+    'approval-link': approvalUrl,
   };
 
   const extractStringValue = (val: unknown): string => {
@@ -304,6 +331,19 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     // Replace payloads wildcard variables
     updatedHtml = updatedHtml.replaceAll('{{*}}', () => wildcardHtmlText);
     updatedHtml = updatedHtml.replaceAll('{{*:table}}', () => wildcardHtmlTable);
+
+    // Replace hrefs targeting approval-link
+    const hrefApprovalLinkRegex =
+      /href=["'](?:about:blank#)?\{\{\s*approval-link\s*(?:::\s*|:\s*)?(.*?)\s*\}\}["']/gi;
+    updatedHtml = updatedHtml.replaceAll(hrefApprovalLinkRegex, () => `href="${approvalUrl}"`);
+
+    // Replace inline {{approval-link :: Label}} placeholders with pre-signed approval links
+    const approvalLinkRegex = /\{\{\s*approval-link\s*(?:::\s*|:\s*)?(.*?)\s*\}\}/gi;
+    updatedHtml = updatedHtml.replaceAll(approvalLinkRegex, (_match, labelGroup) => {
+      const rawLabel = typeof labelGroup === 'string' ? labelGroup.trim() : '';
+      const label = rawLabel.length > 0 ? rawLabel : 'Bestätigen';
+      return `<a href="${approvalUrl}">${escapeHTML(label)}</a>`;
+    });
 
     const shouldAttachFiles =
       originalEmailConfig === undefined
