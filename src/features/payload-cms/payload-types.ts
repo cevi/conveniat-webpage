@@ -719,6 +719,10 @@ export interface HeroSectionBlock {
  * via the `definition` "SectionSeparatorBlock".
  */
 export interface SectionSeparatorBlock {
+  /**
+   * If enabled, the separator is rendered full page width (max 1120px centered). Otherwise column width.
+   */
+  isFullWidth?: boolean | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'sectionSeparator';
@@ -1481,6 +1485,10 @@ export interface HelperJob {
  */
 export interface ApprovedFormSubmissionsBlock {
   form: string | Form;
+  /**
+   * Enable to center this block horizontally on the page.
+   */
+  centerHorizontally?: boolean | null;
   /**
    * Optional heading (e.g. "Registered Stands", "Approved Submissions")
    */
@@ -2670,6 +2678,7 @@ export interface TwoColumnBlock {
         blockType: 'blogPostsOverview';
       }
     | FormBlock
+    | ApprovedFormSubmissionsBlock
     | {
         images: (string | Image)[];
         id?: string | null;
@@ -2853,6 +2862,7 @@ export interface TwoColumnBlock {
         blockType: 'blogPostsOverview';
       }
     | FormBlock
+    | ApprovedFormSubmissionsBlock
     | {
         images: (string | Image)[];
         id?: string | null;
@@ -3196,6 +3206,7 @@ export interface TabsBlock {
           blockType: 'blogPostsOverview';
         }
       | FormBlock
+      | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
           id?: string | null;
@@ -4666,6 +4677,7 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
  * via the `definition` "SectionSeparatorBlock_select".
  */
 export interface SectionSeparatorBlockSelect<T extends boolean = true> {
+  isFullWidth?: T;
   id?: T;
   blockName?: T;
 }
@@ -4684,6 +4696,7 @@ export interface FormBlockSelect<T extends boolean = true> {
  */
 export interface ApprovedFormSubmissionsBlockSelect<T extends boolean = true> {
   form?: T;
+  centerHorizontally?: T;
   heading?: T;
   titleFieldName?: T;
   categoryFieldName?: T;
@@ -5031,6 +5044,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               blockName?: T;
             };
         formBlock?: T | FormBlockSelect<T>;
+        approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
           | T
           | {
@@ -5135,6 +5149,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
               blockName?: T;
             };
         formBlock?: T | FormBlockSelect<T>;
+        approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
         photoCarousel?:
           | T
           | {
@@ -5329,6 +5344,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               formBlock?: T | FormBlockSelect<T>;
+              approvedFormSubmissionsBlock?: T | ApprovedFormSubmissionsBlockSelect<T>;
               photoCarousel?:
                 | T
                 | {

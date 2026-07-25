@@ -1,4 +1,5 @@
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
+import { approvedFormSubmissionsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/approved-form-submissions-block';
 import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
 import { callToActionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/call-to-action-block';
 import { campScheduleEntryBlock } from '@/features/payload-cms/payload-cms/shared-blocks/camp-schedule-entry.block';
@@ -26,6 +27,7 @@ export const genericBlocks = [
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,
+  approvedFormSubmissionsBlock,
   photoCarouselBlock,
   singlePictureBlock,
   youtubeEmbedBlock,
