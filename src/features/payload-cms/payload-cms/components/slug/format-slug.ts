@@ -15,7 +15,7 @@ export const formatSlugHook =
 
     if (operation === 'create' || !Boolean(data?.['slug'])) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const fallbackData = data?.[fallback] ?? data?.[fallback];
+      const fallbackData = data?.[fallback];
 
       if (Boolean(fallbackData) && typeof fallbackData === 'string') {
         return formatSlug(fallbackData);

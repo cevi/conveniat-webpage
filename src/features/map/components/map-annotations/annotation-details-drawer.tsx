@@ -6,7 +6,7 @@ import { AnnotationScheduleTableComponent } from '@/features/map/components/map-
 import { AnnotationDescriptionSection } from '@/features/map/components/map-annotations/sections/description-section';
 import { AnnotationForumAndReportSection } from '@/features/map/components/map-annotations/sections/forum-and-report-section';
 import { AnnotationImagesSection } from '@/features/map/components/map-annotations/sections/image-section';
-import { AnnotationOpeningHoursSection } from '@/features/map/components/map-annotations/sections/opening-hous-section';
+import { AnnotationOpeningHoursSection } from '@/features/map/components/map-annotations/sections/opening-hours-section';
 import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,

@@ -21,7 +21,20 @@ set -e
 
 # Load .env
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  eval "$(node -e '
+    const fs = require("fs");
+    if (fs.existsSync(".env")) {
+      for (const line of fs.readFileSync(".env", "utf8").split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+        if (match) {
+          const rawVal = match[2].trim().replace(/^["\x27]|["\x27]$/g, "");
+          console.log(`export ${match[1]}=${JSON.stringify(rawVal)}`);
+        }
+      }
+    }
+  ')"
 else
   echo "ERROR: .env file not found!"
   exit 1

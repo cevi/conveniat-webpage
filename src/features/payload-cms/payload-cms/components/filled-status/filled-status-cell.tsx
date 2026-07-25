@@ -77,16 +77,7 @@ export const FilledStatusCell: React.FC<{
   const max = rowData?.participants_max ?? undefined;
   const enrolled = typeof rowData?.enrolledCount === 'number' ? rowData.enrolledCount : 0;
 
-  let type: 'open' | 'full' | 'unknown' = 'unknown';
-
-  if (max == undefined) {
-    // No capacity limit — always open
-    type = 'open';
-  } else if (enrolled >= max) {
-    type = 'full';
-  } else {
-    type = 'open';
-  }
+  const type: 'open' | 'full' = max == undefined || enrolled < max ? 'open' : 'full';
 
   const invertColors = field?.admin?.custom?.invertColors === true;
 

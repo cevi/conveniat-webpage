@@ -75,6 +75,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    middlewareClientMaxBodySize: '50mb',
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
     inlineCss: true,
     authInterrupts: true,
 

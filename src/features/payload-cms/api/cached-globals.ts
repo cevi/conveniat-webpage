@@ -7,6 +7,7 @@ import type {
   SEO,
 } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { isBuildPhase } from '@/utils/build-phase';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -19,6 +20,9 @@ import { cache } from 'react';
  * request will share the same database query result.
  */
 export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => {
+  if (isBuildPhase()) {
+    return {} as Footer;
+  }
   return await withSpan('getFooterCached', async () => {
     const payload = await getPayload({ config });
     return await payload.findGlobal({
@@ -38,6 +42,9 @@ export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => 
  */
 export const getHeaderCached = cache(
   async (locale: Locale, draft: boolean = false): Promise<Header> => {
+    if (isBuildPhase()) {
+      return {} as Header;
+    }
     return await withSpan('getHeaderCached', async () => {
       const payload = await getPayload({ config });
       return await payload.findGlobal({
@@ -56,6 +63,9 @@ export const getHeaderCached = cache(
  * Fetches the SEO global with request-level memoization.
  */
 export const getSEOCached = cache(async (): Promise<SEO> => {
+  if (isBuildPhase()) {
+    return {} as SEO;
+  }
   return await withSpan('getSEOCached', async () => {
     const payload = await getPayload({ config });
     return await payload.findGlobal({
@@ -80,6 +90,9 @@ export const getAlertSettingsCached = cache(
     draft: boolean = false,
     fallbackLocale: Locale = 'de',
   ): Promise<AlertSetting> => {
+    if (isBuildPhase()) {
+      return {} as AlertSetting;
+    }
     return await withSpan('getAlertSettingsCached', async () => {
       const payload = await getPayload({ config });
       return await payload.findGlobal({
@@ -109,8 +122,19 @@ export const getAppFeatureFlagsCached = cache(
       | 'photoContestEnabled'
       | 'reservationsEnabled'
       | 'forumEnabled'
+      | 'redesignedMainMenuEnabled'
     >
   > => {
+    if (isBuildPhase()) {
+      return {
+        helperShiftsEnabled: false,
+        imageUploadEnabled: false,
+        photoContestEnabled: false,
+        reservationsEnabled: false,
+        forumEnabled: false,
+        redesignedMainMenuEnabled: false,
+      };
+    }
     return await withSpan('getAppFeatureFlagsCached', async () => {
       const payload = await getPayload({ config });
       return await payload.findGlobal({
@@ -121,6 +145,7 @@ export const getAppFeatureFlagsCached = cache(
           photoContestEnabled: true,
           reservationsEnabled: true,
           forumEnabled: true,
+          redesignedMainMenuEnabled: true,
         },
       });
     });
@@ -137,6 +162,9 @@ export const getAppLandingPageCached = cache(
   async (
     locale: Locale,
   ): Promise<Pick<AppLandingPage, 'title' | 'pageContent' | 'showActionCards'>> => {
+    if (isBuildPhase()) {
+      return { title: '', showActionCards: false };
+    }
     return await withSpan('getAppLandingPageCached', async () => {
       const payload = await getPayload({ config });
       return await payload.findGlobal({

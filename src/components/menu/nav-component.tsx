@@ -9,7 +9,8 @@ import { useCallback, useEffect, useRef } from 'react';
 
 export const NavComponent: React.FC<{
   children?: React.ReactNode;
-}> = ({ children }) => {
+  showDesktopSidePanel?: boolean;
+}> = ({ children, showDesktopSidePanel = true }) => {
   const { mobileMenuOpen, setMobileMenuOpen, checkClickEvent } = useMobileMenuNavigation();
   const justClosedReference = useRef(false);
 
@@ -47,7 +48,7 @@ export const NavComponent: React.FC<{
           <button
             type="button"
             onClick={handleOpen}
-            className="relative top-[18px] z-[55] cursor-pointer outline-hidden"
+            className="relative top-[18px] z-[105] cursor-pointer outline-hidden"
           >
             <span className="sr-only">Open main menu</span>
             <MenuIcon aria-hidden="true" className="size-6" />
@@ -57,7 +58,7 @@ export const NavComponent: React.FC<{
         {mobileMenuOpen && (
           <button
             type="button"
-            className="relative top-[18px] z-[98] cursor-pointer outline-hidden"
+            className="relative top-[18px] z-[105] cursor-pointer outline-hidden"
             onClick={handleClose}
           >
             <span className="sr-only">Close menu</span>
@@ -67,15 +68,18 @@ export const NavComponent: React.FC<{
 
         <Dialog open={mobileMenuOpen} onClose={handleClose}>
           <div className="fixed inset-0 z-[90] cursor-pointer bg-black/20" />
-          <DialogPanel className="fixed inset-y-0 right-0 z-[95] mt-[62px] w-full overflow-y-scroll bg-white px-2 pt-4 pb-6 xl:px-6">
+          <DialogPanel className="fixed inset-y-0 right-0 z-[95] mt-[62px] w-full max-w-md overflow-y-scroll bg-white px-4 pt-4 pb-6 shadow-2xl">
             <div onClick={(event): void => checkClickEvent(event)}>{children}</div>
           </DialogPanel>
         </Dialog>
       </div>
 
-      <div className="fixed top-[62px] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white py-8 xl:block">
-        {children}
-      </div>
+      {/* Desktop Side Panel (rendered for side-nav layout mode) */}
+      {showDesktopSidePanel && (
+        <div className="fixed top-[62px] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white py-8 xl:block">
+          {children}
+        </div>
+      )}
     </>
   );
 };

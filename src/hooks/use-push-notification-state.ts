@@ -158,14 +158,18 @@ export function usePushNotificationState(
   }, [locale, swReady, swError, updateState]);
 
   const subscribeToPush = useCallback(async (): Promise<boolean> => {
-    updateState({ isLoading: true, errorMessage: undefined });
+    updateState({ isLoading: true, isSubscribed: true, errorMessage: undefined });
     try {
       await subscribeToPushNotifications(locale, registrationSource);
       updateState({ isLoading: false, isSubscribed: true });
       return true;
     } catch (error: unknown) {
       const subscriptionErrorMessage = getSubscriptionErrorMessage(error, locale);
-      updateState({ isLoading: false, errorMessage: subscriptionErrorMessage });
+      updateState({
+        isLoading: false,
+        isSubscribed: false,
+        errorMessage: subscriptionErrorMessage,
+      });
       return false;
     }
   }, [locale, registrationSource, updateState]);

@@ -12,6 +12,8 @@ import { ClientProviders } from '@/context/client-providers';
 import { OfflineQueueSync } from '@/features/chat/hooks/use-offline-queue-processor';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
+import type { NavigationMode } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import type { ReactNode } from 'react';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -22,14 +24,21 @@ interface AppShellProperties {
   footer?: ReactNode;
   inAppDesign: boolean;
   swUrl?: string;
+  navigationMode?: NavigationMode;
 }
 
 /**
  * Unified App Shell component that provides all necessary providers
  * and layout structure for both online and offline versions.
  */
-export const AppShell: React.FC<AppShellProperties> = ({ children, header, footer }) => {
+export const AppShell: React.FC<AppShellProperties> = ({
+  children,
+  header,
+  footer,
+  navigationMode = 'side-nav',
+}) => {
   const { hideBackgroundLogo } = useHideBackgroundLogo();
+  const isTopNavMode = navigationMode === 'top-nav';
 
   return (
     <PostHogProvider>
@@ -43,13 +52,23 @@ export const AppShell: React.FC<AppShellProperties> = ({ children, header, foote
 
                 {/* Background Logo */}
                 {!hideBackgroundLogo && (
-                  <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
+                  <div
+                    className={cn(
+                      'absolute top-0 z-[-999] h-screen w-full p-[56px]',
+                      isTopNavMode ? 'lg:hidden' : 'xl:pl-[480px]',
+                    )}
+                  >
                     <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
                   </div>
                 )}
 
                 {/* Main Content Area */}
-                <div className="wco-content-wrapper mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
+                <div
+                  className={cn(
+                    'wco-content-wrapper mt-[62px] h-[calc(100dvh-62px)]',
+                    !isTopNavMode && 'xl:ml-[480px]',
+                  )}
+                >
                   <main className="flex min-h-full flex-col justify-between">
                     <div className="flex-1">
                       <ErrorBoundary FallbackComponent={AppErrorFallback}>{children}</ErrorBoundary>

@@ -16,19 +16,23 @@ export const ensureUserExistsMiddleware = middleware(async ({ ctx, next }) => {
     });
   }
 
-  // Upsert user to ensure they exist in Prisma
-  await prisma.user.upsert({
-    where: { uuid: user.uuid },
-    update: {
-      name: user.name,
-      lastSeen: new Date(),
-    },
-    create: {
-      uuid: user.uuid,
-      name: user.name,
-      lastSeen: new Date(),
-    },
-  });
+  try {
+    // Upsert user to ensure they exist in Prisma
+    await prisma.user.upsert({
+      where: { uuid: user.uuid },
+      update: {
+        name: user.name,
+        lastSeen: new Date(),
+      },
+      create: {
+        uuid: user.uuid,
+        name: user.name,
+        lastSeen: new Date(),
+      },
+    });
+  } catch (error) {
+    console.warn('[ensureUserExistsMiddleware] Could not upsert user to Prisma:', error);
+  }
 
   return next({ ctx: { ...ctx, user } });
 });

@@ -847,53 +847,67 @@ export const scheduleRouter = createTRPCRouter({
 
   star: createTRPCRouter({
     toggleStar: trpcBaseProcedure
-      .input(z.object({ courseId: z.string() }))
+      .input(
+        z.object({
+          courseId: z.string(),
+        }),
+      )
       .use(ensureUserExistsMiddleware)
       .mutation(async ({ input, ctx }) => {
         const { user, prisma } = ctx;
-
         const { courseId } = input;
 
-        const existingStar = await prisma.star.findUnique({
-          where: {
-            courseId_userId_courseType: {
-              courseId,
-              userId: user.uuid,
-              courseType: CourseType.PROGRAM,
-            },
-          },
-        });
-
-        if (existingStar) {
-          await prisma.star.delete({
+        try {
+          const existingStar = await prisma.star.findUnique({
             where: {
-              id: existingStar.id,
+              courseId_userId_courseType: {
+                courseId,
+                userId: user.uuid,
+                courseType: CourseType.PROGRAM,
+              },
             },
           });
-          return { starred: false };
-        } else {
+
+          if (existingStar) {
+            await prisma.star.delete({
+              where: {
+                id: existingStar.id,
+              },
+            });
+            return { starred: false };
+          }
+
           await prisma.star.create({
             data: {
               courseId,
               userId: user.uuid,
+              courseType: CourseType.PROGRAM,
             },
           });
           return { starred: true };
+        } catch (error) {
+          console.warn('[toggleStar] Could not toggle star:', error);
+          return { starred: false };
         }
       }),
 
     getMyStars: trpcBaseProcedure.query(async ({ ctx }) => {
       const { user, prisma } = ctx;
 
-      const stars = await prisma.star.findMany({
-        where: {
-          userId: user.uuid,
-        },
-        select: {
-          courseId: true,
-        },
-      });
-      return stars.map((s: { courseId: string }) => s.courseId);
+      try {
+        const stars = await prisma.star.findMany({
+          where: {
+            userId: user.uuid,
+          },
+          select: {
+            courseId: true,
+          },
+        });
+        return stars.map((s: { courseId: string }) => s.courseId);
+      } catch (error) {
+        console.warn('[getMyStars] Could not query stars:', error);
+        return [];
+      }
     }),
 
     syncStars: trpcBaseProcedure
@@ -904,29 +918,34 @@ export const scheduleRouter = createTRPCRouter({
 
         const { courseIds } = input;
 
-        for (const courseId of courseIds) {
-          await prisma.star.upsert({
-            where: {
-              courseId_userId_courseType: {
+        try {
+          for (const courseId of courseIds) {
+            await prisma.star.upsert({
+              where: {
+                courseId_userId_courseType: {
+                  courseId,
+                  userId: user.uuid,
+                  courseType: CourseType.PROGRAM,
+                },
+              },
+              create: {
                 courseId,
                 userId: user.uuid,
                 courseType: CourseType.PROGRAM,
               },
-            },
-            create: {
-              courseId,
-              userId: user.uuid,
-              courseType: CourseType.PROGRAM,
-            },
-            update: {},
-          });
-        }
+              update: {},
+            });
+          }
 
-        const allStars = await prisma.star.findMany({
-          where: { userId: user.uuid },
-          select: { courseId: true },
-        });
-        return allStars.map((s: { courseId: string }) => s.courseId);
+          const allStars = await prisma.star.findMany({
+            where: { userId: user.uuid },
+            select: { courseId: true },
+          });
+          return allStars.map((s: { courseId: string }) => s.courseId);
+        } catch (error) {
+          console.warn('[syncStars] Could not sync stars with database:', error);
+          return courseIds;
+        }
       }),
 
     getStarCount: trpcBaseProcedure
@@ -934,9 +953,17 @@ export const scheduleRouter = createTRPCRouter({
       .query(async ({ input, ctx }) => {
         const { prisma } = ctx;
 
-        return await prisma.star.count({
-          where: { courseId: input.courseId },
-        });
+        try {
+          return await prisma.star.count({
+            where: {
+              courseId: input.courseId,
+              courseType: CourseType.PROGRAM,
+            },
+          });
+        } catch (error) {
+          console.warn('[getStarCount] Could not count stars:', error);
+          return 0;
+        }
       }),
   }),
 });

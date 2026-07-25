@@ -26,9 +26,14 @@ export default async function PresenceCounterWidget({
   }
 
   const { locale } = req;
-  const presentCount = await prisma.user.count({
-    where: { presentAtCamp: true },
-  });
+  let presentCount = 0;
+  try {
+    presentCount = await prisma.user.count({
+      where: { presentAtCamp: true },
+    });
+  } catch (error) {
+    console.warn('[PresenceCounterWidget] Could not query present users count:', error);
+  }
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

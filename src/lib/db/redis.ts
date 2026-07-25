@@ -1,10 +1,10 @@
 import { environmentVariables as env } from '@/config/environment-variables';
+import { FEATURE_FLAG_DEFAULTS } from '@/lib/feature-flags';
 import Redis from 'ioredis';
+import { revalidateTag, unstable_cache } from 'next/cache';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const globalForRedis = globalThis as unknown as { redis: Redis | undefined };
-
-import { FEATURE_FLAG_DEFAULTS } from '@/lib/feature-flags';
-import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const isBuild =
   // eslint-disable-next-line n/no-process-env
@@ -50,12 +50,28 @@ redis.on('error', (error: { code: string }) => {
 
 export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 
+const fetchCachedFeatureFlag = unstable_cache(
+  async (key: string): Promise<boolean> => {
+    const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
+    if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
+    return value === 'true';
+  },
+  ['feature-flags-cache'],
+  {
+    revalidate: 60,
+    tags: ['feature-flags'],
+  },
+);
+
 export const getFeatureFlag = async (key: string): Promise<boolean> => {
-  const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
-  if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
-  return value === 'true';
+  return fetchCachedFeatureFlag(key);
 };
 
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {
   await redis.set(`${FEATURE_FLAG_PREFIX}${key}`, String(value));
+  try {
+    revalidateTag('feature-flags', 'max-age=0');
+  } catch {
+    // Ignore when executed outside request context (e.g., seeding scripts)
+  }
 };

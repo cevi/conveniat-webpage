@@ -62,17 +62,11 @@ ENV PRISMA_OUTPUT='src/lib/prisma/client/'
 RUN npx prisma generate --no-hints
 
 RUN \
-  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm; fi; \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm; fi && \
   if [ -f yarn.lock ]; then yarn build; \
   elif [ -f package-lock.json ]; then npm run build; \
   elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
   else echo "Lockfile not found." && exit 1; \
-  fi 2>&1 | tee build.log; \
-  RET=$?; \
-  if [ $RET -ne 0 ]; then \
-  echo "Build failed with exit code $RET"; \
-  cat build.log; \
-  exit $RET; \
   fi
 
 

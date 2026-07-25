@@ -37,7 +37,7 @@ const ConditionedField: React.FC<{
     if (!isVisible) {
       for (const f of block.fields) {
         if ('name' in f && typeof f.name === 'string' && f.name !== '') {
-          resetField(f.name);
+          resetField(f.name, { defaultValue: undefined });
         }
       }
     }

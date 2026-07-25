@@ -10,11 +10,13 @@ import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/d
 import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
+import { heroSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { photoContestBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-contest-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
+import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { sponsorGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/sponsor-grid-block';
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
@@ -27,6 +29,8 @@ import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import type { Block, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
+  heroSectionBlock,
+  sectionSeparatorBlock,
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,

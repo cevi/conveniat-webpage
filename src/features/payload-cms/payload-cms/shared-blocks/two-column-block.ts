@@ -12,6 +12,7 @@ import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-b
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
+import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
@@ -21,6 +22,7 @@ import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import type { Block } from 'payload';
 
 export const genericBlocks = [
+  sectionSeparatorBlock,
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,
@@ -136,6 +138,49 @@ export const twoColumnBlock: Block = {
           de: 'Wähle aus, wie die Spalten vertikal zueinander ausgerichtet sein sollen.',
           en: 'Choose how the columns should be aligned vertically to each other.',
           fr: 'Choisissez comment les colonnes doivent être alignées verticalement les unes par rapport aux autres.',
+        },
+      },
+    },
+    {
+      name: 'stickyColumn',
+      type: 'select',
+      defaultValue: 'none',
+      options: [
+        {
+          label: {
+            de: 'Keine (Normales Scrollen)',
+            en: 'None (Standard scrolling)',
+            fr: 'Aucune (Défilement normal)',
+          },
+          value: 'none',
+        },
+        {
+          label: {
+            de: 'Rechte Spalte fixieren (Sticky Right)',
+            en: 'Fix Right Column (Sticky Right)',
+            fr: 'Fixer la colonne droite (Sticky Right)',
+          },
+          value: 'right',
+        },
+        {
+          label: {
+            de: 'Linke Spalte fixieren (Sticky Left)',
+            en: 'Fix Left Column (Sticky Left)',
+            fr: 'Fixer la colonne gauche (Sticky Left)',
+          },
+          value: 'left',
+        },
+      ],
+      label: {
+        de: 'Fixierte Spalte beim Scrollen',
+        en: 'Sticky Column on Scroll',
+        fr: 'Colonne fixe au défilement',
+      },
+      admin: {
+        description: {
+          de: 'Fixiert die gewählte Spalte oben am Bildschirmrand beim Scrollen, bis das Ende des Blocks erreicht ist.',
+          en: 'Fixes the chosen column to the top of the screen when scrolling until the end of the block is reached.',
+          fr: 'Fixe la colonne choisie en haut de l’écran lors du défilement jusqu’à la fin du bloc.',
         },
       },
     },

@@ -24,6 +24,14 @@ let globalEventSource: EventSource | undefined;
 let currentSubscribedIdsString = '';
 
 const handleError = (): void => {
+  const allSubscribedIds = [...activeChatSubscribers.keys()].filter(Boolean);
+  if (allSubscribedIds.length === 0) {
+    if (globalEventSource) {
+      globalEventSource.close();
+      globalEventSource = undefined;
+    }
+    return;
+  }
   console.warn('[SSE] EventSource connection error, will auto-reconnect');
 };
 
@@ -43,7 +51,7 @@ function updateGlobalEventSource(currentUser: string): void {
 
   currentSubscribedIdsString = subscribedIdsString;
 
-  if (subscribedIdsString.length === 0 || !currentUser) {
+  if (subscribedIdsString.length === 0 || !currentUser || allSubscribedIds.length === 0) {
     return;
   }
 

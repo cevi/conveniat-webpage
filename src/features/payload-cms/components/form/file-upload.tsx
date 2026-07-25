@@ -358,6 +358,9 @@ export const FileUpload: React.FC<
     event.preventDefault();
     if (isDisabled) return;
     setIsDragOver(false);
+    if (event.dataTransfer.files.length > 0) {
+      processSelectedFiles(event.dataTransfer.files);
+    }
   };
 
   const removeFile = (id: string): void => {

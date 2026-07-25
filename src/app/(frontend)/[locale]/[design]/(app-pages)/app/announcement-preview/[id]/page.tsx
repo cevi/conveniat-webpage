@@ -4,7 +4,8 @@ import { LexicalRichTextSection } from '@/features/payload-cms/components/conten
 import type { Announcement, AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import configPromise from '@/features/payload-cms/payload.config';
 import type { Locale } from '@/types/types';
-import { DesignCodes } from '@/utils/design-codes';
+import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
+
 import {
   AlertCircle,
   Calendar,
@@ -18,13 +19,6 @@ import {
 import { notFound } from 'next/navigation';
 import { getPayload } from 'payload';
 import React from 'react';
-
-// Static params for i18n locales and design systems
-export function generateStaticParams(): { locale: string; design: string }[] {
-  const designs = Object.values(DesignCodes);
-  const locales = ['de', 'fr', 'en'];
-  return designs.flatMap((design) => locales.map((locale) => ({ locale, design })));
-}
 
 const translations = {
   previewTitle: {
@@ -105,6 +99,10 @@ interface PageProperties {
 export default async function AnnouncementPreviewPage({
   params,
 }: PageProperties): Promise<React.JSX.Element> {
+  if (await forceDynamicOnBuild()) {
+    return <></>;
+  }
+
   const { id, locale } = await params;
   const validatedLocale: Locale = ['de', 'fr', 'en'].includes(locale) ? locale : 'de';
 

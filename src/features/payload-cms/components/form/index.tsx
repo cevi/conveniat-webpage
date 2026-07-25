@@ -44,9 +44,11 @@ export const FormBlock: React.FC<
   const posthog = usePostHog();
 
   // 1. Initialize Form
+  const initialFormState = useMemo(() => buildEmptyFormState(config), [config]);
   const formMethods = useForm<FieldValues>({
-    mode: 'onChange',
-    defaultValues: {},
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    defaultValues: initialFormState,
   });
 
   // Restore form state from sessionStorage on mount
@@ -57,7 +59,7 @@ export const FormBlock: React.FC<
         try {
           const parsedState = JSON.parse(savedState) as Record<string, unknown>;
 
-          formMethods.reset({ ...formMethods.getValues(), ...parsedState });
+          formMethods.reset({ ...buildEmptyFormState(config), ...parsedState });
           // Note: We do NOT remove items here immediately,
           // because if the user navigates away and back again (e.g. login failed or multiple redirects), we might want it.
           // It is better to clear it upon successful submission.
@@ -66,7 +68,7 @@ export const FormBlock: React.FC<
         }
       }
     }
-  }, [config.id, formMethods]);
+  }, [config, formMethods]);
 
   // 2. Initialize Hooks
   // Map config.sections (wrappers) to FormSection[]

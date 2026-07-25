@@ -7,6 +7,7 @@ export const FEATURE_FLAG_RESERVATIONS_ENABLED = 'reservations_enabled';
 export const FEATURE_HIDE_HOF_AND_QUARTIER = 'hide_hof_and_quartier';
 export const FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED = 'check_hitobito_approvals_enabled';
 export const FEATURE_FLAG_FORUM_ENABLED = 'forum_enabled';
+export const FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED = 'redesigned_main_menu_enabled';
 
 export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_FLAG_SEND_MESSAGES]: true,
@@ -18,4 +19,5 @@ export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_HIDE_HOF_AND_QUARTIER]: false,
   [FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED]: true,
   [FEATURE_FLAG_FORUM_ENABLED]: true,
+  [FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED]: false,
 };

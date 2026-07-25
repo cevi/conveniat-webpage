@@ -104,7 +104,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
             isSyncedReference.current = false;
             lastSyncedIdsReference.current = '';
             if (error.data?.code !== 'UNAUTHORIZED' && error.data?.code !== 'FORBIDDEN') {
-              console.error('Star sync failed', error);
+              console.warn('Star sync failed:', error.message);
             }
           },
         },
