@@ -33,7 +33,14 @@ async function getWebPush(): Promise<typeof webpush> {
   if (!webpushInstance) {
     const module_ = await import('web-push');
     webpushInstance = module_.default;
-    webpushInstance.setVapidDetails(subject, publicKey, privateKey);
+    const validatedPublicKey = typeof publicKey === 'string' ? publicKey.trim() : '';
+    const validatedPrivateKey = typeof privateKey === 'string' ? privateKey.trim() : '';
+    if (!validatedPublicKey || !validatedPrivateKey) {
+      throw new Error(
+        'Missing or invalid VAPID configuration: NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be non-empty strings.',
+      );
+    }
+    webpushInstance.setVapidDetails(subject, validatedPublicKey, validatedPrivateKey);
   }
   return webpushInstance;
 }
@@ -63,10 +70,10 @@ export async function subscribeUser(
     return { success: false };
   }
 
-  const hitobito_user = session.user;
+  const hitobitoUser = session.user;
 
   // eslint-disable-next-line unicorn/no-null
-  const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobito_user)) ?? null;
+  const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobitoUser)) ?? null;
 
   const isProductionDeployment =
     environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27');
@@ -221,7 +228,9 @@ export async function sendNotificationToSubscription(
       'platform' in subscription &&
       (subscription.platform === 'ios' || subscription.platform === 'android')
     ) {
-      if (!subscription.token) throw new Error('Native token is missing');
+      if (!subscription.token) {
+        throw new Error(`Native push token is missing for platform: ${subscription.platform}`);
+      }
 
       let normalizedUrl = urlToSend;
       if (
