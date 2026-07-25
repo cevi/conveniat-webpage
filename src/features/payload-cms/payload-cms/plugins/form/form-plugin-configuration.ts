@@ -11,6 +11,7 @@ import { getFormSubmissionResendOptionsHandler } from '@/features/payload-cms/pa
 import { resendFormSubmissionEmailsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/resend-form-submission-emails';
 import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/trigger-past-workflows';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
+import { ensureApprovalToken } from '@/features/payload-cms/payload-cms/plugins/form/hooks/ensure-approval-token';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
 import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
@@ -236,6 +237,20 @@ export const formPluginConfiguration = formBuilderPlugin({
           },
         },
         {
+          name: 'approvalToken',
+          type: 'text',
+          index: true,
+          admin: {
+            position: 'sidebar' as const,
+            readOnly: true,
+            description: {
+              en: 'Pre-signed token for approving this submission',
+              de: 'Pre-Signed Token zur Freigabe dieser Formular-Antwort',
+              fr: 'Jeton pré-signé pour approuver cette soumission',
+            },
+          },
+        },
+        {
           name: 'smtpResults',
           type: 'json',
           hooks: {
@@ -302,7 +317,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       ] as Field[];
     },
     hooks: {
-      beforeChange: [validateFormSubmission, linkJobSubmission],
+      beforeChange: [ensureApprovalToken, validateFormSubmission, linkJobSubmission],
       afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent],
     },
   },
