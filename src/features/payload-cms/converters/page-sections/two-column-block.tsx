@@ -31,23 +31,32 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
       locale={locale}
     >
       <div
-        className={cn('min-[1632px]:grid min-[1632px]:gap-8', {
-          'min-[1632px]:grid-cols-[1fr_1.618fr]': ratio === 'rightLarger',
-          'min-[1632px]:grid-cols-[1.618fr_1fr]': ratio === 'leftLarger',
-          'min-[1632px]:grid-cols-2': ratio === 'equal',
-          'min-[1632px]:items-start': verticalAlignment === 'top',
-          'min-[1632px]:items-center': verticalAlignment === 'center',
-          'min-[1632px]:items-end': verticalAlignment === 'bottom',
+        className={cn('grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12', {
+          'lg:items-start': verticalAlignment === 'top',
+          'lg:items-center': verticalAlignment === 'center',
+          'lg:items-end': verticalAlignment === 'bottom',
         })}
       >
-        <div className="[&>div>section:first-child_*:first-child]:mt-0!">
+        <div
+          className={cn('[&>div>section:first-child_*:first-child]:mt-0!', {
+            'lg:col-span-7': ratio === 'leftLarger',
+            'lg:col-span-5': ratio === 'rightLarger',
+            'lg:col-span-6': ratio === 'equal',
+          })}
+        >
           <PageSectionsConverter
             blocks={block.leftColumn as ContentBlock[]}
             locale={locale}
-            sectionClassName="!mt-0 mb-8 min-[1632px]:mb-0" // removing top margin for inner blocks and adding bottom margin for mobile
+            sectionClassName="!mt-0 mb-8 lg:mb-0" // removing top margin for inner blocks and adding bottom margin for mobile
           />
         </div>
-        <div className="[&>div>section:first-child_*:first-child]:mt-0!">
+        <div
+          className={cn('[&>div>section:first-child_*:first-child]:mt-0!', {
+            'lg:col-span-5': ratio === 'leftLarger',
+            'lg:col-span-7': ratio === 'rightLarger',
+            'lg:col-span-6': ratio === 'equal',
+          })}
+        >
           <PageSectionsConverter
             blocks={block.rightColumn as ContentBlock[]}
             locale={locale}
