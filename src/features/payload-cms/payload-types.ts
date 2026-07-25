@@ -741,6 +741,7 @@ export interface Form {
                 };
                 required?: boolean | null;
                 defaultValue?: boolean | null;
+                highlighted?: boolean | null;
                 /**
                  * Where this field is rendered when "Split" layout is selected for the section.
                  */
@@ -988,6 +989,7 @@ export interface Form {
                           };
                           required?: boolean | null;
                           defaultValue?: boolean | null;
+                          highlighted?: boolean | null;
                           /**
                            * Where this field is rendered when "Split" layout is selected for the section.
                            */
@@ -6221,6 +6223,7 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           required?: T;
                           defaultValue?: T;
+                          highlighted?: T;
                           placement?: T;
                           id?: T;
                           blockName?: T;
@@ -6384,6 +6387,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       required?: T;
                                       defaultValue?: T;
+                                      highlighted?: T;
                                       placement?: T;
                                       id?: T;
                                       blockName?: T;

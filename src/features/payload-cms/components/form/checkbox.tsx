@@ -20,12 +20,50 @@ export const Checkbox: React.FC<
     error?: FieldError | Merge<FieldError, FieldErrorsImpl<FieldValues>>;
     registerAction: UseFormRegister<string & FieldValues>;
     label: SerializedEditorState;
-  } & CheckboxField
-> = ({ name, label, registerAction, required: requiredFromProperties, error }) => {
+    highlighted?: boolean;
+  } & Omit<CheckboxField, 'label'>
+> = ({ name, label, registerAction, required: requiredFromProperties, error, highlighted }) => {
   // set default values
   requiredFromProperties ??= false;
   const hasError = error !== undefined;
   const locale = useCurrentLocale(i18nConfig);
+
+  if (highlighted === true) {
+    return (
+      <div
+        className={`mb-4 rounded-2xl border p-4 shadow-2xs transition-all duration-200 ${
+          hasError
+            ? 'border-red-400 bg-red-50/40'
+            : 'border-amber-200/80 bg-amber-50/60 hover:border-amber-300'
+        }`}
+      >
+        <div className="flex items-start">
+          <input
+            id={name}
+            className={`text-conveniat-green mt-[3px] h-4 w-4 rounded border-0 bg-white shadow-2xs ring-1 ring-inset ${
+              hasError ? 'ring-red-500' : 'ring-amber-300/80'
+            } focus:ring-conveniat-green transition-all duration-200 focus:ring-2 focus:ring-offset-0 focus:outline-none`}
+            type="checkbox"
+            {...registerAction(name, {
+              required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
+            })}
+          />
+
+          <label
+            className="ml-3 min-w-0 flex-1 font-['Inter'] text-sm leading-relaxed font-medium break-words hyphens-auto text-amber-950 [&_div]:inline [&_p]:inline"
+            htmlFor={name}
+            lang={locale}
+          >
+            <LexicalRichTextSection richTextSection={label} locale={locale as Locale} />
+            {requiredFromProperties && <Required />}
+          </label>
+        </div>
+        {hasError && (
+          <p className="mt-2 text-xs text-red-600">{(error as { message?: string }).message}</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mb-4">

@@ -109,6 +109,12 @@ const formCheckboxBlock: Block = {
     },
     { name: 'required', type: 'checkbox', label: 'Required', admin: { width: '50%' } },
     { name: 'defaultValue', type: 'checkbox', label: 'Default Value', admin: { width: '50%' } },
+    {
+      name: 'highlighted',
+      type: 'checkbox',
+      label: 'Hervorgehoben / Highlighted',
+      admin: { width: '50%' },
+    },
     placementField(),
   ],
   labels: { plural: 'Checkbox Fields', singular: 'Checkbox' },
