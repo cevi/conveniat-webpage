@@ -41,7 +41,8 @@ export const buildEmptyFormState = (config: ExtendedFormType): DefaultValues<Fie
   ): void => {
     for (const field of fields) {
       if (field.blockType === 'conditionedBlock') {
-        processFields(field.fields);
+        // Conditioned block fields are excluded from initial default values so hidden fields remain undefined
+        continue;
       } else if ('name' in field && typeof field.name === 'string' && field.name.length > 0) {
         if (field.blockType === 'checkbox') {
           values[field.name] = 'defaultValue' in field && field.defaultValue === true;

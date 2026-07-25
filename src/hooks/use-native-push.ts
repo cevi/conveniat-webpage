@@ -189,6 +189,7 @@ export function useNativePush(): {
 
             setStatus(normalizedStatus);
             setHasToken(hasTokenValue);
+            setLastError(undefined);
           }
           break;
         }
@@ -200,6 +201,7 @@ export function useNativePush(): {
             void handleRegisterDevice(token, platform as 'ios' | 'android');
             setStatus('granted');
             setHasToken(true);
+            setLastError(undefined);
           }
           break;
         }
@@ -216,6 +218,7 @@ export function useNativePush(): {
           }
           setHasToken(false);
           setStatus('prompt');
+          setLastError(undefined);
           break;
         }
         case 'native-push-open': {
@@ -278,6 +281,7 @@ export function useNativePush(): {
 
   const requestPermission = (): void => {
     addLog('requestPermission() called');
+    setLastError(undefined);
     if (isNativeApp) {
       console.log('[NativePush:PWA] requestPermission called');
       nativePushBridge.requestPermission();
@@ -286,6 +290,7 @@ export function useNativePush(): {
 
   const deleteToken = (): void => {
     addLog('deleteToken() called');
+    setLastError(undefined);
     if (isNativeApp) {
       console.log('[NativePush:PWA] deleteToken called');
       if (rollbackTimeoutReference.current) {
@@ -311,6 +316,7 @@ export function useNativePush(): {
 
   const openSettings = (): void => {
     addLog('openSettings() called');
+    setLastError(undefined);
     if (isNativeApp) {
       console.log('[NativePush:PWA] openSettings called');
       nativePushBridge.openSettings();

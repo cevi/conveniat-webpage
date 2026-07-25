@@ -88,7 +88,7 @@ describe('buildEmptyFormState', () => {
     });
   });
 
-  it('should handle nested fields inside conditionedBlock', () => {
+  it('should exclude conditionedBlock fields from initial form state so hidden fields remain undefined', () => {
     const config: ExtendedFormType = {
       id: 'test-form-conditioned',
       title: 'Test Form',
@@ -120,8 +120,6 @@ describe('buildEmptyFormState', () => {
     } as unknown as ExtendedFormType;
 
     const state = buildEmptyFormState(config);
-    expect(state).toEqual({
-      nested_checkbox: true,
-    });
+    expect(state).toEqual({});
   });
 });

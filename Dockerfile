@@ -33,6 +33,7 @@ WORKDIR /app
 ENV BUILD_TARGET=production
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PAYLOAD_SECRET="build-time-dummy-payload-secret-key-12345"
 ARG NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 ARG NEXT_PUBLIC_POSTHOG_KEY
 ARG NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com

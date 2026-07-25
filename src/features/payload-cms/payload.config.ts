@@ -416,7 +416,7 @@ export const payloadConfig: RoutableConfig = {
     disable: true, // we don't need GraphQL for this project
     disablePlaygroundInProduction: true,
   },
-  secret: env.PAYLOAD_SECRET,
+  secret: env.PAYLOAD_SECRET || 'build-time-dummy-payload-secret-key-12345',
   // helps prevent CSRF attacks
   // (see https://payloadcms.com/docs/authentication/cookies#csrf-prevention)
   csrf: [env.APP_HOST_URL],
