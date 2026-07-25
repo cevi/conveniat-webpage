@@ -11,7 +11,9 @@ import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { environmentVariables } from '@/config/environment-variables';
-import type { Locale } from '@/types/types';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
+import type { Locale, NavigationMode } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
@@ -52,6 +54,9 @@ const GlobalAppFooterWrapper: React.FC<{
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const { locale, design } = await params;
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
+  const isRedesignedMenuEnabled = await getFeatureFlag(FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED);
+  const navigationMode: NavigationMode =
+    isRedesignedMenuEnabled && !isInAppDesign ? 'top-nav' : 'side-nav';
 
   return (
     <html
@@ -78,13 +83,20 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
               <ChunkErrorHandler />
               <ServiceWorkerManager>
                 <AppShell
-                  header={<HeaderComponent locale={locale} inAppDesign={isInAppDesign} />}
+                  header={
+                    <HeaderComponent
+                      locale={locale}
+                      inAppDesign={isInAppDesign}
+                      navigationMode={navigationMode}
+                    />
+                  }
                   footer={
                     <Suspense fallback={undefined}>
                       <GlobalAppFooterWrapper locale={locale} design={design} />
                     </Suspense>
                   }
                   inAppDesign={isInAppDesign}
+                  navigationMode={navigationMode}
                 >
                   {children}
                 </AppShell>

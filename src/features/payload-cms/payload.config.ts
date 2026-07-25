@@ -159,6 +159,7 @@ const jobsConfig: JobsConfig = {
    * deletion locally within its own `onSuccess` hook instead.
    */
   deleteJobOnComplete: false,
+  runHooks: true,
   jobsCollectionOverrides: ({ defaultJobsCollection }) => {
     const fields = defaultJobsCollection.fields.map((field) => {
       if (

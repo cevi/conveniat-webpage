@@ -298,6 +298,8 @@ export interface Blog {
      * The main content of the page
      */
     mainContent: (
+      | HeroSectionBlock
+      | SectionSeparatorBlock
       | {
           richTextSection: {
             root: {
@@ -693,6 +695,33 @@ export interface Permission {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock".
+ */
+export interface HeroSectionBlock {
+  badge?: string | null;
+  title: string;
+  description?: string | null;
+  primaryCtaLabel?: string | null;
+  primaryCtaLink?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  deadlineText?: string | null;
+  image?: (string | null) | Image;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroSection';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SectionSeparatorBlock".
+ */
+export interface SectionSeparatorBlock {
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'sectionSeparator';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1848,6 +1877,8 @@ export interface GenericPage {
      * The main content of the page
      */
     mainContent: (
+      | HeroSectionBlock
+      | SectionSeparatorBlock
       | {
           richTextSection: {
             root: {
@@ -2601,9 +2632,14 @@ export interface TwoColumnBlock {
    */
   verticalAlignment: 'top' | 'center' | 'bottom';
   /**
+   * Fixes the chosen column to the top of the screen when scrolling until the end of the block is reached.
+   */
+  stickyColumn?: ('none' | 'right' | 'left') | null;
+  /**
    * Content for the left column.
    */
   leftColumn: (
+    | SectionSeparatorBlock
     | {
         richTextSection: {
           root: {
@@ -2786,6 +2822,7 @@ export interface TwoColumnBlock {
    * Content for the right column.
    */
   rightColumn: (
+    | SectionSeparatorBlock
     | {
         richTextSection: {
           root: {
@@ -3128,6 +3165,7 @@ export interface TabsBlock {
   tabs: {
     title: string;
     content: (
+      | SectionSeparatorBlock
       | {
           richTextSection: {
             root: {
@@ -4473,6 +4511,8 @@ export interface BlogSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
+              heroSection?: T | HeroSectionBlockSelect<T>;
+              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -4599,6 +4639,31 @@ export interface BlogSelect<T extends boolean = true> {
   createdAt?: T;
   deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock_select".
+ */
+export interface HeroSectionBlockSelect<T extends boolean = true> {
+  badge?: T;
+  title?: T;
+  description?: T;
+  primaryCtaLabel?: T;
+  primaryCtaLink?: T;
+  secondaryCtaLabel?: T;
+  secondaryCtaLink?: T;
+  deadlineText?: T;
+  image?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SectionSeparatorBlock_select".
+ */
+export interface SectionSeparatorBlockSelect<T extends boolean = true> {
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4943,9 +5008,11 @@ export interface ContactPersonBlockSelect<T extends boolean = true> {
 export interface TwoColumnBlockSelect<T extends boolean = true> {
   splitRatio?: T;
   verticalAlignment?: T;
+  stickyColumn?: T;
   leftColumn?:
     | T
     | {
+        sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
           | {
@@ -5049,6 +5116,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
   rightColumn?:
     | T
     | {
+        sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
           | {
@@ -5242,6 +5310,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
         content?:
           | T
           | {
+              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -5368,6 +5437,8 @@ export interface GenericPageSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
+              heroSection?: T | HeroSectionBlockSelect<T>;
+              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -7215,6 +7286,10 @@ export interface AppFeatureFlag {
    * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
    */
   checkHitobitoApprovalsEnabled?: boolean | null;
+  /**
+   * Toggles the redesigned inline top navigation bar on desktop screens.
+   */
+  redesignedMainMenuEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -7235,6 +7310,8 @@ export interface AppLandingPage {
    */
   pageContent?:
     | (
+        | HeroSectionBlock
+        | SectionSeparatorBlock
         | {
             richTextSection: {
               root: {
@@ -7805,6 +7882,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   reservationsEnabled?: T;
   forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;
+  redesignedMainMenuEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -7818,6 +7896,8 @@ export interface AppLandingPageSelect<T extends boolean = true> {
   pageContent?:
     | T
     | {
+        heroSection?: T | HeroSectionBlockSelect<T>;
+        sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
           | {

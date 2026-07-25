@@ -15,11 +15,13 @@ import {
   RenderFeaturedSection,
   RenderFileDownload,
   RenderFormBlock,
+  RenderHeroSection,
   RenderInstagramEmbed,
   RenderNewsCard,
   RenderPhotoCarousel,
   RenderPhotoContestBlock,
   RenderRichTextSection,
+  RenderSectionSeparatorBlock,
   RenderSinglePicture,
   RenderSponsorGrid,
   RenderTabsBlock,
@@ -79,6 +81,8 @@ export const PageSectionsConverter: React.FC<
     sponsorGrid: RenderSponsorGrid,
     featuredSection: RenderFeaturedSection,
     tabsBlock: RenderTabsBlock,
+    heroSection: RenderHeroSection,
+    sectionSeparator: RenderSectionSeparatorBlock,
   };
 
   return (

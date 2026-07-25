@@ -33,6 +33,8 @@ import {
   getLocalizedTimelineContent,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/timeline';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { setFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
 import { fakerDE as faker } from '@faker-js/faker';
 import { revalidateTag } from 'next/cache';
 import dns from 'node:dns';
@@ -579,6 +581,15 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     },
     context: { disableRevalidation: true },
   });
+
+  await payload.updateGlobal({
+    slug: 'app-feature-flags',
+    data: {
+      redesignedMainMenuEnabled: true,
+    },
+    context: { disableRevalidation: true },
+  });
+  await setFeatureFlag(FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED, true);
 
   await seedAlertSettings(payload);
 

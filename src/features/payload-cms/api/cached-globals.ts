@@ -109,6 +109,7 @@ export const getAppFeatureFlagsCached = cache(
       | 'photoContestEnabled'
       | 'reservationsEnabled'
       | 'forumEnabled'
+      | 'redesignedMainMenuEnabled'
     >
   > => {
     return await withSpan('getAppFeatureFlagsCached', async () => {
@@ -121,6 +122,7 @@ export const getAppFeatureFlagsCached = cache(
           photoContestEnabled: true,
           reservationsEnabled: true,
           forumEnabled: true,
+          redesignedMainMenuEnabled: true,
         },
       });
     });
