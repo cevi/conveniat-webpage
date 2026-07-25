@@ -719,6 +719,10 @@ export interface HeroSectionBlock {
  */
 export interface FormBlock {
   form: string | Form;
+  /**
+   * Fixes the form block to the top of the screen when scrolling on large screens.
+   */
+  isSticky?: boolean | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'formBlock';
@@ -4644,6 +4648,7 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
  */
 export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
+  isSticky?: T;
   id?: T;
   blockName?: T;
 }

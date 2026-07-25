@@ -47,7 +47,7 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
           <PageSectionsConverter
             blocks={block.leftColumn as ContentBlock[]}
             locale={locale}
-            sectionClassName="!mt-0 mb-8 lg:mb-0" // removing top margin for inner blocks and adding bottom margin for mobile
+            sectionClassName="first:!mt-0 mt-8 mb-8 lg:mb-0" // first block top-aligned, subsequent blocks get mt-8 spacing
           />
         </div>
         <div
@@ -60,7 +60,7 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
           <PageSectionsConverter
             blocks={block.rightColumn as ContentBlock[]}
             locale={locale}
-            sectionClassName="!mt-0" // removing top margin for inner blocks
+            sectionClassName="first:!mt-0 mt-8" // first block top-aligned, subsequent blocks get mt-8 spacing
           />
         </div>
       </div>
