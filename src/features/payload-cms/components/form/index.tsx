@@ -46,7 +46,8 @@ export const FormBlock: React.FC<
   // 1. Initialize Form
   const initialFormState = useMemo(() => buildEmptyFormState(config), [config]);
   const formMethods = useForm<FieldValues>({
-    mode: 'onChange',
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
     defaultValues: initialFormState,
   });
 
