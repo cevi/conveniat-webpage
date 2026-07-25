@@ -22,7 +22,7 @@ export const HeaderComponent: React.FC<{
   };
 
   return (
-    <header className="fixed top-0 left-0 z-50 h-[60px] w-full">
+    <header className="fixed top-0 left-0 z-[100] h-[60px] w-full">
       <React.Suspense fallback={<div className="bg-gray-900" />}>
         <PreviewModeBannerServerComponent />
       </React.Suspense>
@@ -36,7 +36,7 @@ export const HeaderComponent: React.FC<{
                 aria-label={landingPageAreaLinktText[locale]}
                 prefetch
               >
-                <ConveniatLogo className="absolute top-[12px] left-[24px] z-100" />
+                <ConveniatLogo className="absolute top-[12px] left-[24px] z-[105]" />
               </LinkComponent>
             )}
 
