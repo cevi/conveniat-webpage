@@ -46,12 +46,8 @@ export const HeroSectionBlock: React.FC<HeroSectionType> = ({
   const imageAlt = getImageAltInLocale(locale, imageObject) || title;
 
   return (
-    <section className="to-conveniat-bg relative overflow-hidden border-b border-gray-200/60 bg-gradient-to-b from-white via-gray-50/50 py-10 sm:py-14 lg:py-16">
-      {/* Background Glow Blobs */}
-      <div className="bg-conveniat-green/5 pointer-events-none absolute -top-20 -right-20 size-96 rounded-full blur-3xl" />
-      <div className="bg-cevi-blue/5 pointer-events-none absolute bottom-0 left-1/3 size-64 rounded-full blur-3xl" />
-
-      <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section className="border-b border-gray-200/60 py-10 sm:py-14 lg:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
           {/* Left: Hero Text & CTAs */}
           <div className="space-y-6 text-center lg:col-span-7 lg:text-left">
