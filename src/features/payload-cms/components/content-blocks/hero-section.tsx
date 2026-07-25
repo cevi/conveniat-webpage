@@ -46,7 +46,7 @@ export const HeroSectionBlock: React.FC<HeroSectionType> = ({
   const imageAlt = getImageAltInLocale(locale, imageObject) || title;
 
   return (
-    <section className="border-b border-gray-200/60 py-10 sm:py-14 lg:py-16">
+    <section className="mt-6 mb-6 border-b border-gray-200/60 pt-4 pb-12 sm:mt-10 sm:mb-10 sm:pb-16 lg:mt-16 lg:mb-14 lg:pb-24 [min-height:1000px]:mt-32 [min-height:1000px]:mb-[84px] [min-height:1000px]:pb-[164px] [min-height:700px]:mt-16 [min-height:700px]:mb-14 [min-height:700px]:pb-24 [min-height:850px]:mt-24 [min-height:850px]:mb-16 [min-height:850px]:pb-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
           {/* Left: Hero Text & CTAs */}
