@@ -66,7 +66,6 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
       });
 
       if (staleFiles.docs.length === 0) {
-        hasMore = false;
         break;
       }
 
