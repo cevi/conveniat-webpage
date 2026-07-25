@@ -41,7 +41,7 @@ function renderHtmlResponse({
     iconSvg = `<svg class="icon confirm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
   }
 
-  let iconBg = 'rgba(37, 99, 235, 0.1)';
+  let iconBg = 'rgba(71, 86, 76, 0.1)';
   if (variant === 'success') {
     iconBg = 'rgba(16, 185, 129, 0.1)';
   } else if (variant === 'error') {
@@ -71,7 +71,7 @@ function renderHtmlResponse({
       --text-muted: #64748b;
       --success-green: #10b981;
       --error-red: #ef4444;
-      --confirm-blue: #2563eb;
+      --conveniat-green: #47564c;
       --border-color: #e2e8f0;
     }
     @media (prefers-color-scheme: dark) {
@@ -120,7 +120,7 @@ function renderHtmlResponse({
     }
     .icon.success { color: var(--success-green); }
     .icon.error { color: var(--error-red); }
-    .icon.confirm { color: var(--confirm-blue); }
+    .icon.confirm { color: var(--conveniat-green); }
     h1 {
       font-size: 1.5rem;
       font-weight: 700;
@@ -151,7 +151,7 @@ function renderHtmlResponse({
       font-size: 1rem;
       font-weight: 600;
       color: #ffffff;
-      background-color: var(--confirm-blue);
+      background-color: var(--conveniat-green);
       border: none;
       border-radius: 0.5rem;
       cursor: pointer;
@@ -159,7 +159,7 @@ function renderHtmlResponse({
       transition: background-color 0.2s ease;
     }
     .button:hover {
-      background-color: #1d4ed8;
+      background-color: #37443c;
     }
     .footer {
       margin-top: 2rem;
@@ -178,7 +178,7 @@ function renderHtmlResponse({
     ${typeof safeDetail === 'string' && safeDetail.length > 0 ? `<div class="detail">${safeDetail}</div>` : ''}
     ${actionFormHtml}
     <div class="footer">
-      conveniat27 — Schweizer Pfadifeld- & Cevi-Lager
+      conveniat27 — MIR SIND CEVI
     </div>
   </div>
 </body>
