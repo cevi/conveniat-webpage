@@ -9,6 +9,10 @@ export default defineConfig({
     url:
       // eslint-disable-next-line n/no-process-env
       process.env['CHAT_DATABASE_URL'] ??
+      // eslint-disable-next-line n/no-process-env
+      process.env['POSTGRES_URL'] ??
+      // eslint-disable-next-line n/no-process-env
+      process.env['DATABASE_URL'] ??
       'postgresql://placeholder:placeholder@localhost:5432/placeholder',
   },
 });
