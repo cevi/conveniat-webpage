@@ -36,4 +36,22 @@ describe('ensureApprovalToken hook', () => {
 
     expect(String(result['approvalToken'])).toBe(existingToken);
   });
+
+  it('should preserve approvalToken from originalDoc when data omits approvalToken on update', () => {
+    const originalToken = 'original-token-67890';
+    const data: Record<string, unknown> = { otherField: 'someValue' };
+    const originalDocument = { id: 'sub-1', approvalToken: originalToken };
+    const hookArguments = {
+      data,
+      originalDoc: originalDocument,
+      collection: {},
+      context: {},
+      operation: 'update',
+      req: {},
+    } as unknown as Parameters<CollectionBeforeChangeHook>[0];
+
+    const result = ensureApprovalToken(hookArguments) as Record<string, unknown>;
+
+    expect(result['approvalToken']).toBe(originalToken);
+  });
 });
