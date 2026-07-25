@@ -293,8 +293,8 @@ export const DesktopNav: React.FC<{
         </div>
       )}
 
-      {/* Utilities: Language Switcher & In-Line Smooth Expanding Search Input */}
-      <div className="flex h-8 items-center gap-2 border-l border-gray-200/80 pl-3">
+      {/* Utilities: Language Switcher & Absolute Right-Anchored Left-Overlapping Search Bar */}
+      <div className="relative flex h-8 items-center gap-2 border-l border-gray-200/80 pl-3">
         {/* Language Switcher */}
         <div
           className="relative"
@@ -360,49 +360,52 @@ export const DesktopNav: React.FC<{
           )}
         </div>
 
-        {/* Smooth In-Line Expanding Search Input (Expands to Left inside flex flow) */}
-        <form onSubmit={handleSearchSubmit} className="relative flex h-8 items-center">
-          <input
-            ref={searchInputReference}
-            type="text"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            onFocus={() => setIsSearchExpanded(true)}
-            onBlur={() => {
-              if (searchQuery.trim() === '') {
-                setIsSearchExpanded(false);
-              }
-            }}
-            placeholder={isSearchExpanded ? 'Suchen...' : ''}
-            className={cn(
-              'h-8 rounded-xl border border-gray-200 bg-gray-50/80 text-xs text-gray-800 transition-all duration-300 focus:border-gray-300 focus:bg-white focus:ring-0 focus:outline-hidden',
-              isSearchExpanded
-                ? 'w-44 pr-7 pl-8 xl:w-56'
-                : 'w-8 cursor-pointer pr-0 pl-0 text-transparent placeholder-transparent',
-            )}
-            aria-label="Suchen"
-          />
+        {/* Fixed Footprint Search Pill (Icon Button + Absolute Right-Anchored Input) */}
+        <div className="relative flex size-8 items-center justify-end">
           <button
             type="button"
             onClick={toggleSearchExpand}
-            className="hover:text-conveniat-green absolute left-2.5 flex size-3.5 items-center justify-center text-gray-500 transition-colors"
+            className="hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white"
+            aria-label="Suchen"
             title="Suchen"
           >
-            <Search className="size-3.5" />
+            <Search className="size-3.5 text-gray-500" />
           </button>
+
           {isSearchExpanded && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setIsSearchExpanded(false);
-              }}
-              className="hover:text-conveniat-green absolute right-2 flex size-4 items-center justify-center text-gray-400"
+            <form
+              onSubmit={handleSearchSubmit}
+              className="animate-in fade-in-0 slide-in-from-right-2 absolute top-0 right-0 z-50 flex h-8 items-center"
             >
-              <X className="size-3" />
-            </button>
+              <div className="relative flex h-8 items-center">
+                <input
+                  ref={searchInputReference}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  onBlur={() => {
+                    if (searchQuery.trim() === '') {
+                      setIsSearchExpanded(false);
+                    }
+                  }}
+                  placeholder="Suchen..."
+                  className="h-8 w-56 rounded-xl border border-gray-200 bg-white pr-7 pl-8 text-xs text-gray-800 transition-all duration-200 focus:border-gray-300 focus:ring-0 focus:outline-hidden xl:w-64"
+                />
+                <Search className="pointer-events-none absolute left-2.5 size-3.5 text-gray-500" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setIsSearchExpanded(false);
+                  }}
+                  className="hover:text-conveniat-green absolute right-2 flex size-4 items-center justify-center text-gray-400"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+            </form>
           )}
-        </form>
+        </div>
       </div>
     </div>
   );
