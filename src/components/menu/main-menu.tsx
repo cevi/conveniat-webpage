@@ -43,7 +43,7 @@ const DeletedMenuEntry: React.FC<{ message: string; className?: string }> = ({
   );
 };
 
-const getMainMenuFromPayloadCached = async (
+export const getMainMenuFromPayloadCached = async (
   locale: Locale,
   showPreviewForMainMenu: boolean,
 ): Promise<Header['mainMenu']> => {
@@ -76,7 +76,7 @@ const isLinkConfigured = (linkFieldData?: LinkFieldDataType): boolean => {
   return false;
 };
 
-interface ProcessedSubSubSubMenuItem {
+export interface ProcessedSubSubSubMenuItem {
   id: string;
   label: string;
   linkField?: LinkFieldDataType | undefined;
@@ -86,7 +86,7 @@ interface ProcessedSubSubSubMenuItem {
   openInNewTab: boolean;
 }
 
-interface ProcessedSubSubMenuItem {
+export interface ProcessedSubSubMenuItem {
   id: string;
   label: string;
   linkField?: LinkFieldDataType | undefined;
@@ -97,7 +97,7 @@ interface ProcessedSubSubMenuItem {
   subMenu?: ProcessedSubSubSubMenuItem[] | undefined;
 }
 
-interface ProcessedSubMenuItem {
+export interface ProcessedSubMenuItem {
   id: string;
   label: string;
   linkField?: LinkFieldDataType | undefined;
@@ -108,7 +108,7 @@ interface ProcessedSubMenuItem {
   subMenu?: ProcessedSubSubMenuItem[] | undefined;
 }
 
-interface ProcessedMainMenuItem {
+export interface ProcessedMainMenuItem {
   id: string;
   label: string;
   linkField?: LinkFieldDataType | undefined;
@@ -119,7 +119,7 @@ interface ProcessedMainMenuItem {
   subMenu?: ProcessedSubMenuItem[] | undefined;
 }
 
-const processMenuTree = async (
+export const processMenuTree = async (
   rawMenu: Header['mainMenu'],
   locale: Locale,
   showPreview: boolean,
@@ -318,7 +318,7 @@ const MenuItemsList = async ({
                     />
                   </DisclosureButton>
                 )}
-                <DisclosurePanel className="mt-2 mb-4 space-y-2">
+                <DisclosurePanel className="border-conveniat-green/30 mt-2 mb-4 ml-2.5 space-y-2 border-l-2 pl-3">
                   {item.subMenu?.map((subItem) => {
                     if (!subItem.isVisible && !showPreviewForMainMenu) {
                       return <></>;
@@ -329,14 +329,14 @@ const MenuItemsList = async ({
                     if (hasSubSub) {
                       return (
                         <SafeErrorBoundary fallback={<></>} key={subItem.id}>
-                          <Disclosure as="div" className="pl-3">
+                          <Disclosure as="div" className="pl-1">
                             {isLinkConfigured(subItem.linkField) ? (
                               <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
                                 {subItem.hasPerm ? (
                                   <LinkComponent
                                     href={subItem.itemLink ?? '/'}
                                     openInNewTab={subItem.openInNewTab}
-                                    className="closeNavOnClick flex-grow py-2 pl-3 text-sm/7 font-semibold text-gray-600"
+                                    className="closeNavOnClick flex-grow py-2 pl-2 text-sm/7 font-semibold text-gray-600"
                                     prefetch
                                   >
                                     {subItem.label}
@@ -344,7 +344,7 @@ const MenuItemsList = async ({
                                 ) : (
                                   <DeletedMenuEntry
                                     message={subItem.label}
-                                    className="flex-grow pl-3"
+                                    className="flex-grow pl-2"
                                   />
                                 )}
                                 <DisclosureButton className="group p-2 text-gray-400 hover:text-gray-600">
@@ -355,7 +355,7 @@ const MenuItemsList = async ({
                                 </DisclosureButton>
                               </div>
                             ) : (
-                              <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-sm/7 font-semibold text-gray-600 hover:bg-gray-50">
+                              <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-2 text-sm/7 font-semibold text-gray-600 hover:bg-gray-50">
                                 {subItem.label}
                                 <ChevronDown
                                   aria-hidden="true"
@@ -363,7 +363,7 @@ const MenuItemsList = async ({
                                 />
                               </DisclosureButton>
                             )}
-                            <DisclosurePanel className="mt-1 mb-2 space-y-1">
+                            <DisclosurePanel className="border-conveniat-green/20 mt-1 mb-2 ml-2 space-y-1 border-l-2 pl-2.5">
                               {subItem.subMenu?.map((subSubItem) => {
                                 if (!subSubItem.isVisible && !showPreviewForMainMenu) {
                                   return <></>;

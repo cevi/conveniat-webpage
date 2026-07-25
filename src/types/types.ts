@@ -36,6 +36,7 @@ export const i18nConfig: I18nConfig = {
 
 export type Locale = (typeof locales)[number];
 export type StaticTranslationString = Record<Locale, string>;
+export type NavigationMode = 'top-nav' | 'side-nav';
 
 export interface SearchParameters {
   [key: string]: string | string[];

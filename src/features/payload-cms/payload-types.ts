@@ -7215,6 +7215,10 @@ export interface AppFeatureFlag {
    * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
    */
   checkHitobitoApprovalsEnabled?: boolean | null;
+  /**
+   * Toggles the redesigned inline top navigation bar on desktop screens.
+   */
+  redesignedMainMenuEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -7805,6 +7809,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   reservationsEnabled?: T;
   forumEnabled?: T;
   checkHitobitoApprovalsEnabled?: T;
+  redesignedMainMenuEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
