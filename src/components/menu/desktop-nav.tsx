@@ -150,7 +150,7 @@ export const DesktopNav: React.FC<{
   return (
     <div className="hidden items-center gap-4 xl:flex" onMouseLeave={handleMouseLeave}>
       {/* Main Navigation Bar */}
-      <nav className="flex items-center gap-1 xl:gap-1.5">
+      <nav className="flex items-center gap-1 transition-all duration-300 xl:gap-1.5">
         {menuItems.map((item) => {
           if (!item.isVisible) return;
 
@@ -293,7 +293,7 @@ export const DesktopNav: React.FC<{
         </div>
       )}
 
-      {/* Utilities: Language Switcher & Absolute Right-Anchored Left-Overlapping Search Bar */}
+      {/* Utilities: Language Switcher & Responsive Search Input */}
       <div className="relative flex h-8 items-center gap-2 border-l border-gray-200/80 pl-3">
         {/* Language Switcher */}
         <div
@@ -360,12 +360,15 @@ export const DesktopNav: React.FC<{
           )}
         </div>
 
-        {/* Fixed Footprint Search Pill (Icon Button + Absolute Right-Anchored Input) */}
-        <div className="relative flex size-8 items-center justify-end">
+        {/* Responsive Search Input: Absolute Overlay on Narrow Screens, In-Line Expansion on Wide Screens */}
+        <div className="relative flex h-8 items-center justify-end">
           <button
             type="button"
             onClick={toggleSearchExpand}
-            className="hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white"
+            className={cn(
+              'hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white',
+              isSearchExpanded && '2xl:hidden',
+            )}
             aria-label="Suchen"
             title="Suchen"
           >
@@ -375,7 +378,7 @@ export const DesktopNav: React.FC<{
           {isSearchExpanded && (
             <form
               onSubmit={handleSearchSubmit}
-              className="animate-in fade-in-0 slide-in-from-right-2 absolute top-0 right-0 z-50 flex h-8 items-center"
+              className="animate-in fade-in-0 slide-in-from-right-2 absolute top-0 right-0 z-50 flex h-8 items-center 2xl:relative 2xl:top-auto 2xl:right-auto 2xl:z-auto"
             >
               <div className="relative flex h-8 items-center">
                 <input
@@ -389,7 +392,7 @@ export const DesktopNav: React.FC<{
                     }
                   }}
                   placeholder="Suchen..."
-                  className="h-8 w-56 rounded-xl border border-gray-200 bg-white pr-7 pl-8 text-xs text-gray-800 transition-all duration-200 focus:border-gray-300 focus:ring-0 focus:outline-hidden xl:w-64"
+                  className="h-8 w-56 rounded-xl border border-gray-200 bg-white pr-7 pl-8 text-xs text-gray-800 transition-all duration-200 focus:border-gray-300 focus:ring-0 focus:outline-hidden 2xl:w-64"
                 />
                 <Search className="pointer-events-none absolute left-2.5 size-3.5 text-gray-500" />
                 <button
