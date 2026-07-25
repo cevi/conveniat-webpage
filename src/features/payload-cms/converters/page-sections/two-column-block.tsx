@@ -14,6 +14,7 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
 }) => {
   const ratio = block.splitRatio;
   const verticalAlignment = block.verticalAlignment;
+  const stickyColumn = block.stickyColumn ?? 'none';
 
   return (
     <SectionWrapper
@@ -32,9 +33,9 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
     >
       <div
         className={cn('grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10 xl:gap-12', {
-          'lg:items-start': verticalAlignment === 'top',
-          'lg:items-center': verticalAlignment === 'center',
-          'lg:items-end': verticalAlignment === 'bottom',
+          'lg:items-start': verticalAlignment === 'top' || stickyColumn !== 'none',
+          'lg:items-center': verticalAlignment === 'center' && stickyColumn === 'none',
+          'lg:items-end': verticalAlignment === 'bottom' && stickyColumn === 'none',
         })}
       >
         <div
@@ -42,6 +43,7 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
             'lg:col-span-7': ratio === 'leftLarger',
             'lg:col-span-5': ratio === 'rightLarger',
             'lg:col-span-6': ratio === 'equal',
+            'lg:sticky lg:top-28 lg:self-start xl:top-32': stickyColumn === 'left',
           })}
         >
           <PageSectionsConverter
@@ -55,6 +57,7 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
             'lg:col-span-5': ratio === 'leftLarger',
             'lg:col-span-7': ratio === 'rightLarger',
             'lg:col-span-6': ratio === 'equal',
+            'lg:sticky lg:top-28 lg:self-start xl:top-32': stickyColumn === 'right',
           })}
         >
           <PageSectionsConverter

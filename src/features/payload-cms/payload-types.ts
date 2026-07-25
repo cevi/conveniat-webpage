@@ -719,10 +719,6 @@ export interface HeroSectionBlock {
  */
 export interface FormBlock {
   form: string | Form;
-  /**
-   * Fixes the form block to the top of the screen when scrolling on large screens.
-   */
-  isSticky?: boolean | null;
   id?: string | null;
   blockName?: string | null;
   blockType: 'formBlock';
@@ -2624,6 +2620,10 @@ export interface TwoColumnBlock {
    * Choose how the columns should be aligned vertically to each other.
    */
   verticalAlignment: 'top' | 'center' | 'bottom';
+  /**
+   * Fixes the chosen column to the top of the screen when scrolling until the end of the block is reached.
+   */
+  stickyColumn?: ('none' | 'right' | 'left') | null;
   /**
    * Content for the left column.
    */
@@ -4648,7 +4648,6 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
  */
 export interface FormBlockSelect<T extends boolean = true> {
   form?: T;
-  isSticky?: T;
   id?: T;
   blockName?: T;
 }
@@ -4986,6 +4985,7 @@ export interface ContactPersonBlockSelect<T extends boolean = true> {
 export interface TwoColumnBlockSelect<T extends boolean = true> {
   splitRatio?: T;
   verticalAlignment?: T;
+  stickyColumn?: T;
   leftColumn?:
     | T
     | {

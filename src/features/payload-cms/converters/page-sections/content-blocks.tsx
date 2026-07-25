@@ -478,12 +478,10 @@ export const RenderFormBlock: SectionRenderer<FormBlockType> = ({
   sectionOverrides,
   locale,
 }) => {
-  const isSticky = (block as { isSticky?: boolean }).isSticky !== false;
-
   return (
     <SectionWrapper
       block={block}
-      sectionClassName={cn(sectionClassName, isSticky && 'lg:sticky lg:top-24 lg:z-10')}
+      sectionClassName={sectionClassName}
       sectionOverrides={sectionOverrides}
       errorFallbackMessage={errorMessageForType(
         {
