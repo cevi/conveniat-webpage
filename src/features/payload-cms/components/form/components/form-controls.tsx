@@ -76,7 +76,7 @@ export const FormControls: React.FC<FormControlsProperties> = ({
           type="button"
           onClick={onPrev}
           disabled={isDisabled}
-          className="h-10 w-full cursor-pointer rounded-lg border-2 border-gray-500 px-5 py-2 text-base font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:opacity-50 sm:w-auto"
+          className="flex h-auto min-h-10 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-gray-500 px-4 py-2 text-center text-sm font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:opacity-50 sm:w-auto sm:text-base"
         >
           {previousStepText[locale]}
         </button>
@@ -87,7 +87,7 @@ export const FormControls: React.FC<FormControlsProperties> = ({
           type="submit"
           disabled={isDisabled}
           form={formId}
-          className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto"
+          className="bg-conveniat-green flex h-auto min-h-10 w-full cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-center text-sm font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:text-base"
         >
           {getActionButtonLabel(submitLabel ?? '')}
         </button>
@@ -96,7 +96,7 @@ export const FormControls: React.FC<FormControlsProperties> = ({
           type="button"
           onClick={onNext}
           disabled={isDisabled}
-          className="bg-conveniat-green h-10 w-full cursor-pointer rounded-lg px-5 py-2 text-base font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto"
+          className="bg-conveniat-green flex h-auto min-h-10 w-full cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-center text-sm font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:opacity-50 sm:w-auto sm:text-base"
         >
           {getActionButtonLabel(nextStepText[locale])}
         </button>
