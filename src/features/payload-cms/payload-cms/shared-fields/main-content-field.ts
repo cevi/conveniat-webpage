@@ -10,6 +10,7 @@ import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/d
 import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
+import { heroSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
@@ -27,6 +28,7 @@ import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import type { Block, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
+  heroSectionBlock,
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,

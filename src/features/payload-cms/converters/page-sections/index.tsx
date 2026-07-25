@@ -15,6 +15,7 @@ import {
   RenderFeaturedSection,
   RenderFileDownload,
   RenderFormBlock,
+  RenderHeroSection,
   RenderInstagramEmbed,
   RenderNewsCard,
   RenderPhotoCarousel,
@@ -79,6 +80,7 @@ export const PageSectionsConverter: React.FC<
     sponsorGrid: RenderSponsorGrid,
     featuredSection: RenderFeaturedSection,
     tabsBlock: RenderTabsBlock,
+    heroSection: RenderHeroSection,
   };
 
   return (

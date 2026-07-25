@@ -298,6 +298,7 @@ export interface Blog {
      * The main content of the page
      */
     mainContent: (
+      | HeroSectionBlock
       | {
           richTextSection: {
             root: {
@@ -693,6 +694,24 @@ export interface Permission {
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock".
+ */
+export interface HeroSectionBlock {
+  badge?: string | null;
+  title: string;
+  description?: string | null;
+  primaryCtaLabel?: string | null;
+  primaryCtaLink?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  deadlineText?: string | null;
+  image?: (string | null) | Image;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroSection';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1848,6 +1867,7 @@ export interface GenericPage {
      * The main content of the page
      */
     mainContent: (
+      | HeroSectionBlock
       | {
           richTextSection: {
             root: {
@@ -4473,6 +4493,7 @@ export interface BlogSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
+              heroSection?: T | HeroSectionBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -4599,6 +4620,23 @@ export interface BlogSelect<T extends boolean = true> {
   createdAt?: T;
   deletedAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock_select".
+ */
+export interface HeroSectionBlockSelect<T extends boolean = true> {
+  badge?: T;
+  title?: T;
+  description?: T;
+  primaryCtaLabel?: T;
+  primaryCtaLink?: T;
+  secondaryCtaLabel?: T;
+  secondaryCtaLink?: T;
+  deadlineText?: T;
+  image?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5368,6 +5406,7 @@ export interface GenericPageSelect<T extends boolean = true> {
         mainContent?:
           | T
           | {
+              heroSection?: T | HeroSectionBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -7239,6 +7278,7 @@ export interface AppLandingPage {
    */
   pageContent?:
     | (
+        | HeroSectionBlock
         | {
             richTextSection: {
               root: {
@@ -7823,6 +7863,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
   pageContent?:
     | T
     | {
+        heroSection?: T | HeroSectionBlockSelect<T>;
         richTextSection?:
           | T
           | {

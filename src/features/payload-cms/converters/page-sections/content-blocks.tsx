@@ -58,6 +58,11 @@ import { getPayload } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
 
+import {
+  HeroSectionBlock,
+  type HeroSectionType,
+} from '@/features/payload-cms/components/content-blocks/hero-section';
+
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
   | 'richTextSection'
@@ -84,7 +89,8 @@ export type ContentBlockTypeNames =
   | 'contactPerson'
   | 'sponsorGrid'
   | 'tabsBlock'
-  | 'featuredSection';
+  | 'featuredSection'
+  | 'heroSection';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -891,6 +897,32 @@ export const RenderPhotoContestBlock: SectionRenderer<{
       locale={locale}
     >
       <PhotoContestView initialContestSlug={block.initialContestSlug ?? 'cevi-schweiz'} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Hero-Bereich Block',
+          en: 'hero section block',
+          fr: 'le bloc section héros',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <HeroSectionBlock {...block} />
     </SectionWrapper>
   );
 };
