@@ -38,6 +38,8 @@ export const DesktopNav: React.FC<{
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const navContainerReference = useRef<HTMLDivElement>(null);
+  const flyoutReference = useRef<HTMLDivElement>(null);
   const closeTimeoutReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const openIntentTimeoutReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const searchInputReference = useRef<HTMLInputElement>(null);
@@ -80,17 +82,33 @@ export const DesktopNav: React.FC<{
     }
   };
 
-  const handleMouseLeave = (): void => {
+  /**
+   * Safe Mouse Leave Handler
+   * Verifies that the cursor has genuinely left both the header navigation area and the megamenu flyout panel before closing.
+   */
+  const handleMouseLeave = (event?: React.MouseEvent): void => {
+    if (event?.relatedTarget instanceof Node) {
+      const target = event.relatedTarget;
+      if (
+        Boolean(flyoutReference.current?.contains(target)) ||
+        Boolean(navContainerReference.current?.contains(target))
+      ) {
+        return;
+      }
+    }
+
     if (openIntentTimeoutReference.current) {
       clearTimeout(openIntentTimeoutReference.current);
       openIntentTimeoutReference.current = undefined;
     }
+
     if (closeTimeoutReference.current) {
       clearTimeout(closeTimeoutReference.current);
     }
+
     closeTimeoutReference.current = setTimeout(() => {
       setOpenDropdownId(undefined);
-    }, 150);
+    }, 200);
   };
 
   const cancelPendingIntent = (): void => {
@@ -148,7 +166,11 @@ export const DesktopNav: React.FC<{
   };
 
   return (
-    <div className="hidden items-center gap-4 xl:flex" onMouseLeave={handleMouseLeave}>
+    <div
+      ref={navContainerReference}
+      className="hidden items-center gap-4 xl:flex"
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Main Navigation Bar */}
       <nav className="flex items-center gap-1 transition-all duration-300 xl:gap-1.5">
         {menuItems.map((item) => {
@@ -163,7 +185,12 @@ export const DesktopNav: React.FC<{
                 href={item.itemLink}
                 openInNewTab={item.openInNewTab}
                 prefetch
-                onMouseEnter={() => handleMouseEnter('')}
+                onMouseEnter={() => {
+                  if (closeTimeoutReference.current) clearTimeout(closeTimeoutReference.current);
+                  closeTimeoutReference.current = setTimeout(() => {
+                    setOpenDropdownId(undefined);
+                  }, 150);
+                }}
                 className="hover:bg-conveniat-green/10 hover:text-conveniat-green rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap text-gray-700 transition-all duration-200"
               >
                 {item.label}
@@ -212,10 +239,11 @@ export const DesktopNav: React.FC<{
         })}
       </nav>
 
-      {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header) */}
+      {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header, with top hit-bridge) */}
       {hasActiveSubMenu && (
         <div
-          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
+          ref={flyoutReference}
+          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200 before:absolute before:-top-4 before:right-0 before:left-0 before:h-4 before:content-['']"
           onMouseEnter={cancelPendingIntent}
           onMouseLeave={handleMouseLeave}
         >
