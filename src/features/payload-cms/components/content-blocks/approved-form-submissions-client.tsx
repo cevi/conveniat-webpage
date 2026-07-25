@@ -2,6 +2,7 @@
 
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, ChevronUp, Download, FileText, Filter, Search, X } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
@@ -13,6 +14,7 @@ export interface DisplayFieldConfiguration {
 export interface ApprovedFormSubmissionsClientProperties {
   submissions: FormSubmission[];
   heading?: string | null | undefined;
+  centerHorizontally?: boolean | null | undefined;
   titleFieldName?: string | null | undefined;
   categoryFieldName?: string | null | undefined;
   fileFieldName?: string | null | undefined;
@@ -121,6 +123,7 @@ const getFieldValue = (
 export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClientProperties> = ({
   submissions,
   heading,
+  centerHorizontally,
   titleFieldName = 'title',
   categoryFieldName = 'category',
   fileFieldName = 'file',
@@ -248,7 +251,12 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
   const hasHeading = heading !== null && heading !== undefined && heading.length > 0;
 
   return (
-    <div className="my-8 w-full space-y-6">
+    <div
+      className={cn(
+        'my-8 w-full space-y-6',
+        centerHorizontally === true && 'mx-auto max-w-[1120px]',
+      )}
+    >
       {/* Section Header */}
       {hasHeading && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">

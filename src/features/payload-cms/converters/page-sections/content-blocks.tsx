@@ -43,6 +43,7 @@ import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/r
 import type {
   AccordionBlocks,
   FeaturedSectionBlock,
+  SectionSeparatorBlock,
   Timeline,
   TimelineCategory,
   TimelineEntries,
@@ -621,7 +622,7 @@ export const RenderWhiteSpace: SectionRenderer = ({
   return (
     <SectionWrapper
       block={block}
-      sectionClassName={sectionClassName}
+      sectionClassName={cn('!mt-0 py-4 sm:py-6', sectionClassName)}
       sectionOverrides={sectionOverrides}
       errorFallbackMessage={errorMessageForType(
         {
@@ -633,7 +634,7 @@ export const RenderWhiteSpace: SectionRenderer = ({
       )}
       locale={locale}
     >
-      <div className="h-3 w-full" />
+      <div className="h-4 w-full sm:h-6" aria-hidden="true" />
     </SectionWrapper>
   );
 };
@@ -934,6 +935,9 @@ export const RenderSectionSeparatorBlock: SectionRenderer = ({
   sectionOverrides,
   locale,
 }) => {
+  const sectionSeparatorBlock = block as SectionSeparatorBlock;
+  const isFullWidth = sectionSeparatorBlock.isFullWidth ?? false;
+
   return (
     <SectionWrapper
       block={block}
@@ -949,7 +953,16 @@ export const RenderSectionSeparatorBlock: SectionRenderer = ({
       )}
       locale={locale}
     >
-      <div className="mb-6 border-b border-gray-200/60 pb-12 sm:mb-10 sm:pb-16 lg:mb-14 lg:pb-24 [min-height:1000px]:mb-[84px] [min-height:1000px]:pb-[164px] [min-height:700px]:mb-14 [min-height:700px]:pb-24 [min-height:850px]:mb-16 [min-height:850px]:pb-32" />
+      {isFullWidth ? (
+        <div className="w-full max-w-[1120px]" style={{ margin: 'auto' }}>
+          <div
+            className="mb-6 border-b border-gray-200/60 pb-12 sm:mb-10 sm:pb-16 lg:mb-14 lg:pb-24 [min-height:1000px]:mb-[84px] [min-height:1000px]:pb-[164px] [min-height:700px]:mb-14 [min-height:700px]:pb-24 [min-height:850px]:mb-16 [min-height:850px]:pb-32"
+            style={{ margin: 'auto' }}
+          />
+        </div>
+      ) : (
+        <div className="mb-6 border-b border-gray-200/60 pb-12 sm:mb-10 sm:pb-16 lg:mb-14 lg:pb-24 [min-height:1000px]:mb-[84px] [min-height:1000px]:pb-[164px] [min-height:700px]:mb-14 [min-height:700px]:pb-24 [min-height:850px]:mb-16 [min-height:850px]:pb-32" />
+      )}
     </SectionWrapper>
   );
 };

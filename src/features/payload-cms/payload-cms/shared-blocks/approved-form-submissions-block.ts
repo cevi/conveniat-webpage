@@ -36,6 +36,23 @@ export const approvedFormSubmissionsBlock: Block = {
       },
     },
     {
+      name: 'centerHorizontally',
+      type: 'checkbox',
+      defaultValue: false,
+      label: {
+        de: 'Horizontal zentrieren',
+        en: 'Center Horizontally',
+        fr: 'Centrer horizontalement',
+      },
+      admin: {
+        description: {
+          de: 'Aktivieren, um diesen Block auf der Seite horizontal zu zentrieren.',
+          en: 'Enable to center this block horizontally on the page.',
+          fr: 'Activer pour centrer ce bloc horizontalement sur la page.',
+        },
+      },
+    },
+    {
       name: 'heading',
       type: 'text',
       localized: true,

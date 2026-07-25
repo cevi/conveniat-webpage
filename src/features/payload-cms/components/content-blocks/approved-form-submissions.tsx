@@ -11,6 +11,7 @@ export interface ApprovedFormSubmissionsBlockProperties extends ApprovedFormSubm
 export const ApprovedFormSubmissions: React.FC<ApprovedFormSubmissionsBlockProperties> = async ({
   form,
   heading,
+  centerHorizontally,
   titleFieldName,
   categoryFieldName,
   fileFieldName,
@@ -27,6 +28,7 @@ export const ApprovedFormSubmissions: React.FC<ApprovedFormSubmissionsBlockPrope
     <ApprovedFormSubmissionsClient
       submissions={submissions}
       heading={heading}
+      centerHorizontally={centerHorizontally}
       titleFieldName={titleFieldName}
       categoryFieldName={categoryFieldName}
       fileFieldName={fileFieldName}
