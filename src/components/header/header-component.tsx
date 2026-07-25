@@ -44,7 +44,7 @@ const TopNavHeader: React.FC<{
         <PreviewModeBannerServerComponent />
       </React.Suspense>
 
-      <div className="mb-[32px] border-b-2 border-gray-200 bg-white/95 shadow-xs backdrop-blur-md">
+      <div className="mb-[32px] border-b-2 border-gray-200 bg-white/95 backdrop-blur-md">
         {/* Full-width container spanning full screen width */}
         <div className="text-conveniat-green relative flex h-[60px] w-full items-center justify-between px-6 xl:h-16 xl:px-12">
           {/* Logo & Brand Title */}

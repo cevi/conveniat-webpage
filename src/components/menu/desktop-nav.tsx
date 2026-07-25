@@ -185,7 +185,7 @@ export const DesktopNav: React.FC<{
                   className={cn(
                     'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all duration-200',
                     isOpen
-                      ? 'bg-conveniat-green/10 text-conveniat-green shadow-xs'
+                      ? 'bg-conveniat-green/10 text-conveniat-green'
                       : 'hover:bg-conveniat-green/10 hover:text-conveniat-green text-gray-700',
                   )}
                 >
@@ -212,10 +212,10 @@ export const DesktopNav: React.FC<{
         })}
       </nav>
 
-      {/* Modern Sleek Full-Width Submenu Flyout Panel (Thin 1px border-b matching header) */}
+      {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header) */}
       {hasActiveSubMenu && (
         <div
-          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b border-gray-200/60 bg-white/98 backdrop-blur-2xl transition-all duration-200"
+          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
           onMouseEnter={cancelPendingIntent}
           onMouseLeave={handleMouseLeave}
         >
@@ -293,8 +293,8 @@ export const DesktopNav: React.FC<{
         </div>
       )}
 
-      {/* Utilities: Language Switcher & Left-Overlapping Search Bar */}
-      <div className="relative flex items-center gap-2 border-l border-gray-200/80 pl-3">
+      {/* Utilities: Language Switcher & In-Line Smooth Expanding Search Input */}
+      <div className="flex h-8 items-center gap-2 border-l border-gray-200/80 pl-3">
         {/* Language Switcher */}
         <div
           className="relative"
@@ -304,7 +304,7 @@ export const DesktopNav: React.FC<{
           <button
             type="button"
             onClick={() => setIsLangOpen(!isLangOpen)}
-            className="hover:border-conveniat-green/40 hover:text-conveniat-green flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50/80 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:bg-white"
+            className="hover:border-conveniat-green/40 hover:text-conveniat-green flex h-8 items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50/80 px-2.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:bg-white"
           >
             <Languages className="text-conveniat-green size-3.5" />
             <span className="uppercase">{locale}</span>
@@ -360,50 +360,49 @@ export const DesktopNav: React.FC<{
           )}
         </div>
 
-        {/* Search Bar Icon & Absolute Left-Overlapping Input (Anchored at right-0, expands to left over Kontakt) */}
-        <div className="relative flex items-center justify-end">
+        {/* Smooth In-Line Expanding Search Input (Expands to Left inside flex flow) */}
+        <form onSubmit={handleSearchSubmit} className="relative flex h-8 items-center">
+          <input
+            ref={searchInputReference}
+            type="text"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onFocus={() => setIsSearchExpanded(true)}
+            onBlur={() => {
+              if (searchQuery.trim() === '') {
+                setIsSearchExpanded(false);
+              }
+            }}
+            placeholder={isSearchExpanded ? 'Suchen...' : ''}
+            className={cn(
+              'h-8 rounded-xl border border-gray-200 bg-gray-50/80 text-xs text-gray-800 transition-all duration-300 focus:border-gray-300 focus:bg-white focus:ring-0 focus:outline-hidden',
+              isSearchExpanded
+                ? 'w-44 pr-7 pl-8 xl:w-56'
+                : 'w-8 cursor-pointer pr-0 pl-0 text-transparent placeholder-transparent',
+            )}
+            aria-label="Suchen"
+          />
           <button
             type="button"
             onClick={toggleSearchExpand}
-            className="hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white"
-            aria-label="Suchen"
+            className="hover:text-conveniat-green absolute left-2.5 flex size-3.5 items-center justify-center text-gray-500 transition-colors"
             title="Suchen"
           >
-            <Search className="size-3.5 text-gray-500" />
+            <Search className="size-3.5" />
           </button>
-
           {isSearchExpanded && (
-            <form
-              onSubmit={handleSearchSubmit}
-              className="animate-in fade-in-0 slide-in-from-right-3 absolute top-1/2 right-0 z-50 flex -translate-y-1/2 items-center"
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setIsSearchExpanded(false);
+              }}
+              className="hover:text-conveniat-green absolute right-2 flex size-4 items-center justify-center text-gray-400"
             >
-              <input
-                ref={searchInputReference}
-                type="text"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                onBlur={() => {
-                  if (searchQuery.trim() === '') {
-                    setIsSearchExpanded(false);
-                  }
-                }}
-                placeholder="Suchen..."
-                className="w-52 rounded-xl border border-gray-200 bg-white py-1.5 pr-7 pl-8 text-xs text-gray-800 transition-all duration-200 focus:border-gray-300 focus:ring-0 focus:outline-hidden xl:w-64"
-              />
-              <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-gray-500" />
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setIsSearchExpanded(false);
-                }}
-                className="hover:text-conveniat-green absolute top-1/2 right-2 -translate-y-1/2 text-gray-400"
-              >
-                <X className="size-3" />
-              </button>
-            </form>
+              <X className="size-3" />
+            </button>
           )}
-        </div>
+        </form>
       </div>
     </div>
   );
