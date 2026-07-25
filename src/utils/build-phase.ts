@@ -9,6 +9,8 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
  * available during build-time pre-rendering, i.e., at build time we cannot use
  * `await getPayload({ config })` as it would error out.
  */
+/* eslint-disable n/no-process-env */
 export const isBuildPhase = (): boolean =>
-  // eslint-disable-next-line n/no-process-env
-  process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD;
+  process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD ||
+  typeof process.env['DATABASE_URI'] !== 'string' ||
+  process.env['DATABASE_URI'].trim() === '';

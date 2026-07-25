@@ -5,6 +5,8 @@ node_modules
 .pnpm-store
 .next
 .github
+worktrees
+worktrees/*
 
 # we don't want to include the .env file in the docker image
 # environment variables should be passed at runtime
