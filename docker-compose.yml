@@ -1,6 +1,5 @@
 services:
   payload:
-    user: '${UID:-1000}:${GID:-1000}'
     profiles:
       - dev
     build:

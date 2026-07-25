@@ -9,4 +9,6 @@ RUN apk add --no-cache vips vips-dev fftw-dev gcc g++ make python3
 # Rebuild sharp again in builder stage to ensure it's built in the build environment
 RUN npm rebuild sharp --platform=linuxmusl --arch=x64
 
+RUN corepack enable pnpm
+
 ENV TZ="Europe/Zurich"
