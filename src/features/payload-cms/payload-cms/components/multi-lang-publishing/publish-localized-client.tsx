@@ -1,7 +1,5 @@
 'use client';
 
-import * as qs from 'qs-esm';
-
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { usePublishingStatus } from '@/features/payload-cms/payload-cms/hooks/use-publishing-status';
@@ -175,17 +173,6 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
   const handleConfirmPublish = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      const parameters = qs.stringify({
-        publishSpecificLocale: code,
-      });
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const action = `${serverURL}${api}${
-        globalSlug === undefined ? `/${collectionSlug}/${id ?? ''}` : `/globals/${globalSlug}`
-      }${parameters === '' ? '' : '?' + parameters}`;
-
       await submit({
         // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
         // action,
@@ -206,24 +193,11 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [api, code, collectionSlug, globalSlug, id, refetch, serverURL, submit]);
+  }, [code, refetch, submit]);
 
   const handleConfirmUnpublish = useCallback(async () => {
     setIsSubmitting(true);
     try {
-      const parameters = qs.stringify({
-        publishSpecificLocale: code,
-      });
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const action = `${serverURL}${api}${
-        globalSlug === undefined
-          ? `/${collectionSlug}/${id === undefined ? '' : `/${id}`}`
-          : `/globals/${globalSlug}`
-      }${parameters === '' ? '' : '?' + parameters}`;
-
       await submit({
         // TODO: temporary fix for https://github.com/payloadcms/payload/issues/15642
         // action,
@@ -243,7 +217,7 @@ export const PublishingButton: React.FC<{ label?: string }> = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [api, code, collectionSlug, globalSlug, id, refetch, serverURL, submit]);
+  }, [refetch, submit]);
 
   const isCurrentLocalePublished = publishingStatus?.[code]?.published === true;
   const hasPendingChanges = publishingStatus?.[code]?.pendingChanges === true;

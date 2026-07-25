@@ -533,7 +533,7 @@ export const authOptions: NextAuthConfig = {
         };
       }
 
-      let reason = 'unknown';
+      let reason: string;
       if (expiresAt === 0) {
         reason = 'missing_expires_at';
       } else if (Date.now() >= expiresAt * 1000) {

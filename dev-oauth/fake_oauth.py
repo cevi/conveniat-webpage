@@ -105,7 +105,6 @@ def home():
 @app.route("/oauth/authorize")
 def authorize():
     """OAuth2 Authorization Endpoint - User selects an account"""
-    client_id = request.args.get("client_id")
     redirect_uri = request.args.get("redirect_uri")
 
     return render_template("login.html", users=FAKE_USERS, redirect_uri=redirect_uri)
