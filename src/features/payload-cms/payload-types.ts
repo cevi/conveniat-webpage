@@ -299,6 +299,7 @@ export interface Blog {
      */
     mainContent: (
       | HeroSectionBlock
+      | SectionSeparatorBlock
       | {
           richTextSection: {
             root: {
@@ -712,6 +713,15 @@ export interface HeroSectionBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'heroSection';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SectionSeparatorBlock".
+ */
+export interface SectionSeparatorBlock {
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'sectionSeparator';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1868,6 +1878,7 @@ export interface GenericPage {
      */
     mainContent: (
       | HeroSectionBlock
+      | SectionSeparatorBlock
       | {
           richTextSection: {
             root: {
@@ -2628,6 +2639,7 @@ export interface TwoColumnBlock {
    * Content for the left column.
    */
   leftColumn: (
+    | SectionSeparatorBlock
     | {
         richTextSection: {
           root: {
@@ -2810,6 +2822,7 @@ export interface TwoColumnBlock {
    * Content for the right column.
    */
   rightColumn: (
+    | SectionSeparatorBlock
     | {
         richTextSection: {
           root: {
@@ -3152,6 +3165,7 @@ export interface TabsBlock {
   tabs: {
     title: string;
     content: (
+      | SectionSeparatorBlock
       | {
           richTextSection: {
             root: {
@@ -4498,6 +4512,7 @@ export interface BlogSelect<T extends boolean = true> {
           | T
           | {
               heroSection?: T | HeroSectionBlockSelect<T>;
+              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -4639,6 +4654,14 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
   secondaryCtaLink?: T;
   deadlineText?: T;
   image?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SectionSeparatorBlock_select".
+ */
+export interface SectionSeparatorBlockSelect<T extends boolean = true> {
   id?: T;
   blockName?: T;
 }
@@ -4989,6 +5012,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
   leftColumn?:
     | T
     | {
+        sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
           | {
@@ -5092,6 +5116,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
   rightColumn?:
     | T
     | {
+        sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
           | {
@@ -5285,6 +5310,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
         content?:
           | T
           | {
+              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -5412,6 +5438,7 @@ export interface GenericPageSelect<T extends boolean = true> {
           | T
           | {
               heroSection?: T | HeroSectionBlockSelect<T>;
+              sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
                 | {
@@ -7284,6 +7311,7 @@ export interface AppLandingPage {
   pageContent?:
     | (
         | HeroSectionBlock
+        | SectionSeparatorBlock
         | {
             richTextSection: {
               root: {
@@ -7869,6 +7897,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
     | T
     | {
         heroSection?: T | HeroSectionBlockSelect<T>;
+        sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
           | {

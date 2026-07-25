@@ -16,6 +16,7 @@ import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { photoContestBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-contest-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
+import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { sponsorGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/sponsor-grid-block';
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
@@ -29,6 +30,7 @@ import type { Block, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
   heroSectionBlock,
+  sectionSeparatorBlock,
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,

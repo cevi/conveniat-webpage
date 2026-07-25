@@ -21,6 +21,7 @@ import {
   RenderPhotoCarousel,
   RenderPhotoContestBlock,
   RenderRichTextSection,
+  RenderSectionSeparatorBlock,
   RenderSinglePicture,
   RenderSponsorGrid,
   RenderTabsBlock,
@@ -81,6 +82,7 @@ export const PageSectionsConverter: React.FC<
     featuredSection: RenderFeaturedSection,
     tabsBlock: RenderTabsBlock,
     heroSection: RenderHeroSection,
+    sectionSeparator: RenderSectionSeparatorBlock,
   };
 
   return (

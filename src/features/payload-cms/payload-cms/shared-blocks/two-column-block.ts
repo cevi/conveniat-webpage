@@ -12,6 +12,7 @@ import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-b
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
+import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
 import { summaryBoxBlock } from '@/features/payload-cms/payload-cms/shared-blocks/summary-box-block';
 import { swisstopoMapEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/swisstopo-embed-block';
@@ -21,6 +22,7 @@ import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import type { Block } from 'payload';
 
 export const genericBlocks = [
+  sectionSeparatorBlock,
   richTextArticleBlock,
   blockPostsOverview,
   formBlock,

@@ -90,7 +90,8 @@ export type ContentBlockTypeNames =
   | 'sponsorGrid'
   | 'tabsBlock'
   | 'featuredSection'
-  | 'heroSection';
+  | 'heroSection'
+  | 'sectionSeparator';
 
 export type SectionRenderer<T = object> = React.FC<
   LocalizedPageType & {
@@ -923,6 +924,32 @@ export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
       locale={locale}
     >
       <HeroSectionBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderSectionSeparatorBlock: SectionRenderer = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Trennlinien-Block',
+          en: 'section separator block',
+          fr: 'le bloc séparateur de section',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <div className="mb-6 border-b border-gray-200/60 pb-12 sm:mb-10 sm:pb-16 lg:mb-14 lg:pb-24 [min-height:1000px]:mb-[84px] [min-height:1000px]:pb-[164px] [min-height:700px]:mb-14 [min-height:700px]:pb-24 [min-height:850px]:mb-16 [min-height:850px]:pb-32" />
     </SectionWrapper>
   );
 };
