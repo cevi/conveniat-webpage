@@ -1,3 +1,4 @@
+import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { Field, TextFieldSingleValidation } from 'payload';
 
@@ -20,18 +21,18 @@ export const AlertSettingsNextKeyField: Field = {
     value: string | string[] | null | undefined,
     options: Parameters<TextFieldSingleValidation>[1],
   ): true | string => {
-    if (value === null || value === undefined || value === '') {
+    const valueString = extractStringKey(value);
+    if (!valueString) {
       return true;
     }
     const { data, req } = options;
     const localeString = req.i18n.language;
-    const dataTyped = data as { questions?: { key?: string | null }[] };
+    const dataTyped = data as { questions?: { key?: unknown }[] };
     const availableKeys = (dataTyped.questions ?? [])
-      .map((q) => (typeof q.key === 'string' ? q.key.trim() : ''))
-      .filter((k): k is string => k.length > 0);
+      .map((q) => extractStringKey(q.key, localeString))
+      .filter((k): k is string => k !== undefined);
 
-    const valueString = typeof value === 'string' ? value.trim() : '';
-    if (valueString.length > 0 && !availableKeys.includes(valueString)) {
+    if (!availableKeys.includes(valueString)) {
       return getValidationMessage(localeString, {
         en: `Selected question key "${valueString}" does not exist in questions list`,
         de: `Der gewählte Frageschlüssel "${valueString}" existiert nicht in der Fragenliste`,

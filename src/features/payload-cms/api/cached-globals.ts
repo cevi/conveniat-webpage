@@ -103,6 +103,8 @@ export const getAlertSettingsCached = cache(
         fallbackLocale,
         select: {
           questions: true,
+          finalResponseMessage: true,
+          emergencyPhoneNumber: true,
         },
       });
     });

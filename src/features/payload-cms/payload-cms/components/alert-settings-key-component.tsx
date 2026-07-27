@@ -1,5 +1,6 @@
 'use client';
 
+import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { SelectInput, useAllFormFields, useField, useLocale } from '@payloadcms/ui';
 import type { TextFieldClientComponent } from 'payload';
@@ -23,15 +24,10 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
         fieldName.includes('questions') &&
         fieldName.split('.').length === 3,
     )
-    .map(([, field]) => field.value)
-    .filter((questionKey): questionKey is string => {
-      if (typeof questionKey !== 'string') {
-        return false;
-      }
-      return questionKey.trim().length > 0;
-    }); // filter out non-string and empty/whitespace-only keys
+    .map(([, field]) => extractStringKey(field.value, locale.code))
+    .filter((k): k is string => k !== undefined);
 
-  const currentValue = typeof value === 'string' ? value : '';
+  const currentValue = extractStringKey(value, locale.code) ?? '';
   const isDangling = currentValue !== '' && !questionKeys.includes(currentValue);
   const availableKeys = isDangling ? [...questionKeys, currentValue] : questionKeys;
 

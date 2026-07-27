@@ -1,3 +1,4 @@
+import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -112,32 +113,18 @@ export const updateMessageContent = trpcBaseProcedure
           throw new Error('Selected option is no longer valid for this question');
         }
 
-        let nextQuestionKeyFromOption: string | undefined;
-        const rawNextKey = (selectedOption as Record<string, unknown>)['nextQuestionKey'];
-        if (typeof rawNextKey === 'string' && rawNextKey.trim().length > 0) {
-          nextQuestionKeyFromOption = rawNextKey.trim();
-        } else if (
-          rawNextKey !== null &&
-          rawNextKey !== undefined &&
-          typeof rawNextKey === 'object'
-        ) {
-          const keyObject = rawNextKey as Record<string, unknown>;
-          if (typeof keyObject['key'] === 'string' && keyObject['key'].trim().length > 0) {
-            nextQuestionKeyFromOption = keyObject['key'].trim();
-          } else if (
-            typeof keyObject['value'] === 'string' &&
-            keyObject['value'].trim().length > 0
-          ) {
-            nextQuestionKeyFromOption = keyObject['value'].trim();
-          }
-        }
+        const nextQuestionKeyFromOption = extractStringKey(
+          (selectedOption as Record<string, unknown>)['nextQuestionKey'],
+          ctx.locale,
+        );
 
         let nextQuestion: (typeof questions)[number] | undefined;
 
-        if (typeof nextQuestionKeyFromOption === 'string' && nextQuestionKeyFromOption.length > 0) {
-          nextQuestion = questions.find(
-            (q) => typeof q.key === 'string' && q.key.trim() === nextQuestionKeyFromOption,
-          );
+        if (nextQuestionKeyFromOption !== undefined) {
+          nextQuestion = questions.find((q) => {
+            const questionKey = extractStringKey(q.key, ctx.locale);
+            return questionKey?.toLowerCase() === nextQuestionKeyFromOption.toLowerCase();
+          });
           if (!nextQuestion) {
             throw new Error(
               `Referenced next question key "${nextQuestionKeyFromOption}" not found`,
