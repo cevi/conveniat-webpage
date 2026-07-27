@@ -67,7 +67,18 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     return dateToValidate;
   }, [allDates, searchParameters]);
 
-  const [currentDate, setCurrentDate] = useState(validatedInitialDate);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  const currentDate = useMemo(() => {
+    if (selectedDate !== undefined && allDates.length > 0) {
+      const formattedSelected = formatDate(selectedDate);
+      const isSelectedValid = allDates.some((d) => formatDate(d) === formattedSelected);
+      if (isSelectedValid) {
+        return selectedDate;
+      }
+    }
+    return validatedInitialDate;
+  }, [selectedDate, allDates, validatedInitialDate]);
 
   const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
   const [starredEntries, setStarredEntries] = useState(new Set<string>());
@@ -115,7 +126,7 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     setCarouselStartIndex((previous) => Math.min(previous + 1, allDates.length - maxVisibleDays));
 
   const handleDateSelect = (date: Date): void => {
-    setCurrentDate(date);
+    setSelectedDate(date);
     setExpandedEntries(new Set()); // Reset expanded state on date change
   };
 

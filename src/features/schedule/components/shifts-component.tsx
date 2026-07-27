@@ -1,10 +1,9 @@
 'use client';
 
-import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
-import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 import { ShiftCard } from '@/features/schedule/components/shift-card';
+import { ShiftMainContent } from '@/features/schedule/components/shift-main-content';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -104,10 +103,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
             return (
               <ShiftCard key={shift.id} shift={shift} locale={locale}>
                 {hasMainContent && (
-                  <PageSectionsConverter
-                    blocks={shift.mainContent as ContentBlock[]}
-                    locale={locale}
-                  />
+                  <ShiftMainContent blocks={shift.mainContent as unknown[]} locale={locale} />
                 )}
               </ShiftCard>
             );
