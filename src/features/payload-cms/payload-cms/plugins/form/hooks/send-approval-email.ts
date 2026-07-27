@@ -37,6 +37,29 @@ export const sendApprovalEmail: CollectionAfterChangeHook = async ({
   }
 
   const formSubmissionId = String(documentRecord['id']);
+
+  // Idempotency check: prevent duplicate approval emails if already created/sent for this submission
+  try {
+    const existingEmails = await req.payload.find({
+      collection: 'outgoing-emails',
+      where: {
+        formSubmission: { equals: formSubmissionId },
+      },
+      limit: 1,
+      req,
+    });
+    if (existingEmails.totalDocs > 0) {
+      req.payload.logger.info(
+        `sendApprovalEmail: Approval email already exists for submission ${formSubmissionId}, skipping duplicate.`,
+      );
+      return;
+    }
+  } catch (error) {
+    req.payload.logger.error(
+      `sendApprovalEmail: Failed idempotency check for submission ${formSubmissionId}: ${String(error)}`,
+    );
+  }
+
   const formRaw = documentRecord['form'];
   let formId = '';
   if (typeof formRaw === 'string') {
@@ -333,7 +356,7 @@ export const sendApprovalEmail: CollectionAfterChangeHook = async ({
       );
     }
 
-    // Send tracked email
+    // Send tracked email asynchronously in background so approval response returns immediately
     void (async (): Promise<void> => {
       try {
         await sendTrackedEmail(
