@@ -1,0 +1,99 @@
+/**
+ * @jest-environment jsdom
+ */
+
+import { useNativePush } from '@/hooks/use-native-push';
+import { act, renderHook } from '@testing-library/react';
+
+const mockPush = jest.fn();
+
+jest.mock('next/navigation', () => ({
+  useRouter: (): { push: jest.Mock } => ({
+    push: mockPush,
+  }),
+}));
+
+jest.mock('@/trpc/client', () => ({
+  trpc: {
+    useUtils: jest.fn(),
+    nativePush: {
+      registerDevice: {
+        useMutation: jest.fn().mockReturnValue({ mutateAsync: jest.fn() }),
+      },
+      unregisterDevice: {
+        useMutation: jest.fn().mockReturnValue({ mutateAsync: jest.fn() }),
+      },
+    },
+  },
+}));
+
+describe('useNativePush', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'KonektaApp/1.0',
+      configurable: true,
+    });
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+    };
+  });
+
+  afterEach(() => {
+    globalThis.AppWebViewNativePush = undefined;
+  });
+
+  it('navigates to relative URL on native-push-open event', () => {
+    renderHook(() => useNativePush());
+
+    const event = new CustomEvent('app-webview-native-push-event', {
+      detail: {
+        type: 'native-push-open',
+        payload: { url: '/app/chat/123' },
+      },
+    });
+
+    act(() => {
+      globalThis.dispatchEvent(event);
+    });
+
+    expect(mockPush).toHaveBeenCalledWith('/app/chat/123');
+  });
+
+  it('parses absolute URL and navigates to target path on native-push-open event', () => {
+    renderHook(() => useNativePush());
+
+    const event = new CustomEvent('app-webview-native-push-event', {
+      detail: {
+        type: 'native-push-open',
+        payload: { url: 'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000' },
+      },
+    });
+
+    act(() => {
+      globalThis.dispatchEvent(event);
+    });
+
+    expect(mockPush).toHaveBeenCalledWith('/app/chat/550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('falls back to /app/dashboard when payload url is missing or invalid', () => {
+    renderHook(() => useNativePush());
+
+    const event = new CustomEvent('app-webview-native-push-event', {
+      detail: {
+        type: 'native-push-open',
+        payload: {},
+      },
+    });
+
+    act(() => {
+      globalThis.dispatchEvent(event);
+    });
+
+    expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
+  });
+});
