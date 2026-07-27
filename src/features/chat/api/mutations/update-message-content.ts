@@ -93,7 +93,25 @@ export const updateMessageContent = trpcBaseProcedure
           throw new Error('Selected option is no longer valid for this question');
         }
 
-        const nextQuestionKeyFromOption = selectedOption.nextQuestionKey?.trim();
+        let nextQuestionKeyFromOption: string | undefined;
+        const rawNextKey = (selectedOption as Record<string, unknown>)['nextQuestionKey'];
+        if (typeof rawNextKey === 'string' && rawNextKey.trim().length > 0) {
+          nextQuestionKeyFromOption = rawNextKey.trim();
+        } else if (
+          rawNextKey !== null &&
+          rawNextKey !== undefined &&
+          typeof rawNextKey === 'object'
+        ) {
+          const keyObject = rawNextKey as Record<string, unknown>;
+          if (typeof keyObject['key'] === 'string' && keyObject['key'].trim().length > 0) {
+            nextQuestionKeyFromOption = keyObject['key'].trim();
+          } else if (
+            typeof keyObject['value'] === 'string' &&
+            keyObject['value'].trim().length > 0
+          ) {
+            nextQuestionKeyFromOption = keyObject['value'].trim();
+          }
+        }
 
         let nextQuestion: (typeof questions)[number] | undefined;
 
