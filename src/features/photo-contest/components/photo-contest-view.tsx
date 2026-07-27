@@ -158,17 +158,17 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       {/* Header Banner */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl border border-emerald-700/60 bg-linear-to-r from-emerald-800 via-teal-900 to-slate-900 p-6 text-white shadow-xl">
+      <div className="relative mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-xs">
         <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-950/70 px-3.5 py-1 text-xs font-semibold text-emerald-200 backdrop-blur-md">
-              <Trophy className="size-4 text-amber-300" />
+            <div className="border-conveniat-green/20 bg-conveniat-green/10 text-conveniat-green inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-bold">
+              <span className="bg-conveniat-green size-2 animate-pulse rounded-full" />
               <span>Konekta Foto-Wettbewerbe</span>
             </div>
-            <h1 className="mt-2.5 text-3xl font-extrabold tracking-tight text-white drop-shadow-xs">
+            <h1 className="mt-2.5 text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
               Abstimmung & Galerie
             </h1>
-            <p className="mt-1.5 max-w-xl text-sm leading-relaxed font-medium text-emerald-100/90">
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed font-medium text-gray-600">
               Wähle deine Favoriten! Du hast 2 Punkte: Vergabe von 2 Punkten an ein einziges Bild
               ODER je 1 Punkt an 2 verschiedene Bilder.
             </p>
@@ -177,21 +177,21 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({
           {/* Points Status Widget / Auth Badge */}
           {contest?.status === 'VOTING' &&
             (isAuthenticated ? (
-              <div className="flex min-w-[160px] flex-col items-center rounded-xl border border-emerald-400/40 bg-slate-900/80 p-4 shadow-lg backdrop-blur-md">
-                <span className="text-xs font-bold tracking-wider text-emerald-300 uppercase">
+              <div className="border-conveniat-green/20 bg-conveniat-green/10 flex min-w-[160px] flex-col items-center rounded-xl border p-4 shadow-2xs">
+                <span className="text-conveniat-green text-xs font-bold tracking-wider uppercase">
                   Verbleibend
                 </span>
-                <div className="my-1 text-3xl font-black text-amber-300 drop-shadow-xs">
+                <div className="text-conveniat-green my-1 text-3xl font-black">
                   {pointsRemaining} / {maxPoints}
                 </div>
-                <span className="text-[11px] font-medium text-emerald-200">Punkte zu vergeben</span>
+                <span className="text-[11px] font-medium text-gray-600">Punkte zu vergeben</span>
               </div>
             ) : (
               <button
                 onClick={handleLogin}
-                className="flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-950/70 px-4 py-3 text-xs font-bold text-amber-200 shadow-md backdrop-blur-md transition-all hover:bg-amber-900/80"
+                className="bg-conveniat-green flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold text-white shadow-xs transition-all hover:bg-green-700"
               >
-                <LogIn className="size-4 text-amber-400" />
+                <LogIn className="size-4" />
                 <span>Anmelden zum Abstimmen</span>
               </button>
             ))}
@@ -352,7 +352,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
                   <span className="absolute top-3 left-3 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-bold text-white shadow-xs backdrop-blur-md">
                     #{index + 1}
@@ -432,7 +432,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({
 
       {/* Redesigned Empty State (Non-Dashed, Clean Status Card) */}
       {contest?.images.length === 0 && (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-linear-to-b from-white to-gray-50/80 p-8 text-center shadow-xs sm:p-12">
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-xs sm:p-12">
           <div className="flex size-16 items-center justify-center rounded-2xl bg-emerald-100/90 text-emerald-800 shadow-inner">
             <Camera className="size-8" />
           </div>
