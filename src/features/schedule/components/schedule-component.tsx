@@ -41,7 +41,7 @@ export const ScheduleComponent: React.FC = () => {
   const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(
     undefined,
     {
-      staleTime: 1000 * 60 * 10, // 10 minutes
+      staleTime: 0,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
     },

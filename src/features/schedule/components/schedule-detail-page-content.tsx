@@ -38,7 +38,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
 
   // 1. Try to find the entry in the list cache first (Offline support via hydration)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
@@ -54,7 +54,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
     { id },
     {
       enabled: true,
-      staleTime: 1000 * 60 * 10,
+      staleTime: 0,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
     },

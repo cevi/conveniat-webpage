@@ -84,7 +84,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
 
   // 2. Also check the schedule list cache from tRPC
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
@@ -99,7 +99,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   } = trpc.schedule.getById.useQuery(
     { id },
     {
-      staleTime: 1000 * 60 * 10, // 10 minutes
+      staleTime: 0,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
     },
@@ -116,7 +116,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     { courseId: id },
     {
       enabled: !!entry,
-      staleTime: 1000 * 60 * 10,
+      staleTime: 0,
       refetchOnMount: true,
       refetchOnWindowFocus: true,
     },

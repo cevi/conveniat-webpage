@@ -66,7 +66,7 @@ function hasShiftMainContent(mainContent?: unknown): boolean {
  */
 export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
