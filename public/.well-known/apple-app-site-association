@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "ch.cevi.konekta.konektaapp",
+        "paths": ["*", "/app/*", "/entrypoint*"]
+      }
+    ]
+  }
+}
