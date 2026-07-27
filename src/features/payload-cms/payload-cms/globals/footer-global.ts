@@ -10,6 +10,105 @@ import type { GlobalConfig } from 'payload';
 
 const validateFooterSponsorItem = createSponsorItemValidation('logo');
 
+const appNavBarIconOptions = [
+  {
+    label: {
+      en: 'Chats (MessageSquare)',
+      de: 'Chats (MessageSquare)',
+      fr: 'Chats (MessageSquare)',
+    },
+    value: 'MessageSquare',
+  },
+  {
+    label: { en: 'Emergency (Siren)', de: 'Notfall (Siren)', fr: 'Urgence (Siren)' },
+    value: 'Siren',
+  },
+  {
+    label: { en: 'Home (House)', de: 'Home (House)', fr: 'Accueil (House)' },
+    value: 'House',
+  },
+  {
+    label: { en: 'Map (MapIcon)', de: 'Karte (MapIcon)', fr: 'Carte (MapIcon)' },
+    value: 'MapIcon',
+  },
+  {
+    label: { en: 'Program (Calendar)', de: 'Programm (Calendar)', fr: 'Programme (Calendar)' },
+    value: 'Calendar',
+  },
+  {
+    label: { en: 'Users / Group', de: 'Personen / Gruppe', fr: 'Utilisateurs / Groupe' },
+    value: 'Users',
+  },
+  {
+    label: { en: 'Settings', de: 'Einstellungen', fr: 'Paramètres' },
+    value: 'Settings',
+  },
+  {
+    label: { en: 'Info', de: 'Information', fr: 'Information' },
+    value: 'Info',
+  },
+  {
+    label: { en: 'Bell / Notifications', de: 'Glocke / Mitteilungen', fr: 'Notifications' },
+    value: 'Bell',
+  },
+  {
+    label: { en: 'Compass', de: 'Kompass', fr: 'Boussole' },
+    value: 'Compass',
+  },
+  {
+    label: { en: 'Map Pin', de: 'Kartenstecknadel', fr: 'Repère' },
+    value: 'MapPin',
+  },
+  {
+    label: { en: 'Tent', de: 'Zelt', fr: 'Tente' },
+    value: 'Tent',
+  },
+  {
+    label: { en: 'Utensils / Food', de: 'Essen / Verpflegung', fr: 'Nourriture' },
+    value: 'Utensils',
+  },
+  {
+    label: { en: 'Flag', de: 'Flagge', fr: 'Drapeau' },
+    value: 'Flag',
+  },
+  {
+    label: { en: 'Help', de: 'Hilfe', fr: 'Aide' },
+    value: 'HelpCircle',
+  },
+  {
+    label: { en: 'Phone / Contact', de: 'Telefon / Kontakt', fr: 'Contact' },
+    value: 'Phone',
+  },
+  {
+    label: { en: 'Shield / Safety', de: 'Sonderdienst / Schutz', fr: 'Sécurité' },
+    value: 'Shield',
+  },
+  {
+    label: { en: 'Check / Tasks', de: 'Aufgaben', fr: 'Tâches' },
+    value: 'CheckSquare',
+  },
+  {
+    label: { en: 'List', de: 'Liste', fr: 'Liste' },
+    value: 'List',
+  },
+  {
+    label: { en: 'Medical', de: 'Sanität / Medizin', fr: 'Médical' },
+    value: 'BriefcaseMedical',
+  },
+  {
+    label: { en: 'Radio / News', de: 'Funk / News', fr: 'Radio' },
+    value: 'Radio',
+  },
+  {
+    label: { en: 'Sparkles', de: 'Highlights', fr: 'Points forts' },
+    value: 'Sparkles',
+  },
+  {
+    label: { en: 'Heart / Favorites', de: 'Favoriten', fr: 'Favoris' },
+    value: 'Heart',
+  },
+];
+
 export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
   hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
@@ -19,6 +118,75 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
     fr: 'Pied de page',
   },
   fields: [
+    {
+      name: 'appNavBarMenu',
+      label: {
+        en: 'App Bottom Navigation Bar',
+        de: 'App Untere Navigationsleiste (App Bar)',
+        fr: 'Barre de navigation inférieure (App Bar)',
+      },
+      admin: {
+        description: {
+          en: 'Menu items displayed in the app bottom navigation bar. If empty, the default menu items (Chats, Emergency, Home, Map, Program) are used.',
+          de: 'Menüeinträge für die untere Navigationsleiste der App. Wenn leer, werden die Standard-Menüeinträge (Chats, Notfall, Home, Karte, Programm) verwendet.',
+          fr: 'Éléments de menu affichés dans la barre de navigation inférieure. Si vide, les éléments par défaut sont utilisés.',
+        },
+      },
+      type: 'array',
+      localized: true,
+      fields: [
+        {
+          name: 'label',
+          label: { en: 'Label', de: 'Beschriftung', fr: 'Libellé' },
+          type: 'text',
+          required: true,
+        },
+        {
+          name: 'icon',
+          label: 'Icon',
+          type: 'select',
+          required: true,
+          defaultValue: 'House',
+          options: appNavBarIconOptions,
+          admin: {
+            components: {
+              Field: '@/features/payload-cms/payload-cms/components/fields/icon-select-field',
+            },
+          },
+        },
+        {
+          name: 'href',
+          label: { en: 'Link / Path', de: 'Link / Pfad', fr: 'Lien / Chemin' },
+          type: 'text',
+          required: true,
+          admin: {
+            description: {
+              en: 'Target path or URL (e.g. /app/chat, /app/emergency, /app/dashboard, /app/map, /app/schedule).',
+              de: 'Zielpfad oder URL (z. B. /app/chat, /app/emergency, /app/dashboard, /app/map, /app/schedule).',
+              fr: 'Chemin cible ou URL (par ex. /app/chat, /app/emergency, /app/dashboard, /app/map, /app/schedule).',
+            },
+          },
+        },
+        {
+          name: 'color',
+          label: { en: 'Highlight Color', de: 'Hervorhebungsfarbe', fr: 'Couleur' },
+          type: 'select',
+          defaultValue: 'default',
+          options: [
+            { label: { en: 'Default', de: 'Standard', fr: 'Par défaut' }, value: 'default' },
+            {
+              label: {
+                en: 'Red (Emergency / Warning)',
+                de: 'Rot (Notfall / Warnung)',
+                fr: 'Rouge (Urgence)',
+              },
+              value: 'red',
+            },
+            { label: { en: 'Green', de: 'Grün', fr: 'Vert' }, value: 'green' },
+          ],
+        },
+      ],
+    },
     {
       name: 'minimalFooterMenu',
       admin: {

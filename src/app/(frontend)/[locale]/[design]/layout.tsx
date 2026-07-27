@@ -1,16 +1,16 @@
-import { Suspense } from 'react';
-
 import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
 import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
+import { resolveAppNavBarEntries } from '@/components/footer/footer-nav-bar-menu-entries';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { environmentVariables } from '@/config/environment-variables';
+import { getFooterCached } from '@/features/payload-cms/api/cached-globals';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
 import type { Locale, NavigationMode } from '@/types/types';
@@ -19,6 +19,7 @@ import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
 import { SessionProvider } from 'next-auth/react';
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
@@ -34,14 +35,16 @@ interface LayoutProperties {
 const GlobalAppFooterWrapper: React.FC<{
   locale: Locale;
   design: DesignCodes;
-}> = ({ locale, design }) => {
+}> = async ({ locale, design }) => {
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
+  const footerData = await getFooterCached(locale);
+  const appNavBarItems = resolveAppNavBarEntries(footerData.appNavBarMenu, locale);
 
   return (
     <GlobalAppFooterClientWrapper
       locale={locale}
       isAppMode={isInAppDesign}
-      appNavBar={<FooterAppNavBar locale={locale} />}
+      appNavBar={<FooterAppNavBar locale={locale} items={appNavBarItems} />}
       copyrightArea={
         <FooterCopyrightClientWrapper>
           <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />

@@ -7080,6 +7080,44 @@ export interface Footer {
   _locale: string;
   _disable_unpublishing?: boolean | null;
   /**
+   * Menu items displayed in the app bottom navigation bar. If empty, the default menu items (Chats, Emergency, Home, Map, Program) are used.
+   */
+  appNavBarMenu?:
+    | {
+        label: string;
+        icon:
+          | 'MessageSquare'
+          | 'Siren'
+          | 'House'
+          | 'MapIcon'
+          | 'Calendar'
+          | 'Users'
+          | 'Settings'
+          | 'Info'
+          | 'Bell'
+          | 'Compass'
+          | 'MapPin'
+          | 'Tent'
+          | 'Utensils'
+          | 'Flag'
+          | 'HelpCircle'
+          | 'Phone'
+          | 'Shield'
+          | 'CheckSquare'
+          | 'List'
+          | 'BriefcaseMedical'
+          | 'Radio'
+          | 'Sparkles'
+          | 'Heart';
+        /**
+         * Target path or URL (e.g. /app/chat, /app/emergency, /app/dashboard, /app/map, /app/schedule).
+         */
+        href: string;
+        color?: ('default' | 'red' | 'green') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Menu item in the dark area of the footer
    */
   minimalFooterMenu?:
@@ -7789,6 +7827,15 @@ export interface FooterSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
   _disable_unpublishing?: T;
+  appNavBarMenu?:
+    | T
+    | {
+        label?: T;
+        icon?: T;
+        href?: T;
+        color?: T;
+        id?: T;
+      };
   minimalFooterMenu?:
     | T
     | {

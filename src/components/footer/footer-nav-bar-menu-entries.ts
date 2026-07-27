@@ -1,6 +1,80 @@
-import { Calendar, House, MapIcon, MessageSquare, Siren } from 'lucide-react';
+import type { Locale } from '@/types/types';
+import type { LucideIcon } from 'lucide-react';
+import {
+  Bell,
+  BriefcaseMedical,
+  Calendar,
+  CheckSquare,
+  Compass,
+  FileText,
+  Flag,
+  GlassWater,
+  Heart,
+  HelpCircle,
+  House,
+  Info,
+  List,
+  MapIcon,
+  MapPin,
+  MessageSquare,
+  Phone,
+  Radio,
+  Recycle,
+  Settings,
+  Shield,
+  Siren,
+  Sparkles,
+  Tent,
+  Toilet,
+  Users,
+  Utensils,
+} from 'lucide-react';
 
-export const footerNavBarMenuEntries = [
+export interface AppNavBarItem {
+  icon: LucideIcon;
+  label: string;
+  href: string;
+  color?: string | undefined;
+}
+
+export interface RawAppNavBarCmsItem {
+  label: string;
+  icon: string;
+  href: string;
+  color?: string | null;
+}
+
+export const APP_NAV_BAR_ICONS: Record<string, LucideIcon | undefined> = {
+  MessageSquare,
+  Siren,
+  House,
+  MapIcon,
+  Calendar,
+  Users,
+  Settings,
+  Info,
+  Bell,
+  Compass,
+  MapPin,
+  Tent,
+  Utensils,
+  Flag,
+  HelpCircle,
+  Phone,
+  Shield,
+  CheckSquare,
+  List,
+  BriefcaseMedical,
+  Radio,
+  Sparkles,
+  Heart,
+  FileText,
+  GlassWater,
+  Recycle,
+  Toilet,
+};
+
+export const defaultFooterNavBarMenuEntries = [
   {
     icon: MessageSquare,
     label: {
@@ -48,3 +122,44 @@ export const footerNavBarMenuEntries = [
     href: '/app/schedule',
   },
 ];
+
+export const footerNavBarMenuEntries = defaultFooterNavBarMenuEntries;
+
+export function resolveAppNavBarEntries(
+  cmsItems: (RawAppNavBarCmsItem | null)[] | null | undefined,
+  locale: Locale,
+): AppNavBarItem[] {
+  if (Array.isArray(cmsItems) && cmsItems.length > 0) {
+    const validItems: AppNavBarItem[] = [];
+    for (const item of cmsItems) {
+      if (!item) {
+        continue;
+      }
+      const iconKey = typeof item.icon === 'string' ? item.icon : '';
+      const IconComponent = APP_NAV_BAR_ICONS[iconKey] ?? House;
+
+      const color =
+        typeof item.color === 'string' && item.color.length > 0 && item.color !== 'default'
+          ? item.color
+          : undefined;
+
+      validItems.push({
+        icon: IconComponent,
+        label: typeof item.label === 'string' ? item.label : '',
+        href: typeof item.href === 'string' ? item.href : '',
+        color,
+      });
+    }
+
+    if (validItems.length > 0) {
+      return validItems;
+    }
+  }
+
+  return defaultFooterNavBarMenuEntries.map((item) => ({
+    icon: item.icon,
+    label: item.label[locale],
+    href: item.href,
+    color: item.color,
+  }));
+}
