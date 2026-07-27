@@ -13,7 +13,7 @@ import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { CourseType } from '@/lib/prisma';
-import type { CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
+import type { BlocksField, CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
 export const HelperShiftsCollection: CollectionConfig = {
   slug: 'helper-shifts',
@@ -180,29 +180,35 @@ export const HelperShiftsCollection: CollectionConfig = {
                 },
               ],
             },
-            {
-              ...mainContentField,
-              label: {
-                en: 'Detailed Description',
-                de: 'Detailierte Beschreibung',
-                fr: 'Description détaillée',
-              },
-              admin: {
-                ...mainContentField.admin,
-                description: {
-                  en: 'Detailed description of the shift (optional).',
-                  de: 'Detailierte Beschreibung des Schichteinsatzes.',
-                  fr: 'Description détaillée du service.',
+            ((): Field => {
+              const mainContentBase = { ...(mainContentField as BlocksField) };
+              delete (mainContentBase as { defaultValue?: unknown }).defaultValue;
+              return {
+                ...mainContentBase,
+                name: 'mainContent',
+                required: false,
+                label: {
+                  en: 'Detailed Description',
+                  de: 'Detailierte Beschreibung',
+                  fr: 'Description détaillée',
                 },
-              },
-              blocks: [
-                richTextArticleBlock,
-                singlePictureBlock,
-                fileDownloadBlock,
-                accordion,
-                whiteSpaceBlock,
-              ],
-            } as Field,
+                admin: {
+                  ...mainContentField.admin,
+                  description: {
+                    en: 'Detailed description of the shift (optional).',
+                    de: 'Detailierte Beschreibung des Schichteinsatzes (optional).',
+                    fr: 'Description détaillée du service (optionnelle).',
+                  },
+                },
+                blocks: [
+                  richTextArticleBlock,
+                  singlePictureBlock,
+                  fileDownloadBlock,
+                  accordion,
+                  whiteSpaceBlock,
+                ],
+              } as Field;
+            })(),
           ],
         },
         {

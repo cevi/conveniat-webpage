@@ -41,6 +41,51 @@ function groupByDate(
   );
 }
 
+function hasShiftMainContent(mainContent?: unknown): boolean {
+  if (!Array.isArray(mainContent) || mainContent.length === 0) {
+    return false;
+  }
+
+  return mainContent.some((block) => {
+    if (block === null || block === undefined || typeof block !== 'object') {
+      return false;
+    }
+    const b = block as Record<string, unknown>;
+
+    if (b['blockType'] === 'richTextSection') {
+      const section =
+        typeof b['richTextSection'] === 'object' && b['richTextSection'] !== null
+          ? (b['richTextSection'] as Record<string, unknown>)
+          : undefined;
+      const root =
+        typeof section?.['root'] === 'object' && section['root'] !== null
+          ? (section['root'] as Record<string, unknown>)
+          : undefined;
+      if (root === undefined) {
+        return false;
+      }
+
+      const hasTextNode = (node: unknown): boolean => {
+        if (node === null || node === undefined || typeof node !== 'object') {
+          return false;
+        }
+        const n = node as Record<string, unknown>;
+        if (typeof n['text'] === 'string' && n['text'].trim().length > 0) {
+          return true;
+        }
+        if (Array.isArray(n['children'])) {
+          return n['children'].some((childItem) => hasTextNode(childItem));
+        }
+        return false;
+      };
+
+      return hasTextNode(root);
+    }
+
+    return true;
+  });
+}
+
 /**
  * Main Server Component for the /app/helper-portal page.
  * Fetches helper shifts directly and groups them by date.
@@ -69,8 +114,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = async ({ locale }) 
             </h2>
             <div className="space-y-3">
               {dayShifts.map((shift) => {
-                const hasMainContent =
-                  Array.isArray(shift.mainContent) && shift.mainContent.length > 0;
+                const hasMainContent = hasShiftMainContent(shift.mainContent);
 
                 return (
                   <ShiftCard key={shift.id} shift={shift} locale={locale}>
