@@ -12,7 +12,7 @@ import {
   defaultHTMLConverters,
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
-import type { CollectionAfterChangeHook, Where } from 'payload';
+import type { CollectionAfterChangeHook } from 'payload';
 
 interface EmailAttachment {
   filename: string;
@@ -153,20 +153,33 @@ export const sendApprovalEmail: CollectionAfterChangeHook = async ({
         }
       }
 
-      const whereConditions: Where[] = [{ formSubmission: { equals: formSubmissionId } }];
-      if (potentialFileIds.size > 0) {
-        whereConditions.push({ id: { in: [...potentialFileIds] } });
-      }
-
       const formFiles = await req.payload.find({
         collection: 'form_collection',
-        where: { or: whereConditions },
+        where: {
+          and: [
+            { formSubmission: { equals: formSubmissionId } },
+            ...(potentialFileIds.size > 0 ? [{ id: { in: [...potentialFileIds] } }] : []),
+          ],
+        },
         limit: 50,
         depth: 0,
         req,
       });
 
       for (const fileDocument of formFiles.docs) {
+        const fileSubmissionRaw = fileDocument.formSubmission;
+        let fileSubmissionId: string | undefined;
+        if (typeof fileSubmissionRaw === 'string') {
+          fileSubmissionId = fileSubmissionRaw;
+        } else if (typeof fileSubmissionRaw === 'object' && fileSubmissionRaw !== null) {
+          fileSubmissionId = (fileSubmissionRaw as { id: string }).id;
+        }
+
+        // Enforce strict ownership check: file MUST belong to this form submission
+        if (fileSubmissionId !== formSubmissionId) {
+          continue;
+        }
+
         if (typeof fileDocument.filename === 'string' && fileDocument.filename.length > 0) {
           try {
             const getCommand = new GetObjectCommand({
