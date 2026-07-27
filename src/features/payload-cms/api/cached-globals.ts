@@ -29,6 +29,7 @@ export const getFooterCached = cache(async (locale: Locale): Promise<Footer> => 
       slug: 'footer',
       locale,
       select: {
+        appNavBarMenu: true,
         minimalFooterMenu: true,
         socialLinks: true,
         sponsors: true,
@@ -102,6 +103,8 @@ export const getAlertSettingsCached = cache(
         fallbackLocale,
         select: {
           questions: true,
+          finalResponseMessage: true,
+          emergencyPhoneNumber: true,
         },
       });
     });

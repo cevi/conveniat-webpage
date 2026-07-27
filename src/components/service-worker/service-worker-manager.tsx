@@ -2,7 +2,10 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
+import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
+import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
+import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import React from 'react';
 
@@ -20,6 +23,35 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   swUrl = '/sw.js',
 }) => {
   useAppMode();
+  const router = useRouter();
+
+  useServiceWorkerMessage<{ url?: string }>(
+    ServiceWorkerMessages.PUSH_NAVIGATE,
+    React.useCallback(
+      (payload) => {
+        if (typeof payload.url === 'string' && payload.url.trim() !== '') {
+          const rawUrl = payload.url.trim();
+          let targetPath = '/app/dashboard';
+          if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
+            targetPath = rawUrl;
+          } else {
+            try {
+              const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+              targetPath = parsedUrl.pathname + parsedUrl.search;
+            } catch {
+              console.warn('[Service Worker Manager] Could not parse navigation URL:', rawUrl);
+            }
+          }
+          console.log(
+            '[Service Worker Manager] PUSH_NAVIGATE received, navigating to:',
+            targetPath,
+          );
+          router.push(targetPath);
+        }
+      },
+      [router],
+    ),
+  );
 
   React.useEffect(() => {
     if (

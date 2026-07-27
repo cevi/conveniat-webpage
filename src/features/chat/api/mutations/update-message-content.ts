@@ -1,3 +1,4 @@
+import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -78,15 +79,58 @@ export const updateMessageContent = trpcBaseProcedure
       if (currentQuestionIndex !== -1) {
         const currentQuestion = questions[currentQuestionIndex];
 
-        // map content.selectedOption back to the option object to find nextQuestionKey
-        const nextQuestionKeyFromOption = currentQuestion?.options.find(
-          (opt) => opt.option === content['selectedOption'],
-        )?.nextQuestionKey;
+        const selectedOptionId =
+          typeof content['selectedOptionId'] === 'string' ? content['selectedOptionId'] : undefined;
+        const selectedOptionText =
+          typeof content['selectedOption'] === 'string' ? content['selectedOption'] : undefined;
 
-        const nextQuestion =
-          questions.find((q) => q.key != '' && q.key === nextQuestionKeyFromOption) ??
-          questions[currentQuestionIndex + 1] ??
-          undefined;
+        // 1. Match by stable option ID
+        let selectedOption =
+          typeof selectedOptionId === 'string'
+            ? currentQuestion?.options.find((opt) => opt.id === selectedOptionId)
+            : undefined;
+
+        // 2. Match by exact option text
+        if (selectedOption === undefined && selectedOptionText !== undefined) {
+          selectedOption = currentQuestion?.options.find(
+            (opt) => opt.option === selectedOptionText,
+          );
+        }
+
+        // 3. Fallback: match by option index if option text was edited in CMS
+        if (selectedOption === undefined && Array.isArray(content['options'])) {
+          const rawOptions = content['options'] as (string | { option?: string })[];
+          const selectedIndex = rawOptions.findIndex((opt) => {
+            const label = typeof opt === 'string' ? opt : opt.option;
+            return label === selectedOptionText;
+          });
+          if (selectedIndex !== -1 && currentQuestion?.options[selectedIndex] !== undefined) {
+            selectedOption = currentQuestion.options[selectedIndex];
+          }
+        }
+
+        if (selectedOption === undefined) {
+          throw new Error('Selected option is no longer valid for this question');
+        }
+
+        const nextQuestionKeyFromOption = extractStringKey(
+          (selectedOption as Record<string, unknown>)['nextQuestionKey'],
+          ctx.locale,
+        );
+
+        let nextQuestion: (typeof questions)[number] | undefined;
+
+        if (nextQuestionKeyFromOption !== undefined) {
+          nextQuestion = questions.find((q) => {
+            const questionKey = extractStringKey(q.key, ctx.locale);
+            return questionKey?.toLowerCase() === nextQuestionKeyFromOption.toLowerCase();
+          });
+          if (!nextQuestion) {
+            throw new Error(
+              `Referenced next question key "${nextQuestionKeyFromOption}" not found`,
+            );
+          }
+        }
 
         // Send next question OR final response
         const createdNextMessage = await prisma.message.create({
@@ -99,9 +143,10 @@ export const updateMessageContent = trpcBaseProcedure
                   create: {
                     payload: {
                       question: nextQuestion.question,
-                      options: nextQuestion.options
-                        .map((o) => o.option as string | undefined)
-                        .filter((o): o is string => o !== undefined),
+                      options: nextQuestion.options.map((o) => ({
+                        id: o.id,
+                        option: o.option,
+                      })),
                       selectedOption: undefined,
                       questionRefId: nextQuestion.id,
                     },

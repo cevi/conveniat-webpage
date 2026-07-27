@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "5989NN7MH5.ch.cevi.konekta.konektaapp",
+        "appIDs": ["5989NN7MH5.ch.cevi.konekta.konektaapp"],
+        "components": [
+          {
+            "/": "/*",
+            "comment": "Matches all routes"
+          }
+        ],
+        "paths": ["*", "/app/*", "/entrypoint*"]
+      }
+    ]
+  }
+}

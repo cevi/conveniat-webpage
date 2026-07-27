@@ -334,7 +334,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
       {filteredItems.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-8 text-center sm:p-12">
           <FileText className="mx-auto mb-3 h-8 w-8 text-gray-400" />
-          <p className="text-sm font-medium text-gray-600">
+          <p className="text-sm font-medium text-balance text-gray-600">
             {processedItems.length === 0 ? t.noSubmissions : t.noResults}
           </p>
           {(searchQuery.length > 0 || selectedCategory !== 'ALL') && (

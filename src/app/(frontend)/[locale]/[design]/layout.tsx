@@ -1,8 +1,6 @@
-import { Suspense } from 'react';
-
 import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
-import { FooterAppNavBar } from '@/components/footer/footer-app-nav-bar';
+import { AppNavBarServer } from '@/components/footer/app-nav-bar-server';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
 import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
@@ -19,6 +17,7 @@ import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
 import { SessionProvider } from 'next-auth/react';
 import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
@@ -41,7 +40,7 @@ const GlobalAppFooterWrapper: React.FC<{
     <GlobalAppFooterClientWrapper
       locale={locale}
       isAppMode={isInAppDesign}
-      appNavBar={<FooterAppNavBar locale={locale} />}
+      appNavBar={<AppNavBarServer locale={locale} />}
       copyrightArea={
         <FooterCopyrightClientWrapper>
           <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />

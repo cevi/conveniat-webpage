@@ -1320,6 +1320,42 @@ export interface Form {
       }[]
     | null;
   /**
+   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   */
+  approvalEmails?:
+    | {
+        emailTo?: string | null;
+        cc?: string | null;
+        bcc?: string | null;
+        replyTo?: string | null;
+        emailFrom?: string | null;
+        subject: string;
+        /**
+         * If checked, files uploaded in this form submission will be attached to this approval email.
+         */
+        attachFiles?: boolean | null;
+        /**
+         * Enter the message that should be sent in this approval email.
+         */
+        message?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Configure workflows to trigger after form submission.
    */
   configuredWorkflows?:
@@ -3480,51 +3516,53 @@ export interface HelperShift {
   /**
    * Detailed description of the shift (optional).
    */
-  mainContent: (
-    | {
-        richTextSection: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
+  mainContent?:
+    | (
+        | {
+            richTextSection: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
               [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        };
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'richTextSection';
-      }
-    | {
-        image: string | Image;
-        /**
-         * Choose the aspect ratio of the image.
-         */
-        aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'singlePicture';
-      }
-    | {
-        file: string | Document;
-        openInNewTab?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'fileDownload';
-      }
-    | AccordionBlocks
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'whiteSpace';
-      }
-  )[];
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTextSection';
+          }
+        | {
+            image: string | Image;
+            /**
+             * Choose the aspect ratio of the image.
+             */
+            aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'singlePicture';
+          }
+        | {
+            file: string | Document;
+            openInNewTab?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fileDownload';
+          }
+        | AccordionBlocks
+        | {
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'whiteSpace';
+          }
+      )[]
+    | null;
   /**
    * Location of the shift (optional).
    */
@@ -3663,6 +3701,14 @@ export interface EmergencyCard {
   };
   documents?: (string | Document)[] | null;
   images?: (string | Image)[] | null;
+  /**
+   * If enabled, this card will be expanded by default when viewing the emergency page.
+   */
+  isExpandedByDefault?: boolean | null;
+  /**
+   * If enabled, this card will always remain expanded and cannot be collapsed by users.
+   */
+  isNonMinifiable?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -5882,6 +5928,8 @@ export interface EmergencyCardsSelect<T extends boolean = true> {
   procedure?: T;
   documents?: T;
   images?: T;
+  isExpandedByDefault?: T;
+  isNonMinifiable?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -6653,6 +6701,19 @@ export interface FormsSelect<T extends boolean = true> {
         message?: T;
         id?: T;
       };
+  approvalEmails?:
+    | T
+    | {
+        emailTo?: T;
+        cc?: T;
+        bcc?: T;
+        replyTo?: T;
+        emailFrom?: T;
+        subject?: T;
+        attachFiles?: T;
+        message?: T;
+        id?: T;
+      };
   configuredWorkflows?:
     | T
     | {
@@ -7079,6 +7140,44 @@ export interface Footer {
   _localized_status: LocalizedPublishingStatus;
   _locale: string;
   _disable_unpublishing?: boolean | null;
+  /**
+   * Menu items displayed in the app bottom navigation bar. If empty, the default menu items (Chats, Emergency, Home, Map, Program) are used.
+   */
+  appNavBarMenu?:
+    | {
+        label: string;
+        icon:
+          | 'MessageSquare'
+          | 'Siren'
+          | 'House'
+          | 'MapIcon'
+          | 'Calendar'
+          | 'Users'
+          | 'Settings'
+          | 'Info'
+          | 'Bell'
+          | 'Compass'
+          | 'MapPin'
+          | 'Tent'
+          | 'Utensils'
+          | 'Flag'
+          | 'HelpCircle'
+          | 'Phone'
+          | 'Shield'
+          | 'CheckSquare'
+          | 'List'
+          | 'BriefcaseMedical'
+          | 'Radio'
+          | 'Sparkles'
+          | 'Heart';
+        /**
+         * Target path or URL (e.g. /app/chat, /app/emergency, /app/dashboard, /app/map, /app/schedule).
+         */
+        href: string;
+        color?: ('default' | 'red' | 'green') | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Menu item in the dark area of the footer
    */
@@ -7789,6 +7888,15 @@ export interface FooterSelect<T extends boolean = true> {
   _localized_status?: T;
   _locale?: T;
   _disable_unpublishing?: T;
+  appNavBarMenu?:
+    | T
+    | {
+        label?: T;
+        icon?: T;
+        href?: T;
+        color?: T;
+        id?: T;
+      };
   minimalFooterMenu?:
     | T
     | {

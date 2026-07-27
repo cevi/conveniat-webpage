@@ -5,7 +5,11 @@ export const makeQueryClient = (): QueryClient => {
     defaultOptions: {
       queries: {
         staleTime: 30 * 1000,
+        gcTime: 72 * 60 * 60 * 1000, // 72 hours for offline disk persistence
         networkMode: 'offlineFirst',
+        refetchOnMount: true,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
       },
       mutations: {
         networkMode: 'offlineFirst',

@@ -164,6 +164,31 @@ export const getChatList = trpcBaseProcedure
       }
     }
 
+    const cmsUsersMap = new Map<
+      string,
+      { fullName?: string; nickname?: string | null | undefined }
+    >();
+    try {
+      const { getPayload } = await import('payload');
+      const { default: config } = await import('@payload-config');
+      const payload = await getPayload({ config });
+
+      const cmsUsers = await payload.find({
+        collection: 'users',
+        limit: 1000,
+        depth: 0,
+      });
+
+      for (const u of cmsUsers.docs) {
+        cmsUsersMap.set(u.id, {
+          fullName: u.fullName,
+          nickname: u.nickname,
+        });
+      }
+    } catch {
+      // Fallback if Payload query fails
+    }
+
     // 2. Map retrieved chats synchronously to their DTO representation
     return _chats.map((chat): ChatWithMessagePreview => {
       const lastMessage = chat.messages[0];
@@ -186,10 +211,15 @@ export const getChatList = trpcBaseProcedure
         lastUpdate: chat.lastUpdate,
         name: resolveChatName(
           chat.name,
-          chat.chatMemberships.map((membership) => ({
-            name: membership.user.name,
-            uuid: membership.user.uuid,
-          })),
+          chat.chatMemberships.map((membership) => {
+            const cmsUser = cmsUsersMap.get(membership.user.uuid);
+            return {
+              name: membership.user.name,
+              uuid: membership.user.uuid,
+              fullName: cmsUser?.fullName,
+              nickname: cmsUser?.nickname,
+            };
+          }),
           user,
           chat.type,
         ),

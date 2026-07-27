@@ -10,25 +10,20 @@ export async function GET(request: NextRequest): Promise<Response> {
   const session = await auth();
   const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
-  if (!user?.uuid) {
+  if (typeof user?.uuid !== 'string' || user.uuid === '') {
     return new Response('Unauthorized', { status: 401 });
   }
 
   const { searchParams } = new URL(request.url);
   const chatIdsParameter = searchParams.get('chatIds');
 
-  if (!chatIdsParameter) {
-    return new Response('Missing chatIds parameter', { status: 400 });
-  }
-
-  const rawChatIds = chatIdsParameter
-    .split(',')
-    .map((id) => id.trim())
-    .filter(Boolean);
-
-  if (rawChatIds.length === 0) {
-    return new Response('No valid chat IDs provided', { status: 400 });
-  }
+  const rawChatIds =
+    typeof chatIdsParameter === 'string' && chatIdsParameter.trim() !== ''
+      ? chatIdsParameter
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean)
+      : [];
 
   // Filter out user.uuid as they automatically subscribe to their own channel
   const chatIds = rawChatIds.filter((id) => id !== user.uuid);
@@ -47,10 +42,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // Validate UUID format to prevent injection and invalid queries (except for 'all' channel)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const validIdRegex =
+    /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24}|[a-z0-9_-]{1,64})$/i;
   for (const id of chatIds) {
     if (id === 'all') continue;
-    if (!uuidRegex.test(id)) {
+    if (!validIdRegex.test(id)) {
       return new Response(`Invalid chat ID format: ${id}`, { status: 400 });
     }
   }
@@ -108,7 +104,6 @@ export async function GET(request: NextRequest): Promise<Response> {
         }
       }, 30_000);
 
-      // eslint-disable-next-line unicorn/consistent-function-scoping
       const listener = (event: ChatRealtimeEvent): void => {
         try {
           const dataString = superjson.stringify(event);

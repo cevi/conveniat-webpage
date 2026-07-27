@@ -1,4 +1,4 @@
-import { formatUserFullName } from '@/utils/format-user-name';
+import { formatUserFullName, getContactShortName } from '@/utils/format-user-name';
 
 describe('formatUserFullName', () => {
   it('returns full name when nickname is missing or empty', () => {
@@ -28,5 +28,22 @@ describe('formatUserFullName', () => {
   it('returns empty string if both full name and nickname are empty', () => {
     expect(formatUserFullName('', '')).toBe('');
     expect(formatUserFullName()).toBe('');
+  });
+});
+
+describe('getContactShortName', () => {
+  it('returns nickname without v/o prefix when nickname is present', () => {
+    expect(getContactShortName({ name: 'Max Mustermann v/o Musterli', nickname: 'Musterli' })).toBe(
+      'Musterli',
+    );
+    expect(
+      getContactShortName({ name: 'Max Mustermann v/o Musterli', nickname: 'v/o Musterli' }),
+    ).toBe('Musterli');
+  });
+
+  it('falls back to first name when nickname is missing or empty', () => {
+    // eslint-disable-next-line unicorn/no-null
+    expect(getContactShortName({ name: 'Max Mustermann', nickname: null })).toBe('Max');
+    expect(getContactShortName({ name: 'Melissa Wilms', nickname: '' })).toBe('Melissa');
   });
 });

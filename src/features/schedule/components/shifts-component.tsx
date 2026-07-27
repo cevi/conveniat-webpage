@@ -1,92 +1,119 @@
-import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
-import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
-import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
-import { getHelperShifts } from '@/features/schedule/api/get-helper-shifts';
+'use client';
+
+import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
+import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 import { ShiftCard } from '@/features/schedule/components/shift-card';
+import { ShiftMainContent } from '@/features/schedule/components/shift-main-content';
+import { useSchedule } from '@/features/schedule/hooks/use-schedule';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import React from 'react';
 
 const noShiftsText: StaticTranslationString = {
-  en: 'No helper shifts available yet.',
-  de: 'Noch keine Schichteinsätze verfügbar.',
-  fr: 'Aucun service disponible pour le moment.',
+  en: 'No helper shifts available for this date.',
+  de: 'Noch keine Schichteinsätze für dieses Datum verfügbar.',
+  fr: 'Aucun service disponible pour cette date.',
 };
 
-const pageTitle: StaticTranslationString = {
-  en: 'Helper Shifts',
-  de: 'Schichteinsätze',
-  fr: 'Services de helpers',
-};
-
-/**
- * Groups helper shifts by date for display.
- */
-function groupByDate(
-  shifts: HelperShiftFrontendType[],
-): { date: string; shifts: HelperShiftFrontendType[] }[] {
-  const dateMap = new Map<string, HelperShiftFrontendType[]>();
-
-  for (const shift of shifts) {
-    const dateKey = shift.timeslot.date.split('T')[0] ?? shift.timeslot.date;
-    const existing = dateMap.get(dateKey) ?? [];
-    existing.push(shift);
-    dateMap.set(dateKey, existing);
+function hasShiftMainContent(mainContent?: unknown): boolean {
+  if (!Array.isArray(mainContent) || mainContent.length === 0) {
+    return false;
   }
 
-  return (
-    [...dateMap.entries()]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      .sort(([a], [b]) => (a ?? '').localeCompare(b ?? ''))
-      .map(([date, groupShifts]) => ({ date, shifts: groupShifts }))
-  );
+  return mainContent.some((block) => {
+    if (block === null || block === undefined || typeof block !== 'object') {
+      return false;
+    }
+    const b = block as Record<string, unknown>;
+
+    if (b['blockType'] === 'richTextSection') {
+      const section =
+        typeof b['richTextSection'] === 'object' && b['richTextSection'] !== null
+          ? (b['richTextSection'] as Record<string, unknown>)
+          : undefined;
+      const root =
+        typeof section?.['root'] === 'object' && section['root'] !== null
+          ? (section['root'] as Record<string, unknown>)
+          : undefined;
+      if (root === undefined) {
+        return false;
+      }
+
+      const hasTextNode = (node: unknown): boolean => {
+        if (node === null || node === undefined || typeof node !== 'object') {
+          return false;
+        }
+        const n = node as Record<string, unknown>;
+        if (typeof n['text'] === 'string' && n['text'].trim().length > 0) {
+          return true;
+        }
+        if (Array.isArray(n['children'])) {
+          return n['children'].some((childItem) => hasTextNode(childItem));
+        }
+        return false;
+      };
+
+      return hasTextNode(root);
+    }
+
+    return true;
+  });
 }
 
 /**
- * Main Server Component for the /app/helper-portal page.
- * Fetches helper shifts directly and groups them by date.
+ * Client Component for the /app/helper-portal page.
+ * Displays date selector carousel and helper shifts filtered by selected date.
  */
-export const ShiftsComponent: React.FC<{ locale: Locale }> = async ({ locale }) => {
-  const shifts = await getHelperShifts({}, locale);
-  const grouped = groupByDate(shifts);
+export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
+  const {
+    currentDate,
+    allDates,
+    currentProgram: currentShifts,
+    carouselStartIndex,
+    maxVisibleDays,
+    actions,
+  } = useSchedule(shifts ?? []);
+
+  const hasShifts = currentShifts.length > 0;
+
+  if (isLoading) {
+    return <ScheduleLoadingSkeleton />;
+  }
 
   return (
-    <article className="mx-auto w-full max-w-2xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">{pageTitle[locale]}</h1>
+    <DateCarouselViewWrapper
+      allDates={allDates}
+      currentDate={currentDate}
+      carouselStartIndex={carouselStartIndex}
+      maxVisibleDays={maxVisibleDays}
+      locale={locale}
+      onDateSelect={actions.handleDateSelect}
+      onCarouselPrevious={actions.handleCarouselPrevious}
+      onCarouselNext={actions.handleCarouselNext}
+    >
+      {hasShifts ? (
+        <div className="space-y-3">
+          {currentShifts.map((shift) => {
+            const hasMainContent = hasShiftMainContent(shift.mainContent);
 
-      {grouped.length === 0 && (
-        <p className="text-center text-sm text-gray-400">{noShiftsText[locale]}</p>
+            return (
+              <ShiftCard key={shift.id} shift={shift} locale={locale}>
+                {hasMainContent && (
+                  <ShiftMainContent blocks={shift.mainContent as unknown[]} locale={locale} />
+                )}
+              </ShiftCard>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="py-12 text-center text-sm text-gray-400">{noShiftsText[locale]}</div>
       )}
-
-      <div className="space-y-8">
-        {grouped.map(({ date, shifts: dayShifts }) => (
-          <section key={date}>
-            <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-400 uppercase">
-              {new Date(date).toLocaleDateString(locale, {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })}
-            </h2>
-            <div className="space-y-3">
-              {dayShifts.map((shift) => {
-                const hasMainContent =
-                  Array.isArray(shift.mainContent) && shift.mainContent.length > 0;
-
-                return (
-                  <ShiftCard key={shift.id} shift={shift} locale={locale}>
-                    {hasMainContent && (
-                      <PageSectionsConverter
-                        blocks={shift.mainContent as ContentBlock[]}
-                        locale={locale}
-                      />
-                    )}
-                  </ShiftCard>
-                );
-              })}
-            </div>
-          </section>
-        ))}
-      </div>
-    </article>
+    </DateCarouselViewWrapper>
   );
 };

@@ -1,9 +1,9 @@
 'use client';
 
+import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { SelectInput, useAllFormFields, useField, useLocale } from '@payloadcms/ui';
 import type { TextFieldClientComponent } from 'payload';
-import { useEffect } from 'react';
 
 const noSelectionText: StaticTranslationString = {
   en: 'Select a question key',
@@ -24,27 +24,18 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
         fieldName.includes('questions') &&
         fieldName.split('.').length === 3,
     )
-    .map(([, field]) => field.value)
-    .filter((questionKey): questionKey is string => {
-      if (typeof questionKey !== 'string') {
-        return false;
-      }
-      return questionKey.trim().length > 0;
-    }); // filter out non-string and empty/whitespace-only keys
+    .map(([, field]) => extractStringKey(field.value, locale.code))
+    .filter((k): k is string => k !== undefined);
 
-  useEffect(() => {
-    // if questionKeys does not include the current value, reset it to empty string
-    // this happens when a key is renamed in the question array
-    if (value && !questionKeys.includes(value as string)) {
-      setValue('');
-    }
-  }, [questionKeys, value, setValue]);
+  const currentValue = extractStringKey(value, locale.code) ?? '';
+  const isDangling = currentValue !== '' && !questionKeys.includes(currentValue);
+  const availableKeys = isDangling ? [...questionKeys, currentValue] : questionKeys;
 
   const onChange = (selectedOption: { value: unknown } | { value: unknown }[]): void => {
     if (Array.isArray(selectedOption)) {
       setValue('');
     } else {
-      setValue(selectedOption.value);
+      setValue(selectedOption.value ?? '');
     }
   };
 
@@ -53,10 +44,15 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
       name={path}
       path={path}
       label={noSelectionText[locale.code as Locale]}
-      options={questionKeys.map((key) => ({ label: key, value: key }))}
-      value={(value as string) || ''}
+      options={[
+        { label: noSelectionText[locale.code as Locale], value: '' },
+        ...availableKeys.map((key) => ({
+          label: key === currentValue && isDangling ? `${key} (Invalid / Ungültig)` : key,
+          value: key,
+        })),
+      ]}
+      value={currentValue}
       onChange={onChange}
-      localized
     />
   );
 };

@@ -1,18 +1,17 @@
 'use client';
 
-import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0] ?? '';
 
-export const useSchedule = (
-  scheduleEntries: CampScheduleEntryFrontendType[],
+export const useSchedule = <T extends { timeslot: { date: string } }>(
+  scheduleEntries: T[],
 ): {
   currentDate: Date;
   formattedDate: string;
   allDates: Date[];
-  currentProgram: CampScheduleEntryFrontendType[];
+  currentProgram: T[];
   hasProgram: boolean;
   expandedEntries: Set<string>;
   starredEntries: Set<string>;
@@ -68,16 +67,26 @@ export const useSchedule = (
     return dateToValidate;
   }, [allDates, searchParameters]);
 
-  const [currentDate, setCurrentDate] = useState(validatedInitialDate);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+
+  const currentDate = useMemo(() => {
+    if (selectedDate !== undefined && allDates.length > 0) {
+      const formattedSelected = formatDate(selectedDate);
+      const isSelectedValid = allDates.some((d) => formatDate(d) === formattedSelected);
+      if (isSelectedValid) {
+        return selectedDate;
+      }
+    }
+    return validatedInitialDate;
+  }, [selectedDate, allDates, validatedInitialDate]);
 
   const [expandedEntries, setExpandedEntries] = useState(new Set<string>());
   const [starredEntries, setStarredEntries] = useState(new Set<string>());
   const [carouselStartIndex, setCarouselStartIndex] = useState(0);
 
   useEffect(() => {
-    // Only sync date to URL if we are on the main schedule page
-    // Using regex to match /schedule or /schedule/ but not sub-paths
-    if (!/\/schedule\/?$/.test(pathname)) {
+    // Only sync date to URL if we are on schedule or helper-portal page
+    if (!/\/(schedule|helper-portal)\/?$/.test(pathname)) {
       return;
     }
 
@@ -92,7 +101,7 @@ export const useSchedule = (
   }, [currentDate, router, searchParameters, pathname]);
 
   const dailyPrograms = useMemo(() => {
-    const programs: { [id: string]: CampScheduleEntryFrontendType[] } = {};
+    const programs: Record<string, T[]> = {};
     for (const date of allDates) {
       programs[formatDate(date)] = [];
     }
@@ -117,7 +126,7 @@ export const useSchedule = (
     setCarouselStartIndex((previous) => Math.min(previous + 1, allDates.length - maxVisibleDays));
 
   const handleDateSelect = (date: Date): void => {
-    setCurrentDate(date);
+    setSelectedDate(date);
     setExpandedEntries(new Set()); // Reset expanded state on date change
   };
 

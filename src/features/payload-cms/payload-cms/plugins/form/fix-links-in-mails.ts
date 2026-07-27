@@ -138,7 +138,36 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       });
 
       for (const fileDocument of formFiles.docs) {
-        if (fileDocument.isTemporary || fileDocument.formSubmission !== formSubmissionId) {
+        let fileFormId: string | undefined;
+        if (typeof fileDocument.form === 'string') {
+          fileFormId = fileDocument.form;
+        } else if (typeof fileDocument.form === 'object' && fileDocument.form !== null) {
+          fileFormId = (fileDocument.form as { id: string }).id;
+        }
+
+        // Verify that the file belongs to this form to prevent cross-form file claiming
+        if (fileFormId !== undefined && formId !== undefined && fileFormId !== formId) {
+          continue;
+        }
+
+        const fileSubmissionRaw = fileDocument.formSubmission;
+        let fileSubmissionId: string | undefined;
+        if (typeof fileSubmissionRaw === 'string') {
+          fileSubmissionId = fileSubmissionRaw;
+        } else if (typeof fileSubmissionRaw === 'object' && fileSubmissionRaw !== null) {
+          fileSubmissionId = (fileSubmissionRaw as { id: string }).id;
+        }
+
+        // If file already belongs to another non-temporary submission, skip it
+        if (
+          !fileDocument.isTemporary &&
+          fileSubmissionId !== undefined &&
+          fileSubmissionId !== formSubmissionId
+        ) {
+          continue;
+        }
+
+        if (fileDocument.isTemporary || fileSubmissionId !== formSubmissionId) {
           void payload
             .update({
               collection: 'form_collection',

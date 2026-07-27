@@ -7,6 +7,7 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Users, X } from 'lucide-react';
@@ -114,9 +115,20 @@ export const CreateNewChatPage: React.FC = () => {
 
   const isGroupChat = selectedContacts.length > 1;
 
-  const filteredContacts = allContacts?.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const filteredContacts = allContacts?.filter((contact) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (query === '') return true;
+    const matchesName = contact.name.toLowerCase().includes(query);
+    const matchesNickname =
+      typeof contact.nickname === 'string' && contact.nickname.trim().length > 0
+        ? contact.nickname.toLowerCase().includes(query)
+        : false;
+    const matchesDescription =
+      typeof contact.description === 'string' && contact.description.trim().length > 0
+        ? contact.description.toLowerCase().includes(query)
+        : false;
+    return matchesName || matchesNickname || matchesDescription;
+  });
 
   const validateGroupName = (name: string): string => {
     if (isGroupChat && name.trim().length === 0) {
@@ -293,7 +305,7 @@ export const CreateNewChatPage: React.FC = () => {
                         className="group relative flex shrink-0 flex-col items-center gap-1.5 pt-1"
                       >
                         <div className="bg-conveniat-green font-heading relative flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
-                          {contact.name.charAt(0).toUpperCase()}
+                          {getContactShortName(contact).charAt(0).toUpperCase()}
                           <button
                             type="button"
                             onClick={() => handleContactToggle(contact)}
@@ -303,7 +315,7 @@ export const CreateNewChatPage: React.FC = () => {
                           </button>
                         </div>
                         <span className="font-body max-w-[68px] truncate text-center text-xs font-medium text-gray-800">
-                          {contact.name.split(' ')[0]}
+                          {getContactShortName(contact)}
                         </span>
                       </div>
                     ))}
