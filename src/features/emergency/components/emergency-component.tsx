@@ -154,25 +154,32 @@ export const EmergencyComponent: React.FC = () => {
 
   const cards: EmergencyCard[] = React.useMemo(() => emergencyCards ?? [], [emergencyCards]);
 
-  const [userExpandedValues, setUserExpandedValues] = useState<string[] | undefined>();
-
-  const defaultExpandedIds = React.useMemo(() => {
-    return cards
-      .filter((card) => Boolean(card.isExpandedByDefault) || Boolean(card.isNonMinifiable))
-      .map((card) => `item-${card.id}`);
-  }, [cards]);
-
-  const nonMinifiableIds = React.useMemo(() => {
-    return cards.filter((card) => Boolean(card.isNonMinifiable)).map((card) => `item-${card.id}`);
-  }, [cards]);
+  const [userToggles, setUserToggles] = useState<Record<string, boolean>>({});
 
   const expandedValues = React.useMemo(() => {
-    const base = userExpandedValues ?? defaultExpandedIds;
-    return [...new Set([...base, ...nonMinifiableIds])];
-  }, [userExpandedValues, defaultExpandedIds, nonMinifiableIds]);
+    return cards
+      .filter((card) => {
+        if (card.isNonMinifiable) return true;
+        const cardId = `item-${card.id}`;
+        if (cardId in userToggles) {
+          return userToggles[cardId];
+        }
+        return Boolean(card.isExpandedByDefault);
+      })
+      .map((card) => `item-${card.id}`);
+  }, [cards, userToggles]);
 
   const handleAccordionValueChange = (newValues: string[]): void => {
-    setUserExpandedValues([...new Set([...newValues, ...nonMinifiableIds])]);
+    const newOpenSet = new Set(newValues);
+    setUserToggles((previousToggles) => {
+      const nextToggles = { ...previousToggles };
+      for (const card of cards) {
+        if (card.isNonMinifiable) continue;
+        const cardId = `item-${card.id}`;
+        nextToggles[cardId] = newOpenSet.has(cardId);
+      }
+      return nextToggles;
+    });
   };
 
   const filteredAlerts = cards.filter((card) =>
