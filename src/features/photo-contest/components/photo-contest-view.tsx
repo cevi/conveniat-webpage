@@ -352,7 +352,6 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
                   <span className="absolute top-3 left-3 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-bold text-white shadow-xs backdrop-blur-md">
                     #{index + 1}
