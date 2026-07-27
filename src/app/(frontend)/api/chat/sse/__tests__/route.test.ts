@@ -82,7 +82,7 @@ describe('GET /api/chat/sse', () => {
     mockAuth.mockResolvedValue({ user: mockUser });
     mockIsValidNextAuthUser.mockReturnValue(true);
 
-    const request = new NextRequest('https://konekta.ch/api/chat/sse?chatIds=invalid-uuid');
+    const request = new NextRequest('https://konekta.ch/api/chat/sse?chatIds=invalid!uuid');
     const response = await GET(request);
 
     expect(response.status).toBe(400);
@@ -116,5 +116,21 @@ describe('GET /api/chat/sse', () => {
     expect(response.status).toBe(200);
     expect(chatPubSub.subscribe).toHaveBeenCalledWith('user-uuid-123', expect.any(Function));
     expect(chatPubSub.subscribe).toHaveBeenCalledWith(validChatId, expect.any(Function));
+  });
+
+  it('accepts 24-character Mongo ObjectId format for chat/user IDs', async () => {
+    const objectId = '6a6702e5dbb6944dd8400954';
+    const mockUser = { uuid: 'user-uuid-123', group_ids: ['member-group'] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+    (prisma.chatMembership.findMany as unknown as jest.Mock).mockResolvedValue([
+      { chatId: objectId, userId: 'user-uuid-123' },
+    ]);
+
+    const request = new NextRequest(`https://konekta.ch/api/chat/sse?chatIds=${objectId}`);
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+    expect(chatPubSub.subscribe).toHaveBeenCalledWith(objectId, expect.any(Function));
   });
 });
