@@ -24,7 +24,7 @@ let globalEventSource: EventSource | undefined;
 let currentSubscribedIdsString = '';
 
 const handleError = (): void => {
-  const allSubscribedIds = [...activeChatSubscribers.keys()].filter(Boolean);
+  const allSubscribedIds = [...activeChatSubscribers.keys()].map((id) => id.trim()).filter(Boolean);
   if (allSubscribedIds.length === 0) {
     if (globalEventSource) {
       globalEventSource.close();
@@ -36,7 +36,10 @@ const handleError = (): void => {
 };
 
 function updateGlobalEventSource(currentUser: string): void {
-  const allSubscribedIds = [...activeChatSubscribers.keys()].sort();
+  const allSubscribedIds = [...activeChatSubscribers.keys()]
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .sort();
   const subscribedIdsString = `${currentUser}|${allSubscribedIds.join(',')}`;
 
   if (subscribedIdsString === currentSubscribedIdsString) {
@@ -51,7 +54,7 @@ function updateGlobalEventSource(currentUser: string): void {
 
   currentSubscribedIdsString = subscribedIdsString;
 
-  if (subscribedIdsString.length === 0 || !currentUser || allSubscribedIds.length === 0) {
+  if (currentUser === '' || currentUser.trim() === '' || allSubscribedIds.length === 0) {
     return;
   }
 
@@ -62,7 +65,7 @@ function updateGlobalEventSource(currentUser: string): void {
   const handleMessage = (event: MessageEvent<string>): void => {
     try {
       const parsed = superjson.parse(event.data);
-      if (!parsed || typeof parsed !== 'object') return;
+      if (parsed === null || typeof parsed !== 'object') return;
 
       const data = parsed as unknown as ChatRealtimeEvent;
 
@@ -90,10 +93,11 @@ export const useChatSSE = (chatIds: string[]): void => {
   const trpcUtils = trpc.useUtils();
   const { data: currentUser } = trpc.chat.user.useQuery({});
 
-  const chatIdsString = chatIds.join(',');
+  const validChatIds = chatIds.map((id) => id.trim()).filter(Boolean);
+  const chatIdsString = validChatIds.sort().join(',');
 
   useEffect(() => {
-    if (chatIdsString.length === 0 || typeof currentUser !== 'string' || currentUser === '') {
+    if (typeof currentUser !== 'string' || currentUser.trim() === '') {
       return;
     }
 
@@ -243,7 +247,7 @@ export const useChatSSE = (chatIds: string[]): void => {
         }
 
         // Direct TanStack cache injection for chatDetails instead of hard invalidation
-        if (!message.parentId) {
+        if (typeof message.parentId !== 'string' || message.parentId === '') {
           trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
             if (!old) return old;
 
