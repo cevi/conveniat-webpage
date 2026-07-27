@@ -78,18 +78,37 @@ export const updateMessageContent = trpcBaseProcedure
       if (currentQuestionIndex !== -1) {
         const currentQuestion = questions[currentQuestionIndex];
 
-        const selectedOption = currentQuestion?.options.find((opt) => {
-          if (
-            typeof content['selectedOptionId'] === 'string' &&
-            opt.id !== null &&
-            opt.id !== undefined
-          ) {
-            return opt.id === content['selectedOptionId'];
-          }
-          return opt.option === content['selectedOption'];
-        });
+        const selectedOptionId =
+          typeof content['selectedOptionId'] === 'string' ? content['selectedOptionId'] : undefined;
+        const selectedOptionText =
+          typeof content['selectedOption'] === 'string' ? content['selectedOption'] : undefined;
 
-        if (!selectedOption) {
+        // 1. Match by stable option ID
+        let selectedOption =
+          typeof selectedOptionId === 'string'
+            ? currentQuestion?.options.find((opt) => opt.id === selectedOptionId)
+            : undefined;
+
+        // 2. Match by exact option text
+        if (selectedOption === undefined && selectedOptionText !== undefined) {
+          selectedOption = currentQuestion?.options.find(
+            (opt) => opt.option === selectedOptionText,
+          );
+        }
+
+        // 3. Fallback: match by option index if option text was edited in CMS
+        if (selectedOption === undefined && Array.isArray(content['options'])) {
+          const rawOptions = content['options'] as (string | { option?: string })[];
+          const selectedIndex = rawOptions.findIndex((opt) => {
+            const label = typeof opt === 'string' ? opt : opt.option;
+            return label === selectedOptionText;
+          });
+          if (selectedIndex !== -1 && currentQuestion?.options[selectedIndex] !== undefined) {
+            selectedOption = currentQuestion.options[selectedIndex];
+          }
+        }
+
+        if (selectedOption === undefined) {
           throw new Error('Selected option is no longer valid for this question');
         }
 
@@ -137,9 +156,10 @@ export const updateMessageContent = trpcBaseProcedure
                   create: {
                     payload: {
                       question: nextQuestion.question,
-                      options: nextQuestion.options
-                        .map((o) => o.option as string | undefined)
-                        .filter((o): o is string => o !== undefined),
+                      options: nextQuestion.options.map((o) => ({
+                        id: o.id,
+                        option: o.option,
+                      })),
                       selectedOption: undefined,
                       questionRefId: nextQuestion.id,
                     },

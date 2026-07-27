@@ -31,11 +31,13 @@ import {
 } from 'lucide-react';
 
 export interface AppNavBarItem {
-  icon: LucideIcon;
+  iconName: string;
   label: string;
   href: string;
   color?: string | undefined;
 }
+
+export type SerializableAppNavBarItem = AppNavBarItem;
 
 export interface RawAppNavBarCmsItem {
   label: string;
@@ -76,6 +78,7 @@ export const APP_NAV_BAR_ICONS: Record<string, LucideIcon | undefined> = {
 
 export const defaultFooterNavBarMenuEntries = [
   {
+    iconName: 'MessageSquare',
     icon: MessageSquare,
     label: {
       de: 'Chats',
@@ -85,6 +88,7 @@ export const defaultFooterNavBarMenuEntries = [
     href: '/app/chat',
   },
   {
+    iconName: 'Siren',
     icon: Siren,
     label: {
       de: 'Notfall',
@@ -95,6 +99,7 @@ export const defaultFooterNavBarMenuEntries = [
     color: 'red',
   },
   {
+    iconName: 'House',
     icon: House,
     label: {
       de: 'Home',
@@ -104,6 +109,7 @@ export const defaultFooterNavBarMenuEntries = [
     href: '/app/dashboard',
   },
   {
+    iconName: 'MapIcon',
     icon: MapIcon,
     label: {
       de: 'Karte',
@@ -113,6 +119,7 @@ export const defaultFooterNavBarMenuEntries = [
     href: '/app/map',
   },
   {
+    iconName: 'Calendar',
     icon: Calendar,
     label: {
       de: 'Programm',
@@ -135,8 +142,12 @@ export function resolveAppNavBarEntries(
       if (!item) {
         continue;
       }
-      const iconKey = typeof item.icon === 'string' ? item.icon : '';
-      const IconComponent = APP_NAV_BAR_ICONS[iconKey] ?? House;
+      const iconName =
+        typeof item.icon === 'string' &&
+        item.icon.length > 0 &&
+        APP_NAV_BAR_ICONS[item.icon] !== undefined
+          ? item.icon
+          : 'House';
 
       const color =
         typeof item.color === 'string' && item.color.length > 0 && item.color !== 'default'
@@ -144,7 +155,7 @@ export function resolveAppNavBarEntries(
           : undefined;
 
       validItems.push({
-        icon: IconComponent,
+        iconName,
         label: typeof item.label === 'string' ? item.label : '',
         href: typeof item.href === 'string' ? item.href : '',
         color,
@@ -157,7 +168,7 @@ export function resolveAppNavBarEntries(
   }
 
   return defaultFooterNavBarMenuEntries.map((item) => ({
-    icon: item.icon,
+    iconName: item.iconName,
     label: item.label[locale],
     href: item.href,
     color: item.color,

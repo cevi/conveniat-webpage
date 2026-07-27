@@ -180,9 +180,10 @@ export const emergencyRouter = createTRPCRouter({
             create: {
               payload: {
                 question: firstQuestion.question,
-                options: firstQuestion.options
-                  .map((o) => o.option as string | undefined)
-                  .filter((o): o is string => o !== undefined),
+                options: firstQuestion.options.map((o) => ({
+                  id: o.id,
+                  option: o.option,
+                })),
                 selectedOption: undefined,
                 questionRefId: firstQuestion.id,
               },

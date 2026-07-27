@@ -5,29 +5,57 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { trpc } from '@/trpc/client';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, Circle, Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 
 interface AlertQuestionMessageProperties {
   message: ChatMessage;
   isCurrentUser: boolean;
 }
 
-interface QuestionPayload {
-  question: string;
-  options: string[];
-  selectedOption: string | null;
-  questionRefId?: string;
+interface OptionItem {
+  id?: string | undefined;
+  option: string;
 }
 
 export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({ message }) => {
   const chatId = useChatId();
-  const payload = message.messagePayload as unknown as QuestionPayload;
+  const rawPayload = message.messagePayload;
+
+  const payload = useMemo<Record<string, unknown>>(() => {
+    if (typeof rawPayload === 'object') {
+      return rawPayload as Record<string, unknown>;
+    }
+    return {};
+  }, [rawPayload]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [optimisticSelection, setOptimisticSelection] = useState<string | undefined>();
 
-  const currentSelection = payload.selectedOption ?? optimisticSelection;
-  const hasAnswered = !!currentSelection;
+  const rawSelectedOption =
+    typeof payload['selectedOption'] === 'string' ? payload['selectedOption'] : undefined;
+  const currentSelection = rawSelectedOption ?? optimisticSelection;
+  const hasAnswered = typeof currentSelection === 'string' && currentSelection.length > 0;
   const canAnswer = !hasAnswered;
+
+  const rawOptions = useMemo<unknown[]>(() => {
+    const optionsList = payload['options'];
+    return Array.isArray(optionsList) ? optionsList : [];
+  }, [payload]);
+
+  const normalizedOptions = useMemo<OptionItem[]>(() => {
+    return rawOptions.map((optItem) => {
+      if (typeof optItem === 'string') {
+        return { id: undefined, option: optItem };
+      }
+      if (optItem !== null && typeof optItem === 'object') {
+        const o = optItem as Record<string, unknown>;
+        const optText = typeof o['option'] === 'string' ? o['option'] : '';
+        const optId = typeof o['id'] === 'string' ? o['id'] : undefined;
+        return { id: optId, option: optText };
+      }
+      return { id: undefined, option: '' };
+    });
+  }, [rawOptions]);
 
   const trpcUtils = trpc.useUtils();
   const updateMessageContext = trpc.chat.updateMessageContent.useMutation({
@@ -40,36 +68,37 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
       setIsSubmitting(false);
       setOptimisticSelection(undefined);
       console.error('Failed to update message:', error);
-      // Optional: Show toast error here
     },
   });
 
-  const handleSelectOption = (option: string): void => {
+  const handleSelectOption = (optItem: OptionItem): void => {
     if (!canAnswer || isSubmitting) return;
     setIsSubmitting(true);
-    setOptimisticSelection(option);
+    setOptimisticSelection(optItem.option);
 
-    // We need to construct the new payload
     const newPayload = {
       ...payload,
-      selectedOption: option,
+      selectedOption: optItem.option,
+      selectedOptionId: optItem.id,
     };
 
     updateMessageContext.mutate({ messageId: message.id, content: newPayload });
   };
 
+  const questionTitle = typeof payload['question'] === 'string' ? payload['question'] : '';
+
   return (
     <div className="flex min-w-[200px] flex-col space-y-2.5 p-1">
-      <h3 className="font-semibold text-(--theme-elevation-900,#111827)">{payload.question}</h3>
+      <h3 className="font-semibold text-(--theme-elevation-900,#111827)">{questionTitle}</h3>
       <div className="flex flex-col space-y-2">
-        {payload.options.map((option) => {
-          const isSelected = currentSelection === option;
+        {normalizedOptions.map((item) => {
+          const isSelected = currentSelection === item.option;
           const isSelectable = canAnswer;
 
           return (
             <button
-              key={option}
-              onClick={() => handleSelectOption(option)}
+              key={`${item.id ?? ''}-${item.option}`}
+              onClick={() => handleSelectOption(item)}
               disabled={!isSelectable && !isSelected}
               className={cn(
                 'group flex items-center space-x-3 rounded-xl border-2 px-4 py-3 text-left transition-all duration-200',
@@ -102,7 +131,7 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
                   <Circle className="h-0 w-0" />
                 </div>
               )}
-              <span className="text-sm font-medium">{option}</span>
+              <span className="text-sm font-medium">{item.option}</span>
             </button>
           );
         })}

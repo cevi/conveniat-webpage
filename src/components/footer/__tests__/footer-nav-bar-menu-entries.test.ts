@@ -1,30 +1,29 @@
 import { resolveAppNavBarEntries } from '@/components/footer/footer-nav-bar-menu-entries';
-import { Calendar, House, MessageSquare, Siren } from 'lucide-react';
 
 describe('resolveAppNavBarEntries', () => {
   it('returns default menu entries when cmsItems is null, undefined, or empty', () => {
     const deEntries = resolveAppNavBarEntries(undefined, 'de');
     expect(deEntries).toHaveLength(5);
     expect(deEntries[0]).toEqual({
-      icon: MessageSquare,
+      iconName: 'MessageSquare',
       label: 'Chats',
       href: '/app/chat',
       color: undefined,
     });
     expect(deEntries[1]).toEqual({
-      icon: Siren,
+      iconName: 'Siren',
       label: 'Notfall',
       href: '/app/emergency',
       color: 'red',
     });
     expect(deEntries[2]).toEqual({
-      icon: House,
+      iconName: 'House',
       label: 'Home',
       href: '/app/dashboard',
       color: undefined,
     });
     expect(deEntries[4]).toEqual({
-      icon: Calendar,
+      iconName: 'Calendar',
       label: 'Programm',
       href: '/app/schedule',
       color: undefined,
@@ -35,7 +34,7 @@ describe('resolveAppNavBarEntries', () => {
     expect(frEntries[2]?.label).toBe('Accueil');
   });
 
-  it('maps custom CMS menu entries with corresponding icons and colors', () => {
+  it('maps custom CMS menu entries with corresponding icon names and colors', () => {
     const customCmsItems = [
       {
         label: 'Chat Room',
@@ -61,14 +60,14 @@ describe('resolveAppNavBarEntries', () => {
     expect(resolved).toHaveLength(3);
 
     expect(resolved[0]).toEqual({
-      icon: MessageSquare,
+      iconName: 'MessageSquare',
       label: 'Chat Room',
       href: '/app/chat',
       color: undefined,
     });
 
     expect(resolved[1]).toEqual({
-      icon: Siren,
+      iconName: 'Siren',
       label: 'Alarm',
       href: '/app/emergency',
       color: 'red',
@@ -76,7 +75,7 @@ describe('resolveAppNavBarEntries', () => {
 
     // Unknown icon falls back to House
     expect(resolved[2]).toEqual({
-      icon: House,
+      iconName: 'House',
       label: 'Custom Page',
       href: '/custom-page',
       color: 'green',

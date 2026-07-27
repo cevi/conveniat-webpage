@@ -1,9 +1,13 @@
 'use client';
 
 import type { AppNavBarItem } from '@/components/footer/footer-nav-bar-menu-entries';
-import { resolveAppNavBarEntries } from '@/components/footer/footer-nav-bar-menu-entries';
+import {
+  APP_NAV_BAR_ICONS,
+  resolveAppNavBarEntries,
+} from '@/components/footer/footer-nav-bar-menu-entries';
 import { NavLink } from '@/components/footer/nav-link';
 import type { Config } from '@/features/payload-cms/payload-types';
+import { House } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { useMemo, useState, useTransition } from 'react';
 
@@ -50,12 +54,13 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({ locale, i
       <nav className="flex w-full items-center justify-around px-4">
         {navItems.map((item) => {
           const isActive = longestMatch === item.href || currentLoadingHref === item.href;
+          const IconComponent = APP_NAV_BAR_ICONS[item.iconName] ?? House;
 
           return (
             <NavLink
               key={`${item.href}-${item.label}`}
               href={item.href}
-              icon={item.icon}
+              icon={IconComponent}
               label={item.label}
               isActive={isActive}
               color={item.color}
