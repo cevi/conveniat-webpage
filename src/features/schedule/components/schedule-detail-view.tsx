@@ -176,7 +176,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <>
         <SetHideHeader value />
         <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-60 flex flex-col overflow-hidden bg-gray-50">
+        <div className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-gray-50">
           <header className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">
             <button
               type="button"
@@ -202,7 +202,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <>
         <SetHideHeader value />
         <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
+        <div className="fixed inset-0 z-[110] flex flex-col items-center justify-center bg-gray-50 p-8 text-center">
           <p className="mb-4 text-gray-500">{labels.notFound[locale]}</p>
           <Button onClick={() => router.back()}>{labels.back[locale]}</Button>
         </div>
@@ -216,7 +216,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <>
         <SetHideHeader value />
         <AppFooterController hideAppFooter />
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-gray-50">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-gray-50">
           <div className="text-gray-400">Loading...</div>
         </div>
       </>
@@ -229,7 +229,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       <AppFooterController hideAppFooter />
 
       {/* Full-screen container */}
-      <div className="fixed inset-0 z-60 flex flex-col overflow-hidden bg-gray-50">
+      <div className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-gray-50">
         {/* Header */}
         <header className="flex h-16 items-center justify-between gap-3 border-b border-gray-100 bg-white/95 px-4 backdrop-blur-md">
           <div className="flex items-center gap-3 overflow-hidden">

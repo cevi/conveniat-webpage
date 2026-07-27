@@ -64,6 +64,18 @@ const organiserSchema = z.union([
 ]);
 
 /**
+ * Schema for category (can be string ID/enum or populated CampCategory object)
+ */
+const categorySchema = z.union([
+  z.string(),
+  z
+    .object({
+      id: z.string(),
+    })
+    .passthrough(), // Allow title, colorTheme, and additional properties from CampCategory
+]);
+
+/**
  * Define the schema for a schedule entry.
  * This matches CampScheduleEntryFrontendType.
  */
@@ -75,7 +87,9 @@ const scheduleEntrySchema = z.object({
   location: locationSchema,
   participants_min: z.number().nullable().optional(),
   participants_max: z.number().nullable().optional(),
-  category: z.enum(['workshop', 'general', 'food', 'activity', 'other']).nullable().optional(),
+  enable_enrolment: z.boolean().nullable().optional(),
+  category: categorySchema.nullable().optional(),
+  target_group: z.any().nullable().optional(),
   organiser: z.array(organiserSchema).nullable().optional(),
   // Metadata for cache management
   _syncedAt: z.number().optional(),
