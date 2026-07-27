@@ -34,14 +34,14 @@ describe('notificationClickHandler', () => {
       location: { origin: 'https://konekta.ch' } as Location,
       clients: {
         matchAll: jest.fn(),
-        openWindow: jest.fn().mockResolvedValue(undefined),
+        openWindow: jest.fn().mockResolvedValue(true),
       } as unknown as Clients,
     };
   });
 
   it('focuses visible client and uses navigate when supported', async () => {
-    const mockFocus = jest.fn().mockResolvedValue(undefined);
-    const mockNavigate = jest.fn().mockResolvedValue(undefined);
+    const mockFocus = jest.fn().mockResolvedValue(true);
+    const mockNavigate = jest.fn().mockResolvedValue(true);
     const mockPostMessage = jest.fn();
 
     const mockClient = {
@@ -76,7 +76,7 @@ describe('notificationClickHandler', () => {
   });
 
   it('falls back to postMessage when client navigate throws', async () => {
-    const mockFocus = jest.fn().mockResolvedValue(undefined);
+    const mockFocus = jest.fn().mockResolvedValue(true);
     const mockNavigate = jest.fn().mockRejectedValue(new Error('Navigation blocked'));
     const mockPostMessage = jest.fn();
 
@@ -100,10 +100,13 @@ describe('notificationClickHandler', () => {
 
     expect(mockFocus).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledTimes(1);
+    const expectedUrl = expect.stringContaining(
+      '/app/chat/550e8400-e29b-41d4-a716-446655440000',
+    ) as unknown as string;
     expect(mockPostMessage).toHaveBeenCalledWith({
       type: ServiceWorkerMessages.PUSH_NAVIGATE,
       payload: {
-        url: expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
+        url: expectedUrl,
       },
     });
   });

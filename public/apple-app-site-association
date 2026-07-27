@@ -11,11 +11,7 @@
             "comment": "Matches all routes"
           }
         ],
-        "paths": [
-          "*",
-          "/app/*",
-          "/entrypoint*"
-        ]
+        "paths": ["*", "/app/*", "/entrypoint*"]
       }
     ]
   }
