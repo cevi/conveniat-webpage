@@ -41,4 +41,5 @@ export const i18nExcludedRoutes: string[] = [
   'manifest.json',
   'sitemap.xml',
   'robots.txt',
+  'apple-app-site-association',
 ] as const;
