@@ -78,15 +78,35 @@ export const updateMessageContent = trpcBaseProcedure
       if (currentQuestionIndex !== -1) {
         const currentQuestion = questions[currentQuestionIndex];
 
-        const selectedOption = currentQuestion?.options.find(
-          (opt) => opt.option === content['selectedOption'],
-        );
+        const selectedOption = currentQuestion?.options.find((opt) => {
+          if (
+            typeof content['selectedOptionId'] === 'string' &&
+            opt.id !== null &&
+            opt.id !== undefined
+          ) {
+            return opt.id === content['selectedOptionId'];
+          }
+          return opt.option === content['selectedOption'];
+        });
 
-        const nextQuestionKeyFromOption = selectedOption?.nextQuestionKey?.trim();
+        if (!selectedOption) {
+          throw new Error('Selected option is no longer valid for this question');
+        }
 
-        const nextQuestion = nextQuestionKeyFromOption
-          ? questions.find((q) => Boolean(q.key) && q.key?.trim() === nextQuestionKeyFromOption)
-          : undefined;
+        const nextQuestionKeyFromOption = selectedOption.nextQuestionKey?.trim();
+
+        let nextQuestion: (typeof questions)[number] | undefined;
+
+        if (typeof nextQuestionKeyFromOption === 'string' && nextQuestionKeyFromOption.length > 0) {
+          nextQuestion = questions.find(
+            (q) => typeof q.key === 'string' && q.key.trim() === nextQuestionKeyFromOption,
+          );
+          if (!nextQuestion) {
+            throw new Error(
+              `Referenced next question key "${nextQuestionKeyFromOption}" not found`,
+            );
+          }
+        }
 
         // Send next question OR final response
         const createdNextMessage = await prisma.message.create({

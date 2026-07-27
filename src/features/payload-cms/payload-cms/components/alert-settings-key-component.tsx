@@ -32,10 +32,8 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
     }); // filter out non-string and empty/whitespace-only keys
 
   const currentValue = typeof value === 'string' ? value : '';
-  const availableKeys =
-    currentValue && !questionKeys.includes(currentValue)
-      ? [...questionKeys, currentValue]
-      : questionKeys;
+  const isDangling = currentValue !== '' && !questionKeys.includes(currentValue);
+  const availableKeys = isDangling ? [...questionKeys, currentValue] : questionKeys;
 
   const onChange = (selectedOption: { value: unknown } | { value: unknown }[]): void => {
     if (Array.isArray(selectedOption)) {
@@ -52,7 +50,10 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
       label={noSelectionText[locale.code as Locale]}
       options={[
         { label: noSelectionText[locale.code as Locale], value: '' },
-        ...availableKeys.map((key) => ({ label: key, value: key })),
+        ...availableKeys.map((key) => ({
+          label: key === currentValue && isDangling ? `${key} (Invalid / Ungültig)` : key,
+          value: key,
+        })),
       ]}
       value={currentValue}
       onChange={onChange}
