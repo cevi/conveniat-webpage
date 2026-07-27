@@ -65,7 +65,9 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
   const locale = useCurrentLocale(i18nConfig) as Locale;
   // Fetch all polygon annotations for context
   const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(undefined, {
-    staleTime: 1000 * 60 * 60, // 1 hour cache
+    staleTime: 1000 * 60 * 10, // 10 minutes cache
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Compute map center - for polygons, calculate centroid from polygon coordinates

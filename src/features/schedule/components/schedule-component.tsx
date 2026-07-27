@@ -1,5 +1,6 @@
 'use client';
 
+import { useScheduleEntries } from '@/context/schedule-entries-context';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
@@ -17,7 +18,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
@@ -34,18 +35,31 @@ export const ScheduleComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { starredEntries } = useStar();
   const isOnline = useOnlineStatus();
+  const { syncFromServer } = useScheduleEntries();
 
   // Fetch schedule entries via tRPC (CSR)
   const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(
     undefined,
     {
-      staleTime: 1000 * 60 * 60, // 1 hour
+      staleTime: 1000 * 60 * 10, // 10 minutes
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
     },
   );
 
+  // Sync fresh server entries into local offline storage
+  useEffect(() => {
+    if (scheduleEntries != undefined && scheduleEntries.length > 0) {
+      syncFromServer(scheduleEntries);
+    }
+  }, [scheduleEntries, syncFromServer]);
+
   // Get enrolled courses
-  const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
-  const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
+  const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery();
+  const enrolledIds = useMemo(() => {
+    const raw = enrollmentsQuery.data as unknown;
+    return new Set(Array.isArray(raw) ? (raw as string[]) : []);
+  }, [enrollmentsQuery.data]);
 
   const {
     currentDate,
