@@ -1,18 +1,17 @@
 'use client';
 
-import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
 const formatDate = (date: Date): string => date.toISOString().split('T')[0] ?? '';
 
-export const useSchedule = (
-  scheduleEntries: CampScheduleEntryFrontendType[],
+export const useSchedule = <T extends { timeslot: { date: string } }>(
+  scheduleEntries: T[],
 ): {
   currentDate: Date;
   formattedDate: string;
   allDates: Date[];
-  currentProgram: CampScheduleEntryFrontendType[];
+  currentProgram: T[];
   hasProgram: boolean;
   expandedEntries: Set<string>;
   starredEntries: Set<string>;
@@ -75,9 +74,8 @@ export const useSchedule = (
   const [carouselStartIndex, setCarouselStartIndex] = useState(0);
 
   useEffect(() => {
-    // Only sync date to URL if we are on the main schedule page
-    // Using regex to match /schedule or /schedule/ but not sub-paths
-    if (!/\/schedule\/?$/.test(pathname)) {
+    // Only sync date to URL if we are on schedule or helper-portal page
+    if (!/\/(schedule|helper-portal)\/?$/.test(pathname)) {
       return;
     }
 
@@ -92,7 +90,7 @@ export const useSchedule = (
   }, [currentDate, router, searchParameters, pathname]);
 
   const dailyPrograms = useMemo(() => {
-    const programs: { [id: string]: CampScheduleEntryFrontendType[] } = {};
+    const programs: Record<string, T[]> = {};
     for (const date of allDates) {
       programs[formatDate(date)] = [];
     }
