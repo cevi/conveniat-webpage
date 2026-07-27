@@ -44,11 +44,23 @@ export const ChatDetails: React.FC = () => {
   const addableContacts = useMemo(() => {
     if (!allContacts) return [];
     const participantIds = new Set(chatDetails.participants.map((p) => p.id));
-    return allContacts.filter(
-      (contact) =>
-        !participantIds.has(contact.userId) &&
-        contact.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    const query = searchQuery.toLowerCase().trim();
+    return allContacts.filter((contact) => {
+      if (participantIds.has(contact.userId)) return false;
+      if (query === '') return true;
+
+      const matchesName = contact.name.toLowerCase().includes(query);
+      const matchesNickname =
+        typeof contact.nickname === 'string' && contact.nickname.trim().length > 0
+          ? contact.nickname.toLowerCase().includes(query)
+          : false;
+      const matchesDescription =
+        typeof contact.description === 'string' && contact.description.trim().length > 0
+          ? contact.description.toLowerCase().includes(query)
+          : false;
+
+      return matchesName || matchesNickname || matchesDescription;
+    });
   }, [allContacts, chatDetails, searchQuery]);
 
   const isGroupChat = chatDetails.participants.length > 2;

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { getContactShortName } from '@/utils/format-user-name';
 import { Check, Loader2, Search, UserPlus, X } from 'lucide-react';
 import type React from 'react';
 
@@ -91,7 +92,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                 key={contact.userId}
                 className="font-body text-conveniat-green flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm"
               >
-                <span>{contact.name}</span>
+                <span>{getContactShortName(contact)}</span>
                 <button
                   onClick={() => onToggleSelection(contact)}
                   className="rounded-full p-0.5 hover:bg-green-200"

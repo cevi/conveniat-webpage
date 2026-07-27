@@ -61,10 +61,43 @@ export const getChat = trpcBaseProcedure
       });
     }
 
+    const cmsUsersMap = new Map<
+      string,
+      { fullName?: string; nickname?: string | null | undefined }
+    >();
+    try {
+      const { getPayload } = await import('payload');
+      const { default: config } = await import('@payload-config');
+      const payload = await getPayload({ config });
+
+      const cmsUsers = await payload.find({
+        collection: 'users',
+        limit: 1000,
+        depth: 0,
+      });
+
+      for (const u of cmsUsers.docs) {
+        cmsUsersMap.set(u.id, {
+          fullName: u.fullName,
+          nickname: u.nickname,
+        });
+      }
+    } catch {
+      // Fallback if Payload query fails
+    }
+
     return {
       name: resolveChatName(
         chat.name,
-        chat.chatMemberships.map((membership) => membership.user),
+        chat.chatMemberships.map((membership) => {
+          const cmsUser = cmsUsersMap.get(membership.user.uuid);
+          return {
+            name: membership.user.name,
+            uuid: membership.user.uuid,
+            fullName: cmsUser?.fullName,
+            nickname: cmsUser?.nickname,
+          };
+        }),
         user,
         chat.type,
       ),
