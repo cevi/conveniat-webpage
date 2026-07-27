@@ -3480,51 +3480,53 @@ export interface HelperShift {
   /**
    * Detailed description of the shift (optional).
    */
-  mainContent: (
-    | {
-        richTextSection: {
-          root: {
-            type: string;
-            children: {
-              type: any;
-              version: number;
+  mainContent?:
+    | (
+        | {
+            richTextSection: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
               [k: string]: unknown;
-            }[];
-            direction: ('ltr' | 'rtl') | null;
-            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-            indent: number;
-            version: number;
-          };
-          [k: string]: unknown;
-        };
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'richTextSection';
-      }
-    | {
-        image: string | Image;
-        /**
-         * Choose the aspect ratio of the image.
-         */
-        aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'singlePicture';
-      }
-    | {
-        file: string | Document;
-        openInNewTab?: boolean | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'fileDownload';
-      }
-    | AccordionBlocks
-    | {
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'whiteSpace';
-      }
-  )[];
+            };
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'richTextSection';
+          }
+        | {
+            image: string | Image;
+            /**
+             * Choose the aspect ratio of the image.
+             */
+            aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'singlePicture';
+          }
+        | {
+            file: string | Document;
+            openInNewTab?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fileDownload';
+          }
+        | AccordionBlocks
+        | {
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'whiteSpace';
+          }
+      )[]
+    | null;
   /**
    * Location of the shift (optional).
    */
