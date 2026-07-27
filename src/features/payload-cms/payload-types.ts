@@ -3663,6 +3663,14 @@ export interface EmergencyCard {
   };
   documents?: (string | Document)[] | null;
   images?: (string | Image)[] | null;
+  /**
+   * If enabled, this card will be expanded by default when viewing the emergency page.
+   */
+  isExpandedByDefault?: boolean | null;
+  /**
+   * If enabled, this card will always remain expanded and cannot be collapsed by users.
+   */
+  isNonMinifiable?: boolean | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -5882,6 +5890,8 @@ export interface EmergencyCardsSelect<T extends boolean = true> {
   procedure?: T;
   documents?: T;
   images?: T;
+  isExpandedByDefault?: T;
+  isNonMinifiable?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

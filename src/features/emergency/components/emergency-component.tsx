@@ -8,6 +8,7 @@ import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon } from 'lucide-react';
@@ -151,7 +152,28 @@ export const EmergencyComponent: React.FC = () => {
     };
   }, [status]);
 
-  const cards: EmergencyCard[] = emergencyCards ?? [];
+  const cards: EmergencyCard[] = React.useMemo(() => emergencyCards ?? [], [emergencyCards]);
+
+  const [userExpandedValues, setUserExpandedValues] = useState<string[] | undefined>();
+
+  const defaultExpandedIds = React.useMemo(() => {
+    return cards
+      .filter((card) => Boolean(card.isExpandedByDefault) || Boolean(card.isNonMinifiable))
+      .map((card) => `item-${card.id}`);
+  }, [cards]);
+
+  const nonMinifiableIds = React.useMemo(() => {
+    return cards.filter((card) => Boolean(card.isNonMinifiable)).map((card) => `item-${card.id}`);
+  }, [cards]);
+
+  const expandedValues = React.useMemo(() => {
+    const base = userExpandedValues ?? defaultExpandedIds;
+    return [...new Set([...base, ...nonMinifiableIds])];
+  }, [userExpandedValues, defaultExpandedIds, nonMinifiableIds]);
+
+  const handleAccordionValueChange = (newValues: string[]): void => {
+    setUserExpandedValues([...new Set([...newValues, ...nonMinifiableIds])]);
+  };
 
   const filteredAlerts = cards.filter((card) =>
     card.title.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -246,151 +268,166 @@ export const EmergencyComponent: React.FC = () => {
       );
     }
 
-    return filteredAlerts.map((alert) => (
-      <AccordionItem
-        value={`item-${alert.id}`}
-        key={alert.id}
-        className="overflow-hidden rounded-2xl border-none bg-white px-4 shadow-sm"
-      >
-        <AccordionTrigger className="py-4 hover:no-underline [&>svg]:h-8 [&>svg]:w-8 [&>svg]:rounded-xl [&>svg]:bg-gray-100 [&>svg]:p-1.5 [&>svg]:text-gray-600">
-          <div className="flex w-full items-center gap-4 pr-4 text-left">
-            <div className="shrink-0 rounded-xl bg-gray-100 p-2.5">
-              <BriefcaseMedical className="h-6 w-6 text-gray-700" />
-            </div>
-            <div className="flex flex-1 flex-col">
-              <span className="text-lg font-bold text-gray-900">{alert.title}</span>
-              <span className="text-sm font-normal text-gray-500">{tapForDetailsText[locale]}</span>
-            </div>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent className="space-y-4 pt-2 pb-4 text-gray-600">
-          <div className="text-gray-800">
-            <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
-              {descriptionLabel[locale]}
-            </strong>
-            <p className="text-sm leading-relaxed">{alert.description}</p>
-          </div>
+    return filteredAlerts.map((alert) => {
+      const isNonMinifiable = Boolean(alert.isNonMinifiable);
 
-          {alert.procedure.root.children.length > 0 && (
+      return (
+        <AccordionItem
+          value={`item-${alert.id}`}
+          key={alert.id}
+          disabled={isNonMinifiable}
+          className="overflow-hidden rounded-2xl border-none bg-white px-4 shadow-sm"
+        >
+          <AccordionTrigger
+            disabled={isNonMinifiable}
+            className={cn(
+              'py-4 hover:no-underline [&>svg]:h-8 [&>svg]:w-8 [&>svg]:rounded-xl [&>svg]:bg-gray-100 [&>svg]:p-1.5 [&>svg]:text-gray-600',
+              isNonMinifiable && 'cursor-default [&>svg:last-child]:hidden',
+            )}
+          >
+            <div className="flex w-full items-center gap-4 pr-4 text-left">
+              <div className="shrink-0 rounded-xl bg-gray-100 p-2.5">
+                <BriefcaseMedical className="h-6 w-6 text-gray-700" />
+              </div>
+              <div className="flex flex-1 flex-col">
+                <span className="text-lg font-bold text-gray-900">{alert.title}</span>
+                {!isNonMinifiable && (
+                  <span className="text-sm font-normal text-gray-500">
+                    {tapForDetailsText[locale]}
+                  </span>
+                )}
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="space-y-4 pt-2 pb-4 text-gray-600">
             <div className="text-gray-800">
               <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
-                {procedureLabel[locale]}
+                {descriptionLabel[locale]}
               </strong>
-              <div className="prose prose-sm max-w-none text-sm leading-relaxed">
-                <LexicalRichTextSection richTextSection={alert.procedure} locale={locale} />
-              </div>
+              <p className="text-sm leading-relaxed">{alert.description}</p>
             </div>
-          )}
 
-          {alert.documents && alert.documents.length > 0 && (
-            <div className="mt-4 border-t border-gray-100 pt-3">
-              <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
-                <FileText className="h-3.5 w-3.5 text-gray-400" />
-                {documentsHeading[locale]}
-              </strong>
-              <div className="flex flex-wrap gap-2">
-                {alert.documents.map((documentOrId) => {
-                  if (typeof documentOrId === 'string') return;
-                  const displayName =
-                    documentOrId.internalDescription || documentOrId.filename || 'Document';
-                  return (
-                    <a
-                      key={documentOrId.id}
-                      href={documentOrId.url ?? undefined}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
-                    >
-                      <Download className="h-3.5 w-3.5 text-gray-500" />
-                      <span>{displayName}</span>
-                    </a>
-                  );
-                })}
+            {alert.procedure.root.children.length > 0 && (
+              <div className="text-gray-800">
+                <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                  {procedureLabel[locale]}
+                </strong>
+                <div className="prose prose-sm max-w-none text-sm leading-relaxed">
+                  <LexicalRichTextSection richTextSection={alert.procedure} locale={locale} />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {alert.images && alert.images.length > 0 && (
-            <div className="mt-4 border-t border-gray-100 pt-3">
-              <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
-                <ImageIcon className="h-3.5 w-3.5 text-gray-400" />
-                {imagesHeading[locale]}
-              </strong>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {alert.images.map((imgOrId) => {
-                  if (typeof imgOrId === 'string') return;
-
-                  let altText = imgOrId.filename || 'Image';
-                  switch (locale) {
-                    case 'de': {
-                      altText = imgOrId.alt_de;
-
-                      break;
-                    }
-                    case 'en': {
-                      altText = imgOrId.alt_en;
-
-                      break;
-                    }
-                    case 'fr': {
-                      altText = imgOrId.alt_fr;
-
-                      break;
-                    }
-                    // No default
-                  }
-
-                  let captionText: string | undefined;
-                  switch (locale) {
-                    case 'de': {
-                      captionText = imgOrId.imageCaption_de ?? undefined;
-
-                      break;
-                    }
-                    case 'en': {
-                      captionText = imgOrId.imageCaption_en ?? undefined;
-
-                      break;
-                    }
-                    case 'fr': {
-                      captionText = imgOrId.imageCaption_fr ?? undefined;
-
-                      break;
-                    }
-                    // No default
-                  }
-
-                  return (
-                    <div
-                      key={imgOrId.id}
-                      className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
-                    >
+            {alert.documents && alert.documents.length > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-3">
+                <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
+                  <FileText className="h-3.5 w-3.5 text-gray-400" />
+                  {documentsHeading[locale]}
+                </strong>
+                <div className="flex flex-wrap gap-2">
+                  {alert.documents.map((documentOrId) => {
+                    if (typeof documentOrId === 'string') return;
+                    const displayName =
+                      documentOrId.internalDescription || documentOrId.filename || 'Document';
+                    return (
                       <a
-                        href={imgOrId.url ?? undefined}
+                        key={documentOrId.id}
+                        href={documentOrId.url ?? undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block overflow-hidden"
+                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
                       >
-                        <img
-                          src={imgOrId.url ?? undefined}
-                          alt={altText}
-                          className="h-28 w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
+                        <Download className="h-3.5 w-3.5 text-gray-500" />
+                        <span>{displayName}</span>
                       </a>
-                      {captionText && (
-                        <div className="truncate border-t border-gray-100 bg-white p-1.5 text-center text-[10px] text-gray-500">
-                          {captionText}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </AccordionContent>
-      </AccordionItem>
-    ));
+            )}
+
+            {alert.images && alert.images.length > 0 && (
+              <div className="mt-4 border-t border-gray-100 pt-3">
+                <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
+                  <ImageIcon className="h-3.5 w-3.5 text-gray-400" />
+                  {imagesHeading[locale]}
+                </strong>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {alert.images.map((imgOrId) => {
+                    if (typeof imgOrId === 'string') return;
+
+                    let altText = imgOrId.filename || 'Image';
+                    switch (locale) {
+                      case 'de': {
+                        altText = imgOrId.alt_de;
+
+                        break;
+                      }
+                      case 'en': {
+                        altText = imgOrId.alt_en;
+
+                        break;
+                      }
+                      case 'fr': {
+                        altText = imgOrId.alt_fr;
+
+                        break;
+                      }
+                      // No default
+                    }
+
+                    let captionText: string | undefined;
+                    switch (locale) {
+                      case 'de': {
+                        captionText = imgOrId.imageCaption_de ?? undefined;
+
+                        break;
+                      }
+                      case 'en': {
+                        captionText = imgOrId.imageCaption_en ?? undefined;
+
+                        break;
+                      }
+                      case 'fr': {
+                        captionText = imgOrId.imageCaption_fr ?? undefined;
+
+                        break;
+                      }
+                      // No default
+                    }
+
+                    return (
+                      <div
+                        key={imgOrId.id}
+                        className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                      >
+                        <a
+                          href={imgOrId.url ?? undefined}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block overflow-hidden"
+                        >
+                          <img
+                            src={imgOrId.url ?? undefined}
+                            alt={altText}
+                            className="h-28 w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </a>
+                        {captionText && (
+                          <div className="truncate border-t border-gray-100 bg-white p-1.5 text-center text-[10px] text-gray-500">
+                            {captionText}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+      );
+    });
   };
 
   return (
@@ -407,7 +444,12 @@ export const EmergencyComponent: React.FC = () => {
           </div>
         </div>
 
-        <Accordion type="single" collapsible className="mb-20 flex flex-col gap-4">
+        <Accordion
+          type="multiple"
+          value={expandedValues}
+          onValueChange={handleAccordionValueChange}
+          className="mb-20 flex flex-col gap-4"
+        >
           {renderAccordionContent()}
         </Accordion>
 
