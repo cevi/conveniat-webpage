@@ -3,7 +3,6 @@
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { SelectInput, useAllFormFields, useField, useLocale } from '@payloadcms/ui';
 import type { TextFieldClientComponent } from 'payload';
-import { useEffect } from 'react';
 
 const noSelectionText: StaticTranslationString = {
   en: 'Select a question key',
@@ -32,19 +31,17 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
       return questionKey.trim().length > 0;
     }); // filter out non-string and empty/whitespace-only keys
 
-  useEffect(() => {
-    // if questionKeys does not include the current value, reset it to empty string
-    // this happens when a key is renamed in the question array
-    if (value && !questionKeys.includes(value as string)) {
-      setValue('');
-    }
-  }, [questionKeys, value, setValue]);
+  const currentValue = typeof value === 'string' ? value : '';
+  const availableKeys =
+    currentValue && !questionKeys.includes(currentValue)
+      ? [...questionKeys, currentValue]
+      : questionKeys;
 
   const onChange = (selectedOption: { value: unknown } | { value: unknown }[]): void => {
     if (Array.isArray(selectedOption)) {
       setValue('');
     } else {
-      setValue(selectedOption.value);
+      setValue(selectedOption.value ?? '');
     }
   };
 
@@ -53,10 +50,12 @@ const AlertSettingsKeyComponent: TextFieldClientComponent = ({ path }) => {
       name={path}
       path={path}
       label={noSelectionText[locale.code as Locale]}
-      options={questionKeys.map((key) => ({ label: key, value: key }))}
-      value={(value as string) || ''}
+      options={[
+        { label: noSelectionText[locale.code as Locale], value: '' },
+        ...availableKeys.map((key) => ({ label: key, value: key })),
+      ]}
+      value={currentValue}
       onChange={onChange}
-      localized
     />
   );
 };

@@ -3,7 +3,7 @@ import type { Field } from 'payload';
 export const AlertSettingsNextKeyField: Field = {
   type: 'text',
   name: 'nextQuestionKey',
-  localized: true,
+  localized: false,
   required: false,
   admin: {
     description: {

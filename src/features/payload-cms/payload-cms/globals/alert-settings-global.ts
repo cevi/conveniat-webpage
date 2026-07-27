@@ -30,7 +30,7 @@ export const AlertSettingsGlobal: GlobalConfig = {
         {
           name: 'key',
           type: 'text',
-          localized: true,
+          localized: false,
           required: false,
           label: { en: 'Question key', de: 'Frage Schlüssel', fr: 'Clé de question' },
           admin: {
