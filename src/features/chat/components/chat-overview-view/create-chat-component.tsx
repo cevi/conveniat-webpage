@@ -203,7 +203,7 @@ export const CreateNewChatPage: React.FC = () => {
   const hasContacts = (allContacts?.length ?? 0) > 0;
 
   return (
-    <div className="fixed top-0 z-60 flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50/50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50/50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <AppFooterController hideAppFooter />
 
       {/* Modern Header */}
