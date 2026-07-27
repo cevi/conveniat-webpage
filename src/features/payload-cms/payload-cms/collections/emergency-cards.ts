@@ -92,6 +92,40 @@ export const EmergencyCardsCollection: CollectionConfig = asLocalizedCollection(
       hasMany: true,
       localized: false,
     },
+    {
+      name: 'isExpandedByDefault',
+      label: {
+        en: 'Expanded by default',
+        de: 'Standardmässig ausgeklappt',
+        fr: 'Développé par défaut',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          en: 'If enabled, this card will be expanded by default when viewing the emergency page.',
+          de: 'Wenn aktiviert, wird diese Karte auf der Notfallseite standardmässig ausgeklappt angezeigt.',
+          fr: 'Si activé, cette carte sera développée par défaut sur la page d’urgence.',
+        },
+      },
+    },
+    {
+      name: 'isNonMinifiable',
+      label: {
+        en: 'Non-minifiable (cannot be collapsed)',
+        de: 'Nicht einklappbar',
+        fr: 'Non repliable',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        description: {
+          en: 'If enabled, this card will always remain expanded and cannot be collapsed by users.',
+          de: 'Wenn aktiviert, bleibt diese Karte immer ausgeklappt und kann von Benutzern nicht eingeklappt werden.',
+          fr: 'Si activé, cette carte restera toujours développée et ne pourra pas être repliée par les utilisateurs.',
+        },
+      },
+    },
     LastEditedByUserField,
   ],
 });
