@@ -121,7 +121,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
       <AppFooterController hideAppFooter />
 
       {/* Full-screen container */}
-      <div className="fixed inset-0 z-60 flex flex-col overflow-hidden bg-gray-50">
+      <div className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-gray-50">
         {/* Header */}
         <header className="flex h-16 items-center justify-between gap-3 border-b-2 border-gray-200 bg-white px-4">
           <div className="flex items-center gap-3 overflow-hidden">
