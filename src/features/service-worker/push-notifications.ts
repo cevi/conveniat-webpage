@@ -1,4 +1,5 @@
 import { DesignModeTriggers } from '@/utils/design-codes';
+import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 interface NotificationPayload {
   title: string;
@@ -166,14 +167,41 @@ export const notificationClickHandler =
 
     const url = new URL(urlString, serviceWorkerScope.location.origin);
     url.searchParams.set(DesignModeTriggers.QUERY_PARAM_IMPLICIT, 'true');
-
-    const openWindowPromise = serviceWorkerScope.clients.openWindow(url.toString());
+    const targetUrlString = url.toString();
 
     const trackingPromise = notificationData.notificationId
       ? trackPushEvent(notificationData.notificationId, 'CLICK')
       : Promise.resolve();
 
-    event.waitUntil(Promise.all([openWindowPromise, trackingPromise]));
+    const openOrFocusPromise = (async (): Promise<void> => {
+      const clientList = await serviceWorkerScope.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      });
+
+      const existingClient =
+        clientList.find((client) => client.visibilityState === 'visible') ?? clientList[0];
+
+      if (existingClient) {
+        await existingClient.focus();
+        if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
+          try {
+            await existingClient.navigate(targetUrlString);
+            return;
+          } catch {
+            // fallback to postMessage
+          }
+        }
+        existingClient.postMessage({
+          type: ServiceWorkerMessages.PUSH_NAVIGATE,
+          payload: { url: targetUrlString },
+        });
+      } else {
+        await serviceWorkerScope.clients.openWindow(targetUrlString);
+      }
+    })();
+
+    event.waitUntil(Promise.all([openOrFocusPromise, trackingPromise]));
   };
 
 export function notificationCloseHandler(event: NotificationEvent): void {

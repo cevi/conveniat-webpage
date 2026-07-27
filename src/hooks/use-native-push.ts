@@ -222,20 +222,25 @@ export function useNativePush(): {
           break;
         }
         case 'native-push-open': {
-          if (typeof payload['url'] === 'string') {
-            const url = payload['url'];
-            const isRelative = url.startsWith('/') && !url.startsWith('//');
-            console.log(
-              '[NativePush:PWA] notification opened, navigating to:',
-              isRelative ? url : '/app/dashboard',
-            );
-            router.push(isRelative ? url : '/app/dashboard');
-          } else {
-            console.log(
-              '[NativePush:PWA] notification opened (no url), navigating to /app/dashboard',
-            );
-            router.push('/app/dashboard');
+          let targetPath = '/app/dashboard';
+          if (typeof payload['url'] === 'string' && payload['url'].trim() !== '') {
+            const rawUrl = payload['url'].trim();
+            if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
+              targetPath = rawUrl;
+            } else {
+              try {
+                const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+                targetPath = parsedUrl.pathname + parsedUrl.search;
+              } catch {
+                console.warn(
+                  '[NativePush:PWA] Could not parse URL, falling back to /app/dashboard:',
+                  rawUrl,
+                );
+              }
+            }
           }
+          console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
+          router.push(targetPath);
           break;
         }
         case 'native-push-error': {
