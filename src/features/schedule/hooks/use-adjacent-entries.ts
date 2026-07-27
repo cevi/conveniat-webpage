@@ -23,7 +23,9 @@ interface AdjacentEntries {
 export const useAdjacentEntries = (currentId: string): AdjacentEntries => {
   // 1. Try tRPC cache first (primary source)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 1000 * 60 * 60, // 1 hour – reuse existing cache
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // 2. Fallback to TanStack DB local cache (offline support)

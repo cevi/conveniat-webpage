@@ -27,8 +27,8 @@ const getHelperShiftsCached = async (
   locale: Locale,
 ): Promise<HelperShiftFrontendType[]> => {
   'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'helper-shifts');
+  cacheLife('minutes');
+  cacheTag('payload', 'collection:helper-shifts', 'helper-shifts');
 
   const payload = await getPayload({ config });
 

@@ -12,8 +12,8 @@ const getScheduleEntriesCached = async (
   locale: Locale,
 ): Promise<CampScheduleEntryFrontendType[]> => {
   'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'camp-schedule-entry');
+  cacheLife('minutes');
+  cacheTag('payload', 'collection:camp-schedule-entry', 'camp-schedule-entry');
 
   const payload = await getPayload({ config });
 
@@ -58,8 +58,8 @@ const getScheduleEntriesForDashboardCached = async (
   locale: Locale,
 ): Promise<CampScheduleEntryFrontendType[]> => {
   'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'camp-schedule-entry');
+  cacheLife('minutes');
+  cacheTag('payload', 'collection:camp-schedule-entry', 'camp-schedule-entry');
 
   const payload = await getPayload({ config });
 
