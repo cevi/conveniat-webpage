@@ -15,6 +15,7 @@ import { ensureApprovalToken } from '@/features/payload-cms/payload-cms/plugins/
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
 import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
+import { approvalEmailTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/approval-email-tab';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
 import { formFieldsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-fields-tab';
 import { formResultsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-results-tab';
@@ -26,6 +27,7 @@ import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import type { Field, TabsField } from 'payload';
 
 import { markUploadedFilesPermanent } from '@/features/payload-cms/payload-cms/plugins/form/hooks/mark-uploaded-files-permanent';
+import { sendApprovalEmail } from '@/features/payload-cms/payload-cms/plugins/form/hooks/send-approval-email';
 
 /**
  * Field for the internal form title.
@@ -84,7 +86,7 @@ const formFileUploadLimitField: Field = {
  */
 const formBuilderTabs: TabsField = {
   type: 'tabs',
-  tabs: [formFieldsTab, confirmationSettingsTab, workflowTab, formResultsTab],
+  tabs: [formFieldsTab, confirmationSettingsTab, approvalEmailTab, workflowTab, formResultsTab],
 };
 
 const formFields: Field[] = [
@@ -234,6 +236,10 @@ export const formPluginConfiguration = formBuilderPlugin({
               de: 'Formular-Antwort freigeben, um sie auf der Website anzuzeigen',
               fr: 'Approuver cette soumission pour l’afficher sur le site web',
             },
+            components: {
+              Field:
+                '@/features/payload-cms/payload-cms/components/form-submissions/approval-field',
+            },
           },
         },
         {
@@ -318,7 +324,7 @@ export const formPluginConfiguration = formBuilderPlugin({
     },
     hooks: {
       beforeChange: [ensureApprovalToken, validateFormSubmission, linkJobSubmission],
-      afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent],
+      afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent, sendApprovalEmail],
     },
   },
   formOverrides: {

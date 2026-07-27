@@ -1320,6 +1320,42 @@ export interface Form {
       }[]
     | null;
   /**
+   * Send custom emails when a form submission is approved (set to Freigegeben). Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   */
+  approvalEmails?:
+    | {
+        emailTo?: string | null;
+        cc?: string | null;
+        bcc?: string | null;
+        replyTo?: string | null;
+        emailFrom?: string | null;
+        subject: string;
+        /**
+         * If checked, files uploaded in this form submission will be attached to this approval email.
+         */
+        attachFiles?: boolean | null;
+        /**
+         * Enter the message that should be sent in this approval email.
+         */
+        message?: {
+          root: {
+            type: string;
+            children: {
+              type: any;
+              version: number;
+              [k: string]: unknown;
+            }[];
+            direction: ('ltr' | 'rtl') | null;
+            format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+            indent: number;
+            version: number;
+          };
+          [k: string]: unknown;
+        } | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Configure workflows to trigger after form submission.
    */
   configuredWorkflows?:
@@ -6653,6 +6689,19 @@ export interface FormsSelect<T extends boolean = true> {
         url?: T;
       };
   emails?:
+    | T
+    | {
+        emailTo?: T;
+        cc?: T;
+        bcc?: T;
+        replyTo?: T;
+        emailFrom?: T;
+        subject?: T;
+        attachFiles?: T;
+        message?: T;
+        id?: T;
+      };
+  approvalEmails?:
     | T
     | {
         emailTo?: T;
