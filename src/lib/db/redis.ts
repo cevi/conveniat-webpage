@@ -54,7 +54,6 @@ export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 const fetchCachedFeatureFlag = unstable_cache(
   async (key: string): Promise<boolean> => {
     const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
-    // eslint-disable-next-line unicorn/no-null
     if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
     return value === 'true';
   },
