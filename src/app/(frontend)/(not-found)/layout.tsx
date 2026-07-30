@@ -12,12 +12,12 @@ import { Suspense } from 'react';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
-  display: 'block',
+  display: 'swap',
 });
 
 const inter = Inter({
   subsets: ['latin'],
-  display: 'block',
+  display: 'swap',
 });
 
 const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
