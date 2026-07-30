@@ -17,15 +17,15 @@ export const cachedLlmsGenerator = async (): Promise<string> => {
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
   const lines: string[] = [];
 
-  lines.push('# conveniat27 - MIR SIND CEVI');
-  lines.push('');
   lines.push(
+    '# conveniat27 - MIR SIND CEVI',
+    '',
     '> Das offizielle Webportal von conveniat27 – das Harzfest / Cevi Schweiz Grossanlass im Sommer 2027.',
+    '',
+    '## Hauptseiten & Informationen',
+    '',
+    `- [Startseite](${APP_HOST_URL}/)`,
   );
-  lines.push('');
-  lines.push('## Hauptseiten & Informationen');
-  lines.push('');
-  lines.push(`- [Startseite](${APP_HOST_URL}/)`);
 
   // Include special pages from specialPagesTable
   for (const [key, specialPage] of Object.entries(specialPagesTable)) {
@@ -34,9 +34,7 @@ export const cachedLlmsGenerator = async (): Promise<string> => {
     lines.push(`- [${title}](${APP_HOST_URL}${path})`);
   }
 
-  lines.push('');
-  lines.push('## Veröffentlichte Seiten & Artikel');
-  lines.push('');
+  lines.push('', '## Veröffentlichte Seiten & Artikel', '');
 
   try {
     const payload = await getPayload({ config });
@@ -60,11 +58,16 @@ export const cachedLlmsGenerator = async (): Promise<string> => {
         },
       });
 
-      for (const doc of docs) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawDoc = doc as any;
-        const title = rawDoc.title || rawDoc.name || rawDoc.id;
-        const slug = rawDoc.seo?.urlSlug || rawDoc.slug || '';
+      for (const document_ of docs) {
+        const rawDocument = document_ as unknown as {
+          title?: string;
+          name?: string;
+          id?: string | number;
+          slug?: string;
+          seo?: { urlSlug?: string };
+        };
+        const title = rawDocument.title || rawDocument.name || String(rawDocument.id ?? '');
+        const slug = rawDocument.seo?.urlSlug || rawDocument.slug || '';
         if (slug) {
           lines.push(`- [${title}](${APP_HOST_URL}${prefix}/${slug})`);
         }
