@@ -50,18 +50,13 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       updateViaCache: 'none',
     });
 
-    // Wait for ready, but don't block indefinitely (e.g. if SW fails to activate)
-    const timeoutPromise = new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error('Service Worker registration timed out')), 5000),
-    );
+    // Wait for ready, but handle timeout gracefully without crashing the app in production
+    const timeoutPromise = new Promise<void>((resolve) => setTimeout(resolve, 15_000));
     await Promise.race([navigator.serviceWorker.ready, timeoutPromise]);
 
     return registration;
   } catch (error) {
-    // don't throw in dev mode
-    // eslint-disable-next-line n/no-process-env
-    if (process.env.NODE_ENV === 'development') return;
-
-    throw new Error('Service Worker registration failed', { cause: error });
+    console.warn('[Service Worker] Registration failed or timed out:', error);
+    return undefined;
   }
 };

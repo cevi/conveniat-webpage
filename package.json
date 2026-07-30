@@ -10,7 +10,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build && serwist build --config serwist.config.js",
+    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build && serwist build --config serwist.config.js && (cp public/sw.js .next/standalone/public/sw.js 2>/dev/null || true)",
     "build:cache": "esbuild src/cache-handlers/default.ts --bundle --platform=node --format=cjs --outfile=src/cache-handlers/default.cjs --external:next --external:ioredis --external:node:crypto --external:node:fs --external:node:path --external:node:fs/promises --external:@opentelemetry/api",
     "db:pull": "bash src/scripts/db/pull.sh",
     "db:push-dev": "bash src/scripts/db/push-dev.sh",

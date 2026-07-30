@@ -110,21 +110,18 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   // For RSC requests, we ALWAYS return a 504 instead of Response.error()
   // explicitly to prevent Next.js App Router from throwing unhandled "TypeError: Failed to fetch"
   if (isRsc) {
-    let cachedRsc: Response | undefined;
-    if (isAppMode) {
-      cachedRsc = await matchCachedRsc(url.toString());
-    }
+    const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
     console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Returning 504 response.`);
-    // IMPORTANT: Returning Response.error() causes Next.js App Router to hang indefinitely
-    // or crash with an unhandled TypeError. We must return a valid HTTP Error (like 504) so
-    // the React Server Component parser rejects and triggers the error.tsx boundary cleanly.
-    return new Response(`Offline: ${url.toString()}`, {
-      status: 504,
-      statusText: 'Gateway Timeout',
-      headers: { 'Content-Type': 'text/x-component' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'offline', message: `Offline: ${url.toString()}` }),
+      {
+        status: 504,
+        statusText: 'Gateway Timeout',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 
   // Strategy E: API Fallback
@@ -229,7 +226,9 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     await ensureAppModeInitialized();
   }
 
-  const isAppModeClient = event.clientId !== '' && isClientInAppMode(event.clientId);
+  const isAppModeClient =
+    (event.clientId !== '' && isClientInAppMode(event.clientId)) ||
+    (event.resultingClientId !== '' && isClientInAppMode(event.resultingClientId));
 
   // Detect native app WebView via User-Agent (matches the server-side check in design-rewrite-proxy.ts).
   // This is the most reliable signal: the WebView ALWAYS sends 'KonektaApp/1.0' in the UA,
@@ -249,13 +248,21 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     }
   }
 
-  // Fire-and-forget persistence (don't block response)
+  // Synchronously register resultingClientId during navigation if in App Mode
   if (isNavigation) {
+    const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
+    if (
+      (hasAppModeParameter || isNativeAppWebView || isAppModeClient) &&
+      event.resultingClientId !== ''
+    ) {
+      addAppModeClient(event.resultingClientId);
+    }
+
     event.waitUntil(
       (async (): Promise<void> => {
-        const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
+        const hasAppModeParam = url.searchParams.get('app-mode') === 'true';
         if (
-          (hasAppModeParameter ||
+          (hasAppModeParam ||
             isNativeAppWebView ||
             (event.clientId !== '' && isClientInAppMode(event.clientId))) &&
           event.resultingClientId !== ''
@@ -379,6 +386,53 @@ export const handleFetchEvent =
 
     // avoid the service worker for admin panel and ingest requests
     if (isAdminPanel || isIngestRequest) {
+      return;
+    }
+
+    if (
+      isAuthRequest &&
+      (url.pathname.includes('/auth/signout') || url.pathname.includes('/auth/signin'))
+    ) {
+      event.waitUntil(
+        (async (): Promise<void> => {
+          await caches.delete('next-auth-session-cache');
+        })(),
+      );
+    }
+
+    if (isAuthRequest && url.pathname.endsWith('/session')) {
+      event.respondWith(
+        (async (): Promise<Response> => {
+          try {
+            const networkResponse = await fetch(event.request);
+            if (networkResponse.ok) {
+              const clone = networkResponse.clone();
+              try {
+                const sessionData = (await clone.json()) as { user?: unknown };
+                if (sessionData && sessionData.user) {
+                  const authCache = await caches.open('next-auth-session-cache');
+                  await authCache.put(event.request, networkResponse.clone());
+                } else {
+                  await caches.delete('next-auth-session-cache');
+                }
+              } catch {
+                await caches.delete('next-auth-session-cache');
+              }
+            } else if (networkResponse.status === 401 || networkResponse.status === 403) {
+              await caches.delete('next-auth-session-cache');
+            }
+            return networkResponse;
+          } catch {
+            const authCache = await caches.open('next-auth-session-cache');
+            const cachedSession = await authCache.match(event.request);
+            if (cachedSession) return cachedSession;
+            return new Response(JSON.stringify({ user: undefined, expires: undefined }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        })(),
+      );
       return;
     }
 

@@ -62,6 +62,83 @@ const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
  * Setup static persister which falls back to no-op on Server Side Rendering.
  * This guarantees consistent component mounting during hydration and prevents warnings.
  */
+/* eslint-disable unicorn/prevent-abbreviations, unicorn/prefer-add-event-listener, unicorn/no-null */
+const indexedDBStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return null;
+    return new Promise((resolve) => {
+      try {
+        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
+        openRequest.onupgradeneeded = (): void => {
+          if (!openRequest.result.objectStoreNames.contains('keyval')) {
+            openRequest.result.createObjectStore('keyval');
+          }
+        };
+        openRequest.onsuccess = (): void => {
+          const db = openRequest.result;
+          const tx = db.transaction('keyval', 'readonly');
+          const store = tx.objectStore('keyval');
+          const getReq = store.get(key);
+          getReq.onsuccess = (): void => resolve((getReq.result as string | undefined) ?? null);
+          getReq.onerror = (): void => resolve(null);
+        };
+        openRequest.onerror = (): void => resolve(null);
+      } catch {
+        resolve(null);
+      }
+    });
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return;
+    return new Promise((resolve) => {
+      try {
+        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
+        openRequest.onupgradeneeded = (): void => {
+          if (!openRequest.result.objectStoreNames.contains('keyval')) {
+            openRequest.result.createObjectStore('keyval');
+          }
+        };
+        openRequest.onsuccess = (): void => {
+          const db = openRequest.result;
+          const tx = db.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          store.put(value, key);
+          tx.oncomplete = (): void => resolve();
+          tx.onerror = (): void => resolve();
+        };
+        openRequest.onerror = (): void => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return;
+    return new Promise((resolve) => {
+      try {
+        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
+        openRequest.onupgradeneeded = (): void => {
+          if (!openRequest.result.objectStoreNames.contains('keyval')) {
+            openRequest.result.createObjectStore('keyval');
+          }
+        };
+        openRequest.onsuccess = (): void => {
+          const db = openRequest.result;
+          const tx = db.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          store.delete(key);
+          tx.oncomplete = (): void => resolve();
+          tx.onerror = (): void => resolve();
+        };
+        openRequest.onerror = (): void => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  },
+};
+/* eslint-enable @typescript-eslint/explicit-function-return-type, unicorn/prevent-abbreviations, unicorn/prefer-global-this, unicorn/prefer-add-event-listener, unicorn/no-null */
+
 const persister: Persister =
   // eslint-disable-next-line unicorn/prefer-global-this
   typeof window === 'undefined'
@@ -71,8 +148,10 @@ const persister: Persister =
         removeClient: (): Promise<void> => Promise.resolve(),
       }
     : createAsyncStoragePersister({
-        storage: globalThis.localStorage,
-        key: 'conveniat-query-cache',
+        storage: indexedDBStorage,
+        serialize: (data) => superjson.stringify(data),
+        deserialize: (data) => superjson.parse(data),
+        key: 'conveniat-query-cache-idb',
       });
 
 const persistOptions = {
@@ -85,7 +164,11 @@ const persistOptions = {
       if (query.queryKey[0] === 'qrCodeSvgImage') {
         return false;
       }
-      return defaultShouldDehydrateQuery(query);
+      return (
+        defaultShouldDehydrateQuery(query) ||
+        query.state.fetchStatus === 'paused' ||
+        (query.state.status === 'pending' && query.state.data !== undefined)
+      );
     },
   },
 };

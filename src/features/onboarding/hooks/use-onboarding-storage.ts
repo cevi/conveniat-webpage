@@ -60,12 +60,21 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
   const handleOfflineContent = useCallback((accepted: boolean) => {
     // Store preference in TanStack DB
     void import('@/lib/tanstack-db').then(({ userPreferencesCollection }) => {
-      userPreferencesCollection.insert({ key: 'offline-content-handled', value: true });
-      if (accepted) {
-        userPreferencesCollection.insert({ key: 'offline-content-accepted', value: true });
-      } else {
-        userPreferencesCollection.insert({ key: 'offline-content-accepted', value: false });
-      }
+      const setPreference = (key: string, value: boolean): void => {
+        try {
+          const existing = userPreferencesCollection.get(key);
+          if (existing) {
+            userPreferencesCollection.update(key, (prev) => ({ ...prev, value }));
+          } else {
+            userPreferencesCollection.insert({ key, value });
+          }
+        } catch {
+          // Ignore duplicate insert errors
+        }
+      };
+
+      setPreference('offline-content-handled', true);
+      setPreference('offline-content-accepted', accepted);
     });
 
     // Store skip preference in cookies as well for a fast secondary check
