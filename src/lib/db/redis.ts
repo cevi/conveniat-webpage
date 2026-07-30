@@ -54,18 +54,10 @@ export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 
 const fetchCachedFeatureFlag = unstable_cache(
   async (key: string): Promise<boolean> => {
-    try {
-      const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
-      // eslint-disable-next-line unicorn/no-null
-      if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
-      return value === 'true';
-    } catch (error) {
-      console.warn(
-        `[Redis] Feature flag fetch failed for ${key}, fallback to default:`,
-        (error as Error).message,
-      );
-      return FEATURE_FLAG_DEFAULTS[key] ?? false;
-    }
+    const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
+    // eslint-disable-next-line unicorn/no-null
+    if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
+    return value === 'true';
   },
   ['feature-flags-cache'],
   {
@@ -75,15 +67,19 @@ const fetchCachedFeatureFlag = unstable_cache(
 );
 
 export const getFeatureFlag = async (key: string): Promise<boolean> => {
-  return fetchCachedFeatureFlag(key);
+  try {
+    return await fetchCachedFeatureFlag(key);
+  } catch (error) {
+    console.warn(
+      `[Redis] Feature flag fetch failed for ${key}, returning un-cached default fallback:`,
+      (error as Error).message,
+    );
+    return FEATURE_FLAG_DEFAULTS[key] ?? false;
+  }
 };
 
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {
-  try {
-    await redis.set(`${FEATURE_FLAG_PREFIX}${key}`, String(value));
-  } catch (error) {
-    console.warn(`[Redis] Feature flag set failed for ${key}:`, (error as Error).message);
-  }
+  await redis.set(`${FEATURE_FLAG_PREFIX}${key}`, String(value));
   try {
     revalidateTag('feature-flags', 'max-age=0');
   } catch {
