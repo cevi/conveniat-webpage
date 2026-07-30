@@ -126,7 +126,6 @@ export const useOfflineQueueProcessor = (): void => {
   }, [isOnline, trpcUtils]);
 };
 
-// eslint-disable-next-line unicorn/no-null
 export const OfflineQueueSync = (): null => {
   useOfflineQueueProcessor();
   // eslint-disable-next-line unicorn/no-null

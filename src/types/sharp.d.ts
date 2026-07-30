@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 declare module 'sharp' {
-  export { default } from 'sharp/lib/index';
+  import sharp = require('sharp/lib/index');
+  export = sharp;
 }

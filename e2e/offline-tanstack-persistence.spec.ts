@@ -18,7 +18,7 @@ test.describe('Offline TanStack Query & NextAuth Session', () => {
               contentType: 'application/json',
               body: JSON.stringify({
                 user: { name: 'Test User', email: 'test@cevi.ch' },
-                expires: new Date(Date.now() + 86400000).toISOString(),
+                expires: new Date(Date.now() + 86_400_000).toISOString(),
               }),
             }
           : {

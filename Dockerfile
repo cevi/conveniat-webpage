@@ -2,10 +2,8 @@
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 FROM node:24.15-alpine AS base
 
-# Install curl for healthcheck, libc6-compat for native libs, and build dependencies for sharp
-RUN apk add --no-cache curl libc6-compat poppler-utils vips vips-dev fftw-dev gcc g++ make python3 && \
-  npm rebuild sharp --platform=linuxmusl --arch=x64 && \
-  apk del vips-dev fftw-dev gcc g++ make python3
+# Install curl for healthcheck, libc6-compat for native libs, poppler-utils and vips for sharp
+RUN apk add --no-cache curl libc6-compat poppler-utils vips vips-dev
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -15,7 +13,7 @@ ENV BUILD_TARGET=production
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc* ./
 COPY patches ./patches
 
 RUN \
@@ -69,7 +67,11 @@ RUN \
   else echo "Lockfile not found." && exit 1; \
   fi
 
-
+# Copy full node_modules native bindings into standalone node_modules so Next.js standalone output includes sharp native binaries
+RUN mkdir -p /app/.next/standalone/node_modules/@img && \
+    cp -r /app/node_modules/@img/* /app/.next/standalone/node_modules/@img/ 2>/dev/null || true
+RUN mkdir -p /app/.next/standalone/node_modules/.pnpm && \
+    cp -r /app/node_modules/.pnpm/* /app/.next/standalone/node_modules/.pnpm/ 2>/dev/null || true
 
 # Ensure fallback cache directory exists so copy commands don't fail if empty
 RUN mkdir -p .next/cache/fs-fallback

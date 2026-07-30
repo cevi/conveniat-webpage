@@ -197,7 +197,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
       const userId =
         typeof currentUser === 'string' && currentUser !== ''
           ? currentUser
-          : (typeof window !== 'undefined' && localStorage.getItem('conveniat-user-id')) ||
+          : (typeof globalThis !== 'undefined' && localStorage.getItem('conveniat-user-id')) ||
             'offline-user';
 
       // Immediately clear the citation preview in the UI

@@ -260,9 +260,9 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 
     event.waitUntil(
       (async (): Promise<void> => {
-        const hasAppModeParam = url.searchParams.get('app-mode') === 'true';
+        const hasAppModeParameter_ = url.searchParams.get('app-mode') === 'true';
         if (
-          (hasAppModeParam ||
+          (hasAppModeParameter_ ||
             isNativeAppWebView ||
             (event.clientId !== '' && isClientInAppMode(event.clientId))) &&
           event.resultingClientId !== ''
@@ -409,7 +409,7 @@ export const handleFetchEvent =
               const clone = networkResponse.clone();
               try {
                 const sessionData = (await clone.json()) as { user?: unknown };
-                if (sessionData && sessionData.user) {
+                if (sessionData.user) {
                   const authCache = await caches.open('next-auth-session-cache');
                   await authCache.put(event.request, networkResponse.clone());
                 } else {

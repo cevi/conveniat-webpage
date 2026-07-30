@@ -4,7 +4,6 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-/* eslint-disable import/first */
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import {
   getJoinedAsAdminMessagePayload,

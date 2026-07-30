@@ -23,7 +23,7 @@ describe('offline-outbox utility tests', () => {
     // Mock global localStorage
     Object.defineProperty(globalThis, 'localStorage', {
       value: {
-        // eslint-disable-next-line unicorn/no-null, @typescript-eslint/strict-boolean-expressions
+        // eslint-disable-next-line unicorn/no-null
         getItem: jest.fn((key: string) => mockStorage[key] ?? null),
         setItem: jest.fn((key: string, value: string) => {
           mockStorage[key] = value;

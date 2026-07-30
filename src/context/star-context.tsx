@@ -67,11 +67,11 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
   useEffect(() => {
     const handleOnline = (): void => setIsOnlineState(true);
     const handleOffline = (): void => setIsOnlineState(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    globalThis.addEventListener('online', handleOnline);
+    globalThis.addEventListener('offline', handleOffline);
     return (): void => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      globalThis.removeEventListener('online', handleOnline);
+      globalThis.removeEventListener('offline', handleOffline);
     };
   }, []);
 

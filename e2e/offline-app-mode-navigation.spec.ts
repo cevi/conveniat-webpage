@@ -11,7 +11,7 @@ test.describe('Offline App Mode Navigation & Fallbacks', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           user: { name: 'Test User', email: 'test@cevi.ch' },
-          expires: new Date(Date.now() + 86400000).toISOString(),
+          expires: new Date(Date.now() + 86_400_000).toISOString(),
         }),
       });
     });
@@ -30,8 +30,8 @@ test.describe('Offline App Mode Navigation & Fallbacks', () => {
     // 3. Verify App Mode signal is active
     const isAppModeDetected = await page.evaluate(() => {
       return (
-        window.navigator.userAgent.includes('KonektaApp') ||
-        window.location.search.includes('app-mode=true')
+        globalThis.navigator.userAgent.includes('KonektaApp') ||
+        globalThis.location.search.includes('app-mode=true')
       );
     });
     expect(isAppModeDetected).toBe(true);
@@ -48,7 +48,7 @@ test.describe('Offline App Mode Navigation & Fallbacks', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           user: { name: 'Test User', email: 'test@cevi.ch' },
-          expires: new Date(Date.now() + 86400000).toISOString(),
+          expires: new Date(Date.now() + 86_400_000).toISOString(),
         }),
       });
     });
@@ -59,7 +59,7 @@ test.describe('Offline App Mode Navigation & Fallbacks', () => {
     await context.setOffline(true);
 
     // Attempt to navigate offline
-    await page.goto('/app/schedule').catch(() => undefined);
+    await page.goto('/app/schedule').catch(() => {});
 
     expect(true).toBe(true);
   });

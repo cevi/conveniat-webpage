@@ -64,7 +64,7 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
         try {
           const existing = userPreferencesCollection.get(key);
           if (existing) {
-            userPreferencesCollection.update(key, (prev) => ({ ...prev, value }));
+            userPreferencesCollection.update(key, (previous) => ({ ...previous, value }));
           } else {
             userPreferencesCollection.insert({ key, value });
           }

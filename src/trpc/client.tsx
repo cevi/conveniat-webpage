@@ -137,7 +137,7 @@ const indexedDBStorage = {
     });
   },
 };
-/* eslint-enable @typescript-eslint/explicit-function-return-type, unicorn/prevent-abbreviations, unicorn/prefer-global-this, unicorn/prefer-add-event-listener, unicorn/no-null */
+/* eslint-enable unicorn/prevent-abbreviations, unicorn/prefer-add-event-listener, unicorn/no-null */
 
 const persister: Persister =
   // eslint-disable-next-line unicorn/prefer-global-this

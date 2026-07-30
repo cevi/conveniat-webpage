@@ -116,9 +116,9 @@ export const MapLibreRenderer = ({
     if (updatedMapData) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnnotationPoints(updatedMapData.campMapAnnotationPoints);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setAnnotationPolygons(updatedMapData.campMapAnnotationPolygons);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setSchedulesState(updatedMapData.schedules);
 
       // Trigger background update of the PWA offline cache for `/app/map` page & RSC
@@ -142,7 +142,6 @@ export const MapLibreRenderer = ({
       }
       const updatedPolygon = annotationPolygons.find((a) => a.id === openAnnotation.id);
       if (updatedPolygon && updatedPolygon !== openAnnotation) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setOpenAnnotation(updatedPolygon);
       }
     }

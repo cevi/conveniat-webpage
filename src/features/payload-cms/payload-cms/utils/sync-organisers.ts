@@ -6,7 +6,7 @@ import {
   MessageEventType,
   MessageType,
 } from '@prisma/client';
-// eslint-disable-next-line import/no-restricted-paths
+
 import {
   getJoinedAsAdminMessagePayload,
   getLeftGroupMessagePayload,

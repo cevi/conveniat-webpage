@@ -13,7 +13,7 @@ const OFFLINE_OUTBOX_KEY = 'conveniat-offline-outbox';
  * Retrieves the current queue of offline messages from localStorage.
  */
 export const getOfflineOutbox = (): OfflineMessage[] => {
-  // eslint-disable-next-line unicorn/prefer-global-this, unicorn/no-typeof-undefined
+  // eslint-disable-next-line unicorn/prefer-global-this
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(OFFLINE_OUTBOX_KEY);
@@ -29,7 +29,7 @@ export const getOfflineOutbox = (): OfflineMessage[] => {
  * Saves a list of offline messages to localStorage.
  */
 const saveOfflineOutbox = (outbox: OfflineMessage[]): void => {
-  // eslint-disable-next-line unicorn/prefer-global-this, unicorn/no-typeof-undefined
+  // eslint-disable-next-line unicorn/prefer-global-this
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(OFFLINE_OUTBOX_KEY, JSON.stringify(outbox));
