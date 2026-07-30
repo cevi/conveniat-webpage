@@ -101,5 +101,8 @@ jobs:
 
           echo "All assertions passed successfully. The job step completed as required."
 
+      - name: Run TypeScript typecheck
+        run: pnpm typecheck
+
       - name: Check Code Style and Linting using ESLint
         run: pnpm lint:check
