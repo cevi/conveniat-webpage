@@ -38,8 +38,7 @@ export const redis =
     : new Redis(env.REDIS_URL, {
         connectTimeout: 2000,
         maxRetriesPerRequest: 1,
-        enableOfflineQueue: false,
-        retryStrategy: (times: number): number | void | null => Math.min(times * 50, 1000),
+        retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
       }));
 
 if (env.NODE_ENV !== 'production') globalForRedis.redis = redis;

@@ -22,8 +22,7 @@ export class RedisCache extends BaseCacheHandler {
       lazyConnect: true,
       connectTimeout: 2000,
       maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-      retryStrategy: (times: number): number | void | null => Math.min(times * 50, 1000),
+      retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
     });
 
     this.redis.on('error', (error: { code: string }) => {
