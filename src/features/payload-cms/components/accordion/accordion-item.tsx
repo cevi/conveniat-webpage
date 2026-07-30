@@ -38,7 +38,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left focus:outline-hidden"
+        className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left focus-visible:outline-2 focus-visible:outline-conveniat-blue focus-visible:outline-offset-2"
         aria-expanded={isExpanded}
         aria-controls={`content-${blockId}`}
       >
