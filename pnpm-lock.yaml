@@ -162,8 +162,8 @@ importers:
         specifier: ^0.12.0
         version: 0.12.0(typescript@5.7.2)(valibot@1.2.0(typescript@5.7.2))(zod@3.25.76)
       '@tanstack/db':
-        specifier: ^0.5.33
-        version: 0.5.33(typescript@5.7.2)
+        specifier: ^0.6.16
+        version: 0.6.16(typescript@5.7.2)
       '@tanstack/offline-transactions':
         specifier: ^1.0.41
         version: 1.0.41(typescript@5.7.2)
@@ -3775,18 +3775,8 @@ packages:
   '@tailwindcss/postcss@4.3.3':
     resolution: {integrity: sha512-JTSZZGQi1AyKirbLN3azmjVzef92tcX7h+iSqPdaeStyFpGpDlKvvpxeOE8njhbUanbRwr3z8DyzhICWnMtQeg==}
 
-  '@tanstack/db-ivm@0.1.17':
-    resolution: {integrity: sha512-DK7vm56CDxNuRAdsbiPs+gITJ+16tUtYgZg3BRTLYKGIDsy8sdIO7sQFq5zl7Y+aIKAPmMAbVp9UjJ75FTtwgQ==}
-    peerDependencies:
-      typescript: '>=4.7'
-
   '@tanstack/db-ivm@0.1.18':
     resolution: {integrity: sha512-+pZJiRKdoKRM5Epq9T7otD9ZJl82pRFauo7LKuJGrarjVKQ7r+QQlPe3kGdN9LEKSnuNGIWjX9OOY4M8kH4eLw==}
-    peerDependencies:
-      typescript: '>=4.7'
-
-  '@tanstack/db@0.5.33':
-    resolution: {integrity: sha512-8pV3jZdqx6VgDubuddoT0UbQi8RrlCJ/kjhmgPIZUjvfhD3sz1TRMK4RTwOOf/JPTQ4qwWy5ggYLUTJxZZRB2w==}
     peerDependencies:
       typescript: '>=4.7'
 
@@ -14532,23 +14522,10 @@ snapshots:
       postcss: 8.5.22
       tailwindcss: 4.3.3
 
-  '@tanstack/db-ivm@0.1.17(typescript@5.7.2)':
-    dependencies:
-      fractional-indexing: 3.4.0
-      sorted-btree: 1.8.1
-      typescript: 5.7.2
-
   '@tanstack/db-ivm@0.1.18(typescript@5.7.2)':
     dependencies:
       fractional-indexing: 3.4.0
       sorted-btree: 1.8.1
-      typescript: 5.7.2
-
-  '@tanstack/db@0.5.33(typescript@5.7.2)':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      '@tanstack/db-ivm': 0.1.17(typescript@5.7.2)
-      '@tanstack/pacer-lite': 0.2.2
       typescript: 5.7.2
 
   '@tanstack/db@0.6.16(typescript@5.7.2)':

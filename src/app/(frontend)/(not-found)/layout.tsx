@@ -2,23 +2,13 @@ import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-n
 import { HeaderComponent } from '@/components/header/header-component';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
+import { sharedFontClassName } from '@/utils/fonts';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { renderInAppDesign } from '@/utils/render-in-app-design';
 import { cn } from '@/utils/tailwindcss-override';
-import { Inter, Montserrat } from 'next/font/google';
 import type React from 'react';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  display: 'block',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'block',
-});
 
 const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
   const isInAppDesign = await renderInAppDesign();
@@ -26,7 +16,7 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
 
   return (
     <html
-      className={cn(`${montserrat.className} ${inter.className}`, {
+      className={cn(sharedFontClassName, {
         'overscroll-y-none': isInAppDesign,
       })}
       lang={locale}
