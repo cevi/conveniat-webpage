@@ -1,9 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
 import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
-import config from '@payload-config';
 
 /**
  * Generates dynamic llms.txt content conforming to the llms.txt standard.
@@ -19,7 +19,9 @@ export const cachedLlmsGenerator = async (): Promise<string> => {
 
   lines.push('# conveniat27 - MIR SIND CEVI');
   lines.push('');
-  lines.push('> Das offizielle Webportal von conveniat27 – das Harzfest / Cevi Schweiz Grossanlass im Sommer 2027.');
+  lines.push(
+    '> Das offizielle Webportal von conveniat27 – das Harzfest / Cevi Schweiz Grossanlass im Sommer 2027.',
+  );
   lines.push('');
   lines.push('## Hauptseiten & Informationen');
   lines.push('');

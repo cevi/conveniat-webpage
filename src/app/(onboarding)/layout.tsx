@@ -11,9 +11,6 @@ import { PostHogProvider } from '@/providers/post-hog-provider';
 import { sharedFontClassName } from '@/utils/fonts';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
-import type React from 'react';
-import type { ReactNode } from 'react';
-import { Suspense } from 'react';
 
 interface LayoutProperties {
   children: ReactNode;
