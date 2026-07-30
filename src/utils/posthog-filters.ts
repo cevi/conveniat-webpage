@@ -78,11 +78,6 @@ export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1087
   'TypeError: Invalid URL',
   'Invalid URL',
-
-  // see: https://github.com/cevi/conveniat-webpage/issues/1258
-  'cannot connect to MongoDB',
-  'MongoServerSelectionError',
-  'getaddrinfo ENOTFOUND mongo',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
