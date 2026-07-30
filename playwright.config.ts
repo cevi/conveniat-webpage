@@ -32,4 +32,12 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+
+  /* Run local dev server before starting tests */
+  webServer: {
+    command: 'pnpm dev-next',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env['CI'],
+    timeout: 120_000,
+  },
 });

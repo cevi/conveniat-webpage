@@ -194,14 +194,16 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
   return trpc.chat.sendMessage.useMutation({
     async onMutate({ chatId, content, quotedMessageId, parentId }) {
-      if (typeof currentUser !== 'string' || currentUser === '') {
-        throw new Error('Current user is not defined');
-      }
+      const userId =
+        typeof currentUser === 'string' && currentUser !== ''
+          ? currentUser
+          : (typeof window !== 'undefined' && localStorage.getItem('conveniat-user-id')) ||
+            'offline-user';
 
       // Immediately clear the citation preview in the UI
       cancelQuote();
 
-      return performOptimisticMessageUpdate(trpcUtils, currentUser, {
+      return performOptimisticMessageUpdate(trpcUtils, userId, {
         chatId,
         content,
         quotedMessageId: quotedMessageId ?? undefined,

@@ -106,7 +106,7 @@ const rscCaching: RuntimeCaching = {
 };
 
 const fontCaching: RuntimeCaching = {
-  matcher: /\/_next\/static\/media\/.*\.(woff2?|ttf|otf|eot)$/,
+  matcher: /\/_next\/static\/media\/.*\.(woff2?|ttf|otf|eot)($|\?)/,
   handler: new CacheFirst({
     cacheName: CACHE_NAMES.FONTS,
     plugins: [
@@ -125,7 +125,17 @@ const nextFontCaching: RuntimeCaching = {
 };
 
 const imageCaching: RuntimeCaching = {
-  matcher: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/,
+  matcher: /\.(png|jpg|jpeg|svg|gif|webp|ico)($|\?)/,
+  handler: isDevelopment
+    ? new NetworkOnly()
+    : new StaleWhileRevalidate({
+        cacheName: CACHE_NAMES.IMAGES,
+        plugins: [new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin],
+      }),
+};
+
+const nextImageCaching: RuntimeCaching = {
+  matcher: ({ url }) => url.pathname.startsWith('/_next/image'),
   handler: isDevelopment
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
@@ -168,6 +178,7 @@ const runtimeCaching: RuntimeCaching[] = [
   fontCaching,
   nextFontCaching,
   imageCaching,
+  nextImageCaching,
   apiCaching,
   pageCaching,
   ...offlineRegistry.getRuntimeCaching(),

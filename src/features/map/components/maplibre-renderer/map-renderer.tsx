@@ -15,7 +15,6 @@ import type {
   InitialMapPose,
   MapControlOptions,
 } from '@/features/map/types/types';
-import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -80,8 +79,6 @@ export const MapLibreRenderer = ({
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const isOnline = useOnlineStatus();
-
   const [annotationPoints, setAnnotationPoints] =
     useState<CampMapAnnotationPoint[]>(campMapAnnotationPoints);
   const [annotationPolygons, setAnnotationPolygons] =
@@ -110,8 +107,8 @@ export const MapLibreRenderer = ({
   const { data: updatedMapData } = trpc.map.getMapAnnotations.useQuery(
     { locale },
     {
-      enabled: isOnline,
-      staleTime: 0, // fetch fresh data
+      enabled: true,
+      staleTime: 5 * 60 * 1000,
     },
   );
 
