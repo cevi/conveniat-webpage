@@ -75,6 +75,13 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      '@headlessui/react',
+      '@tanstack/react-query',
+      '@icons-pack/react-simple-icons',
+      'date-fns',
+    ],
     middlewareClientMaxBodySize: '50mb',
     serverActions: {
       bodySizeLimit: '50mb',

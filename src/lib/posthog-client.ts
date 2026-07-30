@@ -1,7 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { filterPostHogNoise } from '@/utils/posthog-filters';
-import type { PostHog } from 'posthog-js';
-import posthog from 'posthog-js/dist/module.full';
+import posthog, { type PostHog } from 'posthog-js';
 
 // detect globalThis for SSR safety
 const isBrowser = typeof globalThis !== 'undefined' && 'window' in globalThis;
