@@ -170,6 +170,15 @@ self.addEventListener('message', (event) => {
       })(),
     );
   }
+
+  if (data?.type === 'CLEAR_AUTH_CACHE') {
+    event.waitUntil(
+      (async (): Promise<void> => {
+        await caches.delete('next-auth-session-cache');
+        console.log('[SW] Cleared next-auth-session-cache.');
+      })(),
+    );
+  }
 });
 
 // Suppress network errors that occur during offline operation.

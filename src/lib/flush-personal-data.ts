@@ -39,7 +39,6 @@ export function flushPersonalData(): void {
   }
 
   // Clear IndexedDB query cache
-  /* eslint-disable @typescript-eslint/explicit-function-return-type, unicorn/prevent-abbreviations, unicorn/prefer-global-this, unicorn/prefer-add-event-listener, unicorn/no-null */
   if (typeof globalThis !== 'undefined' && 'indexedDB' in globalThis) {
     try {
       const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
@@ -58,11 +57,17 @@ export function flushPersonalData(): void {
       // IndexedDB may be blocked or unavailable
     }
   }
-  /* eslint-enable @typescript-eslint/explicit-function-return-type, unicorn/prevent-abbreviations, unicorn/prefer-global-this, unicorn/prefer-add-event-listener, unicorn/no-null */
 
   // Clear Service Worker NextAuth session cache
   if (typeof globalThis !== 'undefined' && 'caches' in globalThis) {
-    void globalThis.caches.delete('next-auth-session-cache').catch(() => undefined);
+    void globalThis.caches.delete('next-auth-session-cache').catch(() => {});
+  }
+  if (
+    typeof globalThis !== 'undefined' &&
+    'navigator' in globalThis &&
+    'serviceWorker' in globalThis.navigator
+  ) {
+    globalThis.navigator.serviceWorker.controller?.postMessage({ type: 'CLEAR_AUTH_CACHE' });
   }
 
   // 2. Clear personal TanStack DB collections.

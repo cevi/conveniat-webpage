@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { flushPersonalData } from '../flush-personal-data';
+import { flushPersonalData } from '@/lib/flush-personal-data';
 
 jest.mock('@/lib/tanstack-db', () => ({
   starsCollection: {

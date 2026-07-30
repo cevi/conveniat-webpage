@@ -389,6 +389,17 @@ export const handleFetchEvent =
       return;
     }
 
+    if (
+      isAuthRequest &&
+      (url.pathname.includes('/auth/signout') || url.pathname.includes('/auth/signin'))
+    ) {
+      event.waitUntil(
+        (async (): Promise<void> => {
+          await caches.delete('next-auth-session-cache');
+        })(),
+      );
+    }
+
     if (isAuthRequest && url.pathname.endsWith('/session')) {
       event.respondWith(
         (async (): Promise<Response> => {
@@ -396,8 +407,19 @@ export const handleFetchEvent =
             const networkResponse = await fetch(event.request);
             if (networkResponse.ok) {
               const clone = networkResponse.clone();
-              const authCache = await caches.open('next-auth-session-cache');
-              await authCache.put(event.request, clone);
+              try {
+                const sessionData = (await clone.json()) as { user?: unknown };
+                if (sessionData && sessionData.user) {
+                  const authCache = await caches.open('next-auth-session-cache');
+                  await authCache.put(event.request, networkResponse.clone());
+                } else {
+                  await caches.delete('next-auth-session-cache');
+                }
+              } catch {
+                await caches.delete('next-auth-session-cache');
+              }
+            } else if (networkResponse.status === 401 || networkResponse.status === 403) {
+              await caches.delete('next-auth-session-cache');
             }
             return networkResponse;
           } catch {

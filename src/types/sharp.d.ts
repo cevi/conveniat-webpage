@@ -1,4 +1,3 @@
 declare module 'sharp' {
-  import Sharp from 'sharp/lib/index';
-  export default Sharp;
+  export { default } from 'sharp/lib/index';
 }
