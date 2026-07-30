@@ -8,16 +8,16 @@ import { ServiceWorkerManager } from '@/components/service-worker/service-worker
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { environmentVariables } from '@/config/environment-variables';
 import { PostHogProvider } from '@/providers/post-hog-provider';
+import { sharedFontClassName } from '@/utils/fonts';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
-import { Inter, Montserrat } from 'next/font/google';
+import type React from 'react';
+import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 
 interface LayoutProperties {
   children: ReactNode;
 }
-
-const montserrat = Montserrat({ subsets: ['latin'] });
-const inter = Inter({ subsets: ['latin'] });
 
 /**
  * This is the root layout for the app entrypoint.
@@ -32,7 +32,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
   return (
     <html
       suppressHydrationWarning
-      className={`${montserrat.className} ${inter.className} overscroll-y-none`}
+      className={`${sharedFontClassName} overscroll-y-none`}
       lang={locale}
     >
       <head>
