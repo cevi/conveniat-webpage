@@ -36,8 +36,10 @@ export const redis =
         },
       ) as unknown as Redis)
     : new Redis(env.REDIS_URL, {
-        // eslint-disable-next-line unicorn/no-null
-        maxRetriesPerRequest: null,
+        connectTimeout: 2000,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        retryStrategy: (times: number): number | void | null => Math.min(times * 50, 1000),
       }));
 
 if (env.NODE_ENV !== 'production') globalForRedis.redis = redis;
@@ -53,6 +55,7 @@ export const FEATURE_FLAG_PREFIX = 'feature-flag:';
 const fetchCachedFeatureFlag = unstable_cache(
   async (key: string): Promise<boolean> => {
     const value = await redis.get(`${FEATURE_FLAG_PREFIX}${key}`);
+    // eslint-disable-next-line unicorn/no-null
     if (value === null) return FEATURE_FLAG_DEFAULTS[key] ?? false;
     return value === 'true';
   },
@@ -64,7 +67,15 @@ const fetchCachedFeatureFlag = unstable_cache(
 );
 
 export const getFeatureFlag = async (key: string): Promise<boolean> => {
-  return fetchCachedFeatureFlag(key);
+  try {
+    return await fetchCachedFeatureFlag(key);
+  } catch (error) {
+    console.warn(
+      `[Redis] Feature flag fetch failed for ${key}, returning un-cached default fallback:`,
+      (error as Error).message,
+    );
+    return FEATURE_FLAG_DEFAULTS[key] ?? false;
+  }
 };
 
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {

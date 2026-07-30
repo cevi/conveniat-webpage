@@ -20,8 +20,10 @@ export class RedisCache extends BaseCacheHandler {
     super();
     this.redis = new Redis(REDIS_URL, {
       lazyConnect: true,
+      connectTimeout: 2000,
       maxRetriesPerRequest: 1,
-      retryStrategy: (times: number): number | void | null => Math.min(times * 50, 2000),
+      enableOfflineQueue: false,
+      retryStrategy: (times: number): number | void | null => Math.min(times * 50, 1000),
     });
 
     this.redis.on('error', (error: { code: string }) => {
@@ -76,17 +78,21 @@ export class RedisCache extends BaseCacheHandler {
     console.log(`${LOG_PREFIX} INVALIDATING: [${tags.join(', ')}]`);
     for (const tag of tags) {
       const tagKey = `tags:${tag}`;
-      const keys = await this.redis.smembers(tagKey);
+      try {
+        const keys = await this.redis.smembers(tagKey);
 
-      if (keys.length > 0) {
-        await this.redis.unlink(...keys);
-        await this.redis.del(tagKey);
-        cacheInvalidationCounter.add(1, { type: 'tag', tag });
-        console.log(
-          `${LOG_PREFIX} CLEARED ${keys.length} keys for tag: ${tag} [${keys.join(', ')}]`,
-        );
-      } else {
-        console.log(`${LOG_PREFIX} NO KEYS for tag: ${tag} (Skipping)`);
+        if (keys.length > 0) {
+          await this.redis.unlink(...keys);
+          await this.redis.del(tagKey);
+          cacheInvalidationCounter.add(1, { type: 'tag', tag });
+          console.log(
+            `${LOG_PREFIX} CLEARED ${keys.length} keys for tag: ${tag} [${keys.join(', ')}]`,
+          );
+        } else {
+          console.log(`${LOG_PREFIX} NO KEYS for tag: ${tag} (Skipping)`);
+        }
+      } catch (error) {
+        console.warn(`${LOG_PREFIX} Invalidate tags failed for ${tag}:`, (error as Error).message);
       }
     }
   }
