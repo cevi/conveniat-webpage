@@ -38,4 +38,4 @@ jobs:
             POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
             POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha
