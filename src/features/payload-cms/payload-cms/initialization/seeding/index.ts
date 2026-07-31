@@ -76,8 +76,10 @@ const getFallbackImageBuffer = async (): Promise<Buffer> => {
   `;
 
   // sharp is an optional dependency
+  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
   const { default: sharp } = await import('sharp');
   return await sharp(Buffer.from(svg)).toFormat('png').toBuffer();
+  /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 };
 
 /**

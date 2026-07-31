@@ -35,15 +35,16 @@ export const ScheduleComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { starredEntries } = useStar();
   const isOnline = useOnlineStatus();
-  const { syncFromServer } = useScheduleEntries();
+  const { syncFromServer, entries: localEntries } = useScheduleEntries();
 
-  // Fetch schedule entries via tRPC (CSR)
+  // Fetch schedule entries via tRPC (CSR) with 5 min staleTime for instant offline cache rendering
   const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(
     undefined,
     {
-      staleTime: 0,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
+      staleTime: 1000 * 60 * 5,
+      networkMode: 'offlineFirst',
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     },
   );
 
@@ -54,8 +55,19 @@ export const ScheduleComponent: React.FC = () => {
     }
   }, [scheduleEntries, syncFromServer]);
 
+  // Combine network entries with local DB offline entries fallback
+  const effectiveScheduleEntries = useMemo(() => {
+    if (scheduleEntries && scheduleEntries.length > 0) {
+      return scheduleEntries;
+    }
+    return localEntries;
+  }, [scheduleEntries, localEntries]);
+
   // Get enrolled courses
-  const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery();
+  const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+    networkMode: 'offlineFirst',
+  });
   const enrolledIds = useMemo(() => {
     const raw = enrollmentsQuery.data as unknown;
     return new Set(Array.isArray(raw) ? (raw as string[]) : []);
@@ -68,7 +80,7 @@ export const ScheduleComponent: React.FC = () => {
     carouselStartIndex,
     maxVisibleDays,
     actions,
-  } = useSchedule(scheduleEntries ?? []);
+  } = useSchedule(effectiveScheduleEntries);
 
   const {
     filters,

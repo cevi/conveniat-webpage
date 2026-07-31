@@ -66,7 +66,9 @@ export const CampMapComponent: React.FC<{
   for (const annotation of annotations.docs) {
     const annotationID: string = annotation.id;
     schedulesPerAnnotations[annotationID] = simplifiedScheduleEntries.filter(
-      (scheduleEntry: CampScheduleEntry) => scheduleEntry.location.id === annotation.id,
+      (scheduleEntry: CampScheduleEntry) =>
+        (scheduleEntry.location as { id?: string } | null | undefined)?.id === annotation.id ||
+        (scheduleEntry.location as unknown as string) === annotation.id,
     );
   }
 
@@ -77,6 +79,7 @@ export const CampMapComponent: React.FC<{
       if (!a.geometry || !b.geometry) return 0;
       const aGeom = a.geometry;
       const bGeom = b.geometry;
+      if (typeof aGeom[1] !== 'number' || typeof bGeom[1] !== 'number') return 0;
       if (aGeom[1] < bGeom[1]) return 1;
       if (aGeom[1] > bGeom[1]) return -1;
       return 0;

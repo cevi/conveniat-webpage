@@ -4,11 +4,11 @@ export const makeQueryClient = (): QueryClient => {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 30 * 1000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 72 * 60 * 60 * 1000, // 72 hours for offline disk persistence
         networkMode: 'offlineFirst',
-        refetchOnMount: true,
-        refetchOnWindowFocus: true,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
         refetchOnReconnect: true,
       },
       mutations: {
@@ -16,7 +16,9 @@ export const makeQueryClient = (): QueryClient => {
       },
       dehydrate: {
         shouldDehydrateQuery: (query) =>
-          defaultShouldDehydrateQuery(query) || query.state.status === 'pending',
+          defaultShouldDehydrateQuery(query) ||
+          query.state.status === 'pending' ||
+          query.state.data !== undefined,
       },
       hydrate: {},
     },

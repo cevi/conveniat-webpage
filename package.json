@@ -10,7 +10,7 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build && serwist build --config serwist.config.js",
+    "build": "pnpm run build:cache && cross-env NODE_OPTIONS=--no-deprecation next build && serwist build --config serwist.config.js && (cp public/sw.js .next/standalone/public/sw.js 2>/dev/null || true)",
     "build:cache": "esbuild src/cache-handlers/default.ts --bundle --platform=node --format=cjs --outfile=src/cache-handlers/default.cjs --external:next --external:ioredis --external:node:crypto --external:node:fs --external:node:path --external:node:fs/promises --external:@opentelemetry/api",
     "db:pull": "bash src/scripts/db/pull.sh",
     "db:push-dev": "bash src/scripts/db/push-dev.sh",
@@ -223,6 +223,12 @@
     "typescript-eslint": "^8.65.0",
     "undici": "^8.8.0",
     "unrs-resolver": "^1.12.2"
+  },
+  "optionalDependencies": {
+    "@img/sharp-libvips-linux-x64": "1.0.4",
+    "@img/sharp-libvips-linuxmusl-x64": "1.0.4",
+    "@img/sharp-linux-x64": "0.35.0",
+    "@img/sharp-linuxmusl-x64": "0.35.0"
   },
   "packageManager": "pnpm@11.1.2+sha512.415a1cc25974731e75455c1468371be74c5aa5fb7621b50d4056d222451609f11412f23fd602e6169f1e060466641f798597e1be961a10688836a67b16569499",
   "engines": {

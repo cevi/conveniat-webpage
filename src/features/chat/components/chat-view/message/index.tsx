@@ -17,7 +17,7 @@ import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Info, Loader2, MessageSquare, Quote } from 'lucide-react';
+import { Check, Clock, Info, Loader2, MessageSquare, Quote } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
@@ -128,8 +128,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const [showInfo, setShowInfo] = useState(false);
 
   const chatId = useChatId();
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
-  const { data: currentUserId } = trpc.chat.user.useQuery({});
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery(
+    { chatId },
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
+  const { data: currentUserId } = trpc.chat.user.useQuery(
+    {},
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
 
   const currentUserParticipant = chatDetails?.participants.find((p) => p.id === currentUserId);
   const isGuest = currentUserParticipant?.chatPermission === 'GUEST';
@@ -256,7 +262,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
 
   const renderMessageStatus = (): React.JSX.Element => {
     if (!isCurrentUser) return <></>;
-    if (message.status === MessageEventType.CREATED) {
+    if (message.isPendingOffline) {
+      return (
+        <span title="Wird gesendet, sobald du wieder online bist">
+          <Clock className="ml-1 h-3.5 w-3.5 text-white/70 opacity-80" />
+        </span>
+      );
+    }
+    if (message.status === MessageEventType.CREATED || message.status === ('CREATED' as unknown)) {
       return <Loader2 className="ml-1 h-3.5 w-3.5 animate-spin text-white/70" />;
     }
     switch (message.status) {

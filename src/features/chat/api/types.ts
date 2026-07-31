@@ -19,6 +19,7 @@ export interface ChatMessage {
     userId: string;
     userName: string;
   }[];
+  isPendingOffline?: boolean;
 }
 
 interface ChatParticipant {

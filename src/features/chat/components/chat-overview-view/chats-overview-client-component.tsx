@@ -148,10 +148,18 @@ export const ChatsOverviewClientComponent: React.FC<{
   useChatSSE(chatIds);
 
   // Check capability instead of raw feature flag
-  const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery({
-    action: CapabilityAction.Create,
-    subject: CapabilitySubject.Chat,
-  });
+  const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery(
+    {
+      action: CapabilityAction.Create,
+      subject: CapabilitySubject.Chat,
+    },
+    {
+      networkMode: 'offlineFirst',
+      staleTime: 1000 * 60 * 5,
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+    },
+  );
 
   const handleRefresh = async (): Promise<void> => {
     await trpcUtils.chat.chats.invalidate();

@@ -29,7 +29,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], serviceWorkers: 'allow' },
     },
   ],
+
+  /* Run local dev server before starting tests */
+  webServer: {
+    command: 'pnpm start',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env['CI'],
+    timeout: 120_000,
+  },
 });

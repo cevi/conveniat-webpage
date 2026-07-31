@@ -91,7 +91,10 @@ function updateGlobalEventSource(currentUser: string): void {
 
 export const useChatSSE = (chatIds: string[]): void => {
   const trpcUtils = trpc.useUtils();
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: currentUser } = trpc.chat.user.useQuery(
+    {},
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
 
   const validChatIds = chatIds.map((id) => id.trim()).filter(Boolean);
   const chatIdsString = validChatIds.sort().join(',');

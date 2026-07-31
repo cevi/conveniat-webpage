@@ -7,6 +7,7 @@ import {
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
+  getCleanAppPath,
   matchCachedRsc,
   sanitizeRscResponse,
 } from '@/features/service-worker/offline-support/rsc-utils';
@@ -58,35 +59,93 @@ const logImage404ToPostHog = async (url: string, clientId: string): Promise<void
 async function matchCachedPage(originalUrl: string): Promise<Response | undefined> {
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
   const urlObject = new URL(originalUrl);
+  const cleanPath = getCleanAppPath(urlObject.pathname);
 
   // 1. Exact Match
-  const exactMatch = await pagesCache.match(originalUrl, { ignoreVary: true });
-  if (exactMatch) return exactMatch;
+  let match = await pagesCache.match(originalUrl, { ignoreVary: true, ignoreSearch: true });
+  if (match) return match;
 
-  // 2. Ignore Search Params
-  const matchIgnoreSearch = await pagesCache.match(originalUrl, {
-    ignoreSearch: true,
-    ignoreVary: true,
+  // 2. Clean Path Match
+  const cleanUrl = `${urlObject.origin}${cleanPath}`;
+  match = await pagesCache.match(cleanUrl, { ignoreVary: true, ignoreSearch: true });
+  if (match) return match;
+
+  // 3. Match across any keys in pagesCache by clean app path
+  const keys = await pagesCache.keys();
+  const matchingKey = keys.find((keyRequest) => {
+    const keyPath = getCleanAppPath(new URL(keyRequest.url).pathname);
+    return keyPath === cleanPath;
   });
-  if (matchIgnoreSearch) return matchIgnoreSearch;
 
-  // 3. Clean Path Match
-  const cleanUrl = `${urlObject.origin}${urlObject.pathname}`;
-  const cleanMatch = await pagesCache.match(cleanUrl, { ignoreVary: true });
-  if (cleanMatch) return cleanMatch;
-
-  // 4. SCHEDULE FALLBACK (For Hard Reloads)
-  // Schedule pages are now fully CSR with tRPC cache - the main page works as its own offline shell
-  if (urlObject.pathname.startsWith('/app/schedule/')) {
-    const scheduleListUrl = `${urlObject.origin}/app/schedule`;
-    const schedulePage = await pagesCache.match(scheduleListUrl, { ignoreVary: true });
-    if (schedulePage) return schedulePage;
+  if (matchingKey) {
+    match = await pagesCache.match(matchingKey, { ignoreVary: true, ignoreSearch: true });
+    if (match) return match;
   }
 
-  // 5. MAP FALLBACK
-  if (urlObject.pathname.startsWith('/app/map')) {
-    const cachedMapPage = await pagesCache.match('/app/map', { ignoreVary: true });
-    if (cachedMapPage) return cachedMapPage;
+  // 4. CHAT FALLBACK
+  if (cleanPath.startsWith('/app/chat')) {
+    const chatKey = keys.find(
+      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/chat',
+    );
+    if (chatKey) {
+      match = await pagesCache.match(chatKey, { ignoreVary: true, ignoreSearch: true });
+      if (match) return match;
+    }
+  }
+
+  // 5. SCHEDULE FALLBACK
+  if (cleanPath.startsWith('/app/schedule')) {
+    const schedKey = keys.find(
+      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/schedule',
+    );
+    if (schedKey) {
+      match = await pagesCache.match(schedKey, { ignoreVary: true, ignoreSearch: true });
+      if (match) return match;
+    }
+  }
+
+  // 6. HELPER PORTAL FALLBACK
+  if (cleanPath.startsWith('/app/helper-portal')) {
+    const helperKey = keys.find(
+      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/helper-portal',
+    );
+    if (helperKey) {
+      match = await pagesCache.match(helperKey, { ignoreVary: true, ignoreSearch: true });
+      if (match) return match;
+    }
+  }
+
+  // 7. EMERGENCY FALLBACK
+  if (cleanPath.startsWith('/app/emergency')) {
+    const emergencyKey = keys.find(
+      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/emergency',
+    );
+    if (emergencyKey) {
+      match = await pagesCache.match(emergencyKey, { ignoreVary: true, ignoreSearch: true });
+      if (match) return match;
+    }
+  }
+
+  // 8. MAP FALLBACK
+  if (cleanPath.startsWith('/app/map')) {
+    const mapKey = keys.find(
+      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/map',
+    );
+    if (mapKey) {
+      match = await pagesCache.match(mapKey, { ignoreVary: true, ignoreSearch: true });
+      if (match) return match;
+    }
+  }
+
+  // 9. GENERAL DASHBOARD FALLBACK
+  if (cleanPath.startsWith('/app/')) {
+    const dashKey = keys.find(
+      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/dashboard',
+    );
+    if (dashKey) {
+      match = await pagesCache.match(dashKey, { ignoreVary: true, ignoreSearch: true });
+      if (match) return match;
+    }
   }
 
   return undefined;
@@ -106,31 +165,37 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   const isServerAction = request.headers.has('Next-Action');
   const isApi = url.pathname.startsWith('/api/');
 
-  // Strategy A: Cached RSC or 504 Timeout
-  // For RSC requests, we ALWAYS return a 504 instead of Response.error()
-  // explicitly to prevent Next.js App Router from throwing unhandled "TypeError: Failed to fetch"
+  // Strategy A: Server Actions
+  // Server Actions fail with native Response.error() so React Flight client handles errors cleanly via Error Boundary
+  if (isServerAction) {
+    console.warn(`[SW] Server Action offline fallback for: ${url.pathname}`);
+    return Response.error();
+  }
+
+  // Strategy D: RSC Stream (Flight Payload) Fallback
   if (isRsc) {
-    let cachedRsc: Response | undefined;
-    if (isAppMode) {
-      cachedRsc = await matchCachedRsc(url.toString());
-    }
+    const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
-    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Returning 504 response.`);
-    // IMPORTANT: Returning Response.error() causes Next.js App Router to hang indefinitely
-    // or crash with an unhandled TypeError. We must return a valid HTTP Error (like 504) so
-    // the React Server Component parser rejects and triggers the error.tsx boundary cleanly.
-    return new Response(`Offline: ${url.toString()}`, {
-      status: 504,
-      statusText: 'Gateway Timeout',
-      headers: { 'Content-Type': 'text/x-component' },
+    // Try dashboard or chat RSC fallback if available
+    const dashboardRsc = await matchCachedRsc('/app/dashboard');
+    if (dashboardRsc) return dashboardRsc;
+
+    console.warn(
+      `[SW] RSC Cache Miss for: ${url.toString()}. Returning safe empty RSC Flight response.`,
+    );
+    return new Response('', {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/x-component',
+        'Cache-Control': 'no-store',
+      },
     });
   }
 
   // Strategy E: API Fallback
-  // Return a proper HTTP response instead of Response.error() to prevent app hangs
-  if (isApi || isServerAction) {
-    console.warn(`[SW] API/Action offline fallback for: ${url.pathname}`);
+  if (isApi) {
+    console.warn(`[SW] API offline fallback for: ${url.pathname}`);
     return new Response(
       JSON.stringify({
         error: 'offline',
@@ -145,8 +210,6 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     );
   }
 
-  // PWA only: Browser users should see the standard browser offline error for documents and assets.
-  // Wait, we now want web users to also see the /~offline page fallback. We only skip asset fallbacks for them.
   if (!isAppMode && request.destination !== 'document') {
     console.log(`[SW] Offline fallback skipped for non-document web request: ${url.pathname}`);
     return Response.error();
@@ -160,29 +223,87 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     // Generic Offline Page (final fallback for documents)
     const offlineUrl = isAppMode ? '/~offline?app-mode=true' : '/~offline';
 
-    // Try multiple cache lookup strategies for the offline page
+    // Try multiple cache lookup strategies for the offline page with ignoreSearch and ignoreVary
     const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-    const offlineFromPages = await pagesCache.match(offlineUrl, { ignoreVary: true });
+    const offlineFromPages =
+      (await pagesCache.match(offlineUrl, { ignoreVary: true, ignoreSearch: true })) ??
+      (await pagesCache.match('/~offline', { ignoreVary: true, ignoreSearch: true }));
     if (offlineFromPages) return offlineFromPages;
 
-    // Try global cache match (e.g., precache)
-    const offlinePage = await caches.match(offlineUrl, { ignoreVary: true });
+    const offlinePage =
+      (await caches.match(offlineUrl, { ignoreVary: true, ignoreSearch: true })) ??
+      (await caches.match('/~offline', { ignoreVary: true, ignoreSearch: true }));
     if (offlinePage) return offlinePage;
-    console.error(`[SW] No offline fallback found for document: ${url.toString()}`);
-    return Response.redirect(offlineUrl, 302);
+
+    console.warn(`[SW] Returning inline HTML offline fallback for document: ${url.toString()}`);
+    return new Response(
+      `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | conveniat</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#090d16;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:16px}h1{font-size:24px;margin-bottom:8px}p{color:#9ca3af;margin-bottom:24px}button{background:#2563eb;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer}</style></head><body><div><h1>Du bist offline</h1><p>Diese Seite ist offline noch nicht verfügbar.</p><button onclick="window.location.reload()">Erneut versuchen</button></div></body></html>`,
+      {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      },
+    );
   }
 
-  // Strategy C: Assets (Non-Document Only)
+  // Strategy C: Manifest & Assets (Non-Document Only)
+  const isManifest =
+    url.pathname.endsWith('.webmanifest') ||
+    url.pathname.endsWith('manifest.json') ||
+    url.pathname.endsWith('manifest.webmanifest');
+
+  if (isManifest) {
+    const cachedManifest =
+      (await caches.match(request, { ignoreSearch: true, ignoreVary: true })) ??
+      (await caches.match('/manifest.webmanifest', { ignoreSearch: true, ignoreVary: true }));
+    if (cachedManifest) return cachedManifest;
+
+    return new Response(
+      JSON.stringify({
+        name: 'conveniat',
+        short_name: 'conveniat',
+        start_url: '/app/dashboard',
+        display: 'standalone',
+        background_color: '#090d16',
+        theme_color: '#090d16',
+        icons: [],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/manifest+json; charset=utf-8' },
+      },
+    );
+  }
+
   const isJs =
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.mjs') ||
     request.destination === 'script';
+  const isCss = url.pathname.endsWith('.css') || request.destination === 'style';
+  const isNextImage = url.pathname.startsWith('/_next/image');
 
-  const assetMatch = await caches.match(request, { ignoreSearch: true, ignoreVary: true });
+  const jsCache = await caches.open(CACHE_NAMES.JS);
+  const cssCache = await caches.open(CACHE_NAMES.CSS);
+  const assetsCache = await caches.open(CACHE_NAMES.OFFLINE_ASSETS);
+
+  const assetMatch =
+    (await caches.match(request, { ignoreSearch: !isNextImage, ignoreVary: true })) ??
+    (await jsCache.match(request, {
+      ignoreSearch: true,
+      ignoreVary: true,
+    })) ??
+    (await cssCache.match(request, {
+      ignoreSearch: true,
+      ignoreVary: true,
+    })) ??
+    (await assetsCache.match(request, {
+      ignoreSearch: true,
+      ignoreVary: true,
+    }));
+
   if (assetMatch) {
     const contentType = assetMatch.headers.get('content-type') ?? '';
-    if (isJs && contentType.includes('text/html')) {
-      console.error(`[SW] Blocked HTML asset fallback for script: ${url.toString()}`);
+    if ((isJs || isCss) && contentType.includes('text/html')) {
+      console.error(`[SW] Blocked HTML asset fallback for asset: ${url.toString()}`);
       return Response.error();
     }
     console.log(`[SW] Serving fallback for: ${url.toString()}`);
@@ -190,8 +311,23 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   }
 
   if (isJs) {
-    console.error(`[SW] JS script asset unavailable: ${url.toString()}`);
-    return Response.error();
+    console.warn(
+      `[SW] JS script asset unavailable offline, serving safe fallback for: ${url.toString()}`,
+    );
+    return new Response('/* offline chunk fallback */', {
+      status: 200,
+      headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
+    });
+  }
+
+  if (isCss) {
+    console.warn(
+      `[SW] CSS stylesheet asset unavailable offline, serving safe fallback for: ${url.toString()}`,
+    );
+    return new Response('/* offline css fallback */', {
+      status: 200,
+      headers: { 'Content-Type': 'text/css; charset=utf-8' },
+    });
   }
 
   // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
@@ -229,7 +365,9 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     await ensureAppModeInitialized();
   }
 
-  const isAppModeClient = event.clientId !== '' && isClientInAppMode(event.clientId);
+  const isAppModeClient =
+    (event.clientId !== '' && isClientInAppMode(event.clientId)) ||
+    (event.resultingClientId !== '' && isClientInAppMode(event.resultingClientId));
 
   // Detect native app WebView via User-Agent (matches the server-side check in design-rewrite-proxy.ts).
   // This is the most reliable signal: the WebView ALWAYS sends 'KonektaApp/1.0' in the UA,
@@ -249,13 +387,21 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     }
   }
 
-  // Fire-and-forget persistence (don't block response)
+  // Synchronously register resultingClientId during navigation if in App Mode
   if (isNavigation) {
+    const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
+    if (
+      (hasAppModeParameter || isNativeAppWebView || isAppModeClient) &&
+      event.resultingClientId !== ''
+    ) {
+      addAppModeClient(event.resultingClientId);
+    }
+
     event.waitUntil(
       (async (): Promise<void> => {
-        const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
+        const hasAppModeParameter_ = url.searchParams.get('app-mode') === 'true';
         if (
-          (hasAppModeParameter ||
+          (hasAppModeParameter_ ||
             isNativeAppWebView ||
             (event.clientId !== '' && isClientInAppMode(event.clientId))) &&
           event.resultingClientId !== ''
@@ -290,21 +436,28 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   }
 
   try {
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    // Fast-path offline fallback for documents, RSC, and API requests when network is off
+    if (isOffline) {
+      console.log(`[SW] Fast Offline Fallback for ${url.pathname}`);
+      return offlineFallback(event.request, url, isAppMode);
+    }
+
     // If we are in App Mode and requesting a Document or RSC payload, bypass Serwist's
-    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 4s timeout.
+    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 3s timeout.
     if (isAppMode && (isDocument || isRsc)) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       try {
         const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
         clearTimeout(timeoutId);
 
-        const contentType = networkResponse.headers.get('content-type') ?? '';
-        const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
-
-        if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
-          return Response.error();
+        if (networkResponse.ok) {
+          const targetCacheName = isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES;
+          const cache = await caches.open(targetCacheName);
+          void cache.put(url.toString(), networkResponse.clone()).catch(console.warn);
         }
 
         if (isRsc) return sanitizeRscResponse(networkResponse);
@@ -340,12 +493,13 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     const networkResponse = await fetch(requestToHandle);
 
     const isJsAsset = url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs');
+    const isCssAsset = url.pathname.endsWith('.css') || requestToHandle.destination === 'style';
     const contentType = networkResponse.headers.get('content-type') ?? '';
 
-    // Prevent Next.js 404/5xx HTML pages from being parsed as scripts
-    if (!networkResponse.ok && isJsAsset && contentType.includes('text/html')) {
+    // Prevent Next.js 404/5xx HTML pages from being parsed as scripts or stylesheets
+    if (!networkResponse.ok && (isJsAsset || isCssAsset) && contentType.includes('text/html')) {
       console.error(
-        `[SW] Blocked HTML response for script fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
+        `[SW] Blocked HTML response for asset fetch: ${requestToHandle.url} (Status: ${networkResponse.status})`,
       );
       return Response.error(); // Trigger Next.js chunk-load error handling cleanly
     }
@@ -382,6 +536,109 @@ export const handleFetchEvent =
       return;
     }
 
+    if (
+      isAuthRequest &&
+      (url.pathname.includes('/auth/signout') || url.pathname.includes('/auth/signin'))
+    ) {
+      event.waitUntil(
+        (async (): Promise<void> => {
+          await caches.delete(CACHE_NAMES.AUTH_SESSION);
+        })(),
+      );
+    }
+
+    if (isAuthRequest && url.pathname.endsWith('/csrf')) {
+      event.respondWith(
+        (async (): Promise<Response> => {
+          try {
+            return await fetch(event.request);
+          } catch {
+            return new Response(JSON.stringify({ csrfToken: 'offline-csrf-token' }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+        })(),
+      );
+      return;
+    }
+
+    if (isAuthRequest && url.pathname.endsWith('/session')) {
+      event.respondWith(
+        (async (): Promise<Response> => {
+          try {
+            const networkResponse = await fetch(event.request);
+            if (networkResponse.ok) {
+              const clone = networkResponse.clone();
+              try {
+                const sessionData = (await clone.json()) as { user?: unknown };
+                if (sessionData.user !== undefined && sessionData.user !== null) {
+                  const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
+                  await authCache.put(event.request, networkResponse.clone());
+                } else {
+                  await caches.delete(CACHE_NAMES.AUTH_SESSION);
+                }
+              } catch {
+                await caches.delete(CACHE_NAMES.AUTH_SESSION);
+              }
+            } else if (networkResponse.status === 401 || networkResponse.status === 403) {
+              await caches.delete(CACHE_NAMES.AUTH_SESSION);
+            }
+            return networkResponse;
+          } catch {
+            const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
+            const cachedSession =
+              (await authCache.match(event.request, { ignoreSearch: true, ignoreVary: true })) ??
+              (await authCache.match('/api/auth/session', {
+                ignoreSearch: true,
+                ignoreVary: true,
+              })) ??
+              (await caches.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true }));
+
+            if (cachedSession) {
+              try {
+                const sessionData = (await cachedSession.clone().json()) as {
+                  expires?: string;
+                  user?: unknown;
+                  [key: string]: unknown;
+                };
+                if (sessionData.user !== undefined && sessionData.user !== null) {
+                  // Extend session expiry for 30 days offline so NextAuth client doesn't force logout
+                  sessionData.expires = new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000,
+                  ).toISOString();
+                  return new Response(JSON.stringify(sessionData), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                  });
+                }
+              } catch {
+                return cachedSession;
+              }
+            }
+
+            // Return minimal offline mock session to prevent unwanted logout redirects
+            return new Response(
+              JSON.stringify({
+                user: {
+                  id: 'offline-user',
+                  uuid: 'offline-user-uuid',
+                  name: 'Offline User',
+                  email: 'offline@conveniat.ch',
+                },
+                expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              }),
+              {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            );
+          }
+        })(),
+      );
+      return;
+    }
+
     // Proxy bypass: We still want the SW to intercept these to provide the automatic
     // HTML retry wrapper on connection drops, but we skip cache lookup strategies.
     const bypassSWProxy = isPreviewRequest || isAuthRequest || isTrpcRequest;
@@ -389,14 +646,27 @@ export const handleFetchEvent =
     if (bypassSWProxy) {
       event.respondWith(
         (async (): Promise<Response> => {
-          try {
-            return await fetch(event.request);
-          } catch (error) {
-            console.error(`[SW] bypass fetch failed (backend overloaded): ${url.href}`, error);
+          const controller = isTrpcRequest ? new AbortController() : undefined;
+          const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : undefined;
 
-            // If it's a navigation request and the server dumped the connection,
-            // returning Response.error() causes a hard browser crash (chrome-error).
-            // We must return a graceful HTML proxy so global-error.tsx can render and auto-retry!
+          try {
+            const response = await fetch(
+              controller
+                ? new Request(event.request, { signal: controller.signal })
+                : event.request,
+            );
+            if (timeoutId) clearTimeout(timeoutId);
+            return response;
+          } catch (error) {
+            if (timeoutId) clearTimeout(timeoutId);
+            console.error(`[SW] bypass fetch failed or timed out: ${url.href}`, error);
+
+            // For tRPC requests, return standard Response.error() so TanStack Query treats it as a
+            // network error (offline) and loads from IndexedDB/query cache instead of failing with 503.
+            if (isTrpcRequest) {
+              return Response.error();
+            }
+
             if (event.request.mode === 'navigate') {
               return new Response(
                 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"></head>' +
@@ -408,7 +678,8 @@ export const handleFetchEvent =
                 },
               );
             }
-            return new Response('Backend Overloaded', { status: 503 });
+
+            return Response.error();
           }
         })(),
       );
@@ -418,7 +689,7 @@ export const handleFetchEvent =
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
-        return new Response(`Critical SW Error: ${event.request.url}`, { status: 500 });
+        return offlineFallback(event.request, url, false);
       }),
     );
   };

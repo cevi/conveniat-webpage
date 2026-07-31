@@ -1,6 +1,7 @@
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlinePages } from '@/features/service-worker/offline-support/offline-pages';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
+import { getCleanAppPath } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 
 export const OFFLINE_STATUS_CACHE = CACHE_NAMES.OFFLINE_STATUS;
@@ -176,6 +177,59 @@ async function cacheAsset(url: string): Promise<void> {
   await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
 }
 
+function extractAssetUrls(htmlText: string, rscText?: string): string[] {
+  const assets = new Set<string>();
+
+  // 1. Script tags: <script src="...">
+  const scriptRegex = /<script[^>]+src=["']([^"']+)["']/gi;
+  let match: RegExpExecArray | null = scriptRegex.exec(htmlText);
+  while (match !== null) {
+    if (
+      match[1] !== undefined &&
+      (match[1].startsWith('/_next/static/') || match[1].endsWith('.js'))
+    ) {
+      assets.add(match[1]);
+    }
+    match = scriptRegex.exec(htmlText);
+  }
+
+  // 2. Link stylesheet tags: <link ... href="...">
+  const linkRegex = /<link[^>]+href=["']([^"']+)["']/gi;
+  match = linkRegex.exec(htmlText);
+  while (match !== null) {
+    if (
+      match[1] !== undefined &&
+      (match[1].startsWith('/_next/static/') || match[1].endsWith('.css'))
+    ) {
+      assets.add(match[1]);
+    }
+    match = linkRegex.exec(htmlText);
+  }
+
+  // 3. Next.js static chunk paths referenced in HTML & RSC Flight stream
+  const chunkRegex =
+    /\/_next\/static\/(?:chunks|css|media)\/[a-zA-Z0-9_.~%-]+\.(?:js|css|woff2?|ttf)/g;
+  match = chunkRegex.exec(htmlText);
+  while (match !== null) {
+    if (match[0].length > 0) {
+      assets.add(match[0]);
+    }
+    match = chunkRegex.exec(htmlText);
+  }
+
+  if (rscText !== undefined && rscText !== '') {
+    match = chunkRegex.exec(rscText);
+    while (match !== null) {
+      if (match[0].length > 0) {
+        assets.add(match[0]);
+      }
+      match = chunkRegex.exec(rscText);
+    }
+  }
+
+  return [...assets];
+}
+
 async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   console.log(`[SW] Fetching HTML for: ${pageUrl}`);
   const pagesCache = await caches.open(CACHE_NAMES.PAGES);
@@ -212,6 +266,8 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
     }),
   );
 
+  let rscText = '';
+
   // E. Prefetch RSC (Updated Logic)
   const urlObject = new URL(pageUrl, location.origin);
   // We start by trying the clean URL (empty value)
@@ -236,57 +292,86 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
 
     if (rscResponse === undefined) {
       console.warn(`[SW] RSC Prefetch failed for ${rscUrl}`);
-      return;
-    }
+    } else {
+      const contentType = rscResponse.headers.get('content-type');
+      const isRscData = contentType?.includes('text/x-component');
 
-    const contentType = rscResponse.headers.get('content-type');
-    const isRscData = contentType?.includes('text/x-component');
+      // RETRY STRATEGY: If we got HTML (200 OK) instead of RSC, try adding a dummy value.
+      if (rscResponse.ok && isRscData === false) {
+        console.warn(`[SW] RSC Prefetch returned HTML for ${rscUrl}. Retrying with hash...`);
 
-    // RETRY STRATEGY: If we got HTML (200 OK) instead of RSC, try adding a dummy value.
-    // Next.js servers sometimes serve HTML for empty `_rsc` params but Flight data for `_rsc=1`
-    if (rscResponse.ok && isRscData === false) {
-      console.warn(`[SW] RSC Prefetch returned HTML for ${rscUrl}. Retrying with hash...`);
+        const retryUrl = new URL(pageUrl, location.origin);
+        retryUrl.searchParams.append('_rsc', '1');
 
-      const retryUrl = new URL(pageUrl, location.origin);
-      retryUrl.searchParams.append('_rsc', '1'); // Add dummy value
+        rscResponse = await fetchWithRetryAndTimeout(
+          retryUrl.toString(),
+          {
+            credentials: 'same-origin',
+            headers: rscHeaders,
+          },
+          TIMEOUTS.RSC_FETCH,
+          false,
+        );
+      }
 
-      rscResponse = await fetchWithRetryAndTimeout(
-        retryUrl.toString(),
-        {
-          credentials: 'same-origin',
-          headers: rscHeaders,
-        },
-        TIMEOUTS.RSC_FETCH,
-        false,
-      );
-    }
+      if (rscResponse?.ok === true) {
+        const finalContentType = rscResponse.headers.get('content-type');
+        if (finalContentType?.includes('text/x-component') === true) {
+          const safeRscHeaders = cleanHeaders(rscResponse.headers);
+          const rscBlob = await rscResponse.blob();
+          rscText = await rscBlob.text();
 
-    if (rscResponse?.ok === true) {
-      const finalContentType = rscResponse.headers.get('content-type');
-      if (finalContentType?.includes('text/x-component') === true) {
-        const safeRscHeaders = cleanHeaders(rscResponse.headers);
-        const safeRscResponse = new Response(await rscResponse.blob(), {
-          status: rscResponse.status,
-          headers: safeRscHeaders,
-        });
+          const safeRscResponse = new Response(rscText, {
+            status: rscResponse.status,
+            headers: safeRscHeaders,
+          });
 
-        await rscCache.put(rscUrl, safeRscResponse);
-        console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
-      } else {
-        console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
+          await rscCache.put(rscUrl, safeRscResponse);
+          console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
+        } else {
+          console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
+        }
       }
     }
   } catch (error) {
     console.warn(`[SW] RSC Network Error`, error);
   }
+
+  // F. Extract and prefetch all JS & CSS chunk dependencies referenced in page HTML and RSC stream
+  const extractedAssets = extractAssetUrls(htmlText, rscText);
+  if (extractedAssets.length > 0) {
+    console.log(
+      `[SW] Extracted ${extractedAssets.length} static JS/CSS chunk dependencies from ${pageUrl}`,
+    );
+    await Promise.all(
+      extractedAssets.map((assetUrl) =>
+        limit(async () => {
+          try {
+            await cacheAsset(assetUrl);
+          } catch (error) {
+            console.warn(`Chunk asset prefetch failed: ${assetUrl}`, error);
+          }
+        }),
+      ),
+    );
+  }
 }
 
-export async function cachePageAndScrape(pageUrl: string, locale?: string): Promise<void> {
+export async function cachePageAndScrape(pageUrl: string): Promise<void> {
   const targetUrls = new Set<string>();
+
+  // 1. Add raw pageUrl
   targetUrls.add(pageUrl);
-  if (locale && !pageUrl.startsWith(`/${locale}`)) {
-    const prefixedPath = pageUrl.startsWith('/') ? pageUrl : `/${pageUrl}`;
-    targetUrls.add(`/${locale}${prefixedPath}`);
+
+  // 2. Add localized & design-prefixed paths for app pages so offline navigation hits exact keys
+  if (pageUrl.includes('/app')) {
+    const cleanPath = getCleanAppPath(pageUrl);
+    for (const loc of ['de', 'fr', 'en']) {
+      for (const des of ['default', 'web']) {
+        targetUrls.add(`/${loc}/${des}${cleanPath}`);
+      }
+      targetUrls.add(`/${loc}${cleanPath}`);
+    }
   }
 
   for (const url of targetUrls) {
@@ -321,7 +406,22 @@ export async function prefetchOfflinePages(
     }
   };
 
-  // 1. Prefetch Registry Assets & Serwist Manifest Assets (Concurrent but limited)
+  // 1. Prefetch Core HTML Pages FIRST so page shells are immediately available offline
+  await Promise.all(
+    [...pagesToPrefetch].map((pageUrl) =>
+      limit(async () => {
+        try {
+          await cachePageAndScrape(pageUrl);
+        } catch (error) {
+          console.error(`Page prefetch failed: ${pageUrl}`, error);
+        } finally {
+          updateProgress();
+        }
+      }),
+    ),
+  );
+
+  // 2. Prefetch Registry Assets & Serwist Manifest Assets
   const allAssetsToPrefetch = new Set([...registryAssets, ...manifestUrls]);
 
   await Promise.all(
@@ -331,22 +431,6 @@ export async function prefetchOfflinePages(
           await cacheAsset(url);
         } catch (error) {
           console.warn(`Asset prefetch failed: ${url}`, error);
-        } finally {
-          updateProgress();
-        }
-      }),
-    ),
-  );
-
-  // 2. Prefetch Pages (Sequential or Limited)
-  // Pages are heavier (scraping involves parsing), so we keep concurrency low
-  await Promise.all(
-    [...pagesToPrefetch].map((pageUrl) =>
-      limit(async () => {
-        try {
-          await cachePageAndScrape(pageUrl);
-        } catch (error) {
-          console.error(`Page prefetch failed: ${pageUrl}`, error);
         } finally {
           updateProgress();
         }

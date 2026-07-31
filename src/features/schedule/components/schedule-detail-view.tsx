@@ -78,19 +78,26 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   // Use the locally tracked ID for all data fetching and display
   const id = currentId;
 
+  const trpcUtils = trpc.useUtils();
+
   // 1. Try to find the entry in the local TanStack DB cache first (offline support)
   const { entries: localEntries } = useScheduleEntries();
   const cachedEntry = localEntries.find((entry) => entry.id === id);
 
-  // 2. Also check the schedule list cache from tRPC
+  // 2. Also check the schedule list cache from tRPC (direct cache read + query hook)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 5,
+    networkMode: 'offlineFirst',
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
-  const listCachedEntry = scheduleList?.find((entry) => entry.id === id);
+  const trpcDirectEntries = trpcUtils.schedule.getScheduleEntries.getData();
+  const listCachedEntry =
+    scheduleList?.find((entry) => entry.id === id) ??
+    trpcDirectEntries?.find((entry) => entry.id === id);
 
-  // 3. Fetch via TRPC (primary source, enables refresh after edit)
+  // 3. Check direct tRPC cache for getById or run query
+  const directGetById = trpcUtils.schedule.getById.getData({ id });
   const {
     data: fetchedEntry,
     isLoading,
@@ -99,15 +106,17 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   } = trpc.schedule.getById.useQuery(
     { id },
     {
-      staleTime: 0,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
+      staleTime: 1000 * 60 * 5,
+      networkMode: 'offlineFirst',
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     },
   );
 
-  // Prefer fetched entry (fresh) over cached entries (may be stale)
+  // Prefer fetched/cached entry
   const entry =
     (fetchedEntry as unknown as CampScheduleEntry | undefined) ??
+    (directGetById as unknown as CampScheduleEntry | undefined) ??
     (listCachedEntry as unknown as CampScheduleEntry | undefined) ??
     (cachedEntry as unknown as CampScheduleEntry | undefined);
 
@@ -116,9 +125,10 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     { courseId: id },
     {
       enabled: !!entry,
-      staleTime: 0,
-      refetchOnMount: true,
-      refetchOnWindowFocus: true,
+      staleTime: 1000 * 60 * 5,
+      networkMode: 'offlineFirst',
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     },
   );
 

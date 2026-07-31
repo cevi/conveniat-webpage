@@ -97,7 +97,10 @@ const groupChatNameLabel: StaticTranslationString = {
 
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
+  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery(
+    {},
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [groupChatName, setGroupChatName] = useState('');
@@ -108,8 +111,37 @@ export const CreateNewChatPage: React.FC = () => {
   const trpcUtils = trpc.useUtils();
 
   const { mutate } = trpc.chat.createChat.useMutation({
-    onSuccess: async () => {
-      await trpcUtils.chat.chats.invalidate();
+    onSuccess: (createdChatId) => {
+      if (typeof createdChatId === 'string' && createdChatId.length > 0) {
+        // 1. Optimistic Update on chats list
+        trpcUtils.chat.chats.setData({}, (oldChats) => {
+          if (!oldChats) return oldChats;
+          if (oldChats.some((c) => c.id === createdChatId)) return oldChats;
+
+          const newChatEntry = {
+            id: createdChatId,
+            name: 'New Chat',
+            type: 'ONE_TO_ONE',
+            lastMessage: undefined,
+            lastUpdate: new Date(),
+            unreadCount: 0,
+          };
+          return [newChatEntry as unknown as (typeof oldChats)[number], ...oldChats];
+        });
+
+        // 2. Prefetch chat details and infinite messages for offline availability
+        void trpcUtils.chat.chatDetails.ensureData({ chatId: createdChatId }).catch(console.warn);
+        void trpcUtils.chat.infiniteMessages
+          .prefetchInfinite({
+            chatId: createdChatId,
+            limit: 50,
+            parentId: undefined,
+          })
+          .catch(console.warn);
+      }
+
+      // 3. Background refetch full chats overview while online
+      void trpcUtils.chat.chats.refetch().catch(console.warn);
     },
   });
 

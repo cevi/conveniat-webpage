@@ -8,6 +8,7 @@ Object.defineProperty(globalThis, 'window', {
 import {
   addMessageToOutbox,
   getOfflineOutbox,
+  getPendingOutboxChatMessages,
   removeMessageFromOutbox,
   type OfflineMessage,
 } from '@/features/chat/utils/offline-outbox';
@@ -23,7 +24,7 @@ describe('offline-outbox utility tests', () => {
     // Mock global localStorage
     Object.defineProperty(globalThis, 'localStorage', {
       value: {
-        // eslint-disable-next-line unicorn/no-null, @typescript-eslint/strict-boolean-expressions
+        // eslint-disable-next-line unicorn/no-null
         getItem: jest.fn((key: string) => mockStorage[key] ?? null),
         setItem: jest.fn((key: string, value: string) => {
           mockStorage[key] = value;
@@ -66,6 +67,30 @@ describe('offline-outbox utility tests', () => {
 
     const result = getOfflineOutbox();
     expect(result).toEqual(sampleMessages);
+  });
+
+  test('getPendingOutboxChatMessages should return formatted ChatMessages for a specific chatId and parentId', () => {
+    const message1: OfflineMessage = {
+      id: 'opt-id-1',
+      chatId: 'chat-1',
+      content: 'hello chat 1',
+      createdAt: '2026-05-22T00:00:00.000Z',
+    };
+    const message2: OfflineMessage = {
+      id: 'opt-id-2',
+      chatId: 'chat-2',
+      content: 'hello chat 2',
+      createdAt: '2026-05-22T00:00:01.000Z',
+    };
+
+    addMessageToOutbox(message1);
+    addMessageToOutbox(message2);
+
+    const pendingForChat1 = getPendingOutboxChatMessages('chat-1');
+    expect(pendingForChat1).toHaveLength(1);
+    expect(pendingForChat1[0]?.id).toBe('opt-id-1');
+    expect(pendingForChat1[0]?.messagePayload).toEqual({ text: 'hello chat 1' });
+    expect(pendingForChat1[0]?.status).toBe('CREATED');
   });
 
   test('getOfflineOutbox should return an empty array and log error on corrupted JSON', () => {

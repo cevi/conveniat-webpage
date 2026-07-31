@@ -94,7 +94,10 @@ export const ChatTextAreaInput: React.FC = () => {
   const fileInputReference = React.useRef<HTMLInputElement>(null);
   const { activeThreadId, quotedMessageId, cancelQuote } = useChatActions();
 
-  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: currentUser } = trpc.chat.user.useQuery(
+    {},
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
   const chatId = useChatId();
   const { data: chatDetails } = useChatDetail(chatId);
 

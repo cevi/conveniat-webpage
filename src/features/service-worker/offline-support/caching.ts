@@ -106,7 +106,7 @@ const rscCaching: RuntimeCaching = {
 };
 
 const fontCaching: RuntimeCaching = {
-  matcher: /\/_next\/static\/media\/.*\.(woff2?|ttf|otf|eot)$/,
+  matcher: /\/_next\/static\/media\/.*\.(woff2?|ttf|otf|eot)($|\?)/,
   handler: new CacheFirst({
     cacheName: CACHE_NAMES.FONTS,
     plugins: [
@@ -125,7 +125,17 @@ const nextFontCaching: RuntimeCaching = {
 };
 
 const imageCaching: RuntimeCaching = {
-  matcher: /\.(png|jpg|jpeg|svg|gif|webp|ico)$/,
+  matcher: /\.(png|jpg|jpeg|svg|gif|webp|ico)($|\?)/,
+  handler: isDevelopment
+    ? new NetworkOnly()
+    : new StaleWhileRevalidate({
+        cacheName: CACHE_NAMES.IMAGES,
+        plugins: [new CacheableResponsePlugin({ statuses: [200] }) as SerwistPlugin],
+      }),
+};
+
+const nextImageCaching: RuntimeCaching = {
+  matcher: ({ url }) => url.pathname.startsWith('/_next/image'),
   handler: isDevelopment
     ? new NetworkOnly()
     : new StaleWhileRevalidate({
@@ -138,11 +148,15 @@ const apiCaching: RuntimeCaching = {
   matcher: (options) => /\/api\/.*/.test(options.url.pathname),
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.API,
-    networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
+    networkTimeoutSeconds: 1.5,
     plugins: [
       new CacheableResponsePlugin({
         statuses: [200],
       }) as SerwistPlugin,
+      new ExpirationPlugin({
+        maxEntries: 100,
+        maxAgeSeconds: 7 * 24 * 60 * 60,
+      }),
     ],
   }),
 };
@@ -152,11 +166,15 @@ const pageCaching: RuntimeCaching = {
     request.method === 'GET' && request.destination === 'document',
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.PAGES,
-    networkTimeoutSeconds: TIMEOUTS.DEFAULT_FETCH / 1000,
+    networkTimeoutSeconds: 2,
     plugins: [
       new CacheableResponsePlugin({
         statuses: [200],
       }) as SerwistPlugin,
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 14 * 24 * 60 * 60,
+      }),
     ],
   }),
 };
@@ -168,6 +186,7 @@ const runtimeCaching: RuntimeCaching[] = [
   fontCaching,
   nextFontCaching,
   imageCaching,
+  nextImageCaching,
   apiCaching,
   pageCaching,
   ...offlineRegistry.getRuntimeCaching(),

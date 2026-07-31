@@ -138,6 +138,24 @@ self.addEventListener('message', (event) => {
     );
   }
 
+  const messageData = data as { type?: string; urls?: string[] } | undefined;
+  if (
+    messageData?.type === ServiceWorkerMessages.CACHE_DYNAMIC_ROUTES &&
+    Array.isArray(messageData.urls)
+  ) {
+    event.waitUntil(
+      (async (): Promise<void> => {
+        for (const url of messageData.urls as string[]) {
+          try {
+            await cachePageAndScrape(url);
+          } catch (error) {
+            console.warn(`[SW] Failed to cache dynamic route ${url}:`, error);
+          }
+        }
+      })(),
+    );
+  }
+
   if (data?.type === ServiceWorkerMessages.CHECK_OFFLINE_READY && event.source instanceof Client) {
     const client = event.source;
     event.waitUntil(
@@ -159,14 +177,21 @@ self.addEventListener('message', (event) => {
           if (!isEnabled) {
             return;
           }
-          const messageData = data as { type?: string; locale?: string };
-          const locale = typeof messageData.locale === 'string' ? messageData.locale : undefined;
           console.log('[SW] Updating map page cache (online update)...');
-          await cachePageAndScrape('/app/map', locale);
+          await cachePageAndScrape('/app/map');
           console.log('[SW] Map page cache updated.');
         } catch (error) {
           console.error('[SW] Failed to update map page cache:', error);
         }
+      })(),
+    );
+  }
+
+  if (data?.type === 'CLEAR_AUTH_CACHE') {
+    event.waitUntil(
+      (async (): Promise<void> => {
+        await caches.delete(CACHE_NAMES.AUTH_SESSION);
+        console.log('[SW] Cleared next-auth-session-cache.');
       })(),
     );
   }
@@ -179,11 +204,12 @@ self.addEventListener('unhandledrejection', (event) => {
   const error: unknown = event.reason;
   if (
     error instanceof Error &&
-    ((error.name === 'NetworkError' && error.message.includes('Cache.put')) ||
+    (error.name === 'QuotaExceededError' ||
+      (error.name === 'NetworkError' && error.message.includes('Cache.put')) ||
       (error.name === 'TypeError' && error.message.includes('Failed to fetch')))
   ) {
     event.preventDefault();
-    console.debug('[SW] Suppressed network error:', error);
+    console.debug('[SW] Suppressed background error:', error);
     logToPostHog('service_worker_network_error', { error: String(error) });
   }
 });

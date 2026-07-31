@@ -105,7 +105,9 @@ const errorStatusText: StaticTranslationString = {
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFallback, setShowFallback] = useState(true);
-  const [isOnline, setIsOnline] = useState(true); // Default to true (optimistic)
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  );
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
@@ -116,20 +118,28 @@ export const EmergencyComponent: React.FC = () => {
 
   // Fetch alert settings for offline caching and emergency number
   const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
-    refetchInterval: 1000 * 60 * 60 * 2, // 2 hours
-    refetchOnMount: true,
+    networkMode: 'offlineFirst',
+    refetchInterval: isOnline ? 1000 * 60 * 60 * 2 : false, // 2 hours when online
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Fetch dynamic emergency cards from Payload CMS
   const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
-    staleTime: 0,
+    networkMode: 'offlineFirst',
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes (allows instant rendering from offline cache)
   });
+
+  // Emergency phone number with robust fallback for offline mode
+  const emergencyPhoneNumber = alertSettings?.emergencyPhoneNumber ?? '112';
 
   // Track online/offline status and auth status
   useEffect(() => {
     const updateStatus = (): void => {
-      const online = navigator.onLine;
+      const online = typeof navigator === 'undefined' ? true : navigator.onLine;
       setIsOnline(online);
       const isAuthenticated = status === 'authenticated';
 
@@ -191,10 +201,13 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   const handleAlarmTrigger = async (): Promise<void> => {
-    let location: GeolocationPosition | undefined;
+    const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+    if (!online || status !== 'authenticated') {
+      setShowFallback(true);
+      throw new Error('Cannot trigger emergency alarm while offline or unauthenticated');
+    }
 
-    // TODO: the alert should also be send if the user is not signed in
-    //       what do we do in this case? create a temporary guest user?
+    let location: GeolocationPosition | undefined;
 
     try {
       const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
@@ -204,7 +217,7 @@ export const EmergencyComponent: React.FC = () => {
           return;
         }
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 10_000,
+          timeout: 5000,
           maximumAge: 60_000,
         });
       });
@@ -214,37 +227,65 @@ export const EmergencyComponent: React.FC = () => {
       console.warn('Failed to get location (denied or timeout):', error);
     }
 
-    const response = emergencyQuery.mutate(
-      {
+    try {
+      const data = await emergencyQuery.mutateAsync({
         location: location?.toJSON() as GeolocationPosition | undefined,
-      },
-      {
-        onSuccess: (data) => {
-          console.log('Emergency alert triggered successfully:', data);
+      });
 
-          if (!data.success) {
-            console.error('Failed to trigger emergency alert:', response);
-            return;
-          }
+      console.log('Emergency alert triggered successfully:', data);
 
-          trpcUtils.chat.chats
-            .invalidate()
-            .then(() => router.push(data.redirectUrl))
-            .catch(console.error);
-        },
-        onError: (error) => {
-          console.error('Failed to trigger emergency alert:', error);
-          setShowFallback(true);
-        },
-      },
-    );
+      if (!data.success) {
+        setShowFallback(true);
+        throw new Error('Emergency alert backend reported failure');
+      }
+
+      const createdChatId = data.chatId;
+
+      if (typeof createdChatId === 'string' && createdChatId.length > 0) {
+        trpcUtils.chat.chats.setData({}, (oldChats) => {
+          if (!oldChats) return oldChats;
+          if (oldChats.some((c) => c.id === createdChatId)) return oldChats;
+          const newChatEntry = {
+            id: createdChatId,
+            name: 'ALARM',
+            type: 'ALERT',
+            lastMessage: undefined,
+            lastUpdate: new Date(),
+            unreadCount: 0,
+          };
+          return [newChatEntry as unknown as (typeof oldChats)[number], ...oldChats];
+        });
+
+        // Prefetch new alert chat details & messages for offline availability
+        void trpcUtils.chat.chatDetails.ensureData({ chatId: createdChatId }).catch(console.warn);
+        void trpcUtils.chat.infiniteMessages
+          .prefetchInfinite({
+            chatId: createdChatId,
+            limit: 50,
+            parentId: undefined,
+          })
+          .catch(console.warn);
+      }
+
+      // Refetch full chat list from server in background while online
+      void trpcUtils.chat.chats.refetch().catch(console.warn);
+      router.push(data.redirectUrl);
+    } catch (error) {
+      console.error('Failed to trigger emergency alert:', error);
+      setShowFallback(true);
+      throw error;
+    }
   };
+
+  const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const isFallbackActive =
+    showFallback || !isOnline || isActuallyOffline || status !== 'authenticated';
 
   // Determine fallback texts
   let fallbackMessage = offlineStatusText[locale];
-  if (isOnline && status !== 'authenticated') {
+  if (isOnline && !isActuallyOffline && status !== 'authenticated') {
     fallbackMessage = unauthenticatedStatusText[locale];
-  } else if (isOnline && status === 'authenticated' && showFallback) {
+  } else if (isOnline && !isActuallyOffline && status === 'authenticated' && showFallback) {
     // Allows distinction for API errors if showFallback is true but online+authed
     fallbackMessage = errorStatusText[locale];
   }
@@ -462,7 +503,7 @@ export const EmergencyComponent: React.FC = () => {
 
         <div className="fixed bottom-20 left-0 w-full select-none xl:left-[480px] xl:w-[calc(100%-480px)]">
           <AnimatePresence mode="popLayout">
-            {showFallback && alertSettings?.emergencyPhoneNumber ? (
+            {isFallbackActive ? (
               <motion.div
                 key="fallback"
                 layout
@@ -475,10 +516,10 @@ export const EmergencyComponent: React.FC = () => {
               >
                 <p className="text-center text-sm font-medium text-gray-600">{fallbackMessage}</p>
                 <a
-                  href={`tel:${alertSettings.emergencyPhoneNumber}`}
+                  href={`tel:${emergencyPhoneNumber}`}
                   className="flex h-16 w-full items-center justify-center rounded-full bg-red-600 text-lg font-bold text-white shadow-md hover:bg-red-700"
                 >
-                  {offlineCallText[locale]}: {alertSettings.emergencyPhoneNumber}
+                  {offlineCallText[locale]}: {emergencyPhoneNumber}
                 </a>
               </motion.div>
             ) : (

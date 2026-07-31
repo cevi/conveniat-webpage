@@ -11,7 +11,7 @@ import {
   offlineContentTitle,
 } from '@/features/onboarding/onboarding-constants';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
-import { syncChatsOffline } from '@/lib/chat-sync';
+import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { motion } from 'framer-motion';
@@ -40,10 +40,8 @@ export const OfflineContentEntrypointComponent: React.FC<
   }, [status, callback]);
 
   const handleDownload = (): void => {
-    // Prefetch emergency alert settings for offline usage
-    void trpcUtils.emergency.getAlertSettings.ensureData().catch(console.warn);
-    // Prefetch chats for offline usage
-    void syncChatsOffline(trpcUtils).catch(console.warn);
+    // Prefetch all offline data (chats, emergency cards, alert settings, schedule)
+    void syncAllOfflineData(trpcUtils).catch(console.warn);
     startDownload();
   };
 

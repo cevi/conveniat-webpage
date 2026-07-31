@@ -79,7 +79,7 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {
   await redis.set(`${FEATURE_FLAG_PREFIX}${key}`, String(value));
   try {
-    revalidateTag('feature-flags', 'max-age=0');
+    revalidateTag('feature-flags', 'max');
   } catch {
     // Ignore when executed outside request context (e.g., seeding scripts)
   }

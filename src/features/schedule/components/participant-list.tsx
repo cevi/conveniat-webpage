@@ -36,7 +36,10 @@ const labels = {
  */
 export const ParticipantList: React.FC<ParticipantListProperties> = ({ courseId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: status, isLoading } = trpc.schedule.getCourseStatus.useQuery({ courseId });
+  const { data: status, isLoading } = trpc.schedule.getCourseStatus.useQuery(
+    { courseId },
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
 
   // Don't show anything if loading or enrollment not enabled
   if (isLoading || !status?.enableEnrolment) {

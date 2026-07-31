@@ -344,6 +344,6 @@ export const emergencyRouter = createTRPCRouter({
           });
       }
 
-      return { success: true, redirectUrl: `/app/chat/${chat.uuid}` };
+      return { success: true, redirectUrl: `/app/chat/${chat.uuid}`, chatId: chat.uuid };
     }),
 });

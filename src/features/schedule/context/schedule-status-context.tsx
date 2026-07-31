@@ -77,9 +77,10 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
   const { data, isLoading } = trpc.schedule.getCourseStatuses.useQuery(
     { courseIds },
     {
-      enabled: isOnline && courseIds.length > 0,
+      enabled: courseIds.length > 0,
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache for offline
+      networkMode: 'offlineFirst',
     },
   );
 

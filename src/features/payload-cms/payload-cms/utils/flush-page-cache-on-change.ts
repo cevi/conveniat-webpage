@@ -14,21 +14,19 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = ({
   const id = doc.id as string | number;
 
   console.log(`Revalidating cache for ${collectionSlug}:${id}`);
-  setTimeout(() => {
-    try {
-      revalidateTag('payload', 'max');
-      revalidateTag(`collection:${collectionSlug}`, 'max');
-      revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
+  try {
+    revalidateTag('payload', 'max');
+    revalidateTag(`collection:${collectionSlug}`, 'max');
+    revalidateTag(`doc:${collectionSlug}:${id}`, 'max');
 
-      // If permissions change, flush generic pages since they rely on auth checks
-      if (collectionSlug === 'permissions') {
-        console.log('Permission changed -> Flushing generic-page cache entirely.');
-        revalidateTag('collection:generic-page', 'max');
-      }
-    } catch {
-      console.warn('Revalidate failed (non-critical)');
+    // If permissions change, flush generic pages since they rely on auth checks
+    if (collectionSlug === 'permissions') {
+      console.log('Permission changed -> Flushing generic-page cache entirely.');
+      revalidateTag('collection:generic-page', 'max');
     }
-  });
+  } catch {
+    console.warn('Revalidate failed (non-critical)');
+  }
 };
 
 export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ req }): void => {
@@ -36,22 +34,18 @@ export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ req }): vo
     return;
   }
   console.log(`Flush all pages due to Global change`);
-  setTimeout(() => {
-    try {
-      revalidateTag('payload', 'max');
-    } catch {
-      console.warn('Revalidate failed (non-critical)');
-    }
-  });
+  try {
+    revalidateTag('payload', 'max');
+  } catch {
+    console.warn('Revalidate failed (non-critical)');
+  }
 };
 
 export const flushManifestCacheOnChange: GlobalAfterChangeHook = (): void => {
   console.log('PWA Global afterChange hook triggered --> revalidating manifest');
-  setTimeout(() => {
-    try {
-      revalidateTag('manifest', 'max');
-    } catch {
-      console.warn('Revalidate manifest failed (non-critical)');
-    }
-  });
+  try {
+    revalidateTag('manifest', 'max');
+  } catch {
+    console.warn('Revalidate manifest failed (non-critical)');
+  }
 };

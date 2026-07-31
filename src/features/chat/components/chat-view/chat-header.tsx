@@ -46,8 +46,14 @@ export const ChatHeaderSkeleton: React.FC = () => (
 export const ChatHeader: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
-  const { data: user } = trpc.chat.user.useQuery({});
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
+  const { data: user } = trpc.chat.user.useQuery(
+    {},
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery(
+    { chatId },
+    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+  );
   const { selectedMessage } = useChatActions();
 
   if (!chatDetails) {

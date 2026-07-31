@@ -37,6 +37,7 @@ const sendMessageInputSchema = z.object({
   type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
   parentId: z.string().uuid().optional(),
   quotedMessageId: z.string().uuid().optional(),
+  messageId: z.string().optional(),
 });
 
 // tRPC router for chat-related mutations

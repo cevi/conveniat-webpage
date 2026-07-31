@@ -5,8 +5,15 @@ import { trpc } from '@/trpc/client';
 import type { StarContextType } from '@/types/types';
 import { useLiveQuery } from '@tanstack/react-db';
 import { useSession } from 'next-auth/react';
-import type React from 'react';
-import { createContext, type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 const STORAGE_KEY = 'starredItems';
 
@@ -53,10 +60,24 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     }
   }, []);
 
+  const [isOnlineState, setIsOnlineState] = useState(
+    () => typeof navigator !== 'undefined' && navigator.onLine,
+  );
+
+  useEffect(() => {
+    const handleOnline = (): void => setIsOnlineState(true);
+    const handleOffline = (): void => setIsOnlineState(false);
+    globalThis.addEventListener('online', handleOnline);
+    globalThis.addEventListener('offline', handleOffline);
+    return (): void => {
+      globalThis.removeEventListener('online', handleOnline);
+      globalThis.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // Sync with backend (debounced)
   useEffect(() => {
-    if (!isInitializedReference.current || typeof navigator === 'undefined' || !navigator.onLine)
-      return;
+    if (!isInitializedReference.current || !isOnlineState) return;
 
     if (status !== 'authenticated') {
       isSyncedReference.current = false;
@@ -114,7 +135,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     return (): void => {
       if (syncTimerReference.current) clearTimeout(syncTimerReference.current);
     };
-  }, [starredEntries, syncStarsMutation, status]);
+  }, [starredEntries, syncStarsMutation, status, isOnlineState]);
 
   const toggleStar = useCallback(
     (id: string) => {

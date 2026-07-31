@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
-import { syncChatsOffline } from '@/lib/chat-sync';
+import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { motion } from 'framer-motion';
@@ -74,7 +74,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               variant="ghost"
               size="icon"
               onClick={() => {
-                void syncChatsOffline(trpcUtils).catch(console.warn);
+                void syncAllOfflineData(trpcUtils).catch(console.warn);
                 void startDownload();
               }}
               title={updateButton[locale]}
@@ -87,7 +87,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {
-                void syncChatsOffline(trpcUtils).catch(console.warn);
+                void syncAllOfflineData(trpcUtils).catch(console.warn);
                 void startDownload();
               } else {
                 void deleteContent();

@@ -15,7 +15,6 @@ import type {
   InitialMapPose,
   MapControlOptions,
 } from '@/features/map/types/types';
-import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -80,8 +79,6 @@ export const MapLibreRenderer = ({
   const closeDrawer = useCallback(() => setOpenAnnotation(undefined), []);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
-  const isOnline = useOnlineStatus();
-
   const [annotationPoints, setAnnotationPoints] =
     useState<CampMapAnnotationPoint[]>(campMapAnnotationPoints);
   const [annotationPolygons, setAnnotationPolygons] =
@@ -110,8 +107,11 @@ export const MapLibreRenderer = ({
   const { data: updatedMapData } = trpc.map.getMapAnnotations.useQuery(
     { locale },
     {
-      enabled: isOnline,
-      staleTime: 0, // fetch fresh data
+      enabled: true,
+      staleTime: 5 * 60 * 1000,
+      networkMode: 'offlineFirst',
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
     },
   );
 
@@ -119,9 +119,9 @@ export const MapLibreRenderer = ({
     if (updatedMapData) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnnotationPoints(updatedMapData.campMapAnnotationPoints);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setAnnotationPolygons(updatedMapData.campMapAnnotationPolygons);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setSchedulesState(updatedMapData.schedules);
 
       // Trigger background update of the PWA offline cache for `/app/map` page & RSC
@@ -145,7 +145,6 @@ export const MapLibreRenderer = ({
       }
       const updatedPolygon = annotationPolygons.find((a) => a.id === openAnnotation.id);
       if (updatedPolygon && updatedPolygon !== openAnnotation) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setOpenAnnotation(updatedPolygon);
       }
     }
