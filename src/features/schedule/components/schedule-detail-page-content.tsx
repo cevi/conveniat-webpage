@@ -39,7 +39,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   // 1. Try to find the entry in the list cache first (Offline support via hydration)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
-    networkMode: 'offlineFirst',
+
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
@@ -56,7 +56,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
     {
       enabled: true,
       staleTime: 1000 * 60 * 5,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: 'always',
       refetchOnWindowFocus: true,
     },
@@ -69,7 +69,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   // 3. Get course status to determine if user is admin
   const { data: courseStatus } = trpc.schedule.getCourseStatus.useQuery(
     { courseId: id },
-    { enabled: !!entry, networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
+    { enabled: !!entry, staleTime: 1000 * 60 * 5 },
   );
 
   // 4. Use shared edit hook

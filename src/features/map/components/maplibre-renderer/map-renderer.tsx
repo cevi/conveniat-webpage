@@ -109,7 +109,7 @@ export const MapLibreRenderer = ({
     {
       enabled: true,
       staleTime: 5 * 60 * 1000,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: false,
     },

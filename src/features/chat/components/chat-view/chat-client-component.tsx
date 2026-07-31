@@ -111,7 +111,7 @@ const ChatClientContent: React.FC = () => {
   if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (isPaused && isPending && chatDetails === undefined) return <ChatOfflineMessage />;
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
   if ((isError || (isLoading && errorUpdateCount !== 0)) && chatDetails === undefined)
     return <ChatErrorMessage />;
 

@@ -19,7 +19,6 @@ export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId
 
   // Get enrolled courses to check if this entry is enrolled
   const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery(undefined, {
-    networkMode: 'offlineFirst',
     staleTime: 1000 * 60 * 5,
   });
   const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);

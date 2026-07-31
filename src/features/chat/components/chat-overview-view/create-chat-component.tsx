@@ -97,10 +97,7 @@ const groupChatNameLabel: StaticTranslationString = {
 
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [groupChatName, setGroupChatName] = useState('');

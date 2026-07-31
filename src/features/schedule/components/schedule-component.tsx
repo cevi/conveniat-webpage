@@ -42,7 +42,7 @@ export const ScheduleComponent: React.FC = () => {
     undefined,
     {
       staleTime: 1000 * 60 * 5,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: false,
     },
@@ -66,7 +66,6 @@ export const ScheduleComponent: React.FC = () => {
   // Get enrolled courses
   const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
-    networkMode: 'offlineFirst',
   });
   const enrolledIds = useMemo(() => {
     const raw = enrollmentsQuery.data as unknown;

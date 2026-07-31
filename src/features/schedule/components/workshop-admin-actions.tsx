@@ -64,7 +64,7 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
     { courseId },
     {
       enabled: isAdminProperty === undefined || courseStatusProperty === undefined,
-      networkMode: 'offlineFirst',
+
       staleTime: 1000 * 60 * 5,
     },
   );

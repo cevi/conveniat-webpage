@@ -128,14 +128,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const [showInfo, setShowInfo] = useState(false);
 
   const chatId = useChatId();
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery(
-    { chatId },
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
-  const { data: currentUserId } = trpc.chat.user.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
+  const { data: currentUserId } = trpc.chat.user.useQuery({});
 
   const currentUserParticipant = chatDetails?.participants.find((p) => p.id === currentUserId);
   const isGuest = currentUserParticipant?.chatPermission === 'GUEST';

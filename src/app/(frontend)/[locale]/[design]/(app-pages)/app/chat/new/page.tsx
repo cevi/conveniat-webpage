@@ -25,7 +25,6 @@ const NewChatPage: React.FC = () => {
         subject: CapabilitySubject.Chat,
       },
       {
-        networkMode: 'offlineFirst',
         staleTime: 1000 * 60 * 5,
         refetchOnMount: false,
         refetchOnWindowFocus: false,

@@ -87,7 +87,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   // 2. Also check the schedule list cache from tRPC (direct cache read + query hook)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
-    networkMode: 'offlineFirst',
+
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
@@ -107,7 +107,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     { id },
     {
       staleTime: 1000 * 60 * 5,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: false,
     },
@@ -126,7 +126,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     {
       enabled: !!entry,
       staleTime: 1000 * 60 * 5,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: false,
     },

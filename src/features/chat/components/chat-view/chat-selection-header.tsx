@@ -12,16 +12,10 @@ import React from 'react';
 export const ChatSelectionHeader: React.FC = () => {
   const { selectedMessage, setSelectedMessage, quoteMessage, replyInThread } = useChatActions();
   const [showInfo, setShowInfo] = React.useState(false);
-  const { data: currentUserId } = trpc.chat.user.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: currentUserId } = trpc.chat.user.useQuery({});
 
   const chatId = useChatId();
-  const { data: chatDetails } = trpc.chat.chatDetails.useQuery(
-    { chatId },
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
 
   if (!selectedMessage) return;
 

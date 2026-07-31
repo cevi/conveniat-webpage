@@ -118,7 +118,6 @@ export const EmergencyComponent: React.FC = () => {
 
   // Fetch alert settings for offline caching and emergency number
   const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
-    networkMode: 'offlineFirst',
     refetchInterval: isOnline ? 1000 * 60 * 60 * 2 : false, // 2 hours when online
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -127,7 +126,6 @@ export const EmergencyComponent: React.FC = () => {
 
   // Fetch dynamic emergency cards from Payload CMS
   const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
-    networkMode: 'offlineFirst',
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes (allows instant rendering from offline cache)

@@ -35,7 +35,7 @@ export const useMessageInfiniteScroll = ({
       },
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 60 * 24 * 7,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,

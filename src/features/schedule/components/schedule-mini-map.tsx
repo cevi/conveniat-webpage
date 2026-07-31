@@ -66,7 +66,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
   // Fetch all polygon annotations for context
   const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
-    networkMode: 'offlineFirst',
+
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });

@@ -195,10 +195,7 @@ const performOptimisticMessageUpdate = async (
 
 export const useMessageSend = (): UseMessageSendMutation => {
   const trpcUtils = trpc.useUtils();
-  const { data: currentUser } = trpc.chat.user.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: currentUser } = trpc.chat.user.useQuery({});
   const { cancelQuote } = useChatActions();
 
   return trpc.chat.sendMessage.useMutation({

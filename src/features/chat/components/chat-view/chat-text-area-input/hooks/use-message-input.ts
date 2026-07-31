@@ -50,7 +50,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     undefined,
     {
       refetchInterval: 30_000, // Poll every 30 seconds
-      networkMode: 'offlineFirst',
+
       staleTime: 1000 * 60 * 5,
     },
   );

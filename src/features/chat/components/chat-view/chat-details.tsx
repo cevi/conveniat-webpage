@@ -33,17 +33,11 @@ export const ChatDetails: React.FC = () => {
   const [isManagingParticipants, setIsManagingParticipants] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactsToAdd, setSelectedContactsToAdd] = useState<Contact[]>([]);
-  const { data: allContacts, isLoading: isLoadingContacts } = trpc.chat.contacts.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: allContacts, isLoading: isLoadingContacts } = trpc.chat.contacts.useQuery({});
   const updateChatMutation = useUpdateChatMutation();
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
-  const { data: currentUser } = trpc.chat.user.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: currentUser } = trpc.chat.user.useQuery({});
   const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
 
   // Memoize the list of contacts that can be added (not already in the chat)

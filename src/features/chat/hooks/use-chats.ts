@@ -26,7 +26,7 @@ export const useChats = (): UseTRPCQueryResult<
     {
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 60 * 24 * 7,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: false,
     },
@@ -55,7 +55,7 @@ export const useChatDetail = (
       enabled: chatId !== '',
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 60 * 24 * 7,
-      networkMode: 'offlineFirst',
+
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchInterval: isOnline ? 300_000 : false,
@@ -86,7 +86,7 @@ export const useSuspenseChatDetail = (
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       refetchIntervalInBackground: false,
-      networkMode: 'offlineFirst',
+
       staleTime: 1000 * 60 * 5,
     },
   );

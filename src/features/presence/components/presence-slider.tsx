@@ -63,7 +63,6 @@ export const PresenceSlider: React.FC = () => {
   } = trpc.presence.getPresence.useQuery(undefined, {
     enabled: status === 'authenticated',
     staleTime: 1000 * 60 * 5,
-    networkMode: 'offlineFirst',
   });
 
   const isPresent = presenceData?.isPresent;

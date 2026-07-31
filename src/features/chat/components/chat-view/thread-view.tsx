@@ -35,10 +35,9 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
   const trpcUtils = trpc.useUtils();
 
   // Fetch parent message directly
-  const { data: parentMessage, isLoading: isLoadingParent } = trpc.chat.getMessage.useQuery(
-    { messageId: threadId },
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: parentMessage, isLoading: isLoadingParent } = trpc.chat.getMessage.useQuery({
+    messageId: threadId,
+  });
 
   const { mutate: markThreadAsRead } = trpc.chat.markThreadAsRead.useMutation({
     onMutate: () => {

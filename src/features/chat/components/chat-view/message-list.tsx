@@ -36,10 +36,7 @@ export const MessageList: React.FC<{
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
-  const { data: currentUser } = trpc.chat.user.useQuery(
-    {},
-    { networkMode: 'offlineFirst', staleTime: 1000 * 60 * 5 },
-  );
+  const { data: currentUser } = trpc.chat.user.useQuery({});
 
   const { sortedMessages, isFetchingNextPage, topSentinelReference } = useMessageInfiniteScroll({
     chatId,
