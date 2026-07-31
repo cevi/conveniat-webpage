@@ -7,6 +7,8 @@ name: Build Konekta Deployment Image
 jobs:
   call-konekta-build:
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - name: Trigger Workflow in Konekta Repository
         uses: peter-evans/repository-dispatch@v4
