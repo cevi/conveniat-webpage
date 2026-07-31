@@ -20,7 +20,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import React from 'react';
 
-export const OnboardingProcess: React.FC = () => {
+export const OnboardingProcessContent: React.FC = () => {
   const {
     locale,
     onboardingStep,
@@ -116,12 +116,10 @@ export const OnboardingProcess: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                <TRPCProvider>
-                  <OfflineContentEntrypointComponent
-                    callback={handleOfflineContent}
-                    locale={locale}
-                  />
-                </TRPCProvider>
+                <OfflineContentEntrypointComponent
+                  callback={handleOfflineContent}
+                  locale={locale}
+                />
               </motion.div>
             )}
 
@@ -157,5 +155,13 @@ export const OnboardingProcess: React.FC = () => {
 
       <OnboardingProgress currentStep={onboardingStep} onStepClick={setOnboardingStep} />
     </div>
+  );
+};
+
+export const OnboardingProcess: React.FC = () => {
+  return (
+    <TRPCProvider>
+      <OnboardingProcessContent />
+    </TRPCProvider>
   );
 };
