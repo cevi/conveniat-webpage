@@ -193,8 +193,9 @@ export const syncAllOfflineData = async (
 
         if (courseIds.length > 0) {
           const CHUNK_SIZE = 40;
-          const chunks = Array.from({ length: Math.ceil(courseIds.length / CHUNK_SIZE) }, (_, index) =>
-            courseIds.slice(index * CHUNK_SIZE, index * CHUNK_SIZE + CHUNK_SIZE),
+          const chunks = Array.from(
+            { length: Math.ceil(courseIds.length / CHUNK_SIZE) },
+            (_, index) => courseIds.slice(index * CHUNK_SIZE, index * CHUNK_SIZE + CHUNK_SIZE),
           );
 
           for (const chunk of chunks) {
