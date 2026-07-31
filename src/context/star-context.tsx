@@ -121,9 +121,7 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
             }
           },
           onError: (error): void => {
-            // Reset lastSyncedIds and isSynced so we retry on next change
             isSyncedReference.current = false;
-            lastSyncedIdsReference.current = '';
             if (error.data?.code !== 'UNAUTHORIZED' && error.data?.code !== 'FORBIDDEN') {
               console.warn('Star sync failed:', error.message);
             }
@@ -135,7 +133,8 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
     return (): void => {
       if (syncTimerReference.current) clearTimeout(syncTimerReference.current);
     };
-  }, [starredEntries, syncStarsMutation, status, isOnlineState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [starredEntries, status, isOnlineState]);
 
   const toggleStar = useCallback(
     (id: string) => {
