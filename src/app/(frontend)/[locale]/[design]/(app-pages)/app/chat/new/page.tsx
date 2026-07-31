@@ -28,6 +28,7 @@ const NewChatPage: React.FC = () => {
         staleTime: 1000 * 60 * 5,
         refetchOnMount: false,
         refetchOnWindowFocus: false,
+        networkMode: 'offlineFirst',
       },
     );
 

@@ -227,6 +227,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
       if (isOfflineError) {
         if (context?.optimisticMessageId) {
           addMessageToOutbox({
+            type: 'MESSAGE',
             id: context.optimisticMessageId,
             chatId,
             content,

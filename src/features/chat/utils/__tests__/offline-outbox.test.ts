@@ -57,6 +57,7 @@ describe('offline-outbox utility tests', () => {
   test('getOfflineOutbox should return parsed messages if they exist in localStorage', () => {
     const sampleMessages: OfflineMessage[] = [
       {
+        type: 'MESSAGE',
         id: 'opt-id-1',
         chatId: 'chat-1',
         content: 'hello offline',
@@ -71,12 +72,14 @@ describe('offline-outbox utility tests', () => {
 
   test('getPendingOutboxChatMessages should return formatted ChatMessages for a specific chatId and parentId', () => {
     const message1: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-1',
       chatId: 'chat-1',
       content: 'hello chat 1',
       createdAt: '2026-05-22T00:00:00.000Z',
     };
     const message2: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-2',
       chatId: 'chat-2',
       content: 'hello chat 2',
@@ -103,6 +106,7 @@ describe('offline-outbox utility tests', () => {
 
   test('addMessageToOutbox should add a new message to the outbox', () => {
     const sampleMessage: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-1',
       chatId: 'chat-1',
       content: 'hello offline',
@@ -121,6 +125,7 @@ describe('offline-outbox utility tests', () => {
 
   test('addMessageToOutbox should prevent duplicate additions', () => {
     const sampleMessage: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-1',
       chatId: 'chat-1',
       content: 'hello offline',
@@ -137,12 +142,14 @@ describe('offline-outbox utility tests', () => {
 
   test('removeMessageFromOutbox should remove message by its ID', () => {
     const message1: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-1',
       chatId: 'chat-1',
       content: 'first msg',
       createdAt: '2026-05-22T00:00:00.000Z',
     };
     const message2: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-2',
       chatId: 'chat-1',
       content: 'second msg',
@@ -161,6 +168,7 @@ describe('offline-outbox utility tests', () => {
 
   test('removeMessageFromOutbox should do nothing if ID is not found', () => {
     const message1: OfflineMessage = {
+      type: 'MESSAGE',
       id: 'opt-id-1',
       chatId: 'chat-1',
       content: 'first msg',

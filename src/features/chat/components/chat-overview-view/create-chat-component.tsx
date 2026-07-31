@@ -4,6 +4,7 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
+import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -108,22 +109,63 @@ export const CreateNewChatPage: React.FC = () => {
   const trpcUtils = trpc.useUtils();
 
   const { mutate } = trpc.chat.createChat.useMutation({
-    onSuccess: (createdChatId) => {
+    networkMode: 'always',
+    onMutate: (variables) => {
+      const optimisticId = `offline-chat-${crypto.randomUUID()}`;
+
+      trpcUtils.chat.chats.setData({}, (oldChats) => {
+        if (!oldChats) return oldChats;
+        const newChatEntry = {
+          id: optimisticId,
+          name: variables.chatName || 'New Chat',
+          type: variables.members.length > 1 ? 'GROUP' : 'ONE_TO_ONE',
+          lastMessage: undefined,
+          lastUpdate: new Date(),
+          unreadCount: 0,
+        };
+        return [newChatEntry as unknown as (typeof oldChats)[number], ...oldChats];
+      });
+
+      return { optimisticId };
+    },
+    onError: (error, variables, context) => {
+      const isOfflineError =
+        !navigator.onLine ||
+        error.message === 'Failed to fetch' ||
+        error.message.includes('Network request failed');
+
+      if (isOfflineError && context?.optimisticId) {
+        addMessageToOutbox({
+          type: 'CREATE_CHAT',
+          id: context.optimisticId,
+          chatName: variables.chatName,
+          memberIds: variables.members.map((m) => m.userId),
+          createdAt: new Date().toISOString(),
+        });
+        return;
+      }
+
+      console.error('Failed to create chat:', error);
+      // Revert optimistic update
+      trpcUtils.chat.chats.setData({}, (oldChats) => {
+        if (!oldChats) return oldChats;
+        return oldChats.filter((c) => c.id !== context?.optimisticId);
+      });
+    },
+    onSuccess: (createdChatId, _variables, context) => {
       if (typeof createdChatId === 'string' && createdChatId.length > 0) {
-        // 1. Optimistic Update on chats list
+        // 1. Swap optimistic ID with real ID
         trpcUtils.chat.chats.setData({}, (oldChats) => {
           if (!oldChats) return oldChats;
-          if (oldChats.some((c) => c.id === createdChatId)) return oldChats;
+          if (oldChats.some((c) => c.id === createdChatId)) {
+            // Real ID already exists (e.g. refetch won a race), just remove optimistic
+            return oldChats.filter((c) => c.id !== context.optimisticId);
+          }
 
-          const newChatEntry = {
-            id: createdChatId,
-            name: 'New Chat',
-            type: 'ONE_TO_ONE',
-            lastMessage: undefined,
-            lastUpdate: new Date(),
-            unreadCount: 0,
-          };
-          return [newChatEntry as unknown as (typeof oldChats)[number], ...oldChats];
+          // Otherwise update the optimistic chat's ID
+          return oldChats.map((c) =>
+            c.id === context.optimisticId ? { ...c, id: createdChatId } : c,
+          );
         });
 
         // 2. Prefetch chat details and infinite messages for offline availability
@@ -418,7 +460,9 @@ export const CreateNewChatPage: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <p className="font-body text-sm font-medium text-gray-900">
-                          {contact.name}
+                          {contact.nickname !== undefined && contact.nickname.trim().length > 0
+                            ? `${contact.name} v/o ${contact.nickname}`
+                            : contact.name}
                         </p>
                         {contact.description && (
                           <p className="font-body text-xs text-gray-500">{contact.description}</p>
