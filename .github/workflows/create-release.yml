@@ -26,7 +26,7 @@ jobs:
 
       - name: Load Version of Latest Release
         id: check
-        uses: EndBug/version-check@v2
+        uses: EndBug/version-check@v3
         with:
           file-name: ./package.json
           file-url: ::before
