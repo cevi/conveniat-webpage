@@ -34,7 +34,7 @@ export const ChatCourseSection: React.FC<ChatCourseSectionProperties> = ({ cours
       <p className="mb-4 text-sm text-gray-500">{labels.description[locale]}</p>
 
       <Button variant="outline" className="w-full justify-start gap-2" asChild>
-        <Link href={`/app/schedule/${courseId}`}>
+        <Link href={`/app/schedule?id=${courseId}`}>
           <Calendar className="h-4 w-4" />
           {labels.courseLink[locale]}
         </Link>

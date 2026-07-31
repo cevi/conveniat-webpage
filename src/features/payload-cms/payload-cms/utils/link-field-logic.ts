@@ -105,7 +105,7 @@ export const getURLForLinkField = (
       }
       case 'camp-schedule-entry': {
         const entryId = (value as CampScheduleEntry).id;
-        baseUrl = `/app/schedule/${entryId}`;
+        baseUrl = `/app/schedule?id=${entryId}`;
         break;
       }
       case 'camp-map-annotations': {

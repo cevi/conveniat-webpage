@@ -41,7 +41,11 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   );
 
   const hasEnrollment = entry.enable_enrolment === true;
-  const href = `/app/schedule/${entry.id}?${searchParameters.toString()}`;
+
+  // Clone current search params and set id for offline robust navigation
+  const newParameters = new URLSearchParams(searchParameters.toString());
+  newParameters.set('id', entry.id);
+  const href = `/app/schedule?${newParameters.toString()}`;
 
   return (
     <div

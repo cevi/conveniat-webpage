@@ -1,7 +1,6 @@
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlinePages } from '@/features/service-worker/offline-support/offline-pages';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import { getCleanAppPath } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 
 export const OFFLINE_STATUS_CACHE = CACHE_NAMES.OFFLINE_STATUS;
@@ -129,52 +128,75 @@ export async function setOfflineSupportEnabled(enabled: boolean): Promise<void> 
     : cache.delete(OFFLINE_ENABLED_FLAG));
 }
 
+const inFlightAssetRequests = new Map<string, Promise<void>>();
+
 async function cacheAsset(url: string): Promise<void> {
-  const mapTilesCache = await caches.open(CACHE_NAMES.MAP_TILES);
-
-  // Use load balancing for map tiles (vectortiles0-4)
-  const isMapTile = url.includes('vectortiles') || url.includes('geo.admin.ch');
-  const isSameOrigin =
-    url.startsWith('/') || new URL(url, location.origin).origin === location.origin;
-
-  const response = await fetchWithRetryAndTimeout(
-    url,
-    {
-      mode: 'cors',
-      ...(isSameOrigin
-        ? {
-            headers: {
-              [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
-            },
-          }
-        : {}),
-    },
-    TIMEOUTS.ASSET_FETCH,
-    isMapTile,
-  );
-
-  if (response === undefined) {
-    console.warn(`[SW] Skipping cache for failed asset: ${url}`);
-    return;
+  // 1. Deduplicate concurrent identical requests
+  if (inFlightAssetRequests.has(url)) {
+    return inFlightAssetRequests.get(url);
   }
 
-  const safeHeaders = cleanHeaders(response.headers);
-  const safeResponse = new Response(await response.blob(), {
-    status: response.status,
-    statusText: response.statusText,
-    headers: safeHeaders,
-  });
+  const doCache = async (): Promise<void> => {
+    // Determine target cache first
+    const isMapTile = url.includes('vectortiles') || url.includes('geo.admin.ch');
+    let cacheTarget: Cache;
+    if (isMapTile) {
+      cacheTarget = await caches.open(CACHE_NAMES.MAP_TILES);
+    } else if (/\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(url)) {
+      cacheTarget = await caches.open(CACHE_NAMES.FONTS);
+    } else {
+      cacheTarget = await caches.open(CACHE_NAMES.OFFLINE_ASSETS);
+    }
 
-  const cacheTarget =
-    // eslint-disable-next-line no-nested-ternary
-    isMapTile
-      ? mapTilesCache
-      : /\.(woff2?|ttf|otf|eot)(\?.*)?$/i.test(url)
-        ? await caches.open(CACHE_NAMES.FONTS)
-        : await caches.open(CACHE_NAMES.OFFLINE_ASSETS);
+    // Check if it already exists to prevent duplicate fetches
+    const existing = await cacheTarget.match(new Request(url, { mode: 'cors' }));
+    if (existing) {
+      return;
+    }
 
-  // Always cache using the ORIGINAL normalized URL (vectortiles0)
-  await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
+    const isSameOrigin =
+      url.startsWith('/') || new URL(url, location.origin).origin === location.origin;
+
+    const response = await fetchWithRetryAndTimeout(
+      url,
+      {
+        mode: 'cors',
+        ...(isSameOrigin
+          ? {
+              headers: {
+                [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+              },
+            }
+          : {}),
+      },
+      TIMEOUTS.ASSET_FETCH,
+      isMapTile,
+    );
+
+    if (response === undefined) {
+      console.warn(`[SW] Skipping cache for failed asset: ${url}`);
+      return;
+    }
+
+    const safeHeaders = cleanHeaders(response.headers);
+    const safeResponse = new Response(await response.blob(), {
+      status: response.status,
+      statusText: response.statusText,
+      headers: safeHeaders,
+    });
+
+    // Always cache using the ORIGINAL normalized URL (vectortiles0)
+    await cacheTarget.put(new Request(url, { mode: 'cors' }), safeResponse);
+  };
+
+  const promise = doCache();
+  inFlightAssetRequests.set(url, promise);
+
+  try {
+    await promise;
+  } finally {
+    inFlightAssetRequests.delete(url);
+  }
 }
 
 function extractAssetUrls(htmlText: string, rscText?: string): string[] {
@@ -230,153 +252,152 @@ function extractAssetUrls(htmlText: string, rscText?: string): string[] {
   return [...assets];
 }
 
+const inFlightPageRequests = new Map<string, Promise<void>>();
+
 async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
-  console.log(`[SW] Fetching HTML for: ${pageUrl}`);
-  const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-  const rscCache = await caches.open(CACHE_NAMES.RSC);
-
-  // Use robust fetch with timeout for page HTML
-  const response = await fetchWithRetryAndTimeout(
-    pageUrl,
-    {
-      credentials: 'same-origin',
-      headers: {
-        Accept: 'text/html',
-        [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
-      },
-    },
-    TIMEOUTS.ASSET_FETCH,
-    false, // No load balancing for pages
-  );
-
-  if (response === undefined) {
-    console.warn(`[SW] Skipping page prefetch for failed URL: ${pageUrl}`);
-    return;
+  if (inFlightPageRequests.has(pageUrl)) {
+    return inFlightPageRequests.get(pageUrl);
   }
 
-  const htmlText = await response.text();
-  const safeHeaders = cleanHeaders(response.headers);
+  const doPageCache = async (): Promise<void> => {
+    console.log(`[SW] Fetching HTML for: ${pageUrl}`);
+    const pagesCache = await caches.open(CACHE_NAMES.PAGES);
+    const rscCache = await caches.open(CACHE_NAMES.RSC);
 
-  await pagesCache.put(
-    pageUrl,
-    new Response(htmlText, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: safeHeaders,
-    }),
-  );
-
-  let rscText = '';
-
-  // E. Prefetch RSC (Updated Logic)
-  const urlObject = new URL(pageUrl, location.origin);
-  // We start by trying the clean URL (empty value)
-  urlObject.searchParams.append('_rsc', '');
-  const rscUrl = urlObject.toString().replace('_rsc=', '_rsc');
-
-  const rscHeaders = {
-    RSC: '1',
-    [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
-  };
-
-  try {
-    let rscResponse = await fetchWithRetryAndTimeout(
-      rscUrl,
+    // Use robust fetch with timeout for page HTML
+    const response = await fetchWithRetryAndTimeout(
+      pageUrl,
       {
         credentials: 'same-origin',
-        headers: rscHeaders,
+        headers: {
+          Accept: 'text/html',
+          [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+        },
       },
-      TIMEOUTS.RSC_FETCH,
-      false,
+      TIMEOUTS.ASSET_FETCH,
+      false, // No load balancing for pages
     );
 
-    if (rscResponse === undefined) {
-      console.warn(`[SW] RSC Prefetch failed for ${rscUrl}`);
-    } else {
-      const contentType = rscResponse.headers.get('content-type');
-      const isRscData = contentType?.includes('text/x-component');
+    if (response === undefined) {
+      console.warn(`[SW] Skipping page prefetch for failed URL: ${pageUrl}`);
+      return;
+    }
 
-      // RETRY STRATEGY: If we got HTML (200 OK) instead of RSC, try adding a dummy value.
-      if (rscResponse.ok && isRscData === false) {
-        console.warn(`[SW] RSC Prefetch returned HTML for ${rscUrl}. Retrying with hash...`);
+    const htmlText = await response.text();
+    const safeHeaders = cleanHeaders(response.headers);
 
-        const retryUrl = new URL(pageUrl, location.origin);
-        retryUrl.searchParams.append('_rsc', '1');
+    await pagesCache.put(
+      pageUrl,
+      new Response(htmlText, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: safeHeaders,
+      }),
+    );
 
-        rscResponse = await fetchWithRetryAndTimeout(
-          retryUrl.toString(),
-          {
-            credentials: 'same-origin',
-            headers: rscHeaders,
-          },
-          TIMEOUTS.RSC_FETCH,
-          false,
-        );
-      }
+    let rscText = '';
 
-      if (rscResponse?.ok === true) {
-        const finalContentType = rscResponse.headers.get('content-type');
-        if (finalContentType?.includes('text/x-component') === true) {
-          const safeRscHeaders = cleanHeaders(rscResponse.headers);
-          const rscBlob = await rscResponse.blob();
-          rscText = await rscBlob.text();
+    // E. Prefetch RSC (Updated Logic)
+    const urlObject = new URL(pageUrl, location.origin);
+    // We start by trying the clean URL (empty value)
+    urlObject.searchParams.append('_rsc', '');
+    const rscUrl = urlObject.toString().replace('_rsc=', '_rsc');
 
-          const safeRscResponse = new Response(rscText, {
-            status: rscResponse.status,
-            headers: safeRscHeaders,
-          });
+    const rscHeaders = {
+      RSC: '1',
+      [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
+    };
 
-          await rscCache.put(rscUrl, safeRscResponse);
-          console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
-        } else {
-          console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
+    try {
+      let rscResponse = await fetchWithRetryAndTimeout(
+        rscUrl,
+        {
+          credentials: 'same-origin',
+          headers: rscHeaders,
+        },
+        TIMEOUTS.RSC_FETCH,
+        false,
+      );
+
+      if (rscResponse === undefined) {
+        console.warn(`[SW] RSC Prefetch failed for ${rscUrl}`);
+      } else {
+        const contentType = rscResponse.headers.get('content-type');
+        const isRscData = contentType?.includes('text/x-component');
+
+        // RETRY STRATEGY: If we got HTML (200 OK) instead of RSC, try adding a dummy value.
+        if (rscResponse.ok && isRscData === false) {
+          console.warn(`[SW] RSC Prefetch returned HTML for ${rscUrl}. Retrying with hash...`);
+
+          const retryUrl = new URL(pageUrl, location.origin);
+          retryUrl.searchParams.append('_rsc', '1');
+
+          rscResponse = await fetchWithRetryAndTimeout(
+            retryUrl.toString(),
+            {
+              credentials: 'same-origin',
+              headers: rscHeaders,
+            },
+            TIMEOUTS.RSC_FETCH,
+            false,
+          );
+        }
+
+        if (rscResponse?.ok === true) {
+          const finalContentType = rscResponse.headers.get('content-type');
+          if (finalContentType?.includes('text/x-component') === true) {
+            const safeRscHeaders = cleanHeaders(rscResponse.headers);
+            const rscBlob = await rscResponse.blob();
+            rscText = await rscBlob.text();
+
+            const safeRscResponse = new Response(rscText, {
+              status: rscResponse.status,
+              headers: safeRscHeaders,
+            });
+
+            await rscCache.put(rscUrl, safeRscResponse);
+            console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
+          } else {
+            console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
+          }
         }
       }
+    } catch (error) {
+      console.warn(`[SW] RSC Network Error`, error);
     }
-  } catch (error) {
-    console.warn(`[SW] RSC Network Error`, error);
-  }
 
-  // F. Extract and prefetch all JS & CSS chunk dependencies referenced in page HTML and RSC stream
-  const extractedAssets = extractAssetUrls(htmlText, rscText);
-  if (extractedAssets.length > 0) {
-    console.log(
-      `[SW] Extracted ${extractedAssets.length} static JS/CSS chunk dependencies from ${pageUrl}`,
-    );
-    await Promise.all(
-      extractedAssets.map((assetUrl) =>
-        limit(async () => {
-          try {
-            await cacheAsset(assetUrl);
-          } catch (error) {
-            console.warn(`Chunk asset prefetch failed: ${assetUrl}`, error);
-          }
-        }),
-      ),
-    );
+    // F. Extract and prefetch all JS & CSS chunk dependencies referenced in page HTML and RSC stream
+    const extractedAssets = extractAssetUrls(htmlText, rscText);
+    if (extractedAssets.length > 0) {
+      console.log(
+        `[SW] Extracted ${extractedAssets.length} static JS/CSS chunk dependencies from ${pageUrl}`,
+      );
+      await Promise.all(
+        extractedAssets.map((assetUrl) =>
+          limit(async () => {
+            try {
+              await cacheAsset(assetUrl);
+            } catch (error) {
+              console.warn(`Chunk asset prefetch failed: ${assetUrl}`, error);
+            }
+          }),
+        ),
+      );
+    }
+  };
+
+  const promise = doPageCache();
+  inFlightPageRequests.set(pageUrl, promise);
+
+  try {
+    await promise;
+  } finally {
+    inFlightPageRequests.delete(pageUrl);
   }
 }
 
 export async function cachePageAndScrape(pageUrl: string): Promise<void> {
-  const targetUrls = new Set<string>();
-
-  // 1. Add raw pageUrl
-  targetUrls.add(pageUrl);
-
-  // 2. Add localized & design-prefixed paths for app pages so offline navigation hits exact keys
-  if (pageUrl.includes('/app')) {
-    const cleanPath = getCleanAppPath(pageUrl);
-    for (const loc of ['de', 'fr', 'en']) {
-      for (const des of ['default', 'web']) {
-        targetUrls.add(`/${loc}/${des}${cleanPath}`);
-      }
-      targetUrls.add(`/${loc}${cleanPath}`);
-    }
-  }
-
-  for (const url of targetUrls) {
-    await cacheSinglePageAndScrape(url);
-  }
+  await cacheSinglePageAndScrape(pageUrl);
 }
 
 export async function prefetchOfflinePages(

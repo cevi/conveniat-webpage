@@ -157,7 +157,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     setCurrentId(entryId);
     // Update the URL without triggering a Next.js navigation to avoid
     // tearing down the React tree (which breaks TRPCProvider's promise chain)
-    globalThis.history.replaceState(undefined, '', `/app/schedule/${entryId}`);
+    globalThis.history.replaceState(undefined, '', `/app/schedule?id=${entryId}`);
   }, []);
 
   const handleDragEnd = useCallback(

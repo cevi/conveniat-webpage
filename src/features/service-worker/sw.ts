@@ -85,12 +85,7 @@ self.addEventListener('activate', (event) => {
         // Wait for control to be active
         await self.clients.claim();
 
-        const clients = await self.clients.matchAll();
-        for (const client of clients) {
-          client.postMessage({ type: ServiceWorkerMessages.START_OFFLINE_DOWNLOAD });
-        }
-
-        // Also trigger internally for the SW itself if needed
+        // Trigger internally for the SW itself
         void prefetchOfflinePages();
       }
 

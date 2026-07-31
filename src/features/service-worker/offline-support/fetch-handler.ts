@@ -217,6 +217,21 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
 
   // Strategy B: Cached HTML Page
   if (request.destination === 'document') {
+    const cleanPath = getCleanAppPath(url.pathname);
+
+    // [HOTFIX]: Redirect offline visits for deep linked schedule entries to use query param
+    // to avoid Next.js RSC router mismatch on optional catch-all segments.
+    if (cleanPath.startsWith('/app/schedule/') && cleanPath !== '/app/schedule/') {
+      const id = cleanPath.replace('/app/schedule/', '');
+      return new Response(
+        `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/app/schedule?id=${id}"></head><body>Redirecting...</body></html>`,
+        {
+          status: 200,
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        },
+      );
+    }
+
     const cachedPage = await matchCachedPage(url.toString());
     if (cachedPage) return cachedPage;
 
