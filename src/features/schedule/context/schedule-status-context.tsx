@@ -65,6 +65,14 @@ interface ScheduleStatusProviderProperties {
   children: React.ReactNode;
 }
 
+const CHUNK_SIZE = 40;
+
+const chunkArray = <T,>(array: T[], size: number): T[][] => {
+  return Array.from({ length: Math.ceil(array.length / size) }, (_, index) =>
+    array.slice(index * size, index * size + size),
+  );
+};
+
 /**
  * Provider that fetches course statuses in bulk and distributes them via a subscription store.
  * This prevents all children from re-rendering when only one course status changes.
@@ -74,14 +82,30 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
   isOnline,
   children,
 }) => {
-  const { data, isLoading } = trpc.schedule.getCourseStatuses.useQuery(
-    { courseIds },
-    {
-      enabled: courseIds.length > 0,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache for offline
-    },
+  const chunks = React.useMemo(() => chunkArray(courseIds, CHUNK_SIZE), [courseIds]);
+
+  const queryResults = trpc.useQueries((t) =>
+    chunks.map((chunk) =>
+      t.schedule.getCourseStatuses(
+        { courseIds: chunk },
+        {
+          staleTime: 5 * 60 * 1000, // 5 minutes
+          gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache for offline
+        },
+      ),
+    ),
   );
+
+  const isLoading = queryResults.some((q) => q.isLoading);
+  const data = React.useMemo(() => {
+    const combined: Record<string, CourseStatus> = {};
+    for (const q of queryResults) {
+      if (q.data) {
+        Object.assign(combined, q.data);
+      }
+    }
+    return combined;
+  }, [queryResults]);
 
   // Initialize the store once. We use useState with a factory function to ensure
   // it's created only once and is stable across re-renders.
@@ -89,7 +113,7 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
   const [store] = React.useState(
     () =>
       new ScheduleStatusStore({
-        statusMap: data ?? {},
+        statusMap: data,
         isLoading,
         isOnline,
       }),
@@ -99,7 +123,7 @@ export const ScheduleStatusProvider: React.FC<ScheduleStatusProviderProperties> 
   // This will notify all subscribers.
   useEffect(() => {
     store.setState({
-      statusMap: data ?? {},
+      statusMap: data,
       isLoading,
       isOnline,
     });

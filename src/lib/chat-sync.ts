@@ -190,8 +190,18 @@ export const syncAllOfflineData = async (
         const courseIds = scheduleEntries
           .map((entry) => entry.id)
           .filter((id): id is string => typeof id === 'string' && id.length > 0);
+
         if (courseIds.length > 0) {
-          await safePrefetch(trpcUtils.schedule.getCourseStatuses.ensureData({ courseIds }));
+          const CHUNK_SIZE = 40;
+          const chunks = Array.from({ length: Math.ceil(courseIds.length / CHUNK_SIZE) }, (_, index) =>
+            courseIds.slice(index * CHUNK_SIZE, index * CHUNK_SIZE + CHUNK_SIZE),
+          );
+
+          for (const chunk of chunks) {
+            await safePrefetch(
+              trpcUtils.schedule.getCourseStatuses.ensureData({ courseIds: chunk }),
+            );
+          }
         }
       }
     })(),
