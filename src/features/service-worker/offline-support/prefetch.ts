@@ -231,11 +231,12 @@ function extractAssetUrls(htmlText: string, rscText?: string): string[] {
 
   // 3. Next.js static chunk paths referenced in HTML & RSC Flight stream
   const chunkRegex =
-    /\/_next\/static\/(?:chunks|css|media)\/[a-zA-Z0-9_.~%-]+\.(?:js|css|woff2?|ttf)/g;
+    /(?:\/_next\/)?static\/(?:chunks|css|media)\/[a-zA-Z0-9_.~%\-/]+\.(?:js|css|woff2?|ttf)/g;
   match = chunkRegex.exec(htmlText);
   while (match !== null) {
     if (match[0].length > 0) {
-      assets.add(match[0]);
+      const fullPath = match[0].startsWith('/_next/') ? match[0] : `/_next/${match[0]}`;
+      assets.add(fullPath);
     }
     match = chunkRegex.exec(htmlText);
   }
@@ -244,7 +245,8 @@ function extractAssetUrls(htmlText: string, rscText?: string): string[] {
     match = chunkRegex.exec(rscText);
     while (match !== null) {
       if (match[0].length > 0) {
-        assets.add(match[0]);
+        const fullPath = match[0].startsWith('/_next/') ? match[0] : `/_next/${match[0]}`;
+        assets.add(fullPath);
       }
       match = chunkRegex.exec(rscText);
     }
@@ -306,7 +308,6 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
 
     const rscHeaders = {
       RSC: '1',
-      'Next-Router-Prefetch': '1',
       [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
     };
 

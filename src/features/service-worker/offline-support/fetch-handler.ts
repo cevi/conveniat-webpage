@@ -345,12 +345,12 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
 
   // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
   // vectortiles0-4 are interchangeable, but precache uses vectortiles0.
-  if (url.host.includes('geo.admin.ch') && url.pathname.includes('/tiles/')) {
+  if (url.host.includes('geo.admin.ch')) {
     const tileCache = await caches.open(CACHE_NAMES.MAP_TILES);
     const normalizedUrl = normalizeTileUrl(url.toString());
     const cachedTile = await tileCache.match(normalizedUrl, { ignoreVary: true });
     if (cachedTile) {
-      console.log(`[SW] Serving cached map tile for: ${url.toString()}`);
+      console.log(`[SW] Serving cached map tile/asset for: ${url.toString()}`);
       return cachedTile;
     }
   }
