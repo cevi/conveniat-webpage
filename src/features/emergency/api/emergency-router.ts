@@ -57,9 +57,11 @@ export const emergencyRouter = createTRPCRouter({
       limit: 100,
       depth: 2, // Ensure documents and images relationships are populated
       locale: ctx.locale,
+      fallbackLocale: false,
+      draft: false,
       where: {
-        _status: {
-          equals: 'published',
+        _localized_status: {
+          equals: { published: true },
         },
       },
     });

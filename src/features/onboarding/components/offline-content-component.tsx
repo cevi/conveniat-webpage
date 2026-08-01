@@ -30,6 +30,7 @@ export const OfflineContentEntrypointComponent: React.FC<
   const { status, progress, startDownload } = useOfflineDownload({
     checkSwReadyOnMount: true,
     onSuccess: () => callback(true),
+    dataSyncFn: () => syncAllOfflineData(trpcUtils),
   });
 
   // When hook detects content is already ready, callback immediately
@@ -40,8 +41,6 @@ export const OfflineContentEntrypointComponent: React.FC<
   }, [status, callback]);
 
   const handleDownload = (): void => {
-    // Prefetch all offline data (chats, emergency cards, alert settings, schedule)
-    void syncAllOfflineData(trpcUtils).catch(console.warn);
     startDownload();
   };
 

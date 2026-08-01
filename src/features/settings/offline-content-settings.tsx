@@ -55,6 +55,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
   const trpcUtils = trpc.useUtils();
   const { status, progress, startDownload, deleteContent } = useOfflineDownload({
     checkCacheOnMount: true,
+    dataSyncFn: () => syncAllOfflineData(trpcUtils),
   });
 
   const displayStatus = status === 'success' ? 'has-content' : status;
@@ -74,10 +75,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               variant="ghost"
               size="icon"
               onClick={() => {
-                void (async (): Promise<void> => {
-                  await syncAllOfflineData(trpcUtils).catch(console.warn);
-                  void startDownload();
-                })();
+                startDownload();
               }}
               title={updateButton[locale]}
               className="h-8 w-8 text-gray-400 hover:text-blue-600"
@@ -89,10 +87,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {
-                void (async (): Promise<void> => {
-                  await syncAllOfflineData(trpcUtils).catch(console.warn);
-                  void startDownload();
-                })();
+                startDownload();
               } else {
                 void deleteContent();
               }
