@@ -94,12 +94,19 @@ export const OfflineContentEntrypointComponent: React.FC<
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-red-100">
               <motion.div
-                className="h-full bg-red-700"
+                className="relative h-full overflow-hidden bg-red-700"
                 initial={{ width: 0 }}
                 animate={{
                   width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
                 }}
-              />
+                transition={{ ease: 'easeOut', duration: 0.8 }}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                />
+              </motion.div>
             </div>
           </div>
         )}
