@@ -208,7 +208,16 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     );
   }
 
-  if (!isAppMode && request.destination !== 'document' && !url.pathname.endsWith('.webmanifest')) {
+  const isManifestOrIcon =
+    url.pathname.endsWith('.webmanifest') ||
+    url.pathname.endsWith('manifest.json') ||
+    url.pathname.endsWith('.ico') ||
+    url.pathname.endsWith('.png') ||
+    url.pathname.endsWith('.svg');
+
+  const isNextStaticAsset = url.pathname.startsWith('/_next/static/');
+
+  if (!isAppMode && request.destination !== 'document' && !isManifestOrIcon && !isNextStaticAsset) {
     console.log(`[SW] Offline fallback skipped for non-document web request: ${url.pathname}`);
     return Response.error();
   }
@@ -512,6 +521,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     });
 
     if (response) {
+      if (!response.ok && response.status === 504) {
+        console.warn(`[SW] Serwist returned 504 for ${url.pathname}, bailing to offline fallback`);
+        return offlineFallback(event.request, url, isAppMode);
+      }
+
       if (isRsc) {
         return sanitizeRscResponse(response);
       }

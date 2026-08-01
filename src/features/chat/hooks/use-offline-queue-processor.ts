@@ -24,9 +24,9 @@ let isGlobalQueueProcessing = false;
 export const useOfflineQueueProcessor = (): void => {
   const isOnline = useOnlineStatus();
   const trpcUtils = trpc.useUtils();
-  const sendMessageMutation = trpc.chat.sendMessage.useMutation();
+  const sendMessageMutation = trpc.chat.sendMessage.useMutation({ networkMode: 'always' });
   const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
-  const createChatMutation = trpc.chat.createChat.useMutation();
+  const createChatMutation = trpc.chat.createChat.useMutation({ networkMode: 'always' });
   const createChatMutateAsyncReference = useRef(createChatMutation.mutateAsync);
 
   useEffect(() => {

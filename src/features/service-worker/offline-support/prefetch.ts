@@ -64,6 +64,11 @@ async function fetchWithRetryAndTimeout(
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= TIMEOUTS.MAX_RETRIES; attempt++) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      console.log(`[SW] Aborting fetch for ${url} because device is offline`);
+      return undefined;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
