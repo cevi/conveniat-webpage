@@ -20,14 +20,17 @@ const RSC_SHELL_MAPPINGS: Record<string, string> = {
 };
 
 export function getCleanAppPath(pathname: string): string {
-  const appIndex = pathname.indexOf('/app/');
+  let clean = pathname;
+  const appIndex = clean.indexOf('/app/');
   if (appIndex !== -1) {
-    return pathname.slice(appIndex);
+    clean = clean.slice(appIndex);
+  } else if (clean.endsWith('/app')) {
+    clean = '/app';
   }
-  if (pathname.endsWith('/app')) {
-    return '/app';
+  if (clean.length > 1 && clean.endsWith('/')) {
+    clean = clean.slice(0, -1);
   }
-  return pathname;
+  return clean;
 }
 
 /**

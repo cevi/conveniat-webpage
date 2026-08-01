@@ -136,7 +136,7 @@ export const ScheduleComponent: React.FC = () => {
   }
 
   // Show loading skeleton while fetching data
-  if (isLoading) {
+  if (isLoading && effectiveScheduleEntries.length === 0) {
     return <ScheduleLoadingSkeleton />;
   }
 
