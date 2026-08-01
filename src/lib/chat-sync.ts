@@ -82,10 +82,12 @@ export const syncEmergencyOffline = async (
     console.log('[Offline Sync] Starting offline emergency cards sync...');
 
     // 1. Fetch and cache emergency alert settings
-    await trpcUtils.emergency.getAlertSettings.ensureData();
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    await trpcUtils.emergency.getAlertSettings.ensureData(undefined);
 
     // 2. Fetch and cache emergency cards
-    const emergencyCards = await trpcUtils.emergency.getEmergencyCards.ensureData();
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    const emergencyCards = await trpcUtils.emergency.getEmergencyCards.ensureData(undefined);
     console.log(`[Offline Sync] Found ${emergencyCards.length} emergency cards to sync.`);
 
     // 3. Pre-fetch linked images and documents for offline viewing
@@ -155,7 +157,8 @@ export const syncAllOfflineData = async (
     safePrefetch(syncEmergencyOffline(trpcUtils)),
     (async (): Promise<void> => {
       const scheduleEntries = await safePrefetch(
-        trpcUtils.schedule.getScheduleEntries.ensureData(),
+        // eslint-disable-next-line unicorn/no-useless-undefined
+        trpcUtils.schedule.getScheduleEntries.ensureData(undefined),
       );
       if (Array.isArray(scheduleEntries) && scheduleEntries.length > 0) {
         for (const entry of scheduleEntries) {
@@ -206,10 +209,13 @@ export const syncAllOfflineData = async (
         }
       }
     })(),
-    safePrefetch(trpcUtils.schedule.getMyEnrollments.ensureData()),
-    safePrefetch(trpcUtils.shifts.getMyShiftEnrollments.ensureData()),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.schedule.getMyEnrollments.ensureData(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.shifts.getMyShiftEnrollments.ensureData(undefined)),
     (async (): Promise<void> => {
-      const shifts = await safePrefetch(trpcUtils.schedule.getHelperShifts.ensureData());
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      const shifts = await safePrefetch(trpcUtils.schedule.getHelperShifts.ensureData(undefined));
       if (Array.isArray(shifts) && shifts.length > 0) {
         await Promise.all(
           shifts.map((shift) => {
@@ -226,9 +232,13 @@ export const syncAllOfflineData = async (
     safePrefetch(trpcUtils.map.getMapAnnotations.ensureData({ locale: 'de' })),
     safePrefetch(trpcUtils.map.getMapAnnotations.ensureData({ locale: 'en' })),
     safePrefetch(trpcUtils.map.getMapAnnotations.ensureData({ locale: 'fr' })),
-    safePrefetch(trpcUtils.map.getAnnotations.ensureData()),
-    safePrefetch(trpcUtils.presence.getPresence.ensureData()),
-    safePrefetch(trpcUtils.photoContest.getContests.ensureData()),
-    safePrefetch(trpcUtils.chat.getFeatureFlags.ensureData()),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.map.getAnnotations.ensureData(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.presence.getPresence.ensureData(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.photoContest.getContests.ensureData(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.chat.getFeatureFlags.ensureData(undefined)),
   ]);
 };
