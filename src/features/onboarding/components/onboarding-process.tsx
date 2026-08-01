@@ -14,7 +14,7 @@ import {
 } from '@/features/onboarding/components/push-notification-manager';
 import { useOnboarding } from '@/features/onboarding/hooks/use-onboarding';
 import { OnboardingStep } from '@/features/onboarding/types';
-import { TRPCProvider } from '@/trpc/client';
+
 import { Cookie } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
@@ -159,9 +159,5 @@ export const OnboardingProcessContent: React.FC = () => {
 };
 
 export const OnboardingProcess: React.FC = () => {
-  return (
-    <TRPCProvider>
-      <OnboardingProcessContent />
-    </TRPCProvider>
-  );
+  return <OnboardingProcessContent />;
 };

@@ -118,7 +118,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               animate={{
                 width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
               }}
-              transition={{ duration: 0.3 }}
+              transition={{ type: 'spring', bounce: 0, duration: 2 }}
             />
           </div>
         </div>

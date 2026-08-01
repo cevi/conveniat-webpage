@@ -314,7 +314,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
 
         {/* Navigation Footer */}
         {!isEditing && (previous || next) && (
-          <nav className="relative z-20 flex items-center justify-between border-t border-gray-100 bg-white/95 px-4 py-2.5 pl-16 backdrop-blur-md">
+          <nav className="relative z-20 flex items-center justify-between border-t border-gray-100 bg-white/95 px-4 py-2.5 backdrop-blur-md">
             {previous ? (
               <button
                 type="button"

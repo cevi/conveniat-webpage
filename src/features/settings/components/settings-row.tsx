@@ -5,7 +5,7 @@ import React from 'react';
 interface SettingsRowProperties {
   icon: LucideIcon;
   title: string;
-  subtitle?: string | undefined;
+  subtitle?: React.ReactNode | undefined;
   error?: string | undefined;
   action?: React.ReactNode | undefined;
   children?: React.ReactNode | undefined;

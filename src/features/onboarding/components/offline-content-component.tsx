@@ -99,7 +99,7 @@ export const OfflineContentEntrypointComponent: React.FC<
                 animate={{
                   width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
                 }}
-                transition={{ ease: 'easeOut', duration: 0.8 }}
+                transition={{ type: 'spring', bounce: 0, duration: 2 }}
               >
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"

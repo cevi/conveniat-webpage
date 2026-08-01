@@ -177,20 +177,10 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
-    // Try dashboard or chat RSC fallback if available
-    const dashboardRsc = await matchCachedRsc('/app/dashboard');
-    if (dashboardRsc) return dashboardRsc;
-
     console.warn(
-      `[SW] RSC Cache Miss for: ${url.toString()}. Returning safe empty RSC Flight response.`,
+      `[SW] RSC Cache Miss for: ${url.toString()}. Returning Response.error() to trigger Next.js hard navigation.`,
     );
-    return new Response('', {
-      status: 200,
-      headers: {
-        'Content-Type': 'text/x-component',
-        'Cache-Control': 'no-store',
-      },
-    });
+    return Response.error();
   }
 
   // Strategy E: API Fallback
