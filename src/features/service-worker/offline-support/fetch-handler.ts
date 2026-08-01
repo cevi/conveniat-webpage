@@ -208,7 +208,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     );
   }
 
-  if (!isAppMode && request.destination !== 'document') {
+  if (!isAppMode && request.destination !== 'document' && !url.pathname.endsWith('.webmanifest')) {
     console.log(`[SW] Offline fallback skipped for non-document web request: ${url.pathname}`);
     return Response.error();
   }
@@ -371,12 +371,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
 
   let requestToHandle = event.request;
 
-  // 1. App Mode Logic (Optimized)
-  // We only block for critical state (Headers) on Documents, API, and RSC.
-  // Static assets (images, fonts, scripts) skip this to avoid latency.
-  if (isDocument || isRsc || isApi || isNavigation) {
-    await ensureAppModeInitialized();
-  }
+  // 1. App Mode Logic
+  // We must ensure the App Mode is initialized for ALL requests when the SW wakes up,
+  // otherwise subresource requests (like CSS chunks during client-side navigation)
+  // will incorrectly evaluate isAppModeClient as false and be blocked from offline fallback.
+  await ensureAppModeInitialized();
 
   const isAppModeClient =
     (event.clientId !== '' && isClientInAppMode(event.clientId)) ||
@@ -461,7 +460,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 3s timeout.
     if (isAppMode && (isDocument || isRsc)) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       try {
         const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
@@ -693,7 +692,13 @@ export const handleFetchEvent =
             return response;
           } catch (error) {
             if (timeoutId) clearTimeout(timeoutId);
-            console.error(`[SW] bypass fetch failed or timed out: ${url.href}`, error);
+
+            const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+            if (isOffline && isTrpcRequest) {
+              console.debug(`[SW] bypass fetch failed (expected offline): ${url.href}`);
+            } else {
+              console.warn(`[SW] bypass fetch failed or timed out: ${url.href}`, error);
+            }
 
             // For tRPC requests, return standard Response.error() so TanStack Query treats it as a
             // network error (offline) and loads from IndexedDB/query cache instead of failing with 503.
