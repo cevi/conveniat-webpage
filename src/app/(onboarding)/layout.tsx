@@ -8,6 +8,7 @@ import { ServiceWorkerManager } from '@/components/service-worker/service-worker
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { environmentVariables } from '@/config/environment-variables';
 import { PostHogProvider } from '@/providers/post-hog-provider';
+import { TRPCProvider } from '@/trpc/client';
 import { sharedFontClassName } from '@/utils/fonts';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
@@ -57,7 +58,9 @@ const AppEntrypointRootLayout: React.FC<LayoutProperties> = ({ children }) => {
     <Suspense>
       <AppEntrypointLayout>
         <ServiceWorkerManager>
-          <SessionProvider>{children}</SessionProvider>
+          <TRPCProvider>
+            <SessionProvider>{children}</SessionProvider>
+          </TRPCProvider>
         </ServiceWorkerManager>
       </AppEntrypointLayout>
     </Suspense>
