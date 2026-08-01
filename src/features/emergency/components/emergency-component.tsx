@@ -353,7 +353,8 @@ export const EmergencyComponent: React.FC = () => {
               <p className="text-sm leading-relaxed">{alert.description}</p>
             </div>
 
-            {alert.procedure.root.children.length > 0 && (
+            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+            {alert.procedure?.root?.children && alert.procedure.root.children.length > 0 && (
               <div className="text-gray-800">
                 <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
                   {procedureLabel[locale]}

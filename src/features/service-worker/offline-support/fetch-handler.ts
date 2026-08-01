@@ -463,7 +463,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 3s timeout.
     if (isAppMode && (isDocument || isRsc)) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
       try {
         const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
@@ -662,7 +662,7 @@ export const handleFetchEvent =
       event.respondWith(
         (async (): Promise<Response> => {
           const controller = isTrpcRequest ? new AbortController() : undefined;
-          const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : undefined;
+          const timeoutId = controller ? setTimeout(() => controller.abort(), 10_000) : undefined;
 
           try {
             const response = await fetch(
