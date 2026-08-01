@@ -177,10 +177,18 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
+    const cleanPath = getCleanAppPath(url.pathname);
     console.warn(
-      `[SW] RSC Cache Miss for: ${url.toString()}. Returning Response.error() to trigger Next.js hard navigation.`,
+      `[SW] RSC Cache Miss for: ${url.toString()}. Redirecting to document fallback: ${cleanPath}`,
     );
-    return Response.error();
+
+    // Redirect to document route so browser loads the cached offline HTML page
+    return new Response(undefined, {
+      status: 307,
+      headers: {
+        Location: cleanPath,
+      },
+    });
   }
 
   // Strategy E: API Fallback

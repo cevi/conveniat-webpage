@@ -6,13 +6,13 @@ export const makeQueryClient = (): QueryClient => {
       queries: {
         staleTime: 5 * 60 * 1000, // 5 minutes
         gcTime: 72 * 60 * 60 * 1000, // 72 hours for offline disk persistence
-        networkMode: 'offlineFirst',
+        networkMode: 'online',
         refetchOnMount: false,
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
       },
       mutations: {
-        networkMode: 'offlineFirst',
+        networkMode: 'online',
       },
       dehydrate: {
         shouldDehydrateQuery: (query) =>

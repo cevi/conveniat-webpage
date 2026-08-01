@@ -124,15 +124,18 @@ export const EmergencyComponent: React.FC = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Fetch dynamic emergency cards from Payload CMS
   const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes (allows instant rendering from offline cache)
   });
 
+  const directAlertSettings = trpcUtils.emergency.getAlertSettings.getData();
+  const directEmergencyCards = trpcUtils.emergency.getEmergencyCards.getData();
+
   // Emergency phone number with robust fallback for offline mode
-  const emergencyPhoneNumber = alertSettings?.emergencyPhoneNumber ?? '112';
+  const emergencyPhoneNumber =
+    alertSettings?.emergencyPhoneNumber ?? directAlertSettings?.emergencyPhoneNumber ?? '112';
 
   // Track online/offline status and auth status
   useEffect(() => {
@@ -160,7 +163,10 @@ export const EmergencyComponent: React.FC = () => {
     };
   }, [status]);
 
-  const cards: EmergencyCard[] = React.useMemo(() => emergencyCards ?? [], [emergencyCards]);
+  const cards: EmergencyCard[] = React.useMemo(
+    () => emergencyCards ?? directEmergencyCards ?? [],
+    [emergencyCards, directEmergencyCards],
+  );
 
   const [userToggles, setUserToggles] = useState<Record<string, boolean>>({});
 
@@ -289,7 +295,7 @@ export const EmergencyComponent: React.FC = () => {
   }
 
   const renderAccordionContent = (): React.ReactNode => {
-    if (isLoading) {
+    if (isLoading && cards.length === 0) {
       return Array.from({ length: 4 }).map((_, index) => (
         <div
           key={`skeleton-${index}`}

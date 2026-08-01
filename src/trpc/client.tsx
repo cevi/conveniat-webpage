@@ -114,22 +114,9 @@ const indexedDBStorage = {
             db.close();
           };
           tx.onerror = (): void => {
-            try {
-              // Attempt to clear old store items if quota exceeded
-              const clearTx = db.transaction('keyval', 'readwrite');
-              clearTx.objectStore('keyval').clear();
-              clearTx.oncomplete = (): void => {
-                db.close();
-                resolve();
-              };
-              clearTx.onerror = (): void => {
-                db.close();
-                resolve();
-              };
-            } catch {
-              db.close();
-              resolve();
-            }
+            console.warn('[IndexedDBStorage] Failed to write to store:', tx.error);
+            db.close();
+            resolve();
           };
         };
         openRequest.onerror = (): void => resolve();

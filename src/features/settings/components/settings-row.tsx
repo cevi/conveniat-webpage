@@ -30,10 +30,12 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
           <Icon className="h-5 w-5 shrink-0 text-gray-400" />
           <div className="min-w-0 flex-1">
             <p className="truncate font-medium text-gray-900">{title}</p>
-            {error ? (
+            {typeof error === 'string' && error.length > 0 ? (
               <p className="text-sm font-medium text-red-500">{error}</p>
             ) : (
-              subtitle && (
+              subtitle !== undefined &&
+              subtitle !== null &&
+              subtitle !== false && (
                 <p className={cn('truncate text-sm text-gray-500', subtitleClassName)}>
                   {subtitle}
                 </p>
@@ -41,9 +43,13 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
             )}
           </div>
         </div>
-        {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+        {action !== undefined && action !== null && action !== false && (
+          <div className="flex shrink-0 items-center gap-2">{action}</div>
+        )}
       </div>
-      {children && <div className="mt-2">{children}</div>}
+      {children !== undefined && children !== null && children !== false && (
+        <div className="mt-2">{children}</div>
+      )}
     </div>
   );
 };

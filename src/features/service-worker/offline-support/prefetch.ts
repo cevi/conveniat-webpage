@@ -1,6 +1,7 @@
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlinePages } from '@/features/service-worker/offline-support/offline-pages';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
+import { getCleanAppPath } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 
 export const OFFLINE_STATUS_CACHE = CACHE_NAMES.OFFLINE_STATUS;
@@ -305,6 +306,7 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
 
     const rscHeaders = {
       RSC: '1',
+      'Next-Router-Prefetch': '1',
       [DesignModeTriggers.HEADER_IMPLICIT]: 'true',
     };
 
@@ -355,8 +357,13 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
               headers: safeRscHeaders,
             });
 
-            await rscCache.put(rscUrl, safeRscResponse);
-            console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl}`);
+            await rscCache.put(rscUrl, safeRscResponse.clone());
+            // Also store under clean path variant for fast O(1) matching
+            const cleanUrl = `${urlObject.origin}${getCleanAppPath(pageUrl)}`;
+            const cleanRscUrl = `${cleanUrl}?_rsc`;
+            await rscCache.put(cleanRscUrl, safeRscResponse.clone());
+            await rscCache.put(cleanUrl, safeRscResponse);
+            console.log(`[SW] RSC Cached (Confirmed Flight Data): ${rscUrl} and ${cleanRscUrl}`);
           } else {
             console.error(`[SW] SKIPPING RSC Cache for ${pageUrl}. Received ${finalContentType}`);
           }

@@ -115,17 +115,5 @@ export async function matchCachedRsc(originalUrl: string): Promise<Response | un
     }
   }
 
-  // 6. Final Dashboard RSC Fallback
-  const dashboardKey = keys.find((request) => {
-    const keyPath = getCleanAppPath(new URL(request.url).pathname);
-    return keyPath === '/app/dashboard';
-  });
-
-  if (dashboardKey) {
-    console.log(`[SW] RSC Dashboard Fallback for: ${originalUrl} -> ${dashboardKey.url}`);
-    const dashboardMatch = await rscCache.match(dashboardKey, { ignoreVary: true });
-    if (dashboardMatch) return sanitizeRscResponse(dashboardMatch);
-  }
-
   return undefined;
 }
