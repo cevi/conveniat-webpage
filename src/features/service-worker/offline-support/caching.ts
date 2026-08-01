@@ -71,7 +71,10 @@ const jsCaching: RuntimeCaching = {
 };
 
 const rscCaching: RuntimeCaching = {
-  matcher: ({ url }) => url.searchParams.has('_rsc'),
+  matcher: ({ request, url }) =>
+    request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-Prefetch') === '1' ||
+    url.searchParams.has('_rsc'),
   handler: new NetworkFirst({
     cacheName: CACHE_NAMES.RSC,
     matchOptions: { ignoreVary: true },

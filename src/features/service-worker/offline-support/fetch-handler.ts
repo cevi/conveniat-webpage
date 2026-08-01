@@ -470,7 +470,28 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         if (networkResponse.ok) {
           const targetCacheName = isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES;
           const cache = await caches.open(targetCacheName);
-          void cache.put(url.toString(), networkResponse.clone()).catch(console.warn);
+          if (isRsc) {
+            void (async (): Promise<void> => {
+              try {
+                const cloned = networkResponse.clone();
+                const buffer = await cloned.arrayBuffer();
+                const cleanHeaders = new Headers(networkResponse.headers);
+                cleanHeaders.delete('Vary');
+                await cache.put(
+                  url.toString(),
+                  new Response(buffer, {
+                    status: networkResponse.status,
+                    statusText: networkResponse.statusText,
+                    headers: cleanHeaders,
+                  }),
+                );
+              } catch (error) {
+                console.warn('[SW] App Mode RSC stream buffer write failed:', error);
+              }
+            })();
+          } else {
+            void cache.put(url.toString(), networkResponse.clone()).catch(console.warn);
+          }
         }
 
         if (isRsc) return sanitizeRscResponse(networkResponse);
