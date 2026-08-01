@@ -74,8 +74,10 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               variant="ghost"
               size="icon"
               onClick={() => {
-                void syncAllOfflineData(trpcUtils).catch(console.warn);
-                void startDownload();
+                void (async (): Promise<void> => {
+                  await syncAllOfflineData(trpcUtils).catch(console.warn);
+                  void startDownload();
+                })();
               }}
               title={updateButton[locale]}
               className="h-8 w-8 text-gray-400 hover:text-blue-600"
@@ -87,8 +89,10 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {
-                void syncAllOfflineData(trpcUtils).catch(console.warn);
-                void startDownload();
+                void (async (): Promise<void> => {
+                  await syncAllOfflineData(trpcUtils).catch(console.warn);
+                  void startDownload();
+                })();
               } else {
                 void deleteContent();
               }
