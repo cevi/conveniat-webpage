@@ -1,5 +1,6 @@
 'use client';
 
+import { useNativePushSubscriptionStatus } from '@/features/onboarding/hooks/use-native-push-subscription-status';
 import { useOnboardingLocale } from '@/features/onboarding/hooks/use-onboarding-locale';
 import { useOnboardingStorage } from '@/features/onboarding/hooks/use-onboarding-storage';
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
@@ -54,6 +55,9 @@ export const useOnboarding = (): UseOnboardingReturn => {
   // 4. Push Notification Status (Reusing existing hook)
   const { isSubscribed: hasPushSubscription } = usePushNotificationState({ locale });
 
+  // 5. Native Push Subscription Status (lightweight, no tRPC dependency)
+  const hasNativePushSubscription = useNativePushSubscriptionStatus();
+
   const { status } = useSession();
   const [authTimeoutReached, setAuthTimeoutReached] = useState(false);
   const searchParameters = useSearchParams();
@@ -107,13 +111,20 @@ export const useOnboarding = (): UseOnboardingReturn => {
         offlineContentHandled,
         hasCachedContent,
         pushPermission,
-        // In native mode, hasPushSubscription is managed exclusively by handlePushNotification.
-        // Excluding it here prevents async re-runs of this effect (triggered by hasCachedContent
-        // or other deps) from overwriting the true value set after native push is granted.
-        ...(isNativeAppWebView() ? {} : { hasPushSubscription }),
+        // In native mode, derive hasPushSubscription from the native bridge status
+        // (which reports FCM token + authorization). In web mode, use the Web Push
+        // subscription check from usePushNotificationState.
+        hasPushSubscription: isNativeAppWebView() ? hasNativePushSubscription : hasPushSubscription,
       },
     });
-  }, [effectiveAuthStatus, isOnline, offlineContentHandled, hasCachedContent, hasPushSubscription]);
+  }, [
+    effectiveAuthStatus,
+    isOnline,
+    offlineContentHandled,
+    hasCachedContent,
+    hasPushSubscription,
+    hasNativePushSubscription,
+  ]);
 
   // Clear skip auth cookie if signalled by query param
   useEffect(() => {
