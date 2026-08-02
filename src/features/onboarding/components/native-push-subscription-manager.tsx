@@ -61,9 +61,10 @@ export const NativePushSubscriptionManager: React.FC<{
     }
   }, []);
 
-  // Track whether a focus event triggered the status re-check
-  // (i.e. user returned from system settings without tapping "Enable")
-  const focusTriggeredCheckReference = useRef(false);
+  // Track whether this is the initial mount check vs returning from settings
+  const isInitialMountReference = useRef(true);
+  // Track whether the user explicitly tapped "Benachrichtigungen aktivieren"
+  const userRequestedEnableReference = useRef(false);
 
   useEffect(() => {
     // Check current status on mount
@@ -80,9 +81,10 @@ export const NativePushSubscriptionManager: React.FC<{
         if (label === 'authorized' || label === 'provisional') {
           setIsDenied(false);
           setIsAuthorized(true);
-          // Only auto-advance if the user explicitly requested permission via button,
-          // NOT if they just returned from system settings (focus event).
-          if (!focusTriggeredCheckReference.current) {
+          // Only auto-advance if it's initial mount check (already granted before onboarding)
+          // OR if the user explicitly clicked "Benachrichtigungen aktivieren".
+          // NEVER auto-advance when returning from Android system settings.
+          if (isInitialMountReference.current || userRequestedEnableReference.current) {
             advance();
           }
         } else if (label === 'denied') {
@@ -95,20 +97,22 @@ export const NativePushSubscriptionManager: React.FC<{
           setIsDenied(false);
           setIsAuthorized(false);
         }
-        // Reset the focus flag after processing
-        focusTriggeredCheckReference.current = false;
+        isInitialMountReference.current = false;
       } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
         setIsAuthorized(true);
-        advance();
+        if (isInitialMountReference.current || userRequestedEnableReference.current) {
+          advance();
+        }
+        isInitialMountReference.current = false;
       }
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
 
     const handleFocus = (): void => {
-      // Mark that the next status response was triggered by a focus/visibility change
-      // (returning from Android settings), NOT by an explicit user action.
-      focusTriggeredCheckReference.current = true;
+      // Re-check status when user returns from settings (focus/visibility change)
+      // isInitialMountReference is false, userRequestedEnableReference is false, so it will ONLY
+      // update isDenied/isAuthorized UI state without calling advance().
       globalThis.AppWebViewNativePush?.getStatus();
     };
 
@@ -124,6 +128,7 @@ export const NativePushSubscriptionManager: React.FC<{
 
   const handleEnable = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    userRequestedEnableReference.current = true;
     if (isAuthorized) {
       advance();
     } else {

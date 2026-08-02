@@ -30,10 +30,8 @@ export function useNativePushSubscriptionStatus(): boolean {
   useEffect(() => {
     if (!isNative) return;
 
-    // Track whether the next status check was triggered by a focus/visibility event
-    // (e.g. returning from Android settings). In that case, we should NOT update
-    // hasSubscription to true — otherwise the onboarding FSM auto-skips the push step.
-    let focusTriggeredCheck = false;
+    let isInitialMount = true;
+    let isFocusCheck = false;
 
     const handleEvent = (event: Event): void => {
       const customEvent = event as CustomEvent<NativePushEventDetail | null | undefined>;
@@ -52,23 +50,30 @@ export function useNativePushSubscriptionStatus(): boolean {
 
         const isGranted = label === 'authorized' || label === 'provisional';
 
-        // Only update subscription status if this was NOT triggered by a focus event.
-        // Focus events happen when the user returns from system settings — we don't want
-        // to auto-update the status and skip the onboarding push step.
-        if (!focusTriggeredCheck) {
-          setHasSubscription(isGranted && hasToken);
+        if (!isGranted) {
+          // Permission denied or revoked — always set to false
+          setHasSubscription(false);
+        } else if (isInitialMount && !isFocusCheck) {
+          // Permission granted — only auto-enable on initial mount (if authorized before entering onboarding).
+          // Ignore focus-triggered status checks (returning from system settings) so onboarding doesn't auto-skip.
+          setHasSubscription(hasToken);
         }
-        focusTriggeredCheck = false;
+        isInitialMount = false;
+        isFocusCheck = false;
       } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
-        // Token received means push is fully active — always update
-        setHasSubscription(true);
+        // Token received on initial mount or explicit user request
+        if (!isFocusCheck) {
+          setHasSubscription(true);
+        }
+        isInitialMount = false;
+        isFocusCheck = false;
       }
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
 
     const handleFocus = (): void => {
-      focusTriggeredCheck = true;
+      isFocusCheck = true;
       globalThis.AppWebViewNativePush?.getStatus();
     };
 
