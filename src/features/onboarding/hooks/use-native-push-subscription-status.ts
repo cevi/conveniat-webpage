@@ -30,6 +30,11 @@ export function useNativePushSubscriptionStatus(): boolean {
   useEffect(() => {
     if (!isNative) return;
 
+    // Track whether the next status check was triggered by a focus/visibility event
+    // (e.g. returning from Android settings). In that case, we should NOT update
+    // hasSubscription to true — otherwise the onboarding FSM auto-skips the push step.
+    let focusTriggeredCheck = false;
+
     const handleEvent = (event: Event): void => {
       const customEvent = event as CustomEvent<NativePushEventDetail | null | undefined>;
       const detail = customEvent.detail ?? {};
@@ -46,9 +51,16 @@ export function useNativePushSubscriptionStatus(): boolean {
           (typeof payload['token'] === 'string' && payload['token'] !== '');
 
         const isGranted = label === 'authorized' || label === 'provisional';
-        setHasSubscription(isGranted && hasToken);
+
+        // Only update subscription status if this was NOT triggered by a focus event.
+        // Focus events happen when the user returns from system settings — we don't want
+        // to auto-update the status and skip the onboarding push step.
+        if (!focusTriggeredCheck) {
+          setHasSubscription(isGranted && hasToken);
+        }
+        focusTriggeredCheck = false;
       } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
-        // Token received means push is fully active
+        // Token received means push is fully active — always update
         setHasSubscription(true);
       }
     };
@@ -56,6 +68,7 @@ export function useNativePushSubscriptionStatus(): boolean {
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
 
     const handleFocus = (): void => {
+      focusTriggeredCheck = true;
       globalThis.AppWebViewNativePush?.getStatus();
     };
 

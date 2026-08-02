@@ -336,7 +336,8 @@ export function useNativePush(): {
           router.push(targetPath);
           break;
         }
-        case 'native-push-received': {
+        case 'native-push-received':
+        case 'native-push-message': {
           const rawUrl = extractTargetUrl(payload);
           let targetChatId: string | undefined;
 
