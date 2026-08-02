@@ -1,5 +1,6 @@
 'use client';
 
+import { refreshAndOptimisticallyUpdateChat } from '@/features/chat/utils/push-query-refresher';
 import { trpc } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
@@ -104,6 +105,7 @@ export function useNativePush(): {
   lastError: string | undefined;
 } {
   const router = useRouter();
+  const trpcUtils = trpc.useUtils();
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
   const [hasToken, setHasToken] = useState(false);
@@ -312,6 +314,17 @@ export function useNativePush(): {
               }
             }
           }
+
+          let targetChatId: string | undefined;
+          if (targetPath.includes('/app/chat/')) {
+            const parts = targetPath.split('/app/chat/');
+            const firstPart = parts[1];
+            if (typeof firstPart === 'string' && firstPart !== '') {
+              targetChatId = firstPart.split('?')[0];
+            }
+          }
+          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
+
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
           try {
             sessionStorage.setItem('pending_push_redirect', targetPath);

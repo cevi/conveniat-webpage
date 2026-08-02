@@ -36,7 +36,7 @@ export const useMessageInfiniteScroll = ({
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 60 * 24 * 7,
 
-      refetchOnMount: false,
+      refetchOnMount: 'always',
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       enabled: chatId !== '',
