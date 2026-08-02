@@ -9,6 +9,7 @@ import { defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
+import * as TRPCReactModule from '@trpc/react-query';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { signOut } from 'next-auth/react';
@@ -225,12 +226,12 @@ export const TRPCProvider: React.FC<{
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+const RealTRPCContext = (TRPCReactModule as any).TRPCContext as React.Context<unknown> | undefined;
 const fallbackContext = React.createContext<unknown>(null);
 
 export function useOptionalTrpcUtils(): ReturnType<typeof trpc.useUtils> | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  const trpcContext = ((trpc as any).Context as React.Context<unknown> | undefined) ?? fallbackContext;
-  const context = React.useContext(trpcContext);
+  const context = React.useContext(RealTRPCContext ?? fallbackContext);
   if (!context) {
     return undefined;
   }
