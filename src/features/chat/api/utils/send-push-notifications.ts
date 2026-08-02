@@ -18,6 +18,8 @@ async function getSubscriptions(
         in: recipientUserIds,
       },
     },
+    pagination: false,
+    limit: 1000,
     depth: 0,
   });
 

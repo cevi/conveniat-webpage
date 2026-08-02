@@ -3797,6 +3797,8 @@ export interface PushNotificationSubscription {
     auth?: string | null;
   };
   userAgent?: string | null;
+  deviceId?: string | null;
+  lastUsedAt?: string | null;
   registrationSource?: ('/entrypoint' | '/app/settings') | null;
   updatedAt: string;
   createdAt: string;
@@ -6139,6 +6141,8 @@ export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
         auth?: T;
       };
   userAgent?: T;
+  deviceId?: T;
+  lastUsedAt?: T;
   registrationSource?: T;
   updatedAt?: T;
   createdAt?: T;

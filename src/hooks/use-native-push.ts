@@ -104,7 +104,9 @@ export function useNativePush(): {
       try {
         console.log('[NativePush:PWA] calling registerDevice: platform =', platform);
         addLog(`Calling registerDevice: platform=${platform}`);
-        await registerDevice({ token, platform });
+        const { getOrCreateDeviceId } = await import('@/utils/device-id');
+        const deviceId = getOrCreateDeviceId();
+        await registerDevice({ token, platform, deviceId });
         console.log('[NativePush:PWA] registerDevice: success');
         addLog(`registerDevice: success`);
         setIsRegisteredOnBackend(true);
