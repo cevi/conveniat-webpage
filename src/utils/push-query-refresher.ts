@@ -7,8 +7,8 @@ interface PushChatMessage {
   id: string;
   createdAt: Date;
   messagePayload: { text: string };
-  senderId?: string;
-  senderName?: string;
+  senderId?: string | undefined;
+  senderName?: string | undefined;
   status: MessageEventType;
   type: string;
 }
