@@ -12,40 +12,53 @@ interface PushChatMessage {
   type: string;
 }
 
-type MinimalTrpcUtils = {
+interface InfiniteMessagesData {
+  pages: Array<{
+    items: Array<PushChatMessage & Record<string, unknown>>;
+  }>;
+}
+
+interface ChatDetailsData {
+  messages: Array<PushChatMessage & Record<string, unknown>>;
+}
+
+interface MinimalTrpcUtils {
   chat?: {
     infiniteMessages?: {
       setInfiniteData: (
         queryKey: { chatId: string; limit: number; parentId: undefined },
-        updater: (old: any) => any,
+        updater: (old: InfiniteMessagesData | undefined) => InfiniteMessagesData | undefined,
       ) => void;
       invalidate: (queryKey: { chatId: string }) => Promise<void>;
     };
     chatDetails?: {
-      setData: (queryKey: { chatId: string }, updater: (old: any) => any) => void;
+      setData: (
+        queryKey: { chatId: string },
+        updater: (old: ChatDetailsData | undefined) => ChatDetailsData | undefined,
+      ) => void;
       invalidate: (queryKey: { chatId: string }) => Promise<void>;
     };
     chats?: {
       invalidate: () => Promise<void>;
     };
   };
-};
+}
 
 export function refreshAndOptimisticallyUpdateChat(
   trpcUtils: ReturnType<typeof trpc.useUtils> | undefined,
   chatId: string | undefined,
   payload?: Record<string, unknown>,
 ): void {
-  if (!trpcUtils || typeof chatId !== 'string' || chatId.trim() === '') return;
+  if (trpcUtils === undefined || typeof chatId !== 'string' || chatId.trim() === '') return;
 
   const utils = trpcUtils as unknown as MinimalTrpcUtils;
   const chatQueries = utils.chat;
-  if (!chatQueries) return;
+  if (chatQueries === undefined) return;
 
   const cleanChatId = chatId.trim();
 
   // 1. If payload contains message content or messageId, perform optimistic TanStack cache update
-  if (payload && typeof payload === 'object') {
+  if (payload !== undefined && typeof payload === 'object') {
     const rawMessageId = payload['messageId'] ?? payload['id'];
     const rawContent =
       payload['body'] ?? payload['message'] ?? payload['content'] ?? payload['text'];
@@ -76,25 +89,30 @@ export function refreshAndOptimisticallyUpdateChat(
       // Optimistically update infiniteMessages cache
       chatQueries.infiniteMessages?.setInfiniteData(
         { chatId: cleanChatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
-        (old: any) => {
-          if (!old) return old;
-          const allItems = old.pages.flatMap((page: any) => page.items);
-          if (allItems.some((item: any) => item.id === pushMessage.id)) {
+        (old) => {
+          if (old === undefined) return old;
+          const allItems = old.pages.flatMap((page) => page.items);
+          if (allItems.some((item) => item.id === pushMessage.id)) {
             return old;
           }
           return {
             ...old,
-            pages: old.pages.map((page: any, index: number) =>
-              index === 0 ? { ...page, items: [pushMessage, ...page.items] } : page,
+            pages: old.pages.map((page, index) =>
+              index === 0
+                ? {
+                    ...page,
+                    items: [pushMessage, ...page.items],
+                  }
+                : page,
             ),
           };
         },
       );
 
       // Optimistically update chatDetails cache
-      chatQueries.chatDetails?.setData({ chatId: cleanChatId }, (old: any) => {
-        if (!old) return old;
-        if (old.messages.some((item: any) => item.id === pushMessage.id)) {
+      chatQueries.chatDetails?.setData({ chatId: cleanChatId }, (old) => {
+        if (old === undefined) return old;
+        if (old.messages.some((item) => item.id === pushMessage.id)) {
           return old;
         }
         return {
