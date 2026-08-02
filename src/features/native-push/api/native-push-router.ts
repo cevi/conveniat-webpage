@@ -68,6 +68,31 @@ export const nativePushRouter = createTRPCRouter({
         );
       }
 
+      // Send welcome confirmation push notification to native device
+      try {
+        const { sendFcmNotification } = await import('@/lib/firebase-admin');
+        const locale = ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
+        const welcomeMessages: Record<string, string> = {
+          de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
+          fr: 'Vous vous êtes inscrit avec succès aux notifications push.',
+          en: 'You have successfully subscribed to push notifications.',
+        };
+
+        const result = await sendFcmNotification(input.token, {
+          title: 'Konekta',
+          body: welcomeMessages[locale] ?? welcomeMessages.de,
+          data: {
+            url: '/app/settings',
+          },
+        });
+        console.log('[NativePush:API] registerDevice: welcome notification sent, result =', result);
+      } catch (pushError) {
+        console.warn(
+          '[NativePush:API] registerDevice: failed to send welcome notification:',
+          pushError,
+        );
+      }
+
       return { success: true };
     }),
 
