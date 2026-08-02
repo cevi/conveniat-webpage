@@ -46,6 +46,9 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
             '[Service Worker Manager] PUSH_NAVIGATE received, navigating to:',
             targetPath,
           );
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('pending_push_redirect', targetPath);
+          }
           router.push(targetPath);
         }
       },

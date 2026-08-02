@@ -37,6 +37,34 @@ interface NativePushEventDetail {
   payload?: Record<string, unknown>;
 }
 
+export function extractTargetUrl(payload: Record<string, unknown>): string | undefined {
+  const notificationObj = payload['notification'] as Record<string, unknown> | undefined;
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload,
+    payload['data'] as Record<string, unknown> | undefined,
+    notificationObj,
+    notificationObj?.['data'] as Record<string, unknown> | undefined,
+  ];
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    for (const key of ['redirectTo', 'url', 'path', 'link', 'target']) {
+      const value = object_[key];
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value.trim();
+      }
+    }
+
+    const chatId = object_['chatId'];
+    if (typeof chatId === 'string' && chatId.trim() !== '') {
+      return `/app/chat/${chatId.trim()}`;
+    }
+  }
+
+  return undefined;
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -245,19 +273,10 @@ export function useNativePush(): {
           setLastError(undefined);
           break;
         }
+
         case 'native-push-open': {
           let targetPath = '/app/dashboard';
-          let rawUrl: string | undefined;
-
-          if (typeof payload['url'] === 'string' && payload['url'].trim() !== '') {
-            rawUrl = payload['url'].trim();
-          } else if (typeof payload['path'] === 'string' && payload['path'].trim() !== '') {
-            rawUrl = payload['path'].trim();
-          } else if (typeof payload['link'] === 'string' && payload['link'].trim() !== '') {
-            rawUrl = payload['link'].trim();
-          } else if (typeof payload['chatId'] === 'string' && payload['chatId'].trim() !== '') {
-            rawUrl = `/app/chat/${payload['chatId'].trim()}`;
-          }
+          const rawUrl = extractTargetUrl(payload);
 
           if (typeof rawUrl === 'string' && rawUrl !== '') {
             if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
@@ -275,6 +294,9 @@ export function useNativePush(): {
             }
           }
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('pending_push_redirect', targetPath);
+          }
           router.push(targetPath);
           break;
         }

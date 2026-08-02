@@ -167,8 +167,17 @@ export const notificationClickHandler =
     console.log('Notification click received.');
     event.notification.close();
 
-    const notificationData = event.notification.data as NotificationData;
-    const urlString = notificationData.url ?? '/app/dashboard';
+    const notificationData =
+      (event.notification.data as (NotificationData & Record<string, unknown>) | undefined) ?? {};
+    const rawUrlString =
+      notificationData.url ??
+      notificationData.path ??
+      notificationData.link ??
+      (notificationData.chatId ? `/app/chat/${String(notificationData.chatId)}` : undefined);
+    const urlString =
+      typeof rawUrlString === 'string' && rawUrlString.trim() !== ''
+        ? rawUrlString.trim()
+        : '/app/dashboard';
 
     const url = new URL(urlString, serviceWorkerScope.location.origin);
     url.searchParams.set(DesignModeTriggers.QUERY_PARAM_IMPLICIT, 'true');

@@ -223,9 +223,38 @@ export const useOnboarding = (): UseOnboardingReturn => {
     dispatch({ type: OnboardingAction.USER_ACTION_SKIP_LOGIN });
   }, []);
 
-  // Redirect to dashboard when finished
+  // Redirect to target destination or dashboard when finished
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
+      if (typeof window !== 'undefined') {
+        const pendingRedirect = sessionStorage.getItem('pending_push_redirect');
+        if (pendingRedirect) {
+          sessionStorage.removeItem('pending_push_redirect');
+          console.log('[Onboarding] Pending push redirect found, navigating to:', pendingRedirect);
+          router.push(pendingRedirect);
+          return;
+        }
+      }
+
+      const redirectToParam =
+        searchParameters.get('redirectTo') ??
+        searchParameters.get('url') ??
+        searchParameters.get('path');
+      const chatIdParam = searchParameters.get('chatId');
+
+      if (redirectToParam) {
+        console.log('[Onboarding] Query param redirect found, navigating to:', redirectToParam);
+        router.push(redirectToParam);
+        return;
+      }
+
+      if (chatIdParam) {
+        const target = `/app/chat/${chatIdParam}`;
+        console.log('[Onboarding] Query param chatId found, navigating to:', target);
+        router.push(target);
+        return;
+      }
+
       const shareText = searchParameters.get('text');
       const shareTitle = searchParameters.get('title');
       const shareUrl = searchParameters.get('url');
