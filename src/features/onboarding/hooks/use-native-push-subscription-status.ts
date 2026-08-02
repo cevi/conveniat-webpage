@@ -55,11 +55,20 @@ export function useNativePushSubscriptionStatus(): boolean {
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
 
+    const handleFocus = (): void => {
+      globalThis.AppWebViewNativePush?.getStatus();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     // Request current status from the bridge on mount after listener is attached
     globalThis.AppWebViewNativePush?.getStatus();
 
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleEvent);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [isNative]);
 

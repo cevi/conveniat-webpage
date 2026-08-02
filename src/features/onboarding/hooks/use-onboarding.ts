@@ -137,6 +137,29 @@ export const useOnboarding = (): UseOnboardingReturn => {
     }
   }, [searchParameters]);
 
+  // Re-sync push status & cookies when app regains focus (e.g. returning from device settings)
+  useEffect(() => {
+    const handleFocus = (): void => {
+      const hasSkippedPush = isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION);
+      dispatch({
+        type: OnboardingAction.UPDATE_CONTEXT,
+        payload: {
+          hasSkippedPush,
+        },
+      });
+      if (isNativeAppWebView()) {
+        globalThis.AppWebViewNativePush?.getStatus();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return (): void => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, []);
+
   const acceptCookiesCallback = useCallback((): void => {
     dispatch({ type: OnboardingAction.USER_ACTION_ACCEPT_COOKIES });
   }, []);

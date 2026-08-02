@@ -76,10 +76,7 @@ export const NativePushSubscriptionManager: React.FC<{
         if (label === 'authorized' || label === 'provisional') {
           setIsDenied(false);
           setIsAuthorized(true);
-          // Only auto-advance if the permission prompt was explicitly requested via handleEnable
-          if (isRequesting) {
-            advance();
-          }
+          advance();
         } else if (label === 'denied') {
           setIsRequesting(false);
           setIsDenied(true);
@@ -92,17 +89,25 @@ export const NativePushSubscriptionManager: React.FC<{
         }
       } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
         setIsAuthorized(true);
-        if (isRequesting) {
-          advance();
-        }
+        advance();
       }
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
+
+    const handleFocus = (): void => {
+      globalThis.AppWebViewNativePush?.getStatus();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleEvent);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
-  }, [advance, isRequesting]);
+  }, [advance]);
 
   const handleEnable = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
