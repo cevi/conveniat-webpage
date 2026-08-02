@@ -19,6 +19,9 @@ export function refreshAndOptimisticallyUpdateChat(
 ): void {
   if (!trpcUtils || typeof chatId !== 'string' || chatId.trim() === '') return;
 
+  const chatQueries = (trpcUtils as Partial<ReturnType<typeof trpc.useUtils>>).chat;
+  if (!chatQueries) return;
+
   const cleanChatId = chatId.trim();
 
   // 1. If payload contains message content or messageId, perform optimistic TanStack cache update
@@ -51,7 +54,7 @@ export function refreshAndOptimisticallyUpdateChat(
       };
 
       // Optimistically update infiniteMessages cache
-      trpcUtils.chat?.infiniteMessages?.setInfiniteData(
+      chatQueries.infiniteMessages?.setInfiniteData(
         { chatId: cleanChatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
         (old) => {
           if (!old) return old;
@@ -74,7 +77,7 @@ export function refreshAndOptimisticallyUpdateChat(
       );
 
       // Optimistically update chatDetails cache
-      trpcUtils.chat?.chatDetails?.setData({ chatId: cleanChatId }, (old) => {
+      chatQueries.chatDetails?.setData({ chatId: cleanChatId }, (old) => {
         if (!old) return old;
         if (old.messages.some((item) => item.id === pushMessage.id)) {
           return old;
@@ -88,7 +91,7 @@ export function refreshAndOptimisticallyUpdateChat(
   }
 
   // 2. Invalidate and trigger background refetch for fresh chat content
-  void trpcUtils.chat?.infiniteMessages?.invalidate({ chatId: cleanChatId });
-  void trpcUtils.chat?.chatDetails?.invalidate({ chatId: cleanChatId });
-  void trpcUtils.chat?.chats?.invalidate();
+  void chatQueries.infiniteMessages?.invalidate({ chatId: cleanChatId });
+  void chatQueries.chatDetails?.invalidate({ chatId: cleanChatId });
+  void chatQueries.chats?.invalidate();
 }
