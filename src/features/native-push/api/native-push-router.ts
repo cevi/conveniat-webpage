@@ -71,16 +71,16 @@ export const nativePushRouter = createTRPCRouter({
       // Send welcome confirmation push notification to native device
       try {
         const { sendFcmNotification } = await import('@/lib/firebase-admin');
-        const locale = ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
-        const welcomeMessages: Record<string, string> = {
+        const welcomeMessages: Record<'de' | 'fr' | 'en', string> = {
           de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
           fr: 'Vous vous êtes inscrit avec succès aux notifications push.',
           en: 'You have successfully subscribed to push notifications.',
         };
+        const bodyText: string = welcomeMessages[locale];
 
         const result = await sendFcmNotification(input.token, {
           title: 'Konekta',
-          body: welcomeMessages[locale] ?? welcomeMessages.de,
+          body: bodyText,
           data: {
             url: '/app/settings',
           },
