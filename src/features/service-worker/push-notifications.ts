@@ -119,12 +119,17 @@ export const pushNotificationHandler =
             shouldShowNotification = false;
             console.log('Notification ignored because ignoreIfAppOpen is enabled.');
           } else if (ignoreIfUrlMatches && targetUrlString) {
+            const normalizePathname = (pathname: string): string =>
+              pathname.replace(/^\/(?:de|fr|en)(?:\/[^/]+)?(?=\/|$)/, '');
+
             const hasMatchingActiveClient = clients.some((client) => {
               if (client.visibilityState !== 'visible') return false;
               try {
                 const clientUrl = new URL(client.url);
                 const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
-                return clientUrl.pathname === targetUrl.pathname;
+                return (
+                  normalizePathname(clientUrl.pathname) === normalizePathname(targetUrl.pathname)
+                );
               } catch {
                 return false;
               }
