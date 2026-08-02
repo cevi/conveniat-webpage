@@ -61,11 +61,11 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
     if (!object_ || typeof object_ !== 'object') continue;
 
     const chatId = object_['chatId'];
-    if (chatId !== undefined && chatId !== null) {
-      const chatIdString = String(chatId).trim();
-      if (chatIdString !== '') {
-        return `/app/chat/${chatIdString}`;
-      }
+    if (typeof chatId === 'string' && chatId.trim() !== '') {
+      return `/app/chat/${chatId.trim()}`;
+    }
+    if (typeof chatId === 'number') {
+      return `/app/chat/${String(chatId)}`;
     }
   }
 
