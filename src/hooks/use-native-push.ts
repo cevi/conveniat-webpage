@@ -294,8 +294,10 @@ export function useNativePush(): {
             }
           }
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
-          if (globalThis.window !== undefined) {
+          try {
             sessionStorage.setItem('pending_push_redirect', targetPath);
+          } catch {
+            // ignore SSR / storage unavailable
           }
           router.push(targetPath);
           break;
