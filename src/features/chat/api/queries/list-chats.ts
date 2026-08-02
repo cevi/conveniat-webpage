@@ -9,9 +9,10 @@ import {
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
-import { ChatMembershipPermission, MessageType, type Prisma } from '@/lib/prisma';
+import { ChatMembershipPermission, MessageEventType, MessageType, type Prisma } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import type { StaticTranslationString } from '@/types/types';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -193,12 +194,13 @@ export const getChatList = trpcBaseProcedure
     return _chats.map((chat): ChatWithMessagePreview => {
       const lastMessage = chat.messages[0];
 
-      if (lastMessage === undefined) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `No last message found in chat with ID ${chat.uuid}`,
-        });
-      }
+      const fallbackPreview: StaticTranslationString = {
+        de: 'Neuer Chat erstellt',
+        en: 'New Chat created',
+        fr: 'Nouveau chat créé',
+      };
+
+      const messagePreview = lastMessage ? getMessagePreviewText(lastMessage) : fallbackPreview;
 
       const currentUserMembership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
       const isLarge = chat.chatMemberships.length >= LARGE_CHAT_THRESHOLD;
@@ -230,11 +232,13 @@ export const getChatList = trpcBaseProcedure
         id: chat.uuid,
         messageCount: chat._count.messages,
         lastMessage: {
-          id: lastMessage.uuid,
+          id: lastMessage?.uuid ?? chat.uuid,
           createdAt: chat.lastUpdate,
-          messagePreview: getMessagePreviewText(lastMessage),
-          senderId: lastMessage.senderId ?? SYSTEM_SENDER_ID,
-          status: getStatusFromMessageEvents(lastMessage.messageEvents),
+          messagePreview,
+          senderId: lastMessage?.senderId ?? SYSTEM_SENDER_ID,
+          status: lastMessage
+            ? getStatusFromMessageEvents(lastMessage.messageEvents)
+            : MessageEventType.STORED,
         },
         userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
       };

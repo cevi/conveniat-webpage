@@ -174,10 +174,8 @@ export const ChatsOverviewClientComponent: React.FC<{
   // Filter chats based on a search query
   const filteredChats =
     chats?.filter((chat): boolean => {
-      const previewText =
-        typeof chat.lastMessage.messagePreview === 'string'
-          ? chat.lastMessage.messagePreview
-          : chat.lastMessage.messagePreview[locale];
+      const rawPreview = chat.lastMessage.messagePreview;
+      const previewText = typeof rawPreview === 'string' ? rawPreview : rawPreview[locale];
 
       return (
         chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

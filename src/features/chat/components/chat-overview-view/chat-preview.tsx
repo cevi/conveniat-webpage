@@ -36,6 +36,9 @@ export const ChatPreview: React.FC<{
 
   const timestamp = formatMessageTime(new Date(chat.lastMessage.createdAt));
 
+  const rawPreview = chat.lastMessage.messagePreview;
+  const previewText = typeof rawPreview === 'string' ? rawPreview : rawPreview[locale];
+
   return (
     <Link href={chatDetailLink} className="block w-full">
       <li
@@ -112,9 +115,7 @@ export const ChatPreview: React.FC<{
               'text-red-500': chat.chatType === ChatType.EMERGENCY,
             })}
           >
-            {typeof chat.lastMessage.messagePreview === 'string'
-              ? chat.lastMessage.messagePreview
-              : chat.lastMessage.messagePreview[locale]}
+            {previewText}
           </p>
         </div>
 

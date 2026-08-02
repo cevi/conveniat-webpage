@@ -80,15 +80,15 @@ export const createNewChat = async (
   import('@/lib/db/chat-pubsub')
     .then(({ chatPubSub }) => {
       const participantUuids = [user.uuid, ...members.map((m) => m.userId)];
-      for (const uuid of participantUuids) {
+      for (const participantId of participantUuids) {
         chatPubSub
-          .publish(uuid, {
+          .publish(participantId, {
             type: 'new_chat',
-            chatId: uuid,
+            chatId: chat.uuid,
             senderId: user.uuid,
           })
           .catch((error: unknown) => {
-            console.error(`Failed to publish new_chat event to user ${uuid}:`, error);
+            console.error(`Failed to publish new_chat event to user ${participantId}:`, error);
           });
       }
     })
