@@ -252,7 +252,7 @@ export function useNativePush(): {
           console.error('[NativePush:PWA] bridge error:', payload['error']);
           addLog(`Bridge error: ${errorDetail}`);
           setLastError(errorDetail);
-          setStatus((prev) => (prev === 'unknown' ? 'prompt' : prev));
+          setStatus((previous) => (previous === 'unknown' ? 'prompt' : previous));
           if (rollbackTimeoutReference.current) {
             clearTimeout(rollbackTimeoutReference.current);
             rollbackTimeoutReference.current = undefined;
@@ -278,12 +278,12 @@ export function useNativePush(): {
 
     // Fallback timeout to prevent infinite loading spinner if bridge status response is delayed/lost
     const statusTimeoutId = setTimeout(() => {
-      setStatus((prev) => {
-        if (prev === 'unknown') {
+      setStatus((previous) => {
+        if (previous === 'unknown') {
           addLog('Status request timed out after 4s, falling back to prompt state');
           return 'prompt';
         }
-        return prev;
+        return previous;
       });
     }, 4000);
 
