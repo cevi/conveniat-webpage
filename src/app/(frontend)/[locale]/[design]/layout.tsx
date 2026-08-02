@@ -18,6 +18,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { SessionProvider } from 'next-auth/react';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
+import { Toaster } from 'sonner';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
@@ -77,6 +78,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         suppressHydrationWarning
       >
         <SessionProvider>
+          <Toaster position="top-center" richColors closeButton />
           <HideFooterProvider>
             <HideBackgroundLogoProvider>
               <ChunkErrorHandler />

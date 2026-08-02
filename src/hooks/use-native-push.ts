@@ -7,6 +7,7 @@ import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
 
@@ -333,6 +334,59 @@ export function useNativePush(): {
             // ignore SSR / storage unavailable
           }
           router.push(targetPath);
+          break;
+        }
+        case 'native-push-received': {
+          const rawUrl = extractTargetUrl(payload);
+          let targetChatId: string | undefined;
+
+          if (typeof rawUrl === 'string' && rawUrl.includes('/app/chat/')) {
+            const parts = rawUrl.split('/app/chat/');
+            const firstPart = parts[1];
+            if (typeof firstPart === 'string' && firstPart !== '') {
+              targetChatId = firstPart.split('?')[0];
+            }
+          }
+
+          // Refresh query cache in background
+          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
+
+          // Check if current user is actively viewing this exact chat details page
+          const currentPathname = globalThis.location?.pathname ?? '';
+          const isCurrentChatOpen =
+            typeof targetChatId === 'string' &&
+            targetChatId !== '' &&
+            currentPathname.includes(`/app/chat/${targetChatId}`);
+
+          if (!isCurrentChatOpen) {
+            const notificationTitle =
+              typeof payload['title'] === 'string' && payload['title'].trim() !== ''
+                ? payload['title'].trim()
+                : 'Neue Nachricht';
+            const notificationBody =
+              typeof payload['body'] === 'string'
+                ? payload['body'].trim()
+                : typeof payload['message'] === 'string'
+                  ? payload['message'].trim()
+                  : '';
+
+            const targetPath =
+              typeof rawUrl === 'string' && rawUrl.startsWith('/')
+                ? rawUrl
+                : typeof targetChatId === 'string' && targetChatId !== ''
+                  ? `/app/chat/${targetChatId}`
+                  : '/app/dashboard';
+
+            toast(notificationTitle, {
+              description: notificationBody,
+              action: {
+                label: 'Ansehen',
+                onClick: () => {
+                  router.push(targetPath);
+                },
+              },
+            });
+          }
           break;
         }
         case 'native-push-error': {
