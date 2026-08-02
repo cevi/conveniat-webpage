@@ -12,6 +12,25 @@ interface PushChatMessage {
   type: string;
 }
 
+type MinimalTrpcUtils = {
+  chat?: {
+    infiniteMessages?: {
+      setInfiniteData: (
+        queryKey: { chatId: string; limit: number; parentId: undefined },
+        updater: (old: any) => any,
+      ) => void;
+      invalidate: (queryKey: { chatId: string }) => Promise<void>;
+    };
+    chatDetails?: {
+      setData: (queryKey: { chatId: string }, updater: (old: any) => any) => void;
+      invalidate: (queryKey: { chatId: string }) => Promise<void>;
+    };
+    chats?: {
+      invalidate: () => Promise<void>;
+    };
+  };
+};
+
 export function refreshAndOptimisticallyUpdateChat(
   trpcUtils: ReturnType<typeof trpc.useUtils> | undefined,
   chatId: string | undefined,
@@ -19,7 +38,8 @@ export function refreshAndOptimisticallyUpdateChat(
 ): void {
   if (!trpcUtils || typeof chatId !== 'string' || chatId.trim() === '') return;
 
-  const chatQueries = (trpcUtils as Partial<ReturnType<typeof trpc.useUtils>>).chat;
+  const utils = trpcUtils as unknown as MinimalTrpcUtils;
+  const chatQueries = utils.chat;
   if (!chatQueries) return;
 
   const cleanChatId = chatId.trim();
@@ -56,35 +76,30 @@ export function refreshAndOptimisticallyUpdateChat(
       // Optimistically update infiniteMessages cache
       chatQueries.infiniteMessages?.setInfiniteData(
         { chatId: cleanChatId, limit: CHAT_PAGE_SIZE, parentId: undefined },
-        (old) => {
+        (old: any) => {
           if (!old) return old;
-          const allItems = old.pages.flatMap((page) => page.items);
-          if (allItems.some((item) => item.id === pushMessage.id)) {
+          const allItems = old.pages.flatMap((page: any) => page.items);
+          if (allItems.some((item: any) => item.id === pushMessage.id)) {
             return old;
           }
           return {
             ...old,
-            pages: old.pages.map((page, index) =>
-              index === 0
-                ? {
-                    ...page,
-                    items: [pushMessage as unknown as (typeof page.items)[number], ...page.items],
-                  }
-                : page,
+            pages: old.pages.map((page: any, index: number) =>
+              index === 0 ? { ...page, items: [pushMessage, ...page.items] } : page,
             ),
           };
         },
       );
 
       // Optimistically update chatDetails cache
-      chatQueries.chatDetails?.setData({ chatId: cleanChatId }, (old) => {
+      chatQueries.chatDetails?.setData({ chatId: cleanChatId }, (old: any) => {
         if (!old) return old;
-        if (old.messages.some((item) => item.id === pushMessage.id)) {
+        if (old.messages.some((item: any) => item.id === pushMessage.id)) {
           return old;
         }
         return {
           ...old,
-          messages: [...old.messages, pushMessage as unknown as (typeof old.messages)[number]],
+          messages: [...old.messages, pushMessage],
         };
       });
     }
