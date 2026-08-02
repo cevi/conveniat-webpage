@@ -39,11 +39,21 @@ interface NativePushEventDetail {
 
 export function extractTargetUrl(payload: Record<string, unknown>): string | undefined {
   const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+  const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
+    Record<string, unknown> | undefined;
+  const alertObject = (apsObject?.['alert'] ?? notificationObject?.['alert']) as
+    Record<string, unknown> | undefined;
+  const userInfoObject = (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+    Record<string, unknown> | undefined;
+
   const candidates: (Record<string, unknown> | undefined)[] = [
     payload,
     payload['data'] as Record<string, unknown> | undefined,
     notificationObject,
     notificationObject?.['data'] as Record<string, unknown> | undefined,
+    apsObject,
+    alertObject,
+    userInfoObject,
   ];
 
   for (const object_ of candidates) {

@@ -95,6 +95,22 @@ export async function sendFcmNotification(
             },
             sound: 'default',
           },
+          notificationId,
+          ...(payload.data.url !== undefined && { url: payload.data.url }),
+          ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+          ...(payload.data.ignoreIfUrlMatches !== undefined && {
+            ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+          }),
+          data: {
+            title: payload.title,
+            body: payload.body,
+            notificationId,
+            ...(payload.data.url !== undefined && { url: payload.data.url }),
+            ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+            ...(payload.data.ignoreIfUrlMatches !== undefined && {
+              ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+            }),
+          },
         },
       },
       android: {
