@@ -141,13 +141,13 @@ export function useNativePush(): {
       isBridgeReady,
     );
 
-    const timeoutId = setTimeout(() => {
+    const initTimeoutId = setTimeout(() => {
       setIsNativeApp(isNative && isBridgeReady);
       addLog(`Hook mounted: isNative=${String(isNative)}, bridgeReady=${String(isBridgeReady)}`);
       addLog('Requesting initial status via getStatus()');
     }, 0);
 
-    if (!isNative) return (): void => clearTimeout(timeoutId);
+    if (!isNative) return (): void => clearTimeout(initTimeoutId);
 
     const handleRegisterDevice = async (
       token: string,
@@ -413,7 +413,7 @@ export function useNativePush(): {
 
     nativePushBridge.getStatus();
 
-    const timeoutId = setTimeout(() => {
+    const statusTimeoutId = setTimeout(() => {
       setStatus((previous) => {
         if (previous === 'unknown') {
           console.log('[NativePush:PWA] status timeout: assuming prompt');
@@ -424,7 +424,8 @@ export function useNativePush(): {
     }, 4000);
 
     return (): void => {
-      clearTimeout(timeoutId);
+      clearTimeout(initTimeoutId);
+      clearTimeout(statusTimeoutId);
       if (rollbackTimeoutReference.current) {
         clearTimeout(rollbackTimeoutReference.current);
       }

@@ -1,7 +1,17 @@
-import type { ChatMessage } from '@/features/chat/api/types';
-import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import type { trpc } from '@/trpc/client';
 import { MessageEventType } from '@prisma/client';
+
+const CHAT_PAGE_SIZE = 50;
+
+interface PushChatMessage {
+  id: string;
+  createdAt: Date;
+  messagePayload: { text: string };
+  senderId?: string;
+  senderName?: string;
+  status: MessageEventType;
+  type: string;
+}
 
 export function refreshAndOptimisticallyUpdateChat(
   trpcUtils: ReturnType<typeof trpc.useUtils>,
@@ -31,7 +41,7 @@ export function refreshAndOptimisticallyUpdateChat(
 
       const content = typeof rawContent === 'string' ? rawContent.trim() : '';
 
-      const pushMessage: ChatMessage = {
+      const pushMessage: PushChatMessage = {
         id: messageId,
         messagePayload: { text: content },
         createdAt: new Date(),
@@ -53,7 +63,12 @@ export function refreshAndOptimisticallyUpdateChat(
           return {
             ...old,
             pages: old.pages.map((page, index) =>
-              index === 0 ? { ...page, items: [pushMessage, ...page.items] } : page,
+              index === 0
+                ? {
+                    ...page,
+                    items: [pushMessage as unknown as (typeof page.items)[number], ...page.items],
+                  }
+                : page,
             ),
           };
         },
@@ -67,7 +82,7 @@ export function refreshAndOptimisticallyUpdateChat(
         }
         return {
           ...old,
-          messages: [...old.messages, pushMessage],
+          messages: [...old.messages, pushMessage as unknown as (typeof old.messages)[number]],
         };
       });
     }
