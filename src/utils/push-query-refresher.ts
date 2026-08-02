@@ -1,5 +1,4 @@
 import type { trpc } from '@/trpc/client';
-import { MessageEventType } from '@prisma/client';
 
 const CHAT_PAGE_SIZE = 50;
 
@@ -9,7 +8,7 @@ interface PushChatMessage {
   messagePayload: { text: string };
   senderId?: string | undefined;
   senderName?: string | undefined;
-  status: MessageEventType;
+  status: string;
   type: string;
 }
 
@@ -47,7 +46,7 @@ export function refreshAndOptimisticallyUpdateChat(
         createdAt: new Date(),
         senderId: typeof rawSenderId === 'string' ? rawSenderId : undefined,
         senderName: typeof rawSenderName === 'string' ? rawSenderName : undefined,
-        status: MessageEventType.CREATED,
+        status: 'CREATED',
         type: 'TEXT_MSG',
       };
 
