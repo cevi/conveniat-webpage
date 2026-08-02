@@ -54,6 +54,7 @@ export const syncChatsOffline = async (
     if (
       chatUrlsToCache.length > 0 &&
       typeof navigator !== 'undefined' &&
+      'serviceWorker' in navigator &&
       navigator.serviceWorker.controller
     ) {
       navigator.serviceWorker.controller.postMessage({

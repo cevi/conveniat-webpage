@@ -2,6 +2,7 @@
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
+import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
@@ -356,7 +357,7 @@ export const EmergencyComponent: React.FC = () => {
               <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
                 {descriptionLabel[locale]}
               </strong>
-              <p className="text-sm leading-relaxed">{alert.description}</p>
+              <ParagraphText>{alert.description}</ParagraphText>
             </div>
 
             {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
@@ -486,16 +487,20 @@ export const EmergencyComponent: React.FC = () => {
   return (
     <article className="container mx-auto mt-8 py-6">
       <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
-        <div className="pb-4">
-          <div className="mb-2">
-            <AppSearchBar
-              placeholder={searchPlaceholder[locale]}
-              value={searchTerm}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value)}
-              onClear={clearSearch}
-            />
+        {cards.length > 3 && (
+          <div className="pb-4">
+            <div className="mb-2">
+              <AppSearchBar
+                placeholder={searchPlaceholder[locale]}
+                value={searchTerm}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setSearchTerm(event.target.value)
+                }
+                onClear={clearSearch}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <Accordion
           type="multiple"
