@@ -30,16 +30,15 @@ export function useNativePushSubscriptionStatus(): boolean {
   useEffect(() => {
     if (!isNative) return;
 
-    // Request current status from the bridge on mount
-    globalThis.AppWebViewNativePush?.getStatus();
-
     const handleEvent = (event: Event): void => {
       const customEvent = event as CustomEvent<NativePushEventDetail | null | undefined>;
       const detail = customEvent.detail ?? {};
       const type = detail.type;
       const payload = detail.payload ?? {};
 
-      if (type === 'native-push-status') {
+      if (type === 'native-push-ready') {
+        globalThis.AppWebViewNativePush?.getStatus();
+      } else if (type === 'native-push-status') {
         const label = payload['authorizationLabel'];
         const hasToken =
           payload['hasToken'] === true ||
@@ -55,6 +54,10 @@ export function useNativePushSubscriptionStatus(): boolean {
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
+
+    // Request current status from the bridge on mount after listener is attached
+    globalThis.AppWebViewNativePush?.getStatus();
+
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleEvent);
     };

@@ -248,4 +248,33 @@ describe('useNativePushSubscriptionStatus', () => {
     });
     expect(result.current).toBe(false);
   });
+
+  it('calls getStatus when native-push-ready event is received', () => {
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'KonektaApp/1.0',
+      configurable: true,
+    });
+    const mockGetStatus = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: mockGetStatus,
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+    };
+
+    renderHook(() => useNativePushSubscriptionStatus());
+    mockGetStatus.mockClear();
+
+    act(() => {
+      globalThis.dispatchEvent(
+        new CustomEvent('app-webview-native-push-event', {
+          detail: {
+            type: 'native-push-ready',
+          },
+        }),
+      );
+    });
+
+    expect(mockGetStatus).toHaveBeenCalledTimes(1);
+  });
 });
