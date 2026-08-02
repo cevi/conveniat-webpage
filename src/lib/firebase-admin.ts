@@ -84,6 +84,25 @@ export async function sendFcmNotification(
       apns: {
         headers: {
           'apns-collapse-id': notificationId,
+          'apns-push-type': 'alert',
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: payload.title,
+              body: payload.body,
+            },
+            sound: 'default',
+          },
+        },
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          title: payload.title,
+          body: payload.body,
+          sound: 'default',
         },
       },
     });
