@@ -238,20 +238,20 @@ export const useOnboarding = (): UseOnboardingReturn => {
         // ignore SSR / storage unavailable
       }
 
-      const redirectToParam =
+      const redirectToParameter =
         searchParameters.get('redirectTo') ??
         searchParameters.get('url') ??
         searchParameters.get('path');
-      const chatIdParam = searchParameters.get('chatId');
+      const chatIdParameter = searchParameters.get('chatId');
 
-      if (redirectToParam) {
-        console.log('[Onboarding] Query param redirect found, navigating to:', redirectToParam);
-        router.push(redirectToParam);
+      if (redirectToParameter) {
+        console.log('[Onboarding] Query param redirect found, navigating to:', redirectToParameter);
+        router.push(redirectToParameter);
         return;
       }
 
-      if (chatIdParam) {
-        const target = `/app/chat/${chatIdParam}`;
+      if (chatIdParameter) {
+        const target = `/app/chat/${chatIdParameter}`;
         console.log('[Onboarding] Query param chatId found, navigating to:', target);
         router.push(target);
         return;
