@@ -143,12 +143,12 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       isWebSubscribed,
       browserPermission: notificationPermission,
       isLoading,
-      activeError: activeError ?? null,
+      activeError: activeError,
       userAgent,
       logs: combinedLogs,
     };
 
-    const jsonString = JSON.stringify(debugData, null, 2);
+    const jsonString = JSON.stringify(debugData, undefined, 2);
 
     try {
       if (
@@ -160,13 +160,13 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
           title: 'Push Notification Debug Log',
           text: jsonString,
         });
-      } else if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      } else if (typeof navigator !== 'undefined') {
         await navigator.clipboard.writeText(jsonString);
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
       }
     } catch {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      if (typeof navigator !== 'undefined') {
         try {
           await navigator.clipboard.writeText(jsonString);
           setIsCopied(true);
