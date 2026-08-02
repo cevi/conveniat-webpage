@@ -152,8 +152,17 @@ export function usePushNotificationState(
 
     void checkSubscription();
 
+    const handleFocus = (): void => {
+      void checkSubscription();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return (): void => {
       mounted = false;
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [locale, swReady, swError, updateState]);
 

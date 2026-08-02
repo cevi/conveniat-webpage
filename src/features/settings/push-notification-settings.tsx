@@ -4,7 +4,8 @@ import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
-import type { Locale, StaticTranslationString } from '@/types/types';
+import { Cookie, type Locale, type StaticTranslationString } from '@/types/types';
+import Cookies from 'js-cookie';
 import { Bell, Bug, Check, Share2, X } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
@@ -112,8 +113,9 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   }
 
   const handleToggle = (): void => {
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog(
-      `Toggle pressed: isNativeApp=${String(isNativeApp)}, isSubscribed=${String(isSubscribed)}, isUnauthenticated=${String(isUnauthenticated)}`,
+      `Toggle clicked. authenticated=${String(isAuthenticated)}, isNativeApp=${String(isNativeApp)}, isNativeSubscribed=${String(isNativeSubscribed)}, isWebSubscribed=${String(isWebSubscribed)}, status=${status}`,
     );
 
     if (isUnauthenticated) {

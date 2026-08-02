@@ -1,7 +1,9 @@
 'use client';
 
 import { trpc } from '@/trpc/client';
+import { Cookie } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
+import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -320,6 +322,7 @@ export function useNativePush(): {
   }, [router, registerDevice, unregisterDevice]);
 
   const requestPermission = (): void => {
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog('requestPermission() called');
     setLastError(undefined);
     if (isNativeApp) {
@@ -355,6 +358,7 @@ export function useNativePush(): {
   };
 
   const openSettings = (): void => {
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog('openSettings() called');
     setLastError(undefined);
     if (isNativeApp) {
