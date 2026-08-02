@@ -80,18 +80,15 @@ describe('useNativePush', () => {
     expect(mockPush).toHaveBeenCalledWith('/app/chat/550e8400-e29b-41d4-a716-446655440000');
   });
 
-  it('parses nested notification data payload on native-push-open event', () => {
+  it('prioritizes chatId over generic fallback dashboard url', () => {
     renderHook(() => useNativePush());
 
     const event = new CustomEvent('app-webview-native-push-event', {
       detail: {
         type: 'native-push-open',
         payload: {
-          notification: {
-            data: {
-              chatId: '550e8400-e29b-41d4-a716-446655440000',
-            },
-          },
+          url: '/app/dashboard',
+          chatId: 'target-chat-id-123',
         },
       },
     });
@@ -100,7 +97,7 @@ describe('useNativePush', () => {
       globalThis.dispatchEvent(event);
     });
 
-    expect(mockPush).toHaveBeenCalledWith('/app/chat/550e8400-e29b-41d4-a716-446655440000');
+    expect(mockPush).toHaveBeenCalledWith('/app/chat/target-chat-id-123');
   });
 
   it('falls back to /app/dashboard when payload url is missing or invalid', () => {

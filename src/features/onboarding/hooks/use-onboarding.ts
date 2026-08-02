@@ -227,9 +227,12 @@ export const useOnboarding = (): UseOnboardingReturn => {
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
       try {
-        const pendingRedirect = sessionStorage.getItem('pending_push_redirect');
+        const pendingRedirect =
+          sessionStorage.getItem('pending_push_redirect') ??
+          localStorage.getItem('pending_push_redirect');
         if (pendingRedirect) {
           sessionStorage.removeItem('pending_push_redirect');
+          localStorage.removeItem('pending_push_redirect');
           console.log('[Onboarding] Pending push redirect found, navigating to:', pendingRedirect);
           router.push(pendingRedirect);
           return;

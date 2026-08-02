@@ -56,6 +56,20 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
     userInfoObject,
   ];
 
+  // First pass: Check for explicit chatId across all candidates
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    const chatId = object_['chatId'];
+    if (chatId !== undefined && chatId !== null) {
+      const chatIdString = String(chatId).trim();
+      if (chatIdString !== '') {
+        return `/app/chat/${chatIdString}`;
+      }
+    }
+  }
+
+  // Second pass: Check for explicit URL / path properties
   for (const object_ of candidates) {
     if (!object_ || typeof object_ !== 'object') continue;
 
@@ -64,11 +78,6 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
       if (typeof value === 'string' && value.trim() !== '') {
         return value.trim();
       }
-    }
-
-    const chatId = object_['chatId'];
-    if (typeof chatId === 'string' && chatId.trim() !== '') {
-      return `/app/chat/${chatId.trim()}`;
     }
   }
 
@@ -306,6 +315,7 @@ export function useNativePush(): {
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
           try {
             sessionStorage.setItem('pending_push_redirect', targetPath);
+            localStorage.setItem('pending_push_redirect', targetPath);
           } catch {
             // ignore SSR / storage unavailable
           }
