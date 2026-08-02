@@ -46,6 +46,8 @@ export function useNativePush(): {
   isNativeApp: boolean;
   status: NativePushStatus;
   hasToken: boolean;
+  isRegisteredOnBackend: boolean;
+  isUnauthenticated: boolean;
   requestPermission: () => void;
   deleteToken: () => void;
   openSettings: () => void;
@@ -56,6 +58,8 @@ export function useNativePush(): {
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
   const [hasToken, setHasToken] = useState(false);
+  const [isRegisteredOnBackend, setIsRegisteredOnBackend] = useState(false);
+  const [isUnauthenticated, setIsUnauthenticated] = useState(false);
   const [logs, setLogs] = useState<NativePushLogEntry[]>([]);
   const [lastError, setLastError] = useState<string | undefined>();
   const rollbackTimeoutReference = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -103,12 +107,28 @@ export function useNativePush(): {
         await registerDevice({ token, platform });
         console.log('[NativePush:PWA] registerDevice: success');
         addLog(`registerDevice: success`);
+        setIsRegisteredOnBackend(true);
+        setIsUnauthenticated(false);
         setLastError(undefined);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('[NativePush:PWA] registerDevice: failed', error);
         addLog(`registerDevice failed: ${errorMessage}`, error);
-        setLastError(`registerDevice error: ${errorMessage}`);
+        setIsRegisteredOnBackend(false);
+
+        const isAuthError =
+          errorMessage.toLowerCase().includes('user not authenticated') ||
+          errorMessage.toLowerCase().includes('user not found') ||
+          errorMessage.toLowerCase().includes('forbidden') ||
+          errorMessage.toLowerCase().includes('unauthorized');
+
+        if (isAuthError) {
+          setIsUnauthenticated(true);
+          setLastError(undefined);
+        } else {
+          setLastError(`registerDevice error: ${errorMessage}`);
+        }
+
         if (error instanceof Error) {
           try {
             const { default: ph } = await import('posthog-js');
@@ -345,6 +365,8 @@ export function useNativePush(): {
     isNativeApp,
     status,
     hasToken,
+    isRegisteredOnBackend,
+    isUnauthenticated,
     requestPermission,
     deleteToken,
     openSettings,

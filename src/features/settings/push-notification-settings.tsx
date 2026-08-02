@@ -6,6 +6,7 @@ import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Bell, Bug, Check, Share2, X } from 'lucide-react';
+import { signIn, useSession } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 
 const pushNotificationSettingsTitle: StaticTranslationString = {
@@ -20,6 +21,12 @@ const pushNotificationDescription: StaticTranslationString = {
   fr: 'Recevez des mises à jour importantes',
 };
 
+const pleaseSignInForPushText: StaticTranslationString = {
+  de: 'Bitte anmelden für Push-Benachrichtigungen',
+  en: 'Please sign in for Push Notifications',
+  fr: 'Veuillez vous connecter pour les notifications push',
+};
+
 const notSupportedText: StaticTranslationString = {
   de: 'Nicht unterstützt',
   en: 'Not supported',
@@ -27,6 +34,9 @@ const notSupportedText: StaticTranslationString = {
 };
 
 export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const { status: authStatus } = useSession();
+  const isAuthenticated = authStatus === 'authenticated';
+
   const {
     isSupported: isWebSupported,
     isSubscribed: isWebSubscribed,
@@ -39,12 +49,17 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     isNativeApp,
     status,
     hasToken,
+    isRegisteredOnBackend,
+    isUnauthenticated: nativeIsUnauthenticated,
     requestPermission,
     deleteToken,
     openSettings,
     logs: nativeLogs,
     lastError: nativeLastError,
   } = useNativePush();
+
+  const isUnauthenticated =
+    authStatus === 'unauthenticated' || nativeIsUnauthenticated || !isAuthenticated;
 
   const [isDevelopmentDebugMode, setIsDevelopmentDebugMode] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -76,18 +91,37 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   }, [clickTimestamps, addLog]);
 
   const isNativeSupported = true; // WebView bridge handles support
-  const isNativeSubscribed = hasToken && status === 'granted';
+  const isNativeSubscribed =
+    hasToken && status === 'granted' && isRegisteredOnBackend && isAuthenticated;
   const isNativeLoading = status === 'unknown';
 
   const isSupported = isNativeApp ? isNativeSupported : isWebSupported;
-  const isSubscribed = isNativeApp ? isNativeSubscribed : isWebSubscribed;
+  const isSubscribed = isUnauthenticated
+    ? false
+    : isNativeApp
+      ? isNativeSubscribed
+      : isWebSubscribed;
   const isLoading = isNativeApp ? isNativeLoading : isWebLoading;
-  const errorMessage = isNativeApp ? nativeLastError : webError;
+  const rawError = isNativeApp ? nativeLastError : webError;
+  const errorMessage = isUnauthenticated ? undefined : rawError;
+
+  const subtitle = isUnauthenticated
+    ? pleaseSignInForPushText[locale]
+    : isSupported
+      ? pushNotificationDescription[locale]
+      : notSupportedText[locale];
 
   const handleToggle = (): void => {
     addLog(
-      `Toggle pressed: isNativeApp=${String(isNativeApp)}, isSubscribed=${String(isSubscribed)}`,
+      `Toggle pressed: isNativeApp=${String(isNativeApp)}, isSubscribed=${String(isSubscribed)}, isUnauthenticated=${String(isUnauthenticated)}`,
     );
+
+    if (isUnauthenticated) {
+      addLog('User not authenticated, triggering signIn()');
+      void signIn();
+      return;
+    }
+
     if (isNativeApp) {
       if (isNativeSubscribed) {
         addLog('Calling deleteToken()');
@@ -196,7 +230,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       <SettingsRow
         icon={Bell}
         title={pushNotificationSettingsTitle[locale]}
-        subtitle={isSupported ? pushNotificationDescription[locale] : notSupportedText[locale]}
+        subtitle={subtitle}
         error={errorMessage}
         action={
           <Switch

@@ -96,4 +96,31 @@ describe('useNativePush', () => {
 
     expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
   });
+
+  it('sets isUnauthenticated to true when registerDevice fails with authentication error', async () => {
+    const mockRegisterDevice = jest.fn().mockRejectedValue(new Error('User not authenticated'));
+    const { trpc } = jest.requireMock('@/trpc/client') as {
+      trpc: { nativePush: { registerDevice: { useMutation: jest.Mock } } };
+    };
+    trpc.nativePush.registerDevice.useMutation.mockReturnValue({
+      mutateAsync: mockRegisterDevice,
+    });
+
+    const { result } = renderHook(() => useNativePush());
+
+    await act(async () => {
+      globalThis.dispatchEvent(
+        new CustomEvent('app-webview-native-push-event', {
+          detail: {
+            type: 'native-push-token',
+            payload: { token: 'sample-token', platform: 'ios' },
+          },
+        }),
+      );
+    });
+
+    expect(result.current.isRegisteredOnBackend).toBe(false);
+    expect(result.current.isUnauthenticated).toBe(true);
+    expect(result.current.lastError).toBeUndefined();
+  });
 });
