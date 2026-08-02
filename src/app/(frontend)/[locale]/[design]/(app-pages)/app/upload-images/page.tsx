@@ -1,5 +1,6 @@
 'use client';
 
+import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { CopyrightModal } from '@/features/image-submission/copyright-modal';
 import { DescriptionInput } from '@/features/image-submission/description-input';
@@ -310,6 +311,7 @@ const ImageUploadPage: React.FC = () => {
   if (showSuccessView) {
     return (
       <div className="container mx-auto max-w-2xl px-4 py-16">
+        <SetDynamicPageTitle newTitle={pageTitle[locale]} />
         <div className="flex flex-col items-center justify-center text-center">
           <div className="bg-conveniat-green/10 relative mb-10 flex h-36 w-36 items-center justify-center rounded-full shadow-inner">
             <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-2000" />
@@ -345,6 +347,7 @@ const ImageUploadPage: React.FC = () => {
 
   return (
     <div className="container mx-auto min-h-screen max-w-2xl bg-gray-50/50 px-4 py-8">
+      <SetDynamicPageTitle newTitle={pageTitle[locale]} />
       {/* Header */}
       <div className="mb-8 border-b border-gray-200 pb-6">
         <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
