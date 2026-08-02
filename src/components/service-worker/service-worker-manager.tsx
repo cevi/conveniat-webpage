@@ -1,11 +1,11 @@
 'use client';
 
 import { environmentVariables } from '@/config/environment-variables';
-import { refreshAndOptimisticallyUpdateChat } from '@/features/chat/utils/push-query-refresher';
 import { useAppMode } from '@/hooks/use-app-mode';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
 import { trpc } from '@/trpc/client';
+import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -57,7 +57,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
           }
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload.payload);
 
-          const currentPathname = globalThis.location?.pathname ?? '';
+          const currentPathname = globalThis.location.pathname;
           const isCurrentChatOpen =
             typeof targetChatId === 'string' &&
             targetChatId !== '' &&
@@ -68,12 +68,16 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
               typeof payload.payload['title'] === 'string' && payload.payload['title'].trim() !== ''
                 ? payload.payload['title'].trim()
                 : 'Neue Nachricht';
-            const notificationBody =
-              typeof payload.payload['body'] === 'string'
-                ? payload.payload['body'].trim()
-                : typeof payload.payload['message'] === 'string'
-                  ? payload.payload['message'].trim()
-                  : '';
+
+            let notificationBody = '';
+            if (
+              typeof payload.payload['body'] === 'string' &&
+              payload.payload['body'].trim() !== ''
+            ) {
+              notificationBody = payload.payload['body'].trim();
+            } else if (typeof payload.payload['message'] === 'string') {
+              notificationBody = payload.payload['message'].trim();
+            }
 
             toast(notificationTitle, {
               description: notificationBody,

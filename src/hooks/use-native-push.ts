@@ -1,8 +1,8 @@
 'use client';
 
-import { refreshAndOptimisticallyUpdateChat } from '@/features/chat/utils/push-query-refresher';
 import { trpc } from '@/trpc/client';
 import { Cookie } from '@/types/types';
+import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
@@ -352,7 +352,7 @@ export function useNativePush(): {
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 
           // Check if current user is actively viewing this exact chat details page
-          const currentPathname = globalThis.location?.pathname ?? '';
+          const currentPathname = globalThis.location.pathname;
           const isCurrentChatOpen =
             typeof targetChatId === 'string' &&
             targetChatId !== '' &&
@@ -363,19 +363,20 @@ export function useNativePush(): {
               typeof payload['title'] === 'string' && payload['title'].trim() !== ''
                 ? payload['title'].trim()
                 : 'Neue Nachricht';
-            const notificationBody =
-              typeof payload['body'] === 'string'
-                ? payload['body'].trim()
-                : typeof payload['message'] === 'string'
-                  ? payload['message'].trim()
-                  : '';
 
-            const targetPath =
-              typeof rawUrl === 'string' && rawUrl.startsWith('/')
-                ? rawUrl
-                : typeof targetChatId === 'string' && targetChatId !== ''
-                  ? `/app/chat/${targetChatId}`
-                  : '/app/dashboard';
+            let notificationBody = '';
+            if (typeof payload['body'] === 'string' && payload['body'].trim() !== '') {
+              notificationBody = payload['body'].trim();
+            } else if (typeof payload['message'] === 'string') {
+              notificationBody = payload['message'].trim();
+            }
+
+            let targetPath = '/app/dashboard';
+            if (typeof rawUrl === 'string' && rawUrl.startsWith('/')) {
+              targetPath = rawUrl;
+            } else if (typeof targetChatId === 'string' && targetChatId.trim() !== '') {
+              targetPath = `/app/chat/${targetChatId.trim()}`;
+            }
 
             toast(notificationTitle, {
               description: notificationBody,
@@ -402,15 +403,7 @@ export function useNativePush(): {
           if (rollbackTimeoutReference.current) {
             clearTimeout(rollbackTimeoutReference.current);
             rollbackTimeoutReference.current = undefined;
-            nativePushBridge.getStatus();
           }
-          import('posthog-js')
-            .then(({ default: ph }) => {
-              ph.capture('native_push_error', { error: payload['error'] });
-            })
-            .catch((importError: unknown) => {
-              console.error('Failed to load posthog-js', importError);
-            });
           break;
         }
       }
@@ -418,15 +411,12 @@ export function useNativePush(): {
 
     globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
 
-    // Initial status check
-    console.log('[NativePush:PWA] requesting initial status');
     nativePushBridge.getStatus();
 
-    // Fallback timeout to prevent infinite loading spinner if bridge status response is delayed/lost
-    const statusTimeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       setStatus((previous) => {
         if (previous === 'unknown') {
-          addLog('Status request timed out after 4s, falling back to prompt state');
+          console.log('[NativePush:PWA] status timeout: assuming prompt');
           return 'prompt';
         }
         return previous;
@@ -435,13 +425,12 @@ export function useNativePush(): {
 
     return (): void => {
       clearTimeout(timeoutId);
-      clearTimeout(statusTimeoutId);
       if (rollbackTimeoutReference.current) {
         clearTimeout(rollbackTimeoutReference.current);
       }
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
     };
-  }, [router, registerDevice, unregisterDevice]);
+  }, [router, registerDevice, unregisterDevice, trpcUtils]);
 
   const requestPermission = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
