@@ -228,11 +228,11 @@ export const TRPCProvider: React.FC<{
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
 const RealTRPCContext = (TRPCReactModule as any).TRPCContext as React.Context<unknown> | undefined;
-const fallbackContext = React.createContext<unknown>(null);
+const fallbackContext = React.createContext<unknown>(undefined);
 
 export function useOptionalTrpcUtils(): ReturnType<typeof trpc.useUtils> | undefined {
   const context = React.useContext(RealTRPCContext ?? fallbackContext);
-  if (!context) {
+  if (context === undefined || context === null) {
     return undefined;
   }
   return trpc.useUtils();
