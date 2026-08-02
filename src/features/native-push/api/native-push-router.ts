@@ -50,6 +50,8 @@ export const nativePushRouter = createTRPCRouter({
         limit: 1,
       });
 
+      let isNewSubscription = false;
+
       try {
         if (existingSubscription.totalDocs > 0 && existingSubscription.docs[0]?.id) {
           const existingId = existingSubscription.docs[0].id;
@@ -74,6 +76,7 @@ export const nativePushRouter = createTRPCRouter({
             },
           });
         } else {
+          isNewSubscription = true;
           // Delete any existing subscriptions with the exact same token globally to ensure token uniqueness
           await payload.delete({
             collection: 'push-notification-subscriptions',
@@ -97,6 +100,8 @@ export const nativePushRouter = createTRPCRouter({
         console.log(
           '[NativePush:API] registerDevice: success — token registered for user',
           payloadUser.id,
+          'isNew =',
+          isNewSubscription,
         );
       } catch (error: unknown) {
         // Under concurrent requests, fallback to create
@@ -104,31 +109,36 @@ export const nativePushRouter = createTRPCRouter({
         console.warn('[NativePush:API] registerDevice: create/update status:', message);
       }
 
-      // Send welcome confirmation push notification to native device
-      try {
-        const { sendFcmNotification } = await import('@/lib/firebase-admin');
-        const targetLocale: 'de' | 'fr' | 'en' =
-          ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
-        const welcomeMessages: Record<'de' | 'fr' | 'en', string> = {
-          de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
-          fr: 'Vous vous êtes inscrit avec succès aux notifications push.',
-          en: 'You have successfully subscribed to push notifications.',
-        };
-        const bodyText = welcomeMessages[targetLocale];
+      // Send welcome confirmation push notification ONLY when creating a brand new subscription
+      if (isNewSubscription) {
+        try {
+          const { sendFcmNotification } = await import('@/lib/firebase-admin');
+          const targetLocale: 'de' | 'fr' | 'en' =
+            ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
+          const welcomeMessages: Record<'de' | 'fr' | 'en', string> = {
+            de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
+            fr: 'Vous vous êtes inscrit avec succès aux notifications push.',
+            en: 'You have successfully subscribed to push notifications.',
+          };
+          const bodyText = welcomeMessages[targetLocale];
 
-        const result = await sendFcmNotification(input.token, {
-          title: 'Konekta',
-          body: bodyText,
-          data: {
-            url: '/app/settings',
-          },
-        });
-        console.log('[NativePush:API] registerDevice: welcome notification sent, result =', result);
-      } catch (pushError) {
-        console.warn(
-          '[NativePush:API] registerDevice: failed to send welcome notification:',
-          pushError,
-        );
+          const result = await sendFcmNotification(input.token, {
+            title: 'Konekta',
+            body: bodyText,
+            data: {
+              url: '/app/settings',
+            },
+          });
+          console.log(
+            '[NativePush:API] registerDevice: welcome notification sent, result =',
+            result,
+          );
+        } catch (pushError) {
+          console.warn(
+            '[NativePush:API] registerDevice: failed to send welcome notification:',
+            pushError,
+          );
+        }
       }
 
       return { success: true };
