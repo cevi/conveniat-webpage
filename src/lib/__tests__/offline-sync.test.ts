@@ -41,8 +41,14 @@ interface TrpcUtilsMock {
 
 describe('Offline Sync Helpers', () => {
   let mockTrpcUtils: TrpcUtilsMock;
+  let originalFetch: typeof globalThis.fetch;
+  let mockFetch: jest.Mock;
 
   beforeEach(() => {
+    originalFetch = globalThis.fetch;
+    mockFetch = jest.fn().mockResolvedValue(new Response());
+    globalThis.fetch = mockFetch;
+
     mockTrpcUtils = {
       chat: {
         user: { ensureData: jest.fn().mockResolvedValue({}) },
@@ -91,11 +97,11 @@ describe('Offline Sync Helpers', () => {
     };
   });
 
-  test('syncEmergencyOffline prefetches alert settings, emergency cards, and media assets', async () => {
-    const originalFetch = globalThis.fetch;
-    const mockFetch = jest.fn().mockResolvedValue(new Response());
-    globalThis.fetch = mockFetch;
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
 
+  test('syncEmergencyOffline prefetches alert settings, emergency cards, and media assets', async () => {
     await syncEmergencyOffline(mockTrpcUtils as unknown as ReturnType<typeof trpc.useUtils>);
 
     expect(mockTrpcUtils.emergency.getAlertSettings.ensureData).toHaveBeenCalled();
@@ -106,8 +112,6 @@ describe('Offline Sync Helpers', () => {
     expect(mockFetch).toHaveBeenCalledWith('https://example.com/img1.jpg', {
       mode: 'cors',
     });
-
-    globalThis.fetch = originalFetch;
   });
 
   test('syncAllOfflineData calls syncChatsOffline, syncEmergencyOffline, schedule, map, presence, and photoContest prefetching', async () => {
