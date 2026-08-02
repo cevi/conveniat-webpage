@@ -96,20 +96,20 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   const isNativeLoading = status === 'unknown';
 
   const isSupported = isNativeApp ? isNativeSupported : isWebSupported;
-  const isSubscribed = isUnauthenticated
-    ? false
-    : isNativeApp
-      ? isNativeSubscribed
-      : isWebSubscribed;
+  let isSubscribed = false;
+  if (!isUnauthenticated) {
+    isSubscribed = isNativeApp ? isNativeSubscribed : isWebSubscribed;
+  }
   const isLoading = isNativeApp ? isNativeLoading : isWebLoading;
   const rawError = isNativeApp ? nativeLastError : webError;
   const errorMessage = isUnauthenticated ? undefined : rawError;
 
-  const subtitle = isUnauthenticated
-    ? pleaseSignInForPushText[locale]
-    : isSupported
-      ? pushNotificationDescription[locale]
-      : notSupportedText[locale];
+  let subtitle = notSupportedText[locale];
+  if (isUnauthenticated) {
+    subtitle = pleaseSignInForPushText[locale];
+  } else if (isSupported) {
+    subtitle = pushNotificationDescription[locale];
+  }
 
   const handleToggle = (): void => {
     addLog(

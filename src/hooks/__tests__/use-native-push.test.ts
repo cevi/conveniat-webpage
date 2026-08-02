@@ -99,10 +99,8 @@ describe('useNativePush', () => {
 
   it('sets isUnauthenticated to true when registerDevice fails with authentication error', async () => {
     const mockRegisterDevice = jest.fn().mockRejectedValue(new Error('User not authenticated'));
-    const { trpc } = jest.requireMock('@/trpc/client') as {
-      trpc: { nativePush: { registerDevice: { useMutation: jest.Mock } } };
-    };
-    trpc.nativePush.registerDevice.useMutation.mockReturnValue({
+    const trpcMock = jest.requireMock('@/trpc/client');
+    trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
       mutateAsync: mockRegisterDevice,
     });
 
@@ -117,6 +115,7 @@ describe('useNativePush', () => {
           },
         }),
       );
+      await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
     expect(result.current.isRegisteredOnBackend).toBe(false);
