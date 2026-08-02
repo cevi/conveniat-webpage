@@ -222,9 +222,11 @@ export async function sendNotificationToSubscription(
   options?: {
     ignoreIfAppOpen?: boolean;
     ignoreIfUrlMatches?: boolean;
+    title?: string;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
+  const titleToSend = options?.title ?? 'conveniat27';
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
@@ -261,19 +263,38 @@ export async function sendNotificationToSubscription(
       }
 
       let normalizedUrl = urlToSend;
-      if (
-        normalizedUrl &&
-        NEXT_PUBLIC_APP_HOST_URL &&
-        normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)
-      ) {
-        normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
+      if (normalizedUrl) {
+        if (NEXT_PUBLIC_APP_HOST_URL && normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)) {
+          normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
+        } else {
+          try {
+            if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
+              const parsed = new URL(normalizedUrl);
+              normalizedUrl = parsed.pathname + parsed.search;
+            }
+          } catch {
+            // ignore URL parse errors
+          }
+        }
+      }
+
+      let chatIdFromUrl: string | undefined;
+      if (typeof normalizedUrl === 'string' && normalizedUrl.includes('/app/chat/')) {
+        const parts = normalizedUrl.split('/app/chat/');
+        const firstPart = parts[1];
+        if (typeof firstPart === 'string' && firstPart !== '') {
+          chatIdFromUrl = firstPart.split('?')[0];
+        }
       }
 
       const result = await sendFcmNotification(subscription.token, {
-        title: 'conveniat27',
+        title: titleToSend,
         body: message,
         data: {
           ...(normalizedUrl !== undefined && { url: normalizedUrl }),
+          ...(normalizedUrl !== undefined && { path: normalizedUrl }),
+          ...(normalizedUrl !== undefined && { link: normalizedUrl }),
+          ...(chatIdFromUrl !== undefined && { chatId: chatIdFromUrl }),
           ...(logId !== undefined && { notificationId: logId }),
           ...(options?.ignoreIfAppOpen !== undefined && {
             ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
@@ -305,7 +326,7 @@ export async function sendNotificationToSubscription(
       await wp.sendNotification(
         webSub,
         JSON.stringify({
-          title: 'conveniat27',
+          title: titleToSend,
           body: message,
           data: {
             url: urlToSend,

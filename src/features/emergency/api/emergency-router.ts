@@ -306,11 +306,11 @@ export const emergencyRouter = createTRPCRouter({
           localizedAlertMessage = `Urgence de ${user.name}! (${caseNumber})`;
         }
 
-        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(
-          (error: unknown) => {
-            console.error('Failed to send push notification to piket members:', error);
-          },
-        );
+        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
+          chatName: chat.name,
+        }).catch((error: unknown) => {
+          console.error('Failed to send push notification to piket members:', error);
+        });
       }
 
       // Fetch the created messages from DB to get their real UUIDs and content payloads

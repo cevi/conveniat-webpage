@@ -93,6 +93,7 @@ export const createMessage = trpcBaseProcedure
     const chat = await prisma.chat.findUnique({
       where: { uuid: validatedMessage.chatId },
       select: {
+        name: true,
         capabilities: true,
         chatMemberships: {
           select: {
@@ -226,6 +227,10 @@ export const createMessage = trpcBaseProcedure
       recipientUserIds,
       validatedMessage.chatId,
       createdMessage.uuid,
+      {
+        chatName: chat.name,
+        senderName: user.name,
+      },
     ).catch((error: unknown) => {
       console.error('Failed to send push notification:', error);
     });

@@ -86,11 +86,11 @@ export const reportProblem = trpcBaseProcedure
         localizedAlertMessage = `Nouveau rapport de problème de ${user.name}!`;
       }
 
-      sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(
-        (error: unknown) => {
-          console.error('Failed to send support push notification to piket members:', error);
-        },
-      );
+      sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
+        chatName: chat.name,
+      }).catch((error: unknown) => {
+        console.error('Failed to send support push notification to piket members:', error);
+      });
     }
 
     const payloadContent = {

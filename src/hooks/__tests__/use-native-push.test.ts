@@ -99,7 +99,7 @@ describe('useNativePush', () => {
 
   it('sets isUnauthenticated to true when registerDevice fails with authentication error', async () => {
     const mockRegisterDevice = jest.fn().mockRejectedValue(new Error('User not authenticated'));
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const trpcMock = jest.requireMock('@/trpc/client');
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
     trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({

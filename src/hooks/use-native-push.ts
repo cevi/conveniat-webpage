@@ -247,8 +247,19 @@ export function useNativePush(): {
         }
         case 'native-push-open': {
           let targetPath = '/app/dashboard';
+          let rawUrl: string | undefined;
+
           if (typeof payload['url'] === 'string' && payload['url'].trim() !== '') {
-            const rawUrl = payload['url'].trim();
+            rawUrl = payload['url'].trim();
+          } else if (typeof payload['path'] === 'string' && payload['path'].trim() !== '') {
+            rawUrl = payload['path'].trim();
+          } else if (typeof payload['link'] === 'string' && payload['link'].trim() !== '') {
+            rawUrl = payload['link'].trim();
+          } else if (typeof payload['chatId'] === 'string' && payload['chatId'].trim() !== '') {
+            rawUrl = `/app/chat/${payload['chatId'].trim()}`;
+          }
+
+          if (typeof rawUrl === 'string' && rawUrl !== '') {
             if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
               targetPath = rawUrl;
             } else {
