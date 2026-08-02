@@ -50,21 +50,21 @@ export const nativePushRouter = createTRPCRouter({
         limit: 1,
       });
 
-      // Delete any existing subscriptions with the exact same token globally to ensure token uniqueness
-      await payload.delete({
-        collection: 'push-notification-subscriptions',
-        where: {
-          token: { equals: input.token },
-        },
-      });
-
       try {
         if (existingSubscription.totalDocs > 0 && existingSubscription.docs[0]?.id) {
           const existingId = existingSubscription.docs[0].id;
-          await payload.create({
+          // Delete any existing subscriptions with the exact same token belonging to other records
+          await payload.delete({
             collection: 'push-notification-subscriptions',
+            where: {
+              and: [{ token: { equals: input.token } }, { id: { not_equals: existingId } }],
+            },
+          });
+
+          await payload.update({
+            collection: 'push-notification-subscriptions',
+            id: existingId,
             data: {
-              id: existingId,
               platform: input.platform,
               token: input.token,
               user: payloadUser.id,
@@ -74,6 +74,14 @@ export const nativePushRouter = createTRPCRouter({
             },
           });
         } else {
+          // Delete any existing subscriptions with the exact same token globally to ensure token uniqueness
+          await payload.delete({
+            collection: 'push-notification-subscriptions',
+            where: {
+              token: { equals: input.token },
+            },
+          });
+
           await payload.create({
             collection: 'push-notification-subscriptions',
             data: {

@@ -94,20 +94,21 @@ export async function subscribeUser(
       limit: 1,
     });
 
-    // 2. Global cleanup: delete any existing subscription with the exact same endpoint assigned to any user
-    await payload.delete({
-      collection: 'push-notification-subscriptions',
-      where: {
-        endpoint: { equals: sub.endpoint },
-      },
-    });
-
+    // 2. Global cleanup: delete any existing subscription with the exact same endpoint assigned to other records
     if (existingSubscription.totalDocs > 0 && existingSubscription.docs[0]?.id) {
       const existingId = existingSubscription.docs[0].id;
-      await payload.create({
+      // Delete any duplicate records matching this endpoint except our existing doc
+      await payload.delete({
         collection: 'push-notification-subscriptions',
+        where: {
+          and: [{ endpoint: { equals: sub.endpoint } }, { id: { not_equals: existingId } }],
+        },
+      });
+
+      await payload.update({
+        collection: 'push-notification-subscriptions',
+        id: existingId,
         data: {
-          id: existingId,
           platform: 'web',
           endpoint: sub.endpoint,
           keys: sub.keys,
@@ -122,6 +123,13 @@ export async function subscribeUser(
         },
       });
     } else {
+      await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: {
+          endpoint: { equals: sub.endpoint },
+        },
+      });
+
       await payload.create({
         collection: 'push-notification-subscriptions',
         data: {
