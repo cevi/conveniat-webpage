@@ -12,9 +12,10 @@ import { ChatCourseSection } from '@/features/chat/components/chat-details-view/
 import { ChatDetailsHeader } from '@/features/chat/components/chat-details-view/sections/chat-details-header';
 import { ChatNameSection } from '@/features/chat/components/chat-details-view/sections/chat-name-section';
 import { ParticipantsList } from '@/features/chat/components/chat-details-view/sections/participants-list';
+import { ChatDetailsPageSkeleton } from '@/features/chat/components/chat-view/chat-details-skeleton';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
-import { useSuspenseChatDetail } from '@/features/chat/hooks/use-chats';
+import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
 import { ChatType } from '@/lib/prisma/client';
@@ -27,8 +28,7 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
-  // const { data: chatDetails, isLoading, isPending, isError } = useChatDetail(chatId);
-  const [chatDetails] = useSuspenseChatDetail(chatId);
+  const { data: chatDetails, isLoading } = useChatDetail(chatId);
 
   const [isManagingParticipants, setIsManagingParticipants] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,11 +38,14 @@ export const ChatDetails: React.FC = () => {
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
   const { data: currentUser } = trpc.chat.user.useQuery({});
-  const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
+
+  const isGroupChat = (chatDetails?.participants.length ?? 0) > 2;
+  const isAnnouncement = chatDetails?.type === ChatType.ANNOUNCEMENT;
+  const isCourseGroup = chatDetails?.type === ChatType.COURSE_GROUP;
 
   // Memoize the list of contacts that can be added (not already in the chat)
   const addableContacts = useMemo(() => {
-    if (!allContacts) return [];
+    if (!allContacts || !chatDetails) return [];
     const participantIds = new Set(chatDetails.participants.map((p) => p.id));
     const query = searchQuery.toLowerCase().trim();
     return allContacts.filter((contact) => {
@@ -63,9 +66,11 @@ export const ChatDetails: React.FC = () => {
     });
   }, [allContacts, chatDetails, searchQuery]);
 
-  const isGroupChat = chatDetails.participants.length > 2;
-  const isAnnouncement = chatDetails.type === ChatType.ANNOUNCEMENT;
-  const isCourseGroup = chatDetails.type === ChatType.COURSE_GROUP;
+  if (isLoading || chatDetails === undefined) {
+    return <ChatDetailsPageSkeleton />;
+  }
+
+  const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
 
   // --- Start of new handlers for participant management ---
   const handleToggleContactSelection = (contact: Contact): void => {

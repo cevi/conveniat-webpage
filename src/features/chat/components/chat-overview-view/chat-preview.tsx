@@ -1,6 +1,7 @@
 'use client';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
@@ -9,12 +10,21 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
+import { useCallback } from 'react';
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
 }> = ({ chat }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
+  const trpcUtils = trpc.useUtils();
+
+  const handlePrefetch = useCallback(() => {
+    trpcUtils.chat.chatDetails.prefetch({ chatId: chat.id }).catch(() => {});
+    trpcUtils.chat.infiniteMessages
+      .prefetchInfinite({ chatId: chat.id, limit: 30 })
+      .catch(() => {});
+  }, [chat.id, trpcUtils]);
 
   let chatDetailLink = `/app/chat/${chat.id}`;
 
@@ -40,7 +50,12 @@ export const ChatPreview: React.FC<{
   const previewText = typeof rawPreview === 'string' ? rawPreview : rawPreview[locale];
 
   return (
-    <Link href={chatDetailLink} className="block w-full">
+    <Link
+      href={chatDetailLink}
+      className="block w-full"
+      onMouseEnter={handlePrefetch}
+      onTouchStart={handlePrefetch}
+    >
       <li
         className={cn(
           'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',

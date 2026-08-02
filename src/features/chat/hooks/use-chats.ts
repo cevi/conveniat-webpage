@@ -29,6 +29,7 @@ export const useChats = (): UseTRPCQueryResult<
 
       refetchOnMount: false,
       refetchOnWindowFocus: false,
+      placeholderData: (previousData) => previousData,
     },
   );
 };
@@ -59,6 +60,7 @@ export const useChatDetail = (
       refetchOnMount: false,
       refetchOnWindowFocus: false,
       refetchInterval: isOnline ? 300_000 : false,
+      placeholderData: (previousData) => previousData,
     },
   );
 };
