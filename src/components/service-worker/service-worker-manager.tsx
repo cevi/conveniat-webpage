@@ -4,7 +4,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
-import { trpc } from '@/trpc/client';
+import { useOptionalTrpcUtils } from '@/trpc/client';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { useRouter } from 'next/navigation';
@@ -27,7 +27,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
 }) => {
   useAppMode();
   const router = useRouter();
-  const trpcUtils = trpc.useUtils();
+  const trpcUtils = useOptionalTrpcUtils();
 
   useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,

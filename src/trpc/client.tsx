@@ -224,3 +224,15 @@ export const TRPCProvider: React.FC<{
     </trpc.Provider>
   );
 };
+
+const fallbackContext = React.createContext<unknown>(null);
+
+export function useOptionalTrpcUtils(): ReturnType<typeof trpc.useUtils> | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  const trpcContext = ((trpc as any).Context as React.Context<unknown> | undefined) ?? fallbackContext;
+  const context = React.useContext(trpcContext);
+  if (!context) {
+    return undefined;
+  }
+  return trpc.useUtils();
+}

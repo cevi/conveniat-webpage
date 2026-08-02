@@ -1,6 +1,6 @@
 'use client';
 
-import { trpc } from '@/trpc/client';
+import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { isNativeAppWebView } from '@/utils/standalone-check';
@@ -106,7 +106,7 @@ export function useNativePush(): {
   lastError: string | undefined;
 } {
   const router = useRouter();
-  const trpcUtils = trpc.useUtils();
+  const trpcUtils = useOptionalTrpcUtils();
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
   const [hasToken, setHasToken] = useState(false);
