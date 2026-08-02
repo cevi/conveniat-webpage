@@ -11,6 +11,7 @@ export const nativePushRouter = createTRPCRouter({
       z.object({
         token: z.string().min(1),
         platform: z.enum(['ios', 'android']),
+        deviceId: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -27,45 +28,80 @@ export const nativePushRouter = createTRPCRouter({
       console.log(
         '[NativePush:API] registerDevice: user =',
         payloadUser.id,
-        '| deduplicating existing token',
+        '| deduplicating existing token/device',
       );
 
-      // Delete any existing subscriptions with the same token globally to ensure uniqueness
-      const deleted = await payload.delete({
+      // Check if this specific user already has a subscription for this deviceId or token
+      const existingSubscription = await payload.find({
         collection: 'push-notification-subscriptions',
         where: {
-          token: { equals: input.token },
+          and: [
+            { user: { equals: payloadUser.id } },
+            {
+              or: [
+                { token: { equals: input.token } },
+                ...(input.deviceId && input.deviceId.trim() !== ''
+                  ? [{ deviceId: { equals: input.deviceId } }]
+                  : []),
+              ],
+            },
+          ],
         },
+        limit: 1,
       });
-      if (deleted.docs.length > 0) {
-        console.log(
-          '[NativePush:API] registerDevice: removed',
-          deleted.docs.length,
-          'existing record(s) for this token',
-        );
-      }
 
       try {
-        await payload.create({
-          collection: 'push-notification-subscriptions',
-          data: {
-            platform: input.platform,
-            token: input.token,
-            user: payloadUser.id,
-          },
-        });
+        if (existingSubscription.totalDocs > 0 && existingSubscription.docs[0]?.id) {
+          const existingId = existingSubscription.docs[0].id;
+          // Delete any existing subscriptions with the exact same token belonging to other records
+          await payload.delete({
+            collection: 'push-notification-subscriptions',
+            where: {
+              and: [{ token: { equals: input.token } }, { id: { not_equals: existingId } }],
+            },
+          });
+
+          await payload.update({
+            collection: 'push-notification-subscriptions',
+            id: existingId,
+            data: {
+              platform: input.platform,
+              token: input.token,
+              user: payloadUser.id,
+              // eslint-disable-next-line unicorn/no-null
+              deviceId: input.deviceId ?? null,
+              lastUsedAt: new Date().toISOString(),
+            },
+          });
+        } else {
+          // Delete any existing subscriptions with the exact same token globally to ensure token uniqueness
+          await payload.delete({
+            collection: 'push-notification-subscriptions',
+            where: {
+              token: { equals: input.token },
+            },
+          });
+
+          await payload.create({
+            collection: 'push-notification-subscriptions',
+            data: {
+              platform: input.platform,
+              token: input.token,
+              user: payloadUser.id,
+              // eslint-disable-next-line unicorn/no-null
+              deviceId: input.deviceId ?? null,
+              lastUsedAt: new Date().toISOString(),
+            },
+          });
+        }
         console.log(
           '[NativePush:API] registerDevice: success — token registered for user',
           payloadUser.id,
         );
       } catch (error: unknown) {
-        // Under concurrent requests, the delete+create pattern is non-atomic.
-        // If a duplicate key error occurs, we assume the token is already registered.
+        // Under concurrent requests, fallback to create
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(
-          '[NativePush:API] registerDevice: create failed (possibly concurrent duplicate):',
-          message,
-        );
+        console.warn('[NativePush:API] registerDevice: create/update status:', message);
       }
 
       // Send welcome confirmation push notification to native device

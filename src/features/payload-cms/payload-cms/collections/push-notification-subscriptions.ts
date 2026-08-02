@@ -100,6 +100,23 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
       },
     },
     {
+      type: 'text',
+      name: 'deviceId',
+      required: false,
+      index: true,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
+      type: 'date',
+      name: 'lastUsedAt',
+      required: false,
+      admin: {
+        readOnly: true,
+      },
+    },
+    {
       type: 'select',
       name: 'registrationSource',
       required: false,

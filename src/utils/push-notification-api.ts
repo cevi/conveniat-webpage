@@ -62,6 +62,7 @@ export async function subscribeUser(
   locale: 'de' | 'fr' | 'en',
   userAgent?: string,
   registrationSource?: '/entrypoint' | '/app/settings',
+  deviceId?: string,
 ): Promise<{ success: boolean }> {
   const payload = await getPayload({ config });
   const session = await auth();
@@ -75,39 +76,60 @@ export async function subscribeUser(
   // eslint-disable-next-line unicorn/no-null
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobitoUser)) ?? null;
 
-  const isProductionDeployment =
-    environmentVariables.NEXT_PUBLIC_APP_HOST_URL.includes('conveniat27');
-
   if (payloadUser) {
-    // check if the user already has a web subscription
+    // 1. First check if a subscription exists for this specific endpoint or deviceId for this user
     const existingSubscription = await payload.find({
       collection: 'push-notification-subscriptions',
       where: {
         and: [
           { user: { equals: payloadUser.id } },
           {
-            or: [{ platform: { equals: 'web' } }, { platform: { exists: false } }],
+            or: [
+              { endpoint: { equals: sub.endpoint } },
+              ...(deviceId && deviceId.trim() !== '' ? [{ deviceId: { equals: deviceId } }] : []),
+            ],
           },
         ],
       },
+      limit: 1,
     });
 
-    if (isProductionDeployment && existingSubscription.totalDocs > 0) {
-      // if the user already has a subscription, we update it
-      const existingSubscriptionId = existingSubscription.docs[0]?.id as string;
+    // 2. Global cleanup: delete any existing subscription with the exact same endpoint assigned to other records
+    if (existingSubscription.totalDocs > 0 && existingSubscription.docs[0]?.id) {
+      const existingId = existingSubscription.docs[0].id;
+      // Delete any duplicate records matching this endpoint except our existing doc
+      await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: {
+          and: [{ endpoint: { equals: sub.endpoint } }, { id: { not_equals: existingId } }],
+        },
+      });
+
       await payload.update({
         collection: 'push-notification-subscriptions',
-        id: existingSubscriptionId,
+        id: existingId,
         data: {
-          ...sub,
-          user: payloadUser,
+          platform: 'web',
+          endpoint: sub.endpoint,
+          keys: sub.keys,
+          user: payloadUser.id,
+          // eslint-disable-next-line unicorn/no-null
+          deviceId: deviceId ?? null,
           // eslint-disable-next-line unicorn/no-null
           userAgent: userAgent ?? null,
           // eslint-disable-next-line unicorn/no-null
           registrationSource: registrationSource ?? null,
+          lastUsedAt: new Date().toISOString(),
         },
       });
     } else {
+      await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: {
+          endpoint: { equals: sub.endpoint },
+        },
+      });
+
       await payload.create({
         collection: 'push-notification-subscriptions',
         data: {
@@ -116,14 +138,17 @@ export async function subscribeUser(
           keys: sub.keys,
           user: payloadUser.id,
           // eslint-disable-next-line unicorn/no-null
+          deviceId: deviceId ?? null,
+          // eslint-disable-next-line unicorn/no-null
           userAgent: userAgent ?? null,
           // eslint-disable-next-line unicorn/no-null
           registrationSource: registrationSource ?? null,
+          lastUsedAt: new Date().toISOString(),
         },
       });
     }
   } else {
-    // create a new one
+    // Create unauthenticated web subscription if needed
     await payload.create({
       collection: 'push-notification-subscriptions',
       data: {
@@ -131,9 +156,12 @@ export async function subscribeUser(
         endpoint: sub.endpoint,
         keys: sub.keys,
         // eslint-disable-next-line unicorn/no-null
+        deviceId: deviceId ?? null,
+        // eslint-disable-next-line unicorn/no-null
         userAgent: userAgent ?? null,
         // eslint-disable-next-line unicorn/no-null
         registrationSource: registrationSource ?? null,
+        lastUsedAt: new Date().toISOString(),
       },
     });
   }
@@ -303,6 +331,25 @@ export async function sendNotificationToSubscription(
       });
     }
 
+    if (
+      'id' in subscription &&
+      typeof subscription.id === 'string' &&
+      subscription.id.trim() !== ''
+    ) {
+      try {
+        const payload = await getPayload({ config });
+        await payload.update({
+          collection: 'push-notification-subscriptions',
+          id: subscription.id,
+          data: {
+            lastUsedAt: new Date().toISOString(),
+          },
+        });
+      } catch {
+        // Non-critical background update
+      }
+    }
+
     return { success: true };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -316,6 +363,53 @@ export async function sendNotificationToSubscription(
           error: errorMessage,
         },
       });
+    }
+
+    // Auto-prune dead/expired tokens from Payload CMS
+    const isExpired =
+      errorMessage.includes('410') ||
+      errorMessage.includes('404') ||
+      errorMessage.includes('not-registered') ||
+      errorMessage.includes('invalid-registration-token') ||
+      errorMessage.includes('registration-token-not-registered') ||
+      errorMessage.toLowerCase().includes('not found') ||
+      errorMessage.toLowerCase().includes('gone');
+
+    if (isExpired) {
+      console.log('[PushNotification:API] Auto-pruning expired push subscription');
+      try {
+        const payload = await getPayload({ config });
+        if (
+          'endpoint' in subscription &&
+          typeof subscription.endpoint === 'string' &&
+          subscription.endpoint !== ''
+        ) {
+          await payload.delete({
+            collection: 'push-notification-subscriptions',
+            where: { endpoint: { equals: subscription.endpoint } },
+          });
+        } else if (
+          'token' in subscription &&
+          typeof subscription.token === 'string' &&
+          subscription.token !== ''
+        ) {
+          await payload.delete({
+            collection: 'push-notification-subscriptions',
+            where: { token: { equals: subscription.token } },
+          });
+        } else if (
+          'id' in subscription &&
+          typeof subscription.id === 'string' &&
+          subscription.id !== ''
+        ) {
+          await payload.delete({
+            collection: 'push-notification-subscriptions',
+            id: subscription.id,
+          });
+        }
+      } catch (pruneError) {
+        console.warn('Failed to prune expired push subscription:', pruneError);
+      }
     }
 
     return { success: false, error: 'Failed to send notification' };
