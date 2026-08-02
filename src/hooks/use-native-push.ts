@@ -38,12 +38,12 @@ interface NativePushEventDetail {
 }
 
 export function extractTargetUrl(payload: Record<string, unknown>): string | undefined {
-  const notificationObj = payload['notification'] as Record<string, unknown> | undefined;
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
   const candidates: (Record<string, unknown> | undefined)[] = [
     payload,
     payload['data'] as Record<string, unknown> | undefined,
-    notificationObj,
-    notificationObj?.['data'] as Record<string, unknown> | undefined,
+    notificationObject,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
   ];
 
   for (const object_ of candidates) {
@@ -294,7 +294,7 @@ export function useNativePush(): {
             }
           }
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
-          if (typeof window !== 'undefined') {
+          if (typeof globalThis.window !== 'undefined') {
             sessionStorage.setItem('pending_push_redirect', targetPath);
           }
           router.push(targetPath);

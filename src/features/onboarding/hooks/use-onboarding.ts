@@ -226,7 +226,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   // Redirect to target destination or dashboard when finished
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
-      if (typeof window !== 'undefined') {
+      if (typeof globalThis.window !== 'undefined') {
         const pendingRedirect = sessionStorage.getItem('pending_push_redirect');
         if (pendingRedirect) {
           sessionStorage.removeItem('pending_push_redirect');

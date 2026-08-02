@@ -169,16 +169,16 @@ export const notificationClickHandler =
 
     const notificationData =
       (event.notification.data as (NotificationData & Record<string, unknown>) | undefined) ?? {};
-    const pathVal = notificationData['path'];
-    const linkVal = notificationData['link'];
-    const chatIdVal = notificationData['chatId'];
+    const pathValue = notificationData['path'];
+    const linkValue = notificationData['link'];
+    const chatIdValue = notificationData['chatId'];
 
     const rawUrlString =
       notificationData.url ??
-      (typeof pathVal === 'string' ? pathVal : undefined) ??
-      (typeof linkVal === 'string' ? linkVal : undefined) ??
-      (typeof chatIdVal === 'string' || typeof chatIdVal === 'number'
-        ? `/app/chat/${String(chatIdVal)}`
+      (typeof pathValue === 'string' ? pathValue : undefined) ??
+      (typeof linkValue === 'string' ? linkValue : undefined) ??
+      (typeof chatIdValue === 'string' || typeof chatIdValue === 'number'
+        ? `/app/chat/${String(chatIdValue)}`
         : undefined);
     const urlString =
       typeof rawUrlString === 'string' && rawUrlString.trim() !== ''
