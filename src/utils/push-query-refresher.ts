@@ -10,6 +10,7 @@ interface PushChatMessage {
   senderName?: string | undefined;
   status: string;
   type: string;
+  [key: string]: unknown;
 }
 
 interface InfiniteMessagesData {
