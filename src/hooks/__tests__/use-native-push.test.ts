@@ -14,6 +14,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/trpc/client', () => ({
+  useOptionalTrpcUtils: jest.fn(),
   trpc: {
     useUtils: jest.fn(),
     nativePush: {
