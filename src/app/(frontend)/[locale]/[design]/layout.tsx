@@ -79,13 +79,27 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
     var errorMessage = String(msg || '');
     var scriptUrl = String(url || '');
     var isSyntaxError = errorMessage.indexOf("Unexpected token '<'") !== -1;
-    var isChunkError = errorMessage.indexOf("Loading chunk") !== -1 || errorMessage.indexOf("Failed to fetch dynamically imported module") !== -1 || (scriptUrl && scriptUrl.indexOf("/_next/static/") !== -1 && isSyntaxError);
+    var isChunkError =
+      errorMessage.indexOf("ChunkLoadError") !== -1 ||
+      errorMessage.indexOf("Failed to load chunk") !== -1 ||
+      errorMessage.indexOf("Loading chunk") !== -1 ||
+      errorMessage.indexOf("bad-precaching-response") !== -1 ||
+      errorMessage.indexOf("Failed to fetch dynamically imported module") !== -1 ||
+      (scriptUrl && scriptUrl.indexOf("/_next/static/") !== -1 && isSyntaxError);
     if (isSyntaxError || isChunkError) {
+      console.warn('[EarlyChunkHandler] Chunk/Precaching error detected:', errorMessage, scriptUrl);
       var lastReload = sessionStorage.getItem('chunk_reload_time');
       var now = Date.now();
-      if (!lastReload || (now - Number(lastReload) > 10000)) {
+      if (!lastReload || (now - Number(lastReload) > 5000)) {
         sessionStorage.setItem('chunk_reload_time', String(now));
-        window.location.reload();
+        if (errorMessage.indexOf("bad-precaching-response") !== -1 && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+            window.location.reload();
+          }).catch(function() { window.location.reload(); });
+        } else {
+          window.location.reload();
+        }
       }
     }
   }

@@ -47,7 +47,11 @@ self.addEventListener('notificationclose', notificationCloseHandler);
 // Service worker lifecycle events
 self.addEventListener('install', (event) => {
   logToPostHog('service_worker_installing');
-  event.waitUntil(serwist.handleInstall(event));
+  event.waitUntil(
+    serwist.handleInstall(event).catch((error: unknown) => {
+      console.warn('[SW] Precache install error handled safely:', error);
+    }),
+  );
 });
 
 self.addEventListener('activate', (event) => {
