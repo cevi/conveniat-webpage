@@ -70,6 +70,37 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
         )}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  function handleChunkError(msg, url) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    var errorMessage = String(msg || '');
+    var scriptUrl = String(url || '');
+    var isSyntaxError = errorMessage.indexOf("Unexpected token '<'") !== -1;
+    var isChunkError = errorMessage.indexOf("Loading chunk") !== -1 || errorMessage.indexOf("Failed to fetch dynamically imported module") !== -1 || (scriptUrl && scriptUrl.indexOf("/_next/static/") !== -1 && isSyntaxError);
+    if (isSyntaxError || isChunkError) {
+      var lastReload = sessionStorage.getItem('chunk_reload_time');
+      var now = Date.now();
+      if (!lastReload || (now - Number(lastReload) > 10000)) {
+        sessionStorage.setItem('chunk_reload_time', String(now));
+        window.location.reload();
+      }
+    }
+  }
+  window.addEventListener('error', function(event) {
+    handleChunkError(event.message, event.filename);
+  }, true);
+  window.addEventListener('unhandledrejection', function(event) {
+    var reason = event.reason || {};
+    var msg = reason instanceof Error ? reason.message : String(reason);
+    handleChunkError(msg, '');
+  });
+})();
+            `,
+          }}
+        />
       </head>
       <body
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
