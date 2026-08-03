@@ -6,6 +6,7 @@ import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { useMobileMenuNavigation } from '@/hooks/use-mobile-menu-navigation';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
@@ -140,6 +141,7 @@ export const ChatsOverviewClientComponent: React.FC<{
 }> = ({ qrCodeButton }) => {
   const { data: chats, isLoading } = useChats();
   const trpcUtils = trpc.useUtils();
+  const { mobileMenuOpen } = useMobileMenuNavigation();
 
   const chatIds = useMemo(() => {
     if (!chats) return [];
@@ -199,7 +201,7 @@ export const ChatsOverviewClientComponent: React.FC<{
 
       {createChatsEnabled === true && (
         <>
-          {mounted && typeof document !== 'undefined'
+          {mounted && typeof document !== 'undefined' && !mobileMenuOpen
             ? createPortal(
                 qrCodeButton !== null && qrCodeButton !== undefined && (
                   <div className="fixed top-[18px] right-6 z-[105]">{qrCodeButton}</div>
@@ -208,7 +210,7 @@ export const ChatsOverviewClientComponent: React.FC<{
               )
             : undefined}
 
-          {hasChats && (
+          {hasChats && !mobileMenuOpen && (
             <div className="fixed right-6 bottom-18 z-30">
               <Link href="/app/chat/new">
                 <div className="bg-conveniat-green flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
