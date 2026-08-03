@@ -68,7 +68,12 @@ describe('notificationClickHandler', () => {
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
     );
-    expect(mockPostMessage).not.toHaveBeenCalled();
+    expect(mockPostMessage).toHaveBeenCalledWith({
+      type: ServiceWorkerMessages.PUSH_NAVIGATE,
+      payload: {
+        url: 'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000?app-mode=true',
+      },
+    });
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/trpc/pushTracking.markInteracted?batch=1',
       expect.objectContaining({ method: 'POST' }),

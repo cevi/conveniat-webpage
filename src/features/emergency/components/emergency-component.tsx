@@ -6,10 +6,12 @@ import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
+import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon } from 'lucide-react';
@@ -253,12 +255,26 @@ export const EmergencyComponent: React.FC = () => {
           const newChatEntry = {
             id: createdChatId,
             name: 'ALARM',
-            type: 'ALERT',
-            lastMessage: undefined,
+            description: undefined,
+            status: ChatStatus.OPEN,
+            chatType: ChatType.EMERGENCY,
+            lastMessage: {
+              id: `msg-${crypto.randomUUID()}`,
+              senderId: SYSTEM_SENDER_ID,
+              messagePreview: {
+                de: 'Notfall-Alarm ausgelöst',
+                en: 'Emergency alert triggered',
+                fr: "Alerte d'urgence déclenchée",
+              },
+              createdAt: new Date(),
+              status: MessageEventType.STORED,
+            },
             lastUpdate: new Date(),
             unreadCount: 0,
+            messageCount: 0,
+            userChatPermission: ChatMembershipPermission.ADMIN,
           };
-          return [newChatEntry as unknown as (typeof oldChats)[number], ...oldChats];
+          return [newChatEntry, ...oldChats];
         });
 
         // Prefetch new alert chat details & messages for offline availability

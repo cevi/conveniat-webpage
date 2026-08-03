@@ -44,10 +44,16 @@ export const ChatPreview: React.FC<{
   const hasUnread = chat.unreadCount > 0;
   const { formatMessageTime } = useFormatDate();
 
-  const timestamp = formatMessageTime(new Date(chat.lastMessage.createdAt));
+  const messageDate = chat.lastMessage?.createdAt ?? chat.lastUpdate;
+  const timestamp = formatMessageTime(new Date(messageDate));
 
-  const rawPreview = chat.lastMessage.messagePreview;
-  const previewText = typeof rawPreview === 'string' ? rawPreview : rawPreview[locale];
+  const rawPreview = chat.lastMessage?.messagePreview;
+  let previewText = '';
+  if (typeof rawPreview === 'string') {
+    previewText = rawPreview;
+  } else if (rawPreview) {
+    previewText = rawPreview[locale];
+  }
 
   return (
     <Link

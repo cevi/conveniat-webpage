@@ -4,12 +4,15 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
+import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
+import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
+import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -115,15 +118,32 @@ export const CreateNewChatPage: React.FC = () => {
 
       trpcUtils.chat.chats.setData({}, (oldChats) => {
         if (!oldChats) return oldChats;
-        const newChatEntry = {
+        const newChatEntry: ChatWithMessagePreview = {
           id: optimisticId,
-          name: variables.chatName || 'New Chat',
-          type: variables.members.length > 1 ? 'GROUP' : 'ONE_TO_ONE',
-          lastMessage: undefined,
+          name:
+            variables.chatName !== '' && variables.chatName !== undefined
+              ? variables.chatName
+              : 'New Chat',
+          description: undefined,
+          status: ChatStatus.OPEN,
+          chatType: variables.members.length > 1 ? ChatType.GROUP : ChatType.ONE_TO_ONE,
+          lastMessage: {
+            id: `msg-${crypto.randomUUID()}`,
+            senderId: SYSTEM_SENDER_ID,
+            messagePreview: {
+              de: 'Neuer Chat erstellt',
+              en: 'New Chat created',
+              fr: 'Nouveau chat créé',
+            },
+            createdAt: new Date(),
+            status: MessageEventType.STORED,
+          },
           lastUpdate: new Date(),
           unreadCount: 0,
+          messageCount: 0,
+          userChatPermission: ChatMembershipPermission.ADMIN,
         };
-        return [newChatEntry as unknown as (typeof oldChats)[number], ...oldChats];
+        return [newChatEntry, ...oldChats];
       });
 
       return { optimisticId };

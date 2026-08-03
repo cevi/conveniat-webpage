@@ -15,11 +15,11 @@ import type { ChatStatus } from '@/lib/chat-shared';
 export interface ChatWithMessagePreview {
   id: string;
   name: string;
-  description: string | null;
+  description?: string | null | undefined;
   status: ChatStatus;
   chatType: ChatType;
   caseNumber?: string | undefined;
-  lastMessage: PreviewMessage;
+  lastMessage?: PreviewMessage | undefined;
   lastUpdate: Date;
   unreadCount: number;
   messageCount: number;

@@ -61,7 +61,7 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
   for (const object_ of candidates) {
     if (!object_ || typeof object_ !== 'object') continue;
 
-    const chatId = object_['chatId'];
+    const chatId: unknown = object_['chatId'];
     if (typeof chatId === 'string' && chatId.trim() !== '') {
       return `/app/chat/${chatId.trim()}`;
     }
@@ -75,9 +75,9 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
     if (!object_ || typeof object_ !== 'object') continue;
 
     for (const key of ['redirectTo', 'url', 'path', 'link', 'target']) {
-      const value = object_[key];
-      if (typeof value === 'string' && value.trim() !== '') {
-        return value.trim();
+      const val: unknown = object_[key];
+      if (typeof val === 'string' && val.trim() !== '') {
+        return val.trim();
       }
     }
   }
@@ -135,6 +135,69 @@ export function performReliablePushNavigation(
       globalThis.location.href = cleanPath;
     }
   }, 250);
+}
+
+export function checkAndExecutePendingPushNavigation(router: {
+  push: (url: string) => void;
+}): void {
+  try {
+    const pendingPath =
+      sessionStorage.getItem('pending_push_redirect') ??
+      localStorage.getItem('pending_push_redirect');
+
+    if (typeof pendingPath !== 'string' || pendingPath.trim() === '') return;
+
+    const cleanPath = pendingPath.trim();
+    const currentPathname = globalThis.location.pathname;
+
+    let targetChatId: string | undefined;
+    if (cleanPath.includes('/app/chat/')) {
+      const parts = cleanPath.split('/app/chat/');
+      const firstPart = parts[1];
+      if (typeof firstPart === 'string' && firstPart !== '') {
+        targetChatId = firstPart.split('?')[0];
+      }
+    }
+
+    const isAlreadyOnChat =
+      typeof targetChatId === 'string' &&
+      targetChatId !== '' &&
+      currentPathname.includes(`/app/chat/${targetChatId}`);
+
+    const isAlreadyOnExactPath = currentPathname === cleanPath;
+
+    if (isAlreadyOnChat || isAlreadyOnExactPath) {
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      return;
+    }
+
+    console.log('[NativePush:PWA] Executing pending push navigation to:', cleanPath);
+    try {
+      router.push(cleanPath);
+    } catch {
+      // ignore soft error
+    }
+
+    setTimeout(() => {
+      const nowPathname = globalThis.location.pathname;
+      const nowOnChat =
+        typeof targetChatId === 'string' &&
+        targetChatId !== '' &&
+        nowPathname.includes(`/app/chat/${targetChatId}`);
+      const nowOnExact = nowPathname === cleanPath;
+
+      if (!nowOnChat && !nowOnExact) {
+        console.log('[NativePush:PWA] Fallback location redirect to:', cleanPath);
+        globalThis.location.href = cleanPath;
+      } else {
+        sessionStorage.removeItem('pending_push_redirect');
+        localStorage.removeItem('pending_push_redirect');
+      }
+    }, 250);
+  } catch {
+    // ignore storage errors
+  }
 }
 
 export function extractNotificationTitleAndBody(payload: Record<string, unknown>): {
@@ -526,7 +589,18 @@ export function useNativePush(): {
       }
     };
 
+    const handleAppResume = (): void => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        checkAndExecutePendingPushNavigation(router);
+      }
+    };
+
+    checkAndExecutePendingPushNavigation(router);
+
     globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
+    globalThis.addEventListener('visibilitychange', handleAppResume);
+    globalThis.addEventListener('focus', handleAppResume);
+    globalThis.addEventListener('pageshow', handleAppResume);
 
     nativePushBridge.getStatus();
 
@@ -547,6 +621,9 @@ export function useNativePush(): {
         clearTimeout(rollbackTimeoutReference.current);
       }
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
+      globalThis.removeEventListener('visibilitychange', handleAppResume);
+      globalThis.removeEventListener('focus', handleAppResume);
+      globalThis.removeEventListener('pageshow', handleAppResume);
     };
   }, [router, registerDevice, unregisterDevice, trpcUtils]);
 

@@ -204,18 +204,17 @@ export const notificationClickHandler =
 
       if (existingClient) {
         await existingClient.focus();
-        if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
-          try {
-            await existingClient.navigate(targetUrlString);
-            return;
-          } catch {
-            // fallback to postMessage
-          }
-        }
         existingClient.postMessage({
           type: ServiceWorkerMessages.PUSH_NAVIGATE,
           payload: { url: targetUrlString },
         });
+        if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
+          try {
+            await existingClient.navigate(targetUrlString);
+          } catch {
+            // navigation handled by PUSH_NAVIGATE postMessage
+          }
+        }
       } else {
         await serviceWorkerScope.clients.openWindow(targetUrlString);
       }
