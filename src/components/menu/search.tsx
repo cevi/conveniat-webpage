@@ -31,7 +31,7 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
   };
 
   return (
-    <div className="mx-auto w-full max-w-md py-6">
+    <div className="w-full py-6">
       <form
         className="focus-within:ring-conveniat-green mx-2 flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2"
         id="search-form"

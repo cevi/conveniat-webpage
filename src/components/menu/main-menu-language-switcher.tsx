@@ -52,7 +52,7 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
   };
 
   return (
-    <div className="mx-auto max-w-md space-y-2 py-6">
+    <div className="w-full space-y-2 py-6">
       <Disclosure as="div" className="-mx-3">
         <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
           <div className="flex items-center gap-2">

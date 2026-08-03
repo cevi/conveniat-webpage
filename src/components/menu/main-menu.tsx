@@ -575,7 +575,7 @@ export const MainMenu: React.FC<{
   return (
     <div
       className={cn(
-        'mx-auto mt-8 flex h-[calc(100%-100px)] max-w-md flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto px-4 xl:px-8',
+        'mt-8 flex h-[calc(100%-100px)] w-full flex-col justify-between divide-gray-100 overflow-x-hidden overflow-y-auto px-4 xl:px-8',
         { 'pb-16': inAppDesign },
       )}
     >
