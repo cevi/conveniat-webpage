@@ -10,7 +10,6 @@ import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import React from 'react';
-import { toast } from 'sonner';
 
 interface ServiceWorkerManagerProperties {
   children: ReactNode;
@@ -56,39 +55,6 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
             }
           }
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload.payload);
-
-          const currentPathname = globalThis.location.pathname;
-          const isCurrentChatOpen =
-            typeof targetChatId === 'string' &&
-            targetChatId !== '' &&
-            currentPathname.includes(`/app/chat/${targetChatId}`);
-
-          if (!isCurrentChatOpen && payload.payload) {
-            const notificationTitle =
-              typeof payload.payload['title'] === 'string' && payload.payload['title'].trim() !== ''
-                ? payload.payload['title'].trim()
-                : 'Neue Nachricht';
-
-            let notificationBody = '';
-            if (
-              typeof payload.payload['body'] === 'string' &&
-              payload.payload['body'].trim() !== ''
-            ) {
-              notificationBody = payload.payload['body'].trim();
-            } else if (typeof payload.payload['message'] === 'string') {
-              notificationBody = payload.payload['message'].trim();
-            }
-
-            toast(notificationTitle, {
-              description: notificationBody,
-              action: {
-                label: 'Ansehen',
-                onClick: () => {
-                  router.push(targetPath);
-                },
-              },
-            });
-          }
 
           console.log(
             '[Service Worker Manager] PUSH_NAVIGATE received, navigating to:',

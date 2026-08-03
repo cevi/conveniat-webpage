@@ -2,10 +2,21 @@
  * @jest-environment jsdom
  */
 
-import { useNativePush } from '@/hooks/use-native-push';
+import { extractNotificationTitleAndBody, useNativePush } from '@/hooks/use-native-push';
 import { act, renderHook } from '@testing-library/react';
 
 const mockPush = jest.fn();
+const mockNotification = jest.fn();
+
+beforeAll(() => {
+  // @ts-expect-error Mocking global Notification constructor
+  globalThis.Notification = jest.fn().mockImplementation((title, options) => {
+    mockNotification(title, options);
+    return { addEventListener: jest.fn() };
+  });
+  // @ts-expect-error Mocking Notification permission
+  globalThis.Notification.permission = 'granted';
+});
 
 jest.mock('next/navigation', () => ({
   useRouter: (): { push: jest.Mock } => ({
@@ -144,5 +155,108 @@ describe('useNativePush', () => {
     expect(result.current.isRegisteredOnBackend).toBe(false);
     expect(result.current.isUnauthenticated).toBe(true);
     expect(result.current.lastError).toBeUndefined();
+  });
+
+  describe('extractNotificationTitleAndBody', () => {
+    it('extracts title and body from nested notification object', () => {
+      const payload = {
+        notification: {
+          title: 'Group Chat',
+          body: 'Alice: Hello everyone',
+        },
+        data: {
+          chatId: 'chat-999',
+        },
+      };
+
+      const result = extractNotificationTitleAndBody(payload);
+      expect(result).toEqual({
+        title: 'Group Chat',
+        body: 'Alice: Hello everyone',
+      });
+    });
+
+    it('extracts title and body from nested data object if notification object is absent', () => {
+      const payload = {
+        data: {
+          title: 'Important Alert',
+          message: 'Server maintenance scheduled',
+          chatId: 'chat-888',
+        },
+      };
+
+      const result = extractNotificationTitleAndBody(payload);
+      expect(result).toEqual({
+        title: 'Important Alert',
+        body: 'Server maintenance scheduled',
+      });
+    });
+
+    it('falls back to default title and empty body when payload is empty', () => {
+      const result = extractNotificationTitleAndBody({});
+      expect(result).toEqual({
+        title: 'Neue Nachricht',
+        body: '',
+      });
+    });
+  });
+
+  describe('foreground push event handling', () => {
+    it('displays native system notification when receiving push message while on a different page', () => {
+      renderHook(() => useNativePush());
+
+      const event = new CustomEvent('app-webview-native-push-event', {
+        detail: {
+          type: 'native-push-message',
+          payload: {
+            notification: {
+              title: 'Team Alpha',
+              body: 'Bob: Check the document',
+            },
+            data: {
+              chatId: 'chat-abc',
+            },
+          },
+        },
+      });
+
+      act(() => {
+        globalThis.dispatchEvent(event);
+      });
+
+      expect(mockNotification).toHaveBeenCalledWith('Team Alpha', {
+        body: 'Bob: Check the document',
+        icon: '/favicon.svg',
+        data: { targetPath: '/app/chat/chat-abc' },
+      });
+    });
+
+    it('suppresses native system notification when receiving push message for the currently open chat', () => {
+      globalThis.history.pushState({}, '', '/de/app/chat/chat-abc');
+
+      renderHook(() => useNativePush());
+
+      const event = new CustomEvent('app-webview-native-push-event', {
+        detail: {
+          type: 'native-push-received',
+          payload: {
+            data: {
+              title: 'Team Alpha',
+              body: 'Bob: Hello again',
+              chatId: 'chat-abc',
+            },
+          },
+        },
+      });
+
+      act(() => {
+        globalThis.dispatchEvent(event);
+      });
+
+      expect(mockNotification).not.toHaveBeenCalled();
+
+      // Reset location
+      globalThis.history.pushState({}, '', '/');
+    });
   });
 });

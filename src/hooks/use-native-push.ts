@@ -7,7 +7,6 @@ import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
 
@@ -84,6 +83,58 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
   }
 
   return undefined;
+}
+
+export function extractNotificationTitleAndBody(payload: Record<string, unknown>): {
+  title: string;
+  body: string;
+} {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+  const dataObject = payload['data'] as Record<string, unknown> | undefined;
+  const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
+    Record<string, unknown> | undefined;
+  const alertObject = (apsObject?.['alert'] ?? notificationObject?.['alert']) as
+    Record<string, unknown> | undefined;
+  const userInfoObject = (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+    Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload,
+    dataObject,
+    notificationObject,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    apsObject,
+    alertObject,
+    userInfoObject,
+  ];
+
+  let title = 'Neue Nachricht';
+  let body = '';
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    const titleValue = object_['title'];
+    if (typeof titleValue === 'string' && titleValue.trim() !== '') {
+      title = titleValue.trim();
+      break;
+    }
+  }
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    for (const key of ['body', 'message', 'content', 'text']) {
+      const value = object_[key];
+      if (typeof value === 'string' && value.trim() !== '') {
+        body = value.trim();
+        break;
+      }
+    }
+    if (body !== '') break;
+  }
+
+  return { title, body };
 }
 
 export interface NativePushLogEntry {
@@ -337,7 +388,9 @@ export function useNativePush(): {
           break;
         }
         case 'native-push-received':
-        case 'native-push-message': {
+        case 'native-push-message':
+        case 'push-received':
+        case 'notification': {
           const rawUrl = extractTargetUrl(payload);
           let targetChatId: string | undefined;
 
@@ -360,34 +413,51 @@ export function useNativePush(): {
             currentPathname.includes(`/app/chat/${targetChatId}`);
 
           if (!isCurrentChatOpen) {
-            const notificationTitle =
-              typeof payload['title'] === 'string' && payload['title'].trim() !== ''
-                ? payload['title'].trim()
-                : 'Neue Nachricht';
-
-            let notificationBody = '';
-            if (typeof payload['body'] === 'string' && payload['body'].trim() !== '') {
-              notificationBody = payload['body'].trim();
-            } else if (typeof payload['message'] === 'string') {
-              notificationBody = payload['message'].trim();
-            }
+            const { title: notificationTitle, body: notificationBody } =
+              extractNotificationTitleAndBody(payload);
 
             let targetPath = '/app/dashboard';
-            if (typeof rawUrl === 'string' && rawUrl.startsWith('/')) {
-              targetPath = rawUrl;
-            } else if (typeof targetChatId === 'string' && targetChatId.trim() !== '') {
+            if (typeof rawUrl === 'string' && rawUrl !== '') {
+              if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
+                targetPath = rawUrl;
+              } else {
+                try {
+                  const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+                  targetPath = parsedUrl.pathname + parsedUrl.search;
+                } catch {
+                  // Fall back if parse fails
+                }
+              }
+            }
+            if (
+              targetPath === '/app/dashboard' &&
+              typeof targetChatId === 'string' &&
+              targetChatId.trim() !== ''
+            ) {
               targetPath = `/app/chat/${targetChatId.trim()}`;
             }
 
-            toast(notificationTitle, {
-              description: notificationBody,
-              action: {
-                label: 'Ansehen',
-                onClick: () => {
+            const notificationApi = (
+              globalThis as unknown as { Notification?: typeof Notification }
+            ).Notification;
+            if (notificationApi?.permission === 'granted') {
+              try {
+                const nativeNotification = new globalThis.Notification(notificationTitle, {
+                  body: notificationBody,
+                  icon: '/favicon.svg',
+                  data: { targetPath },
+                });
+                nativeNotification.addEventListener('click', () => {
+                  globalThis.focus();
                   router.push(targetPath);
-                },
-              },
-            });
+                });
+              } catch (notificationError: unknown) {
+                console.warn(
+                  '[NativePush:PWA] Could not trigger native system notification:',
+                  notificationError,
+                );
+              }
+            }
           }
           break;
         }

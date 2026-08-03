@@ -74,6 +74,8 @@ export async function sendFcmNotification(
         body: payload.body,
       },
       data: {
+        title: payload.title,
+        body: payload.body,
         url: payload.data.url ?? '/app/dashboard',
         notificationId,
         ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
