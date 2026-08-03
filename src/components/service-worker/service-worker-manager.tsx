@@ -2,6 +2,7 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
+import { performReliablePushNavigation } from '@/hooks/use-native-push';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
 import { useOptionalTrpcUtils } from '@/trpc/client';
@@ -60,13 +61,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
             '[Service Worker Manager] PUSH_NAVIGATE received, navigating to:',
             targetPath,
           );
-          try {
-            sessionStorage.setItem('pending_push_redirect', targetPath);
-            localStorage.setItem('pending_push_redirect', targetPath);
-          } catch {
-            // ignore SSR / storage unavailable
-          }
-          router.push(targetPath);
+          performReliablePushNavigation(router, targetPath);
         }
       },
       [router, trpcUtils],

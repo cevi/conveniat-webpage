@@ -85,6 +85,58 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
   return undefined;
 }
 
+export function performReliablePushNavigation(
+  router: { push: (url: string) => void },
+  targetPath: string,
+): void {
+  if (typeof targetPath !== 'string' || targetPath.trim() === '') return;
+
+  const cleanPath = targetPath.trim();
+
+  try {
+    sessionStorage.setItem('pending_push_redirect', cleanPath);
+    localStorage.setItem('pending_push_redirect', cleanPath);
+  } catch {
+    // ignore storage errors
+  }
+
+  console.log('[NativePush:PWA] Performing reliable navigation to:', cleanPath);
+
+  try {
+    router.push(cleanPath);
+  } catch (error: unknown) {
+    console.warn('[NativePush:PWA] Soft router.push failed:', error);
+  }
+
+  // Backup check: perform hard location redirect if router hasn't updated pathname after 250ms
+  setTimeout(() => {
+    const currentPathname = globalThis.location.pathname;
+    let targetChatId: string | undefined;
+    if (cleanPath.includes('/app/chat/')) {
+      const parts = cleanPath.split('/app/chat/');
+      const firstPart = parts[1];
+      if (typeof firstPart === 'string' && firstPart !== '') {
+        targetChatId = firstPart.split('?')[0];
+      }
+    }
+
+    const isAlreadyOnChat =
+      typeof targetChatId === 'string' &&
+      targetChatId !== '' &&
+      currentPathname.includes(`/app/chat/${targetChatId}`);
+
+    const isAlreadyOnExactPath = currentPathname === cleanPath;
+
+    if (!isAlreadyOnChat && !isAlreadyOnExactPath) {
+      console.log(
+        '[NativePush:PWA] Soft navigation pending, executing location fallback to:',
+        cleanPath,
+      );
+      globalThis.location.href = cleanPath;
+    }
+  }, 250);
+}
+
 export function extractNotificationTitleAndBody(payload: Record<string, unknown>): {
   title: string;
   body: string;
@@ -378,13 +430,7 @@ export function useNativePush(): {
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
-          try {
-            sessionStorage.setItem('pending_push_redirect', targetPath);
-            localStorage.setItem('pending_push_redirect', targetPath);
-          } catch {
-            // ignore SSR / storage unavailable
-          }
-          router.push(targetPath);
+          performReliablePushNavigation(router, targetPath);
           break;
         }
         case 'native-push-received':

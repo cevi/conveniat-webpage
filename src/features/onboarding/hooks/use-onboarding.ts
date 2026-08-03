@@ -9,6 +9,7 @@ import {
   onboardingReducer,
 } from '@/features/onboarding/state/onboarding-finite-state-machine';
 import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
+import { extractTargetUrl, performReliablePushNavigation } from '@/hooks/use-native-push';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
@@ -223,6 +224,36 @@ export const useOnboarding = (): UseOnboardingReturn => {
     dispatch({ type: OnboardingAction.USER_ACTION_SKIP_LOGIN });
   }, []);
 
+  // Listen for late native push open events arriving during onboarding on cold start
+  useEffect(() => {
+    const handleNativePushEvent = (event: Event): void => {
+      const customEvent = event as CustomEvent<
+        | {
+            type?: string;
+            payload?: Record<string, unknown>;
+          }
+        | null
+        | undefined
+      >;
+      const detail = customEvent.detail;
+      if (detail?.type === 'native-push-open') {
+        const targetUrl = extractTargetUrl(detail.payload ?? {});
+        if (targetUrl) {
+          console.log(
+            '[Onboarding] Native push open event received, executing navigation to:',
+            targetUrl,
+          );
+          performReliablePushNavigation(router, targetUrl);
+        }
+      }
+    };
+
+    globalThis.addEventListener('app-webview-native-push-event', handleNativePushEvent);
+    return (): void => {
+      globalThis.removeEventListener('app-webview-native-push-event', handleNativePushEvent);
+    };
+  }, [router]);
+
   // Redirect to target destination or dashboard when finished
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
@@ -234,7 +265,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
           sessionStorage.removeItem('pending_push_redirect');
           localStorage.removeItem('pending_push_redirect');
           console.log('[Onboarding] Pending push redirect found, navigating to:', pendingRedirect);
-          router.push(pendingRedirect);
+          performReliablePushNavigation(router, pendingRedirect);
           return;
         }
       } catch {
@@ -249,14 +280,14 @@ export const useOnboarding = (): UseOnboardingReturn => {
 
       if (redirectToParameter) {
         console.log('[Onboarding] Query param redirect found, navigating to:', redirectToParameter);
-        router.push(redirectToParameter);
+        performReliablePushNavigation(router, redirectToParameter);
         return;
       }
 
       if (chatIdParameter) {
         const target = `/app/chat/${chatIdParameter}`;
         console.log('[Onboarding] Query param chatId found, navigating to:', target);
-        router.push(target);
+        performReliablePushNavigation(router, target);
         return;
       }
 
