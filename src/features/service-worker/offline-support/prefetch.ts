@@ -428,15 +428,19 @@ export async function prefetchOfflinePages(
   for (const url of registryPages) pagesToPrefetch.add(url);
 
   const registryAssets = offlineRegistry.getPrecacheAssets();
-  const totalItems = pagesToPrefetch.size + registryAssets.length;
+  const allAssetsToPrefetch = new Set([...registryAssets, ...manifestUrls]);
+
+  const totalItems = pagesToPrefetch.size + allAssetsToPrefetch.size;
   let processedItems = 0;
 
-  console.log(`[SW] Prefetching ${pagesToPrefetch.size} pages and ${registryAssets.length} assets`);
+  console.log(
+    `[SW] Prefetching ${pagesToPrefetch.size} pages and ${allAssetsToPrefetch.size} assets (total: ${totalItems})`,
+  );
 
   const updateProgress = (): void => {
     processedItems++;
     if (clientId !== undefined && clientId !== '' && onProgress !== undefined) {
-      onProgress(totalItems, processedItems);
+      onProgress(totalItems, Math.min(processedItems, totalItems));
     }
   };
 
@@ -456,8 +460,6 @@ export async function prefetchOfflinePages(
   );
 
   // 2. Prefetch Registry Assets & Serwist Manifest Assets
-  const allAssetsToPrefetch = new Set([...registryAssets, ...manifestUrls]);
-
   await Promise.all(
     [...allAssetsToPrefetch].map((url) =>
       limit(async () => {

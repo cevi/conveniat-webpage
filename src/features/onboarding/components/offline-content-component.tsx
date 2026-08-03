@@ -89,16 +89,19 @@ export const OfflineContentEntrypointComponent: React.FC<
           <div className="w-full space-y-2">
             <div className="text-center text-sm font-medium text-red-700">
               {offlineContentDownloading[locale]} (
-              {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%)
+              {progress.total > 0
+                ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+                : 0}
+              %)
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-red-100">
               <motion.div
                 className="relative h-full overflow-hidden bg-red-700"
                 initial={{ width: 0 }}
                 animate={{
-                  width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
+                  width: `${progress.total > 0 ? Math.min(100, (progress.current / progress.total) * 100) : 0}%`,
                 }}
-                transition={{ type: 'spring', bounce: 0, duration: 2 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
               >
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"

@@ -103,7 +103,10 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
           <div className="flex justify-between text-xs font-medium text-blue-600">
             <span>{downloadingText[locale]}</span>
             <span>
-              {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
+              {progress.total > 0
+                ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+                : 0}
+              %
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -111,9 +114,9 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               className="h-full bg-blue-500"
               initial={{ width: 0 }}
               animate={{
-                width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
+                width: `${progress.total > 0 ? Math.min(100, (progress.current / progress.total) * 100) : 0}%`,
               }}
-              transition={{ type: 'spring', bounce: 0, duration: 2 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
             />
           </div>
         </div>
