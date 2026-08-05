@@ -16,6 +16,7 @@ import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
 import { SessionProvider } from 'next-auth/react';
+import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -70,9 +71,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
         )}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
+        <Script id="early-chunk-error-handler" strategy="beforeInteractive">
+          {`
 (function() {
   function handleChunkError(msg, url) {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
@@ -115,9 +115,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
     handleChunkError(msg, '');
   });
 })();
-            `,
-          }}
-        />
+          `}
+        </Script>
       </head>
       <body
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {
