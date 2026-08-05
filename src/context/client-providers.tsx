@@ -21,8 +21,10 @@ interface ClientProvidersProperties {
 
 export const ClientProviders: React.FC<ClientProvidersProperties> = ({ children }) => {
   return (
-    <StarProvider>
-      <ScheduleEntriesProvider>{children}</ScheduleEntriesProvider>
-    </StarProvider>
+    <React.Suspense fallback={children}>
+      <StarProvider>
+        <ScheduleEntriesProvider>{children}</ScheduleEntriesProvider>
+      </StarProvider>
+    </React.Suspense>
   );
 };

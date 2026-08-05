@@ -16,6 +16,12 @@ import { connection } from 'next/server';
 import type React from 'react';
 import { cache } from 'react';
 
+/**
+ * Dynamic Payload CMS catch-all route handles dynamic slug resolution, locale switching,
+ * preview modes, and 404 fallbacks. Opt out of Next.js 16.3 static instant validation.
+ */
+export const instant = false;
+
 const getCanonicalData = (
   specialPage: SpecialRouteResolutionEntry,
   locale: Locale,

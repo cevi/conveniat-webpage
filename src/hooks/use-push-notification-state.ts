@@ -113,7 +113,6 @@ export function usePushNotificationState(
 
       // If SW failed or timed out, we assume failure (silent check)
       if (swError) {
-        console.warn('SW check failed or timed out:', swError);
         if (mounted) {
           updateState({
             isSupported: true,

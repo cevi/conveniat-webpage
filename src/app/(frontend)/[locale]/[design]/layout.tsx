@@ -85,11 +85,13 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
               <ServiceWorkerManager>
                 <AppShell
                   header={
-                    <HeaderComponent
-                      locale={locale}
-                      inAppDesign={isInAppDesign}
-                      navigationMode={navigationMode}
-                    />
+                    <Suspense fallback={undefined}>
+                      <HeaderComponent
+                        locale={locale}
+                        inAppDesign={isInAppDesign}
+                        navigationMode={navigationMode}
+                      />
+                    </Suspense>
                   }
                   footer={
                     <Suspense fallback={undefined}>

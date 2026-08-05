@@ -1,5 +1,6 @@
 'use client';
 
+import { environmentVariables } from '@/config/environment-variables';
 import { useEffect, useState } from 'react';
 
 interface UseServiceWorkerStatusResult {
@@ -17,9 +18,13 @@ export const useServiceWorkerStatus = (timeoutMs = 2000): UseServiceWorkerStatus
     let mounted = true;
 
     const checkReady = async (): Promise<void> => {
-      if (!('serviceWorker' in navigator)) {
+      if (
+        typeof navigator === 'undefined' ||
+        !('serviceWorker' in navigator) ||
+        environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST
+      ) {
         await Promise.resolve(); // Avoid synchronous setState warning
-        if (mounted) setError(new Error('Service Worker not supported'));
+        if (mounted) setError(new Error('Service Worker disabled or not supported'));
         return;
       }
 

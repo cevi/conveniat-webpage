@@ -16,7 +16,7 @@ services:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     working_dir: /home/node/app/
     command: >
-      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && rm -rf .next/* /nodecache/* && corepack enable pnpm && pnpm i --frozen-lockfile && npx prisma generate --no-hints && npx prisma db push --accept-data-loss && npx prisma studio --browser none & sh /home/node/app/create_build_info.sh && pnpm dev-next"
+      sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && rm -rf .next/* /nodecache/* && corepack enable pnpm && pnpm i --frozen-lockfile && npx prisma generate --no-hints && (until npx prisma db push --accept-data-loss; do echo 'Waiting for Postgres db push...'; sleep 2; done) && (npx prisma studio --browser none &) && sh /home/node/app/create_build_info.sh && pnpm dev-next"
     dns:
       - 8.8.8.8
       - 1.1.1.1

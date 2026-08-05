@@ -58,6 +58,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   cacheComponents: true,
+  partialPrefetching: true,
 
   /**
    * Our production deployment uses traefik as the reverse proxy and nginx for serving / caching
@@ -75,6 +76,8 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    turbopackRustReactCompiler: true,
+    useOffline: true,
     optimizePackageImports: [
       'lucide-react',
       '@headlessui/react',
@@ -82,7 +85,7 @@ const nextConfig: NextConfig = {
       '@icons-pack/react-simple-icons',
       'date-fns',
     ],
-    middlewareClientMaxBodySize: '50mb',
+    proxyClientMaxBodySize: '50mb',
     serverActions: {
       bodySizeLimit: '50mb',
     },
