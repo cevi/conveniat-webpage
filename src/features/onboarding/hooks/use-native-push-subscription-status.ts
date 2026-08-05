@@ -42,13 +42,13 @@ export function useNativePushSubscriptionStatus(): boolean {
       if (type === 'native-push-ready') {
         globalThis.AppWebViewNativePush?.getStatus();
       } else if (type === 'native-push-status') {
-        const label = payload['authorizationLabel'];
+        const label = payload['authorizationLabel'] ?? payload['status'];
         const hasToken =
           payload['hasToken'] === true ||
           payload['hasToken'] === 'true' ||
           (typeof payload['token'] === 'string' && payload['token'] !== '');
 
-        const isGranted = label === 'authorized' || label === 'provisional';
+        const isGranted = label === 'authorized' || label === 'granted' || label === 'provisional';
 
         if (!isGranted) {
           // Permission denied or revoked — always set to false
@@ -71,6 +71,9 @@ export function useNativePushSubscriptionStatus(): boolean {
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('app-webview-native-push-event', handleEvent);
+    }
 
     const handleFocus = (): void => {
       isFocusCheck = true;
@@ -85,6 +88,9 @@ export function useNativePushSubscriptionStatus(): boolean {
 
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleEvent);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('app-webview-native-push-event', handleEvent);
+      }
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleFocus);
     };

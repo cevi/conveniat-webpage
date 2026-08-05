@@ -592,12 +592,19 @@ export function useNativePush(): {
     const handleAppResume = (): void => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         checkAndExecutePendingPushNavigation(router);
+        if (nativePushBridge.isSupported()) {
+          console.log('[NativePush:PWA] app resumed, requesting updated status');
+          nativePushBridge.getStatus();
+        }
       }
     };
 
     checkAndExecutePendingPushNavigation(router);
 
     globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('app-webview-native-push-event', handleNativeEvent);
+    }
     globalThis.addEventListener('visibilitychange', handleAppResume);
     globalThis.addEventListener('focus', handleAppResume);
     globalThis.addEventListener('pageshow', handleAppResume);
@@ -621,6 +628,9 @@ export function useNativePush(): {
         clearTimeout(rollbackTimeoutReference.current);
       }
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('app-webview-native-push-event', handleNativeEvent);
+      }
       globalThis.removeEventListener('visibilitychange', handleAppResume);
       globalThis.removeEventListener('focus', handleAppResume);
       globalThis.removeEventListener('pageshow', handleAppResume);
@@ -631,9 +641,12 @@ export function useNativePush(): {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog('requestPermission() called');
     setLastError(undefined);
-    if (isNativeApp) {
+    if (isNativeApp || nativePushBridge.isSupported()) {
       console.log('[NativePush:PWA] requestPermission called');
       nativePushBridge.requestPermission();
+      setTimeout(() => nativePushBridge.getStatus(), 500);
+      setTimeout(() => nativePushBridge.getStatus(), 1500);
+      setTimeout(() => nativePushBridge.getStatus(), 3000);
     }
   };
 

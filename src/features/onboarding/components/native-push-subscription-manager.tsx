@@ -77,8 +77,8 @@ export const NativePushSubscriptionManager: React.FC<{
       const payload = detail.payload ?? {};
 
       if (type === 'native-push-status') {
-        const label = payload['authorizationLabel'];
-        if (label === 'authorized' || label === 'provisional') {
+        const label = payload['authorizationLabel'] ?? payload['status'];
+        if (label === 'authorized' || label === 'granted' || label === 'provisional') {
           setIsDenied(false);
           setIsAuthorized(true);
           // Only auto-advance if it's initial mount check (already granted before onboarding)
@@ -108,6 +108,9 @@ export const NativePushSubscriptionManager: React.FC<{
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('app-webview-native-push-event', handleEvent);
+    }
 
     const handleFocus = (): void => {
       // Re-check status when user returns from settings (focus/visibility change)
