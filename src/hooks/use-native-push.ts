@@ -27,10 +27,70 @@ declare global {
 const nativePushBridge = {
   isSupported: (): boolean =>
     typeof globalThis !== 'undefined' && globalThis.AppWebViewNativePush !== undefined,
-  getStatus: (): void => globalThis.AppWebViewNativePush?.getStatus(),
-  requestPermission: (): void => globalThis.AppWebViewNativePush?.requestPermission(),
-  deleteToken: (): void => globalThis.AppWebViewNativePush?.deleteToken(),
-  openSettings: (): void => globalThis.AppWebViewNativePush?.openSettings(),
+  getStatus: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    switch (true) {
+      case typeof bridge['getStatus'] === 'function': {
+        (bridge['getStatus'] as () => void)();
+        break;
+      }
+      case typeof bridge['checkStatus'] === 'function': {
+        (bridge['checkStatus'] as () => void)();
+        break;
+      }
+      case typeof bridge['getStatusAsync'] === 'function': {
+        void (bridge['getStatusAsync'] as () => Promise<void>)();
+        break;
+      }
+    }
+  },
+  requestPermission: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    if (typeof bridge['requestPermission'] === 'function')
+      (bridge['requestPermission'] as () => void)();
+    if (typeof bridge['requestPermissions'] === 'function')
+      (bridge['requestPermissions'] as () => void)();
+    if (typeof bridge['requestPushPermission'] === 'function')
+      (bridge['requestPushPermission'] as () => void)();
+    if (typeof bridge['requestNotificationPermission'] === 'function')
+      (bridge['requestNotificationPermission'] as () => void)();
+    if (typeof bridge['promptPermission'] === 'function')
+      (bridge['promptPermission'] as () => void)();
+  },
+  deleteToken: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    switch (true) {
+      case typeof bridge['deleteToken'] === 'function': {
+        (bridge['deleteToken'] as () => void)();
+        break;
+      }
+      case typeof bridge['unregister'] === 'function': {
+        (bridge['unregister'] as () => void)();
+        break;
+      }
+      case typeof bridge['removeToken'] === 'function': {
+        (bridge['removeToken'] as () => void)();
+        break;
+      }
+    }
+  },
+  openSettings: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    switch (true) {
+      case typeof bridge['openSettings'] === 'function': {
+        (bridge['openSettings'] as () => void)();
+        break;
+      }
+      case typeof bridge['openNotificationSettings'] === 'function': {
+        (bridge['openNotificationSettings'] as () => void)();
+        break;
+      }
+    }
+  },
 };
 
 interface NativePushEventDetail {
@@ -647,6 +707,29 @@ export function useNativePush(): {
       setTimeout(() => nativePushBridge.getStatus(), 500);
       setTimeout(() => nativePushBridge.getStatus(), 1500);
       setTimeout(() => nativePushBridge.getStatus(), 3000);
+    }
+
+    if (
+      typeof globalThis !== 'undefined' &&
+      'Notification' in globalThis &&
+      typeof globalThis.Notification.requestPermission === 'function'
+    ) {
+      addLog('Triggering Notification.requestPermission() fallback');
+      void globalThis.Notification.requestPermission()
+        .then((permission) => {
+          addLog(`Notification.requestPermission() result: ${permission}`);
+          if (permission === 'granted') {
+            setStatus('granted');
+            if (nativePushBridge.isSupported()) {
+              nativePushBridge.getStatus();
+            }
+          } else if (permission === 'denied') {
+            setStatus('denied');
+          }
+        })
+        .catch((error: unknown) => {
+          addLog(`Notification.requestPermission error: ${String(error)}`);
+        });
     }
   };
 
