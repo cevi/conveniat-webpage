@@ -84,6 +84,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       errorMessage.indexOf("Failed to load chunk") !== -1 ||
       errorMessage.indexOf("Loading chunk") !== -1 ||
       errorMessage.indexOf("bad-precaching-response") !== -1 ||
+      errorMessage.indexOf("module factory is not available") !== -1 ||
+      errorMessage.indexOf("was instantiated because") !== -1 ||
       errorMessage.indexOf("Failed to fetch dynamically imported module") !== -1 ||
       (scriptUrl && scriptUrl.indexOf("/_next/static/") !== -1 && isSyntaxError);
     if (isSyntaxError || isChunkError) {
@@ -92,7 +94,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
       var now = Date.now();
       if (!lastReload || (now - Number(lastReload) > 5000)) {
         sessionStorage.setItem('chunk_reload_time', String(now));
-        if (errorMessage.indexOf("bad-precaching-response") !== -1 && 'serviceWorker' in navigator) {
+        var shouldUnregisterSW = (errorMessage.indexOf("bad-precaching-response") !== -1 || errorMessage.indexOf("module factory is not available") !== -1) && 'serviceWorker' in navigator;
+        if (shouldUnregisterSW) {
           navigator.serviceWorker.getRegistrations().then(function(regs) {
             for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
             window.location.reload();

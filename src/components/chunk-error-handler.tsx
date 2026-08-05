@@ -52,6 +52,8 @@ export const ChunkErrorHandler: React.FC = () => {
         errorMessage.includes('Failed to load chunk') ||
         errorMessage.includes('Loading chunk') ||
         errorMessage.includes('bad-precaching-response') ||
+        errorMessage.includes('module factory is not available') ||
+        errorMessage.includes('was instantiated because') ||
         errorMessage.includes('Failed to fetch dynamically imported module');
 
       if (isSyntaxError || isChunkLoadError) {
