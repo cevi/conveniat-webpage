@@ -95,14 +95,25 @@ const OfflineBanner: React.FC = () => {
 
 const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
-  const { isLoading, isPaused, isPending, isError, errorUpdateCount } = useChatDetail(chatId);
+  const {
+    data: chatDetails,
+    isLoading,
+    isPaused,
+    isPending,
+    isError,
+    errorUpdateCount,
+  } = useChatDetail(chatId);
   const { activeThreadId, closeThread } = useChatActions();
 
   useChatSSE(chatId === '' ? [] : [chatId]);
 
-  if (isLoading && errorUpdateCount === 0) return <ChatSkeleton />;
-  if (isPaused && isPending) return <ChatOfflineMessage />;
-  if (isError || (isLoading && errorUpdateCount !== 0)) return <ChatErrorMessage />;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (isPaused && isPending && chatDetails === undefined) return <ChatOfflineMessage />;
+
+  if ((isError || (isLoading && errorUpdateCount !== 0)) && chatDetails === undefined)
+    return <ChatErrorMessage />;
 
   return (
     <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">

@@ -3,7 +3,7 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { ScheduleComponent } from '@/features/schedule/components/schedule-component';
 import { ScheduleDetailView } from '@/features/schedule/components/schedule-detail-view';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import type React from 'react';
 
 /**
@@ -15,10 +15,12 @@ import type React from 'react';
  */
 const SchedulePage: React.FC = () => {
   const params = useParams();
+  const searchParameters = useSearchParams();
   const idParameter = params['id'];
 
-  // Extract ID from catch-all param (it's an array)
-  const scheduleId = Array.isArray(idParameter) ? idParameter[0] : idParameter;
+  // Extract ID from catch-all param (it's an array) or from query param
+  const scheduleId =
+    (Array.isArray(idParameter) ? idParameter[0] : idParameter) ?? searchParameters.get('id');
 
   // If we have an ID, show the detail view
   if (scheduleId) {

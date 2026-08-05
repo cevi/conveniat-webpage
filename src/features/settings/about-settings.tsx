@@ -274,8 +274,13 @@ export const AboutSettings: React.FC<AboutSettingsProperties> = ({ locale, webBu
             <SettingsRow
               icon={Mail}
               title={contactTitle[locale]}
-              subtitle="Fachgruppe Informatik (info@cevi.tools)"
-              subtitleClassName="text-sm text-gray-600 font-normal mt-0.5"
+              subtitle={
+                <>
+                  Fachgruppe Informatik <br className="sm:hidden" />
+                  <span className="inline-block">(info@cevi.tools)</span>
+                </>
+              }
+              subtitleClassName="text-sm text-gray-600 font-normal mt-0.5 text-balance !whitespace-normal"
               action={<ExternalLink className="h-4 w-4 text-gray-400" />}
             />
           </LinkComponent>

@@ -15,7 +15,7 @@ import {
 } from '@/features/schedule/context/schedule-status-context';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { TRPCProvider } from '@/trpc/client';
+
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { cn } from '@/utils/tailwindcss-override';
@@ -138,219 +138,215 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   };
 
   return (
-    <TRPCProvider>
-      <ScheduleStatusProvider courseIds={[entry.id]} isOnline={isOnline}>
-        <article className="mx-auto w-full max-w-xl space-y-4 overflow-x-hidden p-4 pb-24 sm:p-6">
-          {/* Edit Warning Banner */}
-          {isEditing && (
-            <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 shadow-xs">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-              {labels.editWarning[locale]}
+    <ScheduleStatusProvider courseIds={[entry.id]} isOnline={isOnline}>
+      <article className="mx-auto w-full max-w-xl space-y-4 overflow-x-hidden p-4 pb-24 sm:p-6">
+        {/* Edit Warning Banner */}
+        {isEditing && (
+          <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 shadow-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+            {labels.editWarning[locale]}
+          </div>
+        )}
+
+        {/* Error Banner */}
+        {editError && (
+          <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-xs">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+            {editError}
+          </div>
+        )}
+
+        {/* Hero Header Card */}
+        <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+          {categoryLabel && (
+            <div>
+              <span
+                className={cn(
+                  'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
+                  categoryClassName,
+                )}
+              >
+                {categoryLabel}
+              </span>
             </div>
           )}
-
-          {/* Error Banner */}
-          {editError && (
-            <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-xs">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
-              {editError}
+          <h1 className="font-heading text-xl leading-snug font-bold tracking-tight text-gray-900">
+            {entry.title}
+          </h1>
+          {isEditing && editData ? (
+            <MarkdownEditor
+              label={labels.description[locale]}
+              value={editData.description}
+              onChange={handleDescriptionChange}
+              rows={6}
+              placeholder="..."
+            />
+          ) : (
+            <div className="prose prose-gray max-w-none text-sm leading-relaxed text-gray-600">
+              <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
             </div>
           )}
+        </div>
 
-          {/* Hero Header Card */}
-          <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-            {categoryLabel && (
-              <div>
-                <span
-                  className={cn(
-                    'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
-                    categoryClassName,
-                  )}
-                >
-                  {categoryLabel}
-                </span>
+        {/* Date, Time & Location Card */}
+        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+          {/* Date & Time */}
+          <div className="flex items-center gap-3">
+            <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-body text-xs font-medium text-gray-400">
+                {labels.dateTime[locale]}
               </div>
-            )}
-            <h1 className="font-heading text-xl leading-snug font-bold tracking-tight text-gray-900">
-              {entry.title}
-            </h1>
-            {isEditing && editData ? (
-              <MarkdownEditor
-                label={labels.description[locale]}
-                value={editData.description}
-                onChange={handleDescriptionChange}
-                rows={6}
-                placeholder="..."
-              />
-            ) : (
-              <div className="prose prose-gray max-w-none text-sm leading-relaxed text-gray-600">
-                <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
+              <div className="font-heading text-sm font-bold text-gray-900">
+                {dateTime.formattedDate}
               </div>
-            )}
+              <div className="font-body text-conveniat-green flex items-center gap-1 text-xs font-semibold">
+                <Clock className="h-3.5 w-3.5" />
+                {entry.timeslot.time} Uhr
+              </div>
+            </div>
           </div>
 
-          {/* Date, Time & Location Card */}
-          <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-            {/* Date & Time */}
+          <div className="border-t border-gray-100" />
+
+          {/* Location & Mini Map */}
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                <Calendar className="h-5 w-5" />
+                <MapPin className="h-5 w-5" />
               </div>
               <div>
                 <div className="font-body text-xs font-medium text-gray-400">
-                  {labels.dateTime[locale]}
+                  {labels.location[locale]}
                 </div>
-                <div className="font-heading text-sm font-bold text-gray-900">
-                  {dateTime.formattedDate}
-                </div>
-                <div className="font-body text-conveniat-green flex items-center gap-1 text-xs font-semibold">
-                  <Clock className="h-3.5 w-3.5" />
-                  {entry.timeslot.time} Uhr
-                </div>
+                <div className="font-heading text-sm font-bold text-gray-900">{location.title}</div>
               </div>
             </div>
-
-            <div className="border-t border-gray-100" />
-
-            {/* Location & Mini Map */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="font-body text-xs font-medium text-gray-400">
-                    {labels.location[locale]}
-                  </div>
-                  <div className="font-heading text-sm font-bold text-gray-900">
-                    {location.title}
-                  </div>
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-gray-100 shadow-2xs">
-                <ScheduleMiniMap location={location} />
-              </div>
+            <div className="overflow-hidden rounded-xl border border-gray-100 shadow-2xs">
+              <ScheduleMiniMap location={location} />
             </div>
-
-            {/* Target Group */}
-            {(entry.target_group || isEditing) && (
-              <>
-                <div className="border-t border-gray-100" />
-                <div className="flex items-start gap-3">
-                  <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-body text-xs font-medium text-gray-400">
-                      {labels.targetGroup[locale]}
-                    </div>
-                    {isEditing && editData ? (
-                      <MarkdownEditor
-                        value={editData.targetGroup}
-                        onChange={handleTargetGroupChange}
-                        rows={3}
-                        placeholder="..."
-                      />
-                    ) : undefined}
-                    {!isEditing && entry.target_group && (
-                      <div className="font-body mt-0.5 text-sm font-medium text-gray-800">
-                        <LexicalRichTextSection
-                          richTextSection={entry.target_group}
-                          locale={locale}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Max Participants (when editing) */}
-            {isEditing && editData && (
-              <>
-                <div className="border-t border-gray-100" />
-                <div className="flex items-start gap-3">
-                  <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <label className="font-body text-xs font-medium text-gray-400">
-                      {labels.maxParticipants[locale]}
-                    </label>
-                    <input
-                      type="number"
-                      min={courseStatus?.enrolledCount ?? 0}
-                      value={editData.maxParticipants || ''}
-                      onChange={handleMaxParticipantsChange}
-                      className="font-body focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:outline-hidden"
-                      placeholder="0 = unbegrenzt"
-                    />
-                    {courseStatus && courseStatus.enrolledCount > 0 && (
-                      <p className="font-body mt-1 text-xs text-gray-500">
-                        Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} angemeldet)
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
 
-          {/* Admin Actions (when admin & not editing) */}
-          {isAdmin && !isEditing && (
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-              <WorkshopAdminActions
-                courseId={entry.id}
-                courseTitle={entry.title}
-                isAdmin={isAdmin}
-                courseStatus={courseStatus}
-              />
-            </div>
+          {/* Target Group */}
+          {(entry.target_group || isEditing) && (
+            <>
+              <div className="border-t border-gray-100" />
+              <div className="flex items-start gap-3">
+                <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-body text-xs font-medium text-gray-400">
+                    {labels.targetGroup[locale]}
+                  </div>
+                  {isEditing && editData ? (
+                    <MarkdownEditor
+                      value={editData.targetGroup}
+                      onChange={handleTargetGroupChange}
+                      rows={3}
+                      placeholder="..."
+                    />
+                  ) : undefined}
+                  {!isEditing && entry.target_group && (
+                    <div className="font-body mt-0.5 text-sm font-medium text-gray-800">
+                      <LexicalRichTextSection
+                        richTextSection={entry.target_group}
+                        locale={locale}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
           )}
 
-          {/* Enrollment Section (when enabled & not editing) */}
-          {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
-
-          {/* Contact Organisers Section */}
-          {organisers.length > 0 && !isEditing && (
-            <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-              <div className="flex items-center gap-2">
-                <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
-                  <MessageCircle className="h-4 w-4" />
+          {/* Max Participants (when editing) */}
+          {isEditing && editData && (
+            <>
+              <div className="border-t border-gray-100" />
+              <div className="flex items-start gap-3">
+                <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
+                  <Users className="h-5 w-5" />
                 </div>
-                <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-                  {contactAdminText[locale]}
-                </h3>
+                <div className="min-w-0 flex-1">
+                  <label className="font-body text-xs font-medium text-gray-400">
+                    {labels.maxParticipants[locale]}
+                  </label>
+                  <input
+                    type="number"
+                    min={courseStatus?.enrolledCount ?? 0}
+                    value={editData.maxParticipants || ''}
+                    onChange={handleMaxParticipantsChange}
+                    className="font-body focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:outline-hidden"
+                    placeholder="0 = unbegrenzt"
+                  />
+                  {courseStatus && courseStatus.enrolledCount > 0 && (
+                    <p className="font-body mt-1 text-xs text-gray-500">
+                      Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} angemeldet)
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2.5">
-                {organisers.map((organiser) => (
-                  <div
-                    key={organiser.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="bg-conveniat-green font-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
-                        {organiser.fullName.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-body truncate text-sm font-semibold text-gray-900">
-                          {organiser.fullName}
-                        </div>
-                        <div className="font-body truncate text-xs text-gray-500">
-                          {organiser.email}
-                        </div>
-                      </div>
+            </>
+          )}
+        </div>
+
+        {/* Admin Actions (when admin & not editing) */}
+        {isAdmin && !isEditing && (
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+            <WorkshopAdminActions
+              courseId={entry.id}
+              courseTitle={entry.title}
+              isAdmin={isAdmin}
+              courseStatus={courseStatus}
+            />
+          </div>
+        )}
+
+        {/* Enrollment Section (when enabled & not editing) */}
+        {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
+
+        {/* Contact Organisers Section */}
+        {organisers.length > 0 && !isEditing && (
+          <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+            <div className="flex items-center gap-2">
+              <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
+                <MessageCircle className="h-4 w-4" />
+              </div>
+              <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                {contactAdminText[locale]}
+              </h3>
+            </div>
+            <div className="space-y-2.5">
+              {organisers.map((organiser) => (
+                <div
+                  key={organiser.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
+                >
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="bg-conveniat-green font-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
+                      {organiser.fullName.charAt(0).toUpperCase()}
                     </div>
-                    <div className="shrink-0">
-                      <ChatLinkButton userId={organiser.id} />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-body truncate text-sm font-semibold text-gray-900">
+                        {organiser.fullName}
+                      </div>
+                      <div className="font-body truncate text-xs text-gray-500">
+                        {organiser.email}
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="shrink-0">
+                    <ChatLinkButton userId={organiser.id} />
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </article>
-      </ScheduleStatusProvider>
-    </TRPCProvider>
+          </div>
+        )}
+      </article>
+    </ScheduleStatusProvider>
   );
 };

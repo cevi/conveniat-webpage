@@ -37,6 +37,7 @@ const sendMessageInputSchema = z.object({
   type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
   parentId: z.string().uuid().optional(),
   quotedMessageId: z.string().uuid().optional(),
+  messageId: z.string().optional(),
 });
 
 // tRPC router for chat-related mutations
@@ -92,6 +93,7 @@ export const createMessage = trpcBaseProcedure
     const chat = await prisma.chat.findUnique({
       where: { uuid: validatedMessage.chatId },
       select: {
+        name: true,
         capabilities: true,
         chatMemberships: {
           select: {
@@ -225,6 +227,10 @@ export const createMessage = trpcBaseProcedure
       recipientUserIds,
       validatedMessage.chatId,
       createdMessage.uuid,
+      {
+        chatName: chat.name,
+        senderName: user.name,
+      },
     ).catch((error: unknown) => {
       console.error('Failed to send push notification:', error);
     });

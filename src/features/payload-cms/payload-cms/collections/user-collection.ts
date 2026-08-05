@@ -34,24 +34,28 @@ const syncUserToPostgres: NonNullable<
 
   const name = formatUserFullName(fullName, nickname);
 
-  await prisma.user.upsert({
-    where: { uuid },
-    update: {
-      name: name,
-      // eslint-disable-next-line unicorn/no-null
-      description: description ?? null,
-      hidden: hidden ?? false,
-    },
-    create: {
-      uuid: uuid,
-      name: name,
-      // eslint-disable-next-line unicorn/no-null
-      description: description ?? null,
-      hidden: hidden ?? false,
-      // set date to 1970-01-01 to avoid null values
-      lastSeen: new Date('1970-01-01T00:00:00Z'),
-    },
-  });
+  try {
+    await prisma.user.upsert({
+      where: { uuid },
+      update: {
+        name: name,
+        // eslint-disable-next-line unicorn/no-null
+        description: description ?? null,
+        hidden: hidden ?? false,
+      },
+      create: {
+        uuid: uuid,
+        name: name,
+        // eslint-disable-next-line unicorn/no-null
+        description: description ?? null,
+        hidden: hidden ?? false,
+        // set date to 1970-01-01 to avoid null values
+        lastSeen: new Date('1970-01-01T00:00:00Z'),
+      },
+    });
+  } catch (error) {
+    console.error('[syncUserToPostgres] Non-fatal error syncing user to Postgres:', error);
+  }
 };
 
 export const UserCollection: CollectionConfig = {

@@ -1,6 +1,5 @@
 'use client';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
 import { Badge } from '@/components/ui/badge';
 import { trpc } from '@/trpc/client';
 import { Award, Camera, CheckCircle2, Heart, Info, LogIn, Sparkles, Trophy, X } from 'lucide-react';

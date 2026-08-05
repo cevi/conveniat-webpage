@@ -1,7 +1,7 @@
 'use client'; // Error boundaries must be Client Components
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import '@/app/globals.scss';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
@@ -26,6 +26,8 @@ const GlobalError: React.FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   const [isRecovering, setIsRecovering] = useState(false);
+  const [copiedDebug, setCopiedDebug] = useState(false);
+  const clickTimestampsReference = useRef<number[]>([]);
 
   useEffect(() => {
     // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
@@ -88,6 +90,40 @@ const GlobalError: React.FC<{
     return;
   }, [error]);
 
+  const handleTitleClick = (): void => {
+    const now = Date.now();
+    const recentClicks = [...clickTimestampsReference.current, now].filter(
+      (timestamp) => now - timestamp < 2000,
+    );
+    clickTimestampsReference.current = recentClicks;
+
+    if (recentClicks.length >= 5) {
+      clickTimestampsReference.current = [];
+      const currentUrl = globalThis.location.href;
+      const userAgent = navigator.userAgent;
+      const isOnline = navigator.onLine ? 'Online' : 'Offline';
+
+      const debugInfo = [
+        '--- GLOBAL ERROR DEBUG LOG ---',
+        `Timestamp: ${new Date().toISOString()}`,
+        `URL: ${currentUrl}`,
+        `User Agent: ${userAgent}`,
+        `Online Status: ${isOnline}`,
+        `Error Name: ${error.name}`,
+        `Error Message: ${error.message}`,
+        `Error Digest: ${error.digest ?? 'N/A'}`,
+        `Stack Trace:\n${error.stack ?? 'No stack trace available'}`,
+      ].join('\n');
+
+      void navigator.clipboard.writeText(debugInfo).then(() => {
+        setCopiedDebug(true);
+        setTimeout(() => {
+          setCopiedDebug(false);
+        }, 3000);
+      });
+    }
+  };
+
   // In draft/preview mode, show a minimal recovery message instead of the full error page
   if (isRecovering) {
     return (
@@ -106,14 +142,22 @@ const GlobalError: React.FC<{
       <body>
         <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
           <OnboardingLayout>
-            <h1 className="text-conveniat-green mb-4 text-xl font-bold">
+            <h1
+              className="text-conveniat-green mb-4 cursor-pointer text-xl font-bold select-none"
+              onClick={handleTitleClick}
+            >
               Es ist ein Fehler aufgetreten!
             </h1>
             <p className="mb-8 text-balance text-gray-700">
               Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.
             </p>
+            {copiedDebug && (
+              <div className="bg-conveniat-green/10 text-conveniat-green mb-4 rounded-md px-4 py-2 text-sm font-medium">
+                Fehlerprotokoll in Zwischenablage kopiert!
+              </div>
+            )}
             <button
-              className="font-heading transform cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]"
+              className="font-heading bg-conveniat-green hover:bg-conveniat-green/90 transform cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => globalThis.location.reload()}
             >
               Nochmals versuchen

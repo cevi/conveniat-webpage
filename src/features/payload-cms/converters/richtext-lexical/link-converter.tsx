@@ -88,7 +88,7 @@ const resolveInternalLink = (fields: LinkFields, currentLocale?: Locale): string
         }
         case 'camp-schedule-entry': {
           const entry = documentValue as CampScheduleEntry;
-          baseUrl = `/app/schedule/${entry.id}`;
+          baseUrl = `/app/schedule?id=${entry.id}`;
           break;
         }
         default: {

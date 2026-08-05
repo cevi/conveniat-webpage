@@ -23,8 +23,9 @@ interface AdjacentEntries {
 export const useAdjacentEntries = (currentId: string): AdjacentEntries => {
   // 1. Try tRPC cache first (primary source)
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 1000 * 60 * 5,
+
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
 

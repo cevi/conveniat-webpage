@@ -37,11 +37,13 @@ const performOptimisticMessageUpdate = async (
     content,
     quotedMessageId,
     parentId,
+    messageId,
   }: {
     chatId: string;
     content: string;
     quotedMessageId?: string | undefined;
     parentId?: string | undefined;
+    messageId?: string | undefined;
   },
 ): Promise<OptimisticUpdateResult> => {
   await trpcUtils.chat.chatDetails.cancel({ chatId });
@@ -82,8 +84,11 @@ const performOptimisticMessageUpdate = async (
     }
   }
 
+  // eslint-disable-next-line unicorn/prefer-global-this
+  const isOffline = typeof window !== 'undefined' && !navigator.onLine;
+
   const optimisticMessage: ChatMessage = {
-    id: generateOptimisticId(),
+    id: messageId ?? generateOptimisticId(),
     messagePayload: {
       text: content.trim(),
       ...(typeof quotedMessageId === 'string' &&
@@ -94,6 +99,7 @@ const performOptimisticMessageUpdate = async (
     status: MessageEventType.CREATED,
     type: MessageType.TEXT_MSG,
     parentId: parentId ?? undefined,
+    isPendingOffline: isOffline,
   };
 
   // optimistically update the infinite messages
@@ -193,15 +199,18 @@ export const useMessageSend = (): UseMessageSendMutation => {
   const { cancelQuote } = useChatActions();
 
   return trpc.chat.sendMessage.useMutation({
+    networkMode: 'always',
     async onMutate({ chatId, content, quotedMessageId, parentId }) {
-      if (typeof currentUser !== 'string' || currentUser === '') {
-        throw new Error('Current user is not defined');
-      }
+      const userId =
+        typeof currentUser === 'string' && currentUser !== ''
+          ? currentUser
+          : (typeof globalThis !== 'undefined' && localStorage.getItem('conveniat-user-id')) ||
+            'offline-user';
 
       // Immediately clear the citation preview in the UI
       cancelQuote();
 
-      return performOptimisticMessageUpdate(trpcUtils, currentUser, {
+      return performOptimisticMessageUpdate(trpcUtils, userId, {
         chatId,
         content,
         quotedMessageId: quotedMessageId ?? undefined,
@@ -218,6 +227,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
       if (isOfflineError) {
         if (context?.optimisticMessageId) {
           addMessageToOutbox({
+            type: 'MESSAGE',
             id: context.optimisticMessageId,
             chatId,
             content,

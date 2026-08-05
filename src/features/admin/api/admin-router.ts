@@ -518,7 +518,7 @@ export const adminRouter = createTRPCRouter({
 
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
-        select: { chatMemberships: true },
+        select: { chatMemberships: true, name: true },
       });
 
       if (!chat) {
@@ -554,11 +554,12 @@ export const adminRouter = createTRPCRouter({
         .filter((membership) => membership.userId !== user.uuid)
         .map((membership) => membership.userId);
 
-      sendNotification(input.content, recipientUserIds, input.chatId, message.uuid).catch(
-        (error: unknown) => {
-          console.error('Failed to send admin push notification:', error);
-        },
-      );
+      sendNotification(input.content, recipientUserIds, input.chatId, message.uuid, {
+        chatName: chat.name,
+        senderName: user.name,
+      }).catch((error: unknown) => {
+        console.error('Failed to send admin push notification:', error);
+      });
 
       if (recipientUserIds.length > 0) {
         await prisma.messageEvent.createMany({

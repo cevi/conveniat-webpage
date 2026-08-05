@@ -62,7 +62,11 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
   // Use passed props or fetch if not provided
   const { data: fetchedStatus, isLoading } = trpc.schedule.getCourseStatus.useQuery(
     { courseId },
-    { enabled: isAdminProperty === undefined || courseStatusProperty === undefined },
+    {
+      enabled: isAdminProperty === undefined || courseStatusProperty === undefined,
+
+      staleTime: 1000 * 60 * 5,
+    },
   );
 
   const status = courseStatusProperty ?? fetchedStatus;

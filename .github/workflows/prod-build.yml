@@ -20,25 +20,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker Image
-        env:
-          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
-          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
-        run: docker compose -f docker-compose.prod.yml build
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
-      - name: Push Docker Image
-        # Retry docker push up to 5 times with exponential
-        # backoff to handle transient network issues
-        run: |
-          n=0
-          until [ "$n" -ge 5 ]
-          do
-             docker push registry.cevi.tools/cevi/conveniat27-webpage:latest && break
-             n=$((n+1))
-             echo "Push failed. Retrying in $((2**n)) seconds..."
-             sleep $((2**n))
-          done
-          if [ "$n" -ge 5 ]; then
-             echo "Push failed after 5 attempts."
-             exit 1
-          fi
+      - name: 🚀 Build and Push Docker Image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: registry.cevi.tools/cevi/conveniat27-webpage:latest
+          build-args: |
+            NEXT_PUBLIC_VAPID_PUBLIC_KEY=BGXpnSSQfJS84zCk6qka6-3qC_bTK6feOUaLz6ZJY6ThmdcY-h20V0QB8P8nq84Pb6vpbZLvYwISwlSmH9aZwjU
+            NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
+            NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
+            NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+            POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
+            POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
+          cache-from: type=gha
+          cache-to: type=gha

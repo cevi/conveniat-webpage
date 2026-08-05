@@ -425,6 +425,7 @@ export const payloadConfig: RoutableConfig = {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
   db: dbConfig,
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
   sharp: sharp,
   telemetry: false,
   plugins: [

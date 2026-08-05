@@ -20,7 +20,7 @@ export const ImageMessage: React.FC<{ message: ChatMessage }> = ({ message }) =>
 
   const { data: downloadData, isLoading } = trpc.chat.getDownloadUrl.useQuery(
     { chatId, key: typeof messageData?.url === 'string' ? messageData.url : '' },
-    { enabled: isS3Key },
+    { enabled: isS3Key, staleTime: 1000 * 60 * 5 },
   );
 
   if (typeof messageData?.url !== 'string' || !messageData.url) return <></>;

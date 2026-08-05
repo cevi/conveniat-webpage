@@ -2,13 +2,16 @@
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
+import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
+import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon } from 'lucide-react';
@@ -105,7 +108,9 @@ const errorStatusText: StaticTranslationString = {
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFallback, setShowFallback] = useState(true);
-  const [isOnline, setIsOnline] = useState(true); // Default to true (optimistic)
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  );
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
@@ -116,20 +121,29 @@ export const EmergencyComponent: React.FC = () => {
 
   // Fetch alert settings for offline caching and emergency number
   const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
-    refetchInterval: 1000 * 60 * 60 * 2, // 2 hours
-    refetchOnMount: true,
+    refetchInterval: isOnline ? 1000 * 60 * 60 * 2 : false, // 2 hours when online
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Fetch dynamic emergency cards from Payload CMS
   const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
-    staleTime: 0,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes (allows instant rendering from offline cache)
   });
+
+  const directAlertSettings = trpcUtils.emergency.getAlertSettings.getData();
+  const directEmergencyCards = trpcUtils.emergency.getEmergencyCards.getData();
+
+  // Emergency phone number with robust fallback for offline mode
+  const emergencyPhoneNumber =
+    alertSettings?.emergencyPhoneNumber ?? directAlertSettings?.emergencyPhoneNumber ?? '112';
 
   // Track online/offline status and auth status
   useEffect(() => {
     const updateStatus = (): void => {
-      const online = navigator.onLine;
+      const online = typeof navigator === 'undefined' ? true : navigator.onLine;
       setIsOnline(online);
       const isAuthenticated = status === 'authenticated';
 
@@ -152,7 +166,10 @@ export const EmergencyComponent: React.FC = () => {
     };
   }, [status]);
 
-  const cards: EmergencyCard[] = React.useMemo(() => emergencyCards ?? [], [emergencyCards]);
+  const cards: EmergencyCard[] = React.useMemo(
+    () => emergencyCards ?? directEmergencyCards ?? [],
+    [emergencyCards, directEmergencyCards],
+  );
 
   const [userToggles, setUserToggles] = useState<Record<string, boolean>>({});
 
@@ -191,10 +208,13 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   const handleAlarmTrigger = async (): Promise<void> => {
-    let location: GeolocationPosition | undefined;
+    const online = typeof navigator === 'undefined' ? true : navigator.onLine;
+    if (!online || status !== 'authenticated') {
+      setShowFallback(true);
+      throw new Error('Cannot trigger emergency alarm while offline or unauthenticated');
+    }
 
-    // TODO: the alert should also be send if the user is not signed in
-    //       what do we do in this case? create a temporary guest user?
+    let location: GeolocationPosition | undefined;
 
     try {
       const locationPromise = new Promise<GeolocationPosition>((resolve, reject) => {
@@ -204,7 +224,7 @@ export const EmergencyComponent: React.FC = () => {
           return;
         }
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 10_000,
+          timeout: 5000,
           maximumAge: 60_000,
         });
       });
@@ -214,43 +234,85 @@ export const EmergencyComponent: React.FC = () => {
       console.warn('Failed to get location (denied or timeout):', error);
     }
 
-    const response = emergencyQuery.mutate(
-      {
+    try {
+      const data = await emergencyQuery.mutateAsync({
         location: location?.toJSON() as GeolocationPosition | undefined,
-      },
-      {
-        onSuccess: (data) => {
-          console.log('Emergency alert triggered successfully:', data);
+      });
 
-          if (!data.success) {
-            console.error('Failed to trigger emergency alert:', response);
-            return;
-          }
+      console.log('Emergency alert triggered successfully:', data);
 
-          trpcUtils.chat.chats
-            .invalidate()
-            .then(() => router.push(data.redirectUrl))
-            .catch(console.error);
-        },
-        onError: (error) => {
-          console.error('Failed to trigger emergency alert:', error);
-          setShowFallback(true);
-        },
-      },
-    );
+      if (!data.success) {
+        setShowFallback(true);
+        throw new Error('Emergency alert backend reported failure');
+      }
+
+      const createdChatId = data.chatId;
+
+      if (typeof createdChatId === 'string' && createdChatId.length > 0) {
+        trpcUtils.chat.chats.setData({}, (oldChats) => {
+          if (!oldChats) return oldChats;
+          if (oldChats.some((c) => c.id === createdChatId)) return oldChats;
+          const newChatEntry = {
+            id: createdChatId,
+            name: 'ALARM',
+            description: undefined,
+            status: ChatStatus.OPEN,
+            chatType: ChatType.EMERGENCY,
+            lastMessage: {
+              id: `msg-${crypto.randomUUID()}`,
+              senderId: SYSTEM_SENDER_ID,
+              messagePreview: {
+                de: 'Notfall-Alarm ausgelöst',
+                en: 'Emergency alert triggered',
+                fr: "Alerte d'urgence déclenchée",
+              },
+              createdAt: new Date(),
+              status: MessageEventType.STORED,
+            },
+            lastUpdate: new Date(),
+            unreadCount: 0,
+            messageCount: 0,
+            userChatPermission: ChatMembershipPermission.ADMIN,
+          };
+          return [newChatEntry, ...oldChats];
+        });
+
+        // Prefetch new alert chat details & messages for offline availability
+        void trpcUtils.chat.chatDetails.ensureData({ chatId: createdChatId }).catch(console.warn);
+        void trpcUtils.chat.infiniteMessages
+          .prefetchInfinite({
+            chatId: createdChatId,
+            limit: 50,
+            parentId: undefined,
+          })
+          .catch(console.warn);
+      }
+
+      // Refetch full chat list from server in background while online
+      void trpcUtils.chat.chats.refetch().catch(console.warn);
+      router.push(data.redirectUrl);
+    } catch (error) {
+      console.error('Failed to trigger emergency alert:', error);
+      setShowFallback(true);
+      throw error;
+    }
   };
+
+  const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const isFallbackActive =
+    showFallback || !isOnline || isActuallyOffline || status !== 'authenticated';
 
   // Determine fallback texts
   let fallbackMessage = offlineStatusText[locale];
-  if (isOnline && status !== 'authenticated') {
+  if (isOnline && !isActuallyOffline && status !== 'authenticated') {
     fallbackMessage = unauthenticatedStatusText[locale];
-  } else if (isOnline && status === 'authenticated' && showFallback) {
+  } else if (isOnline && !isActuallyOffline && status === 'authenticated' && showFallback) {
     // Allows distinction for API errors if showFallback is true but online+authed
     fallbackMessage = errorStatusText[locale];
   }
 
   const renderAccordionContent = (): React.ReactNode => {
-    if (isLoading) {
+    if (isLoading && cards.length === 0) {
       return Array.from({ length: 4 }).map((_, index) => (
         <div
           key={`skeleton-${index}`}
@@ -311,10 +373,11 @@ export const EmergencyComponent: React.FC = () => {
               <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
                 {descriptionLabel[locale]}
               </strong>
-              <p className="text-sm leading-relaxed">{alert.description}</p>
+              <ParagraphText>{alert.description}</ParagraphText>
             </div>
 
-            {alert.procedure.root.children.length > 0 && (
+            {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
+            {alert.procedure?.root?.children && alert.procedure.root.children.length > 0 && (
               <div className="text-gray-800">
                 <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
                   {procedureLabel[locale]}
@@ -440,16 +503,20 @@ export const EmergencyComponent: React.FC = () => {
   return (
     <article className="container mx-auto mt-8 py-6">
       <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
-        <div className="pb-4">
-          <div className="mb-2">
-            <AppSearchBar
-              placeholder={searchPlaceholder[locale]}
-              value={searchTerm}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setSearchTerm(event.target.value)}
-              onClear={clearSearch}
-            />
+        {cards.length > 3 && (
+          <div className="pb-4">
+            <div className="mb-2">
+              <AppSearchBar
+                placeholder={searchPlaceholder[locale]}
+                value={searchTerm}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setSearchTerm(event.target.value)
+                }
+                onClear={clearSearch}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <Accordion
           type="multiple"
@@ -462,7 +529,7 @@ export const EmergencyComponent: React.FC = () => {
 
         <div className="fixed bottom-20 left-0 w-full select-none xl:left-[480px] xl:w-[calc(100%-480px)]">
           <AnimatePresence mode="popLayout">
-            {showFallback && alertSettings?.emergencyPhoneNumber ? (
+            {isFallbackActive ? (
               <motion.div
                 key="fallback"
                 layout
@@ -475,10 +542,10 @@ export const EmergencyComponent: React.FC = () => {
               >
                 <p className="text-center text-sm font-medium text-gray-600">{fallbackMessage}</p>
                 <a
-                  href={`tel:${alertSettings.emergencyPhoneNumber}`}
+                  href={`tel:${emergencyPhoneNumber}`}
                   className="flex h-16 w-full items-center justify-center rounded-full bg-red-600 text-lg font-bold text-white shadow-md hover:bg-red-700"
                 >
-                  {offlineCallText[locale]}: {alertSettings.emergencyPhoneNumber}
+                  {offlineCallText[locale]}: {emergencyPhoneNumber}
                 </a>
               </motion.div>
             ) : (

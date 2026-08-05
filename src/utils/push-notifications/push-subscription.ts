@@ -74,6 +74,8 @@ export const subscribeToPushNotifications = async (
   // 4. Send subscription to backend (with retry)
   try {
     const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
+    const { getOrCreateDeviceId } = await import('@/utils/device-id');
+    const deviceId = getOrCreateDeviceId();
     await retry(
       () =>
         subscribeUser(
@@ -81,6 +83,7 @@ export const subscribeToPushNotifications = async (
           locale,
           userAgent,
           registrationSource,
+          deviceId,
         ),
       3,
       1000,

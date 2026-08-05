@@ -101,6 +101,7 @@ export const uploadRouter = createTRPCRouter({
 
         // Validate image content using sharp
         try {
+          /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
           const metadata = await sharp(buffer).metadata();
           // Ensure sharp recognized it as a valid image and it's not an SVG (for security)
           if (metadata.format === 'svg') {
@@ -120,6 +121,7 @@ export const uploadRouter = createTRPCRouter({
           ) {
             throw new Error('Image dimensions must be at least 1920x1080');
           }
+          /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
         } catch (error) {
           console.error('Image validation failed:', error);
           throw new TRPCError({

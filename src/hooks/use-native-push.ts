@@ -1,7 +1,10 @@
 'use client';
 
-import { trpc } from '@/trpc/client';
+import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
+import { Cookie } from '@/types/types';
+import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { isNativeAppWebView } from '@/utils/standalone-check';
+import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
@@ -24,15 +27,289 @@ declare global {
 const nativePushBridge = {
   isSupported: (): boolean =>
     typeof globalThis !== 'undefined' && globalThis.AppWebViewNativePush !== undefined,
-  getStatus: (): void => globalThis.AppWebViewNativePush?.getStatus(),
-  requestPermission: (): void => globalThis.AppWebViewNativePush?.requestPermission(),
-  deleteToken: (): void => globalThis.AppWebViewNativePush?.deleteToken(),
-  openSettings: (): void => globalThis.AppWebViewNativePush?.openSettings(),
+  getStatus: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    switch (true) {
+      case typeof bridge['getStatus'] === 'function': {
+        (bridge['getStatus'] as () => void)();
+        break;
+      }
+      case typeof bridge['checkStatus'] === 'function': {
+        (bridge['checkStatus'] as () => void)();
+        break;
+      }
+      case typeof bridge['getStatusAsync'] === 'function': {
+        void (bridge['getStatusAsync'] as () => Promise<void>)();
+        break;
+      }
+    }
+  },
+  requestPermission: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    if (typeof bridge['requestPermission'] === 'function')
+      (bridge['requestPermission'] as () => void)();
+    if (typeof bridge['requestPermissions'] === 'function')
+      (bridge['requestPermissions'] as () => void)();
+    if (typeof bridge['requestPushPermission'] === 'function')
+      (bridge['requestPushPermission'] as () => void)();
+    if (typeof bridge['requestNotificationPermission'] === 'function')
+      (bridge['requestNotificationPermission'] as () => void)();
+    if (typeof bridge['promptPermission'] === 'function')
+      (bridge['promptPermission'] as () => void)();
+  },
+  deleteToken: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    switch (true) {
+      case typeof bridge['deleteToken'] === 'function': {
+        (bridge['deleteToken'] as () => void)();
+        break;
+      }
+      case typeof bridge['unregister'] === 'function': {
+        (bridge['unregister'] as () => void)();
+        break;
+      }
+      case typeof bridge['removeToken'] === 'function': {
+        (bridge['removeToken'] as () => void)();
+        break;
+      }
+    }
+  },
+  openSettings: (): void => {
+    const bridge = globalThis.AppWebViewNativePush as Record<string, unknown> | undefined;
+    if (!bridge) return;
+    switch (true) {
+      case typeof bridge['openSettings'] === 'function': {
+        (bridge['openSettings'] as () => void)();
+        break;
+      }
+      case typeof bridge['openNotificationSettings'] === 'function': {
+        (bridge['openNotificationSettings'] as () => void)();
+        break;
+      }
+    }
+  },
 };
 
 interface NativePushEventDetail {
   type?: string;
   payload?: Record<string, unknown>;
+}
+
+export function extractTargetUrl(payload: Record<string, unknown>): string | undefined {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+  const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
+    Record<string, unknown> | undefined;
+  const alertObject = (apsObject?.['alert'] ?? notificationObject?.['alert']) as
+    Record<string, unknown> | undefined;
+  const userInfoObject = (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+    Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload,
+    payload['data'] as Record<string, unknown> | undefined,
+    notificationObject,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    apsObject,
+    alertObject,
+    userInfoObject,
+  ];
+
+  // First pass: Check for explicit chatId across all candidates
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    const chatId: unknown = object_['chatId'];
+    if (typeof chatId === 'string' && chatId.trim() !== '') {
+      return `/app/chat/${chatId.trim()}`;
+    }
+    if (typeof chatId === 'number') {
+      return `/app/chat/${String(chatId)}`;
+    }
+  }
+
+  // Second pass: Check for explicit URL / path properties
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    for (const key of ['redirectTo', 'url', 'path', 'link', 'target']) {
+      const val: unknown = object_[key];
+      if (typeof val === 'string' && val.trim() !== '') {
+        return val.trim();
+      }
+    }
+  }
+
+  return undefined;
+}
+
+export function performReliablePushNavigation(
+  router: { push: (url: string) => void },
+  targetPath: string,
+): void {
+  if (typeof targetPath !== 'string' || targetPath.trim() === '') return;
+
+  const cleanPath = targetPath.trim();
+
+  try {
+    sessionStorage.setItem('pending_push_redirect', cleanPath);
+    localStorage.setItem('pending_push_redirect', cleanPath);
+  } catch {
+    // ignore storage errors
+  }
+
+  console.log('[NativePush:PWA] Performing reliable navigation to:', cleanPath);
+
+  try {
+    router.push(cleanPath);
+  } catch (error: unknown) {
+    console.warn('[NativePush:PWA] Soft router.push failed:', error);
+  }
+
+  // Backup check: perform hard location redirect if router hasn't updated pathname after 250ms
+  setTimeout(() => {
+    const currentPathname = globalThis.location.pathname;
+    let targetChatId: string | undefined;
+    if (cleanPath.includes('/app/chat/')) {
+      const parts = cleanPath.split('/app/chat/');
+      const firstPart = parts[1];
+      if (typeof firstPart === 'string' && firstPart !== '') {
+        targetChatId = firstPart.split('?')[0];
+      }
+    }
+
+    const isAlreadyOnChat =
+      typeof targetChatId === 'string' &&
+      targetChatId !== '' &&
+      currentPathname.includes(`/app/chat/${targetChatId}`);
+
+    const isAlreadyOnExactPath = currentPathname === cleanPath;
+
+    if (!isAlreadyOnChat && !isAlreadyOnExactPath) {
+      console.log(
+        '[NativePush:PWA] Soft navigation pending, executing location fallback to:',
+        cleanPath,
+      );
+      globalThis.location.href = cleanPath;
+    }
+  }, 250);
+}
+
+export function checkAndExecutePendingPushNavigation(router: {
+  push: (url: string) => void;
+}): void {
+  try {
+    const pendingPath =
+      sessionStorage.getItem('pending_push_redirect') ??
+      localStorage.getItem('pending_push_redirect');
+
+    if (typeof pendingPath !== 'string' || pendingPath.trim() === '') return;
+
+    const cleanPath = pendingPath.trim();
+    const currentPathname = globalThis.location.pathname;
+
+    let targetChatId: string | undefined;
+    if (cleanPath.includes('/app/chat/')) {
+      const parts = cleanPath.split('/app/chat/');
+      const firstPart = parts[1];
+      if (typeof firstPart === 'string' && firstPart !== '') {
+        targetChatId = firstPart.split('?')[0];
+      }
+    }
+
+    const isAlreadyOnChat =
+      typeof targetChatId === 'string' &&
+      targetChatId !== '' &&
+      currentPathname.includes(`/app/chat/${targetChatId}`);
+
+    const isAlreadyOnExactPath = currentPathname === cleanPath;
+
+    if (isAlreadyOnChat || isAlreadyOnExactPath) {
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      return;
+    }
+
+    console.log('[NativePush:PWA] Executing pending push navigation to:', cleanPath);
+    try {
+      router.push(cleanPath);
+    } catch {
+      // ignore soft error
+    }
+
+    setTimeout(() => {
+      const nowPathname = globalThis.location.pathname;
+      const nowOnChat =
+        typeof targetChatId === 'string' &&
+        targetChatId !== '' &&
+        nowPathname.includes(`/app/chat/${targetChatId}`);
+      const nowOnExact = nowPathname === cleanPath;
+
+      if (!nowOnChat && !nowOnExact) {
+        console.log('[NativePush:PWA] Fallback location redirect to:', cleanPath);
+        globalThis.location.href = cleanPath;
+      } else {
+        sessionStorage.removeItem('pending_push_redirect');
+        localStorage.removeItem('pending_push_redirect');
+      }
+    }, 250);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function extractNotificationTitleAndBody(payload: Record<string, unknown>): {
+  title: string;
+  body: string;
+} {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+  const dataObject = payload['data'] as Record<string, unknown> | undefined;
+  const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
+    Record<string, unknown> | undefined;
+  const alertObject = (apsObject?.['alert'] ?? notificationObject?.['alert']) as
+    Record<string, unknown> | undefined;
+  const userInfoObject = (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+    Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload,
+    dataObject,
+    notificationObject,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    apsObject,
+    alertObject,
+    userInfoObject,
+  ];
+
+  let title = 'Neue Nachricht';
+  let body = '';
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    const titleValue = object_['title'];
+    if (typeof titleValue === 'string' && titleValue.trim() !== '') {
+      title = titleValue.trim();
+      break;
+    }
+  }
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    for (const key of ['body', 'message', 'content', 'text']) {
+      const value = object_[key];
+      if (typeof value === 'string' && value.trim() !== '') {
+        body = value.trim();
+        break;
+      }
+    }
+    if (body !== '') break;
+  }
+
+  return { title, body };
 }
 
 export interface NativePushLogEntry {
@@ -46,6 +323,8 @@ export function useNativePush(): {
   isNativeApp: boolean;
   status: NativePushStatus;
   hasToken: boolean;
+  isRegisteredOnBackend: boolean;
+  isUnauthenticated: boolean;
   requestPermission: () => void;
   deleteToken: () => void;
   openSettings: () => void;
@@ -53,9 +332,12 @@ export function useNativePush(): {
   lastError: string | undefined;
 } {
   const router = useRouter();
+  const trpcUtils = useOptionalTrpcUtils();
   const [isNativeApp, setIsNativeApp] = useState(false);
   const [status, setStatus] = useState<NativePushStatus>('unknown');
   const [hasToken, setHasToken] = useState(false);
+  const [isRegisteredOnBackend, setIsRegisteredOnBackend] = useState(false);
+  const [isUnauthenticated, setIsUnauthenticated] = useState(false);
   const [logs, setLogs] = useState<NativePushLogEntry[]>([]);
   const [lastError, setLastError] = useState<string | undefined>();
   const rollbackTimeoutReference = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -85,13 +367,13 @@ export function useNativePush(): {
       isBridgeReady,
     );
 
-    const timeoutId = setTimeout(() => {
+    const initTimeoutId = setTimeout(() => {
       setIsNativeApp(isNative && isBridgeReady);
       addLog(`Hook mounted: isNative=${String(isNative)}, bridgeReady=${String(isBridgeReady)}`);
       addLog('Requesting initial status via getStatus()');
     }, 0);
 
-    if (!isNative) return (): void => clearTimeout(timeoutId);
+    if (!isNative) return (): void => clearTimeout(initTimeoutId);
 
     const handleRegisterDevice = async (
       token: string,
@@ -100,15 +382,33 @@ export function useNativePush(): {
       try {
         console.log('[NativePush:PWA] calling registerDevice: platform =', platform);
         addLog(`Calling registerDevice: platform=${platform}`);
-        await registerDevice({ token, platform });
+        const { getOrCreateDeviceId } = await import('@/utils/device-id');
+        const deviceId = getOrCreateDeviceId();
+        await registerDevice({ token, platform, deviceId });
         console.log('[NativePush:PWA] registerDevice: success');
         addLog(`registerDevice: success`);
+        setIsRegisteredOnBackend(true);
+        setIsUnauthenticated(false);
         setLastError(undefined);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('[NativePush:PWA] registerDevice: failed', error);
         addLog(`registerDevice failed: ${errorMessage}`, error);
-        setLastError(`registerDevice error: ${errorMessage}`);
+        setIsRegisteredOnBackend(false);
+
+        const isAuthError =
+          errorMessage.toLowerCase().includes('user not authenticated') ||
+          errorMessage.toLowerCase().includes('user not found') ||
+          errorMessage.toLowerCase().includes('forbidden') ||
+          errorMessage.toLowerCase().includes('unauthorized');
+
+        if (isAuthError) {
+          setIsUnauthenticated(true);
+          setLastError(undefined);
+        } else {
+          setLastError(`registerDevice error: ${errorMessage}`);
+        }
+
         if (error instanceof Error) {
           try {
             const { default: ph } = await import('posthog-js');
@@ -221,10 +521,12 @@ export function useNativePush(): {
           setLastError(undefined);
           break;
         }
+
         case 'native-push-open': {
           let targetPath = '/app/dashboard';
-          if (typeof payload['url'] === 'string' && payload['url'].trim() !== '') {
-            const rawUrl = payload['url'].trim();
+          const rawUrl = extractTargetUrl(payload);
+
+          if (typeof rawUrl === 'string' && rawUrl !== '') {
             if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
               targetPath = rawUrl;
             } else {
@@ -239,8 +541,93 @@ export function useNativePush(): {
               }
             }
           }
+
+          let targetChatId: string | undefined;
+          if (targetPath.includes('/app/chat/')) {
+            const parts = targetPath.split('/app/chat/');
+            const firstPart = parts[1];
+            if (typeof firstPart === 'string' && firstPart !== '') {
+              targetChatId = firstPart.split('?')[0];
+            }
+          }
+          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
+
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
-          router.push(targetPath);
+          performReliablePushNavigation(router, targetPath);
+          break;
+        }
+        case 'native-push-received':
+        case 'native-push-message':
+        case 'push-received':
+        case 'notification': {
+          const rawUrl = extractTargetUrl(payload);
+          let targetChatId: string | undefined;
+
+          if (typeof rawUrl === 'string' && rawUrl.includes('/app/chat/')) {
+            const parts = rawUrl.split('/app/chat/');
+            const firstPart = parts[1];
+            if (typeof firstPart === 'string' && firstPart !== '') {
+              targetChatId = firstPart.split('?')[0];
+            }
+          }
+
+          // Refresh query cache in background
+          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
+
+          // Check if current user is actively viewing this exact chat details page
+          const currentPathname = globalThis.location.pathname;
+          const isCurrentChatOpen =
+            typeof targetChatId === 'string' &&
+            targetChatId !== '' &&
+            currentPathname.includes(`/app/chat/${targetChatId}`);
+
+          if (!isCurrentChatOpen) {
+            const { title: notificationTitle, body: notificationBody } =
+              extractNotificationTitleAndBody(payload);
+
+            let targetPath = '/app/dashboard';
+            if (typeof rawUrl === 'string' && rawUrl !== '') {
+              if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
+                targetPath = rawUrl;
+              } else {
+                try {
+                  const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+                  targetPath = parsedUrl.pathname + parsedUrl.search;
+                } catch {
+                  // Fall back if parse fails
+                }
+              }
+            }
+            if (
+              targetPath === '/app/dashboard' &&
+              typeof targetChatId === 'string' &&
+              targetChatId.trim() !== ''
+            ) {
+              targetPath = `/app/chat/${targetChatId.trim()}`;
+            }
+
+            const notificationApi = (
+              globalThis as unknown as { Notification?: typeof Notification }
+            ).Notification;
+            if (notificationApi?.permission === 'granted') {
+              try {
+                const nativeNotification = new globalThis.Notification(notificationTitle, {
+                  body: notificationBody,
+                  icon: '/favicon.svg',
+                  data: { targetPath },
+                });
+                nativeNotification.addEventListener('click', () => {
+                  globalThis.focus();
+                  router.push(targetPath);
+                });
+              } catch (notificationError: unknown) {
+                console.warn(
+                  '[NativePush:PWA] Could not trigger native system notification:',
+                  notificationError,
+                );
+              }
+            }
+          }
           break;
         }
         case 'native-push-error': {
@@ -252,44 +639,97 @@ export function useNativePush(): {
           console.error('[NativePush:PWA] bridge error:', payload['error']);
           addLog(`Bridge error: ${errorDetail}`);
           setLastError(errorDetail);
+          setStatus((previous) => (previous === 'unknown' ? 'prompt' : previous));
           if (rollbackTimeoutReference.current) {
             clearTimeout(rollbackTimeoutReference.current);
             rollbackTimeoutReference.current = undefined;
-            nativePushBridge.getStatus();
           }
-          import('posthog-js')
-            .then(({ default: ph }) => {
-              ph.capture('native_push_error', { error: payload['error'] });
-            })
-            .catch((importError: unknown) => {
-              console.error('Failed to load posthog-js', importError);
-            });
           break;
         }
       }
     };
 
-    globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
+    const handleAppResume = (): void => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        checkAndExecutePendingPushNavigation(router);
+        if (nativePushBridge.isSupported()) {
+          console.log('[NativePush:PWA] app resumed, requesting updated status');
+          nativePushBridge.getStatus();
+        }
+      }
+    };
 
-    // Initial status check
-    console.log('[NativePush:PWA] requesting initial status');
+    checkAndExecutePendingPushNavigation(router);
+
+    globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('app-webview-native-push-event', handleNativeEvent);
+    }
+    globalThis.addEventListener('visibilitychange', handleAppResume);
+    globalThis.addEventListener('focus', handleAppResume);
+    globalThis.addEventListener('pageshow', handleAppResume);
+
     nativePushBridge.getStatus();
 
+    const statusTimeoutId = setTimeout(() => {
+      setStatus((previous) => {
+        if (previous === 'unknown') {
+          console.log('[NativePush:PWA] status timeout: assuming prompt');
+          return 'prompt';
+        }
+        return previous;
+      });
+    }, 4000);
+
     return (): void => {
-      clearTimeout(timeoutId);
+      clearTimeout(initTimeoutId);
+      clearTimeout(statusTimeoutId);
       if (rollbackTimeoutReference.current) {
         clearTimeout(rollbackTimeoutReference.current);
       }
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('app-webview-native-push-event', handleNativeEvent);
+      }
+      globalThis.removeEventListener('visibilitychange', handleAppResume);
+      globalThis.removeEventListener('focus', handleAppResume);
+      globalThis.removeEventListener('pageshow', handleAppResume);
     };
-  }, [router, registerDevice, unregisterDevice]);
+  }, [router, registerDevice, unregisterDevice, trpcUtils]);
 
   const requestPermission = (): void => {
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog('requestPermission() called');
     setLastError(undefined);
-    if (isNativeApp) {
+    if (isNativeApp || nativePushBridge.isSupported()) {
       console.log('[NativePush:PWA] requestPermission called');
       nativePushBridge.requestPermission();
+      setTimeout(() => nativePushBridge.getStatus(), 500);
+      setTimeout(() => nativePushBridge.getStatus(), 1500);
+      setTimeout(() => nativePushBridge.getStatus(), 3000);
+    }
+
+    if (
+      typeof globalThis !== 'undefined' &&
+      'Notification' in globalThis &&
+      typeof globalThis.Notification.requestPermission === 'function'
+    ) {
+      addLog('Triggering Notification.requestPermission() fallback');
+      void globalThis.Notification.requestPermission()
+        .then((permission) => {
+          addLog(`Notification.requestPermission() result: ${permission}`);
+          if (permission === 'granted') {
+            setStatus('granted');
+            if (nativePushBridge.isSupported()) {
+              nativePushBridge.getStatus();
+            }
+          } else if (permission === 'denied') {
+            setStatus('denied');
+          }
+        })
+        .catch((error: unknown) => {
+          addLog(`Notification.requestPermission error: ${String(error)}`);
+        });
     }
   };
 
@@ -320,6 +760,7 @@ export function useNativePush(): {
   };
 
   const openSettings = (): void => {
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog('openSettings() called');
     setLastError(undefined);
     if (isNativeApp) {
@@ -332,6 +773,8 @@ export function useNativePush(): {
     isNativeApp,
     status,
     hasToken,
+    isRegisteredOnBackend,
+    isUnauthenticated,
     requestPermission,
     deleteToken,
     openSettings,

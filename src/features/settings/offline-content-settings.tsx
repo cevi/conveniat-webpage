@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
-import { syncChatsOffline } from '@/lib/chat-sync';
+import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { motion } from 'framer-motion';
@@ -55,6 +55,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
   const trpcUtils = trpc.useUtils();
   const { status, progress, startDownload, deleteContent } = useOfflineDownload({
     checkCacheOnMount: true,
+    dataSyncFn: () => syncAllOfflineData(trpcUtils),
   });
 
   const displayStatus = status === 'success' ? 'has-content' : status;
@@ -74,8 +75,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               variant="ghost"
               size="icon"
               onClick={() => {
-                void syncChatsOffline(trpcUtils).catch(console.warn);
-                void startDownload();
+                startDownload();
               }}
               title={updateButton[locale]}
               className="h-8 w-8 text-gray-400 hover:text-blue-600"
@@ -87,8 +87,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {
-                void syncChatsOffline(trpcUtils).catch(console.warn);
-                void startDownload();
+                startDownload();
               } else {
                 void deleteContent();
               }
@@ -104,7 +103,10 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
           <div className="flex justify-between text-xs font-medium text-blue-600">
             <span>{downloadingText[locale]}</span>
             <span>
-              {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%
+              {progress.total > 0
+                ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+                : 0}
+              %
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
@@ -112,9 +114,9 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
               className="h-full bg-blue-500"
               initial={{ width: 0 }}
               animate={{
-                width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
+                width: `${progress.total > 0 ? Math.min(100, (progress.current / progress.total) * 100) : 0}%`,
               }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
             />
           </div>
         </div>

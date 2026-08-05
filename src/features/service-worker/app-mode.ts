@@ -46,7 +46,7 @@ export async function persistAppModeClients(): Promise<void> {
  */
 export async function pruneInactiveAppModeClients(self: ServiceWorkerGlobalScope): Promise<void> {
   await ensureAppModeInitialized();
-  const currentClients = await self.clients.matchAll();
+  const currentClients = await self.clients.matchAll({ includeUncontrolled: true });
   const currentClientIds = new Set(currentClients.map((client) => client.id));
 
   const initialSize = appModeClients.size;

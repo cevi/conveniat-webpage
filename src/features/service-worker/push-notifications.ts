@@ -119,12 +119,17 @@ export const pushNotificationHandler =
             shouldShowNotification = false;
             console.log('Notification ignored because ignoreIfAppOpen is enabled.');
           } else if (ignoreIfUrlMatches && targetUrlString) {
+            const normalizePathname = (pathname: string): string =>
+              pathname.replace(/^\/(?:de|fr|en)(?:\/[^/]+)?(?=\/|$)/, '');
+
             const hasMatchingActiveClient = clients.some((client) => {
               if (client.visibilityState !== 'visible') return false;
               try {
                 const clientUrl = new URL(client.url);
                 const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
-                return clientUrl.pathname === targetUrl.pathname;
+                return (
+                  normalizePathname(clientUrl.pathname) === normalizePathname(targetUrl.pathname)
+                );
               } catch {
                 return false;
               }
@@ -162,8 +167,23 @@ export const notificationClickHandler =
     console.log('Notification click received.');
     event.notification.close();
 
-    const notificationData = event.notification.data as NotificationData;
-    const urlString = notificationData.url ?? '/app/dashboard';
+    const notificationData =
+      (event.notification.data as (NotificationData & Record<string, unknown>) | undefined) ?? {};
+    const pathValue = notificationData['path'];
+    const linkValue = notificationData['link'];
+    const chatIdValue = notificationData['chatId'];
+
+    const rawUrlString =
+      notificationData.url ??
+      (typeof pathValue === 'string' ? pathValue : undefined) ??
+      (typeof linkValue === 'string' ? linkValue : undefined) ??
+      (typeof chatIdValue === 'string' || typeof chatIdValue === 'number'
+        ? `/app/chat/${String(chatIdValue)}`
+        : undefined);
+    const urlString =
+      typeof rawUrlString === 'string' && rawUrlString.trim() !== ''
+        ? rawUrlString.trim()
+        : '/app/dashboard';
 
     const url = new URL(urlString, serviceWorkerScope.location.origin);
     url.searchParams.set(DesignModeTriggers.QUERY_PARAM_IMPLICIT, 'true');
@@ -184,18 +204,17 @@ export const notificationClickHandler =
 
       if (existingClient) {
         await existingClient.focus();
-        if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
-          try {
-            await existingClient.navigate(targetUrlString);
-            return;
-          } catch {
-            // fallback to postMessage
-          }
-        }
         existingClient.postMessage({
           type: ServiceWorkerMessages.PUSH_NAVIGATE,
           payload: { url: targetUrlString },
         });
+        if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
+          try {
+            await existingClient.navigate(targetUrlString);
+          } catch {
+            // navigation handled by PUSH_NAVIGATE postMessage
+          }
+        }
       } else {
         await serviceWorkerScope.clients.openWindow(targetUrlString);
       }

@@ -21,8 +21,17 @@ export const useChats = (): UseTRPCQueryResult<
 
   useServiceWorkerListener(handleMessage);
 
-  // ensures that we refresh the chats overview on mount
-  return trpc.chat.chats.useQuery({}, { refetchOnMount: 'always' });
+  return trpc.chat.chats.useQuery(
+    {},
+    {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 60 * 24 * 7,
+
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      placeholderData: (previousData) => previousData,
+    },
+  );
 };
 
 export const useChatDetail = (
@@ -32,6 +41,7 @@ export const useChatDetail = (
   TRPCClientErrorLike<AppRouter>
 > => {
   const trpcUtils = trpc.useUtils();
+  const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine;
 
   const handleMessage = useCallback((): void => {
     console.log('Received message via push notification, invalidating chat detail query');
@@ -44,7 +54,13 @@ export const useChatDetail = (
     { chatId },
     {
       enabled: chatId !== '',
-      refetchInterval: 300_000,
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 60 * 24 * 7,
+
+      refetchOnMount: false,
+      refetchOnWindowFocus: false,
+      refetchInterval: isOnline ? 300_000 : false,
+      placeholderData: (previousData) => previousData,
     },
   );
 };
@@ -72,6 +88,8 @@ export const useSuspenseChatDetail = (
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       refetchIntervalInBackground: false,
+
+      staleTime: 1000 * 60 * 5,
     },
   );
 };

@@ -28,14 +28,24 @@ const landingPageAreaLinktText: StaticTranslationString = {
 };
 
 /**
+ * Async Top Navigation Content component wrapped inside React.Suspense
+ */
+const TopNavContent: React.FC<{ locale: Locale }> = async ({ locale }) => {
+  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
+  const publishedMenuRaw = await getMainMenuFromPayloadCached(locale, false);
+  const publishedMenu = Array.isArray(publishedMenuRaw) ? publishedMenuRaw : [];
+  const processedMenu = await processMenuTree(publishedMenu, locale, false);
+
+  return <DesktopNav locale={locale} menuItems={processedMenu} actionURL={actionURL} />;
+};
+
+/**
  * Top Navigation Header Layout
  * Full-width top bar with contained logo + title and horizontal megamenu on wide screens (>= 1280px).
  */
 const TopNavHeader: React.FC<{
   locale: Locale;
-  processedMenu: Awaited<ReturnType<typeof processMenuTree>>;
-  actionURL: string;
-}> = ({ locale, processedMenu, actionURL }) => {
+}> = ({ locale }) => {
   const languagePrefix = getLanguagePrefix(locale);
 
   return (
@@ -74,7 +84,7 @@ const TopNavHeader: React.FC<{
           {/* Full Width Desktop Top Navigation */}
           <div className="ml-auto flex items-center pr-4">
             <React.Suspense fallback={undefined}>
-              <DesktopNav locale={locale} menuItems={processedMenu} actionURL={actionURL} />
+              <TopNavContent locale={locale} />
             </React.Suspense>
           </div>
 
@@ -139,18 +149,13 @@ const SideNavHeader: React.FC<{
   );
 };
 
-export const HeaderComponent: React.FC<HeaderComponentProperties> = async ({
+export const HeaderComponent: React.FC<HeaderComponentProperties> = ({
   locale,
   inAppDesign,
   navigationMode = 'side-nav',
 }) => {
-  const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
-  const publishedMenuRaw = await getMainMenuFromPayloadCached(locale, false);
-  const publishedMenu = Array.isArray(publishedMenuRaw) ? publishedMenuRaw : [];
-  const processedMenu = await processMenuTree(publishedMenu, locale, false);
-
   if (navigationMode === 'top-nav') {
-    return <TopNavHeader locale={locale} processedMenu={processedMenu} actionURL={actionURL} />;
+    return <TopNavHeader locale={locale} />;
   }
 
   return <SideNavHeader locale={locale} inAppDesign={inAppDesign} />;

@@ -1,13 +1,41 @@
 import { usePathname, useSearchParams } from 'next/navigation';
 import type React from 'react';
-import { startTransition, useCallback, useEffect, useState } from 'react';
+import { startTransition, useCallback, useEffect, useSyncExternalStore } from 'react';
+
+let globalMobileMenuOpen = false;
+const listeners = new Set<() => void>();
+
+function setMobileMenuOpenGlobal(value: boolean | ((previous: boolean) => boolean)): void {
+  const nextValue = typeof value === 'function' ? value(globalMobileMenuOpen) : value;
+  if (globalMobileMenuOpen !== nextValue) {
+    globalMobileMenuOpen = nextValue;
+    for (const listener of listeners) {
+      listener();
+    }
+  }
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return (): void => {
+    listeners.delete(listener);
+  };
+}
+
+function getSnapshot(): boolean {
+  return globalMobileMenuOpen;
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
 
 export function useMobileMenuNavigation(): {
   mobileMenuOpen: boolean;
-  setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setMobileMenuOpen: (value: boolean | ((previous: boolean) => boolean)) => void;
   checkClickEvent: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 } {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuOpen = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const pathname = usePathname();
   const searchParameters = useSearchParams();
 
@@ -18,7 +46,7 @@ export function useMobileMenuNavigation(): {
     // Push the state update to the end of the event loop to avoid React Compiler warnings
     // about synchronous setState during render/effect cycles.
     const timeoutId = setTimeout((): void => {
-      setMobileMenuOpen(false);
+      setMobileMenuOpenGlobal(false);
     }, 0);
     return (): void => clearTimeout(timeoutId);
   }, [pathname, searchParameters]);
@@ -30,12 +58,16 @@ export function useMobileMenuNavigation(): {
         // Wrap in startTransition for in-page anchors or same-page clicks
         // so React batches the state update with any concurrent rendering
         startTransition(() => {
-          setMobileMenuOpen(false);
+          setMobileMenuOpenGlobal(false);
         });
       }
     },
-    [setMobileMenuOpen],
+    [],
   );
 
-  return { mobileMenuOpen, setMobileMenuOpen, checkClickEvent };
+  return {
+    mobileMenuOpen,
+    setMobileMenuOpen: setMobileMenuOpenGlobal,
+    checkClickEvent,
+  };
 }

@@ -61,6 +61,11 @@ export const NativePushSubscriptionManager: React.FC<{
     }
   }, []);
 
+  // Track whether this is the initial mount check vs returning from settings
+  const isInitialMountReference = useRef(true);
+  // Track whether the user explicitly tapped "Benachrichtigungen aktivieren"
+  const userRequestedEnableReference = useRef(false);
+
   useEffect(() => {
     // Check current status on mount
     globalThis.AppWebViewNativePush?.getStatus();
@@ -72,12 +77,14 @@ export const NativePushSubscriptionManager: React.FC<{
       const payload = detail.payload ?? {};
 
       if (type === 'native-push-status') {
-        const label = payload['authorizationLabel'];
-        if (label === 'authorized' || label === 'provisional') {
+        const label = payload['authorizationLabel'] ?? payload['status'];
+        if (label === 'authorized' || label === 'granted' || label === 'provisional') {
           setIsDenied(false);
           setIsAuthorized(true);
-          // Only auto-advance if the permission prompt was explicitly requested via handleEnable
-          if (isRequesting) {
+          // Only auto-advance if it's initial mount check (already granted before onboarding)
+          // OR if the user explicitly clicked "Benachrichtigungen aktivieren".
+          // NEVER auto-advance when returning from Android system settings.
+          if (isInitialMountReference.current || userRequestedEnableReference.current) {
             advance();
           }
         } else if (label === 'denied') {
@@ -90,22 +97,41 @@ export const NativePushSubscriptionManager: React.FC<{
           setIsDenied(false);
           setIsAuthorized(false);
         }
+        isInitialMountReference.current = false;
       } else if (type === 'native-push-token' && typeof payload['token'] === 'string') {
         setIsAuthorized(true);
-        if (isRequesting) {
+        if (isInitialMountReference.current || userRequestedEnableReference.current) {
           advance();
         }
+        isInitialMountReference.current = false;
       }
     };
 
     globalThis.addEventListener('app-webview-native-push-event', handleEvent);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('app-webview-native-push-event', handleEvent);
+    }
+
+    const handleFocus = (): void => {
+      // Re-check status when user returns from settings (focus/visibility change)
+      // isInitialMountReference is false, userRequestedEnableReference is false, so it will ONLY
+      // update isDenied/isAuthorized UI state without calling advance().
+      globalThis.AppWebViewNativePush?.getStatus();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
     return (): void => {
       globalThis.removeEventListener('app-webview-native-push-event', handleEvent);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
     };
-  }, [advance, isRequesting]);
+  }, [advance]);
 
   const handleEnable = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    userRequestedEnableReference.current = true;
     if (isAuthorized) {
       advance();
     } else {

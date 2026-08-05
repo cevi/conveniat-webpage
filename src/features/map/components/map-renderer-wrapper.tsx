@@ -15,7 +15,7 @@ import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import dynamic from 'next/dynamic';
 import type React from 'react';
-import { useRef } from 'react';
+import { Suspense, useRef } from 'react';
 
 const mapLoadingText: StaticTranslationString = {
   en: 'Loading map...',
@@ -39,7 +39,6 @@ const LazyMapLibreRenderer = dynamic(
   () => import('@/features/map/components/maplibre-renderer/map-renderer'),
   {
     ssr: false,
-    loading: () => <MapLoadingFallback />,
   },
 );
 
@@ -49,16 +48,9 @@ const LazyMiniMapLibreRenderer = dynamic(
   () => import('@/features/map/components/maplibre-renderer/map-renderer'),
   {
     ssr: false,
-    loading: () => <MiniMapLoadingFallback />,
   },
 );
 
-/**
- * This component is a wrapper for the MapLibreRenderer that allows for dynamic loading. This
- * helps to reduce the bundle size and improve performance by loading the map renderer only when it is necessary.
- *
- * It accepts initial map pose, Cevi logo markers, and options for limiting usage and validating style.
- */
 export interface MapLibreRendererProperties {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -67,7 +59,7 @@ export interface MapLibreRendererProperties {
   schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
   validateStyle?: boolean;
-  mapControlOptions?: MapControlOptions | undefined;
+  mapControlOptions?: MapControlOptions;
   selectedAnnotationId?: string;
   hideDrawer?: boolean;
   disableUrlSync?: boolean;
@@ -100,21 +92,23 @@ export const MapLibreRenderer = ({
   return (
     <div ref={reference} className="h-full w-full">
       {isVisible ? (
-        <LazyMapLibreRenderer
-          initialMapPose={initialMapPose}
-          ceviLogoMarkers={ceviLogoMarkers}
-          campMapAnnotationPoints={campMapAnnotationPoints}
-          campMapAnnotationPolygons={campMapAnnotationPolygons}
-          schedules={schedules}
-          limitUsage={limitUsage}
-          validateStyle={validateStyle}
-          mapControlOptions={mapControlOptions}
-          {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
-          {...(hideDrawer !== undefined && { hideDrawer })}
-          {...(disableUrlSync !== undefined && { disableUrlSync })}
-          {...(disableFlyTo !== undefined && { disableFlyTo })}
-          {...(enableSearch !== undefined && { enableSearch })}
-        />
+        <Suspense fallback={<MapLoadingFallback />}>
+          <LazyMapLibreRenderer
+            initialMapPose={initialMapPose}
+            ceviLogoMarkers={ceviLogoMarkers}
+            campMapAnnotationPoints={campMapAnnotationPoints}
+            campMapAnnotationPolygons={campMapAnnotationPolygons}
+            schedules={schedules}
+            limitUsage={limitUsage}
+            validateStyle={validateStyle}
+            mapControlOptions={mapControlOptions}
+            {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
+            {...(hideDrawer !== undefined && { hideDrawer })}
+            {...(disableUrlSync !== undefined && { disableUrlSync })}
+            {...(disableFlyTo !== undefined && { disableFlyTo })}
+            {...(enableSearch !== undefined && { enableSearch })}
+          />
+        </Suspense>
       ) : (
         <MapLoadingFallback />
       )}
@@ -147,21 +141,23 @@ export const MiniMapLibreRenderer = ({
   return (
     <div ref={reference} className="h-full w-full">
       {isVisible ? (
-        <LazyMiniMapLibreRenderer
-          initialMapPose={initialMapPose}
-          ceviLogoMarkers={ceviLogoMarkers}
-          campMapAnnotationPoints={campMapAnnotationPoints}
-          campMapAnnotationPolygons={campMapAnnotationPolygons}
-          schedules={schedules}
-          limitUsage={limitUsage}
-          validateStyle={validateStyle}
-          mapControlOptions={mapControlOptions}
-          {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
-          {...(hideDrawer !== undefined && { hideDrawer })}
-          {...(disableUrlSync !== undefined && { disableUrlSync })}
-          {...(disableFlyTo !== undefined && { disableFlyTo })}
-          {...(enableSearch !== undefined && { enableSearch })}
-        />
+        <Suspense fallback={<MiniMapLoadingFallback />}>
+          <LazyMiniMapLibreRenderer
+            initialMapPose={initialMapPose}
+            ceviLogoMarkers={ceviLogoMarkers}
+            campMapAnnotationPoints={campMapAnnotationPoints}
+            campMapAnnotationPolygons={campMapAnnotationPolygons}
+            schedules={schedules}
+            limitUsage={limitUsage}
+            validateStyle={validateStyle}
+            mapControlOptions={mapControlOptions}
+            {...(selectedAnnotationId !== undefined && { selectedAnnotationId })}
+            {...(hideDrawer !== undefined && { hideDrawer })}
+            {...(disableUrlSync !== undefined && { disableUrlSync })}
+            {...(disableFlyTo !== undefined && { disableFlyTo })}
+            {...(enableSearch !== undefined && { enableSearch })}
+          />
+        </Suspense>
       ) : (
         <MiniMapLoadingFallback />
       )}

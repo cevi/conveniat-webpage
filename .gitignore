@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/.temp_test_artifacts
+__pycache__/
+*.pyc
 
 # next.js
 /.next/
@@ -75,3 +78,11 @@ seeding.lock
 
 # openapi spec
 openapi.yaml
+
+# git worktrees
+/worktrees/
+
+# agent artifacts
+artifacts/
+
+

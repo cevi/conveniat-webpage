@@ -110,7 +110,13 @@ export const ShiftEnrollmentAction: React.FC<{
 
   const utils = trpc.useUtils();
 
-  const { data: status, isLoading } = trpc.shifts.getShiftStatus.useQuery({ shiftId });
+  const { data: status, isLoading } = trpc.shifts.getShiftStatus.useQuery(
+    { shiftId },
+    {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 60 * 24 * 7,
+    },
+  );
 
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');

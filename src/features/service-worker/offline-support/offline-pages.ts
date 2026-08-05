@@ -22,8 +22,14 @@ export const offlinePages = [
   // Main application dashboard
   '/app/dashboard',
 
+  // Chat page
+  '/app/chat',
+
   // Schedule page with local DB offline support
   '/app/schedule',
+
+  // Helper Portal page
+  '/app/helper-portal',
 
   // emergency information page
   '/app/emergency',

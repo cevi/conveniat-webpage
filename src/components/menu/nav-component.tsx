@@ -68,7 +68,7 @@ export const NavComponent: React.FC<{
 
         <Dialog open={mobileMenuOpen} onClose={handleClose}>
           <div className="fixed inset-0 z-[90] cursor-pointer bg-black/20" />
-          <DialogPanel className="fixed inset-y-0 right-0 z-[95] mt-[62px] w-full max-w-md overflow-y-scroll bg-white px-4 pt-4 pb-6 shadow-2xl">
+          <DialogPanel className="fixed inset-y-0 right-0 left-0 z-[95] mt-[62px] w-full overflow-y-scroll bg-white px-4 pt-4 pb-6 shadow-2xl">
             <div onClick={(event): void => checkClickEvent(event)}>{children}</div>
           </DialogPanel>
         </Dialog>

@@ -35,9 +35,10 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
         },
       )}
     >
-      <div
+      <button
+        type="button"
         onClick={onToggle}
-        className="flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left focus:outline-hidden"
+        className="focus-visible:outline-conveniat-blue flex w-full cursor-pointer items-center justify-between px-6 py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2"
         aria-expanded={isExpanded}
         aria-controls={`content-${blockId}`}
       >
@@ -47,7 +48,7 @@ const AccordionItem: React.FC<AccordionItemProperties> = ({
             {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
         )}
-      </div>
+      </button>
 
       <div
         id={`content-${blockId}`}

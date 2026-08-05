@@ -67,7 +67,7 @@ const createTitleElement = (
     const portrait: string | Image | null | undefined = teamLeaderGroup.portrait;
 
     return (
-      <button className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
+      <div className="group flex w-full cursor-pointer flex-col items-center gap-4 rounded-md px-2 py-4 text-center transition-colors md:flex-row md:py-2 md:text-left">
         <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-full md:h-24 md:w-24">
           {<TeamLeaderPortrait name={name} portrait={portrait} hoverEffect={false} />}
         </div>
@@ -75,7 +75,7 @@ const createTitleElement = (
           <p className="font-medium text-gray-900">{name}</p>
           {ceviname !== '' && <p className="text-sm text-gray-500">{ceviname}</p>}
         </div>
-      </button>
+      </div>
     );
   }
 

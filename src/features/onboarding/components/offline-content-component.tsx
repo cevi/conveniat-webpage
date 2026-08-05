@@ -11,11 +11,12 @@ import {
   offlineContentTitle,
 } from '@/features/onboarding/onboarding-constants';
 import { useOfflineDownload } from '@/hooks/use-offline-download';
-import { syncChatsOffline } from '@/lib/chat-sync';
+import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { motion } from 'framer-motion';
-import React from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 interface OfflineContentEntrypointComponentProperties {
   callback: (accepted: boolean) => void;
@@ -26,24 +27,25 @@ export const OfflineContentEntrypointComponent: React.FC<
   OfflineContentEntrypointComponentProperties
 > = ({ callback, locale }) => {
   const trpcUtils = trpc.useUtils();
+  const router = useRouter();
 
   const { status, progress, startDownload } = useOfflineDownload({
     checkSwReadyOnMount: true,
     onSuccess: () => callback(true),
+    dataSyncFn: () => syncAllOfflineData(trpcUtils),
   });
 
-  // When hook detects content is already ready, callback immediately
-  React.useEffect(() => {
-    if (status === 'has-content') {
-      callback(true);
+  // Prefetch main destinations while user decides on offline download
+  useEffect(() => {
+    try {
+      router.prefetch('/app/dashboard');
+      router.prefetch('/app/chat');
+    } catch {
+      // ignore
     }
-  }, [status, callback]);
+  }, [router]);
 
   const handleDownload = (): void => {
-    // Prefetch emergency alert settings for offline usage
-    void trpcUtils.emergency.getAlertSettings.ensureData().catch(console.warn);
-    // Prefetch chats for offline usage
-    void syncChatsOffline(trpcUtils).catch(console.warn);
     startDownload();
   };
 
@@ -92,16 +94,26 @@ export const OfflineContentEntrypointComponent: React.FC<
           <div className="w-full space-y-2">
             <div className="text-center text-sm font-medium text-red-700">
               {offlineContentDownloading[locale]} (
-              {progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0}%)
+              {progress.total > 0
+                ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+                : 0}
+              %)
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-red-100">
               <motion.div
-                className="h-full bg-red-700"
+                className="relative h-full overflow-hidden bg-red-700"
                 initial={{ width: 0 }}
                 animate={{
-                  width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%`,
+                  width: `${progress.total > 0 ? Math.min(100, (progress.current / progress.total) * 100) : 0}%`,
                 }}
-              />
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                />
+              </motion.div>
             </div>
           </div>
         )}

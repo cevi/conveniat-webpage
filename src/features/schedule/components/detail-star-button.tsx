@@ -18,7 +18,9 @@ export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId
   const { isStarred, toggleStar } = useStar();
 
   // Get enrolled courses to check if this entry is enrolled
-  const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery();
+  const { data: myEnrollments } = trpc.schedule.getMyEnrollments.useQuery(undefined, {
+    staleTime: 1000 * 60 * 5,
+  });
   const enrolledIds = useMemo(() => new Set(myEnrollments ?? []), [myEnrollments]);
   const isEnrolled = enrolledIds.has(entryId);
   const currentlyStarred = isStarred(entryId);

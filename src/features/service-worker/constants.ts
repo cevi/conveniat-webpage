@@ -16,11 +16,12 @@ export const CACHE_NAMES = {
   MAP_TILES: 'map-tiles-cache-v1',
   OFFLINE_STATUS: 'offline-status-cache-v1',
   APP_MODE: 'app-mode-persistence-v1',
+  AUTH_SESSION: 'next-auth-session-cache',
 } as const;
 
 export const TIMEOUTS = {
   DEFAULT_FETCH: 10_000, // 10 seconds
-  RSC_FETCH: 15_000, // 15 seconds
+  RSC_FETCH: 3000, // 3 seconds
   PREFETCH_CONCURRENCY: 20, // High concurrency to utilize HTTP/2 streams for map tiles
   ASSET_FETCH: 15_000, // 15 seconds per asset
   PROGRESS_STALL: 25_000, // 25 seconds without progress = stall

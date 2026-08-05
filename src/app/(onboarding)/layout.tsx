@@ -8,16 +8,14 @@ import { ServiceWorkerManager } from '@/components/service-worker/service-worker
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { environmentVariables } from '@/config/environment-variables';
 import { PostHogProvider } from '@/providers/post-hog-provider';
+import { TRPCProvider } from '@/trpc/client';
+import { sharedFontClassName } from '@/utils/fonts';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { SessionProvider } from 'next-auth/react';
-import { Inter, Montserrat } from 'next/font/google';
 
 interface LayoutProperties {
   children: ReactNode;
 }
-
-const montserrat = Montserrat({ subsets: ['latin'] });
-const inter = Inter({ subsets: ['latin'] });
 
 /**
  * This is the root layout for the app entrypoint.
@@ -32,7 +30,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
   return (
     <html
       suppressHydrationWarning
-      className={`${montserrat.className} ${inter.className} overscroll-y-none`}
+      className={`${sharedFontClassName} overscroll-y-none`}
       lang={locale}
     >
       <head>
@@ -44,6 +42,50 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
         suppressHydrationWarning
         className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc]"
       >
+        {/*
+          Early capture script for native push notification clicks on cold start.
+          When the app is killed and a push notification is tapped, the native shell
+          dispatches 'native-push-open' before React hydrates. This inline script
+          captures that event and stores the target URL so the onboarding flow can
+          redirect to it once completed.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+  function extractUrl(p){
+    if(!p||typeof p!=='object')return;
+    var cs=[p,p.data,p.notification,p.aps,p.userInfo];
+    if(p.notification)cs.push(p.notification.data,p.notification.aps,p.notification.userInfo);
+    for(var i=0;i<cs.length;i++){
+      var c=cs[i];if(!c||typeof c!=='object')continue;
+      var cid=c.chatId;
+      if(typeof cid==='string'&&cid.trim())return'/app/chat/'+cid.trim();
+      if(typeof cid==='number')return'/app/chat/'+cid;
+    }
+    for(var j=0;j<cs.length;j++){
+      var c2=cs[j];if(!c2||typeof c2!=='object')continue;
+      var ks=['redirectTo','url','path','link','target'];
+      for(var k=0;k<ks.length;k++){
+        var v=c2[ks[k]];
+        if(typeof v==='string'&&v.trim())return v.trim();
+      }
+    }
+  }
+  window.addEventListener('app-webview-native-push-event',function(e){
+    try{
+      var d=e.detail||{};
+      if(d.type==='native-push-open'){
+        var u=extractUrl(d.payload||{});
+        if(u){
+          try{sessionStorage.setItem('pending_push_redirect',u)}catch(x){}
+          try{localStorage.setItem('pending_push_redirect',u)}catch(x){}
+        }
+      }
+    }catch(err){}
+  });
+})();`,
+          }}
+        />
         <PostHogProvider>
           <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
             <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
@@ -60,7 +102,9 @@ const AppEntrypointRootLayout: React.FC<LayoutProperties> = ({ children }) => {
     <Suspense>
       <AppEntrypointLayout>
         <ServiceWorkerManager>
-          <SessionProvider>{children}</SessionProvider>
+          <TRPCProvider>
+            <SessionProvider>{children}</SessionProvider>
+          </TRPCProvider>
         </ServiceWorkerManager>
       </AppEntrypointLayout>
     </Suspense>

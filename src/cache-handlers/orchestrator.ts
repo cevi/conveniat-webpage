@@ -49,6 +49,9 @@ export class Orchestrator implements CacheOrchestrator {
       if (redisResult) {
         return this.hydrateEntry(redisResult.value, redisResult.metadata);
       }
+      // At runtime with Redis, a missing key means it was revalidated/evicted.
+      // Do not fall back to stale build-time fsCache!
+      return undefined;
     }
 
     // Try FileSystem Second (Fallback/Immutable)
@@ -106,7 +109,9 @@ export class Orchestrator implements CacheOrchestrator {
       console.error(`[Orchestrator] SET Error for ${cacheKey}:`, error);
     } finally {
       resolveLock();
-      this.pendingSets.delete(cacheKey);
+      if (this.pendingSets.get(cacheKey) === lock) {
+        this.pendingSets.delete(cacheKey);
+      }
     }
   }
 

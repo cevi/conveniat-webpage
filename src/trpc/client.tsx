@@ -9,6 +9,7 @@ import { defaultShouldDehydrateQuery } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
+import * as TRPCReactModule from '@trpc/react-query';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { signOut } from 'next-auth/react';
@@ -62,6 +63,102 @@ const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
  * Setup static persister which falls back to no-op on Server Side Rendering.
  * This guarantees consistent component mounting during hydration and prevents warnings.
  */
+/* eslint-disable unicorn/prevent-abbreviations, unicorn/prefer-add-event-listener, unicorn/no-null */
+const indexedDBStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return null;
+    return new Promise((resolve) => {
+      try {
+        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
+        openRequest.onupgradeneeded = (): void => {
+          if (!openRequest.result.objectStoreNames.contains('keyval')) {
+            openRequest.result.createObjectStore('keyval');
+          }
+        };
+        openRequest.onsuccess = (): void => {
+          const db = openRequest.result;
+          const tx = db.transaction('keyval', 'readonly');
+          const store = tx.objectStore('keyval');
+          const getReq = store.get(key);
+          getReq.onsuccess = (): void => {
+            resolve((getReq.result as string | undefined) ?? null);
+            db.close();
+          };
+          getReq.onerror = (): void => {
+            resolve(null);
+            db.close();
+          };
+        };
+        openRequest.onerror = (): void => resolve(null);
+      } catch {
+        resolve(null);
+      }
+    });
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return;
+    return new Promise((resolve) => {
+      try {
+        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
+        openRequest.onupgradeneeded = (): void => {
+          if (!openRequest.result.objectStoreNames.contains('keyval')) {
+            openRequest.result.createObjectStore('keyval');
+          }
+        };
+        openRequest.onsuccess = (): void => {
+          const db = openRequest.result;
+          const tx = db.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          store.put(value, key);
+          tx.oncomplete = (): void => {
+            resolve();
+            db.close();
+          };
+          tx.onerror = (): void => {
+            console.warn('[IndexedDBStorage] Failed to write to store:', tx.error);
+            db.close();
+            resolve();
+          };
+        };
+        openRequest.onerror = (): void => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return;
+    return new Promise((resolve) => {
+      try {
+        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
+        openRequest.onupgradeneeded = (): void => {
+          if (!openRequest.result.objectStoreNames.contains('keyval')) {
+            openRequest.result.createObjectStore('keyval');
+          }
+        };
+        openRequest.onsuccess = (): void => {
+          const db = openRequest.result;
+          const tx = db.transaction('keyval', 'readwrite');
+          const store = tx.objectStore('keyval');
+          store.delete(key);
+          tx.oncomplete = (): void => {
+            resolve();
+            db.close();
+          };
+          tx.onerror = (): void => {
+            resolve();
+            db.close();
+          };
+        };
+        openRequest.onerror = (): void => resolve();
+      } catch {
+        resolve();
+      }
+    });
+  },
+};
+/* eslint-enable unicorn/prevent-abbreviations, unicorn/prefer-add-event-listener, unicorn/no-null */
+
 const persister: Persister =
   // eslint-disable-next-line unicorn/prefer-global-this
   typeof window === 'undefined'
@@ -71,8 +168,21 @@ const persister: Persister =
         removeClient: (): Promise<void> => Promise.resolve(),
       }
     : createAsyncStoragePersister({
-        storage: globalThis.localStorage,
-        key: 'conveniat-query-cache',
+        storage: indexedDBStorage,
+        serialize: (data) => superjson.stringify(data),
+        deserialize: (data) => {
+          try {
+            return superjson.parse(data);
+          } catch (error) {
+            console.error('[TRPCPersister] Failed to parse query cache:', error);
+            return {
+              timestamp: Date.now(),
+              buster: '',
+              clientState: { queries: [], mutations: [] },
+            };
+          }
+        },
+        key: 'conveniat-query-cache-idb',
       });
 
 const persistOptions = {
@@ -85,7 +195,11 @@ const persistOptions = {
       if (query.queryKey[0] === 'qrCodeSvgImage') {
         return false;
       }
-      return defaultShouldDehydrateQuery(query);
+      return (
+        defaultShouldDehydrateQuery(query) ||
+        query.state.fetchStatus === 'paused' ||
+        query.state.data !== undefined
+      );
     },
   },
 };
@@ -111,3 +225,15 @@ export const TRPCProvider: React.FC<{
     </trpc.Provider>
   );
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+const RealTRPCContext = (TRPCReactModule as any).TRPCContext as React.Context<unknown> | undefined;
+const fallbackContext = React.createContext<unknown>(undefined);
+
+export function useOptionalTrpcUtils(): ReturnType<typeof trpc.useUtils> | undefined {
+  const context = React.useContext(RealTRPCContext ?? fallbackContext);
+  if (context === undefined || context === null) {
+    return undefined;
+  }
+  return trpc.useUtils();
+}

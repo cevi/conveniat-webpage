@@ -57,9 +57,11 @@ export const emergencyRouter = createTRPCRouter({
       limit: 100,
       depth: 2, // Ensure documents and images relationships are populated
       locale: ctx.locale,
+      fallbackLocale: false,
+      draft: false,
       where: {
-        _status: {
-          equals: 'published',
+        _localized_status: {
+          equals: { published: true },
         },
       },
     });
@@ -304,11 +306,11 @@ export const emergencyRouter = createTRPCRouter({
           localizedAlertMessage = `Urgence de ${user.name}! (${caseNumber})`;
         }
 
-        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid).catch(
-          (error: unknown) => {
-            console.error('Failed to send push notification to piket members:', error);
-          },
-        );
+        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
+          chatName: chat.name,
+        }).catch((error: unknown) => {
+          console.error('Failed to send push notification to piket members:', error);
+        });
       }
 
       // Fetch the created messages from DB to get their real UUIDs and content payloads
@@ -344,6 +346,6 @@ export const emergencyRouter = createTRPCRouter({
           });
       }
 
-      return { success: true, redirectUrl: `/app/chat/${chat.uuid}` };
+      return { success: true, redirectUrl: `/app/chat/${chat.uuid}`, chatId: chat.uuid };
     }),
 });

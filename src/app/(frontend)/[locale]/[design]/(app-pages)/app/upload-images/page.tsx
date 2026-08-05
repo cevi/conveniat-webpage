@@ -1,5 +1,6 @@
 'use client';
 
+import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { CopyrightModal } from '@/features/image-submission/copyright-modal';
 import { DescriptionInput } from '@/features/image-submission/description-input';
@@ -307,126 +308,127 @@ const ImageUploadPage: React.FC = () => {
 
   const isSubmitDisabled = selectedFiles.filter((f) => !f.error).length === 0;
 
-  if (showSuccessView) {
-    return (
-      <div className="container mx-auto max-w-2xl px-4 py-16">
-        <div className="flex flex-col items-center justify-center text-center">
-          <div className="bg-conveniat-green/10 relative mb-10 flex h-36 w-36 items-center justify-center rounded-full shadow-inner">
-            <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-2000" />
-            <LucideImageIcon className="text-conveniat-green h-14 w-14" />
-            <div className="absolute -top-2 -right-2">
-              <Sparkles className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm" />
-            </div>
-            <div className="absolute -bottom-1 -left-1">
-              <Sparkles className="h-6 w-6 animate-bounce text-yellow-400 drop-shadow-sm delay-150" />
-            </div>
-          </div>
-
-          <HeadlineH1 className="mb-4 text-center">{successTitle[locale]}</HeadlineH1>
-
-          <h2 className="mb-3 text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
-            {successMessage[locale]}
-          </h2>
-          <p className="mb-10 text-lg font-medium text-gray-500">
-            {uploadSecurelyTransferred[locale]}
-          </p>
-
-          <button
-            onClick={resetToForm}
-            className="bg-conveniat-green shadow-conveniat-green/20 hover:bg-conveniat-green-dark focus:ring-conveniat-green/30 flex transform cursor-pointer items-center justify-center gap-3 rounded-full px-8 py-4 text-base font-bold tracking-wide text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 active:translate-y-0"
-          >
-            <LucideImageIcon className="h-5 w-5" />
-            {submitMoreButton[locale]}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto min-h-screen max-w-2xl bg-gray-50/50 px-4 py-8">
-      {/* Header */}
-      <div className="mb-8 border-b border-gray-200 pb-6">
-        <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
-        <p className="mt-2 text-base text-gray-500">{pageDescription[locale]}</p>
-      </div>
-
-      <form onSubmit={(event) => void handleFormSubmit(event)} className="space-y-8">
-        {errorMessage !== '' && (
-          <div className="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50 p-4 text-red-800">
-            <LucideImageIcon className="h-6 w-6 shrink-0 opacity-80" />
-            <p className="text-sm font-medium">{errorMessage}</p>
-          </div>
-        )}
-
-        {/* Selected Files List - Rendered FIRST as requested */}
-        {selectedFiles.length > 0 && (
-          <div className="space-y-6">
-            <div className="mb-2 flex items-center justify-between px-2">
-              <label className="text-xl font-extrabold tracking-tight text-gray-900">
-                {selectedImages[locale]} ({selectedFiles.length})
-              </label>
+    <>
+      <SetDynamicPageTitle newTitle={pageTitle[locale]} />
+      {showSuccessView ? (
+        <div className="container mx-auto max-w-2xl px-4 py-16">
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="bg-conveniat-green/10 relative mb-10 flex h-36 w-36 items-center justify-center rounded-full shadow-inner">
+              <div className="bg-conveniat-green/20 absolute inset-0 animate-ping rounded-full opacity-20 duration-2000" />
+              <LucideImageIcon className="text-conveniat-green h-14 w-14" />
+              <div className="absolute -top-2 -right-2">
+                <Sparkles className="h-10 w-10 animate-pulse text-yellow-400 drop-shadow-sm" />
+              </div>
+              <div className="absolute -bottom-1 -left-1">
+                <Sparkles className="h-6 w-6 animate-bounce text-yellow-400 drop-shadow-sm delay-150" />
+              </div>
             </div>
-            {selectedFiles.map((fileItem, index) => (
-              <div
-                key={fileItem.file.name}
-                className="group overflow-hidden rounded-3xl border border-gray-200/60 bg-white shadow-sm transition-shadow hover:shadow-md"
-              >
-                <FilePreviewList
-                  files={[fileItem.file]}
-                  onRemoveFile={() => removeFile(index)}
-                  {...(fileItem.error ? { errorMessage: fileItem.error } : {})}
-                />
-                {/* Only show description input if there is no error on the file */}
-                {!fileItem.error && (
-                  <div className="px-5 pb-5">
-                    <DescriptionInput
-                      value={fileDescriptions[fileItem.file.name] || ''}
-                      onChange={(desc) => handleDescriptionChange(fileItem.file.name, desc)}
+
+            <HeadlineH1 className="mb-4 text-center">{successTitle[locale]}</HeadlineH1>
+
+            <h2 className="mb-3 text-xl font-bold tracking-tight text-gray-900 md:text-2xl">
+              {successMessage[locale]}
+            </h2>
+            <p className="mb-10 text-lg font-medium text-gray-500">
+              {uploadSecurelyTransferred[locale]}
+            </p>
+
+            <button
+              onClick={resetToForm}
+              className="bg-conveniat-green shadow-conveniat-green/20 hover:bg-conveniat-green-dark focus:ring-conveniat-green/30 flex transform cursor-pointer items-center justify-center gap-3 rounded-full px-8 py-4 text-base font-bold tracking-wide text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus:ring-4 active:translate-y-0"
+            >
+              <LucideImageIcon className="h-5 w-5" />
+              {submitMoreButton[locale]}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="container mx-auto min-h-screen max-w-2xl bg-gray-50/50 px-4 py-8">
+          {/* Header */}
+          <div className="mb-8 border-b border-gray-200 pb-6">
+            <HeadlineH1>{pageTitle[locale]}</HeadlineH1>
+            <p className="mt-2 text-base text-gray-500">{pageDescription[locale]}</p>
+          </div>
+
+          <form onSubmit={(event) => void handleFormSubmit(event)} className="space-y-8">
+            {errorMessage !== '' && (
+              <div className="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50 p-4 text-red-800">
+                <LucideImageIcon className="h-6 w-6 shrink-0 opacity-80" />
+                <p className="text-sm font-medium">{errorMessage}</p>
+              </div>
+            )}
+
+            {/* Selected Files List - Rendered FIRST as requested */}
+            {selectedFiles.length > 0 && (
+              <div className="space-y-6">
+                <div className="mb-2 flex items-center justify-between px-2">
+                  <label className="text-xl font-extrabold tracking-tight text-gray-900">
+                    {selectedImages[locale]} ({selectedFiles.length})
+                  </label>
+                </div>
+                {selectedFiles.map((fileItem, index) => (
+                  <div
+                    key={fileItem.file.name}
+                    className="group overflow-hidden rounded-3xl border border-gray-200/60 bg-white shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <FilePreviewList
+                      files={[fileItem.file]}
+                      onRemoveFile={() => removeFile(index)}
+                      {...(fileItem.error ? { errorMessage: fileItem.error } : {})}
                     />
-                    {fileItem.descriptionError && (
-                      <p className="mt-2 text-sm font-medium text-red-600">
-                        {fileItem.descriptionError}
-                      </p>
+                    {/* Only show description input if there is no error on the file */}
+                    {!fileItem.error && (
+                      <div className="px-5 pb-5">
+                        <DescriptionInput
+                          value={fileDescriptions[fileItem.file.name] || ''}
+                          onChange={(desc) => handleDescriptionChange(fileItem.file.name, desc)}
+                        />
+                        {fileItem.descriptionError && (
+                          <p className="mt-2 text-sm font-medium text-red-600">
+                            {fileItem.descriptionError}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Upload Zone - Turns into 'Add more' area if files exist */}
-        <div className="space-y-6">
-          <FileUploadZone onFileSelect={handleFileSelect} compact={selectedFiles.length > 0} />
-        </div>
+            {/* Upload Zone - Turns into 'Add more' area if files exist */}
+            <div className="space-y-6">
+              <FileUploadZone onFileSelect={handleFileSelect} compact={selectedFiles.length > 0} />
+            </div>
 
-        <div
-          className={cn(
-            selectedFiles.length > 0
-              ? 'pointer-events-none fixed right-0 bottom-[76px] left-0 z-40 p-4 md:static md:p-0'
-              : '',
-          )}
-        >
-          <div className="pointer-events-auto container mx-auto max-w-2xl md:px-0">
-            <SubmitButton
-              isDisabled={isSubmitDisabled}
-              fileCount={selectedFiles.filter((f) => !f.error).length}
-              isLoading={isUploading}
+            <div
+              className={cn(
+                selectedFiles.length > 0
+                  ? 'pointer-events-none fixed right-0 bottom-[76px] left-0 z-40 p-4 md:static md:p-0'
+                  : '',
+              )}
+            >
+              <div className="pointer-events-auto container mx-auto max-w-2xl md:px-0">
+                <SubmitButton
+                  isDisabled={isSubmitDisabled}
+                  fileCount={selectedFiles.filter((f) => !f.error).length}
+                  isLoading={isUploading}
+                />
+              </div>
+            </div>
+            {/* Spacer for sticky button on mobile */}
+            {selectedFiles.length > 0 && <div className="h-32 md:hidden" />}
+
+            <CopyrightModal
+              open={showCopyrightModal}
+              onOpenChange={setShowCopyrightModal}
+              onConfirm={() => void handleFinalUpload()}
+              isUploading={isUploading}
             />
-          </div>
+          </form>
         </div>
-        {/* Spacer for sticky button on mobile */}
-        {selectedFiles.length > 0 && <div className="h-32 md:hidden" />}
-
-        <CopyrightModal
-          open={showCopyrightModal}
-          onOpenChange={setShowCopyrightModal}
-          onConfirm={() => void handleFinalUpload()}
-          isUploading={isUploading}
-        />
-      </form>
-    </div>
+      )}
+    </>
   );
 };
 

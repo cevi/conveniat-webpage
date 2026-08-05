@@ -1,6 +1,6 @@
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import { CacheFirst, type RouteHandler, type SerwistPlugin } from 'serwist';
+import { CacheFirst, ExpirationPlugin, type RouteHandler, type SerwistPlugin } from 'serwist';
 
 const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
 const tilesStyleBaseUrl = 'https://vectortiles.geo.admin.ch/tiles/';
@@ -165,7 +165,13 @@ export const registerMapOfflineSupport: () => void = (): void => {
         matcher: /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/(tiles|styles)\/.*/,
         handler: new CacheFirst({
           cacheName: CACHE_NAMES.MAP_TILES,
-          plugins: [tileNormalizationPlugin],
+          plugins: [
+            tileNormalizationPlugin,
+            new ExpirationPlugin({
+              maxEntries: 1000,
+              maxAgeSeconds: 30 * 24 * 60 * 60,
+            }),
+          ],
         }),
       },
     ],

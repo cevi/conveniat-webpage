@@ -43,9 +43,11 @@ export async function sendFcmNotification(
     body: string;
     data: {
       url?: string;
+      chatId?: string;
       notificationId?: string;
       ignoreIfAppOpen?: string;
       ignoreIfUrlMatches?: string;
+      [key: string]: string | undefined;
     };
   },
 ): Promise<{ success: boolean; error?: string }> {
@@ -72,8 +74,11 @@ export async function sendFcmNotification(
         body: payload.body,
       },
       data: {
+        title: payload.title,
+        body: payload.body,
         url: payload.data.url ?? '/app/dashboard',
         notificationId,
+        ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
         ...(payload.data.ignoreIfAppOpen !== undefined && {
           ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
         }),
@@ -84,6 +89,54 @@ export async function sendFcmNotification(
       apns: {
         headers: {
           'apns-collapse-id': notificationId,
+          'apns-push-type': 'alert',
+          'apns-priority': '10',
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: payload.title,
+              body: payload.body,
+            },
+            sound: 'default',
+          },
+          notificationId,
+          ...(payload.data.url !== undefined && { url: payload.data.url }),
+          ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+          ...(payload.data.ignoreIfUrlMatches !== undefined && {
+            ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+          }),
+          data: {
+            title: payload.title,
+            body: payload.body,
+            notificationId,
+            ...(payload.data.url !== undefined && { url: payload.data.url }),
+            ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+            ...(payload.data.ignoreIfUrlMatches !== undefined && {
+              ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+            }),
+          },
+        },
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          title: payload.title,
+          body: payload.body,
+          sound: 'default',
+        },
+        data: {
+          title: payload.title,
+          body: payload.body,
+          notificationId,
+          url: payload.data.url ?? '/app/dashboard',
+          ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+          ...(payload.data.ignoreIfAppOpen !== undefined && {
+            ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
+          }),
+          ...(payload.data.ignoreIfUrlMatches !== undefined && {
+            ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
+          }),
         },
       },
     });

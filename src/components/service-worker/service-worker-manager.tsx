@@ -2,8 +2,11 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
+import { performReliablePushNavigation } from '@/hooks/use-native-push';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
+import { useOptionalTrpcUtils } from '@/trpc/client';
+import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -24,8 +27,9 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
 }) => {
   useAppMode();
   const router = useRouter();
+  const trpcUtils = useOptionalTrpcUtils();
 
-  useServiceWorkerMessage<{ url?: string }>(
+  useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,
     React.useCallback(
       (payload) => {
@@ -42,14 +46,25 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
               console.warn('[Service Worker Manager] Could not parse navigation URL:', rawUrl);
             }
           }
+
+          let targetChatId: string | undefined;
+          if (targetPath.includes('/app/chat/')) {
+            const parts = targetPath.split('/app/chat/');
+            const firstPart = parts[1];
+            if (typeof firstPart === 'string' && firstPart !== '') {
+              targetChatId = firstPart.split('?')[0];
+            }
+          }
+          refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload.payload);
+
           console.log(
             '[Service Worker Manager] PUSH_NAVIGATE received, navigating to:',
             targetPath,
           );
-          router.push(targetPath);
+          performReliablePushNavigation(router, targetPath);
         }
       },
-      [router],
+      [router, trpcUtils],
     ),
   );
 

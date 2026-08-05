@@ -14,13 +14,13 @@ import {
 } from '@/features/onboarding/components/push-notification-manager';
 import { useOnboarding } from '@/features/onboarding/hooks/use-onboarding';
 import { OnboardingStep } from '@/features/onboarding/types';
-import { TRPCProvider } from '@/trpc/client';
+
 import { Cookie } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import Cookies from 'js-cookie';
 import React from 'react';
 
-export const OnboardingProcess: React.FC = () => {
+export const OnboardingProcessContent: React.FC = () => {
   const {
     locale,
     onboardingStep,
@@ -116,12 +116,10 @@ export const OnboardingProcess: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                <TRPCProvider>
-                  <OfflineContentEntrypointComponent
-                    callback={handleOfflineContent}
-                    locale={locale}
-                  />
-                </TRPCProvider>
+                <OfflineContentEntrypointComponent
+                  callback={handleOfflineContent}
+                  locale={locale}
+                />
               </motion.div>
             )}
 
@@ -158,4 +156,8 @@ export const OnboardingProcess: React.FC = () => {
       <OnboardingProgress currentStep={onboardingStep} onStepClick={setOnboardingStep} />
     </div>
   );
+};
+
+export const OnboardingProcess: React.FC = () => {
+  return <OnboardingProcessContent />;
 };

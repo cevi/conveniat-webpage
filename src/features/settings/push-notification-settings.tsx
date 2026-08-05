@@ -4,8 +4,10 @@ import { Switch } from '@/components/ui/switch';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
-import type { Locale, StaticTranslationString } from '@/types/types';
-import { Bell, Bug, X } from 'lucide-react';
+import { Cookie, type Locale, type StaticTranslationString } from '@/types/types';
+import Cookies from 'js-cookie';
+import { Bell, Bug, Check, Share2, X } from 'lucide-react';
+import { signIn, useSession } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 
 const pushNotificationSettingsTitle: StaticTranslationString = {
@@ -20,6 +22,12 @@ const pushNotificationDescription: StaticTranslationString = {
   fr: 'Recevez des mises à jour importantes',
 };
 
+const pleaseSignInForPushText: StaticTranslationString = {
+  de: 'Bitte anmelden für Push-Benachrichtigungen',
+  en: 'Please sign in for Push Notifications',
+  fr: 'Veuillez vous connecter pour les notifications push',
+};
+
 const notSupportedText: StaticTranslationString = {
   de: 'Nicht unterstützt',
   en: 'Not supported',
@@ -27,6 +35,9 @@ const notSupportedText: StaticTranslationString = {
 };
 
 export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const { status: authStatus } = useSession();
+  const isAuthenticated = authStatus === 'authenticated';
+
   const {
     isSupported: isWebSupported,
     isSubscribed: isWebSubscribed,
@@ -39,6 +50,8 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     isNativeApp,
     status,
     hasToken,
+    isRegisteredOnBackend,
+    isUnauthenticated: nativeIsUnauthenticated,
     requestPermission,
     deleteToken,
     openSettings,
@@ -46,7 +59,11 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     lastError: nativeLastError,
   } = useNativePush();
 
+  const isUnauthenticated =
+    authStatus === 'unauthenticated' || nativeIsUnauthenticated || !isAuthenticated;
+
   const [isDevelopmentDebugMode, setIsDevelopmentDebugMode] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [clickTimestamps, setClickTimestamps] = useState<number[]>([]);
   const [userLogs, setUserLogs] = useState<
     Array<{ id: string; timestamp: string; message: string }>
@@ -75,18 +92,38 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   }, [clickTimestamps, addLog]);
 
   const isNativeSupported = true; // WebView bridge handles support
-  const isNativeSubscribed = hasToken && status === 'granted';
+  const isNativeSubscribed =
+    hasToken && status === 'granted' && isRegisteredOnBackend && isAuthenticated;
   const isNativeLoading = status === 'unknown';
 
   const isSupported = isNativeApp ? isNativeSupported : isWebSupported;
-  const isSubscribed = isNativeApp ? isNativeSubscribed : isWebSubscribed;
+  let isSubscribed = false;
+  if (!isUnauthenticated) {
+    isSubscribed = isNativeApp ? isNativeSubscribed : isWebSubscribed;
+  }
   const isLoading = isNativeApp ? isNativeLoading : isWebLoading;
-  const errorMessage = isNativeApp ? nativeLastError : webError;
+  const rawError = isNativeApp ? nativeLastError : webError;
+  const errorMessage = isUnauthenticated ? undefined : rawError;
+
+  let subtitle = notSupportedText[locale];
+  if (isUnauthenticated) {
+    subtitle = pleaseSignInForPushText[locale];
+  } else if (isSupported) {
+    subtitle = pushNotificationDescription[locale];
+  }
 
   const handleToggle = (): void => {
+    Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
     addLog(
-      `Toggle pressed: isNativeApp=${String(isNativeApp)}, isSubscribed=${String(isSubscribed)}`,
+      `Toggle clicked. authenticated=${String(isAuthenticated)}, isNativeApp=${String(isNativeApp)}, isNativeSubscribed=${String(isNativeSubscribed)}, isWebSubscribed=${String(isWebSubscribed)}, status=${status}`,
     );
+
+    if (isUnauthenticated) {
+      addLog('User not authenticated, triggering signIn()');
+      void signIn();
+      return;
+    }
+
     if (isNativeApp) {
       if (isNativeSubscribed) {
         addLog('Calling deleteToken()');
@@ -120,12 +157,82 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       : 'N/A';
   const activeError = errorMessage ?? nativeLastError ?? webError;
 
+  const handleShareDebugData = useCallback(async () => {
+    const combinedLogs = [
+      ...userLogs,
+      ...nativeLogs.map((n) => ({
+        id: n.id,
+        timestamp: n.timestamp,
+        message: n.message,
+        data: n.data,
+      })),
+    ].sort((a, b) => a.id.localeCompare(b.id));
+
+    const debugData = {
+      exportedAt: new Date().toISOString(),
+      environment: isNativeApp ? 'Native WebView (KonektaApp)' : 'Web Browser',
+      isNativeApp,
+      isBridgePresent,
+      nativeStatus: status,
+      hasToken,
+      isWebSupported,
+      isWebSubscribed,
+      browserPermission: notificationPermission,
+      isLoading,
+      activeError: activeError,
+      userAgent,
+      logs: combinedLogs,
+    };
+
+    const jsonString = JSON.stringify(debugData, undefined, 2);
+
+    try {
+      if (
+        typeof navigator !== 'undefined' &&
+        'share' in navigator &&
+        typeof navigator.share === 'function'
+      ) {
+        await navigator.share({
+          title: 'Push Notification Debug Log',
+          text: jsonString,
+        });
+      } else if (typeof navigator !== 'undefined') {
+        await navigator.clipboard.writeText(jsonString);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      }
+    } catch {
+      if (typeof navigator !== 'undefined') {
+        try {
+          await navigator.clipboard.writeText(jsonString);
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        } catch (copyError) {
+          console.error('Failed to copy debug data', copyError);
+        }
+      }
+    }
+  }, [
+    userLogs,
+    nativeLogs,
+    isNativeApp,
+    isBridgePresent,
+    status,
+    hasToken,
+    isWebSupported,
+    isWebSubscribed,
+    notificationPermission,
+    isLoading,
+    activeError,
+    userAgent,
+  ]);
+
   return (
     <div onClick={handleTap} className="select-none">
       <SettingsRow
         icon={Bell}
         title={pushNotificationSettingsTitle[locale]}
-        subtitle={isSupported ? pushNotificationDescription[locale] : notSupportedText[locale]}
+        subtitle={subtitle}
         error={errorMessage}
         action={
           <Switch
@@ -146,14 +253,36 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
                 <Bug className="h-4 w-4" />
                 <span>Push Notification Debug Mode</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsDevelopmentDebugMode(false)}
-                className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
-                title="Close Debug Panel"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleShareDebugData();
+                  }}
+                  className="flex items-center gap-1 rounded bg-gray-800 px-2 py-1 text-[11px] text-amber-400 hover:bg-gray-700 hover:text-amber-300"
+                  title="Share / Copy JSON Debug Payload"
+                >
+                  {isCopied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-green-400" />
+                      <span className="text-green-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span>Share</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDevelopmentDebugMode(false)}
+                  className="rounded p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
+                  title="Close Debug Panel"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
             <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
@@ -250,10 +379,29 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
               <button
                 type="button"
                 onClick={() => {
+                  void handleShareDebugData();
+                }}
+                className="flex items-center gap-1 rounded bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-black hover:bg-amber-500"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Copied JSON!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span>Share Debug JSON</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   addLog('Manual test: requestPermission()');
                   requestPermission();
                 }}
-                className="rounded bg-amber-600 px-2 py-1 text-[11px] font-semibold text-black hover:bg-amber-500"
+                className="rounded bg-gray-800 px-2 py-1 text-[11px] text-gray-200 hover:bg-gray-700"
               >
                 Request Permission
               </button>

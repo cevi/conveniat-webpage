@@ -29,6 +29,12 @@ export interface UseOfflineDownloadOptions {
    * Callback when download completes successfully.
    */
   onSuccess?: () => void;
+  /**
+   * Optional async function to sync application data (tRPC cache, IndexedDB)
+   * concurrently with the SW page prefetch. The download only reports "success"
+   * once BOTH the SW prefetch and this function have completed.
+   */
+  dataSyncFn?: () => Promise<void>;
 }
 
 export interface UseOfflineDownloadResult {
@@ -41,7 +47,7 @@ export interface UseOfflineDownloadResult {
 export const useOfflineDownload = (
   options: UseOfflineDownloadOptions = {},
 ): UseOfflineDownloadResult => {
-  const { checkCacheOnMount = false, checkSwReadyOnMount = false, onSuccess } = options;
+  const { checkCacheOnMount = false, checkSwReadyOnMount = false, onSuccess, dataSyncFn } = options;
 
   const [status, setStatus] = useState<OfflineDownloadStatus>(
     checkSwReadyOnMount ? 'checking' : 'idle',
@@ -52,6 +58,20 @@ export const useOfflineDownload = (
   const onSuccessReference = useRef(onSuccess);
   // eslint-disable-next-line react-hooks/refs
   onSuccessReference.current = onSuccess;
+
+  // Track whether both halves of the download have completed
+  const swCompleteReference = useRef(false);
+  const dataSyncCompleteReference = useRef(false);
+  const dataSyncFunctionReference = useRef(dataSyncFn);
+  // eslint-disable-next-line react-hooks/refs
+  dataSyncFunctionReference.current = dataSyncFn;
+
+  const tryResolveSuccess = useCallback(() => {
+    if (swCompleteReference.current && dataSyncCompleteReference.current) {
+      setStatus('success');
+      onSuccessReference.current?.();
+    }
+  }, []);
 
   // Check for existing cached content (settings page use case)
   useEffect(() => {
@@ -79,8 +99,8 @@ export const useOfflineDownload = (
   );
 
   useServiceWorkerMessage(ServiceWorkerMessages.OFFLINE_DOWNLOAD_COMPLETE, () => {
-    setStatus('success');
-    onSuccessReference.current?.();
+    swCompleteReference.current = true;
+    tryResolveSuccess();
   });
 
   useServiceWorkerMessage<{ ready: boolean }>(
@@ -108,34 +128,55 @@ export const useOfflineDownload = (
       return;
     }
 
-    if (swReady && navigator.serviceWorker.controller) {
-      // Send check message
-      navigator.serviceWorker.controller.postMessage({
+    let timer: NodeJS.Timeout | undefined;
+
+    const controller =
+      typeof navigator !== 'undefined' && 'serviceWorker' in navigator
+        ? (navigator.serviceWorker.controller ?? undefined)
+        : undefined;
+
+    if (controller) {
+      controller.postMessage({
         type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
       });
 
-      // Fallback safety: If SW doesn't answer fast enough, show UI
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setStatus((previous) => (previous === 'checking' ? 'sw-error' : previous));
       }, 1000);
-
-      return (): void => {
-        clearTimeout(timer);
-      };
-    } else if (swReady && !navigator.serviceWorker.controller) {
+    } else if (swReady) {
       // Ready but no controller -> claims issue or hard refresh needed
-
       setStatus('sw-error');
     }
-    return;
+
+    return (): void => {
+      if (timer) clearTimeout(timer);
+    };
   }, [checkSwReadyOnMount, status, swReady, swError]);
 
   const startDownload = useCallback((): void => {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      // Reset completion trackers for a fresh download
+      swCompleteReference.current = false;
+      dataSyncCompleteReference.current = false;
+
       setStatus('downloading');
       navigator.serviceWorker.controller.postMessage({
         type: ServiceWorkerMessages.START_OFFLINE_DOWNLOAD,
       });
+
+      // Run the data sync function concurrently with the SW prefetch
+      if (dataSyncFunctionReference.current) {
+        dataSyncFunctionReference
+          .current()
+          .catch((error: unknown) => console.warn('[OfflineDownload] Data sync failed:', error))
+          .finally(() => {
+            dataSyncCompleteReference.current = true;
+            tryResolveSuccess();
+          });
+      } else {
+        // No data sync function provided — mark as immediately complete
+        dataSyncCompleteReference.current = true;
+      }
     } else {
       console.warn('Service Worker not ready');
 
@@ -150,7 +191,7 @@ export const useOfflineDownload = (
         });
       });
     }
-  }, []);
+  }, [tryResolveSuccess]);
 
   const deleteContent = useCallback(async (): Promise<void> => {
     const cacheNamesToDelete = [

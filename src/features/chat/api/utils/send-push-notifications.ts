@@ -18,6 +18,8 @@ async function getSubscriptions(
         in: recipientUserIds,
       },
     },
+    pagination: false,
+    limit: 1000,
     depth: 0,
   });
 
@@ -30,6 +32,11 @@ async function processSubscription(
   chatURL: string,
   messageId?: string,
   chatId?: string,
+  options?: {
+    chatName?: string;
+    senderName?: string;
+    title?: string;
+  },
 ): Promise<{ success: boolean; error?: string }> {
   const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
 
@@ -37,6 +44,12 @@ async function processSubscription(
     typeof subscription.user === 'object'
       ? subscription.user?.id
       : (subscription.user ?? undefined);
+
+  // Use chatName/title for push notification title if available
+  const notificationTitle = options?.chatName ?? options?.title;
+
+  // Format body as "SenderName: Message" if senderName is provided
+  const notificationBody = options?.senderName ? `${options.senderName}: ${message}` : message;
 
   // For chat messages, we log a JSON object instead of the actual message content for privacy
   const logContent =
@@ -51,12 +64,15 @@ async function processSubscription(
   // We delegate logging to sendNotificationToSubscription by passing userId
   return sendNotificationToSubscription(
     subscription,
-    message,
+    notificationBody,
     chatURL,
     userId,
     undefined, // existingLogId
     logContent,
-    { ignoreIfUrlMatches: true },
+    {
+      ignoreIfUrlMatches: true,
+      ...(typeof notificationTitle === 'string' ? { title: notificationTitle } : {}),
+    },
   );
 }
 
@@ -67,12 +83,18 @@ async function processSubscription(
  * @param recipientUserIds - An array of user IDs to whom the notification should be sent.
  * @param chatId - The ID of the chat, used to construct the deep link URL.
  * @param messageId - Optional ID of the message for logging purposes.
+ * @param options - Optional formatting configuration (chatName, senderName, title).
  */
 export async function sendNotification(
   message: string,
   recipientUserIds: string[],
   chatId: string,
   messageId?: string,
+  options?: {
+    chatName?: string;
+    senderName?: string;
+    title?: string;
+  },
 ): Promise<{ success: boolean; error?: string }> {
   const subscriptions = await getSubscriptions(recipientUserIds);
 
@@ -89,7 +111,7 @@ export async function sendNotification(
 
   try {
     const webPushPromises = subscriptions.map((subscription) =>
-      processSubscription(subscription, message, chatURL, messageId, chatId),
+      processSubscription(subscription, message, chatURL, messageId, chatId, options),
     );
     await Promise.all(webPushPromises);
 

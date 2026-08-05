@@ -27,8 +27,8 @@ module.exports = {
       },
     },
     fontFamily: {
-      heading: ['Montserrat', 'Helvetica', 'Arial', 'sans-serif'],
-      body: ['Inter', 'Helvetica', 'Arial', 'sans-serif'],
+      heading: ['var(--font-montserrat)', 'Montserrat', 'Helvetica', 'Arial', 'sans-serif'],
+      body: ['var(--font-inter)', 'Inter', 'Helvetica', 'Arial', 'sans-serif'],
     },
 
     colors: {

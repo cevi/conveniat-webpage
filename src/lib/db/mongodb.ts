@@ -14,5 +14,10 @@ export const dbConfig = mongooseAdapter({
   connectOptions: {
     minPoolSize: 50,
     maxPoolSize: 200,
+    serverSelectionTimeoutMS: 15_000,
+    connectTimeoutMS: 10_000,
+    heartbeatFrequencyMS: 10_000,
+    retryWrites: true,
+    retryReads: true,
   },
 });

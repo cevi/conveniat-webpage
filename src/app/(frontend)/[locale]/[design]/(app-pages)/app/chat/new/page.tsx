@@ -19,10 +19,18 @@ const CreateNewChatPage = dynamic(
 
 const NewChatPage: React.FC = () => {
   const { data: createChatsEnabled, isLoading: isLoadingCapability } =
-    trpc.chat.checkCapability.useQuery({
-      action: CapabilityAction.Create,
-      subject: CapabilitySubject.Chat,
-    });
+    trpc.chat.checkCapability.useQuery(
+      {
+        action: CapabilityAction.Create,
+        subject: CapabilitySubject.Chat,
+      },
+      {
+        staleTime: 1000 * 60 * 5,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+        networkMode: 'offlineFirst',
+      },
+    );
 
   if (!isLoadingCapability && !createChatsEnabled) {
     return (

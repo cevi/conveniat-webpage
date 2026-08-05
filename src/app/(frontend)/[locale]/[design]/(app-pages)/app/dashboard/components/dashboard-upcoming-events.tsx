@@ -47,7 +47,7 @@ const EventCard: React.FC<{
 
   return (
     <Link
-      href={`/app/schedule/${entry.id}`}
+      href={`/app/schedule?id=${entry.id}`}
       className="group block cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:scale-[0.99]"
     >
       <div className="p-4">
