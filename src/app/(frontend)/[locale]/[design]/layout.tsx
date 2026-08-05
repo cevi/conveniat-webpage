@@ -16,7 +16,6 @@ import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
 import { SessionProvider } from 'next-auth/react';
-import Script from 'next/script';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -71,52 +70,6 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         {!environmentVariables.NEXT_PUBLIC_DISABLE_SERWIST && (
           <link rel="manifest" href="/manifest.webmanifest" />
         )}
-        <Script id="early-chunk-error-handler" strategy="beforeInteractive">
-          {`
-(function() {
-  function handleChunkError(msg, url) {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
-    var errorMessage = String(msg || '');
-    var scriptUrl = String(url || '');
-    var isSyntaxError = errorMessage.indexOf("Unexpected token '<'") !== -1;
-    var isChunkError =
-      errorMessage.indexOf("ChunkLoadError") !== -1 ||
-      errorMessage.indexOf("Failed to load chunk") !== -1 ||
-      errorMessage.indexOf("Loading chunk") !== -1 ||
-      errorMessage.indexOf("bad-precaching-response") !== -1 ||
-      errorMessage.indexOf("module factory is not available") !== -1 ||
-      errorMessage.indexOf("was instantiated because") !== -1 ||
-      errorMessage.indexOf("Failed to fetch dynamically imported module") !== -1 ||
-      (scriptUrl && scriptUrl.indexOf("/_next/static/") !== -1 && isSyntaxError);
-    if (isSyntaxError || isChunkError) {
-      console.warn('[EarlyChunkHandler] Chunk/Precaching error detected:', errorMessage, scriptUrl);
-      var lastReload = sessionStorage.getItem('chunk_reload_time');
-      var now = Date.now();
-      if (!lastReload || (now - Number(lastReload) > 5000)) {
-        sessionStorage.setItem('chunk_reload_time', String(now));
-        var shouldUnregisterSW = (errorMessage.indexOf("bad-precaching-response") !== -1 || errorMessage.indexOf("module factory is not available") !== -1) && 'serviceWorker' in navigator;
-        if (shouldUnregisterSW) {
-          navigator.serviceWorker.getRegistrations().then(function(regs) {
-            for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
-            window.location.reload();
-          }).catch(function() { window.location.reload(); });
-        } else {
-          window.location.reload();
-        }
-      }
-    }
-  }
-  window.addEventListener('error', function(event) {
-    handleChunkError(event.message, event.filename);
-  }, true);
-  window.addEventListener('unhandledrejection', function(event) {
-    var reason = event.reason || {};
-    var msg = reason instanceof Error ? reason.message : String(reason);
-    handleChunkError(msg, '');
-  });
-})();
-          `}
-        </Script>
       </head>
       <body
         className={cn('flex h-dvh w-dvw flex-col overflow-x-hidden bg-[#f8fafc]', {

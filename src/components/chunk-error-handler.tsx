@@ -71,7 +71,27 @@ export const ChunkErrorHandler: React.FC = () => {
         }
 
         sessionStorage.setItem('chunk_reload_time', String(now));
-        globalThis.location.reload();
+
+        const shouldResetSW =
+          (errorMessage.includes('bad-precaching-response') ||
+            errorMessage.includes('module factory is not available')) &&
+          'serviceWorker' in navigator;
+
+        if (shouldResetSW) {
+          void navigator.serviceWorker
+            .getRegistrations()
+            .then((registrations) => {
+              for (const registration of registrations) {
+                void registration.unregister();
+              }
+              globalThis.location.reload();
+            })
+            .catch(() => {
+              globalThis.location.reload();
+            });
+        } else {
+          globalThis.location.reload();
+        }
       }
     };
 
