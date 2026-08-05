@@ -1,5 +1,6 @@
 'use client';
 
+import { useOffline } from 'next/offline';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 /**
@@ -24,11 +25,14 @@ const getServerSnapshot = (): boolean => {
 };
 
 /**
- * Hook to track online/offline status.
+ * Hook to track online/offline status leveraging Next.js 16.3 `useOffline` API.
  * Returns true if online, false if offline.
  */
 export const useOnlineStatus = (): boolean => {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const isNextOffline = useOffline();
+  const isWindowOnline = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  return !isNextOffline && isWindowOnline;
 };
 
 /**

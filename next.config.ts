@@ -58,6 +58,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   cacheComponents: true,
+  partialPrefetching: true,
 
   /**
    * Our production deployment uses traefik as the reverse proxy and nginx for serving / caching
@@ -75,6 +76,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    useOffline: true,
     optimizePackageImports: [
       'lucide-react',
       '@headlessui/react',
