@@ -142,6 +142,9 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     console.error('[Lock Manager] Failed to check database seeding status:', error);
   }
 
+  // Database is empty. Remove any stale lock file left on host disk from a previous volume wipe.
+  await fs.rm(LOCK_FILE, { force: true }).catch(() => {});
+
   // Attempt atomic lock acquisition using OS exclusive write flag
   let acquiredLock = false;
   try {
