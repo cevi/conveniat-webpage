@@ -4,27 +4,30 @@ import type React from 'react';
 import { useEffect } from 'react';
 
 /**
- * @fileoverview Global Error Handler for Next.js / Turbopack Chunk Invalidation & Service Worker Stale Precache Recovery.
+ * @fileoverview Global Error Handler for Next.js / Turbopack Chunk Mismatches & Service Worker Stale Precache Recovery.
  *
- * ### Architectural Problem & Context
- * When a new build of the application is deployed (e.g. via Docker or continuous deployment pipelines),
- * Next.js and Turbopack generate new JavaScript bundle chunks with new content-hashed file names under
- * `/_next/static/chunks/...` or `/_next/static/immutable/...`.
+ * ### Production Infrastructure & Server Caching Architecture
+ * In our production infrastructure (see {@link file:///home/pucyril/projects/conveniat-webpage/nginx/nginx.conf#L87-L123 | nginx/nginx.conf}):
+ * 1. **Cumulative Asset Storage (`/var/www/next-static/`)**: Nginx mounts a persistent volume to preserve static chunk files
+ *    from prior builds across Docker container redeployments (`try_files $uri @nextjs_static`).
+ * 2. **Fallback Empty 404 Handler (`/empty_404`)**: If a JS chunk is missing on disk and upstream, Nginx returns a 404 JavaScript payload
+ *    (404 Not Found) with `Content-Type: application/javascript` instead of an HTML error page, preventing Unexpected token HTML syntax errors.
  *
- * Previous build chunk files on the server are removed or invalidated.
+ * ### Why Chunk & Module Factory Errors Still Occur
+ * Despite cumulative server storage, deployment updates (e.g. Next.js upgrades or Turbopack re-bundling) regenerate internal
+ * module IDs and chunk hashes.
  *
- * However, long-lived client browser sessions or mobile PWA WebViews (e.g. Android/iOS native WebViews)
- * may still be running a cached DOM / JS runtime from the previous build. When the user navigates to a new page,
- * triggers a client-side route transition, or lazy-loads a component, the browser attempts to fetch the old chunk file.
+ * When long-lived client browser sessions or mobile PWA WebViews (e.g. `KonektaApp/1.0` Android/iOS native WebViews) run a
+ * **stale Service Worker precache** or **stale HTML shell in memory** from a previous build while attempting to load newly deployed
+ * entrypoints or dynamic routes, a runtime mismatch occurs between loaded module registries and chunk factories.
  *
  * ### Common Error Symptoms Handled
  * 1. **Turbopack Missing Module Factory Error**:
  *    `Module X was instantiated because it was required from module Y, but the module factory is not available.`
- *    Occurs when Turbopack attempts to load a required module whose enclosing chunk bundle is missing or stale.
+ *    Occurs when Turbopack attempts to load a required module whose internal factory ID is not registered in the client's current bundle map.
  * 2. **Unexpected HTML Syntax Error**:
  *    `Uncaught SyntaxError: Unexpected token '<'`
- *    Occurs when the server (or Service Worker) returns a 404 HTML fallback page for a missing `.js` asset,
- *    and the browser attempts to parse HTML as JavaScript.
+ *    Occurs if a proxy or CDN returns an HTML error page for a missing `.js` asset.
  * 3. **Webpack & Dynamic Import Failures**:
  *    `ChunkLoadError: Loading chunk X failed` or `Failed to fetch dynamically imported module`.
  * 4. **Serwist SW Precache Invalidation Error**:
@@ -32,18 +35,19 @@ import { useEffect } from 'react';
  *    Occurs when Serwist Service Worker precaching encounters an outdated or invalid asset manifest entry.
  *
  * ### Recovery Strategy & Logic
- * 1. **Online Guard**: Ignores errors if `!navigator.onLine` so actual offline network drops are handled by
- *    Next.js Network Resilience (`experimental.useOffline`) and Serwist offline fallbacks rather than triggering reloads.
+ * 1. **Online Guard**: Ignores errors if `!navigator.onLine` so actual network drops are handled by Next.js Network Resilience
+ *    (`experimental.useOffline`) and Serwist offline fallbacks rather than triggering reloads.
  * 2. **Precache Cleanup**: If a Service Worker precache corruption or missing module factory error is detected,
  *    it unregisters active Service Worker registrations via `navigator.serviceWorker.getRegistrations()` to ensure
- *    stale caches are cleared.
+ *    stale precaches are purged.
  * 3. **Hard Navigation Reload**: Triggers `globalThis.location.reload()`, fetching the latest `index.html` and
- *    updated chunk manifest from the server.
+ *    updated Turbopack bundle manifest from the server.
  * 4. **Anti-Loop Guard**: Enforces a 10-second threshold via `sessionStorage` (`chunk_reload_time`) to prevent infinite
  *    reload loops if an unhandled runtime error is genuine rather than chunk-related.
  *
  * ### Reference Documentation & Online Sources
- * @see {@link https://nextjs.org/docs/app/building-your-application/deploying | Next.js Deployment & Production Caching Guide}
+ * @see {@link file:///home/pucyril/projects/conveniat-webpage/nginx/nginx.conf#L87-L123 | Project Nginx Static Asset Cache Configuration}
+ * @see {@link https://nextjs.org/docs/app/building-your-application/deploying | Next.js Production Deployment & Asset Caching Guide}
  * @see {@link https://nextjs.org/blog/next-16-3-instant-navigations | Next.js 16.3 Instant Navigations & Asset Management}
  * @see {@link https://serwist.pages.dev/docs/next/worker | Serwist Service Worker Next.js Integration}
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/unregister | MDN ServiceWorkerRegistration.unregister()}
