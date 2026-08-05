@@ -70,6 +70,23 @@ const jsCaching: RuntimeCaching = {
       }),
 };
 
+const immutableStaticAssetsCaching: RuntimeCaching = {
+  matcher: /\/_next\/static\/immutable\/.*/,
+  handler: new CacheFirst({
+    cacheName: CACHE_NAMES.JS,
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [200],
+      }) as SerwistPlugin,
+      new ExpirationPlugin({
+        maxEntries: 200,
+        maxAgeSeconds: 365 * 24 * 60 * 60,
+      }),
+      htmlErrorPreventionPlugin,
+    ],
+  }),
+};
+
 const rscCaching: RuntimeCaching = {
   matcher: ({ request, url }) =>
     request.headers.get('RSC') === '1' ||
@@ -88,7 +105,9 @@ const rscCaching: RuntimeCaching = {
           const url = new URL(request.url);
           const params = new URLSearchParams(url.searchParams);
           params.set('_rsc', '');
-          return `${url.origin}${url.pathname}?${params.toString().replace('_rsc=', '_rsc')}`;
+          const isPrefetch = request.headers.get('Next-Router-Prefetch') === '1';
+          const prefetchSuffix = isPrefetch ? '_pf' : '';
+          return `${url.origin}${url.pathname}?${params.toString().replace('_rsc=', '_rsc')}${prefetchSuffix}`;
         },
         cachedResponseWillBeUsed: ({ cachedResponse }): Response | null | undefined => {
           if (cachedResponse) {
@@ -183,6 +202,7 @@ const pageCaching: RuntimeCaching = {
 };
 
 const runtimeCaching: RuntimeCaching[] = [
+  immutableStaticAssetsCaching,
   cssCaching,
   jsCaching,
   rscCaching,
