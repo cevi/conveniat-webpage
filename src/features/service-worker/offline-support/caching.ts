@@ -1,6 +1,5 @@
-import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
+import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
-import { safeRscCachePlugin } from '@/features/service-worker/offline-support/safe-rsc-plugin';
 import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, RuntimeCaching, SerwistGlobalConfig, SerwistPlugin } from 'serwist';
 import {
@@ -70,42 +69,25 @@ const jsCaching: RuntimeCaching = {
       }),
 };
 
+const immutableStaticAssetsCaching: RuntimeCaching = {
+  matcher: /\/_next\/static\/(?:immutable|chunks)\/.*$/,
+  handler: new CacheFirst({
+    cacheName: CACHE_NAMES.JS,
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [200],
+      }) as SerwistPlugin,
+      htmlErrorPreventionPlugin,
+    ],
+  }),
+};
+
 const rscCaching: RuntimeCaching = {
   matcher: ({ request, url }) =>
     request.headers.get('RSC') === '1' ||
     request.headers.get('Next-Router-Prefetch') === '1' ||
     url.searchParams.has('_rsc'),
-  handler: new NetworkFirst({
-    cacheName: CACHE_NAMES.RSC,
-    matchOptions: { ignoreVary: true },
-    networkTimeoutSeconds: TIMEOUTS.RSC_FETCH / 1000,
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [200],
-      }) as SerwistPlugin,
-      {
-        cacheKeyWillBeUsed: ({ request }): string => {
-          const url = new URL(request.url);
-          const params = new URLSearchParams(url.searchParams);
-          params.set('_rsc', '');
-          return `${url.origin}${url.pathname}?${params.toString().replace('_rsc=', '_rsc')}`;
-        },
-        cachedResponseWillBeUsed: ({ cachedResponse }): Response | null | undefined => {
-          if (cachedResponse) {
-            const newHeaders = new Headers(cachedResponse.headers);
-            newHeaders.delete('Vary');
-            return new Response(cachedResponse.body, {
-              status: 200,
-              statusText: 'OK',
-              headers: newHeaders,
-            });
-          }
-          return cachedResponse;
-        },
-      },
-      safeRscCachePlugin,
-    ],
-  }),
+  handler: new NetworkOnly(),
 };
 
 const fontCaching: RuntimeCaching = {
@@ -183,6 +165,7 @@ const pageCaching: RuntimeCaching = {
 };
 
 const runtimeCaching: RuntimeCaching[] = [
+  immutableStaticAssetsCaching,
   cssCaching,
   jsCaching,
   rscCaching,
