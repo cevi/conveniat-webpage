@@ -4,25 +4,49 @@ import type React from 'react';
 import { useEffect } from 'react';
 
 /**
- * Global Error Handler for "Chunk Load Errors"
+ * @fileoverview Global Error Handler for Next.js / Turbopack Chunk Invalidation & Service Worker Stale Precache Recovery.
  *
- * THE PROBLEM:
- * When we deploy a new version of the app (via Docker), the old JavaScript chunks (e.g., `chunk-123.js`)
- * are deleted from the server.
+ * ### Architectural Problem & Context
+ * When a new build of the application is deployed (e.g. via Docker or continuous deployment pipelines),
+ * Next.js and Turbopack generate new JavaScript bundle chunks with new content-hashed file names under
+ * `/_next/static/chunks/...` or `/_next/static/immutable/...`.
  *
- * However, users who already have the site open are still running the *old* index.html, which references these
- * now-missing files. When they try to navigate or lazy-load a component, the browser requests the old chunk.
+ * Previous build chunk files on the server are removed or invalidated.
  *
- * THE SYMPTOMS:
- * 1. The server returns a 404.
- * 2. Next.js often returns a custom 404 HTML page instead of the expected JS file.
- * 3. The browser tries to parse this HTML as JS and crashes with: "Uncaught SyntaxError: Unexpected token '<'"
- * 4. Or, if the server returns a proper 404, Webpack throws a "ChunkLoadError".
+ * However, long-lived client browser sessions or mobile PWA WebViews (e.g. Android/iOS native WebViews)
+ * may still be running a cached DOM / JS runtime from the previous build. When the user navigates to a new page,
+ * triggers a client-side route transition, or lazy-loads a component, the browser attempts to fetch the old chunk file.
  *
- * THE SOLUTION:
- * This component listens for these specific global errors. If detected, it forces a hard reload of the page.
- * This fetches the NEW `index.html` from the server, which references the NEW correct chunk filenames,
- * effectively updating the user to the latest version automatically.
+ * ### Common Error Symptoms Handled
+ * 1. **Turbopack Missing Module Factory Error**:
+ *    `Module X was instantiated because it was required from module Y, but the module factory is not available.`
+ *    Occurs when Turbopack attempts to load a required module whose enclosing chunk bundle is missing or stale.
+ * 2. **Unexpected HTML Syntax Error**:
+ *    `Uncaught SyntaxError: Unexpected token '<'`
+ *    Occurs when the server (or Service Worker) returns a 404 HTML fallback page for a missing `.js` asset,
+ *    and the browser attempts to parse HTML as JavaScript.
+ * 3. **Webpack & Dynamic Import Failures**:
+ *    `ChunkLoadError: Loading chunk X failed` or `Failed to fetch dynamically imported module`.
+ * 4. **Serwist SW Precache Invalidation Error**:
+ *    `bad-precaching-response`
+ *    Occurs when Serwist Service Worker precaching encounters an outdated or invalid asset manifest entry.
+ *
+ * ### Recovery Strategy & Logic
+ * 1. **Online Guard**: Ignores errors if `!navigator.onLine` so actual offline network drops are handled by
+ *    Next.js Network Resilience (`experimental.useOffline`) and Serwist offline fallbacks rather than triggering reloads.
+ * 2. **Precache Cleanup**: If a Service Worker precache corruption or missing module factory error is detected,
+ *    it unregisters active Service Worker registrations via `navigator.serviceWorker.getRegistrations()` to ensure
+ *    stale caches are cleared.
+ * 3. **Hard Navigation Reload**: Triggers `globalThis.location.reload()`, fetching the latest `index.html` and
+ *    updated chunk manifest from the server.
+ * 4. **Anti-Loop Guard**: Enforces a 10-second threshold via `sessionStorage` (`chunk_reload_time`) to prevent infinite
+ *    reload loops if an unhandled runtime error is genuine rather than chunk-related.
+ *
+ * ### Reference Documentation & Online Sources
+ * @see {@link https://nextjs.org/docs/app/building-your-application/deploying | Next.js Deployment & Production Caching Guide}
+ * @see {@link https://nextjs.org/blog/next-16-3-instant-navigations | Next.js 16.3 Instant Navigations & Asset Management}
+ * @see {@link https://serwist.pages.dev/docs/next/worker | Serwist Service Worker Next.js Integration}
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerRegistration/unregister | MDN ServiceWorkerRegistration.unregister()}
  */
 export const ChunkErrorHandler: React.FC = () => {
   useEffect(() => {
