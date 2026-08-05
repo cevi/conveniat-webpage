@@ -3,6 +3,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
+import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 import { cache } from 'react';
 
@@ -16,6 +17,10 @@ export const getGenericPageBySlugCached = cache(
     locale: Locale,
     draft: boolean = false,
   ): Promise<{ docs: GenericPage[] }> => {
+    'use cache';
+    cacheLife('hours');
+    cacheTag('payload', 'generic-page', `collection:generic-page`);
+
     return await withSpan('getGenericPageBySlugCached', async () => {
       const payload = await getPayload({ config });
 
@@ -58,16 +63,8 @@ export const getGenericPageBySlugCached = cache(
 
 /**
  * Lightweight existence check for Generic Pages by slug.
- *
- * Uses `select` to skip the heavy `mainContent` blocks entirely while still
- * populating the `permissions` relationship (depth: 1). This avoids the N+1
- * cascade that occurs when the fallback logic sweeps all locales with full
- * document hydration.
- *
- * Returns only the fields needed for fallback resolution:
- * - `id` (always included)
- * - `_locale` (always included)
- * - `content.permissions` (populated via depth: 1)
+ * Fetches ONLY content.permissions (skipping full layout depth:1 cascade).
+ * Used during fallback resolution to test if a page exists without loading full content.
  */
 export const getGenericPageExistsBySlugCached = cache(
   async (
@@ -75,6 +72,10 @@ export const getGenericPageExistsBySlugCached = cache(
     locale: Locale,
     draft: boolean = false,
   ): Promise<{ docs: GenericPage[] }> => {
+    'use cache';
+    cacheLife('hours');
+    cacheTag('payload', 'generic-page', `collection:generic-page`);
+
     return await withSpan('getGenericPageExistsBySlugCached', async () => {
       const payload = await getPayload({ config });
 
@@ -115,6 +116,10 @@ export const getGenericPageExistsBySlugCached = cache(
  */
 export const getGenericPageByIDCached = cache(
   async (id: string, locale: Locale, draft: boolean = false): Promise<GenericPage> => {
+    'use cache';
+    cacheLife('hours');
+    cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
+
     return await withSpan('getGenericPageByIDCached', async () => {
       const payload = await getPayload({ config });
 
@@ -147,6 +152,10 @@ export const getGenericPageBySlugHistoryCached = cache(
     locale: Locale,
     draft: boolean = false,
   ): Promise<{ docs: GenericPage[] }> => {
+    'use cache';
+    cacheLife('hours');
+    cacheTag('payload', 'generic-page', `collection:generic-page`);
+
     return await withSpan('getGenericPageBySlugHistoryCached', async () => {
       const payload = await getPayload({ config });
 
@@ -185,6 +194,10 @@ export const getGenericPageBySlugHistoryCached = cache(
  */
 export const getGenericPageMetadataBySlugCached = cache(
   async (slug: string, locale: Locale): Promise<{ docs: GenericPage[] }> => {
+    'use cache';
+    cacheLife('hours');
+    cacheTag('payload', 'generic-page', `collection:generic-page`);
+
     return await withSpan('getGenericPageMetadataBySlugCached', async () => {
       const payload = await getPayload({ config });
       const result = await payload.find({
@@ -217,17 +230,21 @@ export const getGenericPageMetadataBySlugCached = cache(
  */
 export const getGenericPageAlternativesCached = cache(
   async (internalPageName: string): Promise<GenericPage[]> => {
+    'use cache';
+    cacheLife('hours');
+    cacheTag('payload', 'generic-page', `collection:generic-page`);
+
     return await withSpan('getGenericPageAlternativesCached', async () => {
       const payload = await getPayload({ config });
       const results = await Promise.all(
-        (i18nConfig.locales as Locale[]).map((l) =>
+        i18nConfig.locales.map((loc) =>
           payload.find({
+            depth: 0,
             collection: 'generic-page',
             pagination: false,
+            locale: loc as Locale,
             fallbackLocale: false,
-            locale: l,
             draft: false,
-            depth: 0,
             where: {
               and: [
                 { internalPageName: { equals: internalPageName } },
@@ -236,15 +253,12 @@ export const getGenericPageAlternativesCached = cache(
             },
             select: {
               seo: true,
-              internalPageName: true,
+              _localized_status: true,
             },
           }),
         ),
       );
-      return results
-        .filter((r) => r.docs.length === 1)
-        .flatMap((r) => r.docs[0] as unknown as GenericPage)
-        .filter(Boolean);
+      return results.flatMap((r) => r.docs as unknown as GenericPage[]);
     });
   },
 );

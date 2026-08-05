@@ -20,42 +20,6 @@ import {
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
 
-// Wrapper for persistent caching of the slug fetch
-const getArticlesCachedPersistent = async (
-  slug: string,
-  locale: Locale,
-): Promise<{ docs: GenericPageType[] }> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
-  return getGenericPageBySlugCached(slug, locale, false);
-};
-
-// Wrapper for persistent caching of the lightweight existence check
-const getArticlesExistsCachedPersistent = async (
-  slug: string,
-  locale: Locale,
-): Promise<{ docs: GenericPageType[] }> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
-  return getGenericPageExistsBySlugCached(slug, locale, false);
-};
-
-// Wrapper for persistent caching of the ID fetch
-const getFallbackArticleCachedPersistent = async (
-  id: string,
-  locale: Locale,
-): Promise<GenericPageType> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
-
-  return getGenericPageByIDCached(id, locale, false);
-};
-
 const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
@@ -94,7 +58,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
       documents = fetchResult.docs;
     }
   } else {
-    const fetchResult = await getArticlesCachedPersistent(slug, locale);
+    const fetchResult = await getGenericPageBySlugCached(slug, locale, false);
     documents = fetchResult.docs;
   }
 
@@ -145,7 +109,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
       // fetching only id, _locale, and content.permissions.
       return await (renderInPreviewMode
         ? getGenericPageExistsBySlugCached(slug, l, true)
-        : getArticlesExistsCachedPersistent(slug, l));
+        : getGenericPageExistsBySlugCached(slug, l, false));
     }),
   )
     .then((results) =>
@@ -220,7 +184,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   const article = await (renderInPreviewMode
     ? getGenericPageByIDCached(fallbackDocumentId, locale, true)
-    : getFallbackArticleCachedPersistent(fallbackDocumentId, locale));
+    : getGenericPageByIDCached(fallbackDocumentId, locale, false));
 
   // check if published in target locale
   if (article._localized_status.published !== true) {
