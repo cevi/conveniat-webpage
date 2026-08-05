@@ -23,19 +23,26 @@ import { Toaster } from 'sonner';
 // These styles apply to every route in the application
 import '@/app/globals.scss';
 
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { renderInAppDesign } from '@/utils/render-in-app-design';
+
 interface LayoutProperties {
   children: ReactNode;
-  params: Promise<{
-    locale: Locale;
-    design: DesignCodes;
+  params?: Promise<{
+    locale?: Locale;
+    design?: DesignCodes;
   }>;
 }
 
 const GlobalAppFooterWrapper: React.FC<{
-  locale: Locale;
-  design: DesignCodes;
-}> = ({ locale, design }) => {
-  const isInAppDesign = design === DesignCodes.APP_DESIGN;
+  locale?: Locale;
+  design?: DesignCodes;
+}> = async ({ locale: localeProperty, design: designProperty }) => {
+  const locale = localeProperty ?? (await getLocaleFromCookies());
+  const isInAppDesign =
+    designProperty === undefined
+      ? await renderInAppDesign()
+      : designProperty === DesignCodes.APP_DESIGN;
 
   return (
     <GlobalAppFooterClientWrapper
@@ -52,8 +59,12 @@ const GlobalAppFooterWrapper: React.FC<{
 };
 
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
-  const { locale, design } = await params;
-  const isInAppDesign = design === DesignCodes.APP_DESIGN;
+  const resolvedParameters = params ? await params : undefined;
+  const locale = resolvedParameters?.locale ?? (await getLocaleFromCookies());
+  const isInAppDesign =
+    resolvedParameters?.design === undefined
+      ? await renderInAppDesign()
+      : resolvedParameters.design === DesignCodes.APP_DESIGN;
   const isRedesignedMenuEnabled = await getFeatureFlag(FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED);
   const navigationMode: NavigationMode =
     isRedesignedMenuEnabled && !isInAppDesign ? 'top-nav' : 'side-nav';
@@ -138,7 +149,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
                   }
                   footer={
                     <Suspense fallback={undefined}>
-                      <GlobalAppFooterWrapper locale={locale} design={design} />
+                      <GlobalAppFooterWrapper />
                     </Suspense>
                   }
                   inAppDesign={isInAppDesign}

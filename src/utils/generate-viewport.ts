@@ -4,7 +4,7 @@ import { renderInAppDesign } from '@/utils/render-in-app-design';
 import type { Viewport } from 'next';
 
 interface Properties {
-  params: Promise<{
+  params?: Promise<{
     locale?: Locale;
     design?: DesignCodes;
   }>;
@@ -15,13 +15,14 @@ interface Properties {
  * https://developer.mozilla.org/en-US/docs/Web/HTML/Viewport_meta_tag
  *
  */
-export const generateViewport = async ({ params }: Properties): Promise<Viewport> => {
-  const { design } = await params;
+export const generateViewport = async (properties?: Properties): Promise<Viewport> => {
+  const params = properties?.params ? await properties.params : undefined;
 
-  // if possible we determine the design from the url parameters
-  // otherwise we check it using the cookies (forces the page to become dynamic)
+  // Determine the design mode using root-params (via renderInAppDesign) or explicit params
   const isInAppDesign =
-    design === undefined ? await renderInAppDesign() : design === DesignCodes.APP_DESIGN;
+    params?.design === undefined
+      ? await renderInAppDesign()
+      : params.design === DesignCodes.APP_DESIGN;
 
   return {
     themeColor: [{ media: '(prefers-color-scheme: light)', color: '#E1E6E2' }],
