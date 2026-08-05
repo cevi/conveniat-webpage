@@ -84,5 +84,6 @@ openapi.yaml
 
 # agent artifacts
 artifacts/
+.agents/
 
 

@@ -148,6 +148,12 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
           person_profiles: 'identified_only',
           capture_pageview: false, // page views are captured manually
           capture_pageleave: true,
+          // Optimize session replay ingestion to stay within limits
+          disable_session_recording: environmentVariables.NODE_ENV === 'test',
+          session_recording: {
+            sampleRate: 0.1, // Sample 10% of sessions
+            strictMinimumDuration: true, // Use active buffered data for duration check
+          },
           // filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
           // see: https://github.com/cevi/conveniat-webpage/issues/1013
           before_send: filterPostHogNoise,
