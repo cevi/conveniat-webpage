@@ -1,6 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { getSEOCached } from '@/features/payload-cms/api/cached-globals';
-import type { SEO } from '@/features/payload-cms/payload-types';
 import { metadataIconDefinitions } from '@/utils/icon-definitions';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import { withSpan } from '@/utils/tracing-helpers';
@@ -21,15 +20,19 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
       defaultKeywords,
       publisher,
       googleSearchConsoleVerification,
-    }: SEO = await getSEOCached();
+    } = await getSEOCached();
+
+    const keywords = Array.isArray(defaultKeywords)
+      ? defaultKeywords.map((keyword) => keyword.keyword)
+      : [];
 
     return {
       title: {
-        default: defaultTitle,
+        default: defaultTitle || 'conveniat27',
         template: '%s | conveniat27',
       },
       description: defaultDescription,
-      keywords: defaultKeywords.map((keyword) => keyword.keyword),
+      keywords,
 
       publisher,
 
@@ -40,7 +43,7 @@ export const generateMetadataCached = async (): Promise<Metadata> => {
       },
 
       verification: {
-        google: googleSearchConsoleVerification ?? '',
+        google: googleSearchConsoleVerification,
       },
 
       formatDetection: {

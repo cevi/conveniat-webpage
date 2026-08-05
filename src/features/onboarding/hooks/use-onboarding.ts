@@ -23,7 +23,7 @@ import Cookies from 'js-cookie';
 import { useSession } from 'next-auth/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 export const useOnboarding = (): UseOnboardingReturn => {
   const [state, dispatch] = useReducer(onboardingReducer, initialOnboardingState);
@@ -254,6 +254,60 @@ export const useOnboarding = (): UseOnboardingReturn => {
     };
   }, [router]);
 
+  // Determine target redirect path for prefetching and post-onboarding navigation
+  const targetRedirectPath = useMemo((): string => {
+    try {
+      const pendingRedirect =
+        sessionStorage.getItem('pending_push_redirect') ??
+        localStorage.getItem('pending_push_redirect');
+      if (pendingRedirect) return pendingRedirect;
+    } catch {
+      // ignore SSR / storage unavailable
+    }
+
+    const redirectToParameter =
+      searchParameters.get('redirectTo') ??
+      searchParameters.get('url') ??
+      searchParameters.get('path');
+    const chatIdParameter = searchParameters.get('chatId');
+
+    if (redirectToParameter) return redirectToParameter;
+    if (chatIdParameter) return `/app/chat/${chatIdParameter}`;
+
+    const shareText = searchParameters.get('text');
+    const shareTitle = searchParameters.get('title');
+    const shareUrl = searchParameters.get('url');
+
+    if (shareText !== null || shareTitle !== null || shareUrl !== null) {
+      const params = new URLSearchParams();
+      if (shareText !== null) params.set('text', shareText);
+      if (shareTitle !== null) params.set('title', shareTitle);
+      if (shareUrl !== null) params.set('url', shareUrl);
+      return `/app/chat?${params.toString()}`;
+    }
+
+    return '/app/dashboard';
+  }, [searchParameters]);
+
+  // Pre-fetch target routes while user is going through onboarding steps
+  useEffect(() => {
+    if (typeof globalThis === 'undefined') return;
+
+    try {
+      router.prefetch(targetRedirectPath);
+
+      // Pre-fetch primary app hubs if target path is custom
+      if (targetRedirectPath !== '/app/dashboard') {
+        router.prefetch('/app/dashboard');
+      }
+      if (!targetRedirectPath.startsWith('/app/chat')) {
+        router.prefetch('/app/chat');
+      }
+    } catch {
+      // ignore prefetch errors
+    }
+  }, [router, targetRedirectPath, onboardingStep]);
+
   // Redirect to target destination or dashboard when finished
   useEffect(() => {
     if (onboardingStep === OnboardingStep.Loading) {
@@ -272,40 +326,13 @@ export const useOnboarding = (): UseOnboardingReturn => {
         // ignore SSR / storage unavailable
       }
 
-      const redirectToParameter =
-        searchParameters.get('redirectTo') ??
-        searchParameters.get('url') ??
-        searchParameters.get('path');
-      const chatIdParameter = searchParameters.get('chatId');
-
-      if (redirectToParameter) {
-        console.log('[Onboarding] Query param redirect found, navigating to:', redirectToParameter);
-        performReliablePushNavigation(router, redirectToParameter);
-        return;
-      }
-
-      if (chatIdParameter) {
-        const target = `/app/chat/${chatIdParameter}`;
-        console.log('[Onboarding] Query param chatId found, navigating to:', target);
-        performReliablePushNavigation(router, target);
-        return;
-      }
-
-      const shareText = searchParameters.get('text');
-      const shareTitle = searchParameters.get('title');
-      const shareUrl = searchParameters.get('url');
-
-      if (shareText !== null || shareTitle !== null || shareUrl !== null) {
-        const params = new URLSearchParams();
-        if (shareText !== null) params.set('text', shareText);
-        if (shareTitle !== null) params.set('title', shareTitle);
-        if (shareUrl !== null) params.set('url', shareUrl);
-        router.push(`/app/chat?${params.toString()}`);
-      } else {
+      if (targetRedirectPath === '/app/dashboard') {
         router.push('/app/dashboard');
+      } else {
+        performReliablePushNavigation(router, targetRedirectPath);
       }
     }
-  }, [onboardingStep, router, searchParameters]);
+  }, [onboardingStep, router, targetRedirectPath]);
 
   return {
     locale,

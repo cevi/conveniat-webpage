@@ -76,7 +76,6 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
-    turbopackRustReactCompiler: true,
     useOffline: true,
     optimizePackageImports: [
       'lucide-react',

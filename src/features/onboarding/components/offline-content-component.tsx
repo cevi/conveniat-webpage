@@ -15,7 +15,8 @@ import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { motion } from 'framer-motion';
-import React from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 
 interface OfflineContentEntrypointComponentProperties {
   callback: (accepted: boolean) => void;
@@ -26,6 +27,7 @@ export const OfflineContentEntrypointComponent: React.FC<
   OfflineContentEntrypointComponentProperties
 > = ({ callback, locale }) => {
   const trpcUtils = trpc.useUtils();
+  const router = useRouter();
 
   const { status, progress, startDownload } = useOfflineDownload({
     checkSwReadyOnMount: true,
@@ -33,12 +35,15 @@ export const OfflineContentEntrypointComponent: React.FC<
     dataSyncFn: () => syncAllOfflineData(trpcUtils),
   });
 
-  // When hook detects content is already ready, callback immediately
-  React.useEffect(() => {
-    if (status === 'has-content') {
-      callback(true);
+  // Prefetch main destinations while user decides on offline download
+  useEffect(() => {
+    try {
+      router.prefetch('/app/dashboard');
+      router.prefetch('/app/chat');
+    } catch {
+      // ignore
     }
-  }, [status, callback]);
+  }, [router]);
 
   const handleDownload = (): void => {
     startDownload();

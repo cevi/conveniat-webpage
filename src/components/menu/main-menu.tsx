@@ -51,7 +51,8 @@ export const getMainMenuFromPayloadCached = async (
   cacheLife('hours');
   cacheTag('header');
 
-  const { mainMenu } = await getHeaderCached(locale, showPreviewForMainMenu);
+  const header = await getHeaderCached(locale, showPreviewForMainMenu);
+  const mainMenu = header.mainMenu;
   return Array.isArray(mainMenu) ? mainMenu : [];
 };
 

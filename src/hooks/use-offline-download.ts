@@ -128,26 +128,29 @@ export const useOfflineDownload = (
       return;
     }
 
-    if (swReady && navigator.serviceWorker.controller) {
-      // Send check message
-      navigator.serviceWorker.controller.postMessage({
+    let timer: NodeJS.Timeout | undefined;
+
+    const controller =
+      typeof navigator !== 'undefined' && 'serviceWorker' in navigator
+        ? (navigator.serviceWorker.controller ?? undefined)
+        : undefined;
+
+    if (controller) {
+      controller.postMessage({
         type: ServiceWorkerMessages.CHECK_OFFLINE_READY,
       });
 
-      // Fallback safety: If SW doesn't answer fast enough, show UI
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setStatus((previous) => (previous === 'checking' ? 'sw-error' : previous));
       }, 1000);
-
-      return (): void => {
-        clearTimeout(timer);
-      };
-    } else if (swReady && !navigator.serviceWorker.controller) {
+    } else if (swReady) {
       // Ready but no controller -> claims issue or hard refresh needed
-
       setStatus('sw-error');
     }
-    return;
+
+    return (): void => {
+      if (timer) clearTimeout(timer);
+    };
   }, [checkSwReadyOnMount, status, swReady, swError]);
 
   const startDownload = useCallback((): void => {
