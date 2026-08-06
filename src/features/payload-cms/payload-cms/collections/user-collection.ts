@@ -113,29 +113,54 @@ export const UserCollection: CollectionConfig = {
     {
       name: 'displayName',
       type: 'text',
-      virtual: true,
       admin: {
         hidden: true,
       },
       hooks: {
-        afterRead: [
-          ({ data }): string | undefined => {
-            if (!data) return undefined;
-
-            // Prevent silent fallback when document is partially selected
-            if (!('email' in data) && !('fullName' in data) && !('nickname' in data)) {
-              return undefined;
-            }
-
-            const email = (data as User).email;
-            const fullName = (data as User).fullName;
-            const nickname = (data as User).nickname;
+        beforeChange: [
+          ({ data, siblingData }): string => {
+            const rawData = siblingData as Record<string, unknown> | undefined;
+            const fallbackData = data as Record<string, unknown> | undefined;
+            const userData = rawData ?? fallbackData ?? {};
+            const email = typeof userData['email'] === 'string' ? userData['email'] : undefined;
+            const fullName =
+              typeof userData['fullName'] === 'string' ? userData['fullName'] : undefined;
+            const nickname =
+              typeof userData['nickname'] === 'string' ? userData['nickname'] : undefined;
 
             const nameString = formatUserFullName(fullName, nickname);
             if (typeof email === 'string' && email !== '') {
               return nameString === '' ? email : `${nameString} (${email})`;
             }
             return nameString === '' ? 'Unnamed User' : nameString;
+          },
+        ],
+        afterRead: [
+          ({ value, data }): string => {
+            if (typeof value === 'string' && value !== '') {
+              return value;
+            }
+            if (!data) return 'Unnamed User';
+
+            const user = data as Record<string, unknown>;
+            const email = typeof user['email'] === 'string' ? user['email'] : undefined;
+            const fullName = typeof user['fullName'] === 'string' ? user['fullName'] : undefined;
+            const nickname = typeof user['nickname'] === 'string' ? user['nickname'] : undefined;
+
+            if ('email' in user || 'fullName' in user || 'nickname' in user) {
+              const nameString = formatUserFullName(fullName, nickname);
+              if (typeof email === 'string' && email !== '') {
+                return nameString === '' ? email : `${nameString} (${email})`;
+              }
+              if (nameString !== '') return nameString;
+            }
+
+            const id = user['id'];
+            if (typeof id === 'string' && id !== '') {
+              return `User ${id}`;
+            }
+
+            return 'Unnamed User';
           },
         ],
       },
