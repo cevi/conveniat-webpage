@@ -3574,6 +3574,10 @@ export interface HelperShift {
   enable_enrolment?: boolean | null;
   hide_participant_list?: boolean | null;
   /**
+   * Hide this slot when full for users who are not enrolled in it.
+   */
+  hide_when_full?: boolean | null;
+  /**
    * Admin-only notes about this shift (not shown to helpers).
    */
   notes?: {
@@ -5840,6 +5844,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
   participants_max?: T;
   enable_enrolment?: T;
   hide_participant_list?: T;
+  hide_when_full?: T;
   notes?: T;
   enrolledCount?: T;
   updatedAt?: T;
@@ -7391,6 +7396,10 @@ export interface AppFeatureFlag {
    */
   helperShiftsEnabled?: boolean | null;
   /**
+   * Toggles hiding full helper slots for users who are not enrolled in them.
+   */
+  hideFullHelperShifts?: boolean | null;
+  /**
    * Toggles visibility of the Image Upload menu item in the app.
    */
   imageUploadEnabled?: boolean | null;
@@ -8010,6 +8019,7 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   createChatsEnabled?: T;
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
+  hideFullHelperShifts?: T;
   imageUploadEnabled?: T;
   photoContestEnabled?: T;
   reservationsEnabled?: T;
