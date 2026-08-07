@@ -136,7 +136,7 @@ export const UserCollection: CollectionConfig = {
           },
         ],
         afterRead: [
-          ({ value, data }): string => {
+          async ({ value, data, req }): Promise<string> => {
             if (typeof value === 'string' && value !== '') {
               return value;
             }
@@ -157,6 +157,23 @@ export const UserCollection: CollectionConfig = {
 
             const id = user['id'];
             if (typeof id === 'string' && id !== '') {
+              try {
+                const fullUser = await req.payload.findByID({
+                  collection: 'users',
+                  id: id,
+                  depth: 0,
+                });
+                const dbEmail = fullUser.email as string | undefined;
+                const dbFullName = fullUser.fullName as string | undefined;
+                const dbNickname = fullUser.nickname as string | undefined;
+                const nameString = formatUserFullName(dbFullName, dbNickname);
+                if (typeof dbEmail === 'string' && dbEmail !== '') {
+                  return nameString === '' ? dbEmail : `${nameString} (${dbEmail})`;
+                }
+                if (nameString !== '') return nameString;
+              } catch {
+                // Fall back if user not found or db error
+              }
               return `User ${id}`;
             }
 
