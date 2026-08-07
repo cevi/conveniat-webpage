@@ -121,6 +121,7 @@ export const getAppFeatureFlagsCached = cache(
     Pick<
       AppFeatureFlag,
       | 'helperShiftsEnabled'
+      | 'hideFullHelperShifts'
       | 'imageUploadEnabled'
       | 'photoContestEnabled'
       | 'reservationsEnabled'
@@ -131,6 +132,7 @@ export const getAppFeatureFlagsCached = cache(
     if (isBuildPhase()) {
       return {
         helperShiftsEnabled: false,
+        hideFullHelperShifts: true,
         imageUploadEnabled: false,
         photoContestEnabled: false,
         reservationsEnabled: false,
@@ -144,6 +146,7 @@ export const getAppFeatureFlagsCached = cache(
         slug: 'app-feature-flags',
         select: {
           helperShiftsEnabled: true,
+          hideFullHelperShifts: true,
           imageUploadEnabled: true,
           photoContestEnabled: true,
           reservationsEnabled: true,

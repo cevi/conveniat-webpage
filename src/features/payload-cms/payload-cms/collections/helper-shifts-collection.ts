@@ -316,6 +316,25 @@ export const HelperShiftsCollection: CollectionConfig = {
       },
     },
     {
+      name: 'hide_when_full',
+      label: {
+        en: 'Hide When Full',
+        de: 'Ausblenden wenn voll',
+        fr: 'Masquer si complet',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Hide this slot when full for users who are not enrolled in it.',
+          de: 'Diesen Schichteinsatz ausblenden, wenn voll, für Personen die nicht angemeldet sind.',
+          fr: 'Masquer ce service s’il est complet pour les personnes non inscrites.',
+        },
+        condition: (data) => Boolean(data['enable_enrolment']) && Boolean(data['participants_max']),
+      },
+    },
+    {
       name: 'notes',
       label: {
         en: 'Internal Notes',

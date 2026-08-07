@@ -19,9 +19,9 @@ const switchIntoShiftSchema = z.object({
 
 export const shiftsRouter = createTRPCRouter({
   getShifts: publicProcedure.query(async ({ ctx }) => {
-    const { locale } = ctx;
+    const { locale, prisma, user } = ctx;
     const { getHelperShifts } = await import('./get-helper-shifts');
-    return getHelperShifts({}, locale);
+    return getHelperShifts({}, locale, { prisma, user });
   }),
 
   getShiftStatus: publicProcedure.input(enrollInShiftSchema).query(async ({ input, ctx }) => {

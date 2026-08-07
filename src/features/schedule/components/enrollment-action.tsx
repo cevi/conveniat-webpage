@@ -143,6 +143,8 @@ export const EnrollmentAction: React.FC<{
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
       void utils.schedule.getMyEnrollments.invalidate();
+      void utils.schedule.getHelperShifts.invalidate();
+      void utils.shifts.getShifts.invalidate();
       // Auto-star when enrolling
       if (!isStarred(courseId)) {
         toggleStar(courseId);
@@ -177,6 +179,8 @@ export const EnrollmentAction: React.FC<{
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
       void utils.schedule.getMyEnrollments.invalidate();
+      void utils.schedule.getHelperShifts.invalidate();
+      void utils.shifts.getShifts.invalidate();
       // Auto-star the new course
       if (!isStarred(courseId)) {
         toggleStar(courseId);
@@ -193,6 +197,8 @@ export const EnrollmentAction: React.FC<{
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
       void utils.schedule.getMyEnrollments.invalidate();
+      void utils.schedule.getHelperShifts.invalidate();
+      void utils.shifts.getShifts.invalidate();
     },
   });
 
