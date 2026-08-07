@@ -24,6 +24,10 @@ export const optimizedImageMinimumCacheTTL = 90 * 24 * 60 * 60; // 90 days in se
 export const cachingHeaders = (): Header[] => {
   return [
     {
+      source: '/.well-known/apple-app-site-association',
+      headers: [{ key: 'Content-Type', value: 'application/json' }],
+    },
+    {
       source: '/sitemap.xml',
       headers: [
         {
