@@ -3,12 +3,22 @@
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
+import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 export type NativePushStatus = 'granted' | 'denied' | 'prompt' | 'unknown';
+
+/**
+ * How long to wait after the initial getStatus() before concluding that the
+ * native bridge is not delivering events back to the page.
+ */
+const BRIDGE_RECOVERY_TIMEOUT_MS = 5000;
+/** Minimum time between recovery reload attempts (guards against reload loops). */
+const BRIDGE_RECOVERY_RETRY_INTERVAL_MS = 10 * 60 * 1000;
+const BRIDGE_RECOVERY_ATTEMPT_STORAGE_KEY = 'native_push_bridge_recovery_at';
 
 declare global {
   var AppWebViewNativePush:
@@ -341,6 +351,7 @@ export function useNativePush(): {
   const [logs, setLogs] = useState<NativePushLogEntry[]>([]);
   const [lastError, setLastError] = useState<string | undefined>();
   const rollbackTimeoutReference = useRef<NodeJS.Timeout | undefined>(undefined);
+  const hasReceivedBridgeEventReference = useRef(false);
 
   const addLog = (message: string, data?: unknown): void => {
     const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -438,6 +449,7 @@ export function useNativePush(): {
     };
 
     const handleNativeEvent = (event: Event): void => {
+      hasReceivedBridgeEventReference.current = true;
       const customEvent = event as CustomEvent<NativePushEventDetail | null | undefined>;
       const detail = customEvent.detail ?? {};
       const type = detail.type;
@@ -681,9 +693,44 @@ export function useNativePush(): {
       });
     }, 4000);
 
+    // Older app builds stop injecting bridge events once a client-side
+    // navigation marks the WebView "not ready" (fixed natively in
+    // konekta-app#35): commands still reach the native side, but every
+    // response is queued indefinitely. Only a real page load flushes that
+    // queue, so if the bridge object exists but no event arrives, reload once.
+    const bridgeRecoveryTimeoutId = setTimeout(() => {
+      if (hasReceivedBridgeEventReference.current || !nativePushBridge.isSupported()) return;
+
+      let lastAttempt = 0;
+      try {
+        const rawLastAttempt = sessionStorage.getItem(BRIDGE_RECOVERY_ATTEMPT_STORAGE_KEY);
+        lastAttempt = rawLastAttempt === null ? 0 : Number(rawLastAttempt);
+        if (Number.isNaN(lastAttempt)) lastAttempt = 0;
+      } catch {
+        // Without storage we cannot rate-limit the reload, so skip recovery.
+        return;
+      }
+
+      if (Date.now() - lastAttempt < BRIDGE_RECOVERY_RETRY_INTERVAL_MS) {
+        addLog('Bridge unresponsive, but recovery reload was already attempted recently');
+        return;
+      }
+
+      try {
+        sessionStorage.setItem(BRIDGE_RECOVERY_ATTEMPT_STORAGE_KEY, String(Date.now()));
+      } catch {
+        return;
+      }
+
+      console.warn('[NativePush:PWA] no bridge event received, reloading to restore bridge');
+      addLog('No bridge event received, reloading page to restore native bridge');
+      reloadPage();
+    }, BRIDGE_RECOVERY_TIMEOUT_MS);
+
     return (): void => {
       clearTimeout(initTimeoutId);
       clearTimeout(statusTimeoutId);
+      clearTimeout(bridgeRecoveryTimeoutId);
       if (rollbackTimeoutReference.current) {
         clearTimeout(rollbackTimeoutReference.current);
       }

@@ -3,7 +3,12 @@
  */
 
 import { extractNotificationTitleAndBody, useNativePush } from '@/hooks/use-native-push';
+import { reloadPage } from '@/utils/reload-page';
 import { act, renderHook } from '@testing-library/react';
+
+jest.mock('@/utils/reload-page', () => ({
+  reloadPage: jest.fn(),
+}));
 
 const mockPush = jest.fn();
 const mockNotification = jest.fn();
@@ -257,6 +262,70 @@ describe('useNativePush', () => {
 
       // Reset location
       globalThis.history.pushState({}, '', '/');
+    });
+  });
+
+  describe('bridge recovery watchdog', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      sessionStorage.clear();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('reloads the page when the bridge stays silent after mount', () => {
+      renderHook(() => useNativePush());
+
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+      expect(sessionStorage.getItem('native_push_bridge_recovery_at')).not.toBeNull();
+    });
+
+    it('does not reload when a bridge event was received', () => {
+      renderHook(() => useNativePush());
+
+      act(() => {
+        globalThis.dispatchEvent(
+          new CustomEvent('app-webview-native-push-event', {
+            detail: {
+              type: 'native-push-status',
+              payload: { authorizationLabel: 'authorized', hasToken: true },
+            },
+          }),
+        );
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(reloadPage).not.toHaveBeenCalled();
+    });
+
+    it('does not reload again while a recent recovery attempt is recorded', () => {
+      sessionStorage.setItem('native_push_bridge_recovery_at', String(Date.now()));
+
+      renderHook(() => useNativePush());
+
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(reloadPage).not.toHaveBeenCalled();
+    });
+
+    it('does not reload when the bridge object is absent', () => {
+      globalThis.AppWebViewNativePush = undefined;
+
+      renderHook(() => useNativePush());
+
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+
+      expect(reloadPage).not.toHaveBeenCalled();
     });
   });
 });
