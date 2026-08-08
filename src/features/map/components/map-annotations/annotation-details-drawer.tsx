@@ -12,6 +12,7 @@ import type {
   CampMapAnnotationPolygon,
   CampScheduleEntry,
 } from '@/features/map/types/types';
+import { ANNOTATION_DRAWER_ATTRIBUTE } from '@/features/map/utils/annotation-focus';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -139,6 +140,8 @@ export const AnnotationDetailsDrawer: React.FC<{
   return (
     <div
       ref={drawerReference}
+      // marks the drawer for `useFlyToAnnotation`, which measures how much of the map it covers
+      {...{ [ANNOTATION_DRAWER_ATTRIBUTE]: '' }}
       className="fixed right-0 bottom-[80px] left-0 z-[999] overflow-hidden rounded-t-2xl bg-white shadow-[0px_-4px_38px_-19px_rgba(1,1,1,0.5)] xl:left-[480px]"
       style={{ height: `${drawerHeight}vh` }}
     >

@@ -2,139 +2,93 @@
 
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
+import {
+  ANNOTATION_DRAWER_ATTRIBUTE,
+  ANNOTATION_FOCUS_MARGINS,
+  getAnnotationFocusCoordinates,
+  getFocusTargetPoint,
+  getObstructedBottomHeight,
+  getRecenteredMapCenterPoint,
+  getUnobstructedRegion,
+  isAnnotationComfortablyVisible,
+} from '@/features/map/utils/annotation-focus';
+import type maplibregl from 'maplibre-gl';
 import { useEffect } from 'react';
 
-// Helper function to calculate the centroid of a polygon
-const getPolygonCentroid = (coordinates: [number, number][]): [number, number] => {
-  let area = 0;
-  let centroidX = 0;
-  let centroidY = 0;
+const FLY_TO_DURATION_IN_MS = 1000;
 
-  if (coordinates.length < 3) {
-    throw new Error('Polygon must have at least 3 points');
-  }
+/**
+ * Measures how much of the map canvas is covered by the annotation drawer.
+ *
+ * The drawer is a sibling of the map container and can be resized by the user, so its actual size
+ * is read from the DOM instead of being assumed.
+ *
+ * @returns the covered height in CSS pixels, `0` if no drawer is open
+ */
+const measureDrawerObstruction = (map: maplibregl.Map): number => {
+  const drawer = (map.getContainer().parentElement ?? document).querySelector(
+    `[${ANNOTATION_DRAWER_ATTRIBUTE}]`,
+  );
+  if (!drawer) return 0;
 
-  for (let index = 0; index < coordinates.length; index++) {
-    const coordinatesAtIndex = coordinates[index] as [number, number];
-    if (!Array.isArray(coordinatesAtIndex)) {
-      throw new TypeError('Invalid coordinates format');
-    }
-
-    const coordinatesAtNextIndex = coordinates[(index + 1) % coordinates.length] as [
-      number,
-      number,
-    ];
-    if (!Array.isArray(coordinatesAtNextIndex)) {
-      throw new TypeError('Invalid coordinates format');
-    }
-
-    const x0 = coordinatesAtIndex[0];
-    const y0 = coordinatesAtIndex[1];
-    const x1 = coordinatesAtNextIndex[0];
-    const y1 = coordinatesAtNextIndex[1];
-
-    const a = x0 * y1 - x1 * y0;
-    area += a;
-    centroidX += (x0 + x1) * a;
-    centroidY += (y0 + y1) * a;
-  }
-
-  area *= 0.5;
-  if (area === 0) {
-    throw new Error('Polygon area cannot be zero');
-  }
-
-  centroidX /= 6 * area;
-  centroidY /= 6 * area;
-
-  // Return the centroid coordinates
-  return [centroidX, centroidY];
+  return getObstructedBottomHeight(
+    map.getCanvas().getBoundingClientRect(),
+    drawer.getBoundingClientRect(),
+  );
 };
 
+/**
+ * Moves the map so that the currently opened annotation is visible next to the annotation drawer.
+ *
+ * Nothing happens as long as the annotation already sits comfortably inside the part of the map
+ * that the drawer does not cover — the map is only moved when the annotation would otherwise be
+ * hidden or clipped.
+ *
+ * The animation target is computed in screen space and turned back into coordinates with the map's
+ * own `unproject()`. That keeps the movement correct for every zoom level and bearing; a fixed
+ * offset in degrees (as used previously) is only correct for one specific zoom level and for a
+ * north-up map, and pushes the annotation off-screen otherwise.
+ *
+ * @param annotation the annotation whose details drawer is open
+ * @param enabled set to `false` to disable the automatic movement entirely
+ */
 export const useFlyToAnnotation = (
   annotation: CampMapAnnotationPoint | CampMapAnnotationPolygon | undefined,
   enabled: boolean = true,
 ): void => {
   const map = useMap();
 
-  // center marker
-
   useEffect(() => {
     if (!map || !annotation || !enabled) return;
 
-    // abort if the annotation does not have a valid geometry
+    const coordinates = getAnnotationFocusCoordinates(annotation);
+    if (!coordinates) return;
+
+    const canvas = map.getCanvas();
+    const canvasSize = { width: canvas.clientWidth, height: canvas.clientHeight };
+    // the map has not been laid out (yet); there is nothing meaningful to center into
+    if (canvasSize.width <= 0 || canvasSize.height <= 0) return;
+
+    const unobstructedRegion = getUnobstructedRegion(canvasSize, measureDrawerObstruction(map));
+    const annotationPoint = map.project(coordinates);
+
     if (
-      !('coordinates' in annotation.geometry) ||
-      typeof annotation.geometry.coordinates[0] !== 'number' ||
-      typeof annotation.geometry.coordinates[1] !== 'number'
+      isAnnotationComfortablyVisible(annotationPoint, unobstructedRegion, ANNOTATION_FOCUS_MARGINS)
     ) {
       return;
     }
 
-    const mapHeight = map.getCanvas().clientHeight;
-    const projectedCoordinates = map.project(annotation.geometry.coordinates as [number, number]);
-    const annotationY = projectedCoordinates.y;
-    const annotationX = projectedCoordinates.x;
-
-    // check if the annotation is in the lower third of the map
-    const isInLowerThird = annotationY >= mapHeight / 2 - 100;
-    // also check if the annotation is close to the top or bottom border of the map
-    const isCloseToBorder =
-      annotationY < 100 ||
-      annotationY > mapHeight - 100 ||
-      annotationX < 100 ||
-      annotationX > map.getCanvas().width - 100;
-
-    if (!isInLowerThird && !isCloseToBorder) return;
+    const targetPoint = getFocusTargetPoint(unobstructedRegion, ANNOTATION_FOCUS_MARGINS);
+    const recenteredPoint = getRecenteredMapCenterPoint(
+      map.project(map.getCenter()),
+      annotationPoint,
+      targetPoint,
+    );
 
     map.flyTo({
-      center: [annotation.geometry.coordinates[0], annotation.geometry.coordinates[1] - 0.002_25],
+      center: map.unproject([recenteredPoint.x, recenteredPoint.y]),
       animate: true,
-      duration: 1000,
-    });
-  }, [map, annotation, enabled]);
-
-  // center polygon
-
-  useEffect(() => {
-    if (!map || !annotation || !enabled) return;
-
-    if (
-      !('coordinates' in annotation.geometry) ||
-      !Array.isArray(annotation.geometry.coordinates) ||
-      annotation.geometry.coordinates.length === 0 ||
-      !Array.isArray(annotation.geometry.coordinates[0]) ||
-      typeof annotation.geometry.coordinates[0][0] !== 'number' ||
-      typeof annotation.geometry.coordinates[0][1] !== 'number'
-    ) {
-      return;
-    }
-
-    const mapHeight = map.getCanvas().clientHeight;
-    const polygonCoordinates = annotation.geometry.coordinates;
-    const centroid = getPolygonCentroid(polygonCoordinates as [number, number][]);
-
-    const projectedCoordinates = map.project(centroid);
-
-    const annotationY = projectedCoordinates.y;
-    const annotationX = projectedCoordinates.x;
-
-    // check if the annotation is in the lower third of the map
-    const isInLowerThird = annotationY >= mapHeight / 2 - 100;
-
-    // also check if the annotation is close to the top or bottom border of the map
-    const isCloseToBorder =
-      annotationY < 100 ||
-      annotationY > mapHeight - 100 ||
-      annotationX < 100 ||
-      annotationX > map.getCanvas().width - 100;
-
-    if (!isInLowerThird && !isCloseToBorder) return;
-
-    map.flyTo({
-      center: [centroid[0], centroid[1] - 0.002_25], // Use the calculated centroid
-      animate: true,
-      duration: 1000,
+      duration: FLY_TO_DURATION_IN_MS,
     });
   }, [map, annotation, enabled]);
 };
