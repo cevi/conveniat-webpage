@@ -99,11 +99,12 @@ const CirclePin = ({
     {/*
       The label is positioned absolutely so that it does not widen the marker element — the pin
       has to stay horizontally centered on its coordinate, no matter how long the title is.
+      Long titles wrap onto a second line and are only then cut off with an ellipsis.
     */}
     {label !== undefined && label !== '' && (
       <span
         data-marker-label=""
-        className="pointer-events-none absolute top-[18px] left-[calc(100%+6px)] max-w-40 -translate-y-1/2 truncate text-[13px] leading-none font-semibold"
+        className="pointer-events-none absolute top-[18px] left-[calc(100%+6px)] line-clamp-2 max-w-40 -translate-y-1/2 text-[13px] leading-tight font-semibold text-balance"
         style={{
           // the title picks up the colour of its marker, darkened where needed to stay legible
           color: getMarkerLabelColor(color),
