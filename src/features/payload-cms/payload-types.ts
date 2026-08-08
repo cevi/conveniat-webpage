@@ -2379,6 +2379,10 @@ export interface CampMapAnnotation {
     | boolean
     | null;
   /**
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
+   */
+  showLabel?: boolean | null;
+  /**
    * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
   isInteractive?: boolean | null;
@@ -5738,6 +5742,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   importance?: T;
   geometry?: T;
   polygonCoordinates?: T;
+  showLabel?: T;
   isInteractive?: T;
   hiddenOnDefaultMap?: T;
   enableSupportChat?: T;

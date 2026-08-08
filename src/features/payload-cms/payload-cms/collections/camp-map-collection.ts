@@ -327,6 +327,25 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
             AnnotationPointField,
             MapPolygon,
             {
+              name: 'showLabel',
+              label: {
+                en: 'Show Title on Map',
+                de: 'Titel auf der Karte anzeigen',
+                fr: 'Afficher le titre sur la carte',
+              },
+              type: 'checkbox',
+              defaultValue: true,
+              admin: {
+                condition: (_, siblingData: Partial<CampMapAnnotation>): boolean =>
+                  siblingData.annotationType === 'marker',
+                description: {
+                  en: 'If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.',
+                  de: 'Wenn aktiviert, wird der Titel neben der Markierung angezeigt, sobald die Karte weit genug herangezoomt ist.',
+                  fr: 'Si coché, le titre est affiché à côté du marqueur dès que la carte est suffisamment zoomée.',
+                },
+              },
+            },
+            {
               name: 'isInteractive',
               label: {
                 en: 'Interactive',
