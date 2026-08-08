@@ -55,6 +55,12 @@ export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload
     return { user: undefined };
   }
 
+  // Blocked users are treated as unauthenticated by Payload: no admin panel,
+  // no REST/GraphQL API and no `req.user` in any collection access rule.
+  if (user.blocked === true) {
+    return { user: undefined };
+  }
+
   return {
     user: {
       ...user,

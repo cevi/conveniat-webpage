@@ -2,6 +2,7 @@
 import { GET } from '@/app/(frontend)/api/chat/sse/route';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
+import { isUserBlocked } from '@/lib/user-blocking/is-user-blocked';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { NextRequest } from 'next/server';
@@ -46,12 +47,18 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+jest.mock('@/lib/user-blocking/is-user-blocked', () => ({
+  isUserBlocked: jest.fn().mockResolvedValue(false),
+}));
+
 const mockAuth = auth as unknown as jest.Mock;
 const mockIsValidNextAuthUser = isValidNextAuthUser as unknown as jest.Mock;
+const mockIsUserBlocked = isUserBlocked as unknown as jest.Mock;
 
 describe('GET /api/chat/sse', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsUserBlocked.mockResolvedValue(false);
   });
 
   it('returns 401 Unauthorized if user is not authenticated', async () => {
@@ -75,6 +82,20 @@ describe('GET /api/chat/sse', () => {
 
     expect(response.status).toBe(200);
     expect(chatPubSub.subscribe).toHaveBeenCalledWith('user-uuid-123', expect.any(Function));
+  });
+
+  it('returns 403 Forbidden if the user has been blocked', async () => {
+    const mockUser = { uuid: 'user-uuid-123', group_ids: [] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+    mockIsUserBlocked.mockResolvedValue(true);
+
+    const request = new NextRequest('https://konekta.ch/api/chat/sse?chatIds=');
+    const response = await GET(request);
+
+    expect(response.status).toBe(403);
+    expect(await response.text()).toBe('USER_BLOCKED');
+    expect(chatPubSub.subscribe).not.toHaveBeenCalled();
   });
 
   it('returns 400 Bad Request if an invalid UUID format is supplied', async () => {

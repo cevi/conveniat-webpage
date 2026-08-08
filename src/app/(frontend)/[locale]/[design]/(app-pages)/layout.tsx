@@ -1,5 +1,6 @@
 import { SetHideCopyrightFooter } from '@/components/footer/hide-footer-context';
 import { ClientProviders } from '@/context/client-providers';
+import { BlockedUserGate } from '@/features/user-blocking/components/blocked-user-gate';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -14,13 +15,17 @@ interface LayoutProperties {
   }>;
 }
 
-const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
+const AppLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
+  const { locale } = await params;
+
   return (
     <Suspense fallback={undefined}>
       <ClientProviders>
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
         <SetHideCopyrightFooter value />
-        <div className="mb-20">{children}</div>
+        <div className="mb-20">
+          <BlockedUserGate locale={locale}>{children}</BlockedUserGate>
+        </div>
         <div></div>
       </ClientProviders>
     </Suspense>

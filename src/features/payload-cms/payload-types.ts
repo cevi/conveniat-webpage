@@ -577,6 +577,22 @@ export interface User {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  /**
+   * Blocks this user from every part of the app that requires a login (chat, enrollments, admin panel, ...). Existing sessions are invalidated immediately.
+   */
+  blocked?: boolean | null;
+  /**
+   * Internal note documenting why this user was blocked.
+   */
+  blockedReason?: string | null;
+  /**
+   * Set automatically when the user is blocked.
+   */
+  blockedAt?: string | null;
+  /**
+   * The admin who blocked this user.
+   */
+  blockedBy?: (string | null) | User;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -6100,6 +6116,10 @@ export interface UsersSelect<T extends boolean = true> {
   hidden?: T;
   presentAtCamp?: T;
   presenceLogs?: T;
+  blocked?: T;
+  blockedReason?: T;
+  blockedAt?: T;
+  blockedBy?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;

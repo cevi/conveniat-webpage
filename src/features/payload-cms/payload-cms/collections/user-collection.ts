@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
+  hasAccessToThis,
   hasAccessToThisHelper,
   hasAdminOrWebAccess,
   Roles,
@@ -8,15 +9,16 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import type { User } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
+import { invalidateBlockedStatusCache } from '@/lib/user-blocking/is-user-blocked';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
 import { formatUserFullName } from '@/utils/format-user-name';
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, FieldAccess, FieldHook } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
 
 const syncUserToPostgres: NonNullable<
   NonNullable<CollectionConfig['hooks']>['afterChange']
->[number] = async ({ doc }): Promise<void> => {
+>[number] = async ({ doc, previousDoc }): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const uuid = doc.id as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -27,6 +29,10 @@ const syncUserToPostgres: NonNullable<
   const hidden = doc.hidden as boolean | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const description = doc.description as string | undefined | null;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const blocked = (doc.blocked as boolean | undefined | null) ?? false;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const previouslyBlocked = (previousDoc?.blocked as boolean | undefined | null) ?? false;
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -42,6 +48,7 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        blocked: blocked,
       },
       create: {
         uuid: uuid,
@@ -49,13 +56,71 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        blocked: blocked,
         // set date to 1970-01-01 to avoid null values
         lastSeen: new Date('1970-01-01T00:00:00Z'),
       },
     });
   } catch (error) {
     console.error('[syncUserToPostgres] Non-fatal error syncing user to Postgres:', error);
+
+    // Blocking is enforced against the Postgres mirror. If the mirror could not be
+    // updated, the block would silently not take effect — so we surface the failure
+    // to the editor instead of swallowing it. Logins never change this flag, so this
+    // does not make the login sync any less resilient.
+    if (blocked !== previouslyBlocked) {
+      throw new Error(
+        'Could not propagate the blocked status of this user to the app database. The change was not applied — please try again.',
+      );
+    }
+    return;
   }
+
+  // Make the change take effect immediately in this process; other instances pick it
+  // up once their short-lived cache entry expires.
+  invalidateBlockedStatusCache(uuid);
+};
+
+/**
+ * Only full admins and the web core team may block or unblock users.
+ */
+const canManageUserBlocking: FieldAccess = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
+
+/**
+ * Resolves the blocked flag the document will have after this write.
+ *
+ * `data` only contains the fields that are part of the incoming write, so we fall
+ * back to the currently stored value for partial updates.
+ */
+const resolveBlockedAfterChange = (data: unknown, originalDocument: unknown): boolean => {
+  const incoming = (data as User | undefined)?.blocked;
+  if (typeof incoming === 'boolean') return incoming;
+  return (originalDocument as User | undefined)?.blocked === true;
+};
+
+const trackBlockingTimestamp: FieldHook = ({ data, originalDoc, value }) => {
+  const isBlocked = resolveBlockedAfterChange(data, originalDoc);
+  // eslint-disable-next-line unicorn/no-null
+  if (!isBlocked) return null;
+
+  const wasBlocked = (originalDoc as User | undefined)?.blocked === true;
+  const hasTimestamp = typeof value === 'string' && value !== '';
+  if (wasBlocked && hasTimestamp) return value;
+
+  return new Date().toISOString();
+};
+
+const trackBlockingUser: FieldHook = ({ data, originalDoc, req, value }) => {
+  const isBlocked = resolveBlockedAfterChange(data, originalDoc);
+  // eslint-disable-next-line unicorn/no-null
+  if (!isBlocked) return null;
+
+  const currentValue = typeof value === 'string' && value !== '' ? value : undefined;
+  const wasBlocked = (originalDoc as User | undefined)?.blocked === true;
+  if (wasBlocked && currentValue !== undefined) return currentValue;
+
+  return typeof req.user?.id === 'string' ? req.user.id : currentValue;
 };
 
 export const UserCollection: CollectionConfig = {
@@ -96,7 +161,14 @@ export const UserCollection: CollectionConfig = {
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
-    defaultColumns: ['nickname', 'fullName', 'email', 'presentAtCamp', 'adminPanelAccess'],
+    defaultColumns: [
+      'nickname',
+      'fullName',
+      'email',
+      'presentAtCamp',
+      'adminPanelAccess',
+      'blocked',
+    ],
     listSearchableFields: ['nickname', 'fullName', 'email'],
   },
   auth: {
@@ -378,6 +450,92 @@ export const UserCollection: CollectionConfig = {
       on: 'user',
       admin: {
         description: 'Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).',
+      },
+    },
+    {
+      name: 'blocked',
+      label: {
+        en: 'Blocked from the App',
+        de: 'Von der App gesperrt',
+        fr: "Bloqué de l'application",
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      index: true,
+      access: {
+        update: canManageUserBlocking,
+      },
+      admin: {
+        position: 'sidebar',
+        description:
+          'Blocks this user from every part of the app that requires a login (chat, enrollments, admin panel, ...). Existing sessions are invalidated immediately.',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/user-blocking/block-user-field#BlockUserField',
+        },
+      },
+    },
+    {
+      name: 'blockedReason',
+      label: {
+        en: 'Reason for the Block',
+        de: 'Grund für die Sperrung',
+        fr: 'Motif du blocage',
+      },
+      type: 'textarea',
+      required: false,
+      access: {
+        update: canManageUserBlocking,
+      },
+      admin: {
+        position: 'sidebar',
+        condition: (data): boolean => (data as User | undefined)?.blocked === true,
+        description: 'Internal note documenting why this user was blocked.',
+      },
+    },
+    {
+      name: 'blockedAt',
+      label: {
+        en: 'Blocked At',
+        de: 'Gesperrt am',
+        fr: 'Bloqué le',
+      },
+      type: 'date',
+      required: false,
+      access: {
+        update: () => false,
+      },
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data): boolean => (data as User | undefined)?.blocked === true,
+        description: 'Set automatically when the user is blocked.',
+      },
+      hooks: {
+        beforeChange: [trackBlockingTimestamp],
+      },
+    },
+    {
+      name: 'blockedBy',
+      label: {
+        en: 'Blocked By',
+        de: 'Gesperrt von',
+        fr: 'Bloqué par',
+      },
+      type: 'relationship',
+      relationTo: 'users',
+      required: false,
+      access: {
+        update: () => false,
+      },
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data): boolean => (data as User | undefined)?.blocked === true,
+        description: 'The admin who blocked this user.',
+      },
+      hooks: {
+        beforeChange: [trackBlockingUser],
       },
     },
     LastEditedByUserField,
