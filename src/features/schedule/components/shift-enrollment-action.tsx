@@ -128,6 +128,8 @@ export const ShiftEnrollmentAction: React.FC<{
     onSuccess: () => {
       void utils.shifts.getShiftStatus.invalidate();
       void utils.shifts.getMyShiftEnrollments.invalidate();
+      void utils.schedule.getHelperShifts.invalidate();
+      void utils.shifts.getShifts.invalidate();
       setConflictDialogOpen(false);
       setConflictInfo(undefined);
     },
@@ -156,6 +158,8 @@ export const ShiftEnrollmentAction: React.FC<{
     onSuccess: () => {
       void utils.shifts.getShiftStatus.invalidate();
       void utils.shifts.getMyShiftEnrollments.invalidate();
+      void utils.schedule.getHelperShifts.invalidate();
+      void utils.shifts.getShifts.invalidate();
       setConflictDialogOpen(false);
       setConflictInfo(undefined);
     },
@@ -168,6 +172,8 @@ export const ShiftEnrollmentAction: React.FC<{
     onSuccess: () => {
       void utils.shifts.getShiftStatus.invalidate();
       void utils.shifts.getMyShiftEnrollments.invalidate();
+      void utils.schedule.getHelperShifts.invalidate();
+      void utils.shifts.getShifts.invalidate();
     },
   });
 

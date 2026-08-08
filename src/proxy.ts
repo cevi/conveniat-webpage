@@ -14,6 +14,7 @@ const authSessionProxy: ProxyModule = (next) => {
     const isStaticAsset =
       /\.(png|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|js|map)$/i.test(pathname) ||
       pathname.startsWith('/imgs/') ||
+      pathname.startsWith('/.well-known/') ||
       pathname === '/sw.js' ||
       pathname === '/sw.js.map' ||
       pathname.startsWith('/serwist/');

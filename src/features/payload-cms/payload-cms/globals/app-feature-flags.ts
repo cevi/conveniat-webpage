@@ -11,6 +11,7 @@ import {
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
   FEATURE_FLAG_FORUM_ENABLED,
   FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
+  FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS,
   FEATURE_FLAG_IMAGE_UPLOAD_ENABLED,
   FEATURE_FLAG_PHOTO_CONTEST_ENABLED,
   FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED,
@@ -123,6 +124,34 @@ export const AppFeatureFlags: GlobalConfig = {
         afterChange: [
           async ({ value }): Promise<void> => {
             await setFeatureFlag(FEATURE_FLAG_HELPER_SHIFTS_ENABLED, Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'hideFullHelperShifts',
+      label: {
+        en: 'Hide Full Helper Slots for Unenrolled Users',
+        de: 'Voll ausgebuchte Schichteinsätze für Nicht-Angemeldete ausblenden',
+        fr: 'Masquer les services complets pour les personnes non inscrites',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: {
+          en: 'Toggles hiding full helper slots for users who are not enrolled in them.',
+          de: 'Blendet voll ausgebuchte Schichteinsätze für nicht angemeldete Personen aus.',
+          fr: 'Masque les services complets pour les personnes non inscrites.',
+        },
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag(FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS, Boolean(value));
           },
         ],
       },
