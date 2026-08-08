@@ -27,6 +27,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
   const [showManualInput, setShowManualInput] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -205,16 +206,30 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
 
   useEffect(() => {
     if (mapContainerReference.current && !mapReference.current) {
-      const map = new maplibregl.Map({
-        container: mapContainerReference.current,
-        style: '/vector-map/base_style.json',
-        dragRotate: false,
-        pitchWithRotate: false,
-        touchPitch: false,
-        center: [8.301_211, 46.502_822],
-        zoom: 15.5,
-        validateStyle: false,
-      });
+      let map: maplibregl.Map;
+
+      // MapLibre throws synchronously when no WebGL context can be acquired (hardware
+      // acceleration disabled, blocked/sandboxed GPU). Uncaught, that exception tears down the
+      // whole admin document view and makes the annotation uneditable.
+      try {
+        map = new maplibregl.Map({
+          container: mapContainerReference.current,
+          style: '/vector-map/base_style.json',
+          dragRotate: false,
+          pitchWithRotate: false,
+          touchPitch: false,
+          center: [8.301_211, 46.502_822],
+          zoom: 15.5,
+          validateStyle: false,
+        });
+      } catch (error) {
+        console.warn('[MapCoordinatesField] Failed to initialize the map:', error);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMapUnavailable(true);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setShowManualInput(true);
+        return;
+      }
 
       mapReference.current = map;
 
@@ -302,11 +317,21 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
           </button>
         </div>
       </div>
-      <div
-        ref={mapContainerReference}
-        style={{ width: '100%', height: '400px', borderRadius: '0', overflow: 'hidden' }}
-        className="border-x-2 border-gray-200"
-      />
+      {mapUnavailable ? (
+        <div className="flex flex-col items-center justify-center gap-1 border-x-2 border-gray-200 bg-gray-50 p-8 text-center">
+          <span className="text-sm font-semibold text-gray-700">Map picker unavailable</span>
+          <span className="max-w-md text-xs text-gray-500">
+            This browser could not create a WebGL context. Enter the coordinates manually below
+            instead.
+          </span>
+        </div>
+      ) : (
+        <div
+          ref={mapContainerReference}
+          style={{ width: '100%', height: '400px', borderRadius: '0', overflow: 'hidden' }}
+          className="border-x-2 border-gray-200"
+        />
+      )}
 
       {showManualInput && (
         <div className="flex flex-col gap-3 rounded-b-md border-x-2 border-b-2 border-gray-200 bg-gray-50 p-3">

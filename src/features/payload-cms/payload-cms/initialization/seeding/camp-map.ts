@@ -354,6 +354,24 @@ const iconMarkerSelectOptions = [
   'BriefcaseMedical' as const,
 ];
 
+/**
+ * Realistic marker names paired with a fitting icon. Lorem ipsum titles would not show whether
+ * the labels rendered next to the markers are readable at the camp map's zoom levels.
+ */
+const markerPointsOfInterest: { title: string; icon: (typeof iconMarkerSelectOptions)[number] }[] =
+  [
+    { title: 'Verpflegungszelt', icon: 'Utensils' },
+    { title: 'Sanität', icon: 'BriefcaseMedical' },
+    { title: 'Hauptbühne', icon: 'Stage' },
+    { title: 'Infopoint', icon: 'HelpCircle' },
+    { title: 'Toiletten Nord', icon: 'Toilet' },
+    { title: 'Trinkwasserstelle', icon: 'GlassWater' },
+    { title: 'Recycling Station', icon: 'Recycle' },
+    { title: 'Fahnenmast', icon: 'Flag' },
+    { title: 'Materialzelt', icon: 'Tent' },
+    { title: 'Treffpunkt Lagerleitung', icon: 'MapPin' },
+  ];
+
 const getRandomTime = (): string => {
   const hours = faker.number.int({ min: 0, max: 23 });
   const minutes = faker.number.int({ min: 0, max: 59 });
@@ -368,9 +386,11 @@ const getRandomTime = (): string => {
 export const createRandomCampAnnotation = (
   imageIds: string[],
 ): RequiredDataFromCollectionSlug<'camp-map-annotations'> => {
+  const pointOfInterest = faker.helpers.arrayElement(markerPointsOfInterest);
+
   // Base annotation structure
   const baseAnnotation = {
-    title: faker.lorem.words({ min: 2, max: 4 }),
+    title: pointOfInterest.title,
     description: {
       root: {
         type: 'root',
@@ -417,7 +437,7 @@ export const createRandomCampAnnotation = (
   return {
     ...baseAnnotation,
     annotationType: 'marker',
-    icon: faker.helpers.arrayElement(iconMarkerSelectOptions),
+    icon: pointOfInterest.icon,
     importance: faker.helpers.arrayElement(['high', 'medium', 'low']),
     color: faker.helpers.arrayElement([
       '78909c',
@@ -430,6 +450,8 @@ export const createRandomCampAnnotation = (
       '1e88e5',
     ]),
     geometry: randomCoordinates,
+    // most markers are labelled on the map, a few are not — mirroring how editors would use it
+    showLabel: faker.datatype.boolean({ probability: 0.8 }),
     openingHours: [
       {
         ...(randomDayOrUndefined === undefined ? {} : { day: randomDayOrUndefined }),
