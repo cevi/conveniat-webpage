@@ -2,7 +2,11 @@
  * @jest-environment jsdom
  */
 
-import { extractNotificationTitleAndBody, useNativePush } from '@/hooks/use-native-push';
+import {
+  extractMessageIdentifier,
+  extractNotificationTitleAndBody,
+  useNativePush,
+} from '@/hooks/use-native-push';
 import {
   notifyForegroundMessage,
   resetForegroundNotificationState,
@@ -186,6 +190,27 @@ describe('useNativePush', () => {
     expect(result.current.isRegisteredOnBackend).toBe(false);
     expect(result.current.isUnauthenticated).toBe(true);
     expect(result.current.lastError).toBeUndefined();
+  });
+
+  describe('extractMessageIdentifier', () => {
+    it('prefers the chat message id in data over the Firebase delivery id', () => {
+      // Shape produced by the native shell's normalizeRemoteMessage(): the
+      // top-level messageId is Firebase's, data.messageId is the chat message.
+      expect(
+        extractMessageIdentifier({
+          messageId: 'firebase-delivery-id',
+          data: { messageId: 'chat-message-id', chatId: 'chat-abc' },
+        }),
+      ).toBe('chat-message-id');
+    });
+
+    it('falls back to the push log id when no chat message id is present', () => {
+      expect(extractMessageIdentifier({ data: { notificationId: 'log-id' } })).toBe('log-id');
+    });
+
+    it('returns undefined when nothing identifies the message', () => {
+      expect(extractMessageIdentifier({ data: { chatId: 'chat-abc' } })).toBeUndefined();
+    });
   });
 
   describe('extractNotificationTitleAndBody', () => {

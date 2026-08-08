@@ -335,7 +335,15 @@ export function extractNotificationTitleAndBody(payload: Record<string, unknown>
 /**
  * Extracts the id identifying the underlying chat message so that the same
  * message delivered over FCM and over SSE is only surfaced once.
- * Falls back to the push log id, which is unique per notification.
+ *
+ * The `data` blocks are searched before the top level on purpose: the native
+ * shell normalises a Firebase message to `{ messageId, ..., data }`, where the
+ * top-level `messageId` is Firebase's own per-delivery id and only
+ * `data.messageId` is the chat message id that SSE also reports. Reading the
+ * top level first would produce a key SSE can never match, and the message would
+ * be surfaced twice.
+ *
+ * Falls back to the push log id, which is at least unique per notification.
  */
 export function extractMessageIdentifier(payload: Record<string, unknown>): string | undefined {
   const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
@@ -343,13 +351,13 @@ export function extractMessageIdentifier(payload: Record<string, unknown>): stri
     Record<string, unknown> | undefined;
 
   const candidates: (Record<string, unknown> | undefined)[] = [
-    payload,
     payload['data'] as Record<string, unknown> | undefined,
-    notificationObject,
     notificationObject?.['data'] as Record<string, unknown> | undefined,
-    apsObject,
     (payload['userInfo'] ?? notificationObject?.['userInfo']) as
       Record<string, unknown> | undefined,
+    apsObject,
+    notificationObject,
+    payload,
   ];
 
   for (const key of ['messageId', 'notificationId']) {
