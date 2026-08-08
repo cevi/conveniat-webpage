@@ -44,6 +44,7 @@ export async function sendFcmNotification(
     data: {
       url?: string;
       chatId?: string;
+      messageId?: string;
       notificationId?: string;
       ignoreIfAppOpen?: string;
       ignoreIfUrlMatches?: string;
@@ -79,6 +80,7 @@ export async function sendFcmNotification(
         url: payload.data.url ?? '/app/dashboard',
         notificationId,
         ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+        ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
         ...(payload.data.ignoreIfAppOpen !== undefined && {
           ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
         }),
@@ -103,6 +105,7 @@ export async function sendFcmNotification(
           notificationId,
           ...(payload.data.url !== undefined && { url: payload.data.url }),
           ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+          ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
           ...(payload.data.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
@@ -112,6 +115,7 @@ export async function sendFcmNotification(
             notificationId,
             ...(payload.data.url !== undefined && { url: payload.data.url }),
             ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+            ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
             ...(payload.data.ignoreIfUrlMatches !== undefined && {
               ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
             }),
@@ -131,6 +135,7 @@ export async function sendFcmNotification(
           notificationId,
           url: payload.data.url ?? '/app/dashboard',
           ...(payload.data.chatId !== undefined && { chatId: payload.data.chatId }),
+          ...(payload.data.messageId !== undefined && { messageId: payload.data.messageId }),
           ...(payload.data.ignoreIfAppOpen !== undefined && {
             ignoreIfAppOpen: payload.data.ignoreIfAppOpen,
           }),

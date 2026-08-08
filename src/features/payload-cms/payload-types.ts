@@ -329,6 +329,10 @@ export interface Blog {
       | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
@@ -1956,6 +1960,10 @@ export interface GenericPage {
       | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
@@ -2379,6 +2387,10 @@ export interface CampMapAnnotation {
     | boolean
     | null;
   /**
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
+   */
+  showLabel?: boolean | null;
+  /**
    * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
   isInteractive?: boolean | null;
@@ -2717,6 +2729,10 @@ export interface TwoColumnBlock {
     | ApprovedFormSubmissionsBlock
     | {
         images: (string | Image)[];
+        /**
+         * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+         */
+        aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
         id?: string | null;
         blockName?: string | null;
         blockType: 'photoCarousel';
@@ -2901,6 +2917,10 @@ export interface TwoColumnBlock {
     | ApprovedFormSubmissionsBlock
     | {
         images: (string | Image)[];
+        /**
+         * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+         */
+        aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
         id?: string | null;
         blockName?: string | null;
         blockType: 'photoCarousel';
@@ -3245,6 +3265,10 @@ export interface TabsBlock {
       | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
@@ -4599,6 +4623,7 @@ export interface BlogSelect<T extends boolean = true> {
                 | T
                 | {
                     images?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -5101,6 +5126,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               images?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
@@ -5206,6 +5232,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               images?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
@@ -5401,6 +5428,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                 | T
                 | {
                     images?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -5530,6 +5558,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                 | T
                 | {
                     images?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -5738,6 +5767,7 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
   importance?: T;
   geometry?: T;
   polygonCoordinates?: T;
+  showLabel?: T;
   isInteractive?: T;
   hiddenOnDefaultMap?: T;
   enableSupportChat?: T;
@@ -7474,6 +7504,10 @@ export interface AppLandingPage {
         | ApprovedFormSubmissionsBlock
         | {
             images: (string | Image)[];
+            /**
+             * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+             */
+            aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'photoCarousel';
@@ -8060,6 +8094,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
           | T
           | {
               images?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };

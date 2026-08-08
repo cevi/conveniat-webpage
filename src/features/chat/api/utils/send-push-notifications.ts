@@ -71,6 +71,9 @@ async function processSubscription(
     logContent,
     {
       ignoreIfUrlMatches: true,
+      // Lets the client de-duplicate the same message arriving over both the
+      // push channel and the realtime (SSE) stream.
+      ...(messageId === undefined ? {} : { messageId }),
       ...(typeof notificationTitle === 'string' ? { title: notificationTitle } : {}),
     },
   );

@@ -123,7 +123,9 @@ export const useSchedule = <T extends { timeslot: { date: string } }>(
     setCarouselStartIndex((previous) => Math.max(0, previous - 1));
 
   const handleCarouselNext = (): void =>
-    setCarouselStartIndex((previous) => Math.min(previous + 1, allDates.length - maxVisibleDays));
+    setCarouselStartIndex((previous) =>
+      Math.min(previous + 1, Math.max(0, allDates.length - maxVisibleDays)),
+    );
 
   const handleDateSelect = (date: Date): void => {
     setSelectedDate(date);

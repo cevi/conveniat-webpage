@@ -100,6 +100,7 @@ export const CampMapComponent: React.FC<{
           importance: document_.importance,
           enableSupportChat: document_.enableSupportChat ?? true,
           hiddenOnDefaultMap: document_.hiddenOnDefaultMap ?? false,
+          showLabel: document_.showLabel ?? true,
         }) as CampMapAnnotationPoint,
     );
 

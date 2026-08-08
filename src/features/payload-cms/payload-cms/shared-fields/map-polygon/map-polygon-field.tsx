@@ -248,6 +248,7 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
   const [annotations, setAnnotations] = useState<CampMapAnnotation[]>([]);
   const [mounted, setMounted] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapUnavailable, setMapUnavailable] = useState(false);
   const initialSyncReference = useRef(false);
 
   useEffect(() => {
@@ -488,16 +489,28 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
 
   useEffect(() => {
     if (mapContainerReference.current && !mapReference.current) {
-      const map = new maplibregl.Map({
-        container: mapContainerReference.current,
-        style: '/vector-map/base_style.json',
-        dragRotate: false,
-        pitchWithRotate: false,
-        touchPitch: false,
-        center: [8.301_211, 46.502_822],
-        zoom: 15.5,
-        validateStyle: false,
-      });
+      let map: maplibregl.Map;
+
+      // MapLibre throws synchronously when no WebGL context can be acquired (hardware
+      // acceleration disabled, blocked/sandboxed GPU). Uncaught, that exception tears down the
+      // whole admin document view and makes the annotation uneditable.
+      try {
+        map = new maplibregl.Map({
+          container: mapContainerReference.current,
+          style: '/vector-map/base_style.json',
+          dragRotate: false,
+          pitchWithRotate: false,
+          touchPitch: false,
+          center: [8.301_211, 46.502_822],
+          zoom: 15.5,
+          validateStyle: false,
+        });
+      } catch (error) {
+        console.warn('[MapPolygonField] Failed to initialize the map:', error);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMapUnavailable(true);
+        return;
+      }
 
       mapReference.current = map;
 
@@ -618,23 +631,35 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
           </span>
         </div>
       </div>
-      <div
-        ref={mapContainerReference}
-        style={{
-          width: '100%',
-          height: '500px',
-          borderRadius: '0 0 4px 4px',
-          overflow: 'hidden',
-        }}
-        className="border-2 border-t-0 border-gray-200"
-      />
-      <div className="flex items-center justify-between px-1 text-[11px] font-medium text-emerald-600">
-        <span className="flex items-center gap-1">
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-          Draw mode active - click on map to start. Right click to undo last point. Double click to
-          close.
-        </span>
-      </div>
+      {mapUnavailable ? (
+        <div className="flex flex-col items-center justify-center gap-1 rounded-b-md border-2 border-t-0 border-gray-200 bg-gray-50 p-8 text-center">
+          <span className="text-sm font-semibold text-gray-700">Map editor unavailable</span>
+          <span className="max-w-md text-xs text-gray-500">
+            This browser could not create a WebGL context, so the polygon cannot be drawn here. The
+            already saved coordinates are kept when the document is saved.
+          </span>
+        </div>
+      ) : (
+        <>
+          <div
+            ref={mapContainerReference}
+            style={{
+              width: '100%',
+              height: '500px',
+              borderRadius: '0 0 4px 4px',
+              overflow: 'hidden',
+            }}
+            className="border-2 border-t-0 border-gray-200"
+          />
+          <div className="flex items-center justify-between px-1 text-[11px] font-medium text-emerald-600">
+            <span className="flex items-center gap-1">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              Draw mode active - click on map to start. Right click to undo last point. Double click
+              to close.
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 };

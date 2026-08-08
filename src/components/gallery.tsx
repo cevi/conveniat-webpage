@@ -10,10 +10,60 @@ import type { SimplifiedImageType } from '@/features/payload-cms/payload-cms/uti
 import {
   getImageAltInLocale,
   getImageCaptionInLocale,
+  getRelativeImageUrl,
 } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import Image from 'next/image';
 import React from 'react';
+
+/**
+ * The aspect ratios a photo carousel can be rendered in.
+ *
+ * Portrait ratios use narrower slides, such that the carousel keeps roughly the
+ * same height independent of the selected aspect ratio.
+ */
+const carouselAspectRatios = {
+  video: {
+    imageClassName: 'aspect-video',
+    slideClassName: 'basis-1/3 lg:basis-1/2',
+    dimensions: { width: 1200, height: 675 },
+  },
+  '3/2': {
+    imageClassName: 'aspect-[3/2]',
+    slideClassName: 'basis-1/3 lg:basis-1/2',
+    dimensions: { width: 1200, height: 800 },
+  },
+  '4/3': {
+    imageClassName: 'aspect-[4/3]',
+    slideClassName: 'basis-1/3 lg:basis-1/2',
+    dimensions: { width: 1200, height: 900 },
+  },
+  '1/1': {
+    imageClassName: 'aspect-square',
+    slideClassName: 'basis-1/3 lg:basis-1/3',
+    dimensions: { width: 1200, height: 1200 },
+  },
+  '3/4': {
+    imageClassName: 'aspect-[3/4]',
+    slideClassName: 'basis-1/4 lg:basis-1/4',
+    dimensions: { width: 900, height: 1200 },
+  },
+  '2/3': {
+    imageClassName: 'aspect-[2/3]',
+    slideClassName: 'basis-1/4 lg:basis-1/4',
+    dimensions: { width: 800, height: 1200 },
+  },
+  '9/16': {
+    imageClassName: 'aspect-[9/16]',
+    slideClassName: 'basis-1/4 lg:basis-1/4',
+    dimensions: { width: 675, height: 1200 },
+  },
+} as const;
+
+export type CarouselAspectRatio = keyof typeof carouselAspectRatios;
+
+const defaultAspectRatio: CarouselAspectRatio = '3/2';
 
 export interface PhotoCarouselBlock {
   images: {
@@ -25,28 +75,25 @@ export interface PhotoCarouselBlock {
     imageCaption_en?: string;
     imageCaption_fr?: string;
   }[];
+  aspectRatio?: string | null | undefined;
   locale: Locale;
 }
 
 const blurDataURL =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=';
 
-export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images, locale }) => {
+const isCarouselAspectRatio = (ratio: string | null | undefined): ratio is CarouselAspectRatio =>
+  ratio !== undefined && ratio !== null && ratio in carouselAspectRatios;
+
+export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images, aspectRatio, locale }) => {
   const length = images.length;
 
   if (length === 0) {
     throw new Error('No images provided');
   }
 
-  // If there are less than 4 images, duplicate the images to fill the carousel
-  if (length < 4) {
-    const diff = 4 - length;
-    for (let index = 0; index < diff; index++) {
-      const img = images[index % length];
-      if (img === undefined) continue;
-      images.push(img);
-    }
-  }
+  const { imageClassName, slideClassName, dimensions } =
+    carouselAspectRatios[isCarouselAspectRatio(aspectRatio) ? aspectRatio : defaultAspectRatio];
 
   return (
     <div className="mx-[-32px] mb-8 w-screen select-none max-lg:overflow-hidden md:mx-0 md:w-full">
@@ -54,34 +101,44 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images, locale }) 
         opts={{ align: 'center', loop: true }}
         className="w-full max-lg:w-[200%] max-lg:translate-x-[-25%] max-lg:transform"
       >
-        <CarouselContent>
-          {Array.from({ length }).map((_, index) => (
-            <CarouselItem key={index} index={index} className="basis-1/3 lg:basis-1/2">
-              <div className="p-1">
-                <Image
-                  className="h-[240px] rounded-md bg-white object-cover max-md:aspect-square xl:h-[400px]"
-                  src={images[index % images.length]?.sizes?.large?.url ?? ''}
-                  alt={getImageAltInLocale(
-                    locale,
-                    images[index % images.length] as SimplifiedImageType,
-                  )}
-                  placeholder="blur"
-                  blurDataURL={blurDataURL}
-                  width={600}
-                  height={200}
-                />
-              </div>
-              <CarouselDescription index={index} className="flex flex-col">
-                {getImageCaptionInLocale(locale, images[index % images.length])}
-                <span className="mt-2">
-                  {index + 1} / {length}
-                </span>
-              </CarouselDescription>
-            </CarouselItem>
+        {/* the arrows are positioned relative to the images, not the descriptions */}
+        <div className="relative">
+          <CarouselContent>
+            {images.map((image, index) => (
+              <CarouselItem key={index} index={index} className={slideClassName}>
+                <div className="p-1">
+                  <Image
+                    className={cn('w-full rounded-md bg-white object-cover', imageClassName)}
+                    src={getRelativeImageUrl(image.sizes?.large?.url)}
+                    alt={getImageAltInLocale(locale, image as SimplifiedImageType)}
+                    placeholder="blur"
+                    blurDataURL={blurDataURL}
+                    width={dimensions.width}
+                    height={dimensions.height}
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="max-lg:hidden" />
+          <CarouselNext className="max-lg:hidden" />
+        </div>
+
+        {/* all descriptions are stacked on top of each other, only the active one is visible */}
+        <div className="mx-auto grid max-lg:w-1/2">
+          {images.map((image, index) => (
+            <CarouselDescription
+              key={index}
+              index={index}
+              className="col-start-1 row-start-1 flex flex-col"
+            >
+              {getImageCaptionInLocale(locale, image)}
+              <span className="mt-2">
+                {index + 1} / {length}
+              </span>
+            </CarouselDescription>
           ))}
-        </CarouselContent>
-        <CarouselPrevious className="max-lg:hidden" />
-        <CarouselNext className="max-lg:hidden" />
+        </div>
       </Carousel>
     </div>
   );

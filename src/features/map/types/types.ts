@@ -48,6 +48,8 @@ export interface CampMapAnnotationPoint {
   importance: 'high' | 'medium' | 'low';
   enableSupportChat?: boolean;
   hiddenOnDefaultMap?: boolean;
+  /** Whether the title is rendered next to the marker once the map is zoomed in. */
+  showLabel?: boolean;
 }
 
 export interface CampMapAnnotationPolygon {

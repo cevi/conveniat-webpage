@@ -114,10 +114,14 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
               const threshold = 50;
               if (info.offset.x < -threshold && nextDate) {
                 onDateSelect(nextDate);
-                onCarouselNext();
+                if (currentIndex + 1 >= carouselStartIndex + maxVisibleDays) {
+                  onCarouselNext();
+                }
               } else if (info.offset.x > threshold && currentIndex > 0 && previousDay) {
                 onDateSelect(previousDay);
-                onCarouselPrevious();
+                if (currentIndex - 1 < carouselStartIndex) {
+                  onCarouselPrevious();
+                }
               }
             }}
             className="h-full touch-pan-y"

@@ -1,6 +1,7 @@
 'use client';
 
-import { useField } from '@payloadcms/ui';
+import type { Locale } from '@/types/types';
+import { useField, useLocale } from '@payloadcms/ui';
 import type { CheckboxFieldClientProps } from 'payload';
 import React from 'react';
 
@@ -9,38 +10,47 @@ type ExtendedCheckboxProperties = CheckboxFieldClientProps & {
   label?: string | Record<string, string>;
 };
 
+/**
+ * Payload labels and descriptions are either a plain string or a localized
+ * record such as `{ en: '…', de: '…', fr: '…' }`. Rendering the record directly
+ * crashes React ("Objects are not valid as a React child"), so resolve it
+ * against the active admin locale first.
+ *
+ * Anything that is not renderable text (a description function or a custom
+ * component) yields `undefined` so the caller can skip it.
+ */
+export const resolveLocalizedText = (value: unknown, locale: Locale): string | undefined => {
+  if (typeof value === 'string') return value;
+  if (typeof value !== 'object' || value === null) return undefined;
+
+  const record = value as Record<string, unknown>;
+  const candidate = record[locale] ?? record['en'] ?? Object.values(record)[0];
+
+  return typeof candidate === 'string' ? candidate : undefined;
+};
+
 export const FeatureFlagToggle: React.FC<ExtendedCheckboxProperties> = ({
   path,
   label: labelProperties,
   field,
 }) => {
   const { value, setValue } = useField<boolean>({ path });
+  const { code } = useLocale();
+  const locale = code as Locale;
 
-  // In Payload admin, label comes from field configuration
-  // It can be a string or a localized object { en: '...', de: '...', fr: '...' }
-  const fieldLabel = field.label;
-  let label: string;
+  const label =
+    resolveLocalizedText(labelProperties, locale) ??
+    resolveLocalizedText(field.label, locale) ??
+    field.name;
 
-  if (typeof labelProperties === 'string') {
-    label = labelProperties;
-  } else if (typeof fieldLabel === 'string') {
-    label = fieldLabel;
-  } else if (typeof fieldLabel === 'object') {
-    // Localized label object - pick 'en' as fallback or first available
-    label = fieldLabel['en'] ?? Object.values(fieldLabel)[0] ?? field.name;
-  } else {
-    label = field.name;
-  }
+  const description = resolveLocalizedText(field.admin?.description, locale);
 
   return (
     <div className="m-2 flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
       <div className="space-y-0.5">
         <label className="text-base font-medium text-gray-900 dark:text-gray-100">{label}</label>
-        {field.admin?.description && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {field.admin.description as string}{' '}
-            {/* Casting to string as description can be complex */}
-          </p>
+        {description !== undefined && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
         )}
       </div>
       <input
