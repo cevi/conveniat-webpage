@@ -65,6 +65,8 @@ export interface MapLibreRendererProperties {
   disableUrlSync?: boolean;
   disableFlyTo?: boolean;
   enableSearch?: boolean;
+  /** Rendered instead of the map when it cannot be initialized on this device. */
+  unavailableFallback?: React.ReactNode;
 }
 
 export const MapLibreRenderer = ({
@@ -81,6 +83,7 @@ export const MapLibreRenderer = ({
   disableUrlSync,
   disableFlyTo,
   enableSearch,
+  unavailableFallback,
 }: MapLibreRendererProperties): React.JSX.Element => {
   const reference = useRef<HTMLDivElement>(null);
   const isVisible = useIntersectionObserver(reference);
@@ -107,6 +110,7 @@ export const MapLibreRenderer = ({
             {...(disableUrlSync !== undefined && { disableUrlSync })}
             {...(disableFlyTo !== undefined && { disableFlyTo })}
             {...(enableSearch !== undefined && { enableSearch })}
+            {...(unavailableFallback !== undefined && { unavailableFallback })}
           />
         </Suspense>
       ) : (
@@ -130,6 +134,7 @@ export const MiniMapLibreRenderer = ({
   disableUrlSync,
   disableFlyTo,
   enableSearch,
+  unavailableFallback,
 }: MapLibreRendererProperties): React.JSX.Element => {
   const reference = useRef<HTMLDivElement>(null);
   const isVisible = useIntersectionObserver(reference);
@@ -156,6 +161,7 @@ export const MiniMapLibreRenderer = ({
             {...(disableUrlSync !== undefined && { disableUrlSync })}
             {...(disableFlyTo !== undefined && { disableFlyTo })}
             {...(enableSearch !== undefined && { enableSearch })}
+            {...(unavailableFallback !== undefined && { unavailableFallback })}
           />
         </Suspense>
       ) : (

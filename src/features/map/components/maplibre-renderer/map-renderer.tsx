@@ -2,6 +2,7 @@
 
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { AnnotationDetailsDrawer } from '@/features/map/components/map-annotations/annotation-details-drawer';
+import { MapUnavailableFallback } from '@/features/map/components/map-unavailable-fallback';
 import { MapContextProvider } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import { MaplibreMap } from '@/features/map/components/maplibre-renderer/maplibre-map';
 import { SearchBar } from '@/features/map/components/search-bar';
@@ -46,6 +47,7 @@ export const MapLibreRenderer = ({
   disableUrlSync = false,
   disableFlyTo = false,
   enableSearch = false,
+  unavailableFallback,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -60,6 +62,8 @@ export const MapLibreRenderer = ({
   disableUrlSync?: boolean;
   disableFlyTo?: boolean;
   enableSearch?: boolean;
+  /** Rendered instead of the map when it cannot be initialized on this device. */
+  unavailableFallback?: React.ReactNode;
 }): React.JSX.Element => {
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | undefined>();
   const [openAnnotation, setOpenAnnotation] = useState<
@@ -150,7 +154,7 @@ export const MapLibreRenderer = ({
     }
   }, [annotationPoints, annotationPolygons, openAnnotation]);
 
-  const map = useMapInitialization(mapContainer, {
+  const { map, initializationFailed } = useMapInitialization(mapContainer, {
     initialMapPose,
     limitUsage,
     validateStyle,
@@ -213,6 +217,11 @@ export const MapLibreRenderer = ({
     },
     [openAnnotation, filteredAnnotationPoints, filteredAnnotationPolygons],
   );
+
+  // MapLibre could not acquire a WebGL context; degrade instead of crashing the page.
+  if (initializationFailed) {
+    return <>{unavailableFallback ?? <MapUnavailableFallback />}</>;
+  }
 
   return (
     <MapContextProvider map={map}>
