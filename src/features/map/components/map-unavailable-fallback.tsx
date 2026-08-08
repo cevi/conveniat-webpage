@@ -25,7 +25,7 @@ export const MapUnavailableFallback: React.FC<{ children?: React.ReactNode }> = 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 p-4 text-center">
       <MapPinOff className="h-8 w-8 text-gray-400" />
-      <p className="text-sm text-gray-500">{mapUnavailableText[locale]}</p>
+      <p className="text-sm text-balance text-gray-500">{mapUnavailableText[locale]}</p>
       {children}
     </div>
   );
