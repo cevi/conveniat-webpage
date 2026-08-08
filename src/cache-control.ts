@@ -28,6 +28,10 @@ export const cachingHeaders = (): Header[] => {
       headers: [{ key: 'Content-Type', value: 'application/json' }],
     },
     {
+      source: '/apple-app-site-association',
+      headers: [{ key: 'Content-Type', value: 'application/json' }],
+    },
+    {
       source: '/sitemap.xml',
       headers: [
         {

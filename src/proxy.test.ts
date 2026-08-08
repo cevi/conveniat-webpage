@@ -52,6 +52,36 @@ describe('proxy - authSessionProxy', () => {
     expect(rotateSessionToken).not.toHaveBeenCalled();
   });
 
+  it('skips session token rotation for /apple-app-site-association route', async () => {
+    const request = {
+      nextUrl: new URL('https://konekta.ch/apple-app-site-association'),
+      headers: new Headers(),
+      cookies: {
+        set: jest.fn(),
+      },
+    } as unknown as NextRequest;
+
+    const response = NextResponse.next();
+    await proxy(request, mockFetchEvent, response);
+
+    expect(rotateSessionToken).not.toHaveBeenCalled();
+  });
+
+  it('skips session token rotation for static .json asset routes', async () => {
+    const request = {
+      nextUrl: new URL('https://konekta.ch/assetlinks.json'),
+      headers: new Headers(),
+      cookies: {
+        set: jest.fn(),
+      },
+    } as unknown as NextRequest;
+
+    const response = NextResponse.next();
+    await proxy(request, mockFetchEvent, response);
+
+    expect(rotateSessionToken).not.toHaveBeenCalled();
+  });
+
   it('runs session token rotation for normal routes', async () => {
     const request = {
       nextUrl: new URL('https://konekta.ch/de/app/dashboard'),
