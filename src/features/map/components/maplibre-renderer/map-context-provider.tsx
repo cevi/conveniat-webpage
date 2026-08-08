@@ -5,7 +5,7 @@ export const MapContext = createContext<maplibregl.Map | undefined>(undefined);
 
 export const MapContextProvider: React.FC<{
   children: React.ReactNode;
-  map: maplibregl.Map | null;
+  map: maplibregl.Map | null | undefined;
 }> = ({ children, map }) => {
   return <MapContext.Provider value={map ?? undefined}>{children}</MapContext.Provider>;
 };
