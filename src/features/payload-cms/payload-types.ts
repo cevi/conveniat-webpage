@@ -329,6 +329,10 @@ export interface Blog {
       | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
@@ -1956,6 +1960,10 @@ export interface GenericPage {
       | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
@@ -2721,6 +2729,10 @@ export interface TwoColumnBlock {
     | ApprovedFormSubmissionsBlock
     | {
         images: (string | Image)[];
+        /**
+         * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+         */
+        aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
         id?: string | null;
         blockName?: string | null;
         blockType: 'photoCarousel';
@@ -2905,6 +2917,10 @@ export interface TwoColumnBlock {
     | ApprovedFormSubmissionsBlock
     | {
         images: (string | Image)[];
+        /**
+         * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+         */
+        aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
         id?: string | null;
         blockName?: string | null;
         blockType: 'photoCarousel';
@@ -3249,6 +3265,10 @@ export interface TabsBlock {
       | ApprovedFormSubmissionsBlock
       | {
           images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
           id?: string | null;
           blockName?: string | null;
           blockType: 'photoCarousel';
@@ -4603,6 +4623,7 @@ export interface BlogSelect<T extends boolean = true> {
                 | T
                 | {
                     images?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -5105,6 +5126,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               images?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
@@ -5210,6 +5232,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
           | T
           | {
               images?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };
@@ -5405,6 +5428,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                 | T
                 | {
                     images?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -5534,6 +5558,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                 | T
                 | {
                     images?: T;
+                    aspectRatio?: T;
                     id?: T;
                     blockName?: T;
                   };
@@ -7479,6 +7504,10 @@ export interface AppLandingPage {
         | ApprovedFormSubmissionsBlock
         | {
             images: (string | Image)[];
+            /**
+             * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+             */
+            aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
             id?: string | null;
             blockName?: string | null;
             blockType: 'photoCarousel';
@@ -8065,6 +8094,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
           | T
           | {
               images?: T;
+              aspectRatio?: T;
               id?: T;
               blockName?: T;
             };

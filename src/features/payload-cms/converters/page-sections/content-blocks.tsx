@@ -469,7 +469,7 @@ export const RenderPhotoCarousel: SectionRenderer<PhotoCarouselBlock> = ({
       )}
       locale={locale}
     >
-      <PhotoCarousel images={block.images} locale={locale} />
+      <PhotoCarousel images={block.images} aspectRatio={block.aspectRatio} locale={locale} />
     </SectionWrapper>
   );
 };
