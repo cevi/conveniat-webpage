@@ -3,11 +3,22 @@
  */
 
 import { extractNotificationTitleAndBody, useNativePush } from '@/hooks/use-native-push';
+import {
+  notifyForegroundMessage,
+  resetForegroundNotificationState,
+} from '@/utils/foreground-notifications';
 import { reloadPage } from '@/utils/reload-page';
 import { act, renderHook } from '@testing-library/react';
 
 jest.mock('@/utils/reload-page', () => ({
   reloadPage: jest.fn(),
+}));
+
+const mockToast = jest.fn();
+jest.mock('sonner', () => ({
+  toast: (...args: unknown[]): void => {
+    mockToast(...args);
+  },
 }));
 
 const mockPush = jest.fn();
@@ -43,6 +54,21 @@ jest.mock('@/trpc/client', () => ({
     },
   },
 }));
+
+const buildDuplicateMessageEvent = (): CustomEvent =>
+  new CustomEvent('app-webview-native-push-event', {
+    detail: {
+      type: 'native-push-message',
+      payload: {
+        data: {
+          title: 'Team Alpha',
+          body: 'Bob: Duplicated',
+          chatId: 'chat-abc',
+          messageId: 'message-4',
+        },
+      },
+    },
+  });
 
 describe('useNativePush', () => {
   beforeEach(() => {
@@ -207,7 +233,20 @@ describe('useNativePush', () => {
   });
 
   describe('foreground push event handling', () => {
-    it('displays native system notification when receiving push message while on a different page', () => {
+    beforeEach(() => {
+      resetForegroundNotificationState();
+    });
+
+    it('asks the native shell for a system notification while on a different page', () => {
+      const showNotification = jest.fn();
+      globalThis.AppWebViewNativePush = {
+        getStatus: jest.fn(),
+        requestPermission: jest.fn(),
+        deleteToken: jest.fn(),
+        openSettings: jest.fn(),
+        showNotification,
+      };
+
       renderHook(() => useNativePush());
 
       const event = new CustomEvent('app-webview-native-push-event', {
@@ -220,6 +259,7 @@ describe('useNativePush', () => {
             },
             data: {
               chatId: 'chat-abc',
+              messageId: 'message-1',
             },
           },
         },
@@ -229,14 +269,45 @@ describe('useNativePush', () => {
         globalThis.dispatchEvent(event);
       });
 
-      expect(mockNotification).toHaveBeenCalledWith('Team Alpha', {
+      expect(showNotification).toHaveBeenCalledWith({
+        title: 'Team Alpha',
         body: 'Bob: Check the document',
-        icon: '/favicon.svg',
-        data: { targetPath: '/app/chat/chat-abc' },
+        url: '/app/chat/chat-abc',
+        chatId: 'chat-abc',
+        messageId: 'message-1',
       });
     });
 
-    it('suppresses native system notification when receiving push message for the currently open chat', () => {
+    it('falls back to an in-app banner when the shell cannot show notifications', () => {
+      renderHook(() => useNativePush());
+
+      const event = new CustomEvent('app-webview-native-push-event', {
+        detail: {
+          type: 'native-push-message',
+          payload: {
+            data: {
+              title: 'Team Alpha',
+              body: 'Bob: Check the document',
+              chatId: 'chat-abc',
+              messageId: 'message-2',
+            },
+          },
+        },
+      });
+
+      act(() => {
+        globalThis.dispatchEvent(event);
+      });
+
+      expect(mockToast).toHaveBeenCalledWith(
+        'Team Alpha',
+        expect.objectContaining({ description: 'Bob: Check the document' }),
+      );
+      // The dead `new Notification(...)` path must not be used any more.
+      expect(mockNotification).not.toHaveBeenCalled();
+    });
+
+    it('suppresses the notification when the targeted chat is already open', () => {
       globalThis.history.pushState({}, '', '/de/app/chat/chat-abc');
 
       renderHook(() => useNativePush());
@@ -249,6 +320,7 @@ describe('useNativePush', () => {
               title: 'Team Alpha',
               body: 'Bob: Hello again',
               chatId: 'chat-abc',
+              messageId: 'message-3',
             },
           },
         },
@@ -258,10 +330,28 @@ describe('useNativePush', () => {
         globalThis.dispatchEvent(event);
       });
 
-      expect(mockNotification).not.toHaveBeenCalled();
+      expect(mockToast).not.toHaveBeenCalled();
 
       // Reset location
       globalThis.history.pushState({}, '', '/');
+    });
+
+    it('surfaces a message only once when it arrives over both push and SSE', () => {
+      renderHook(() => useNativePush());
+
+      act(() => {
+        globalThis.dispatchEvent(buildDuplicateMessageEvent());
+      });
+
+      notifyForegroundMessage({
+        chatId: 'chat-abc',
+        messageId: 'message-4',
+        title: 'Team Alpha',
+        body: 'Bob: Duplicated',
+        targetPath: '/app/chat/chat-abc',
+      });
+
+      expect(mockToast).toHaveBeenCalledTimes(1);
     });
   });
 

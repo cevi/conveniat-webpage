@@ -2,6 +2,10 @@
 
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
+import {
+  notifyForegroundMessage,
+  setForegroundNotificationNavigator,
+} from '@/utils/foreground-notifications';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { reloadPage } from '@/utils/reload-page';
 import { isNativeAppWebView } from '@/utils/standalone-check';
@@ -27,6 +31,12 @@ declare global {
         requestPermission: () => void;
         deleteToken: () => void;
         openSettings: () => void;
+        /**
+         * Renders a system notification while the app is in the foreground.
+         * Only available on native app builds that implement the
+         * `native-push-show-notification` bridge command; feature-detect before calling.
+         */
+        showNotification?: (request: Record<string, string>) => void;
       }
     | undefined;
 }
@@ -322,6 +332,40 @@ export function extractNotificationTitleAndBody(payload: Record<string, unknown>
   return { title, body };
 }
 
+/**
+ * Extracts the id identifying the underlying chat message so that the same
+ * message delivered over FCM and over SSE is only surfaced once.
+ * Falls back to the push log id, which is unique per notification.
+ */
+export function extractMessageIdentifier(payload: Record<string, unknown>): string | undefined {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+  const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
+    Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload,
+    payload['data'] as Record<string, unknown> | undefined,
+    notificationObject,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    apsObject,
+    (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+      Record<string, unknown> | undefined,
+  ];
+
+  for (const key of ['messageId', 'notificationId']) {
+    for (const object_ of candidates) {
+      if (!object_ || typeof object_ !== 'object') continue;
+
+      const value: unknown = object_[key];
+      if (typeof value === 'string' && value.trim() !== '') {
+        return value.trim();
+      }
+    }
+  }
+
+  return undefined;
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -366,6 +410,13 @@ export function useNativePush(): {
 
   const { mutateAsync: registerDevice } = trpc.nativePush.registerDevice.useMutation();
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
+
+  // Foreground notifications are raised from non-React code (SSE listener, bridge
+  // events), so hand them the client-side router instead of a hard navigation.
+  useEffect(() => {
+    setForegroundNotificationNavigator((path: string) => router.push(path));
+    return (): void => setForegroundNotificationNavigator(undefined);
+  }, [router]);
 
   useEffect(() => {
     const isNative = isNativeAppWebView();
@@ -586,60 +637,41 @@ export function useNativePush(): {
           // Refresh query cache in background
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 
-          // Check if current user is actively viewing this exact chat details page
-          const currentPathname = globalThis.location.pathname;
-          const isCurrentChatOpen =
-            typeof targetChatId === 'string' &&
-            targetChatId !== '' &&
-            currentPathname.includes(`/app/chat/${targetChatId}`);
+          const { title: notificationTitle, body: notificationBody } =
+            extractNotificationTitleAndBody(payload);
 
-          if (!isCurrentChatOpen) {
-            const { title: notificationTitle, body: notificationBody } =
-              extractNotificationTitleAndBody(payload);
-
-            let targetPath = '/app/dashboard';
-            if (typeof rawUrl === 'string' && rawUrl !== '') {
-              if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
-                targetPath = rawUrl;
-              } else {
-                try {
-                  const parsedUrl = new URL(rawUrl, globalThis.location.origin);
-                  targetPath = parsedUrl.pathname + parsedUrl.search;
-                } catch {
-                  // Fall back if parse fails
-                }
-              }
-            }
-            if (
-              targetPath === '/app/dashboard' &&
-              typeof targetChatId === 'string' &&
-              targetChatId.trim() !== ''
-            ) {
-              targetPath = `/app/chat/${targetChatId.trim()}`;
-            }
-
-            const notificationApi = (
-              globalThis as unknown as { Notification?: typeof Notification }
-            ).Notification;
-            if (notificationApi?.permission === 'granted') {
+          let targetPath = '/app/dashboard';
+          if (typeof rawUrl === 'string' && rawUrl !== '') {
+            if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
+              targetPath = rawUrl;
+            } else {
               try {
-                const nativeNotification = new globalThis.Notification(notificationTitle, {
-                  body: notificationBody,
-                  icon: '/favicon.svg',
-                  data: { targetPath },
-                });
-                nativeNotification.addEventListener('click', () => {
-                  globalThis.focus();
-                  router.push(targetPath);
-                });
-              } catch (notificationError: unknown) {
-                console.warn(
-                  '[NativePush:PWA] Could not trigger native system notification:',
-                  notificationError,
-                );
+                const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+                targetPath = parsedUrl.pathname + parsedUrl.search;
+              } catch {
+                // Fall back if parse fails
               }
             }
           }
+          if (
+            targetPath === '/app/dashboard' &&
+            typeof targetChatId === 'string' &&
+            targetChatId.trim() !== ''
+          ) {
+            targetPath = `/app/chat/${targetChatId.trim()}`;
+          }
+
+          // Firebase never renders a notification while the app is in the
+          // foreground, so the WebView has to surface it. `notifyForegroundMessage`
+          // owns the "is the user already looking at this chat?" decision and
+          // de-duplicates against the same message arriving over SSE.
+          notifyForegroundMessage({
+            chatId: targetChatId,
+            messageId: extractMessageIdentifier(payload),
+            title: notificationTitle,
+            body: notificationBody,
+            targetPath,
+          });
           break;
         }
         case 'native-push-error': {
