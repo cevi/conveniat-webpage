@@ -2,6 +2,7 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
 import type { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { useEffect } from 'react';
@@ -135,6 +136,17 @@ export const useChatSSE = (chatIds: string[]): void => {
       const message = data.message;
 
       if (data.type === 'new_message') {
+        // Raise a foreground notification for messages landing in a chat the user
+        // is not currently looking at. Inside the native app Firebase does not
+        // render anything while the app is open, so this is the only signal the
+        // user gets; de-duplicated against the FCM bridge event by message id.
+        notifyRealtimeChatMessage({
+          chatId: data.chatId,
+          chatName: trpcUtils.chat.chats.getData({})?.find((chat) => chat.id === data.chatId)?.name,
+          message,
+          currentUserId: currentUser,
+        });
+
         // Direct TanStack cache injection for infinite messages
         trpcUtils.chat.infiniteMessages.setInfiniteData(
           {

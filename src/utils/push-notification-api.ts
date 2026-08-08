@@ -223,6 +223,8 @@ export async function sendNotificationToSubscription(
     ignoreIfAppOpen?: boolean;
     ignoreIfUrlMatches?: boolean;
     title?: string;
+    /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
+    messageId?: string;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
@@ -295,6 +297,7 @@ export async function sendNotificationToSubscription(
           ...(normalizedUrl !== undefined && { path: normalizedUrl }),
           ...(normalizedUrl !== undefined && { link: normalizedUrl }),
           ...(chatIdFromUrl !== undefined && { chatId: chatIdFromUrl }),
+          ...(options?.messageId !== undefined && { messageId: options.messageId }),
           ...(logId !== undefined && { notificationId: logId }),
           ...(options?.ignoreIfAppOpen !== undefined && {
             ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
@@ -331,6 +334,7 @@ export async function sendNotificationToSubscription(
           data: {
             url: urlToSend,
             notificationId: logId,
+            ...(options?.messageId !== undefined && { messageId: options.messageId }),
             ...(options?.ignoreIfAppOpen !== undefined && {
               ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
             }),
