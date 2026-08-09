@@ -273,10 +273,12 @@ export const emergencyRouter = createTRPCRouter({
                     user: { connect: { uuid: user.uuid } },
                     chatPermission: ChatMembershipPermission.MEMBER,
                   },
-                  ...activePiketMembers.map((member) => ({
-                    user: { connect: { uuid: member.id } },
-                    chatPermission: ChatMembershipPermission.MEMBER,
-                  })),
+                  ...activePiketMembers
+                    .filter((member) => member.id !== user.uuid)
+                    .map((member) => ({
+                      user: { connect: { uuid: member.id } },
+                      chatPermission: ChatMembershipPermission.MEMBER,
+                    })),
                 ],
               },
               capabilities: [ChatCapability.CAN_SEND_MESSAGES],
