@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { CacheFirst, ExpirationPlugin, type RouteHandler, type SerwistPlugin } from 'serwist';
@@ -6,7 +7,7 @@ const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
 const tilesStyleBaseUrl = 'https://vectortiles.geo.admin.ch/tiles/';
 const stylesBaseUrl = 'https://vectortiles.geo.admin.ch/styles/';
 const fontBaseUrl = 'https://vectortiles.geo.admin.ch/fonts/';
-const isKonektaDeployment = process.env['NEXT_PUBLIC_APP_HOST_URL'] === 'https://konekta.ch';
+const isKonektaDeployment = environmentVariables.NEXT_PUBLIC_APP_HOST_URL === 'https://konekta.ch';
 
 const sharedUrlsToPrecache: string[] = [
   // fonts for map viewer
