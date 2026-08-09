@@ -64,7 +64,7 @@ const readRetryCount = (signature: string): number => {
       lastAttemptAt?: number;
     };
     if (stored.signature !== signature) return 0;
-    if (Date.now() - (stored.lastAttemptAt ?? 0) > 5 * 60 * 1000) return 0;
+    if (Date.now() - (stored.lastAttemptAt ?? 0) > 30 * 1000) return 0;
     return typeof stored.count === 'number' ? stored.count : 0;
   } catch {
     return 0;
@@ -122,6 +122,8 @@ const copyToClipboard = async (text: string): Promise<void> => {
   textarea.remove();
 };
 
+let clearRetryTimeout: ReturnType<typeof setTimeout>;
+
 /**
  * Responsible for rendering a runtime error page with offline recovery support.
  */
@@ -135,6 +137,9 @@ const ErrorPage: React.FC<{
   const clickTimestampsReference = useRef<number[]>([]);
 
   useEffect(() => {
+    // If this component just remounted (failed reset), cancel the pending clear from the unmount.
+    clearTimeout(clearRetryTimeout);
+
     console.error(error);
     console.error(error.stack);
 
@@ -162,6 +167,12 @@ const ErrorPage: React.FC<{
     return (): void => {
       globalThis.removeEventListener('offline', handleOnlineStatus);
       globalThis.removeEventListener('online', handleOnlineStatus);
+
+      // If we don't remount within 100ms, recovery succeeded (or user navigated away).
+      // Clear the retry counter so the next error starts fresh.
+      clearRetryTimeout = setTimeout(() => {
+        writeRetryCount(buildErrorSignature(error), 0);
+      }, 100);
     };
   }, [error]);
 

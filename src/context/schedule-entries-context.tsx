@@ -118,6 +118,9 @@ const applyServerEntries = (serverEntries: CampScheduleEntryFrontendType[]): voi
     try {
       if (currentIds.has(entry.id)) {
         scheduleEntriesCollection.update(entry.id, (draft) => {
+          for (const key of Object.keys(draft)) {
+            delete draft[key as keyof typeof draft];
+          }
           Object.assign(draft, record);
         });
       } else {
@@ -145,6 +148,7 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
   initialEntries,
 }) => {
   const hasHydratedReference = useRef(false);
+  const hasSyncedReference = useRef(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | undefined>();
   const { data: localEntries } = useLiveQuery(
     (q) => q.from({ entry: scheduleEntriesCollection }),
@@ -179,6 +183,7 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 
     // Debounce to avoid race conditions with other effects
     const timer = setTimeout(() => {
+      if (hasSyncedReference.current) return;
       applyServerEntries(initialEntries);
       setLastSyncedAt(Date.now());
     }, SYNC_DEBOUNCE_MS);
@@ -190,6 +195,7 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 
   // Manual sync function for imperative updates
   const syncFromServer = useCallback((serverEntries: CampScheduleEntryFrontendType[]) => {
+    hasSyncedReference.current = true;
     applyServerEntries(serverEntries);
     setLastSyncedAt(Date.now());
   }, []);

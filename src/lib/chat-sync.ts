@@ -183,6 +183,9 @@ export const syncAllOfflineData = async (
                   // The callback has to mutate the draft - TanStack DB tracks property
                   // assignments and discards the returned value.
                   scheduleEntriesCollection.update(entry.id, (old) => {
+                    for (const key of Object.keys(old)) {
+                      delete old[key as keyof typeof old];
+                    }
                     Object.assign(old, recordToSave);
                   });
                 }
