@@ -1,17 +1,19 @@
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
-const appFeaturesTitle: StaticTranslationString = {
-  en: 'conveniat27 App',
-  de: 'conveniat27 App',
-  fr: 'App conveniat27',
+/**
+ * Placeholder for the dashboard title while the (cached) landing page
+ * configuration has not been loaded yet.
+ */
+export const DashboardTitleSkeleton: React.FC = () => {
+  return <div className="mb-4 h-8 w-48 animate-pulse rounded bg-gray-200" />;
 };
 
-export const DashboardAppFeaturesSkeleton: React.FC<{ locale: Locale }> = ({ locale }) => {
+/**
+ * Placeholder for the horizontally scrollable app feature cards.
+ */
+export const DashboardAppFeaturesSkeleton: React.FC = () => {
   return (
     <div>
-      <HeadlineH1 className="mb-4">{appFeaturesTitle[locale]}</HeadlineH1>
       <div className="overflow-x-auto pb-4">
         <div className="flex w-max gap-4">
           {Array.from({ length: 4 }).map((_, index) => (

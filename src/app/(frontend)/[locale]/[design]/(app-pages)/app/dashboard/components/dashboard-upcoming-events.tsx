@@ -1,11 +1,13 @@
 'use client';
 
+import { DashboardUpcomingEventsSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-upcoming-events-skeleton';
 import { CallToAction } from '@/components/ui/buttons/call-to-action';
 import { Card } from '@/components/ui/card';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { useStar } from '@/hooks/use-star';
+import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { cn } from '@/utils/tailwindcss-override';
@@ -152,15 +154,38 @@ const NoStarredItemsCard: React.FC<{ locale: Locale }> = ({ locale }) => {
 };
 
 interface DashboardUpcomingEventsProperties {
-  scheduleEvents: CampScheduleEntryFrontendType[];
   locale: Locale;
 }
 
+/**
+ * "My Program Today" section of the dashboard.
+ *
+ * The schedule entries are loaded client side through the persisted
+ * react-query cache so that the section renders instantly from the last known
+ * data when navigating back to the dashboard (and while offline) and is
+ * seamlessly updated once the background revalidation completes.
+ */
 export const DashboardUpcomingEvents: React.FC<DashboardUpcomingEventsProperties> = ({
-  scheduleEvents,
   locale,
 }) => {
   const { starredEntries } = useStar();
+
+  const { data: scheduleEvents } = trpc.schedule.getScheduleEntriesForDashboard.useQuery(
+    { locale },
+    {
+      // keep the cached entries for a minute before revalidating in the background
+      staleTime: 60 * 1000,
+      refetchOnMount: true,
+      // a failed background revalidation must not throw away the cached entries,
+      // but without any entries there is nothing to show but the error
+      throwOnError: (_error, query) => query.state.data === undefined,
+    },
+  );
+
+  // no cached entries available yet (first ever visit) -> show the skeleton
+  if (scheduleEvents === undefined) {
+    return <DashboardUpcomingEventsSkeleton locale={locale} />;
+  }
 
   // We need "today" in the context of the user or the event? Usually user's local time.
   const today = new Date();

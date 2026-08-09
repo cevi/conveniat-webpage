@@ -3,6 +3,7 @@ import { chatRouter } from '@/features/chat/api/chat-router';
 import { emergencyRouter } from '@/features/emergency/api/emergency-router';
 import { mapRouter } from '@/features/map/api/map-router';
 import { nativePushRouter } from '@/features/native-push/api/native-push-router';
+import { appContentRouter } from '@/features/payload-cms/api/app-content-router';
 import { uploadRouter } from '@/features/payload-cms/api/upload-router';
 import { photoContestRouter } from '@/features/photo-contest/api/photo-contest-router';
 import { presenceRouter } from '@/features/presence/api/presence-router';
@@ -13,6 +14,7 @@ import { shiftsRouter } from '@/features/schedule/api/shifts-router';
 import { createTRPCRouter } from '@/trpc/init';
 
 export const appRouter = createTRPCRouter({
+  appContent: appContentRouter,
   chat: chatRouter,
   emergency: emergencyRouter,
   map: mapRouter,
