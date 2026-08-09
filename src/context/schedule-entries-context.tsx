@@ -51,6 +51,25 @@ const recordToFrontendType = (record: ScheduleEntryRecord): CampScheduleEntryFro
 };
 
 /**
+ * Whether a record read back from localStorage is usable.
+ *
+ * Records restored from storage are *not* validated against the collection schema - TanStack DB
+ * only checks that they are JSON-serialisable. A record written by an older app version can
+ * therefore be missing fields the current UI dereferences unconditionally, so anything without a
+ * usable timeslot is dropped instead of rendered.
+ */
+const isRenderableRecord = (record: ScheduleEntryRecord): boolean => {
+  // The declared type is a lie for records written by an older app version - re-check at runtime.
+  const timeslot = record.timeslot as { date?: unknown; time?: unknown } | undefined;
+  return (
+    typeof record.id === 'string' &&
+    typeof record.title === 'string' &&
+    typeof timeslot?.date === 'string' &&
+    typeof timeslot.time === 'string'
+  );
+};
+
+/**
  * Convert a frontend entry to a local DB record.
  */
 const frontendTypeToRecord = (entry: CampScheduleEntryFrontendType): ScheduleEntryRecord => {
@@ -60,11 +79,76 @@ const frontendTypeToRecord = (entry: CampScheduleEntryFrontendType): ScheduleEnt
   } as ScheduleEntryRecord;
 };
 
+/**
+ * Report a failed entry sync without taking the page down.
+ *
+ * A single malformed entry (e.g. a dangling relation the collection schema rejects) must never
+ * escape the sync effect: React would forward the throw to the nearest error boundary and replace
+ * the whole schedule page with the generic error screen.
+ */
+const reportSyncFailure = (entryId: string, error: unknown): void => {
+  console.error(`[ScheduleEntries] Failed to sync entry "${entryId}" to local DB:`, error);
+  void import('posthog-js')
+    .then(({ default: posthog }) => {
+      posthog.captureException(error, {
+        context: 'schedule-entries-sync',
+        entryId,
+      });
+    })
+    .catch(() => {
+      /* reporting is best effort */
+    });
+};
+
+/**
+ * Write the server state into the local collection.
+ *
+ * The update callback has to *mutate* the draft it receives - TanStack DB derives the mutation
+ * from the tracked property assignments and ignores the callback's return value, so returning a
+ * new object silently produced an empty change set and left stale records in localStorage forever.
+ */
+const applyServerEntries = (serverEntries: CampScheduleEntryFrontendType[]): void => {
+  const currentItems = [...scheduleEntriesCollection.state.values()];
+  const currentIds = new Set(currentItems.map((item) => item.id));
+  const serverIds = new Set(serverEntries.map((entry) => entry.id));
+
+  // Update or insert entries
+  for (const entry of serverEntries) {
+    const record = frontendTypeToRecord(entry);
+    try {
+      if (currentIds.has(entry.id)) {
+        scheduleEntriesCollection.update(entry.id, (draft) => {
+          for (const key of Object.keys(draft)) {
+            delete draft[key as keyof typeof draft];
+          }
+          Object.assign(draft, record);
+        });
+      } else {
+        scheduleEntriesCollection.insert(record);
+      }
+    } catch (error) {
+      reportSyncFailure(entry.id, error);
+    }
+  }
+
+  // Remove entries that no longer exist on server
+  for (const item of currentItems) {
+    if (!serverIds.has(item.id)) {
+      try {
+        scheduleEntriesCollection.delete(item.id);
+      } catch (error) {
+        reportSyncFailure(item.id, error);
+      }
+    }
+  }
+};
+
 export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties> = ({
   children,
   initialEntries,
 }) => {
   const hasHydratedReference = useRef(false);
+  const hasSyncedReference = useRef(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | undefined>();
   const { data: localEntries } = useLiveQuery(
     (q) => q.from({ entry: scheduleEntriesCollection }),
@@ -73,7 +157,10 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 
   // Convert local DB records to frontend types
   const entries = useMemo(
-    () => localEntries.map((record) => recordToFrontendType(record)),
+    () =>
+      localEntries
+        .filter((record) => isRenderableRecord(record))
+        .map((record) => recordToFrontendType(record)),
     [localEntries],
   );
 
@@ -96,28 +183,8 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 
     // Debounce to avoid race conditions with other effects
     const timer = setTimeout(() => {
-      const currentItems = [...scheduleEntriesCollection.state.values()];
-      const currentIds = new Set(currentItems.map((index_) => index_.id));
-      const serverIds = new Set(initialEntries.map((event_) => event_.id));
-
-      // Update or insert entries
-      for (const entry of initialEntries) {
-        if (currentIds.has(entry.id)) {
-          // Update existing entry
-          scheduleEntriesCollection.update(entry.id, () => frontendTypeToRecord(entry));
-        } else {
-          // Insert new entry
-          scheduleEntriesCollection.insert(frontendTypeToRecord(entry));
-        }
-      }
-
-      // Remove entries that no longer exist on server
-      for (const item of currentItems) {
-        if (!serverIds.has(item.id)) {
-          scheduleEntriesCollection.delete(item.id);
-        }
-      }
-
+      if (hasSyncedReference.current) return;
+      applyServerEntries(initialEntries);
       setLastSyncedAt(Date.now());
     }, SYNC_DEBOUNCE_MS);
 
@@ -128,26 +195,8 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 
   // Manual sync function for imperative updates
   const syncFromServer = useCallback((serverEntries: CampScheduleEntryFrontendType[]) => {
-    const currentItems = [...scheduleEntriesCollection.state.values()];
-    const currentIds = new Set(currentItems.map((index_) => index_.id));
-    const serverIds = new Set(serverEntries.map((event_) => event_.id));
-
-    // Update or insert entries
-    for (const entry of serverEntries) {
-      if (currentIds.has(entry.id)) {
-        scheduleEntriesCollection.update(entry.id, () => frontendTypeToRecord(entry));
-      } else {
-        scheduleEntriesCollection.insert(frontendTypeToRecord(entry));
-      }
-    }
-
-    // Remove entries that no longer exist on server
-    for (const item of currentItems) {
-      if (!serverIds.has(item.id)) {
-        scheduleEntriesCollection.delete(item.id);
-      }
-    }
-
+    hasSyncedReference.current = true;
+    applyServerEntries(serverEntries);
     setLastSyncedAt(Date.now());
   }, []);
 

@@ -27,7 +27,8 @@ const config: Config = {
     ],
   },
 
-  transformIgnorePatterns: [String.raw`/node_modules/(?!(\.pnpm|@t3-oss)/)`],
+  // `fractional-indexing` (pulled in by @tanstack/db) ships untranspiled ESM
+  transformIgnorePatterns: [String.raw`/node_modules/(?!(\.pnpm|@t3-oss|fractional-indexing)/)`],
 
   testPathIgnorePatterns: [
     '<rootDir>/node_modules/',
