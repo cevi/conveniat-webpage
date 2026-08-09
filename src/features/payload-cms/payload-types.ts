@@ -3592,6 +3592,10 @@ export interface HelperShift {
    */
   location?: (string | null) | CampMapAnnotation;
   /**
+   * Category used to tag and filter the shift in the helper portal.
+   */
+  category?: (string | null) | CampCategory;
+  /**
    * Maximum number of helpers for this shift. Leave empty for unlimited.
    */
   participants_max?: number | null;
@@ -5871,6 +5875,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
             };
       };
   location?: T;
+  category?: T;
   participants_max?: T;
   enable_enrolment?: T;
   hide_participant_list?: T;

@@ -14,6 +14,17 @@ export const colorThemeMap: Record<string, string> = {
 
 const defaultClassName = 'bg-gray-100 text-gray-700 border-gray-200';
 
+/**
+ * Resolves the `category` relationship of a schedule entry or helper shift to a populated category.
+ *
+ * The value cannot be blindly cast to `CampCategory`: Payload returns `null` when the related
+ * category no longer exists and a plain ID string when the relationship is not populated.
+ */
+export const resolveCategory = (
+  category: string | CampCategory | null | undefined,
+): CampCategory | undefined =>
+  typeof category === 'object' && category !== null ? category : undefined;
+
 export function getCategoryDisplayData(category: string | CampCategory | null | undefined): {
   label: string;
   className: string;
