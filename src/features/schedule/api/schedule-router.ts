@@ -937,21 +937,14 @@ export const scheduleRouter = createTRPCRouter({
         const { courseIds } = input;
 
         try {
-          for (const courseId of courseIds) {
-            await prisma.star.upsert({
-              where: {
-                courseId_userId_courseType: {
-                  courseId,
-                  userId: user.uuid,
-                  courseType: CourseType.PROGRAM,
-                },
-              },
-              create: {
+          if (courseIds.length > 0) {
+            await prisma.star.createMany({
+              data: courseIds.map((courseId) => ({
                 courseId,
                 userId: user.uuid,
                 courseType: CourseType.PROGRAM,
-              },
-              update: {},
+              })),
+              skipDuplicates: true,
             });
           }
 
