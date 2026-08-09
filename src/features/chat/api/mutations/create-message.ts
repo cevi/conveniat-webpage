@@ -187,6 +187,12 @@ export const createMessage = trpcBaseProcedure
         : undefined;
 
     if (clientMessageId !== undefined) {
+      // Serialise concurrent sends of the same id (two tabs draining the same offline
+      // outbox). Without this both could pass the lookup below before either insert
+      // commits, and the loser would fail on the primary key instead of being answered
+      // with the stored message. The lock is released when this transaction ends.
+      await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${clientMessageId}, 0))`;
+
       const alreadyStored = await prisma.message.findUnique({
         where: { uuid: clientMessageId },
         include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },

@@ -67,13 +67,13 @@ export const ShiftCard: React.FC<{
         <div className="mt-4 border-t border-gray-100 pt-3">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex w-full items-center justify-between text-sm font-medium text-gray-600 hover:text-gray-900"
+            className="flex w-full cursor-pointer items-center justify-between text-sm font-medium text-gray-600 hover:text-gray-900"
           >
             {detailsLabel[locale]}
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
 
-          {isExpanded && <div className="mt-4 sm:mr-[-1.5rem] sm:ml-[-1.5rem]">{children}</div>}
+          {isExpanded && <div className="mt-4">{children}</div>}
         </div>
       )}
     </div>

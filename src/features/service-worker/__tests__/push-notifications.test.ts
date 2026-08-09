@@ -238,6 +238,29 @@ describe('pushNotificationHandler', () => {
     expect(mockShowNotification).not.toHaveBeenCalled();
   });
 
+  it('suppresses the notification when the chat is open in the admin management view', async () => {
+    const client = makeClient(
+      'https://konekta.ch/admin/globals/alert-management',
+      `https://konekta.ch/admin/globals/alert-management?selectedChatId=${chatId}`,
+    );
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+    expect(client.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'notification' }),
+    );
+  });
+
+  it('shows the notification when the admin management view has a different chat selected', async () => {
+    const client = makeClient(
+      'https://konekta.ch/admin/globals/alert-management',
+      'https://konekta.ch/admin/globals/alert-management?selectedChatId=00000000-0000-0000-0000-000000000000',
+    );
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).toHaveBeenCalledTimes(1);
+  });
+
   it('falls back to the creation URL when the page does not answer the URL round-trip', async () => {
     const client = makeClient(chatUrl);
     await dispatchPush(makeScope([client]));

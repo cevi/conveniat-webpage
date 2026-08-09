@@ -3,6 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
 import { performReliablePushNavigation } from '@/hooks/use-native-push';
+import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
 import { useOptionalTrpcUtils } from '@/trpc/client';
@@ -29,23 +30,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   const router = useRouter();
   const trpcUtils = useOptionalTrpcUtils();
 
-  // The service worker cannot see SPA navigations (WindowClient.url is the
-  // document's creation URL), so it asks the page for its live URL before
-  // deciding whether to suppress a push notification.
-  React.useEffect(() => {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-
-    const respondWithCurrentUrl = (event: MessageEvent): void => {
-      const data = event.data as { type?: string } | undefined;
-      if (data?.type !== ServiceWorkerMessages.GET_CLIENT_URL) return;
-      event.ports[0]?.postMessage({ url: globalThis.location.href });
-    };
-
-    navigator.serviceWorker.addEventListener('message', respondWithCurrentUrl);
-    return (): void => {
-      navigator.serviceWorker.removeEventListener('message', respondWithCurrentUrl);
-    };
-  }, []);
+  useServiceWorkerClientUrlResponder();
 
   useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,
