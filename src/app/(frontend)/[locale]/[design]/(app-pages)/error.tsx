@@ -36,6 +36,92 @@ const debugCopiedMessage: StaticTranslationString = {
   fr: 'Journal d’erreur copié dans le presse-papiers !',
 };
 
+/** Number of unsuccessful retries after which the error log is copied to the clipboard. */
+const RETRIES_BEFORE_DEBUG_COPY = 5;
+
+/** sessionStorage key holding the retry counter, so it survives `reset()` and full reloads. */
+const RETRY_COUNTER_KEY = 'conveniat-error-retry-counter';
+
+/**
+ * Identifies the failure the user is currently stuck on. A different error (or a different page)
+ * starts the retry count over, so the clipboard shortcut only triggers on repeated failures of
+ * the *same* problem.
+ */
+const buildErrorSignature = (error: Error & { digest?: string }): string =>
+  [globalThis.location.pathname, error.name, error.message, error.digest ?? ''].join('|');
+
+/**
+ * Reads the retry count for this failure. Attempts older than five minutes are discarded so a
+ * stale counter from an earlier session cannot trigger the shortcut on the first click.
+ */
+const readRetryCount = (signature: string): number => {
+  try {
+    const raw = sessionStorage.getItem(RETRY_COUNTER_KEY);
+    if (raw === null) return 0;
+    const stored = JSON.parse(raw) as {
+      signature?: string;
+      count?: number;
+      lastAttemptAt?: number;
+    };
+    if (stored.signature !== signature) return 0;
+    if (Date.now() - (stored.lastAttemptAt ?? 0) > 5 * 60 * 1000) return 0;
+    return typeof stored.count === 'number' ? stored.count : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const writeRetryCount = (signature: string, count: number): void => {
+  try {
+    sessionStorage.setItem(
+      RETRY_COUNTER_KEY,
+      JSON.stringify({ signature, count, lastAttemptAt: Date.now() }),
+    );
+  } catch {
+    /* sessionStorage can be unavailable (private mode) - the shortcut is best effort */
+  }
+};
+
+const buildDebugInfo = (error: Error & { digest?: string }, retryCount: number): string =>
+  [
+    '--- ERROR DEBUG LOG ---',
+    `Timestamp: ${new Date().toISOString()}`,
+    `URL: ${globalThis.location.href}`,
+    `User Agent: ${navigator.userAgent}`,
+    `Online Status: ${navigator.onLine ? 'Online' : 'Offline'}`,
+    `Display Mode: ${globalThis.matchMedia('(display-mode: standalone)').matches ? 'standalone (PWA)' : 'browser'}`,
+    `Failed Retries: ${retryCount}`,
+    `Error Name: ${error.name}`,
+    `Error Message: ${error.message}`,
+    `Error Digest: ${error.digest ?? 'N/A'}`,
+    `Stack Trace:\n${error.stack ?? 'No stack trace available'}`,
+  ].join('\n');
+
+/**
+ * Copies text to the clipboard, falling back to a hidden textarea. iOS WebViews reject the async
+ * Clipboard API in some configurations, and this shortcut exists precisely for devices whose
+ * console we cannot reach.
+ */
+const copyToClipboard = async (text: string): Promise<void> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    /* fall through to the legacy path */
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.append(textarea);
+  textarea.select();
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  document.execCommand('copy');
+  textarea.remove();
+};
+
 /**
  * Responsible for rendering a runtime error page with offline recovery support.
  */
@@ -52,6 +138,20 @@ const ErrorPage: React.FC<{
     console.error(error);
     console.error(error.stack);
 
+    // Report to PostHog: this boundary swallows the error, so it never reaches PostHog's
+    // uncaught-exception autocapture and would otherwise be invisible in production.
+    if (navigator.onLine) {
+      void import('posthog-js')
+        .then(({ default: posthog }) => {
+          posthog.captureException(error, {
+            context: 'app-pages-error-boundary',
+            pathname: globalThis.location.pathname,
+            digest: error.digest ?? 'N/A',
+          });
+        })
+        .catch((error_: unknown) => console.error('Failed to capture error with PostHog', error_));
+    }
+
     const handleOnlineStatus = (): void => {
       setIsOffline(!navigator.onLine);
     };
@@ -65,7 +165,26 @@ const ErrorPage: React.FC<{
     };
   }, [error]);
 
+  const showDebugCopied = (): void => {
+    setCopiedDebug(true);
+    setTimeout(() => {
+      setCopiedDebug(false);
+    }, 3000);
+  };
+
   const handleRetry = (): void => {
+    const signature = buildErrorSignature(error);
+    const attempt = readRetryCount(signature) + 1;
+
+    // The user is stuck on the same error: hand them the stack trace instead of retrying again.
+    if (attempt >= RETRIES_BEFORE_DEBUG_COPY) {
+      writeRetryCount(signature, 0);
+      void copyToClipboard(buildDebugInfo(error, attempt)).then(showDebugCopied);
+      return;
+    }
+
+    writeRetryCount(signature, attempt);
+
     if (reset) {
       reset();
     } else {
@@ -80,30 +199,11 @@ const ErrorPage: React.FC<{
     );
     clickTimestampsReference.current = recentClicks;
 
-    if (recentClicks.length >= 5) {
+    if (recentClicks.length >= RETRIES_BEFORE_DEBUG_COPY) {
       clickTimestampsReference.current = [];
-      const currentUrl = globalThis.location.href;
-      const userAgent = navigator.userAgent;
-      const isOnline = navigator.onLine ? 'Online' : 'Offline';
-
-      const debugInfo = [
-        '--- ERROR DEBUG LOG ---',
-        `Timestamp: ${new Date().toISOString()}`,
-        `URL: ${currentUrl}`,
-        `User Agent: ${userAgent}`,
-        `Online Status: ${isOnline}`,
-        `Error Name: ${error.name}`,
-        `Error Message: ${error.message}`,
-        `Error Digest: ${error.digest ?? 'N/A'}`,
-        `Stack Trace:\n${error.stack ?? 'No stack trace available'}`,
-      ].join('\n');
-
-      void navigator.clipboard.writeText(debugInfo).then(() => {
-        setCopiedDebug(true);
-        setTimeout(() => {
-          setCopiedDebug(false);
-        }, 3000);
-      });
+      void copyToClipboard(buildDebugInfo(error, readRetryCount(buildErrorSignature(error)))).then(
+        showDebugCopied,
+      );
     }
   };
 
