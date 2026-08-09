@@ -63,12 +63,17 @@ function updateGlobalEventSource(currentUser: string): void {
   const eventSource = new EventSource(url);
   globalEventSource = eventSource;
 
+  const handleOpen = (): void => {
+    console.log(`[Chat][SSE] Stream connected (subscribed chats: ${allSubscribedIds.join(', ')})`);
+  };
+
   const handleMessage = (event: MessageEvent<string>): void => {
     try {
       const parsed = superjson.parse(event.data);
       if (parsed === null || typeof parsed !== 'object') return;
 
       const data = parsed as unknown as ChatRealtimeEvent;
+      console.log(`[Chat][SSE] Received "${data.type}" event for chat ${data.chatId}`);
 
       // Dispatch to all listeners registered for this chatId
       const listeners = activeChatSubscribers.get(data.chatId);
@@ -77,15 +82,18 @@ function updateGlobalEventSource(currentUser: string): void {
           try {
             listener(data);
           } catch (error) {
-            console.error('[SSE] Listener callback failed:', error);
+            console.error('[Chat][SSE] Listener callback failed:', error);
           }
         }
+      } else {
+        console.warn(`[Chat][SSE] No listener registered for chat ${data.chatId}, event dropped.`);
       }
     } catch (error) {
-      console.error('[SSE] Failed to process message event:', error);
+      console.error('[Chat][SSE] Failed to process message event:', error);
     }
   };
 
+  eventSource.addEventListener('open', handleOpen);
   eventSource.addEventListener('message', handleMessage);
   eventSource.addEventListener('error', handleError);
 }
