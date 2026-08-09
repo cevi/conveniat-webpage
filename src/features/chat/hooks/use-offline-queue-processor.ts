@@ -16,6 +16,7 @@ import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
@@ -34,6 +35,12 @@ export const useOfflineQueueProcessor = (): void => {
   const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
   const createChatMutation = trpc.chat.createChat.useMutation({ networkMode: 'always' });
   const createChatMutateAsyncReference = useRef(createChatMutation.mutateAsync);
+  const router = useRouter();
+  const pathname = usePathname();
+  // Read through refs: the drain lives in a long-running effect that must not be torn
+  // down and restarted every time the user navigates.
+  const routerReference = useRef(router);
+  const pathnameReference = useRef(pathname);
 
   useEffect(() => {
     mutateAsyncReference.current = sendMessageMutation.mutateAsync;
@@ -42,6 +49,11 @@ export const useOfflineQueueProcessor = (): void => {
   useEffect(() => {
     createChatMutateAsyncReference.current = createChatMutation.mutateAsync;
   }, [createChatMutation.mutateAsync]);
+
+  useEffect(() => {
+    routerReference.current = router;
+    pathnameReference.current = pathname;
+  }, [router, pathname]);
 
   useEffect(() => {
     const processQueue = async (): Promise<void> => {
@@ -97,10 +109,14 @@ export const useOfflineQueueProcessor = (): void => {
               }
 
               if (realChatId !== message.id) {
-                // Swap optimistic ID in chats list
                 trpcUtils.chat.chats.setData({}, (oldChats) => {
                   if (!oldChats) return oldChats;
-                  return oldChats.map((c) => (c.id === message.id ? { ...c, id: realChatId } : c));
+                  // A one-to-one creation is answered with the *existing* private chat when
+                  // the two already have one, and that chat is already in the list - drop
+                  // the placeholder instead of renaming it onto a duplicate id.
+                  return oldChats.some((c) => c.id === realChatId)
+                    ? oldChats.filter((c) => c.id !== message.id)
+                    : oldChats.map((c) => (c.id === message.id ? { ...c, id: realChatId } : c));
                 });
 
                 // The caches seeded when the chat was created offline are keyed by the
@@ -111,6 +127,15 @@ export const useOfflineQueueProcessor = (): void => {
                   { chatId: message.id, limit: CHAT_PAGE_SIZE, parentId: undefined },
                   dropCachedEntry,
                 );
+
+                // The user may still be sitting on `/app/chat/<optimisticId>`, a route the
+                // server will never answer for. Without this the view queries the dropped
+                // id, gets NOT_FOUND and shows the permanent error screen; follow the chat
+                // the creation actually resolved to instead. Mirrors the online path in
+                // `useCreateChat`.
+                if (pathnameReference.current.includes(message.id)) {
+                  routerReference.current.replace(`/app/chat/${realChatId}`);
+                }
               }
 
               syncedCount++;
