@@ -64,7 +64,11 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
         try {
           const existing = userPreferencesCollection.get(key);
           if (existing) {
-            userPreferencesCollection.update(key, (previous) => ({ ...previous, value }));
+            // The callback has to mutate the draft - TanStack DB tracks property assignments
+            // and discards the returned value.
+            userPreferencesCollection.update(key, (previous) => {
+              previous.value = value;
+            });
           } else {
             userPreferencesCollection.insert({ key, value });
           }

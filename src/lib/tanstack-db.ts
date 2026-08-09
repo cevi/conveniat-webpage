@@ -41,13 +41,7 @@ const locationSchema = z.union([
   z
     .object({
       id: z.string(),
-      title: z.string(),
-      coordinates: z
-        .object({
-          latitude: z.number(),
-          longitude: z.number(),
-        })
-        .optional(),
+      title: z.string().optional(),
     })
     .passthrough(), // Allow additional properties from CampMapAnnotation
 ]);
@@ -57,10 +51,12 @@ const locationSchema = z.union([
  */
 const organiserSchema = z.union([
   z.string(),
-  z.object({
-    fullName: z.string(),
-    email: z.string(),
-  }),
+  z
+    .object({
+      fullName: z.string(),
+      email: z.string(),
+    })
+    .passthrough(), // Allow additional properties from User
 ]);
 
 /**
@@ -78,19 +74,33 @@ const categorySchema = z.union([
 /**
  * Define the schema for a schedule entry.
  * This matches CampScheduleEntryFrontendType.
+ *
+ * Every relationship field has to admit `null` and `undefined`: Payload returns `null` for a
+ * dangling relation (the related document was deleted) and omits the field entirely when it is
+ * not set. The schema is enforced on `insert()`/`update()` and a violation throws a
+ * `SchemaValidationError` out of the calling effect, which takes down the whole schedule page -
+ * so it must never be stricter than what the API can actually return.
  */
 const scheduleEntrySchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.any(), // SerializedEditorState from Lexical - complex nested structure
   timeslot: timeslotSchema,
-  location: locationSchema,
+  location: locationSchema.nullable().optional(),
   participants_min: z.number().nullable().optional(),
   participants_max: z.number().nullable().optional(),
   enable_enrolment: z.boolean().nullable().optional(),
   category: categorySchema.nullable().optional(),
   target_group: z.any().nullable().optional(),
-  organiser: z.array(organiserSchema).nullable().optional(),
+  // Drop dangling entries before validating: Payload leaves a `null` in the array when an
+  // organiser account was deleted, and the detail view dereferences every element.
+  organiser: z
+    .preprocess(
+      (value) => (Array.isArray(value) ? value.filter((entry) => entry != undefined) : value),
+      z.array(organiserSchema),
+    )
+    .nullable()
+    .optional(),
   // Metadata for cache management
   _syncedAt: z.number().optional(),
 });
