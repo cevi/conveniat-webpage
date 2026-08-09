@@ -20,8 +20,14 @@ import React from 'react';
 /**
  * The aspect ratios a photo carousel can be rendered in.
  *
- * Portrait ratios use narrower slides, such that the carousel keeps roughly the
- * same height independent of the selected aspect ratio.
+ * On small screens the carousel viewport is twice as wide as the screen (see
+ * `max-lg:w-[200%]` below), so a slide basis of `x%` renders at `2x%` of the
+ * screen. The `+24px` compensates for the slide gutter (`pl-4`) and the inner
+ * padding (`p-1`), which are part of the basis but not of the image itself.
+ *
+ * Portrait ratios keep a narrower basis on larger screens (where the carousel
+ * is only as wide as the content column), but on mobile they take at least 80%
+ * of the screen width so the image stays readable.
  */
 const carouselAspectRatios = {
   video: {
@@ -46,17 +52,17 @@ const carouselAspectRatios = {
   },
   '3/4': {
     imageClassName: 'aspect-[3/4]',
-    slideClassName: 'basis-1/4 lg:basis-1/4',
+    slideClassName: 'basis-[calc(40%+24px)] md:basis-1/4',
     dimensions: { width: 900, height: 1200 },
   },
   '2/3': {
     imageClassName: 'aspect-[2/3]',
-    slideClassName: 'basis-1/4 lg:basis-1/4',
+    slideClassName: 'basis-[calc(40%+24px)] md:basis-1/4',
     dimensions: { width: 800, height: 1200 },
   },
   '9/16': {
     imageClassName: 'aspect-[9/16]',
-    slideClassName: 'basis-1/4 lg:basis-1/4',
+    slideClassName: 'basis-[calc(40%+24px)] md:basis-1/4',
     dimensions: { width: 675, height: 1200 },
   },
 } as const;
