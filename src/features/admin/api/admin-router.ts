@@ -280,6 +280,7 @@ export const adminRouter = createTRPCRouter({
             description: chat.description,
             status: chat.status,
             chatType: chat.type,
+            caseNumber: formatCaseNumber(chat.caseNumber),
             lastUpdate: chat.lastUpdate,
             unreadCount: 0,
             messageCount: chat._count.messages,
@@ -318,6 +319,7 @@ export const adminRouter = createTRPCRouter({
           description: chat.description,
           status: chat.status,
           chatType: chat.type,
+          caseNumber: formatCaseNumber(chat.caseNumber),
           id: chat.uuid,
           messageCount: chat._count.messages,
           lastMessage: {
