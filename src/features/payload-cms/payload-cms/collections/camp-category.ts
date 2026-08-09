@@ -1,9 +1,13 @@
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { CollectionConfig } from 'payload';
 
 export const CampCategoryCollection: CollectionConfig = {
   slug: 'camp-categories',
+  hooks: {
+    afterChange: [flushPageCacheOnChange],
+  },
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent,

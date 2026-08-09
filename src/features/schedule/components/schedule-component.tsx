@@ -88,7 +88,7 @@ export const ScheduleComponent: React.FC = () => {
     hasActiveFilters,
     availableLocations,
     availableCategories,
-  } = useScheduleFilters(rawCurrentProgram, starredEntries);
+  } = useScheduleFilters(rawCurrentProgram, starredEntries, effectiveScheduleEntries);
 
   const hasProgram = currentProgram.length > 0;
 
