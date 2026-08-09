@@ -1,13 +1,17 @@
-import { environmentVariables } from '@/config/environment-variables';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { CacheFirst, ExpirationPlugin, type RouteHandler, type SerwistPlugin } from 'serwist';
+
+declare const self: ServiceWorkerGlobalScope;
 
 const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
 const tilesStyleBaseUrl = 'https://vectortiles.geo.admin.ch/tiles/';
 const stylesBaseUrl = 'https://vectortiles.geo.admin.ch/styles/';
 const fontBaseUrl = 'https://vectortiles.geo.admin.ch/fonts/';
-const isKonektaDeployment = environmentVariables.NEXT_PUBLIC_APP_HOST_URL === 'https://konekta.ch';
+// Detect the deployment from the worker's own origin instead of importing
+// environment-variables: that module reads `process.env`, which does not exist
+// inside a service worker (#1492).
+const isKonektaDeployment = self.location.origin === 'https://konekta.ch';
 
 const sharedUrlsToPrecache: string[] = [
   // fonts for map viewer
