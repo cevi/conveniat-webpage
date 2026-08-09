@@ -2,7 +2,7 @@ import { getAppLandingPageCached } from '@/features/payload-cms/api/cached-globa
 import { PageSectionsConverter } from '@/features/payload-cms/converters/page-sections';
 import type { ContentBlock } from '@/features/payload-cms/converters/page-sections/section-wrapper';
 import type { Locale } from '@/types/types';
-import { connection } from 'next/server';
+import { io } from 'next/cache';
 import type React from 'react';
 
 /**
@@ -14,7 +14,10 @@ import type React from 'react';
  * streams in, which keeps the dashboard free of loading skeletons.
  */
 export const DashboardWelcomeContent: React.FC<{ locale: Locale }> = async ({ locale }) => {
-  await connection();
+  // `io()`, not `connection()`: both keep this section out of the build-time prerender,
+  // but `connection()` never resolves for a prefetch, leaving the segment permanently
+  // partial so the router re-issues runtime prefetches without ever settling.
+  await io();
   const landingPage = await getAppLandingPageCached(locale);
 
   const pageContent = landingPage.pageContent;

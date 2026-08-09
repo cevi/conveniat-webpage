@@ -14,7 +14,7 @@ import {
   Trophy,
   Truck,
 } from 'lucide-react';
-import { connection } from 'next/server';
+import { io } from 'next/cache';
 import type React from 'react';
 
 const appFeaturesTitle: StaticTranslationString = {
@@ -115,7 +115,11 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
 export const AppFeatures: React.FC<{
   locale: Locale;
 }> = async ({ locale }) => {
-  await connection();
+  // `io()`, not `connection()`: both stop the build-time prerender before the DB read,
+  // but `connection()` never resolves for a prefetch. This subtree holds the app feature
+  // <Link>s, so a `connection()` here made every one of them permanently unprefetchable
+  // and drove an endless runtime-prefetch retry loop.
+  await io();
   const featureFlags = await getAppFeatureFlagsCached();
 
   return (
