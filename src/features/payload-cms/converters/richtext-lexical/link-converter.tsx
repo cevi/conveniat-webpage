@@ -9,6 +9,7 @@ import type {
 } from '@/features/payload-cms/payload-types';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
+import { phoneNumberToTelHref } from '@/features/payload-cms/utils/phone-number';
 import type { Locale } from '@/types/types';
 import type { SerializedParagraphNode } from '@payloadcms/richtext-lexical';
 import type { JSXConverters } from '@payloadcms/richtext-lexical/react';
@@ -20,6 +21,8 @@ export interface LinkFields {
   url: string | undefined;
   linkType: string;
   newTab?: boolean;
+  /** only set for links with `linkType: 'phone'` */
+  phoneNumber?: string;
   doc: {
     value:
       string | Blog | GenericPage | CampMapAnnotation | CampScheduleEntry | Document | PayloadImage;
@@ -128,6 +131,18 @@ const createLinkConverter =
       const fields = node.fields as unknown as LinkFields;
 
       let url = fields.url ?? '';
+
+      if (fields.linkType === 'phone') {
+        const telHref = phoneNumberToTelHref(fields.phoneNumber ?? '');
+        // a phone link without a dialable number is rendered as plain text
+        if (telHref === '') return <>{children}</>;
+
+        return (
+          <LinkComponent href={telHref} className="font-extrabold text-red-600" hideExternalIcon>
+            {children}
+          </LinkComponent>
+        );
+      }
 
       if (fields.linkType === 'internal') {
         url = resolveInternalLink(fields, locale);
