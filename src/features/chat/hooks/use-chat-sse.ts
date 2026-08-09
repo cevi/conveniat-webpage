@@ -66,9 +66,11 @@ function updateGlobalEventSource(currentUser: string): void {
       return;
     }
 
-    // Subset check: if all new IDs are already in the current live set, skip reconnect
-    const isSubset = allSubscribedIds.every((id) => currentSubscribedIds.has(id));
-    if (isSubset && globalEventSource) {
+    // Exact match check: if the new IDs exactly match the current live set, skip reconnect
+    const isExactMatch =
+      allSubscribedIds.length === currentSubscribedIds.size &&
+      allSubscribedIds.every((id) => currentSubscribedIds.has(id));
+    if (isExactMatch && globalEventSource) {
       return;
     }
 
