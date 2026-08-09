@@ -110,7 +110,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     hasActiveFilters,
     handleFiltersChange,
     clearFilters,
-  } = useShiftFilters(shiftsOfDay);
+  } = useShiftFilters(shiftsOfDay, shifts ?? []);
 
   const hasShifts = currentShifts.length > 0;
 
