@@ -313,6 +313,23 @@ export const emergencyRouter = createTRPCRouter({
         });
       }
 
+      // Announce the new chat on the personal channels of everyone who was just
+      // added (alerting user + auto-added piket members): their SSE connections
+      // are not subscribed to the freshly created chat, so without this their
+      // open chat overviews would only learn about the chat after a reload.
+      const memberIdsToAnnounce = [user.uuid, ...activePiketMembers.map((member) => member.id)];
+      for (const memberId of memberIdsToAnnounce) {
+        chatPubSub
+          .publish(memberId, {
+            type: 'new_chat',
+            chatId: chat.uuid,
+            senderId: user.uuid,
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to publish new_chat event for emergency chat:', error);
+          });
+      }
+
       // Fetch the created messages from DB to get their real UUIDs and content payloads
       const createdMessages = await prisma.message.findMany({
         where: { chatId: chat.uuid },

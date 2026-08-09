@@ -75,6 +75,21 @@ export const reportProblem = trpcBaseProcedure
       },
     });
 
+    // Announce the new chat on the personal channels of everyone who was just
+    // added (reporter + auto-added piket members) so their open chat overviews
+    // show the chat instantly.
+    for (const memberId of [user.uuid, ...activePiketMembers.map((member) => member.id)]) {
+      chatPubSub
+        .publish(memberId, {
+          type: 'new_chat',
+          chatId: chat.uuid,
+          senderId: user.uuid,
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish new_chat event for problem report:', error);
+        });
+    }
+
     // Send push notification to all support piket members
     if (activePiketMembers.length > 0) {
       const piketRecipientIds = activePiketMembers.map((m) => m.id);

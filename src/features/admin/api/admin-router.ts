@@ -1054,6 +1054,19 @@ export const adminRouter = createTRPCRouter({
           console.error('Failed to publish real-time member added event:', error);
         });
 
+      // Notify the added user on their personal channel: their SSE connection is
+      // not subscribed to this chat yet, so this is the only way their open chat
+      // overview learns about the new chat without a reload.
+      chatPubSub
+        .publish(userId, {
+          type: 'new_chat',
+          chatId,
+          senderId: SYSTEM_SENDER_ID,
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish new_chat event to added member:', error);
+        });
+
       return { success: true };
     }),
 });

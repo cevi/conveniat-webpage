@@ -12,6 +12,8 @@ interface ChatRealtimeEvent {
   type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
   chatId: string;
   senderId: string;
+  /** Delivery channel override (e.g. the user's own uuid for personal events); defaults to chatId. */
+  channel?: string;
   message?: ChatMessage;
   chat?: {
     status: string;
@@ -75,8 +77,11 @@ function updateGlobalEventSource(currentUser: string): void {
       const data = parsed as unknown as ChatRealtimeEvent;
       console.log(`[Chat][SSE] Received "${data.type}" event for chat ${data.chatId}`);
 
-      // Dispatch to all listeners registered for this chatId
-      const listeners = activeChatSubscribers.get(data.chatId);
+      // Dispatch to all listeners registered for the delivery channel. Events
+      // delivered on the user's personal channel (e.g. new_chat) carry a
+      // `channel` field because the client has no listener for the chat yet.
+      const channel = data.channel ?? data.chatId;
+      const listeners = activeChatSubscribers.get(channel);
       if (listeners) {
         for (const listener of listeners) {
           try {
@@ -86,7 +91,7 @@ function updateGlobalEventSource(currentUser: string): void {
           }
         }
       } else {
-        console.warn(`[Chat][SSE] No listener registered for chat ${data.chatId}, event dropped.`);
+        console.warn(`[Chat][SSE] No listener registered for channel ${channel}, event dropped.`);
       }
     } catch (error) {
       console.error('[Chat][SSE] Failed to process message event:', error);
