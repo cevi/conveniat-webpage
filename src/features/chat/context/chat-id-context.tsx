@@ -28,7 +28,9 @@ export const ChatIdProvider: React.FC<ChatIdProviderProperties> = ({ children, c
   const resolvedChatId =
     chatIdFromPathname === undefined ? chatId : decodeURIComponent(chatIdFromPathname);
 
-  return <ChatIdContext.Provider value={{ chatId: resolvedChatId }}>{children}</ChatIdContext.Provider>;
+  return (
+    <ChatIdContext.Provider value={{ chatId: resolvedChatId }}>{children}</ChatIdContext.Provider>
+  );
 };
 
 export const useChatId = (): string => {

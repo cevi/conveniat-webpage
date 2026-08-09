@@ -166,9 +166,9 @@ export async function matchCachedRsc(originalUrl: string): Promise<Response | un
     (prefix) => cleanPath === prefix || cleanPath.startsWith(prefix + '/'),
   );
 
-  if (fallbackPrefix) {
+  if (fallbackPrefix !== undefined && fallbackPrefix !== '') {
     const shellPath = RSC_SHELL_MAPPINGS[fallbackPrefix];
-    if (shellPath) {
+    if (shellPath !== undefined && shellPath !== '') {
       const shellKey = keys.find((request) => {
         const keyPath = getCleanAppPath(new URL(request.url).pathname);
         return keyPath === shellPath;
