@@ -37,12 +37,17 @@ const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
   if (response.status === 401 && !isHandlingUnauthenticated) {
     isHandlingUnauthenticated = true;
     flushPersonalData();
-    await signOut({ redirect: false });
-    if (globalThis.location.pathname === ENTRYPOINT_PATH) {
-      // already there - allow a later 401 to retry the cleanup
-      isHandlingUnauthenticated = false;
-    } else {
-      globalThis.location.href = ENTRYPOINT_PATH;
+    try {
+      await signOut({ redirect: false });
+    } catch (error) {
+      console.error('[TRPC] Sign out failed during 401 handling:', error);
+    } finally {
+      if (globalThis.location.pathname === ENTRYPOINT_PATH) {
+        // already there - allow a later 401 to retry the cleanup
+        isHandlingUnauthenticated = false;
+      } else {
+        globalThis.location.href = ENTRYPOINT_PATH;
+      }
     }
     // Return the response anyway to prevent further processing
     return response;
