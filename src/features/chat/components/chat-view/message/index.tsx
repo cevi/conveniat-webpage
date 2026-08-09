@@ -44,6 +44,12 @@ const repliesCountText: (count: number, locale: Locale) => string = (count, loca
   return `${count} replies`;
 };
 
+const pendingOfflineText: StaticTranslationString = {
+  de: 'Wird gesendet, sobald du wieder online bist',
+  en: 'Will be sent as soon as you are back online',
+  fr: 'Sera envoyé dès que vous serez de nouveau en ligne',
+};
+
 const clickToRemoveText: StaticTranslationString = {
   de: 'Klicken zum Entfernen',
   en: 'Click to remove',
@@ -258,7 +264,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     if (!isCurrentUser) return <></>;
     if (message.isPendingOffline) {
       return (
-        <span title="Wird gesendet, sobald du wieder online bist">
+        <span title={pendingOfflineText[locale]}>
           <Clock className="ml-1 h-3.5 w-3.5 text-white/70 opacity-80" />
         </span>
       );
