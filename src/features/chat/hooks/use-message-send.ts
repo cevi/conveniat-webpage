@@ -226,15 +226,45 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       if (isOfflineError) {
         if (context?.optimisticMessageId) {
+          const optimisticMessageId = context.optimisticMessageId;
           addMessageToOutbox({
             type: 'MESSAGE',
-            id: context.optimisticMessageId,
+            id: optimisticMessageId,
             chatId,
             content,
             quotedMessageId: quotedMessageId ?? undefined,
             parentId: parentId ?? undefined,
             createdAt: new Date().toISOString(),
           });
+
+          // Mark the cached optimistic message as pending so the UI shows the
+          // queued state (clock icon) even if the app still believed it was online
+          const markPending = (item: ChatMessage): ChatMessage =>
+            item.id === optimisticMessageId ? { ...item, isPendingOffline: true } : item;
+
+          trpcUtils.chat.infiniteMessages.setInfiniteData(
+            { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
+            (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
+              if (!data) return data;
+              return {
+                ...data,
+                pages: data.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((item) => markPending(item)),
+                })),
+              };
+            },
+          );
+
+          if (!parentId) {
+            trpcUtils.chat.chatDetails.setData(
+              { chatId },
+              (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+                if (!oldData) return oldData;
+                return { ...oldData, messages: oldData.messages.map((item) => markPending(item)) };
+              },
+            );
+          }
         }
         toast.success('Message queued. Will be sent when online.');
         return;
