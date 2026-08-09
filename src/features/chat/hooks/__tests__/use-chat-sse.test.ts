@@ -28,6 +28,7 @@ describe('useChatSSE', () => {
   const mockClose = jest.fn();
 
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     mockEventSourceConstructor = jest.fn().mockImplementation((url: string) => ({
       url,
@@ -57,9 +58,16 @@ describe('useChatSSE', () => {
     });
   });
 
+  afterEach(() => {
+    jest.runAllTimers();
+    jest.useRealTimers();
+  });
+
   it('constructs correct EventSource URL with user channel and non-empty chat IDs', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
-    renderHook(() => useChatSSE([chatId, '', '   ']));
+    const { unmount } = renderHook(() => useChatSSE([chatId, '', '   ']));
+
+    jest.runAllTimers();
 
     expect(mockEventSourceConstructor).toHaveBeenCalledTimes(1);
     const calls = mockEventSourceConstructor.mock.calls as string[][];
@@ -69,15 +77,23 @@ describe('useChatSSE', () => {
     expect(calledUrl).toContain('user-uuid-123');
     expect(calledUrl).not.toContain('chatIds=,');
     expect(calledUrl).not.toMatch(/chatIds=(,|$)/);
+
+    unmount();
+    jest.runAllTimers();
   });
 
   it('connects to user channel when chatIds is empty array', () => {
-    renderHook(() => useChatSSE([]));
+    const { unmount } = renderHook(() => useChatSSE([]));
+
+    jest.runAllTimers();
 
     expect(mockEventSourceConstructor).toHaveBeenCalledTimes(1);
     const calls = mockEventSourceConstructor.mock.calls as string[][];
     const calledUrl = calls[0]?.[0] ?? '';
     expect(calledUrl).toBe('/api/chat/sse?chatIds=user-uuid-123');
+
+    unmount();
+    jest.runAllTimers();
   });
 
   it('does not open EventSource if currentUser is empty or undefined', () => {
@@ -85,8 +101,13 @@ describe('useChatSSE', () => {
       data: undefined,
     });
 
-    renderHook(() => useChatSSE(['550e8400-e29b-41d4-a716-446655440000']));
+    const { unmount } = renderHook(() => useChatSSE(['550e8400-e29b-41d4-a716-446655440000']));
+
+    jest.runAllTimers();
 
     expect(mockEventSourceConstructor).not.toHaveBeenCalled();
+
+    unmount();
+    jest.runAllTimers();
   });
 });

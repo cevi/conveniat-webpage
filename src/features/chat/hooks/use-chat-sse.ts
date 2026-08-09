@@ -32,7 +32,8 @@ const isUnconfirmed = (message: ChatMessage): boolean =>
 const activeChatSubscribers = new Map<string, Set<(event: ChatRealtimeEvent) => void>>();
 const activeReconnectListeners = new Set<() => void>();
 let globalEventSource: EventSource | undefined;
-let currentSubscribedIdsString = '';
+let currentSubscribedIds = new Set<string>();
+let updateTimeout: ReturnType<typeof setTimeout> | undefined;
 let hasConnectedBefore = false;
 
 const handleError = (): void => {
@@ -42,86 +43,99 @@ const handleError = (): void => {
       globalEventSource.close();
       globalEventSource = undefined;
     }
+    currentSubscribedIds.clear();
     return;
   }
   console.warn('[SSE] EventSource connection error, will auto-reconnect');
 };
 
 function updateGlobalEventSource(currentUser: string): void {
-  const allSubscribedIds = [...activeChatSubscribers.keys()]
-    .map((id) => id.trim())
-    .filter(Boolean)
-    .sort();
-  const subscribedIdsString = `${currentUser}|${allSubscribedIds.join(',')}`;
-
-  if (subscribedIdsString === currentSubscribedIdsString) {
-    return;
+  if (updateTimeout) {
+    clearTimeout(updateTimeout);
   }
 
-  // Close existing event source
-  if (globalEventSource) {
-    globalEventSource.close();
-    globalEventSource = undefined;
-  }
+  updateTimeout = setTimeout(() => {
+    const allSubscribedIds = [...activeChatSubscribers.keys()]
+      .map((id) => id.trim())
+      .filter(Boolean);
 
-  currentSubscribedIdsString = subscribedIdsString;
-
-  if (currentUser === '' || currentUser.trim() === '' || allSubscribedIds.length === 0) {
-    return;
-  }
-
-  const url = `/api/chat/sse?chatIds=${allSubscribedIds.join(',')}`;
-  const eventSource = new EventSource(url);
-  globalEventSource = eventSource;
-
-  const handleOpen = (): void => {
-    console.log(`[Chat][SSE] Stream connected (subscribed chats: ${allSubscribedIds.join(', ')})`);
-
-    if (hasConnectedBefore) {
-      for (const listener of activeReconnectListeners) {
-        try {
-          listener();
-        } catch (error) {
-          console.error('[Chat][SSE] Reconnect listener failed:', error);
-        }
+    if (currentUser === '' || currentUser.trim() === '' || allSubscribedIds.length === 0) {
+      if (globalEventSource) {
+        globalEventSource.close();
+        globalEventSource = undefined;
       }
+      currentSubscribedIds.clear();
+      return;
     }
 
-    hasConnectedBefore = true;
-  };
+    // Exact match check: if the new IDs exactly match the current live set, skip reconnect
+    const isExactMatch =
+      allSubscribedIds.length === currentSubscribedIds.size &&
+      allSubscribedIds.every((id) => currentSubscribedIds.has(id));
+    if (isExactMatch && globalEventSource) {
+      return;
+    }
 
-  const handleMessage = (event: MessageEvent<string>): void => {
-    try {
-      const parsed = superjson.parse(event.data);
-      if (parsed === null || typeof parsed !== 'object') return;
+    // Close existing event source because we need to expand the subscription set
+    if (globalEventSource) {
+      globalEventSource.close();
+      globalEventSource = undefined;
+    }
 
-      const data = parsed as unknown as ChatRealtimeEvent;
-      console.log(`[Chat][SSE] Received "${data.type}" event for chat ${data.chatId}`);
+    currentSubscribedIds = new Set(allSubscribedIds);
+    const idsArray = [...currentSubscribedIds].sort();
 
-      // Dispatch to all listeners registered for the delivery channel. Events
-      // delivered on the user's personal channel (e.g. new_chat) carry a
-      // `channel` field because the client has no listener for the chat yet.
-      const channel = data.channel ?? data.chatId;
-      const listeners = activeChatSubscribers.get(channel);
-      if (listeners) {
-        for (const listener of listeners) {
+    const url = `/api/chat/sse?chatIds=${idsArray.join(',')}`;
+    const eventSource = new EventSource(url);
+    globalEventSource = eventSource;
+
+    const handleOpen = (): void => {
+      console.log(`[Chat][SSE] Stream connected (subscribed chats: ${idsArray.join(', ')})`);
+      if (hasConnectedBefore) {
+        for (const listener of activeReconnectListeners) {
           try {
-            listener(data);
+            listener();
           } catch (error) {
-            console.error('[Chat][SSE] Listener callback failed:', error);
+            console.error('[Chat][SSE] Reconnect listener failed:', error);
           }
         }
-      } else {
-        console.warn(`[Chat][SSE] No listener registered for channel ${channel}, event dropped.`);
       }
-    } catch (error) {
-      console.error('[Chat][SSE] Failed to process message event:', error);
-    }
-  };
+      hasConnectedBefore = true;
+    };
 
-  eventSource.addEventListener('open', handleOpen);
-  eventSource.addEventListener('message', handleMessage);
-  eventSource.addEventListener('error', handleError);
+    const handleMessage = (event: MessageEvent<string>): void => {
+      try {
+        const parsed = superjson.parse(event.data);
+        if (parsed === null || typeof parsed !== 'object') return;
+
+        const data = parsed as unknown as ChatRealtimeEvent;
+        console.log(`[Chat][SSE] Received "${data.type}" event for chat ${data.chatId}`);
+
+        // Dispatch to all listeners registered for the delivery channel. Events
+        // delivered on the user's personal channel (e.g. new_chat) carry a
+        // `channel` field because the client has no listener for the chat yet.
+        const channel = data.channel ?? data.chatId;
+        const listeners = activeChatSubscribers.get(channel);
+        if (listeners) {
+          for (const listener of listeners) {
+            try {
+              listener(data);
+            } catch (error) {
+              console.error('[Chat][SSE] Listener callback failed:', error);
+            }
+          }
+        } else {
+          console.warn(`[Chat][SSE] No listener registered for channel ${channel}, event dropped.`);
+        }
+      } catch (error) {
+        console.error('[Chat][SSE] Failed to process message event:', error);
+      }
+    };
+
+    eventSource.addEventListener('open', handleOpen);
+    eventSource.addEventListener('message', handleMessage);
+    eventSource.addEventListener('error', handleError);
+  }, 0);
 }
 
 export const useChatSSE = (chatIds: string[]): void => {
