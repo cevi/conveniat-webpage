@@ -76,17 +76,96 @@ function broadcastToClients(clients: readonly Client[], data: NotificationPayloa
   }
 }
 
+/** How long the service worker waits for a page to report its current URL. */
+const CLIENT_URL_RESPONSE_TIMEOUT_MS = 400;
+
 /**
- * Handles incoming push notifications.
+ * Strips an optional locale prefix so `/de/app/chat/x` compares equal to `/app/chat/x`.
+ */
+const normalizePathname = (pathname: string): string =>
+  pathname.replace(/^\/(?:de|fr|en)(?=\/|$)/, '');
+
+/**
+ * Resolves the client's *current* URL via a MessageChannel round-trip.
+ *
+ * `WindowClient.url` is the document's creation URL: it does NOT reflect
+ * client-side (SPA) navigations, so a client that loaded on `/app/chat/<id>`
+ * and then navigated to `/app/chat` still reports the old chat URL. The page
+ * answers the `GET_CLIENT_URL` message with its live `location.href`; if it
+ * does not answer in time we fall back to the (possibly stale) creation URL.
+ */
+async function getLiveClientUrl(
+  client: WindowClient,
+): Promise<{ url: string; source: 'live' | 'creation-url-fallback' }> {
+  return new Promise((resolve) => {
+    let channel: MessageChannel;
+    try {
+      channel = new MessageChannel();
+      const fallback = setTimeout(() => {
+        channel.port1.close();
+        resolve({ url: client.url, source: 'creation-url-fallback' });
+      }, CLIENT_URL_RESPONSE_TIMEOUT_MS);
+
+      channel.port1.addEventListener('message', (messageEvent: MessageEvent): void => {
+        clearTimeout(fallback);
+        channel.port1.close();
+        const reportedUrl = (messageEvent.data as { url?: unknown } | undefined)?.url;
+        resolve(
+          typeof reportedUrl === 'string' && reportedUrl !== ''
+            ? { url: reportedUrl, source: 'live' }
+            : { url: client.url, source: 'creation-url-fallback' },
+        );
+      });
+      channel.port1.start();
+
+      client.postMessage({ type: ServiceWorkerMessages.GET_CLIENT_URL }, [channel.port2]);
+    } catch {
+      resolve({ url: client.url, source: 'creation-url-fallback' });
+    }
+  });
+}
+
+/**
+ * Whether a client URL counts as "the user is looking at the notification target".
+ *
+ * Matches when the (locale-stripped) target pathname is contained in the client's
+ * pathname, so sub-routes of a chat (details, threads) still count as open, while
+ * the chat overview `/app/chat` does NOT match a chat thread `/app/chat/<id>`.
+ *
+ * The admin chat management views (e.g. `/admin/globals/alert-management`) show a
+ * chat via the `selectedChatId` query parameter instead of an `/app/chat/<id>`
+ * pathname, so a client with `?selectedChatId=<id>` also counts as having the
+ * chat `<id>` open.
+ */
+function clientUrlMatchesTarget(clientUrlString: string, targetUrl: URL): boolean {
+  const clientUrl = new URL(clientUrlString);
+  const clientPathname = normalizePathname(clientUrl.pathname);
+  const targetPathname = normalizePathname(targetUrl.pathname);
+  if (clientPathname === targetPathname || clientPathname.includes(targetPathname)) {
+    return true;
+  }
+
+  const selectedChatId = clientUrl.searchParams.get('selectedChatId');
+  if (selectedChatId !== null && selectedChatId !== '') {
+    const targetChatId = /\/app\/chat\/([^/?]+)/.exec(targetPathname)?.[1];
+    return targetChatId === selectedChatId;
+  }
+
+  return false;
+}
+
+/**
+ * Handles incoming push notifications (Web Push transport — native FCM pushes
+ * never reach this service worker handler).
  * Displays notifications by default (including test notifications sent from admin panel
  * and subscription confirmation push notifications).
  * Only suppresses notifications if `ignoreIfAppOpen` is true or if `ignoreIfUrlMatches`
- * matches the currently open active client URL.
+ * matches the URL a visible client is currently showing.
  */
 export const pushNotificationHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
   (event: PushEvent): void => {
-    console.log('Push notification received.');
+    console.log('[SW Push][WebPush] Push notification received.');
     if (!event.data) return;
 
     const data = event.data.json() as NotificationPayload;
@@ -104,10 +183,16 @@ export const pushNotificationHandler =
       (async (): Promise<void> => {
         const { isFocused, clients } = await isAppFocused(serviceWorkerScope);
 
+        // Keep open pages up to date no matter whether a system notification is
+        // shown: the pages decide themselves which queries to refresh.
+        if (clients.length > 0) {
+          broadcastToClients(clients, data);
+        }
+
         let shouldShowNotification = !isFocused;
 
         if (isFocused) {
-          console.log('App is in focus.');
+          console.log('[SW Push][WebPush] App is in focus.');
 
           const ignoreIfAppOpen =
             data.data.ignoreIfAppOpen === true || data.data.ignoreIfAppOpen === 'true';
@@ -117,37 +202,45 @@ export const pushNotificationHandler =
 
           if (ignoreIfAppOpen) {
             shouldShowNotification = false;
-            console.log('Notification ignored because ignoreIfAppOpen is enabled.');
+            console.log(
+              '[SW Push][WebPush] Notification ignored because ignoreIfAppOpen is enabled.',
+            );
           } else if (ignoreIfUrlMatches && targetUrlString) {
-            const normalizePathname = (pathname: string): string =>
-              pathname.replace(/^\/(?:de|fr|en)(?:\/[^/]+)?(?=\/|$)/, '');
+            const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
+            const visibleClients = clients.filter((client) => client.visibilityState === 'visible');
+            const liveClientUrls = await Promise.all(
+              visibleClients.map((client) => getLiveClientUrl(client)),
+            );
 
-            const hasMatchingActiveClient = clients.some((client) => {
-              if (client.visibilityState !== 'visible') return false;
+            const hasMatchingActiveClient = liveClientUrls.some(({ url, source }) => {
+              let matches = false;
               try {
-                const clientUrl = new URL(client.url);
-                const targetUrl = new URL(targetUrlString, serviceWorkerScope.location.origin);
-                return (
-                  normalizePathname(clientUrl.pathname) === normalizePathname(targetUrl.pathname)
-                );
+                matches = clientUrlMatchesTarget(url, targetUrl);
               } catch {
-                return false;
+                matches = false;
               }
+              console.log(
+                `[SW Push][WebPush] URL check: expected="${targetUrl.href}" actual="${url}" (${
+                  source === 'live' ? 'reported by page' : 'stale creation URL, page did not answer'
+                }) -> ${matches ? 'MATCH' : 'no match'}`,
+              );
+              return matches;
             });
+
             if (hasMatchingActiveClient) {
               shouldShowNotification = false;
-              console.log('Notification ignored because user has the matching page open.');
+              console.log(
+                `[SW Push][WebPush] Notification ignored: user has the target page "${targetUrl.pathname}" open.`,
+              );
             } else {
               shouldShowNotification = true;
-              console.log('Notification shown because matching page is not open.');
+              console.log(
+                `[SW Push][WebPush] Notification shown: no visible client is on the target page "${targetUrl.pathname}".`,
+              );
             }
           } else {
             shouldShowNotification = true;
-            console.log('Notification shown by default when app is in focus.');
-          }
-
-          if (!shouldShowNotification) {
-            broadcastToClients(clients, data);
+            console.log('[SW Push][WebPush] Notification shown by default when app is in focus.');
           }
         }
 

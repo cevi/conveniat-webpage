@@ -55,7 +55,14 @@ export const HelperShiftsCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent,
-    defaultColumns: ['title', 'timeslot', 'location', 'participants_max', 'enrolledStatus'],
+    defaultColumns: [
+      'title',
+      'timeslot',
+      'location',
+      'category',
+      'participants_max',
+      'enrolledStatus',
+    ],
     groupBy: true,
     disableCopyToLocale: true,
   },
@@ -266,6 +273,26 @@ export const HelperShiftsCollection: CollectionConfig = {
           en: 'Location of the shift (optional).',
           de: 'Ort des Schichteinsatzes (optional).',
           fr: 'Emplacement du service (optionnel).',
+        },
+        position: 'sidebar',
+      },
+    },
+    {
+      name: 'category',
+      label: {
+        en: 'Category',
+        de: 'Kategorie',
+        fr: 'Catégorie',
+      },
+      type: 'relationship',
+      relationTo: 'camp-categories',
+      hasMany: false,
+      required: false,
+      admin: {
+        description: {
+          en: 'Category used to tag and filter the shift in the helper portal.',
+          de: 'Kategorie, mit der der Schichteinsatz im Helfenden-Portal getaggt und gefiltert wird.',
+          fr: 'Catégorie utilisée pour taguer et filtrer le service dans le portail des helpers.',
         },
         position: 'sidebar',
       },

@@ -13,7 +13,10 @@ export interface OfflineMessage {
 
 export interface OfflineChatCreation {
   type: 'CREATE_CHAT';
-  id: string; // Optimistic chat ID
+  // Client-generated chat id (see `generateChatId`). It is the id the chat is already
+  // open under locally and the id the server is asked to store it as, so queued messages
+  // for this chat need no rewriting once the creation is replayed.
+  id: string;
   chatName: string | undefined;
   memberIds: string[];
   createdAt: string; // ISO String

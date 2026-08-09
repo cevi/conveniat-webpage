@@ -1,11 +1,73 @@
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatStatus } from '@/lib/chat-shared';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { AnimatePresence, motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 import React from 'react';
 
 const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
   <div className={`animate-pulse rounded bg-(--theme-elevation-100) ${className}`} />
 );
+
+const searchPlaceholder: StaticTranslationString = {
+  de: 'Titel, Nachrichten, Benutzer durchsuchen...',
+  en: 'Search title, messages, users...',
+  fr: 'Rechercher titre, messages, utilisateurs...',
+};
+
+const showClosedLabel: StaticTranslationString = {
+  de: 'Geschlossene Chats anzeigen',
+  en: 'Show closed chats',
+  fr: 'Afficher les chats fermés',
+};
+
+const refreshLabel: StaticTranslationString = {
+  de: 'Aktualisieren',
+  en: 'Refresh',
+  fr: 'Actualiser',
+};
+
+const noChatsFoundLabel: StaticTranslationString = {
+  de: 'Keine Chats gefunden.',
+  en: 'No chats found.',
+  fr: 'Aucun chat trouvé.',
+};
+
+const noDescriptionLabel: StaticTranslationString = {
+  de: 'Keine Beschreibung',
+  en: 'No description',
+  fr: 'Aucune description',
+};
+
+const messageCountLabel = (count: number, locale: Locale): string => {
+  if (locale === 'de') {
+    return count === 1 ? '1 Nachricht' : `${count} Nachrichten`;
+  }
+  if (locale === 'fr') {
+    return count === 1 ? '1 message' : `${count} messages`;
+  }
+  return count === 1 ? '1 message' : `${count} messages`;
+};
+
+const statusLabels: Record<ChatStatus, StaticTranslationString> = {
+  [ChatStatus.OPEN]: { de: 'Offen', en: 'Open', fr: 'Ouvert' },
+  [ChatStatus.CLOSED]: { de: 'Geschlossen', en: 'Closed', fr: 'Fermé' },
+};
+
+/** Short timestamp: time of day for today, date otherwise. */
+const formatLastUpdate = (lastUpdate: Date, locale: Locale): string => {
+  const date = new Date(lastUpdate);
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  if (isToday) {
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  }
+  return date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
+};
 
 interface ChatManagementSidebarProperties {
   title: string;
@@ -19,6 +81,7 @@ interface ChatManagementSidebarProperties {
   onSearchChange: (query: string) => void;
   showClosed: boolean;
   onShowClosedChange: (show: boolean) => void;
+  locale: Locale;
 }
 
 export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = ({
@@ -33,6 +96,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
   onSearchChange,
   showClosed,
   onShowClosedChange,
+  locale,
 }) => {
   const scrollContainerReference = React.useRef<HTMLDivElement>(null);
 
@@ -74,7 +138,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
             onClick={onRefresh}
             disabled={loadingChats || loadingMessages}
             className="cursor-pointer rounded p-2 text-(--theme-elevation-500) transition-colors hover:bg-(--theme-elevation-100) hover:text-[var(--theme-elevation-800)] disabled:text-[var(--theme-elevation-300)]"
-            title="Refresh"
+            title={refreshLabel[locale]}
           >
             <RefreshCw
               size={16}
@@ -88,7 +152,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
             type="text"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search title, messages, users..."
+            placeholder={searchPlaceholder[locale]}
             className="w-full rounded border border-(--theme-elevation-150) bg-(--theme-input-bg) px-3 py-2 text-sm text-(--theme-elevation-800) shadow-[0_2px_2px_-1px_rgba(0,0,0,0.1)] transition-[border,box-shadow] placeholder:text-[var(--theme-elevation-400)] hover:border-[var(--theme-elevation-250)] focus:border-[var(--theme-elevation-400)] focus:shadow-none focus:outline-none"
           />
           <label className="group flex cursor-pointer items-center gap-2">
@@ -99,7 +163,7 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
               className="h-4 w-4 rounded border-(--theme-elevation-300) accent-(--theme-success-500)"
             />
             <span className="text-xs font-medium text-(--theme-elevation-500) transition-colors group-hover:text-(--theme-elevation-800)">
-              Show Closed Chats
+              {showClosedLabel[locale]}
             </span>
           </label>
         </div>
@@ -107,13 +171,17 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
       <div
         ref={scrollContainerReference}
         onScroll={handleScroll}
-        className="flex-1 space-y-1 overflow-y-auto p-2"
+        className="flex-1 overflow-y-auto p-2"
       >
-        {loadingChats
-          ? Array.from({ length: 5 }).map((_, index) => (
+        {loadingChats ? (
+          <div className="space-y-1">
+            {Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} className="h-20 w-full" />
-            ))
-          : chats.map((chat) => {
+            ))}
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {chats.map((chat) => {
               const hasUnread = chat.unreadCount > 0;
               const isEmergency = chat.chatType === 'EMERGENCY';
               const showUnread = hasUnread && selectedChatId !== chat.id;
@@ -144,70 +212,88 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
                 : 'text-[var(--theme-elevation-400)]';
 
               return (
-                <button
+                <motion.div
                   key={chat.id}
-                  onClick={() => onSelectChat(chat.id)}
-                  className={`relative w-full cursor-pointer rounded border p-3 pl-4 text-left transition-all ${cardBgClass}`}
+                  layout
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  className="overflow-hidden"
                 >
-                  {/* Glowing left accent indicator strip for unread chats */}
-                  {showUnread && (
-                    <div
-                      className={`absolute top-2 bottom-2 left-0 w-1 rounded-r transition-all ${
-                        isEmergency
-                          ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
-                          : 'bg-(--theme-success-500) shadow-[0_0_8px_var(--theme-success-500)]'
-                      }`}
-                    />
-                  )}
+                  <button
+                    onClick={() => onSelectChat(chat.id)}
+                    className={`relative mb-1 w-full cursor-pointer rounded border p-3 pl-4 text-left transition-all ${cardBgClass}`}
+                  >
+                    {/* Glowing left accent indicator strip for unread chats */}
+                    {showUnread && (
+                      <div
+                        className={`absolute top-2 bottom-2 left-0 w-1 rounded-r transition-all ${
+                          isEmergency
+                            ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]'
+                            : 'bg-(--theme-success-500) shadow-[0_0_8px_var(--theme-success-500)]'
+                        }`}
+                      />
+                    )}
 
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-1.5">
-                      <span
-                        className={`truncate text-sm font-semibold transition-colors ${titleTextClass}`}
-                      >
-                        {chat.name}
-                      </span>
-                      {chat.caseNumber != undefined && chat.caseNumber !== '' && (
-                        <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-700">
-                          {chat.caseNumber}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      {showUnread && (
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-1.5">
                         <span
-                          className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold text-white shadow-sm ${
-                            isEmergency ? 'bg-red-500' : 'bg-(--theme-success-500)'
+                          className={`truncate text-sm font-semibold transition-colors ${titleTextClass}`}
+                        >
+                          {chat.name}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {showUnread && (
+                          <span
+                            className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] leading-none font-bold text-white shadow-sm ${
+                              isEmergency ? 'bg-red-500' : 'bg-(--theme-success-500)'
+                            }`}
+                          >
+                            {chat.unreadCount}
+                          </span>
+                        )}
+                        <span
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                            chat.status === ChatStatus.OPEN
+                              ? 'bg-(--theme-success-100) text-(--theme-success-600)'
+                              : 'bg-(--theme-elevation-100) text-(--theme-elevation-500)'
                           }`}
                         >
-                          {chat.unreadCount}
+                          {statusLabels[chat.status][locale]}
                         </span>
-                      )}
-                      <span
-                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                          chat.status === ChatStatus.OPEN
-                            ? 'bg-(--theme-success-100) text-(--theme-success-600)'
-                            : 'bg-(--theme-elevation-100) text-(--theme-elevation-500)'
-                        }`}
-                      >
-                        {chat.status}
+                      </div>
+                    </div>
+                    {chat.caseNumber != undefined && chat.caseNumber !== '' && (
+                      <div className="mt-1">
+                        <span className="rounded bg-red-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-700">
+                          {chat.caseNumber}
+                        </span>
+                      </div>
+                    )}
+                    <div
+                      className={`mt-1 truncate text-xs transition-colors ${descriptionTextClass}`}
+                    >
+                      {chat.description ?? noDescriptionLabel[locale]}
+                    </div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className={`text-[10px] transition-colors ${messageCountTextClass}`}>
+                        {messageCountLabel(chat.messageCount, locale)}
+                      </span>
+                      <span className="text-[10px] text-[var(--theme-elevation-400)]">
+                        {formatLastUpdate(chat.lastUpdate, locale)}
                       </span>
                     </div>
-                  </div>
-                  <div
-                    className={`mt-1 truncate text-xs transition-colors ${descriptionTextClass}`}
-                  >
-                    {chat.description ?? 'No description'}
-                  </div>
-                  <div className={`mt-1 text-[10px] transition-colors ${messageCountTextClass}`}>
-                    {chat.messageCount} messages
-                  </div>
-                </button>
+                  </button>
+                </motion.div>
               );
             })}
+          </AnimatePresence>
+        )}
         {!loadingChats && chats.length === 0 && (
           <div className="p-4 text-center text-sm text-(--theme-elevation-400)">
-            No chats found.
+            {noChatsFoundLabel[locale]}
           </div>
         )}
       </div>

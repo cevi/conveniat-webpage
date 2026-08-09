@@ -11,11 +11,19 @@ import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-man
 import { LocationMap } from '@/features/map/components/location-map';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config } from '@/features/payload-cms/payload-types';
+import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
 import { ChatStatus } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { TRPCProvider } from '@/trpc/client';
+import type { StaticTranslationString } from '@/types/types';
 import { useLocale } from '@payloadcms/ui';
 import React, { useEffect, useState } from 'react';
+
+const emptyStateText: StaticTranslationString = {
+  de: 'Wähle einen Chat aus, um Details anzuzeigen',
+  en: 'Select a chat to view details',
+  fr: 'Sélectionnez un chat pour afficher les détails',
+};
 
 interface LocationPayload {
   location?: {
@@ -52,6 +60,10 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isReopenModalOpen, setIsReopenModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+
+  // Report the live URL (including ?selectedChatId=...) to the service worker so
+  // push notifications for the currently open chat are suppressed on this device.
+  useServiceWorkerClientUrlResponder();
 
   // Sync to URL
   useEffect((): void => {
@@ -120,6 +132,9 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
   const handleCloseConfirm = async (): Promise<void> => {
     await closeChat();
     setIsModalOpen(false);
+    // Deselect the closed chat: the right-hand view falls back to the empty
+    // state and the chat can animate out of the sidebar list.
+    setSelectedChatId(undefined);
   };
 
   const handleReopenConfirm = async (): Promise<void> => {
@@ -211,6 +226,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
           onSearchChange={setSearchQuery}
           showClosed={showClosed}
           onShowClosedChange={setShowClosed}
+          locale={locale}
         />
 
         {/* Right Column: Chat Details */}
@@ -276,7 +292,7 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
             <div className="flex flex-1 flex-col items-center justify-center">
               <div className="mb-4 text-6xl">💬</div>
               <div className="text-xl font-semibold text-[var(--theme-elevation-300)]">
-                Select a chat to view details
+                {emptyStateText[locale]}
               </div>
             </div>
           )}

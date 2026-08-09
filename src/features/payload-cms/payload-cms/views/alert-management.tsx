@@ -6,7 +6,12 @@ import React from 'react';
 
 export const AlertManagementView: React.FC = () => {
   const { code: locale } = useLocale();
-  const title = locale === 'de' ? 'Notfall Alarme' : 'Emergency Alerts';
+  let title = 'Emergency Alerts';
+  if (locale === 'de') {
+    title = 'Notfall Alarme';
+  } else if (locale === 'fr') {
+    title = "Alertes d'urgence";
+  }
 
   return <GenericChatManagementView chatType={ChatType.EMERGENCY} title={title} />;
 };

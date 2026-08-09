@@ -43,6 +43,9 @@ const getCanonicalData = (
   };
 };
 
+const normalizeAlternativePath = (alternativePath: string): string =>
+  alternativePath.replace(/^\/+/, '');
+
 const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
   const specialPage = getSpecialPage(collection);
   if (!specialPage) return {};
@@ -238,7 +241,10 @@ const CMSPage: React.FC<{
     } else {
       // redirect to the alternative locale
       console.log('Redirecting to alternative locale for special page');
-      redirect(`/${validatedLocale}/${specialPage.alternatives[validatedLocale]}`);
+      const normalizedAlternativePath = normalizeAlternativePath(
+        specialPage.alternatives[validatedLocale],
+      );
+      redirect(`/${validatedLocale}/${normalizedAlternativePath}`);
     }
   }
 
@@ -277,8 +283,9 @@ const CMSPage: React.FC<{
     } else {
       // redirect to alternative collectionPage if available
       const alternative = collectionPage.alternatives[validatedLocale];
+      const normalizedAlternativePath = normalizeAlternativePath(alternative);
       console.log('Redirecting to alternative locale for collection page');
-      redirect(`/${validatedLocale}/${alternative}`);
+      redirect(`/${validatedLocale}/${normalizedAlternativePath}`);
     }
   }
 

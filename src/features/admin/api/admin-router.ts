@@ -280,6 +280,7 @@ export const adminRouter = createTRPCRouter({
             description: chat.description,
             status: chat.status,
             chatType: chat.type,
+            caseNumber: formatCaseNumber(chat.caseNumber),
             lastUpdate: chat.lastUpdate,
             unreadCount: 0,
             messageCount: chat._count.messages,
@@ -318,6 +319,7 @@ export const adminRouter = createTRPCRouter({
           description: chat.description,
           status: chat.status,
           chatType: chat.type,
+          caseNumber: formatCaseNumber(chat.caseNumber),
           id: chat.uuid,
           messageCount: chat._count.messages,
           lastMessage: {
@@ -511,6 +513,7 @@ export const adminRouter = createTRPCRouter({
         chatId: z.string().uuid(),
         content: z.string().min(1),
         type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
+        uuid: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -527,6 +530,7 @@ export const adminRouter = createTRPCRouter({
 
       const message = await prisma.message.create({
         data: {
+          ...(input.uuid ? { uuid: input.uuid } : {}),
           chatId: input.chatId,
           senderId: user.uuid,
           type: input.type,
@@ -1052,6 +1056,19 @@ export const adminRouter = createTRPCRouter({
         })
         .catch((error: unknown) => {
           console.error('Failed to publish real-time member added event:', error);
+        });
+
+      // Notify the added user on their personal channel: their SSE connection is
+      // not subscribed to this chat yet, so this is the only way their open chat
+      // overview learns about the new chat without a reload.
+      chatPubSub
+        .publish(userId, {
+          type: 'new_chat',
+          chatId,
+          senderId: SYSTEM_SENDER_ID,
+        })
+        .catch((error: unknown) => {
+          console.error('Failed to publish new_chat event to added member:', error);
         });
 
       return { success: true };

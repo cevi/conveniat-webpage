@@ -1,6 +1,12 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import {
+  dropCachedEntry,
+  isServerCompatibleId,
+  mergeStoredMessage,
+  mergeStoredMessageAcrossPages,
+} from '@/features/chat/utils';
+import {
   getOfflineOutbox,
   removeMessageFromOutbox,
   saveOfflineOutbox,
@@ -10,6 +16,7 @@ import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
@@ -28,6 +35,10 @@ export const useOfflineQueueProcessor = (): void => {
   const mutateAsyncReference = useRef(sendMessageMutation.mutateAsync);
   const createChatMutation = trpc.chat.createChat.useMutation({ networkMode: 'always' });
   const createChatMutateAsyncReference = useRef(createChatMutation.mutateAsync);
+  const router = useRouter();
+  // Read through a ref: the drain lives in a long-running effect that must not be torn
+  // down and restarted whenever the router identity changes.
+  const routerReference = useRef(router);
 
   useEffect(() => {
     mutateAsyncReference.current = sendMessageMutation.mutateAsync;
@@ -36,6 +47,10 @@ export const useOfflineQueueProcessor = (): void => {
   useEffect(() => {
     createChatMutateAsyncReference.current = createChatMutation.mutateAsync;
   }, [createChatMutation.mutateAsync]);
+
+  useEffect(() => {
+    routerReference.current = router;
+  }, [router]);
 
   useEffect(() => {
     const processQueue = async (): Promise<void> => {
@@ -57,6 +72,12 @@ export const useOfflineQueueProcessor = (): void => {
               const createdChatId = await createChatMutateAsyncReference.current({
                 chatName: message.chatName,
                 members: message.memberIds.map((userId) => ({ userId })),
+                // Hand the queued id to the server so the chat is stored under the id the
+                // client already opened, and so a replay of this drain is recognised as
+                // one. Entries queued by older app versions carry an opaque
+                // `offline-chat-…` id the server cannot adopt - those still get a
+                // server-assigned id, which is swapped in below.
+                ...(isServerCompatibleId(message.id) ? { chatId: message.id } : {}),
               });
 
               if (!createdChatId)
@@ -84,19 +105,54 @@ export const useOfflineQueueProcessor = (): void => {
                 }
               }
 
-              // Swap optimistic ID in chats list
-              trpcUtils.chat.chats.setData({}, (oldChats) => {
-                if (!oldChats) return oldChats;
-                return oldChats.map((c) => (c.id === message.id ? { ...c, id: realChatId } : c));
-              });
+              if (realChatId !== message.id) {
+                trpcUtils.chat.chats.setData({}, (oldChats) => {
+                  if (!oldChats) return oldChats;
+                  // A one-to-one creation is answered with the *existing* private chat when
+                  // the two already have one, and that chat is already in the list - drop
+                  // the placeholder instead of renaming it onto a duplicate id.
+                  return oldChats.some((c) => c.id === realChatId)
+                    ? oldChats.filter((c) => c.id !== message.id)
+                    : oldChats.map((c) => (c.id === message.id ? { ...c, id: realChatId } : c));
+                });
+
+                // The caches seeded when the chat was created offline are keyed by the
+                // optimistic id and describe a chat that does not exist under that id -
+                // drop them so nothing renders a chat the server will never answer for.
+                trpcUtils.chat.chatDetails.setData({ chatId: message.id }, dropCachedEntry);
+                trpcUtils.chat.infiniteMessages.setInfiniteData(
+                  { chatId: message.id, limit: CHAT_PAGE_SIZE, parentId: undefined },
+                  dropCachedEntry,
+                );
+
+                // The user may still be sitting on `/app/chat/<optimisticId>`, a route the
+                // server will never answer for. Without this the view queries the dropped
+                // id, gets NOT_FOUND and shows the permanent error screen; follow the chat
+                // the creation actually resolved to instead. Mirrors the online path in
+                // `useCreateChat`.
+                //
+                // Read from `location` rather than `usePathname()`: this hook sits in the
+                // app shell, and subscribing it to URL data marks every page that renders
+                // the shell as dynamic, which breaks prerendering under Cache Components.
+                // The drain only ever runs in the browser, where `location` is both
+                // available and always current.
+                if (globalThis.location.pathname.includes(message.id)) {
+                  routerReference.current.replace(`/app/chat/${realChatId}`);
+                }
+              }
 
               syncedCount++;
               console.log(`[Offline Sync] Sequenced chat created: ${message.id} -> ${realChatId}`);
             } else {
+              // Preserve the original composition time; fall back to now if the stored value is unparsable
+              const queuedAt = new Date(message.createdAt);
+              const timestamp = Number.isNaN(queuedAt.getTime()) ? new Date() : queuedAt;
+
               // Send message mutation sequentially to preserve order
               const createdMessageData = await mutateAsyncReference.current({
                 chatId: message.chatId,
                 content: message.content,
+                timestamp,
                 quotedMessageId: message.quotedMessageId,
                 parentId: message.parentId,
                 messageId: message.id,
@@ -107,7 +163,9 @@ export const useOfflineQueueProcessor = (): void => {
                 throw new Error('Server returned empty message payload during offline sync');
               }
 
-              // 1. Swap optimistic ID with real database ID in infinite messages
+              // 1. Replace the queued message with the stored one in infinite messages.
+              // The ids normally match (the server persists the client-generated id), so
+              // this also collapses a copy the SSE stream may have raced in.
               trpcUtils.chat.infiniteMessages.setInfiniteData(
                 {
                   chatId: message.chatId,
@@ -116,19 +174,22 @@ export const useOfflineQueueProcessor = (): void => {
                 },
                 (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
                   if (!data) return data;
+                  const merged = mergeStoredMessageAcrossPages(
+                    data.pages.map((page) => page.items),
+                    realMessage,
+                    message.id,
+                  );
                   return {
                     ...data,
-                    pages: data.pages.map((page) => ({
+                    pages: data.pages.map((page, index) => ({
                       ...page,
-                      items: page.items.map((item) =>
-                        item.id === message.id ? realMessage : item,
-                      ),
+                      items: merged[index] ?? page.items,
                     })),
                   };
                 },
               );
 
-              // 2. Swap optimistic ID in chat details
+              // 2. Same for chat details
               if (!message.parentId) {
                 trpcUtils.chat.chatDetails.setData(
                   { chatId: message.chatId },
@@ -136,9 +197,7 @@ export const useOfflineQueueProcessor = (): void => {
                     if (!oldData) return oldData;
                     return {
                       ...oldData,
-                      messages: oldData.messages.map((item) =>
-                        item.id === message.id ? realMessage : item,
-                      ),
+                      messages: mergeStoredMessage(oldData.messages, realMessage, message.id),
                     };
                   },
                 );

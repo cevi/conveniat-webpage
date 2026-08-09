@@ -6,6 +6,7 @@ import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { generateMessageId } from '@/features/chat/utils';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -215,6 +216,7 @@ export const ChatTextAreaInput: React.FC = () => {
         chatId,
         content: chunk.trim(),
         timestamp: new Date(),
+        messageId: generateMessageId(),
       });
     }
 

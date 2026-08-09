@@ -642,6 +642,10 @@ export function useNativePush(): {
             }
           }
 
+          console.log(
+            `[Chat][FCM] Foreground push message received (chat: ${targetChatId ?? 'unknown'}).`,
+          );
+
           // Refresh query cache in background
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 

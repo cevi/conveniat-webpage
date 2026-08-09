@@ -7,6 +7,7 @@ import { scheduleLabels } from '@/features/schedule/constants/schedule-labels';
 import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-restoration';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
+import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { useStar } from '@/hooks/use-star';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -33,7 +34,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
   const searchParameters = useSearchParams();
   const { isStarred, toggleStar } = useStar();
   const { saveScrollPosition } = useScrollRestoration();
-  const location = entry.location as CampMapAnnotation;
+  const location = resolveLocation(entry.location);
   const currentlyStarred = isStarred(entry.id);
 
   const { label: categoryLabel, className: categoryClassName } = getCategoryDisplayData(
@@ -96,7 +97,7 @@ export const ScheduleItem: React.FC<ScheduleItemProperties> = ({
                 <span className="font-medium text-gray-700">{entry.timeslot.time}</span>
               </div>
 
-              {location.title !== '' && (
+              {location !== undefined && location.title !== '' && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
                   {/* Prevent link navigation when clicking map pin */}

@@ -1,7 +1,12 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
+import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
-import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
+import {
+  generateMessageId,
+  mergeStoredMessage,
+  mergeStoredMessageAcrossPages,
+} from '@/features/chat/utils';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -88,7 +93,9 @@ const performOptimisticMessageUpdate = async (
   const isOffline = typeof window !== 'undefined' && !navigator.onLine;
 
   const optimisticMessage: ChatMessage = {
-    id: messageId ?? generateOptimisticId(),
+    // `messageId` is the id the server was asked to persist, so the optimistic bubble and
+    // the stored row share it and no id swap is needed once the send resolves
+    id: messageId ?? generateMessageId(),
     messagePayload: {
       text: content.trim(),
       ...(typeof quotedMessageId === 'string' &&
@@ -170,14 +177,11 @@ const performOptimisticMessageUpdate = async (
           lastMessage: {
             id: optimisticMessage.id,
             senderId: optimisticMessage.senderId ?? SYSTEM_SENDER_ID,
-            messagePreview:
-              optimisticMessage.type === MessageType.IMAGE_MSG
-                ? {
-                    de: '📷 Bild',
-                    en: '📷 Image',
-                    fr: '📷 Image',
-                  }
-                : JSON.stringify(content.trim()),
+            // derived with the same helper the server uses, so the preview does not
+            // change once the real message is synced back
+            messagePreview: getMessagePreviewText({
+              contentVersions: [{ payload: optimisticMessage.messagePayload }],
+            }),
             createdAt: optimisticMessage.createdAt,
             status: optimisticMessage.status,
             type: optimisticMessage.type,
@@ -200,7 +204,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
   return trpc.chat.sendMessage.useMutation({
     networkMode: 'always',
-    async onMutate({ chatId, content, quotedMessageId, parentId }) {
+    async onMutate({ chatId, content, quotedMessageId, parentId, messageId }) {
       const userId =
         typeof currentUser === 'string' && currentUser !== ''
           ? currentUser
@@ -215,10 +219,11 @@ export const useMessageSend = (): UseMessageSendMutation => {
         content,
         quotedMessageId: quotedMessageId ?? undefined,
         parentId: parentId ?? undefined,
+        messageId: messageId ?? undefined,
       });
     },
 
-    onError: (error, { chatId, parentId, content, quotedMessageId }, context) => {
+    onError: (error, { chatId, parentId, content, quotedMessageId, timestamp }, context) => {
       const isOfflineError =
         !navigator.onLine ||
         error.message === 'Failed to fetch' ||
@@ -226,15 +231,45 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       if (isOfflineError) {
         if (context?.optimisticMessageId) {
+          const optimisticMessageId = context.optimisticMessageId;
           addMessageToOutbox({
             type: 'MESSAGE',
-            id: context.optimisticMessageId,
+            id: optimisticMessageId,
             chatId,
             content,
             quotedMessageId: quotedMessageId ?? undefined,
             parentId: parentId ?? undefined,
-            createdAt: new Date().toISOString(),
+            createdAt: (timestamp instanceof Date ? timestamp : new Date()).toISOString(),
           });
+
+          // Mark the cached optimistic message as pending so the UI shows the
+          // queued state (clock icon) even if the app still believed it was online
+          const markPending = (item: ChatMessage): ChatMessage =>
+            item.id === optimisticMessageId ? { ...item, isPendingOffline: true } : item;
+
+          trpcUtils.chat.infiniteMessages.setInfiniteData(
+            { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
+            (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
+              if (!data) return data;
+              return {
+                ...data,
+                pages: data.pages.map((page) => ({
+                  ...page,
+                  items: page.items.map((item) => markPending(item)),
+                })),
+              };
+            },
+          );
+
+          if (!parentId) {
+            trpcUtils.chat.chatDetails.setData(
+              { chatId },
+              (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+                if (!oldData) return oldData;
+                return { ...oldData, messages: oldData.messages.map((item) => markPending(item)) };
+              },
+            );
+          }
         }
         toast.success('Message queued. Will be sent when online.');
         return;
@@ -269,31 +304,28 @@ export const useMessageSend = (): UseMessageSendMutation => {
       const createdMessage = createdMessageData as unknown as ChatMessage | undefined;
       if (createdMessage === undefined) return;
 
+      const optimisticMessageId = (context as OptimisticUpdateResult | undefined)
+        ?.optimisticMessageId;
+
       // Update the infinite query cache
       trpcUtils.chat.infiniteMessages.setInfiniteData(
         { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
         (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
           if (!data) return data;
 
-          const allItems = data.pages.flatMap((page) => page.items);
-          const alreadyHasStored = allItems.some((item) => item.id === createdMessage.id);
+          // merge across all pages at once so a copy already delivered by SSE on another
+          // page does not survive next to the one replacing the optimistic bubble
+          const mergedPages = mergeStoredMessageAcrossPages(
+            data.pages.map((page) => page.items),
+            createdMessage,
+            optimisticMessageId,
+          );
 
           return {
             ...data,
-            pages: data.pages.map((page) => ({
+            pages: data.pages.map((page, index) => ({
               ...page,
-              items: page.items
-                .map((item) => {
-                  const isMatch = isOptimisticMessageMatch(
-                    item.id,
-                    (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
-                  );
-                  if (isMatch) {
-                    return alreadyHasStored ? undefined : createdMessage;
-                  }
-                  return item;
-                })
-                .filter((item): item is ChatMessage => item !== undefined),
+              items: mergedPages[index] ?? page.items,
             })),
           };
         },
@@ -305,23 +337,9 @@ export const useMessageSend = (): UseMessageSendMutation => {
           { chatId },
           (oldData: ChatDetails | undefined): ChatDetails | undefined => {
             if (!oldData) return oldData;
-
-            const alreadyHasStored = oldData.messages.some((item) => item.id === createdMessage.id);
-
             return {
               ...oldData,
-              messages: oldData.messages
-                .map((item) => {
-                  const isMatch = isOptimisticMessageMatch(
-                    item.id,
-                    (context as OptimisticUpdateResult | undefined)?.optimisticMessageId,
-                  );
-                  if (isMatch) {
-                    return alreadyHasStored ? undefined : createdMessage;
-                  }
-                  return item;
-                })
-                .filter((item): item is ChatMessage => item !== undefined),
+              messages: mergeStoredMessage(oldData.messages, createdMessage, optimisticMessageId),
             };
           },
         );

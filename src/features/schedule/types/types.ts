@@ -9,7 +9,8 @@ export interface CampScheduleEntryFrontendType {
     date: string;
     time: string;
   };
-  location: string | CampMapAnnotation;
+  // relationships can be unpopulated (ID string) or dangling (null) at runtime
+  location: string | CampMapAnnotation | null;
   participants_min?: number | null | undefined;
   participants_max?: number | null | undefined;
   enable_enrolment?: boolean | null | undefined;

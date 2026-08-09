@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { CacheFirst, ExpirationPlugin, type RouteHandler, type SerwistPlugin } from 'serwist';
@@ -6,8 +7,9 @@ const tilesBaseUrl = 'https://vectortiles0.geo.admin.ch/tiles/';
 const tilesStyleBaseUrl = 'https://vectortiles.geo.admin.ch/tiles/';
 const stylesBaseUrl = 'https://vectortiles.geo.admin.ch/styles/';
 const fontBaseUrl = 'https://vectortiles.geo.admin.ch/fonts/';
+const isKonektaDeployment = environmentVariables.NEXT_PUBLIC_APP_HOST_URL === 'https://konekta.ch';
 
-const urlsToPrecache: string[] = [
+const sharedUrlsToPrecache: string[] = [
   // fonts for map viewer
   `${fontBaseUrl}Frutiger%20Neue%20Italic/0-255.pbf`,
   `${fontBaseUrl}Frutiger%20Neue%20Condensed%20Regular/0-255.pbf`,
@@ -40,8 +42,10 @@ const urlsToPrecache: string[] = [
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2141/1449.pbf`,
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2142/1448.pbf`,
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/12/2142/1449.pbf`,
+];
 
-  // Zoom Levels 13-14 (Base & Relief)
+const conveniatMapTilesToPrecache: string[] = [
+  // Zoom Levels 13-14 (Base & Relief) - Conveniat campsite at 8.301211/46.502822
   // Base
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2896.pbf`,
   `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4283/2897.pbf`,
@@ -93,6 +97,71 @@ const urlsToPrecache: string[] = [
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5796.pbf`,
   `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8570/5797.pbf`,
 ];
+
+const konektaMapTilesToPrecache: string[] = [
+  // Zoom Levels 13-14 (Base & Relief) - Konekta campsite at 8.671077/47.597116
+  // Base
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4292/2860.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4292/2861.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4292/2862.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4292/2863.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4293/2860.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4293/2861.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4293/2862.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4293/2863.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4294/2860.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4294/2861.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4294/2862.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/13/4294/2863.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8585/5721.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8585/5722.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8585/5723.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8585/5724.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8586/5721.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8586/5722.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8586/5723.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8586/5724.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8587/5721.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8587/5722.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8587/5723.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.base.vt/v1.0.0/14/8587/5724.pbf`,
+
+  // Relief
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2141/1448.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2141/1449.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2142/1448.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/12/2142/1449.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4292/2860.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4292/2861.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4292/2862.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4292/2863.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4293/2860.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4293/2861.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4293/2862.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4293/2863.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4294/2860.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4294/2861.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4294/2862.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/13/4294/2863.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8585/5721.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8585/5722.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8585/5723.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8585/5724.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8586/5721.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8586/5722.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8586/5723.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8586/5724.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8587/5721.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8587/5722.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8587/5723.pbf`,
+  `${tilesBaseUrl}ch.swisstopo.relief.vt/v1.0.0/14/8587/5724.pbf`,
+];
+
+const mapTilesToPrecache = isKonektaDeployment
+  ? konektaMapTilesToPrecache
+  : conveniatMapTilesToPrecache;
+
+const urlsToPrecache: string[] = [...sharedUrlsToPrecache, ...mapTilesToPrecache];
 
 /**
  * Normalizes a tile URL from any load-balanced server (vectortiles0-4)

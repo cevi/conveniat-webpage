@@ -1,4 +1,3 @@
-import type { AppFeatureFlag } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import {
   Calendar,
@@ -55,6 +54,11 @@ type AppFeatureFlagKey =
   | 'reservationsEnabled'
   | 'forumEnabled';
 
+/**
+ * Resolved feature flags: a flag that was never set explicitly counts as enabled.
+ */
+export type DashboardFeatureFlags = Record<AppFeatureFlagKey, boolean>;
+
 interface FeatureDefinition extends FeatureCardProperties {
   /** When set, this feature is only shown if the corresponding flag is not false. */
   featureFlagKey?: AppFeatureFlagKey;
@@ -62,7 +66,7 @@ interface FeatureDefinition extends FeatureCardProperties {
 
 export const DashboardAppFeatures: React.FC<{
   locale: Locale;
-  featureFlags: Pick<AppFeatureFlag, AppFeatureFlagKey>;
+  featureFlags: DashboardFeatureFlags;
 }> = ({ locale, featureFlags }) => {
   const features: FeatureDefinition[] = [
     {
@@ -190,7 +194,7 @@ export const DashboardAppFeatures: React.FC<{
 
   const visibleFeatures = features.filter((feature) => {
     if (feature.featureFlagKey === undefined) return true;
-    return featureFlags[feature.featureFlagKey] !== false;
+    return featureFlags[feature.featureFlagKey];
   });
 
   return (

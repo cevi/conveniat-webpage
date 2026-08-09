@@ -15,6 +15,13 @@ export interface ChatRealtimeEvent {
   type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
   chatId: string;
   senderId: string;
+  /**
+   * Delivery channel override. Defaults to `chatId`. Set to a user uuid to
+   * deliver the event on that user's personal channel — used for events about
+   * chats the recipient's connection is not (yet) subscribed to, e.g. a
+   * `new_chat` announcement after being added to a chat.
+   */
+  channel?: string;
   message?: {
     id: string;
     createdAt: Date;
@@ -67,7 +74,7 @@ class ChatPubSub {
               if (event.message && typeof event.message.createdAt === 'string') {
                 event.message.createdAt = new Date(event.message.createdAt);
               }
-              this.emitter.emit(`chat:${event.chatId}`, event);
+              this.emitter.emit(`chat:${event.channel ?? event.chatId}`, event);
               this.emitter.emit('chat:all', event);
             } catch (error) {
               console.error('[ChatPubSub] Failed to parse PG notification payload:', error);
@@ -126,7 +133,13 @@ class ChatPubSub {
         console.error('[ChatPubSub] publish called with string but missing event object');
         return;
       }
-      event = possibleEvent;
+      // The string form addresses a specific channel (e.g. a user's personal
+      // channel). Record it on the event so the LISTEN side emits it there
+      // instead of on the chat's channel.
+      event =
+        chatIdOrEvent === possibleEvent.chatId
+          ? possibleEvent
+          : { ...possibleEvent, channel: chatIdOrEvent };
     } else {
       event = chatIdOrEvent;
     }

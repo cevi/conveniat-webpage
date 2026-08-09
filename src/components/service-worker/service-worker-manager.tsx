@@ -3,6 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
 import { performReliablePushNavigation } from '@/hooks/use-native-push';
+import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { SerwistProvider } from '@/lib/serwist-client';
 import { useOptionalTrpcUtils } from '@/trpc/client';
@@ -28,6 +29,8 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   useAppMode();
   const router = useRouter();
   const trpcUtils = useOptionalTrpcUtils();
+
+  useServiceWorkerClientUrlResponder();
 
   useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,

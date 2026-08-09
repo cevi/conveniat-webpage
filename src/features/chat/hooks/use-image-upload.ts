@@ -1,4 +1,5 @@
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { generateMessageId } from '@/features/chat/utils';
 import { MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useCallback, useState } from 'react';
@@ -20,6 +21,7 @@ interface UseImageUploadOptions {
       content: string;
       type: MessageType;
       timestamp?: Date;
+      messageId?: string;
     }) => void;
     isPending: boolean;
   };
@@ -74,6 +76,7 @@ export const useImageUpload = ({
           content: key,
           timestamp: new Date(),
           type: MessageType.IMAGE_MSG,
+          messageId: generateMessageId(),
         });
 
         onSuccess?.();

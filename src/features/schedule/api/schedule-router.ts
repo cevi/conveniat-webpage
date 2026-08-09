@@ -33,6 +33,23 @@ export const scheduleRouter = createTRPCRouter({
     return getScheduleEntries({}, locale);
   }),
 
+  /**
+   * Lightweight variant of `getScheduleEntries` used by the dashboard.
+   *
+   * Skips heavy fields (organiser, description, target_group) as the dashboard
+   * only renders title, time, location and category.
+   *
+   * The locale is an explicit input (instead of being read from the cookie via
+   * the context) so that the persisted client cache is scoped per locale.
+   */
+  getScheduleEntriesForDashboard: publicProcedure
+    .input(z.object({ locale: z.enum(['en', 'de', 'fr']) }))
+    .query(async ({ input }) => {
+      const { locale } = input;
+      const { getScheduleEntriesForDashboard } = await import('./get-schedule-entries');
+      return getScheduleEntriesForDashboard(locale);
+    }),
+
   getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const { locale } = ctx;
     const { getById } = await import('./get-by-id');
@@ -819,6 +836,7 @@ export const scheduleRouter = createTRPCRouter({
       const chat = await createNewChat(input.chatName, locale, user, [], prisma, {
         courseId: input.courseId,
         chatType: ChatType.COURSE_GROUP,
+        afterCommit: ctx.afterTransactionCommit,
       });
 
       // Add other organizers as ADMIN

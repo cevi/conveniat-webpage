@@ -37,8 +37,39 @@ const sendMessageInputSchema = z.object({
   type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
   parentId: z.string().uuid().optional(),
   quotedMessageId: z.string().uuid().optional(),
+  // Client-generated identity of this message. Sending it makes the mutation idempotent:
+  // a replayed send (offline outbox drain, lost response, retry) carries the same id and
+  // returns the message already stored instead of creating a second one.
+  // Deliberately not `.uuid()`: app versions before client-owned ids queued opaque
+  // `optimistic-…` ids in their offline outbox, and rejecting those would drop the
+  // queued message instead of delivering it.
   messageId: z.string().optional(),
 });
+
+const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/**
+ * Reads back a stored `MessageContent.payload` into the shape `sendMessage` returns.
+ */
+const extractMessagePayload = (
+  payload: unknown,
+): { text: string; quotedMessageId?: string; quotedSnippet?: string } => {
+  if (typeof payload === 'string') return { text: payload };
+
+  const record = (payload ?? {}) as Record<string, unknown>;
+  const text = typeof record['text'] === 'string' ? record['text'] : JSON.stringify(payload);
+  const url = typeof record['url'] === 'string' ? record['url'] : undefined;
+
+  return {
+    text: url ?? text,
+    ...(typeof record['quotedMessageId'] === 'string'
+      ? { quotedMessageId: record['quotedMessageId'] }
+      : {}),
+    ...(typeof record['quotedSnippet'] === 'string'
+      ? { quotedSnippet: record['quotedSnippet'] }
+      : {}),
+  };
+};
 
 // tRPC router for chat-related mutations
 export const createMessage = trpcBaseProcedure
@@ -147,6 +178,63 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
+    // 3. Idempotency: adopt the client-generated id as the message id when it is a UUID.
+    // A replay of the same send then hits the row that already exists and is answered with
+    // it, instead of storing the message a second time and notifying everyone again.
+    const clientMessageId =
+      validatedMessage.messageId !== undefined && UUID_PATTERN.test(validatedMessage.messageId)
+        ? validatedMessage.messageId
+        : undefined;
+
+    if (clientMessageId !== undefined) {
+      // Serialise concurrent sends of the same id (two tabs draining the same offline
+      // outbox). Without this both could pass the lookup below before either insert
+      // commits, and the loser would fail on the primary key instead of being answered
+      // with the stored message. The lock is released when this transaction ends.
+      await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${clientMessageId}, 0))`;
+
+      const alreadyStored = await prisma.message.findUnique({
+        where: { uuid: clientMessageId },
+        include: { contentVersions: { take: 1, orderBy: { revision: 'desc' } } },
+      });
+
+      if (alreadyStored) {
+        // The id is client-chosen, so make sure it really is a replay of *this* user's
+        // send in *this* chat rather than an attempt to claim someone else's message.
+        if (
+          alreadyStored.senderId !== user.uuid ||
+          alreadyStored.chatId !== validatedMessage.chatId
+        ) {
+          throw new TRPCError({
+            code: 'CONFLICT',
+            message: 'A different message with this ID already exists.',
+          });
+        }
+
+        console.log(
+          `Duplicate send for message ${clientMessageId} ignored, returning stored copy.`,
+        );
+
+        const storedPayload = extractMessagePayload(alreadyStored.contentVersions[0]?.payload);
+        return {
+          id: alreadyStored.uuid,
+          createdAt: alreadyStored.createdAt,
+          senderId: alreadyStored.senderId,
+          status: MessageEventType.STORED,
+          type: alreadyStored.type,
+          parentId: alreadyStored.parentId ?? undefined,
+          messagePayload:
+            alreadyStored.type === MessageType.IMAGE_MSG
+              ? { url: storedPayload.text }
+              : {
+                  text: storedPayload.text,
+                  quotedMessageId: storedPayload.quotedMessageId,
+                  quotedSnippet: storedPayload.quotedSnippet,
+                },
+        };
+      }
+    }
+
     console.log(
       `Push notification for chat ${validatedMessage.chatId} is sent to ${user.uuid} ${JSON.stringify(
         chat.chatMemberships,
@@ -181,6 +269,7 @@ export const createMessage = trpcBaseProcedure
     // Create the message and its initial events within a transaction
     const createdMessage = await prisma.message.create({
       data: {
+        ...(clientMessageId === undefined ? {} : { uuid: clientMessageId }),
         type: validatedMessage.type,
         contentVersions: {
           create: [

@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import { notificationClickHandler } from '@/features/service-worker/push-notifications';
+import {
+  notificationClickHandler,
+  pushNotificationHandler,
+} from '@/features/service-worker/push-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 describe('notificationClickHandler', () => {
@@ -132,5 +135,144 @@ describe('notificationClickHandler', () => {
     expect(openWindowSpy).toHaveBeenCalledWith(
       expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
     );
+  });
+});
+
+/** Ports handed to mock clients, closed after each test so jest can exit cleanly. */
+const transferredPorts: MessagePort[] = [];
+
+/**
+ * A visible window client whose page answers the GET_CLIENT_URL round-trip
+ * with `liveUrl`. When `liveUrl` is undefined the page never answers and the
+ * service worker must fall back to the (stale) creation URL.
+ */
+const makeClient = (creationUrl: string, liveUrl?: string): WindowClient =>
+  ({
+    visibilityState: 'visible',
+    url: creationUrl,
+    postMessage: jest.fn((message: unknown, transfer?: readonly MessagePort[]) => {
+      const port = transfer?.[0];
+      if (port) transferredPorts.push(port);
+      const messageType = (message as { type?: string }).type;
+      if (messageType === ServiceWorkerMessages.GET_CLIENT_URL && liveUrl !== undefined) {
+        port?.postMessage({ url: liveUrl });
+      }
+    }),
+  }) as unknown as WindowClient;
+
+describe('pushNotificationHandler', () => {
+  const chatId = '550e8400-e29b-41d4-a716-446655440000';
+  const chatUrl = `https://konekta.ch/app/chat/${chatId}`;
+
+  let mockShowNotification: jest.Mock;
+  let mockMatchAll: jest.Mock;
+  let mockWaitUntil: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockShowNotification = jest.fn().mockResolvedValue(true);
+    mockMatchAll = jest.fn();
+    mockWaitUntil = jest.fn((promise: Promise<unknown>) => promise);
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true });
+  });
+
+  afterEach(() => {
+    for (const port of transferredPorts) port.close();
+    transferredPorts.length = 0;
+  });
+
+  const makeScope = (clients: WindowClient[]): ServiceWorkerGlobalScope =>
+    ({
+      location: { origin: 'https://konekta.ch' },
+      clients: { matchAll: mockMatchAll.mockResolvedValue(clients) },
+      registration: { showNotification: mockShowNotification },
+    }) as unknown as ServiceWorkerGlobalScope;
+
+  const dispatchPush = async (scope: ServiceWorkerGlobalScope): Promise<void> => {
+    const pushEvent = {
+      data: {
+        json: (): unknown => ({
+          title: 'Chat',
+          body: 'New message',
+          data: { url: chatUrl, notificationId: 'notif-1', ignoreIfUrlMatches: 'true' },
+        }),
+      },
+      waitUntil: mockWaitUntil,
+    } as unknown as PushEvent;
+
+    pushNotificationHandler(scope)(pushEvent);
+    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
+    await calls[0]?.[0];
+  };
+
+  it('shows the notification when the user is on the chat overview, even if the client creation URL is the target chat', async () => {
+    // Reproduces the stale WindowClient.url case: the document was loaded on the
+    // chat thread, but the user has since SPA-navigated to the overview.
+    const client = makeClient(chatUrl, 'https://konekta.ch/app/chat');
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).toHaveBeenCalledTimes(1);
+    // The open page is still informed so it can refresh the chat list.
+    expect(client.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'notification' }),
+    );
+  });
+
+  it('suppresses the notification when the user has the target chat open', async () => {
+    const client = makeClient('https://konekta.ch/app/chat', chatUrl);
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+    expect(client.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'notification' }),
+    );
+  });
+
+  it('suppresses the notification for a locale-prefixed variant of the target chat URL', async () => {
+    const client = makeClient(
+      'https://konekta.ch/app/chat',
+      `https://konekta.ch/de/app/chat/${chatId}`,
+    );
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+  });
+
+  it('suppresses the notification when the chat is open in the admin management view', async () => {
+    const client = makeClient(
+      'https://konekta.ch/admin/globals/alert-management',
+      `https://konekta.ch/admin/globals/alert-management?selectedChatId=${chatId}`,
+    );
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+    expect(client.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'notification' }),
+    );
+  });
+
+  it('shows the notification when the admin management view has a different chat selected', async () => {
+    const client = makeClient(
+      'https://konekta.ch/admin/globals/alert-management',
+      'https://konekta.ch/admin/globals/alert-management?selectedChatId=00000000-0000-0000-0000-000000000000',
+    );
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to the creation URL when the page does not answer the URL round-trip', async () => {
+    const client = makeClient(chatUrl);
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+  });
+
+  it('shows the notification without querying clients when the app is not focused', async () => {
+    const client = makeClient(chatUrl, chatUrl);
+    (client as unknown as { visibilityState: string }).visibilityState = 'hidden';
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).toHaveBeenCalledTimes(1);
   });
 });

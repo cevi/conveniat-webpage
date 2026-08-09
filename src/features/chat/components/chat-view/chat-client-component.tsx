@@ -26,12 +26,6 @@ const youMustBeOnline: StaticTranslationString = {
   fr: 'Vous devez être en ligne pour voir ce chat.',
 };
 
-const cannotSendOffline: StaticTranslationString = {
-  en: 'You are currently offline. Messages will be sent when you are back online.',
-  de: 'Du bist derzeit offline. Nachrichten werden gesendet, wenn du wieder online bist.',
-  fr: 'Vous êtes actuellement hors ligne. Les messages seront envoyés lorsque vous serez de nouveau en ligne.',
-};
-
 const errorLoadingChat: StaticTranslationString = {
   en: 'Error loading chat.',
   de: 'Fehler beim Laden des Chats.',
@@ -83,16 +77,6 @@ export const ChatErrorMessage: React.FC = () => {
   );
 };
 
-const OfflineBanner: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-
-  return (
-    <div className="bg-red-100 p-4 text-center text-red-800">
-      <span className="font-semibold">{cannotSendOffline[locale]}</span>
-    </div>
-  );
-};
-
 const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
   const {
@@ -119,7 +103,6 @@ const ChatClientContent: React.FC = () => {
     <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <AppFooterController hideAppFooter />
       <ChatHeader />
-      {isPaused && <OfflineBanner />}
       <div className="flex-1 overflow-hidden">
         <MessageList />
       </div>
