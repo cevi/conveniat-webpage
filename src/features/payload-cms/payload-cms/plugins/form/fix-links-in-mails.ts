@@ -3,6 +3,7 @@ import {
   type CustomAutoLinkNode,
   escapeHTML,
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
+import { phoneLinkHTMLConverters } from '@/features/payload-cms/payload-cms/utils/phone-link-html-converter';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { MINIO_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
@@ -331,6 +332,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       updatedHtml = `<div>${convertLexicalToHTML({
         converters: {
           ...defaultHTMLConverters,
+          ...phoneLinkHTMLConverters,
           autolink: (({
             node,
             nodesToHTML,

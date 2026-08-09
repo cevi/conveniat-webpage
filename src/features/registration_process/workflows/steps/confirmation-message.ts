@@ -13,6 +13,7 @@ import {
   escapeHTML,
   type CustomAutoLinkNode,
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
+import { phoneLinkHTMLConverters } from '@/features/payload-cms/payload-cms/utils/phone-link-html-converter';
 
 export const confirmationMessageStep: TaskConfig<{
   input: {
@@ -148,6 +149,7 @@ export const confirmationMessageStep: TaskConfig<{
       const htmlContent = convertLexicalToHTML({
         converters: {
           ...defaultHTMLConverters,
+          ...phoneLinkHTMLConverters,
           autolink: (({ node, nodesToHTML, converters, parent }) => {
             const childrenText = nodesToHTML({
               converters,
