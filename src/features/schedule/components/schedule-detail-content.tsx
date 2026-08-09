@@ -1,11 +1,7 @@
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import type {
-  CampMapAnnotation,
-  CampScheduleEntry,
-  User,
-} from '@/features/payload-cms/payload-types';
+import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import { ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
@@ -14,6 +10,7 @@ import {
   useCourseStatus,
 } from '@/features/schedule/context/schedule-status-context';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
+import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -116,7 +113,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   onEditDataChange,
   editError,
 }) => {
-  const location = entry.location as CampMapAnnotation;
+  const location = resolveLocation(entry.location);
   const organisers = (entry.organiser ?? []) as User[];
   const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
   const isOnline = useOnlineStatus();
@@ -209,25 +206,31 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
             </div>
           </div>
 
-          <div className="border-t border-gray-100" />
+          {location !== undefined && (
+            <>
+              <div className="border-t border-gray-100" />
 
-          {/* Location & Mini Map */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                <MapPin className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="font-body text-xs font-medium text-gray-400">
-                  {labels.location[locale]}
+              {/* Location & Mini Map */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-body text-xs font-medium text-gray-400">
+                      {labels.location[locale]}
+                    </div>
+                    <div className="font-heading text-sm font-bold text-gray-900">
+                      {location.title}
+                    </div>
+                  </div>
                 </div>
-                <div className="font-heading text-sm font-bold text-gray-900">{location.title}</div>
+                <div className="overflow-hidden rounded-xl border border-gray-100 shadow-2xs">
+                  <ScheduleMiniMap location={location} />
+                </div>
               </div>
-            </div>
-            <div className="overflow-hidden rounded-xl border border-gray-100 shadow-2xs">
-              <ScheduleMiniMap location={location} />
-            </div>
-          </div>
+            </>
+          )}
 
           {/* Target Group */}
           {(entry.target_group || isEditing) && (

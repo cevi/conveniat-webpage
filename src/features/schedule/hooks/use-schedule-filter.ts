@@ -3,6 +3,7 @@
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { FilterState } from '@/features/schedule/components/search-filter-bar';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { convertLexicalToPlaintext } from '@payloadcms/richtext-lexical/plaintext';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -32,8 +33,8 @@ export const useScheduleFilters = (
 
     for (const entry of entries) {
       // Extract location
-      const location = entry.location as CampMapAnnotation;
-      if (location.id !== '' && location.title !== '') {
+      const location = resolveLocation(entry.location);
+      if (location !== undefined && location.id !== '' && location.title !== '') {
         locationMap.set(location.id, location);
       }
 
@@ -78,10 +79,12 @@ export const useScheduleFilters = (
 
       // Location filter
       if (filters.selectedLocations.length > 0) {
-        const entryLocation = entry.location as CampMapAnnotation;
-        const locationMatch = filters.selectedLocations.some(
-          (selectedLocation) => selectedLocation.id === entryLocation.id,
-        );
+        const entryLocation = resolveLocation(entry.location);
+        const locationMatch =
+          entryLocation !== undefined &&
+          filters.selectedLocations.some(
+            (selectedLocation) => selectedLocation.id === entryLocation.id,
+          );
         if (!locationMatch) {
           return false;
         }

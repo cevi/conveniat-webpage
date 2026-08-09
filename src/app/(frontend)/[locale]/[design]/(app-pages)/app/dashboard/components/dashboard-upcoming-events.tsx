@@ -4,6 +4,7 @@ import { CallToAction } from '@/components/ui/buttons/call-to-action';
 import { Card } from '@/components/ui/card';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
+import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { useStar } from '@/hooks/use-star';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
@@ -40,7 +41,7 @@ const EventCard: React.FC<{
   entry: CampScheduleEntryFrontendType;
   locale: Locale;
 }> = ({ entry, locale }) => {
-  const location = entry.location;
+  const location = resolveLocation(entry.location);
   const { time } = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
 
   const categoryData = getCategoryDisplayData(entry.category);
@@ -77,7 +78,7 @@ const EventCard: React.FC<{
                 <Clock className="h-3.5 w-3.5" />
                 <span className="font-medium text-gray-700">{time}</span>
               </div>
-              {typeof location === 'object' && location.title !== '' && (
+              {location !== undefined && location.title !== '' && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5" />
                   <span className="font-medium">{location.title}</span>
