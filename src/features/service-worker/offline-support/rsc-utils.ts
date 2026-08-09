@@ -19,6 +19,60 @@ const RSC_SHELL_MAPPINGS: Record<string, string> = {
   '/app/announcement-preview': '/app/dashboard',
 };
 
+/**
+ * Placeholder chat id used to prefetch a generic shell for the `/app/chat/[chatId]` routes.
+ * Those routes are fully client rendered, so the server payload is identical for every chat.
+ */
+export const OFFLINE_CHAT_SHELL_ID = '00000000-0000-4000-8000-000000000000';
+
+const UUID_SEGMENT = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
+
+/**
+ * Routes whose rendered output does not depend on the dynamic segment because the page is
+ * fully client rendered and reads the id from the URL (see `ChatIdProvider`). A cached
+ * payload for one instance may therefore be replayed for any other instance of the pattern.
+ *
+ * `:uuid` only matches UUID shaped segments so that static siblings such as `/app/chat/new`
+ * are never mistaken for a chat id.
+ */
+const REPLAYABLE_ROUTE_PATTERNS = ['/app/chat/:uuid', '/app/chat/:uuid/details'] as const;
+
+function matchesRoutePattern(path: string, pattern: string): boolean {
+  const pathSegments = path.split('/');
+  const patternSegments = pattern.split('/');
+  if (pathSegments.length !== patternSegments.length) return false;
+
+  return patternSegments.every((patternSegment, index) => {
+    const pathSegment = pathSegments[index] ?? '';
+    if (patternSegment === ':uuid') return UUID_SEGMENT.test(pathSegment);
+    return patternSegment === pathSegment;
+  });
+}
+
+/**
+ * Finds the replayable route pattern a path belongs to, if any.
+ */
+export function findReplayableRoutePattern(path: string): string | undefined {
+  return REPLAYABLE_ROUTE_PATTERNS.find((pattern) => matchesRoutePattern(path, pattern));
+}
+
+/**
+ * Finds a cached entry for a *different* instance of the same replayable route pattern,
+ * e.g. `/app/chat/<a>/details` when `/app/chat/<b>/details` was requested.
+ */
+export function findReplayableSiblingKey(
+  keys: readonly Request[],
+  cleanPath: string,
+): Request | undefined {
+  const pattern = findReplayableRoutePattern(cleanPath);
+  if (pattern === undefined) return undefined;
+
+  return keys.find((request) => {
+    const keyPath = getCleanAppPath(new URL(request.url).pathname);
+    return keyPath !== cleanPath && matchesRoutePattern(keyPath, pattern);
+  });
+}
+
 export function getCleanAppPath(pathname: string): string {
   let clean = pathname;
   const appIndex = clean.indexOf('/app/');
@@ -97,7 +151,17 @@ export async function matchCachedRsc(originalUrl: string): Promise<Response | un
     if (pathnameMatch) return sanitizeRscResponse(pathnameMatch);
   }
 
-  // 5. Parent Route Shell Fallback (e.g. /app/schedule/123 -> /app/schedule)
+  // 5. Replayable Dynamic Route Shell (e.g. /app/chat/<a>/details -> /app/chat/<b>/details).
+  // Must run before the parent shell fallback, which would otherwise answer a chat details
+  // request with the chat overview payload and render the wrong page.
+  const siblingKey = findReplayableSiblingKey(keys, cleanPath);
+  if (siblingKey) {
+    console.log(`[SW] RSC Route Shell Hit for: ${originalUrl} -> ${siblingKey.url}`);
+    const siblingMatch = await rscCache.match(siblingKey, { ignoreVary: true });
+    if (siblingMatch) return sanitizeRscResponse(siblingMatch);
+  }
+
+  // 6. Parent Route Shell Fallback (e.g. /app/schedule/123 -> /app/schedule)
   const fallbackPrefix = Object.keys(RSC_SHELL_MAPPINGS).find(
     (prefix) => cleanPath === prefix || cleanPath.startsWith(prefix + '/'),
   );

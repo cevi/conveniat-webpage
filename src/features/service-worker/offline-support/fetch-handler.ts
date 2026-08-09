@@ -7,6 +7,7 @@ import {
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
+  findReplayableSiblingKey,
   getCleanAppPath,
   matchCachedRsc,
   sanitizeRscResponse,
@@ -82,7 +83,15 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     if (match) return match;
   }
 
-  // 4. CHAT FALLBACK
+  // 4. REPLAYABLE DYNAMIC ROUTE SHELL (e.g. /app/chat/<a>/details -> /app/chat/<b>/details).
+  // Runs before the chat fallback, which would otherwise serve the chat overview document.
+  const siblingKey = findReplayableSiblingKey(keys, cleanPath);
+  if (siblingKey) {
+    match = await pagesCache.match(siblingKey, { ignoreVary: true, ignoreSearch: true });
+    if (match) return match;
+  }
+
+  // 5. CHAT FALLBACK
   if (cleanPath.startsWith('/app/chat')) {
     const chatKey = keys.find(
       (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/chat',
@@ -93,7 +102,7 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 5. SCHEDULE FALLBACK
+  // 6. SCHEDULE FALLBACK
   if (cleanPath.startsWith('/app/schedule')) {
     const schedKey = keys.find(
       (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/schedule',
@@ -104,7 +113,7 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 6. HELPER PORTAL FALLBACK
+  // 7. HELPER PORTAL FALLBACK
   if (cleanPath.startsWith('/app/helper-portal')) {
     const helperKey = keys.find(
       (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/helper-portal',
@@ -115,7 +124,7 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 7. EMERGENCY FALLBACK
+  // 8. EMERGENCY FALLBACK
   if (cleanPath.startsWith('/app/emergency')) {
     const emergencyKey = keys.find(
       (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/emergency',
@@ -126,7 +135,7 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 8. MAP FALLBACK
+  // 9. MAP FALLBACK
   if (cleanPath.startsWith('/app/map')) {
     const mapKey = keys.find(
       (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/map',
@@ -137,7 +146,7 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 9. GENERAL DASHBOARD FALLBACK
+  // 10. GENERAL DASHBOARD FALLBACK
   if (cleanPath.startsWith('/app/')) {
     const dashKey = keys.find(
       (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/dashboard',
