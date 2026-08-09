@@ -33,6 +33,7 @@ const activeChatSubscribers = new Map<string, Set<(event: ChatRealtimeEvent) => 
 const activeReconnectListeners = new Set<() => void>();
 let globalEventSource: EventSource | undefined;
 let currentSubscribedIdsString = '';
+let hasConnectedBefore = false;
 
 const handleError = (): void => {
   const allSubscribedIds = [...activeChatSubscribers.keys()].map((id) => id.trim()).filter(Boolean);
@@ -75,13 +76,18 @@ function updateGlobalEventSource(currentUser: string): void {
 
   const handleOpen = (): void => {
     console.log(`[Chat][SSE] Stream connected (subscribed chats: ${allSubscribedIds.join(', ')})`);
-    for (const listener of activeReconnectListeners) {
-      try {
-        listener();
-      } catch (error) {
-        console.error('[Chat][SSE] Reconnect listener failed:', error);
+
+    if (hasConnectedBefore) {
+      for (const listener of activeReconnectListeners) {
+        try {
+          listener();
+        } catch (error) {
+          console.error('[Chat][SSE] Reconnect listener failed:', error);
+        }
       }
     }
+
+    hasConnectedBefore = true;
   };
 
   const handleMessage = (event: MessageEvent<string>): void => {
