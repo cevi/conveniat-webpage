@@ -3,13 +3,13 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
+import { ChatsOverviewSkeleton } from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import { useMobileMenuNavigation } from '@/hooks/use-mobile-menu-navigation';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -55,25 +55,6 @@ const clearSearchText: StaticTranslationString = {
   de: 'Suche löschen',
   en: 'Clear search',
   fr: 'Effacer la recherche',
-};
-
-const loadingPlaceholderText: StaticTranslationString = {
-  en: 'Loading your conversations...',
-  de: 'Lade deine Unterhaltungen...',
-  fr: 'Chargement de vos conversations...',
-};
-
-const ChatsOverviewLoadingPlaceholder: React.FC = () => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-
-  return (
-    <div className="flex items-center justify-center py-12">
-      <div className="flex flex-col items-center gap-3">
-        <div className="border-t-conveniat-green h-8 w-8 animate-spin rounded-full border-2 border-gray-300"></div>
-        <p className="font-body text-sm text-gray-600">{loadingPlaceholderText[locale]}</p>
-      </div>
-    </div>
-  );
 };
 
 const startConversationCTAText: StaticTranslationString = {
@@ -135,11 +116,19 @@ const EmptyChatsState: React.FC<{
   );
 };
 
+/**
+ * Chat overview list.
+ *
+ * The chats come from the persisted react-query cache, so the last known list
+ * is rendered immediately on navigation (and while offline) and is silently
+ * replaced once the background revalidation finishes. The skeleton is only
+ * shown while there is no cached list at all, i.e. on the very first visit or
+ * while the cache is still being restored from IndexedDB.
+ */
 export const ChatsOverviewClientComponent: React.FC<{
-  user: HitobitoNextAuthUser | undefined;
   qrCodeButton?: React.ReactNode;
 }> = ({ qrCodeButton }) => {
-  const { data: chats, isLoading } = useChats();
+  const { data: chats, isError } = useChats();
   const trpcUtils = trpc.useUtils();
   const { mobileMenuOpen } = useMobileMenuNavigation();
 
@@ -191,6 +180,11 @@ export const ChatsOverviewClientComponent: React.FC<{
       );
     }) ?? [];
 
+  // nothing cached yet (first ever visit / cache still being restored). A
+  // failed fetch without any cached chats falls through to the empty state
+  // instead of leaving the skeleton on screen forever.
+  const isInitialLoad = chats === undefined && !isError;
+
   const hasChats = (chats?.length ?? 0) > 0 || searchQuery !== '';
 
   return (
@@ -228,11 +222,11 @@ export const ChatsOverviewClientComponent: React.FC<{
         </>
       )}
 
-      {/* Loading State */}
-      {isLoading && <ChatsOverviewLoadingPlaceholder />}
+      {/* Loading State - only when there is nothing cached to render */}
+      {isInitialLoad && <ChatsOverviewSkeleton />}
 
       {/* Chat List */}
-      {!isLoading && (
+      {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
           {filteredChats.length > 0 ? (
             <div className="space-y-2">

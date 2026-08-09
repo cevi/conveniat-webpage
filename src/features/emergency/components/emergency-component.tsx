@@ -119,18 +119,23 @@ export const EmergencyComponent: React.FC = () => {
 
   const { status } = useSession();
 
-  // Fetch alert settings for offline caching and emergency number
+  // Fetch alert settings for offline caching and emergency number.
+  // `refetchOnMount` keeps the cached value on screen while it is revalidated
+  // in the background - without it the persisted cache was rendered instantly
+  // but never updated again as long as the browser tab stayed alive.
   const { data: alertSettings } = trpc.emergency.getAlertSettings.useQuery(undefined, {
     refetchInterval: isOnline ? 1000 * 60 * 60 * 2 : false, // 2 hours when online
-    refetchOnMount: false,
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60, // 1 minute
   });
 
   const { data: emergencyCards, isLoading } = trpc.emergency.getEmergencyCards.useQuery(undefined, {
-    refetchOnMount: false,
+    // instant render from the persisted cache, refreshed in the background
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes (allows instant rendering from offline cache)
+    refetchInterval: isOnline ? 1000 * 60 * 10 : false, // 10 minutes when online
+    staleTime: 1000 * 60, // 1 minute
   });
 
   const directAlertSettings = trpcUtils.emergency.getAlertSettings.getData();
