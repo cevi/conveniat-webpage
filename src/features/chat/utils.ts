@@ -1,5 +1,5 @@
 /**
- * Matches the canonical UUID form used for `Message.uuid`.
+ * Matches the canonical UUID form used for `Message.uuid` and `Chat.uuid`.
  */
 const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
@@ -42,9 +42,27 @@ export const generateMessageId = (): string => {
 };
 
 /**
+ * Generates the *permanent* id of a new chat.
+ *
+ * Same client-owned-identity contract as {@link generateMessageId}: the id is used for the
+ * optimistic chat in the overview, for the route the user is sent to right after pressing
+ * "create", for the offline outbox entry and for the row that ends up in the database. That
+ * is what lets a chat be opened (and written to) before — or without — the creation ever
+ * reaching the server, and what makes `chat.createChat` replayable.
+ */
+export const generateChatId = (): string => generateMessageId();
+
+/**
  * True when `id` is a client-generated id the server can adopt verbatim.
  */
-export const isServerCompatibleMessageId = (id: string): boolean => UUID_PATTERN.test(id);
+export const isServerCompatibleId = (id: string): boolean => UUID_PATTERN.test(id);
+
+/**
+ * Updater that empties a cached query entry: `utils.chat.x.setData(input, dropCachedEntry)`.
+ * Used to discard optimistic data for a chat that turned out never to exist under that id.
+ */
+// eslint-disable-next-line unicorn/no-useless-undefined
+export const dropCachedEntry = (): undefined => undefined;
 
 /**
  * Legacy ids looked like `optimistic-<ts>-<rand>` and could never be persisted, so the

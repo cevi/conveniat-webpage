@@ -1,6 +1,11 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
-import { mergeStoredMessage, mergeStoredMessageAcrossPages } from '@/features/chat/utils';
+import {
+  dropCachedEntry,
+  isServerCompatibleId,
+  mergeStoredMessage,
+  mergeStoredMessageAcrossPages,
+} from '@/features/chat/utils';
 import {
   getOfflineOutbox,
   removeMessageFromOutbox,
@@ -58,6 +63,12 @@ export const useOfflineQueueProcessor = (): void => {
               const createdChatId = await createChatMutateAsyncReference.current({
                 chatName: message.chatName,
                 members: message.memberIds.map((userId) => ({ userId })),
+                // Hand the queued id to the server so the chat is stored under the id the
+                // client already opened, and so a replay of this drain is recognised as
+                // one. Entries queued by older app versions carry an opaque
+                // `offline-chat-…` id the server cannot adopt - those still get a
+                // server-assigned id, which is swapped in below.
+                ...(isServerCompatibleId(message.id) ? { chatId: message.id } : {}),
               });
 
               if (!createdChatId)
@@ -85,11 +96,22 @@ export const useOfflineQueueProcessor = (): void => {
                 }
               }
 
-              // Swap optimistic ID in chats list
-              trpcUtils.chat.chats.setData({}, (oldChats) => {
-                if (!oldChats) return oldChats;
-                return oldChats.map((c) => (c.id === message.id ? { ...c, id: realChatId } : c));
-              });
+              if (realChatId !== message.id) {
+                // Swap optimistic ID in chats list
+                trpcUtils.chat.chats.setData({}, (oldChats) => {
+                  if (!oldChats) return oldChats;
+                  return oldChats.map((c) => (c.id === message.id ? { ...c, id: realChatId } : c));
+                });
+
+                // The caches seeded when the chat was created offline are keyed by the
+                // optimistic id and describe a chat that does not exist under that id -
+                // drop them so nothing renders a chat the server will never answer for.
+                trpcUtils.chat.chatDetails.setData({ chatId: message.id }, dropCachedEntry);
+                trpcUtils.chat.infiniteMessages.setInfiniteData(
+                  { chatId: message.id, limit: CHAT_PAGE_SIZE, parentId: undefined },
+                  dropCachedEntry,
+                );
+              }
 
               syncedCount++;
               console.log(`[Offline Sync] Sequenced chat created: ${message.id} -> ${realChatId}`);

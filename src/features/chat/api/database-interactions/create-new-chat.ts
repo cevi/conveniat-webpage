@@ -25,6 +25,13 @@ export interface CreateChatOptions {
   courseId?: string;
   chatType?: ChatType;
   /**
+   * Client-generated id to persist the chat under. Passing it lets the client
+   * open the new chat immediately (and offline) under an id that will not
+   * change once the creation reaches the server. Falls back to a server-side
+   * uuid when omitted.
+   */
+  uuid?: string;
+  /**
    * Defers a side effect until the surrounding database transaction has
    * committed (pass `ctx.afterTransactionCommit` from procedures using the
    * databaseTransactionWrapper). Runs effects immediately when omitted.
@@ -50,6 +57,7 @@ export const createNewChat = async (
 
   const chat = await prisma.chat.create({
     data: {
+      ...(options?.uuid === undefined ? {} : { uuid: options.uuid }),
       name: finalChatName,
       type: chatType,
       // eslint-disable-next-line unicorn/no-null
