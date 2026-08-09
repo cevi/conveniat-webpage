@@ -9,7 +9,7 @@ const handler = (request: Request): Promise<Response> =>
     router: appRouter,
     createContext: createTRPCContext,
     onError: ({ path, error, req }) => {
-      if (error.code === 'FORBIDDEN') {
+      if (error.code === 'UNAUTHORIZED') {
         const cookieHeader = req.headers.get('cookie');
         const hasAuthCookie =
           (cookieHeader?.includes('next-auth.session-token') ?? false) ||
@@ -19,7 +19,7 @@ const handler = (request: Request): Promise<Response> =>
 
         if (hasAuthCookie && error.message.includes('User not authenticated')) {
           console.warn(
-            `[TRPC] 403 Forbidden for path ${path}. Valid cookie present but session validation failed. (User: undefined)`,
+            `[TRPC] 401 Unauthorized for path ${path}. Valid cookie present but session validation failed. (User: undefined)`,
           );
           return;
         }

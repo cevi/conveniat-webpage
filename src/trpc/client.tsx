@@ -16,6 +16,17 @@ import { signOut } from 'next-auth/react';
 import React, { useState } from 'react';
 import superjson from 'superjson';
 
+/** `/entrypoint` is excluded from the i18n rewrites, so it never carries a locale prefix. */
+const ENTRYPOINT_PATH = '/entrypoint';
+
+/**
+ * Guards against running the sign out more than once: a batched request can
+ * produce several concurrent 401s, and `/entrypoint` itself talks to tRPC while
+ * syncing offline content - without this, an unauthenticated call from there
+ * would reload the page in a loop.
+ */
+let isHandlingUnauthenticated = false;
+
 /**
  * Custom fetch function that handles 401 Unauthorized responses.
  * When a 401 is received, it clears auth cookies via signOut and redirects to /entrypoint.
@@ -23,10 +34,16 @@ import superjson from 'superjson';
 const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
   const response = await fetch(input, init);
 
-  if (response.status === 401) {
+  if (response.status === 401 && !isHandlingUnauthenticated) {
+    isHandlingUnauthenticated = true;
     flushPersonalData();
     await signOut({ redirect: false });
-    globalThis.location.href = '/entrypoint';
+    if (globalThis.location.pathname === ENTRYPOINT_PATH) {
+      // already there - allow a later 401 to retry the cleanup
+      isHandlingUnauthenticated = false;
+    } else {
+      globalThis.location.href = ENTRYPOINT_PATH;
+    }
     // Return the response anyway to prevent further processing
     return response;
   }
