@@ -10,6 +10,7 @@ import { useCallback, useMemo, useState } from 'react';
 export const useScheduleFilters = (
   entries: CampScheduleEntryFrontendType[],
   starredIds: Set<string>,
+  allEntries: CampScheduleEntryFrontendType[] = entries,
 ): {
   filters: FilterState;
   filteredEntries: CampScheduleEntryFrontendType[];
@@ -26,12 +27,13 @@ export const useScheduleFilters = (
     starredOnly: false,
   });
 
-  // Extract unique locations and categories from entries
+  // Extract unique locations and categories from all entries (not just the selected day's),
+  // so the filter options stay stable on days whose entries carry no category or location
   const { availableLocations, availableCategories } = useMemo(() => {
     const locationMap = new Map<string, CampMapAnnotation>();
     const categoryMap = new Map<string, CampCategory>();
 
-    for (const entry of entries) {
+    for (const entry of allEntries) {
       // Extract location
       const location = resolveLocation(entry.location);
       if (location !== undefined && location.id !== '' && location.title !== '') {
@@ -48,7 +50,7 @@ export const useScheduleFilters = (
       availableLocations: [...locationMap.values()],
       availableCategories: [...categoryMap.values()],
     };
-  }, [entries]);
+  }, [allEntries]);
 
   // Filter entries based on current filters
   const filteredEntries = useMemo(() => {

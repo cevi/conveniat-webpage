@@ -18,9 +18,14 @@ const emptyFilters: FilterState = {
  *
  * Mirrors {@link useScheduleFilters} so the helper portal behaves like the camp schedule;
  * helper shifts cannot be starred, hence the starred filter is left untouched.
+ *
+ * The filter options are derived from `allShifts` (typically every shift across all days) so
+ * that the category list does not disappear on days whose shifts carry no category, while the
+ * filtering itself only applies to `shifts` (typically the shifts of the selected day).
  */
 export const useShiftFilters = (
   shifts: HelperShiftFrontendType[],
+  allShifts: HelperShiftFrontendType[] = shifts,
 ): {
   filters: FilterState;
   filteredShifts: HelperShiftFrontendType[];
@@ -31,7 +36,7 @@ export const useShiftFilters = (
 } => {
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
 
-  const availableCategories = useMemo(() => extractShiftCategories(shifts), [shifts]);
+  const availableCategories = useMemo(() => extractShiftCategories(allShifts), [allShifts]);
 
   const filteredShifts = useMemo(() => filterShifts(shifts, filters), [shifts, filters]);
 
