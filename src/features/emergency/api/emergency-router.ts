@@ -128,12 +128,16 @@ export const emergencyRouter = createTRPCRouter({
       });
 
       // Fetch currently active piket members for emergency
-      const activePiketMembers = await getActivePiketMembers(ChatType.EMERGENCY, baseTime).catch(
+      let activePiketMembers = await getActivePiketMembers(ChatType.EMERGENCY, baseTime).catch(
         (error: unknown) => {
           console.error('Failed to query active emergency piket members:', error);
           return [];
         },
       );
+
+      // Filter out the user creating the alert so they don't get auto-added system messages
+      // or push notifications for their own alert.
+      activePiketMembers = activePiketMembers.filter((member) => member.id !== user.uuid);
 
       // Ensure all active piket members exist in Postgres User table
       for (const member of activePiketMembers) {
@@ -273,12 +277,10 @@ export const emergencyRouter = createTRPCRouter({
                     user: { connect: { uuid: user.uuid } },
                     chatPermission: ChatMembershipPermission.MEMBER,
                   },
-                  ...activePiketMembers
-                    .filter((member) => member.id !== user.uuid)
-                    .map((member) => ({
-                      user: { connect: { uuid: member.id } },
-                      chatPermission: ChatMembershipPermission.MEMBER,
-                    })),
+                  ...activePiketMembers.map((member) => ({
+                    user: { connect: { uuid: member.id } },
+                    chatPermission: ChatMembershipPermission.MEMBER,
+                  })),
                 ],
               },
               capabilities: [ChatCapability.CAN_SEND_MESSAGES],
