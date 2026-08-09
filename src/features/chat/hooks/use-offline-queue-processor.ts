@@ -93,10 +93,15 @@ export const useOfflineQueueProcessor = (): void => {
               syncedCount++;
               console.log(`[Offline Sync] Sequenced chat created: ${message.id} -> ${realChatId}`);
             } else {
+              // Preserve the original composition time; fall back to now if the stored value is unparsable
+              const queuedAt = new Date(message.createdAt);
+              const timestamp = Number.isNaN(queuedAt.getTime()) ? new Date() : queuedAt;
+
               // Send message mutation sequentially to preserve order
               const createdMessageData = await mutateAsyncReference.current({
                 chatId: message.chatId,
                 content: message.content,
+                timestamp,
                 quotedMessageId: message.quotedMessageId,
                 parentId: message.parentId,
                 messageId: message.id,

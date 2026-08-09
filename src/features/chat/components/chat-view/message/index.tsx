@@ -461,6 +461,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 ? 'bg-cevi-blue rounded-br-[4px] text-white'
                 : 'rounded-bl-[4px] border border-gray-100 bg-white text-gray-800',
               message.status === MessageEventType.CREATED &&
+                !message.isPendingOffline &&
                 'bg-cevi-blue/80 animate-pulse text-white/90',
               (isLongPressing || isSelected) && 'scale-[0.98]',
               isSelected && 'ring-cevi-blue/30 ring-2',
