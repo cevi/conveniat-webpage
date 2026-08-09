@@ -836,6 +836,7 @@ export const scheduleRouter = createTRPCRouter({
       const chat = await createNewChat(input.chatName, locale, user, [], prisma, {
         courseId: input.courseId,
         chatType: ChatType.COURSE_GROUP,
+        afterCommit: ctx.afterTransactionCommit,
       });
 
       // Add other organizers as ADMIN

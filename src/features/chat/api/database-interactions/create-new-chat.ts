@@ -24,6 +24,12 @@ export interface ChatMembership {
 export interface CreateChatOptions {
   courseId?: string;
   chatType?: ChatType;
+  /**
+   * Defers a side effect until the surrounding database transaction has
+   * committed (pass `ctx.afterTransactionCommit` from procedures using the
+   * databaseTransactionWrapper). Runs effects immediately when omitted.
+   */
+  afterCommit?: (callback: () => void) => void;
 }
 
 export const createNewChat = async (
@@ -76,25 +82,31 @@ export const createNewChat = async (
     },
   });
 
-  // Publish the real-time new_chat event to all participants so their sidebars update instantly
-  import('@/lib/db/chat-pubsub')
-    .then(({ chatPubSub }) => {
-      const participantUuids = [user.uuid, ...members.map((m) => m.userId)];
-      for (const participantId of participantUuids) {
-        chatPubSub
-          .publish(participantId, {
-            type: 'new_chat',
-            chatId: chat.uuid,
-            senderId: user.uuid,
-          })
-          .catch((error: unknown) => {
-            console.error(`Failed to publish new_chat event to user ${participantId}:`, error);
-          });
-      }
-    })
-    .catch((error: unknown) => {
-      console.error('Failed to import chatPubSub for new_chat event:', error);
-    });
+  // Publish the real-time new_chat event to all participants so their sidebars
+  // update instantly. Deferred until after the surrounding transaction commits
+  // (when a scheduler is provided) so the refetch it triggers cannot read the
+  // pre-membership state.
+  const schedulePublish = options?.afterCommit ?? ((callback: () => void): void => callback());
+  schedulePublish(() => {
+    import('@/lib/db/chat-pubsub')
+      .then(({ chatPubSub }) => {
+        const participantUuids = [user.uuid, ...members.map((m) => m.userId)];
+        for (const participantId of participantUuids) {
+          chatPubSub
+            .publish(participantId, {
+              type: 'new_chat',
+              chatId: chat.uuid,
+              senderId: user.uuid,
+            })
+            .catch((error: unknown) => {
+              console.error(`Failed to publish new_chat event to user ${participantId}:`, error);
+            });
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to import chatPubSub for new_chat event:', error);
+      });
+  });
 
   return chat;
 };

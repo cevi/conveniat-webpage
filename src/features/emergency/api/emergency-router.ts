@@ -317,18 +317,23 @@ export const emergencyRouter = createTRPCRouter({
       // added (alerting user + auto-added piket members): their SSE connections
       // are not subscribed to the freshly created chat, so without this their
       // open chat overviews would only learn about the chat after a reload.
+      // Deferred until after the transaction commits so the refetch it triggers
+      // cannot read the pre-membership state.
+      const chatUuid = chat.uuid;
       const memberIdsToAnnounce = [user.uuid, ...activePiketMembers.map((member) => member.id)];
-      for (const memberId of memberIdsToAnnounce) {
-        chatPubSub
-          .publish(memberId, {
-            type: 'new_chat',
-            chatId: chat.uuid,
-            senderId: user.uuid,
-          })
-          .catch((error: unknown) => {
-            console.error('Failed to publish new_chat event for emergency chat:', error);
-          });
-      }
+      ctx.afterTransactionCommit(() => {
+        for (const memberId of memberIdsToAnnounce) {
+          chatPubSub
+            .publish(memberId, {
+              type: 'new_chat',
+              chatId: chatUuid,
+              senderId: user.uuid,
+            })
+            .catch((error: unknown) => {
+              console.error('Failed to publish new_chat event for emergency chat:', error);
+            });
+        }
+      });
 
       // Fetch the created messages from DB to get their real UUIDs and content payloads
       const createdMessages = await prisma.message.findMany({

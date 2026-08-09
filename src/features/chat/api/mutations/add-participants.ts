@@ -63,18 +63,22 @@ export const addParticipants = trpcBaseProcedure
 
       // Announce the chat on each added user's personal channel: their SSE
       // connections are not subscribed to this chat, so without this their open
-      // chat overviews would only show the chat after a reload.
-      for (const userId of newParticipantIds) {
-        chatPubSub
-          .publish(userId, {
-            type: 'new_chat',
-            chatId: chat.uuid,
-            senderId: user.uuid,
-          })
-          .catch((error: unknown) => {
-            console.error(`Failed to publish new_chat event to added participant:`, error);
-          });
-      }
+      // chat overviews would only show the chat after a reload. Deferred until
+      // after the transaction commits so the refetch it triggers cannot read
+      // the pre-membership state.
+      ctx.afterTransactionCommit(() => {
+        for (const userId of newParticipantIds) {
+          chatPubSub
+            .publish(userId, {
+              type: 'new_chat',
+              chatId: chat.uuid,
+              senderId: user.uuid,
+            })
+            .catch((error: unknown) => {
+              console.error(`Failed to publish new_chat event to added participant:`, error);
+            });
+        }
+      });
     }
 
     return { success: true };
