@@ -24,10 +24,13 @@ export const useChats = (): UseTRPCQueryResult<
   return trpc.chat.chats.useQuery(
     {},
     {
-      staleTime: 1000 * 60 * 5,
+      // short stale time + refetch on mount: navigating to the chat overview
+      // renders the persisted list right away and revalidates it in the
+      // background, so the list is never both cached and permanently outdated
+      staleTime: 1000 * 60,
       gcTime: 1000 * 60 * 60 * 24 * 7,
 
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnWindowFocus: false,
       placeholderData: (previousData) => previousData,
     },
@@ -54,10 +57,11 @@ export const useChatDetail = (
     { chatId },
     {
       enabled: chatId !== '',
-      staleTime: 1000 * 60 * 5,
+      // see `useChats`: render the cached chat instantly, refresh in background
+      staleTime: 1000 * 60,
       gcTime: 1000 * 60 * 60 * 24 * 7,
 
-      refetchOnMount: false,
+      refetchOnMount: true,
       refetchOnWindowFocus: false,
       refetchInterval: isOnline ? 300_000 : false,
       placeholderData: (previousData) => previousData,
