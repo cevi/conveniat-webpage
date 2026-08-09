@@ -113,14 +113,14 @@ export const useAdminChatManagement = ({
   }, [selectedChatId, hasUnread, markChatAsRead]);
 
   const sendMessageMutation = trpc.admin.postAdminMessage.useMutation({
-    async onMutate({ chatId, content, type }) {
+    async onMutate({ chatId, content, type, uuid }) {
       await utils.admin.getChatMessages.cancel({ chatId });
 
       const previousMessages = utils.admin.getChatMessages.getData({ chatId });
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: generateOptimisticId(),
+        id: uuid ?? generateOptimisticId(),
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
@@ -219,7 +219,7 @@ export const useAdminChatManagement = ({
   // Timestamp of the last message sent from THIS admin panel session. Used to
   // tell the admin's own sends (no tone) apart from messages the same user
   // account sent elsewhere, e.g. from the app on another device (tone).
-  const lastLocalSendReference = useRef(0);
+  const recentLocalMessageIdsReference = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const url = `/api/chat/sse?chatIds=all`;
@@ -251,9 +251,7 @@ export const useAdminChatManagement = ({
         // management view; a new message in the currently open chat plays a soft
         // tone (its push notification is suppressed because this chat is open).
         const isOwnRecentPanelSend =
-          chatEvent.senderId === currentUserIdReference.current &&
-          Date.now() - lastLocalSendReference.current < 5000;
-
+          chatEvent.message?.id && recentLocalMessageIdsReference.current.has(chatEvent.message.id);
         if (
           chatTypeReference.current === ChatType.EMERGENCY &&
           isEmergencyAlertCreationEvent(chatEvent)
@@ -304,8 +302,17 @@ export const useAdminChatManagement = ({
     },
     sendMessage: async (content: string, type?: MessageType): Promise<void> => {
       if (!selectedChatId) return;
-      lastLocalSendReference.current = Date.now();
-      await sendMessageMutation.mutateAsync({ chatId: selectedChatId, content, type });
+      const messageId = crypto.randomUUID();
+      if (recentLocalMessageIdsReference.current.size > 100) {
+        recentLocalMessageIdsReference.current.clear();
+      }
+      recentLocalMessageIdsReference.current.add(messageId);
+      await sendMessageMutation.mutateAsync({
+        chatId: selectedChatId,
+        content,
+        type,
+        uuid: messageId,
+      });
     },
     closeChat: async (): Promise<void> => {
       if (!selectedChatId) return;

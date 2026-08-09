@@ -513,6 +513,7 @@ export const adminRouter = createTRPCRouter({
         chatId: z.string().uuid(),
         content: z.string().min(1),
         type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
+        uuid: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -529,6 +530,7 @@ export const adminRouter = createTRPCRouter({
 
       const message = await prisma.message.create({
         data: {
+          ...(input.uuid ? { uuid: input.uuid } : {}),
           chatId: input.chatId,
           senderId: user.uuid,
           type: input.type,
