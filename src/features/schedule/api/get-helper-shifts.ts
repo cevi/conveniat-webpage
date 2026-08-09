@@ -1,3 +1,4 @@
+import type { CampCategory } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS } from '@/lib/feature-flags';
@@ -21,6 +22,8 @@ export interface HelperShiftFrontendType {
     time: string;
   };
   location?: unknown;
+  // relationships can be unpopulated (ID string) or dangling (null) at runtime
+  category?: string | CampCategory | null | undefined;
   participants_max?: number | undefined;
   enable_enrolment?: boolean | undefined;
   hide_participant_list?: boolean | undefined;
@@ -61,6 +64,7 @@ const getHelperShiftsCached = async (
         time: String(document_.timeslot.time),
       },
       location: document_.location,
+      category: document_.category,
       participants_max:
         typeof document_.participants_max === 'number' ? document_.participants_max : undefined,
       enable_enrolment:

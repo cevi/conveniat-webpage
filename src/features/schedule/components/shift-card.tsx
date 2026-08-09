@@ -2,7 +2,9 @@
 
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
+import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, ChevronUp, Clock, MapPin, Users } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -35,9 +37,25 @@ export const ShiftCard: React.FC<{
 }> = ({ shift, locale, children }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const { label: categoryLabel, className: categoryClassName } = getCategoryDisplayData(
+    shift.category,
+  );
+
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="mb-3">
+        {/* Category Tag */}
+        {categoryLabel && (
+          <span
+            className={cn(
+              'mb-2 inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
+              categoryClassName,
+            )}
+          >
+            {categoryLabel}
+          </span>
+        )}
+
         <h3 className="text-base font-semibold text-gray-900">{shift.title}</h3>
         {shift.description && <p className="mt-1 text-sm text-gray-500">{shift.description}</p>}
       </div>

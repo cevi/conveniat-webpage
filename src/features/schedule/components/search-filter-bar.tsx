@@ -46,8 +46,10 @@ export interface FilterState {
 interface SearchFilterBarProperties {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
-  availableLocations: CampMapAnnotation[];
+  availableLocations?: CampMapAnnotation[];
   availableCategories: CampCategory[];
+  /** Helper shifts cannot be starred, so consumers can hide the starred toggle. */
+  showStarredToggle?: boolean;
   className?: string;
 }
 
@@ -55,6 +57,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   filters,
   onFiltersChange,
   availableCategories,
+  showStarredToggle = true,
   className = '',
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -135,26 +138,28 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         </Button>
 
         {/* Starred Toggle */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onFiltersChange({ ...filters, starredOnly: !filters.starredOnly })}
-          className={cn(
-            'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
-            filters.starredOnly
-              ? 'border-transparent bg-gray-900 text-white shadow-xs'
-              : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
-          )}
-          aria-label={starredOnlyText[locale]}
-        >
-          <Star
+        {showStarredToggle && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onFiltersChange({ ...filters, starredOnly: !filters.starredOnly })}
             className={cn(
-              'h-4 w-4',
-              filters.starredOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-500',
+              'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
+              filters.starredOnly
+                ? 'border-transparent bg-gray-900 text-white shadow-xs'
+                : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
             )}
-          />
-          <span className="hidden sm:inline">{starredOnlyText[locale]}</span>
-        </Button>
+            aria-label={starredOnlyText[locale]}
+          >
+            <Star
+              className={cn(
+                'h-4 w-4',
+                filters.starredOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-500',
+              )}
+            />
+            <span className="hidden sm:inline">{starredOnlyText[locale]}</span>
+          </Button>
+        )}
       </div>
 
       {/* Category Filter Dropdown */}
