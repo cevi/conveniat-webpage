@@ -2,6 +2,7 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { mergeStoredMessage, mergeStoredMessageAcrossPages } from '@/features/chat/utils';
 import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
 import type { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
@@ -20,6 +21,12 @@ interface ChatRealtimeEvent {
     capabilities: string[];
   };
 }
+
+/**
+ * A cached message the client created itself and that the server has not confirmed yet.
+ */
+const isUnconfirmed = (message: ChatMessage): boolean =>
+  message.isPendingOffline === true || message.status === 'CREATED';
 
 // Global registry of all active chat subscribers on the client to enable multiplexing/deduplication
 const activeChatSubscribers = new Map<string, Set<(event: ChatRealtimeEvent) => void>>();
@@ -170,37 +177,32 @@ export const useChatSSE = (chatIds: string[]): void => {
           (old) => {
             if (!old) return old;
 
-            // Avoid duplicates
-            const allItems = old.pages.flatMap((page) => page.items);
-            if (allItems.some((item) => item.id === message.id)) {
-              return old;
-            }
+            const pages = old.pages.map((page) => page.items);
+            const existing = pages.flat().find((item) => item.id === message.id);
 
-            const hasOptimistic = allItems.some(
-              (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
-            );
+            // Our own sends carry a client-generated id that the server persists verbatim,
+            // so an id hit is either the optimistic bubble of this very message or a repeat
+            // of an event we already applied. Only the former needs upgrading — matching on
+            // the id alone (instead of on "any optimistic message of mine") is what keeps a
+            // batch of queued offline messages from all collapsing onto the first arrival.
+            if (existing) {
+              if (!isUnconfirmed(existing)) return old;
+
+              const merged = mergeStoredMessageAcrossPages(pages, message, message.id);
+              return {
+                ...old,
+                pages: old.pages.map((page, index) => ({
+                  ...page,
+                  items: merged[index] ?? page.items,
+                })),
+              };
+            }
 
             return {
               ...old,
-              pages: old.pages.map((page, index) => {
-                if (index === 0) {
-                  if (hasOptimistic) {
-                    return {
-                      ...page,
-                      items: page.items.map((item) =>
-                        item.id.startsWith('optimistic-') && item.senderId === currentUser
-                          ? message
-                          : item,
-                      ),
-                    };
-                  }
-                  return {
-                    ...page,
-                    items: [message, ...page.items],
-                  };
-                }
-                return page;
-              }),
+              pages: old.pages.map((page, index) =>
+                index === 0 ? { ...page, items: [message, ...page.items] } : page,
+              ),
             };
           },
         );
@@ -276,25 +278,18 @@ export const useChatSSE = (chatIds: string[]): void => {
           trpcUtils.chat.chatDetails.setData({ chatId: data.chatId }, (old) => {
             if (!old) return old;
 
-            if (old.messages.some((item) => item.id === message.id)) {
-              return old;
+            const existing = old.messages.find((item) => item.id === message.id);
+            if (existing) {
+              if (!isUnconfirmed(existing)) return old;
+              return {
+                ...old,
+                messages: mergeStoredMessage(old.messages, message, message.id),
+              };
             }
-
-            const hasOptimistic = old.messages.some(
-              (item) => item.id.startsWith('optimistic-') && item.senderId === currentUser,
-            );
-
-            const newMessages = hasOptimistic
-              ? old.messages.map((item) =>
-                  item.id.startsWith('optimistic-') && item.senderId === currentUser
-                    ? message
-                    : item,
-                )
-              : [...old.messages, message];
 
             return {
               ...old,
-              messages: newMessages,
+              messages: [...old.messages, message],
             };
           });
         }

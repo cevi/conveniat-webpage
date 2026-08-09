@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
+import { generateMessageId, mergeStoredMessage } from '@/features/chat/utils';
 import {
   playAlertRingTone,
   playMessageTone,
@@ -120,7 +120,7 @@ export const useAdminChatManagement = ({
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: uuid ?? generateOptimisticId(),
+        id: uuid ?? generateMessageId(),
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
@@ -153,33 +153,29 @@ export const useAdminChatManagement = ({
     onSuccess: (createdMessage, { chatId, content, type }, context) => {
       utils.admin.getChatMessages.setData({ chatId }, (old) => {
         if (!old) return old;
-        const alreadyHasStored = old.messages.some((m) => m.id === createdMessage.uuid);
+
+        const storedMessage = {
+          id: createdMessage.uuid,
+          createdAt: createdMessage.createdAt,
+          messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
+          senderId: createdMessage.senderId ?? 'current-admin-user',
+          senderName: locale === 'de' ? 'Du (Admin)' : 'You (Admin)',
+          type: type ?? MessageType.TEXT_MSG,
+          status: MessageEventType.STORED,
+          isAdminMessage: true,
+        };
+
+        // The panel now sends the message id along, so the optimistic entry already carries
+        // the stored id. Matching and de-duplicating in one pass keeps a plain "is the
+        // stored id present?" check from mistaking that entry for an already merged copy
+        // and dropping the admin's own message.
         return {
           ...old,
-          messages: old.messages
-            .map((m) => {
-              const isMatch = isOptimisticMessageMatch(
-                m.id,
-                (context as { optimisticMessageId?: string } | undefined)?.optimisticMessageId,
-              );
-              if (isMatch) {
-                return alreadyHasStored
-                  ? undefined
-                  : {
-                      id: createdMessage.uuid,
-                      createdAt: createdMessage.createdAt,
-                      messagePayload:
-                        type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
-                      senderId: createdMessage.senderId ?? 'current-admin-user',
-                      senderName: locale === 'de' ? 'Du (Admin)' : 'You (Admin)',
-                      type: type ?? MessageType.TEXT_MSG,
-                      status: MessageEventType.STORED,
-                      isAdminMessage: true,
-                    };
-              }
-              return m;
-            })
-            .filter((m): m is (typeof old.messages)[0] => m !== undefined),
+          messages: mergeStoredMessage(
+            old.messages,
+            storedMessage,
+            (context as { optimisticMessageId?: string } | undefined)?.optimisticMessageId,
+          ),
         };
       });
       void utils.admin.listSupportChats.invalidate();
@@ -302,7 +298,7 @@ export const useAdminChatManagement = ({
     },
     sendMessage: async (content: string, type?: MessageType): Promise<void> => {
       if (!selectedChatId) return;
-      const messageId = crypto.randomUUID();
+      const messageId = generateMessageId();
       if (recentLocalMessageIdsReference.current.size > 100) {
         recentLocalMessageIdsReference.current.clear();
       }

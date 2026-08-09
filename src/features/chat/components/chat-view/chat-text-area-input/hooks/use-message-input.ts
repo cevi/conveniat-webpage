@@ -1,6 +1,7 @@
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { generateMessageId } from '@/features/chat/utils';
 import { trpc } from '@/trpc/client';
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
@@ -83,6 +84,9 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
         timestamp: new Date(),
         parentId: activeThreadId ?? undefined,
         quotedMessageId: quotedMessageId ?? undefined,
+        // the client owns the message id so that a replay (offline outbox, lost
+        // response) is recognised by the server instead of stored a second time
+        messageId: generateMessageId(),
       },
       {
         onSuccess: () => {
