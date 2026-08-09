@@ -33,6 +33,18 @@ export const scheduleRouter = createTRPCRouter({
     return getScheduleEntries({}, locale);
   }),
 
+  /**
+   * Lightweight variant of `getScheduleEntries` used by the dashboard.
+   *
+   * Skips heavy fields (organiser, description, target_group) as the dashboard
+   * only renders title, time, location and category.
+   */
+  getScheduleEntriesForDashboard: publicProcedure.query(async ({ ctx }) => {
+    const { locale } = ctx;
+    const { getScheduleEntriesForDashboard } = await import('./get-schedule-entries');
+    return getScheduleEntriesForDashboard(locale);
+  }),
+
   getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const { locale } = ctx;
     const { getById } = await import('./get-by-id');
