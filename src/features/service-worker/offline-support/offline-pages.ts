@@ -10,6 +10,8 @@
  * Simply add page URLs to this array to make them work offline.
  *
  */
+import { OFFLINE_CHAT_SHELL_ID } from '@/features/service-worker/offline-support/rsc-utils';
+
 export const offlinePages = [
   // App entrypoint
   '/entrypoint',
@@ -24,6 +26,12 @@ export const offlinePages = [
 
   // Chat page
   '/app/chat',
+
+  // Generic shells for the client rendered chat routes. Both pages read the chat id from
+  // the URL, so these payloads are replayed for every chat that was never opened online
+  // (see findReplayableSiblingKey).
+  `/app/chat/${OFFLINE_CHAT_SHELL_ID}`,
+  `/app/chat/${OFFLINE_CHAT_SHELL_ID}/details`,
 
   // Schedule page with local DB offline support
   '/app/schedule',
