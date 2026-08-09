@@ -1,5 +1,6 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { mergeStoredMessage, mergeStoredMessageAcrossPages } from '@/features/chat/utils';
 import {
   getOfflineOutbox,
   removeMessageFromOutbox,
@@ -112,7 +113,9 @@ export const useOfflineQueueProcessor = (): void => {
                 throw new Error('Server returned empty message payload during offline sync');
               }
 
-              // 1. Swap optimistic ID with real database ID in infinite messages
+              // 1. Replace the queued message with the stored one in infinite messages.
+              // The ids normally match (the server persists the client-generated id), so
+              // this also collapses a copy the SSE stream may have raced in.
               trpcUtils.chat.infiniteMessages.setInfiniteData(
                 {
                   chatId: message.chatId,
@@ -121,19 +124,22 @@ export const useOfflineQueueProcessor = (): void => {
                 },
                 (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
                   if (!data) return data;
+                  const merged = mergeStoredMessageAcrossPages(
+                    data.pages.map((page) => page.items),
+                    realMessage,
+                    message.id,
+                  );
                   return {
                     ...data,
-                    pages: data.pages.map((page) => ({
+                    pages: data.pages.map((page, index) => ({
                       ...page,
-                      items: page.items.map((item) =>
-                        item.id === message.id ? realMessage : item,
-                      ),
+                      items: merged[index] ?? page.items,
                     })),
                   };
                 },
               );
 
-              // 2. Swap optimistic ID in chat details
+              // 2. Same for chat details
               if (!message.parentId) {
                 trpcUtils.chat.chatDetails.setData(
                   { chatId: message.chatId },
@@ -141,9 +147,7 @@ export const useOfflineQueueProcessor = (): void => {
                     if (!oldData) return oldData;
                     return {
                       ...oldData,
-                      messages: oldData.messages.map((item) =>
-                        item.id === message.id ? realMessage : item,
-                      ),
+                      messages: mergeStoredMessage(oldData.messages, realMessage, message.id),
                     };
                   },
                 );

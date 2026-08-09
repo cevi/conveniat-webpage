@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
+import { generateMessageId, isOptimisticMessageMatch } from '@/features/chat/utils';
 import { ChatStatus } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import type { ChatType } from '@/lib/prisma/client';
@@ -102,7 +102,7 @@ export const useAdminChatManagement = ({
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: generateOptimisticId(),
+        id: generateMessageId(),
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
