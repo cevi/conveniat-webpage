@@ -3,6 +3,7 @@ import {
   getAppLandingPageCached,
 } from '@/features/payload-cms/api/cached-globals';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
+import { z } from 'zod';
 
 /**
  * Router exposing the CMS-managed app content that the client renders directly.
@@ -20,26 +21,31 @@ export const appContentRouter = createTRPCRouter({
    * The welcome content blocks are intentionally not part of this payload:
    * they are rendered on the server since content blocks may require server
    * only data access.
+   *
+   * The locale is an explicit input (instead of being read from the cookie via
+   * the context) so that the persisted client cache is scoped per locale.
    */
-  getDashboardConfig: publicProcedure.query(async ({ ctx }) => {
-    const { locale } = ctx;
+  getDashboardConfig: publicProcedure
+    .input(z.object({ locale: z.enum(['en', 'de', 'fr']) }))
+    .query(async ({ input }) => {
+      const { locale } = input;
 
-    const [landingPage, featureFlags] = await Promise.all([
-      getAppLandingPageCached(locale),
-      getAppFeatureFlagsCached(),
-    ]);
+      const [landingPage, featureFlags] = await Promise.all([
+        getAppLandingPageCached(locale),
+        getAppFeatureFlagsCached(),
+      ]);
 
-    return {
-      title: landingPage.title,
-      showActionCards: landingPage.showActionCards ?? false,
-      // a flag that has never been set explicitly counts as enabled
-      featureFlags: {
-        helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,
-        imageUploadEnabled: featureFlags.imageUploadEnabled !== false,
-        photoContestEnabled: featureFlags.photoContestEnabled !== false,
-        reservationsEnabled: featureFlags.reservationsEnabled !== false,
-        forumEnabled: featureFlags.forumEnabled !== false,
-      },
-    };
-  }),
+      return {
+        title: landingPage.title,
+        showActionCards: landingPage.showActionCards ?? false,
+        // a flag that has never been set explicitly counts as enabled
+        featureFlags: {
+          helperShiftsEnabled: featureFlags.helperShiftsEnabled !== false,
+          imageUploadEnabled: featureFlags.imageUploadEnabled !== false,
+          photoContestEnabled: featureFlags.photoContestEnabled !== false,
+          reservationsEnabled: featureFlags.reservationsEnabled !== false,
+          forumEnabled: featureFlags.forumEnabled !== false,
+        },
+      };
+    }),
 });

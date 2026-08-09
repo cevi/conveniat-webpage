@@ -1,3 +1,4 @@
+import { DashboardContentErrorBoundary } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-content-error-boundary';
 import { DashboardLandingSection } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-landing-section';
 import { DashboardUpcomingEvents } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-upcoming-events';
 import { DashboardWelcomeContent } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-welcome-content';
@@ -38,8 +39,13 @@ const Dashboard: React.FC<{
             </SafeErrorBoundary>
           )}
 
-          {/* Landing page section: title, welcome content, action cards */}
-          <SafeErrorBoundary fallback={<></>}>
+          {/*
+            Both sections are fed by the same batched tRPC request, so a
+            failure without any cached content is shared and handled by a
+            single error boundary.
+          */}
+          <DashboardContentErrorBoundary>
+            {/* Landing page section: title, welcome content, action cards */}
             <DashboardLandingSection locale={locale}>
               {/* Welcome content blocks can only be rendered on the server */}
               <SafeErrorBoundary fallback={<></>}>
@@ -48,12 +54,10 @@ const Dashboard: React.FC<{
                 </Suspense>
               </SafeErrorBoundary>
             </DashboardLandingSection>
-          </SafeErrorBoundary>
 
-          {/* Upcoming Program Elements Section */}
-          <SafeErrorBoundary fallback={<></>}>
+            {/* Upcoming Program Elements Section */}
             <DashboardUpcomingEvents locale={locale} />
-          </SafeErrorBoundary>
+          </DashboardContentErrorBoundary>
         </article>
       </section>
     </>

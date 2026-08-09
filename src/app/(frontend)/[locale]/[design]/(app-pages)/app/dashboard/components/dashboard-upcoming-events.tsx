@@ -171,11 +171,14 @@ export const DashboardUpcomingEvents: React.FC<DashboardUpcomingEventsProperties
   const { starredEntries } = useStar();
 
   const { data: scheduleEvents } = trpc.schedule.getScheduleEntriesForDashboard.useQuery(
-    undefined,
+    { locale },
     {
       // keep the cached entries for a minute before revalidating in the background
       staleTime: 60 * 1000,
       refetchOnMount: true,
+      // a failed background revalidation must not throw away the cached entries,
+      // but without any entries there is nothing to show but the error
+      throwOnError: (_error, query) => query.state.data === undefined,
     },
   );
 

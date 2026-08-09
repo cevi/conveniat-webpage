@@ -38,12 +38,17 @@ export const scheduleRouter = createTRPCRouter({
    *
    * Skips heavy fields (organiser, description, target_group) as the dashboard
    * only renders title, time, location and category.
+   *
+   * The locale is an explicit input (instead of being read from the cookie via
+   * the context) so that the persisted client cache is scoped per locale.
    */
-  getScheduleEntriesForDashboard: publicProcedure.query(async ({ ctx }) => {
-    const { locale } = ctx;
-    const { getScheduleEntriesForDashboard } = await import('./get-schedule-entries');
-    return getScheduleEntriesForDashboard(locale);
-  }),
+  getScheduleEntriesForDashboard: publicProcedure
+    .input(z.object({ locale: z.enum(['en', 'de', 'fr']) }))
+    .query(async ({ input }) => {
+      const { locale } = input;
+      const { getScheduleEntriesForDashboard } = await import('./get-schedule-entries');
+      return getScheduleEntriesForDashboard(locale);
+    }),
 
   getById: publicProcedure.input(z.object({ id: z.string() })).query(async ({ input, ctx }) => {
     const { locale } = ctx;

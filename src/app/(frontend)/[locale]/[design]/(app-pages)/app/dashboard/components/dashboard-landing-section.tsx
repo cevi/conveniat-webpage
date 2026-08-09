@@ -28,11 +28,17 @@ export const DashboardLandingSection: React.FC<{
   locale: Locale;
   children?: React.ReactNode;
 }> = ({ locale, children }) => {
-  const { data: dashboardConfig } = trpc.appContent.getDashboardConfig.useQuery(undefined, {
-    // keep the cached content for a minute before revalidating in the background
-    staleTime: 60 * 1000,
-    refetchOnMount: true,
-  });
+  const { data: dashboardConfig } = trpc.appContent.getDashboardConfig.useQuery(
+    { locale },
+    {
+      // keep the cached content for a minute before revalidating in the background
+      staleTime: 60 * 1000,
+      refetchOnMount: true,
+      // a failed background revalidation must not throw away the cached content,
+      // but without any content there is nothing to show but the error
+      throwOnError: (_error, query) => query.state.data === undefined,
+    },
+  );
 
   if (dashboardConfig === undefined) {
     return (
