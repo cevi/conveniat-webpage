@@ -226,6 +226,19 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
               error,
             );
           });
+
+        // Notify the added piket member on their personal channel: their SSE
+        // connection is not subscribed to this chat yet, so their open chat
+        // overview would otherwise only show the chat after a reload.
+        chatPubSub
+          .publish(member.id, {
+            type: 'new_chat',
+            chatId: chat.uuid,
+            senderId: SYSTEM_SENDER_ID,
+          })
+          .catch((error: unknown) => {
+            console.error('Failed to publish new_chat event to synced piket member:', error);
+          });
       }
     }
   }

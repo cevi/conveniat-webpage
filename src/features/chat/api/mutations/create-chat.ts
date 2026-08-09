@@ -65,6 +65,8 @@ export const createChat = trpcBaseProcedure
       });
     }
 
-    const chat = await createNewChat(finalChatName, locale, user, members, prisma);
+    const chat = await createNewChat(finalChatName, locale, user, members, prisma, {
+      afterCommit: ctx.afterTransactionCommit,
+    });
     return chat.uuid; // Return the ID of the newly created chat
   });

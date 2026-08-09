@@ -1,5 +1,6 @@
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
+import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -58,6 +59,25 @@ export const addParticipants = trpcBaseProcedure
           chatPermission: ChatMembershipPermission.MEMBER,
         })),
         skipDuplicates: true,
+      });
+
+      // Announce the chat on each added user's personal channel: their SSE
+      // connections are not subscribed to this chat, so without this their open
+      // chat overviews would only show the chat after a reload. Deferred until
+      // after the transaction commits so the refetch it triggers cannot read
+      // the pre-membership state.
+      ctx.afterTransactionCommit(() => {
+        for (const userId of newParticipantIds) {
+          chatPubSub
+            .publish(userId, {
+              type: 'new_chat',
+              chatId: chat.uuid,
+              senderId: user.uuid,
+            })
+            .catch((error: unknown) => {
+              console.error(`Failed to publish new_chat event to added participant:`, error);
+            });
+        }
       });
     }
 
