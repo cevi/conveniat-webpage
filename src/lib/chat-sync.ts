@@ -176,13 +176,19 @@ export const syncAllOfflineData = async (
                 ...entry,
                 _syncedAt: Date.now(),
               } as unknown as import('@/lib/tanstack-db').ScheduleEntryRecord;
-              if (current === undefined) {
-                scheduleEntriesCollection.insert(recordToSave);
-              } else {
-                scheduleEntriesCollection.update(entry.id, (old) => ({
-                  ...old,
-                  ...recordToSave,
-                }));
+              try {
+                if (current === undefined) {
+                  scheduleEntriesCollection.insert(recordToSave);
+                } else {
+                  // The callback has to mutate the draft - TanStack DB tracks property
+                  // assignments and discards the returned value.
+                  scheduleEntriesCollection.update(entry.id, (old) => {
+                    Object.assign(old, recordToSave);
+                  });
+                }
+              } catch (error) {
+                // Skip the offending entry instead of aborting the rest of the schedule sync
+                console.warn(`[Offline Sync] Failed to store schedule entry "${entry.id}":`, error);
               }
             }
           }
