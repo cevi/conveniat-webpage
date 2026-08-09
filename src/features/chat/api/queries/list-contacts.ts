@@ -24,6 +24,8 @@ export const listContacts = trpcBaseProcedure
       where: {
         uuid: { not: user.uuid },
         hidden: false,
+        // blocked users cannot reply, so they are not offered as chat contacts
+        blocked: false,
       },
       select: {
         uuid: true,

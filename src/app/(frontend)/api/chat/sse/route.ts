@@ -1,6 +1,8 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { chatPubSub, type ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
+import { USER_BLOCKED_ERROR_MESSAGE } from '@/lib/user-blocking/constants';
+import { isUserBlocked } from '@/lib/user-blocking/is-user-blocked';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { type NextRequest } from 'next/server';
@@ -12,6 +14,11 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   if (typeof user?.uuid !== 'string' || user.uuid === '') {
     return new Response('Unauthorized', { status: 401 });
+  }
+
+  // Blocked users must not receive any realtime updates anymore.
+  if (await isUserBlocked(user.uuid)) {
+    return new Response(USER_BLOCKED_ERROR_MESSAGE, { status: 403 });
   }
 
   const { searchParams } = new URL(request.url);

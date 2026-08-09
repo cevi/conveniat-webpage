@@ -4,6 +4,8 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
 import { PushNotificationChannel } from '@/lib/prisma';
+import { USER_BLOCKED_ERROR_MESSAGE } from '@/lib/user-blocking/constants';
+import { isUserBlocked } from '@/lib/user-blocking/is-user-blocked';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
@@ -231,6 +233,11 @@ export async function sendNotificationToSubscription(
   const titleToSend = options?.title ?? 'conveniat27';
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
+
+  // Blocked users must not receive anything from the app anymore.
+  if (userId !== undefined && (await isUserBlocked(userId))) {
+    return { success: false, error: USER_BLOCKED_ERROR_MESSAGE };
+  }
 
   const isNative =
     'platform' in subscription &&

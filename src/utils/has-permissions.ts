@@ -67,6 +67,13 @@ export const hasPermissions = async (
     return false;
   }
 
+  // Blocked users are denied everything that is not public — imported lazily so
+  // that this module stays usable outside of a server (database) context.
+  const { isUserBlocked } = await import('@/lib/user-blocking/is-user-blocked');
+  if (await isUserBlocked(userPerm.user.uuid)) {
+    return false;
+  }
+
   const userGroupIds = userPerm.user.group_ids;
   const isLoggedInOk = await isPermissionLoggedInRequired(permission, userPerm);
   const isGroupOk = hasGroupPermissions(permission, userGroupIds);

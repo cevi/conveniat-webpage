@@ -16,6 +16,9 @@ model User {
   hidden        Boolean  @default(false)
   presentAtCamp Boolean  @default(false)
 
+  /// whether the user is blocked from using the app; mirrored from the Payload `users` collection
+  blocked Boolean @default(false)
+
   messages             Message[]
   chatMemberships      ChatMembership[]
   messagesEvents       MessageEvent[]
