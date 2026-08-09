@@ -41,13 +41,7 @@ const locationSchema = z.union([
   z
     .object({
       id: z.string(),
-      title: z.string(),
-      coordinates: z
-        .object({
-          latitude: z.number(),
-          longitude: z.number(),
-        })
-        .optional(),
+      title: z.string().optional(),
     })
     .passthrough(), // Allow additional properties from CampMapAnnotation
 ]);
