@@ -131,12 +131,27 @@ async function getLiveClientUrl(
  * Matches when the (locale-stripped) target pathname is contained in the client's
  * pathname, so sub-routes of a chat (details, threads) still count as open, while
  * the chat overview `/app/chat` does NOT match a chat thread `/app/chat/<id>`.
+ *
+ * The admin chat management views (e.g. `/admin/globals/alert-management`) show a
+ * chat via the `selectedChatId` query parameter instead of an `/app/chat/<id>`
+ * pathname, so a client with `?selectedChatId=<id>` also counts as having the
+ * chat `<id>` open.
  */
 function clientUrlMatchesTarget(clientUrlString: string, targetUrl: URL): boolean {
   const clientUrl = new URL(clientUrlString);
   const clientPathname = normalizePathname(clientUrl.pathname);
   const targetPathname = normalizePathname(targetUrl.pathname);
-  return clientPathname === targetPathname || clientPathname.includes(targetPathname);
+  if (clientPathname === targetPathname || clientPathname.includes(targetPathname)) {
+    return true;
+  }
+
+  const selectedChatId = clientUrl.searchParams.get('selectedChatId');
+  if (selectedChatId !== null && selectedChatId !== '') {
+    const targetChatId = /\/app\/chat\/([^/?]+)/.exec(targetPathname)?.[1];
+    return targetChatId === selectedChatId;
+  }
+
+  return false;
 }
 
 /**

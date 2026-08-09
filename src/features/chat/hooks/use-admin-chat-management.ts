@@ -1,13 +1,31 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { generateOptimisticId, isOptimisticMessageMatch } from '@/features/chat/utils';
-import { ChatStatus } from '@/lib/chat-shared';
+import {
+  playAlertRingTone,
+  playMessageTone,
+  unlockNotificationSounds,
+} from '@/features/chat/utils/notification-sounds';
+import { ChatStatus, SYSTEM_MSG_TYPE_EMERGENCY_ALERT, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
-import type { ChatType } from '@/lib/prisma/client';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useEffect, useRef } from 'react';
 import superjson from 'superjson';
+
+/**
+ * Whether a realtime event is the system message that marks the creation of a
+ * new emergency alert chat.
+ */
+const isEmergencyAlertCreationEvent = (chatEvent: ChatRealtimeEvent): boolean => {
+  if (chatEvent.type !== 'new_message') return false;
+  if (chatEvent.message?.type !== (MessageType.SYSTEM_MSG as string)) return false;
+  const payload = chatEvent.message.messagePayload;
+  if (typeof payload !== 'object' || payload === null) return false;
+  return (
+    (payload as Record<string, unknown>)['system_msg_type'] === SYSTEM_MSG_TYPE_EMERGENCY_ALERT
+  );
+};
 
 interface UseAdminChatManagementOptions {
   chatType: ChatType;
@@ -95,14 +113,14 @@ export const useAdminChatManagement = ({
   }, [selectedChatId, hasUnread, markChatAsRead]);
 
   const sendMessageMutation = trpc.admin.postAdminMessage.useMutation({
-    async onMutate({ chatId, content, type }) {
+    async onMutate({ chatId, content, type, uuid }) {
       await utils.admin.getChatMessages.cancel({ chatId });
 
       const previousMessages = utils.admin.getChatMessages.getData({ chatId });
       const currentUserId = previousMessages?.currentUserId ?? 'current-admin-user';
 
       const optimisticMessage = {
-        id: generateOptimisticId(),
+        id: uuid ?? generateOptimisticId(),
         createdAt: new Date(),
         messagePayload: type === MessageType.IMAGE_MSG ? { url: content } : { text: content },
         senderId: currentUserId,
@@ -182,6 +200,27 @@ export const useAdminChatManagement = ({
     selectedChatIdReference.current = selectedChatId;
   }, [selectedChatId]);
 
+  const currentUserIdReference = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (messagesData?.currentUserId !== undefined) {
+      currentUserIdReference.current = messagesData.currentUserId;
+    }
+  }, [messagesData?.currentUserId]);
+
+  // Audio can only start after a user gesture; unlock the AudioContext on the
+  // first interaction so alert/message tones can play later.
+  useEffect(() => unlockNotificationSounds(), []);
+
+  const chatTypeReference = useRef(chatType);
+  useEffect(() => {
+    chatTypeReference.current = chatType;
+  }, [chatType]);
+
+  // Timestamp of the last message sent from THIS admin panel session. Used to
+  // tell the admin's own sends (no tone) apart from messages the same user
+  // account sent elsewhere, e.g. from the app on another device (tone).
+  const recentLocalMessageIdsReference = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     const url = `/api/chat/sse?chatIds=all`;
     const eventSource = new EventSource(url);
@@ -206,6 +245,26 @@ export const useAdminChatManagement = ({
           chatEvent.type !== 'chat_read_by_admin'
         ) {
           void utils.admin.getChatMessages.invalidate({ chatId: currentSelectedChatId });
+        }
+
+        // Audible feedback: a new emergency alert rings loudly in the emergency
+        // management view; a new message in the currently open chat plays a soft
+        // tone (its push notification is suppressed because this chat is open).
+        const isOwnRecentPanelSend =
+          chatEvent.message?.id && recentLocalMessageIdsReference.current.has(chatEvent.message.id);
+        if (
+          chatTypeReference.current === ChatType.EMERGENCY &&
+          isEmergencyAlertCreationEvent(chatEvent)
+        ) {
+          playAlertRingTone();
+        } else if (
+          chatEvent.type === 'new_message' &&
+          chatEvent.chatId === currentSelectedChatId &&
+          !isOwnRecentPanelSend &&
+          chatEvent.senderId !== SYSTEM_SENDER_ID &&
+          document.visibilityState === 'visible'
+        ) {
+          playMessageTone();
         }
       } catch (error) {
         console.error('[Admin SSE] Failed to parse real-time event:', error);
@@ -243,7 +302,17 @@ export const useAdminChatManagement = ({
     },
     sendMessage: async (content: string, type?: MessageType): Promise<void> => {
       if (!selectedChatId) return;
-      await sendMessageMutation.mutateAsync({ chatId: selectedChatId, content, type });
+      const messageId = crypto.randomUUID();
+      if (recentLocalMessageIdsReference.current.size > 100) {
+        recentLocalMessageIdsReference.current.clear();
+      }
+      recentLocalMessageIdsReference.current.add(messageId);
+      await sendMessageMutation.mutateAsync({
+        chatId: selectedChatId,
+        content,
+        type,
+        uuid: messageId,
+      });
     },
     closeChat: async (): Promise<void> => {
       if (!selectedChatId) return;
