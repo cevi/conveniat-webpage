@@ -25,12 +25,15 @@ jest.mock('@/hooks/use-online-status', () => ({
 }));
 
 const mockRouterReplace = jest.fn();
-const mockPathname = { current: '/app/chat' };
 
 jest.mock('next/navigation', () => ({
   useRouter: (): { replace: jest.Mock } => ({ replace: mockRouterReplace }),
-  usePathname: (): string => mockPathname.current,
 }));
+
+/** The drain reads the live `location`, so tests drive the route through history. */
+const navigateTo = (path: string): void => {
+  globalThis.history.replaceState({}, '', path);
+};
 
 interface CachedQueries {
   chats: ChatWithMessagePreview[] | undefined;
@@ -132,7 +135,7 @@ describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
   });
 
   test('follows the existing chat when the server dedupes the one-to-one creation', async () => {
-    mockPathname.current = `/app/chat/${optimisticChatId}`;
+    navigateTo(`/app/chat/${optimisticChatId}`);
     const { cache, unmount } = renderProcessor('existing-chat-id', [
       chatListEntry(optimisticChatId, 'Anna Muster'),
       chatListEntry('existing-chat-id', 'Anna Muster'),
@@ -151,7 +154,7 @@ describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
   });
 
   test('leaves the user alone when they are not looking at the discarded chat', async () => {
-    mockPathname.current = '/app/chat';
+    navigateTo('/app/chat');
     const { cache, unmount } = renderProcessor('existing-chat-id', [
       chatListEntry(optimisticChatId, 'Anna Muster'),
     ]);
@@ -165,7 +168,7 @@ describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
   });
 
   test('keeps the opened chat when the server stored it under the queued id', async () => {
-    mockPathname.current = `/app/chat/${optimisticChatId}`;
+    navigateTo(`/app/chat/${optimisticChatId}`);
     const { cache, createChat, unmount } = renderProcessor(optimisticChatId, [
       chatListEntry(optimisticChatId, 'Anna Muster'),
     ]);
