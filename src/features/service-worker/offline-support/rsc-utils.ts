@@ -101,12 +101,41 @@ function getNormalizedRscUrl(url: string): string {
 
 /**
  * Ensures the response is clean for the client (removes Vary header).
+ *
+ * Two properties of this helper are load bearing and were each mistaken for a bug once, so
+ * they are written down here.
+ *
+ * 1. Rebuilding the response also hides redirects. A response built with `new Response(...)`
+ *    reports `redirected === false` and carries the pre-redirect request URL, whereas the
+ *    untouched network response reports `redirected === true` and the post-redirect URL
+ *    (measured in Chromium, not inferred). Passing the network response straight through
+ *    therefore looks like a harmless cleanup, but it is not: Next.js derives a route's
+ *    canonical URL as `urlAfterRedirects = response.redirected ? new URL(response.url) : url`
+ *    and then `createHrefFromUrl(urlAfterRedirects)`, which is `pathname + search + hash`
+ *    with no special casing for the internal `_rsc` marker (see
+ *    `next/dist/client/components/segment-cache/cache.ts` and
+ *    `.../router-reducer/create-href-from-url.js`). Our redirect chains end on a URL that
+ *    *does* carry `_rsc` — e.g. `/de/<page>?_rsc=X` → `/<page>` → `/<page>?_rsc=Y` → 200 —
+ *    so exposing the redirect would put `?_rsc=Y` into the router's canonical URL.
+ *
+ * 2. It deliberately does NOT synthesise `x-nextjs-rewritten-path` /
+ *    `x-nextjs-rewritten-query`. `matchCachedRsc` may answer with a payload rendered for a
+ *    *different* URL (parent shell, replayable sibling, clean-path match), so labelling it
+ *    with the current request's pathname/query would tell Next.js that stale offline data
+ *    matches the requested route state. Where those headers matter they are already stored
+ *    alongside the cached payload.
+ *
+ * Note that a response handed to the page by a service worker does *not* have an empty
+ * `Response.url`: the browser repopulates it with the request URL, for fully synthetic
+ * responses and Cache API replays alike. Next.js' `new URL(response.url)` fallback in
+ * `getRenderedSearch` is therefore safe here.
  */
 export function sanitizeRscResponse(response: Response): Response {
   // Optimization: If headers are already clean, don't clone
   if (!response.headers.has('Vary')) return response;
 
   const newHeaders = new Headers(response.headers);
+  // The Cache API is queried with `ignoreVary`, so Vary carries no meaning for the client.
   newHeaders.delete('Vary');
 
   return new Response(response.body, {

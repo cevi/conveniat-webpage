@@ -70,6 +70,20 @@ const nextConfig: NextConfig = {
     cacheHandlers: {
       default: require.resolve('./src/cache-handlers/default.cjs'),
     },
+
+    /**
+     * Redis backed route/response cache (`APP_PAGE`, `APP_ROUTE`, `FETCH`,
+     * `IMAGE` entries, i.e. the `x-nextjs-cache` header). Without it Next falls
+     * back to its per-process `FileSystemCache` and every replica renders and
+     * caches its own PPR fallback shell.
+     */
+    cacheHandler: require.resolve('./src/cache-handlers/incremental-cache.cjs'),
+
+    /**
+     * Required: otherwise each replica keeps its own in-memory LRU in front of
+     * the shared store and the replicas diverge again.
+     */
+    cacheMaxMemorySize: 0,
   }),
 
   // enable react compiler for better error messages and performance
