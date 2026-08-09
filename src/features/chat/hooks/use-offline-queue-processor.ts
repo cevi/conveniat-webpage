@@ -16,7 +16,7 @@ import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { InfiniteData } from '@tanstack/react-query';
 import type { inferProcedureOutput } from '@trpc/server';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMessages']>;
@@ -36,11 +36,9 @@ export const useOfflineQueueProcessor = (): void => {
   const createChatMutation = trpc.chat.createChat.useMutation({ networkMode: 'always' });
   const createChatMutateAsyncReference = useRef(createChatMutation.mutateAsync);
   const router = useRouter();
-  const pathname = usePathname();
-  // Read through refs: the drain lives in a long-running effect that must not be torn
-  // down and restarted every time the user navigates.
+  // Read through a ref: the drain lives in a long-running effect that must not be torn
+  // down and restarted whenever the router identity changes.
   const routerReference = useRef(router);
-  const pathnameReference = useRef(pathname);
 
   useEffect(() => {
     mutateAsyncReference.current = sendMessageMutation.mutateAsync;
@@ -52,8 +50,7 @@ export const useOfflineQueueProcessor = (): void => {
 
   useEffect(() => {
     routerReference.current = router;
-    pathnameReference.current = pathname;
-  }, [router, pathname]);
+  }, [router]);
 
   useEffect(() => {
     const processQueue = async (): Promise<void> => {
@@ -133,7 +130,13 @@ export const useOfflineQueueProcessor = (): void => {
                 // id, gets NOT_FOUND and shows the permanent error screen; follow the chat
                 // the creation actually resolved to instead. Mirrors the online path in
                 // `useCreateChat`.
-                if (pathnameReference.current.includes(message.id)) {
+                //
+                // Read from `location` rather than `usePathname()`: this hook sits in the
+                // app shell, and subscribing it to URL data marks every page that renders
+                // the shell as dynamic, which breaks prerendering under Cache Components.
+                // The drain only ever runs in the browser, where `location` is both
+                // available and always current.
+                if (globalThis.location.pathname.includes(message.id)) {
                   routerReference.current.replace(`/app/chat/${realChatId}`);
                 }
               }
