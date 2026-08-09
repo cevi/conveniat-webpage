@@ -1,6 +1,6 @@
 import {
   generateMessageId,
-  isServerCompatibleMessageId,
+  isServerCompatibleId,
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
 } from '@/features/chat/utils';
@@ -15,7 +15,7 @@ const message = (id: string, text = id): TestMessage => ({ id, text });
 describe('generateMessageId', () => {
   test('produces an id the server can adopt as the message UUID', () => {
     const id = generateMessageId();
-    expect(isServerCompatibleMessageId(id)).toBe(true);
+    expect(isServerCompatibleId(id)).toBe(true);
   });
 
   test('produces distinct ids', () => {
@@ -31,7 +31,7 @@ describe('generateMessageId', () => {
 
     try {
       const id = generateMessageId();
-      expect(isServerCompatibleMessageId(id)).toBe(true);
+      expect(isServerCompatibleId(id)).toBe(true);
       expect(id[14]).toBe('4');
       expect(['8', '9', 'a', 'b']).toContain(id[19]);
     } finally {
@@ -40,9 +40,9 @@ describe('generateMessageId', () => {
   });
 });
 
-describe('isServerCompatibleMessageId', () => {
+describe('isServerCompatibleId', () => {
   test('rejects legacy optimistic ids', () => {
-    expect(isServerCompatibleMessageId('optimistic-1234567890-abcdefg')).toBe(false);
+    expect(isServerCompatibleId('optimistic-1234567890-abcdefg')).toBe(false);
   });
 });
 

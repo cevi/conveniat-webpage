@@ -4,22 +4,19 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
-import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
-import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
+import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type React from 'react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const groupNamePlaceholder: StaticTranslationString = {
   de: 'Gruppennamen eingeben (erforderlich)',
@@ -107,102 +104,28 @@ export const CreateNewChatPage: React.FC = () => {
   const [groupChatName, setGroupChatName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const [groupChatNameError, setGroupChatNameError] = useState('');
 
-  const trpcUtils = trpc.useUtils();
+  const { createChat } = useCreateChat();
 
-  const { mutate } = trpc.chat.createChat.useMutation({
-    networkMode: 'always',
-    onMutate: (variables) => {
-      const optimisticId = `offline-chat-${crypto.randomUUID()}`;
+  const resetForm = useCallback((): void => {
+    setSelectedContacts([]);
+    setGroupChatName('');
+    setGroupChatNameError('');
+    setSearchQuery('');
+    setIsCreating(false);
+  }, []);
 
-      trpcUtils.chat.chats.setData({}, (oldChats) => {
-        if (!oldChats) return oldChats;
-        const newChatEntry: ChatWithMessagePreview = {
-          id: optimisticId,
-          name:
-            variables.chatName !== '' && variables.chatName !== undefined
-              ? variables.chatName
-              : 'New Chat',
-          description: undefined,
-          status: ChatStatus.OPEN,
-          chatType: variables.members.length > 1 ? ChatType.GROUP : ChatType.ONE_TO_ONE,
-          lastMessage: {
-            id: `msg-${crypto.randomUUID()}`,
-            senderId: SYSTEM_SENDER_ID,
-            messagePreview: {
-              de: 'Neuer Chat erstellt',
-              en: 'New Chat created',
-              fr: 'Nouveau chat créé',
-            },
-            createdAt: new Date(),
-            status: MessageEventType.STORED,
-          },
-          lastUpdate: new Date(),
-          unreadCount: 0,
-          messageCount: 0,
-          userChatPermission: ChatMembershipPermission.ADMIN,
-        };
-        return [newChatEntry, ...oldChats];
-      });
-
-      return { optimisticId };
-    },
-    onError: (error, variables, context) => {
-      const isOfflineError =
-        !navigator.onLine ||
-        error.message === 'Failed to fetch' ||
-        error.message.includes('Network request failed');
-
-      if (isOfflineError && context?.optimisticId) {
-        addMessageToOutbox({
-          type: 'CREATE_CHAT',
-          id: context.optimisticId,
-          chatName: variables.chatName,
-          memberIds: variables.members.map((m) => m.userId),
-          createdAt: new Date().toISOString(),
-        });
-        return;
-      }
-
-      console.error('Failed to create chat:', error);
-      // Revert optimistic update
-      trpcUtils.chat.chats.setData({}, (oldChats) => {
-        if (!oldChats) return oldChats;
-        return oldChats.filter((c) => c.id !== context?.optimisticId);
-      });
-    },
-    onSuccess: (createdChatId, _variables, context) => {
-      if (typeof createdChatId === 'string' && createdChatId.length > 0) {
-        // 1. Swap optimistic ID with real ID
-        trpcUtils.chat.chats.setData({}, (oldChats) => {
-          if (!oldChats) return oldChats;
-          if (oldChats.some((c) => c.id === createdChatId)) {
-            // Real ID already exists (e.g. refetch won a race), just remove optimistic
-            return oldChats.filter((c) => c.id !== context.optimisticId);
-          }
-
-          // Otherwise update the optimistic chat's ID
-          return oldChats.map((c) =>
-            c.id === context.optimisticId ? { ...c, id: createdChatId } : c,
-          );
-        });
-
-        // 2. Prefetch chat details and infinite messages for offline availability
-        void trpcUtils.chat.chatDetails.ensureData({ chatId: createdChatId }).catch(console.warn);
-        void trpcUtils.chat.infiniteMessages
-          .prefetchInfinite({
-            chatId: createdChatId,
-            limit: 50,
-            parentId: undefined,
-          })
-          .catch(console.warn);
-      }
-
-      // 3. Background refetch full chats overview while online
-      void trpcUtils.chat.chats.refetch().catch(console.warn);
-    },
-  });
+  // The draft belongs to *this* visit of /app/chat/new. Leaving the screen - by creating
+  // the chat, by going back or by any other navigation - discards it, so coming back here
+  // always starts from an empty selection instead of resurrecting the abandoned draft.
+  const isOnCreateChatRoute = /\/app\/chat\/new\/?$/.test(pathname);
+  useEffect(() => {
+    if (isOnCreateChatRoute) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    resetForm();
+  }, [isOnCreateChatRoute, resetForm]);
 
   const isGroupChat = selectedContacts.length > 1;
 
@@ -265,13 +188,16 @@ export const CreateNewChatPage: React.FC = () => {
           ? groupChatName.trim()
           : undefined;
 
-      mutate({ chatName, members: selectedContacts });
+      // The id is chosen client-side, so the chat can be opened straight away - the
+      // creation may still be in flight, or queued in the outbox while offline.
+      const chatId = createChat({ chatName, members: selectedContacts });
 
-      // Navigate back to chat list
-      router.push('/app/chat');
+      resetForm();
+      // `replace`, not `push`: going back from the new chat belongs to the overview, not
+      // to the form that created it.
+      router.replace(`/app/chat/${chatId}`);
     } catch (error) {
       console.error(error);
-    } finally {
       setIsCreating(false);
     }
   };
