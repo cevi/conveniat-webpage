@@ -30,6 +30,7 @@ const isUnconfirmed = (message: ChatMessage): boolean =>
 
 // Global registry of all active chat subscribers on the client to enable multiplexing/deduplication
 const activeChatSubscribers = new Map<string, Set<(event: ChatRealtimeEvent) => void>>();
+const activeReconnectListeners = new Set<() => void>();
 let globalEventSource: EventSource | undefined;
 let currentSubscribedIdsString = '';
 
@@ -74,6 +75,13 @@ function updateGlobalEventSource(currentUser: string): void {
 
   const handleOpen = (): void => {
     console.log(`[Chat][SSE] Stream connected (subscribed chats: ${allSubscribedIds.join(', ')})`);
+    for (const listener of activeReconnectListeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.error('[Chat][SSE] Reconnect listener failed:', error);
+      }
+    }
   };
 
   const handleMessage = (event: MessageEvent<string>): void => {
@@ -317,6 +325,15 @@ export const useChatSSE = (chatIds: string[]): void => {
       listeners.add(listener);
     }
 
+    const reconnectListener = (): void => {
+      trpcUtils.chat.chats.invalidate().catch(console.error);
+      for (const chatId of ids) {
+        trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
+        trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
+      }
+    };
+    activeReconnectListeners.add(reconnectListener);
+
     // Also register listener for currentUser to receive personal / direct notifications
     let userListeners = activeChatSubscribers.get(currentUser);
     if (!userListeners) {
@@ -348,6 +365,8 @@ export const useChatSSE = (chatIds: string[]): void => {
           activeChatSubscribers.delete(currentUser);
         }
       }
+
+      activeReconnectListeners.delete(reconnectListener);
 
       // Trigger update of global event source after unregistering
       updateGlobalEventSource(currentUser);
