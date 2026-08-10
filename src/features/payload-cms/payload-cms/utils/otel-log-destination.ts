@@ -1,5 +1,6 @@
 import type { LogAttributes } from '@opentelemetry/api-logs';
 import { logs, SeverityNumber } from '@opentelemetry/api-logs';
+import * as fs from 'node:fs';
 
 /**
  * Pino destination that tees every log line to stdout and into the OpenTelemetry
@@ -69,11 +70,36 @@ const toAttributes = (record: Record<string, unknown>): LogAttributes => {
   return attributes;
 };
 
-export const otelLogDestination = {
+/**
+ * Writes a line to the container's stdout.
+ *
+ * Deliberately `fs.writeSync(1, …)` rather than `process.stdout.write`: Next.js
+ * replaces `process.stdout` in the standalone server to power its own logging
+ * features, and writes made through it never reach the container log. The first
+ * version of this file used `process.stdout.write` and silently lost every
+ * Payload line from `docker service logs` while still delivering them to Loki.
+ * Writing to file descriptor 1 directly bypasses that interception.
+ */
+const writeToStdout = (line: string): void => {
+  try {
+    fs.writeSync(1, line);
+  } catch {
+    // EAGAIN on a non-blocking stdout, or a closed fd during shutdown. Losing a
+    // console line must never break the log record.
+  }
+};
+
+/**
+ * Exported for testing so the stdout side effect can be observed without
+ * mocking `node:fs`, which SWC's ESM interop makes unreliable.
+ */
+export const createOtelLogDestination = (
+  writeLine: (line: string) => void = writeToStdout,
+): { write: (line: string) => void } => ({
   write(line: string): void {
     // Always preserve stdout: `docker service logs` and dozzle depend on it, and
     // it must keep working even if the OTLP exporter is unreachable.
-    process.stdout.write(line);
+    writeLine(line);
 
     let record: Record<string, unknown>;
     try {
@@ -102,4 +128,7 @@ export const otelLogDestination = {
       // exporter throwing synchronously.
     }
   },
-};
+});
+
+/** The destination handed to Payload's logger config. */
+export const otelLogDestination = createOtelLogDestination();

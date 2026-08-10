@@ -1,11 +1,14 @@
-import { otelLogDestination } from '@/features/payload-cms/payload-cms/utils/otel-log-destination';
+import { createOtelLogDestination } from '@/features/payload-cms/payload-cms/utils/otel-log-destination';
 import type { LogAttributes, Logger, LogRecord } from '@opentelemetry/api-logs';
 import { logs, SeverityNumber } from '@opentelemetry/api-logs';
 
 describe('otelLogDestination', () => {
   let emitted: LogRecord[] = [];
   let emitThrows = false;
-  let stdoutSpy: jest.SpyInstance;
+  let written: string[] = [];
+  const otelLogDestination = createOtelLogDestination((line) => {
+    written.push(line);
+  });
 
   const testLogger: Logger = {
     emit: (record: LogRecord): void => {
@@ -18,7 +21,7 @@ describe('otelLogDestination', () => {
     emitted = [];
     emitThrows = false;
     jest.spyOn(logs, 'getLogger').mockReturnValue(testLogger);
-    stdoutSpy = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    written = [];
   });
 
   afterEach(() => {
@@ -31,10 +34,10 @@ describe('otelLogDestination', () => {
     return record;
   };
 
-  it('always writes the raw line to stdout', () => {
+  it('always writes the raw line to the console sink', () => {
     const line = `${JSON.stringify({ level: 30, time: 1, msg: 'hello' })}\n`;
     otelLogDestination.write(line);
-    expect(stdoutSpy).toHaveBeenCalledWith(line);
+    expect(written).toEqual([line]);
   });
 
   it('emits a log record with body, timestamp and severity', () => {
@@ -90,7 +93,7 @@ describe('otelLogDestination', () => {
 
   it('does not emit for non-JSON lines but still writes them', () => {
     otelLogDestination.write('plain text log line\n');
-    expect(stdoutSpy).toHaveBeenCalledWith('plain text log line\n');
+    expect(written).toEqual(['plain text log line\n']);
     expect(emitted).toHaveLength(0);
   });
 
