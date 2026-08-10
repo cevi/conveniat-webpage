@@ -7,6 +7,7 @@ import { HostMetrics } from '@opentelemetry/host-metrics';
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
 import type { SerializerPayload } from '@opentelemetry/instrumentation-mongoose';
 import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -172,9 +173,9 @@ const POSTHOG_KEY = process.env['NEXT_PUBLIC_POSTHOG_KEY'];
  * PostHog log forwarding is only wired up when an API key is actually present.
  *
  * Without the key the exporter would authenticate as `Bearer undefined`, and
- * every batch would be rejected, retried and logged. This was latent while
- * nothing in the application emitted log records; now that Payload's logs are
- * bridged in, the pipeline finally has input. The konekta deployment ships with
+ * every batch would be rejected, retried and logged. This was latent until now
+ * only because nothing in the application emitted log records; the pino bridge
+ * below means the pipeline finally has input. The konekta deployment ships with
  * an empty `NEXT_PUBLIC_POSTHOG_KEY`, so it would have hit exactly this.
  */
 const postHogLogExporter =
@@ -300,12 +301,13 @@ export const sdk = new NodeSDK({
       },
     }),
     new PrismaInstrumentation({ enabled: true }),
-    // NOTE: no PinoInstrumentation here. It patches the `pino` module via
-    // require-in-the-middle, which only sees packages resolved by Node's real
-    // `require`; Next.js bundles pino into the standalone output, so the patch
-    // never applies and no log record is produced. Payload's logs reach this
-    // pipeline through the destination stream in
-    // `@/features/payload-cms/payload-cms/utils/otel-log-destination` instead.
+    // Bridges Payload's pino logger into the OpenTelemetry log pipeline. Without
+    // this nothing in the application ever emits a LogRecord, so the OTLP log
+    // exporters above have no input and Loki stays empty.
+    //
+    // Also stamps trace_id/span_id onto every log line, which is what makes the
+    // trace <-> log links in Grafana work.
+    new PinoInstrumentation({ disableLogSending: false }),
   ],
 });
 
