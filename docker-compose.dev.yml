@@ -50,6 +50,22 @@ services:
     env_file:
       - .env
 
+    # OpenTelemetry wiring for the shared, multi-tenant observability stack.
+    # Declared here rather than in .env so the telemetry identity of this
+    # deployment is version-controlled. Any OTEL_* value present in .env wins,
+    # so drop the old per-stack endpoints from there.
+    environment:
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
+      # Selects the tenant in Loki and Tempo.
+      OTEL_TENANT_ID: conveniat27-dev
+      OTEL_SERVICE_NAME: conveniat27-app
+      OTEL_SERVICE_NAMESPACE: conveniat27
+      # Distinguishes this deployment from production, which reports the same
+      # service name into the same shared backend.
+      DEPLOYMENT_ENV: development
+      OTEL_TRACES_SAMPLER_ARG: '0.10'
+
     networks:
       - backend-net
       - observability-net
@@ -192,46 +208,10 @@ services:
     networks:
       - backend-net
 
-  prometheus:
-    image: prom/prometheus:v3.11.3
-    volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-dev/prometheus:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.enable-remote-write-receiver'
-      - '--enable-feature=exemplar-storage'
-      - '--enable-feature=native-histograms'
-    configs:
-      - source: prometheus-config
-        target: /etc/prometheus/prometheus.yml
-    networks:
-      - observability-net
-
-  tempo:
-    user: '0:0'
-    image: grafana/tempo:2.10.5
-    command: ['-config.file=/etc/tempo/tempo.yml']
-    volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-dev/tempo:/tmp/tempo
-    configs:
-      - source: tempo-config
-        target: /etc/tempo/tempo.yml
-    networks:
-      - observability-net
-      - backend-net
-
-  loki:
-    image: grafana/loki:3.7.2
-    volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-dev/loki:/loki
-    command:
-      - --config.file=/mnt/config/loki-config.yml
-    configs:
-      - source: loki-config
-        target: /mnt/config/loki-config.yml
-    networks:
-      - observability-net
+  # prometheus / tempo / loki removed — telemetry now goes to the shared,
+  # multi-tenant stack (cevi/cevi-tools-infrastructure, stacks/observability)
+  # under the `conveniat27-dev` tenant, reached over the external
+  # observability-net.
 
   redis:
     image: redis:alpine
@@ -246,18 +226,6 @@ configs:
   nginx-config:
     name: nginx_conveniat27_dev_v2
     external: true
-
-  loki-config:
-    name: loki_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/dist_storage_insane/config/conveniat27-dev/loki/loki-config.yml
-
-  tempo-config:
-    name: tempo_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/dist_storage_insane/config/conveniat27-dev/tempo/tempo.yml
-
-  prometheus-config:
-    name: prometheus_config_conveniat_dev-${STAMP:-0}
-    file: /cluster/dist_storage_insane/config/conveniat27-dev/prometheus/prometheus.yml
 
 networks:
   traefik-net-1400:
