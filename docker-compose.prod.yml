@@ -105,8 +105,9 @@ services:
 
     # OpenTelemetry wiring for the shared, multi-tenant observability stack.
     # Declared here rather than in .env so the telemetry identity of this
-    # deployment is version-controlled. Any OTEL_* value present in .env wins,
-    # so drop the old per-stack endpoints (and OTEL_SDK_DISABLED) from there.
+    # deployment is version-controlled. These override any OTEL_* left in .env
+    # (compose `environment:` beats `env_file:`), but OTEL_SDK_DISABLED must
+    # still be removed from .env or the SDK stays off entirely.
     environment:
       OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
