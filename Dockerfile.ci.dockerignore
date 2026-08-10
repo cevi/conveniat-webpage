@@ -1,0 +1,30 @@
+docker-compose.*
+Dockerfile*
+.git
+node_modules
+.pnpm-store
+.github
+worktrees
+worktrees/*
+
+# we don't want to include the .env file in the docker image
+# environment variables should be passed at runtime
+.env
+.env.example
+
+# Firebase credentials (mounted at runtime via docker-compose bind mount)
+firebase-service-account.json
+
+# directories used for generating build information
+!.git/HEAD
+!.git/refs/heads/*
+
+# Ignore everything in .next by default to avoid sending the massive webpack/turbopack cache to docker daemon
+.next/*
+
+# Allow specific .next folders needed for the standalone build
+!.next/standalone
+!.next/static
+!.next/cache
+.next/cache/*
+!.next/cache/fs-fallback
