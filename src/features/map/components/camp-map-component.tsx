@@ -33,15 +33,23 @@ const initialMapPoseObergoms: InitialMapPose = {
   zoom: environmentVariables.CAMP_MAP_INITIAL_ZOOM,
 };
 
-export const CampMapComponent: React.FC<{
-  locale: Promise<Locale>;
-}> = async ({ locale: localeAsPromise }) => {
+/**
+ * Cached body of the camp map.
+ *
+ * Takes the *resolved* locale rather than a Promise. A Promise is a new object identity on every
+ * render, so passing one as an argument to a `'use cache'` function makes the cache key
+ * non-deterministic: the entry written during the cache-warming pass is never found again during
+ * the final prerender pass, which surfaces as "Unexpected cache miss after cache warming phase
+ * during prerendering" and re-runs the whole (DB-heavy) render.
+ */
+const CampMapComponentCached: React.FC<{
+  locale: Locale;
+}> = async ({ locale }) => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'camp-map-annotations', 'camp-schedule-entry');
 
   const payload = await getPayload({ config });
-  const locale = await localeAsPromise;
 
   const annotations: PaginatedDocs<CampMapAnnotationPayloadDocumentType> = await payload.find({
     collection: 'camp-map-annotations',
@@ -149,4 +157,15 @@ export const CampMapComponent: React.FC<{
       <AppAdvertisement locale={locale} />
     </>
   );
+};
+
+/**
+ * Resolves the locale Promise outside of the cached scope, so the cached render below is keyed on
+ * a plain, deterministic string.
+ */
+export const CampMapComponent: React.FC<{
+  locale: Promise<Locale>;
+}> = async ({ locale: localeAsPromise }) => {
+  const locale = await localeAsPromise;
+  return <CampMapComponentCached locale={locale} />;
 };

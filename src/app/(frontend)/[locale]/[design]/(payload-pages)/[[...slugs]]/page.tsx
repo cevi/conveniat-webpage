@@ -12,7 +12,6 @@ import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import type { Metadata } from 'next';
 
 import { notFound, redirect, unstable_rethrow } from 'next/navigation';
-import { connection } from 'next/server';
 import type React from 'react';
 import { cache } from 'react';
 
@@ -148,10 +147,14 @@ export const generateMetadata = async ({
     }
   }
 
-  // During build, 'await connection()' signals that this function depends on
-  // request-time info (like headers), effectively opting out of static pre-rendering
-  // for this specific execution if it were truly dynamic.
-  await connection();
+  // During build, this opts out of static pre-rendering so the CMS lookup below is not
+  // attempted against an unavailable database.
+  //
+  // This MUST stay gated on the build phase. An unconditional `connection()` also runs during
+  // the runtime prerender, where it rejects as soon as the prerender completes ("During
+  // prerendering, `connection()` rejects when the prerender is complete"), throwing away the
+  // prerender pass for every request to this route.
+  await forceDynamicOnBuild();
   return await generateMetadataCached(locale as Locale, slugs, isPreview);
 };
 
