@@ -1,5 +1,4 @@
 /* eslint-disable n/no-process-env */
-import { otelLogDestination } from '@/features/payload-cms/payload-cms/utils/otel-log-destination';
 import os from 'node:os';
 
 export const nodeName = process.env['NODE_NAME'] || os.hostname();
@@ -40,12 +39,8 @@ export function formatRunningJobsLogMessage(message: string): string {
 
 /**
  * Custom logger configuration for Payload CMS to enrich job runner logs with angled bracket job/node details.
- *
- * The destination tees every line to stdout and into the OpenTelemetry log
- * pipeline, which is what puts Payload's logs into Loki with trace correlation.
  */
 export const customPayloadLoggerConfig = {
-  destination: otelLogDestination,
   options: {
     hooks: {
       logMethod(inputArguments: unknown[], method: (...args: unknown[]) => void): void {
