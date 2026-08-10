@@ -3,6 +3,14 @@ description: File a bug report.
 title: '[Bug]: '
 labels: ['bug']
 body:
+  - type: text
+    id: bug-platform
+    attributes:
+      label: Where did the bug occur? (Web, iOS, Android)
+      placeholder:
+      value:
+    validation:
+      required: true
   - type: textarea
     id: bug-report
     attributes:
