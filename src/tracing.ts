@@ -169,12 +169,28 @@ const POSTHOG_HOST = process.env['NEXT_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.i.po
 // eslint-disable-next-line n/no-process-env
 const POSTHOG_KEY = process.env['NEXT_PUBLIC_POSTHOG_KEY'];
 
-const postHogLogExporter = new OTLPLogExporter({
-  url: `${POSTHOG_HOST}/i/v1/logs`,
-  headers: {
-    Authorization: `Bearer ${POSTHOG_KEY}`,
-  },
-});
+/**
+ * PostHog log forwarding is only wired up when an API key is actually present.
+ *
+ * Without the key the exporter would authenticate as `Bearer undefined`, and
+ * every batch would be rejected, retried and logged. This was latent until now
+ * only because nothing in the application emitted log records; the pino bridge
+ * below means the pipeline finally has input. The konekta deployment ships with
+ * an empty `NEXT_PUBLIC_POSTHOG_KEY`, so it would have hit exactly this.
+ */
+const postHogLogExporter =
+  POSTHOG_KEY === undefined || POSTHOG_KEY === ''
+    ? undefined
+    : new OTLPLogExporter({
+        url: `${POSTHOG_HOST}/i/v1/logs`,
+        headers: {
+          Authorization: `Bearer ${POSTHOG_KEY}`,
+        },
+      });
+
+if (postHogLogExporter === undefined) {
+  console.info('NEXT_PUBLIC_POSTHOG_KEY is not set — PostHog log forwarding is disabled.');
+}
 
 /**
  * Telemetry identity of this deployment.
@@ -232,12 +248,16 @@ export const sdk = new NodeSDK({
       scheduledDelayMillis: 5000,
       maxExportBatchSize: 512,
     }),
-    new BatchLogRecordProcessor(postHogLogExporter, {
-      exportTimeoutMillis: 5000,
-      maxQueueSize: 2048,
-      scheduledDelayMillis: 5000,
-      maxExportBatchSize: 512,
-    }),
+    ...(postHogLogExporter === undefined
+      ? []
+      : [
+          new BatchLogRecordProcessor(postHogLogExporter, {
+            exportTimeoutMillis: 5000,
+            maxQueueSize: 2048,
+            scheduledDelayMillis: 5000,
+            maxExportBatchSize: 512,
+          }),
+        ]),
   ],
   resource: resourceFromAttributes({
     'service.namespace': SERVICE_NAMESPACE,
