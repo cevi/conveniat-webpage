@@ -1,4 +1,8 @@
-import { formatUserFullName, getContactShortName } from '@/utils/format-user-name';
+import {
+  formatUserFullName,
+  getContactDisplayName,
+  getContactShortName,
+} from '@/utils/format-user-name';
 
 describe('formatUserFullName', () => {
   it('returns full name when nickname is missing or empty', () => {
@@ -28,6 +32,46 @@ describe('formatUserFullName', () => {
   it('returns empty string if both full name and nickname are empty', () => {
     expect(formatUserFullName('', '')).toBe('');
     expect(formatUserFullName()).toBe('');
+  });
+});
+
+describe('getContactDisplayName', () => {
+  it('does not repeat the nickname when the name already contains it', () => {
+    expect(
+      getContactDisplayName({ name: 'Anja Lindenmann v/o Pfäffer', nickname: 'Pfäffer' }),
+    ).toBe('Anja Lindenmann v/o Pfäffer');
+    expect(
+      getContactDisplayName({ name: 'Anja Lindenmann v/o Pfäffer', nickname: 'v/o Pfäffer' }),
+    ).toBe('Anja Lindenmann v/o Pfäffer');
+    expect(
+      getContactDisplayName({ name: 'Anja Lindenmann V/O Pfäffer', nickname: 'Pfäffer' }),
+    ).toBe('Anja Lindenmann V/O Pfäffer');
+  });
+
+  it('appends the nickname when the name does not contain it', () => {
+    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: 'Pfäffer' })).toBe(
+      'Anja Lindenmann v/o Pfäffer',
+    );
+    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: 'v/o Pfäffer' })).toBe(
+      'Anja Lindenmann v/o Pfäffer',
+    );
+  });
+
+  it('does not confuse a different nickname with the one already in the name', () => {
+    expect(getContactDisplayName({ name: 'Anja Lindenmann v/o Fuchs', nickname: 'Pfäffer' })).toBe(
+      'Anja Lindenmann v/o Fuchs v/o Pfäffer',
+    );
+  });
+
+  it('returns the plain name when no nickname is set', () => {
+    expect(getContactDisplayName({ name: 'Anja Lindenmann' })).toBe('Anja Lindenmann');
+    // eslint-disable-next-line unicorn/no-null
+    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: null })).toBe(
+      'Anja Lindenmann',
+    );
+    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: '  ' })).toBe(
+      'Anja Lindenmann',
+    );
   });
 });
 
