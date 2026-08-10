@@ -52,13 +52,7 @@ const postHogRewrites = (): Rewrite[] => {
 const nextConfig: NextConfig = {
   output: 'standalone',
   skipTrailingSlashRedirect: true,
-  // `pino` must stay external so OpenTelemetry can instrument it. OTel patches
-  // modules through `require-in-the-middle`, which only sees packages resolved
-  // by Node's real `require` — anything webpack inlines into the server bundle
-  // is invisible to it. Bundled, `PinoInstrumentation` silently does nothing and
-  // no application log ever reaches Loki. (`mongodb` is externalised by Next.js
-  // already, which is why its instrumentation has always worked.)
-  serverExternalPackages: ['esbuild-wasm', 'pdfkit', 'pdfkit-table', 'pino'],
+  serverExternalPackages: ['esbuild-wasm', 'pdfkit', 'pdfkit-table'],
   productionBrowserSourceMaps: true,
   transpilePackages: ['@t3-oss/env-nextjs', '@t3-oss/env-core'],
   poweredByHeader: false,
