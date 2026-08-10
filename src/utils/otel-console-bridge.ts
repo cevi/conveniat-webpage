@@ -3,13 +3,13 @@ import { logs, SeverityNumber } from '@opentelemetry/api-logs';
 import { format } from 'node:util';
 
 /**
- * Mirrors `console.*` output into the OpenTelemetry log pipeline.
+ * Mirrors `console.error` and `console.warn` into the OpenTelemetry log pipeline.
  *
  * Payload's own logger reaches Loki through the pino destination in
- * `@/features/payload-cms/payload-cms/utils/otel-log-destination`, but the
- * application logs far more through plain `console.*` — roughly 585 call sites.
- * Rewriting those to a shared logger would be a large, risky change; patching
- * the console once captures all of them and any added later.
+ * `@/features/payload-cms/payload-cms/utils/otel-log-destination`. The
+ * application also logs through plain `console.*` at roughly 585 call sites, but
+ * only the failure levels are worth storing — see the note on
+ * `DEFAULT_CAPTURED_METHODS` for the measurement behind that decision.
  *
  * The original console method is always called first, so stdout behaviour is
  * unchanged and a broken exporter can never cost us console output.
@@ -26,7 +26,36 @@ const SEVERITY_BY_METHOD: Record<ConsoleMethod, { number: SeverityNumber; text: 
   trace: { number: SeverityNumber.TRACE, text: 'TRACE' },
 };
 
-const METHODS = Object.keys(SEVERITY_BY_METHOD) as ConsoleMethod[];
+/**
+ * Which console methods are mirrored. Deliberately errors and warnings only.
+ *
+ * Capturing everything was measured on conveniat-dev and is a bad trade: 63
+ * console lines in 10 minutes on an essentially idle instance, of which 62 were
+ * the single debug line `Generate metadata for page with slug: /`. That ratio
+ * gets worse under load, because the noisiest call sites fire per page render
+ * and per cache write. Shipping it would spend the tenant's Loki ingestion
+ * budget on ~98% noise and bury the errors worth finding.
+ *
+ * `console.log`/`info`/`debug`/`trace` therefore stay console-only. Anything
+ * that genuinely belongs in Loki should go through Payload's logger, which is
+ * already bridged and carries levels.
+ *
+ * Override with `OTEL_CONSOLE_CAPTURE_LEVELS` (comma-separated) when debugging.
+ */
+const DEFAULT_CAPTURED_METHODS: ConsoleMethod[] = ['error', 'warn'];
+
+const capturedMethods = (): ConsoleMethod[] => {
+  // eslint-disable-next-line n/no-process-env
+  const configured = process.env['OTEL_CONSOLE_CAPTURE_LEVELS'];
+  if (configured === undefined || configured.trim() === '') return DEFAULT_CAPTURED_METHODS;
+
+  const requested = configured
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry): entry is ConsoleMethod => entry in SEVERITY_BY_METHOD);
+
+  return requested.length > 0 ? requested : DEFAULT_CAPTURED_METHODS;
+};
 
 /**
  * Guards against infinite recursion.
@@ -72,7 +101,7 @@ export const installConsoleOtelBridge = (target: Console = console): void => {
   if (installed) return;
   installed = true;
 
-  for (const method of METHODS) {
+  for (const method of capturedMethods()) {
     const original = target[method].bind(target) as (...parameters: unknown[]) => void;
 
     target[method] = (...parameters: unknown[]): void => {

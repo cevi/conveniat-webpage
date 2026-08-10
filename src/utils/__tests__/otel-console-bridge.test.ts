@@ -52,18 +52,28 @@ describe('otel console bridge', () => {
     const fake = makeConsole();
     installConsoleOtelBridge(fake);
 
-    fake.log('hello', 42);
+    fake.error('hello', 42);
 
-    expect(printed).toEqual([['log', 'hello', 42]]);
+    expect(printed).toEqual([['error', 'hello', 42]]);
   });
+
+  it.each(['log', 'info', 'debug', 'trace'])(
+    'does not ship console.%s to Loki — it is noise, not signal',
+    (method) => {
+      const fake = makeConsole();
+      installConsoleOtelBridge(fake);
+
+      (fake[method as 'log'] as (...a: unknown[]) => void)('Generate metadata for page');
+
+      // Still printed to stdout, just not stored.
+      expect(printed).toHaveLength(1);
+      expect(emitted).toHaveLength(0);
+    },
+  );
 
   it.each([
     ['error', SeverityNumber.ERROR, 'ERROR'],
     ['warn', SeverityNumber.WARN, 'WARN'],
-    ['info', SeverityNumber.INFO, 'INFO'],
-    ['log', SeverityNumber.INFO, 'INFO'],
-    ['debug', SeverityNumber.DEBUG, 'DEBUG'],
-    ['trace', SeverityNumber.TRACE, 'TRACE'],
   ])('maps console.%s to the matching severity', (method, number, text) => {
     const fake = makeConsole();
     installConsoleOtelBridge(fake);
@@ -79,8 +89,8 @@ describe('otel console bridge', () => {
     const fake = makeConsole();
     installConsoleOtelBridge(fake);
 
-    fake.log('count is %d for %s', 7, 'redis');
-    fake.log({ a: 1 });
+    fake.error('count is %d for %s', 7, 'redis');
+    fake.error({ a: 1 });
 
     expect(emitted[0]?.body).toBe('count is 7 for redis');
     expect(emitted[1]?.body).toContain('a: 1');
@@ -108,7 +118,7 @@ describe('otel console bridge', () => {
       fake.error('exporter failed');
     };
 
-    expect(() => fake.log('trigger')).not.toThrow();
+    expect(() => fake.error('trigger')).not.toThrow();
     expect(emitted).toHaveLength(1);
   });
 
@@ -123,12 +133,47 @@ describe('otel console bridge', () => {
     expect(printed).toEqual([['error', 'boom']]);
   });
 
+  it('can be widened with OTEL_CONSOLE_CAPTURE_LEVELS for debugging', () => {
+    // eslint-disable-next-line n/no-process-env
+    process.env['OTEL_CONSOLE_CAPTURE_LEVELS'] = 'error,warn,info';
+    try {
+      const fake = makeConsole();
+      installConsoleOtelBridge(fake);
+
+      fake.info('now captured');
+
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]?.severityText).toBe('INFO');
+    } finally {
+      // eslint-disable-next-line n/no-process-env
+      delete process.env['OTEL_CONSOLE_CAPTURE_LEVELS'];
+    }
+  });
+
+  it('ignores unrecognised levels and keeps the safe default', () => {
+    // eslint-disable-next-line n/no-process-env
+    process.env['OTEL_CONSOLE_CAPTURE_LEVELS'] = 'nonsense';
+    try {
+      const fake = makeConsole();
+      installConsoleOtelBridge(fake);
+
+      fake.log('still noise');
+      fake.error('still signal');
+
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]?.severityText).toBe('ERROR');
+    } finally {
+      // eslint-disable-next-line n/no-process-env
+      delete process.env['OTEL_CONSOLE_CAPTURE_LEVELS'];
+    }
+  });
+
   it('is idempotent so a second install cannot double-emit', () => {
     const fake = makeConsole();
     installConsoleOtelBridge(fake);
     installConsoleOtelBridge(fake);
 
-    fake.log('once');
+    fake.error('once');
 
     expect(emitted).toHaveLength(1);
     expect(printed).toHaveLength(1);
