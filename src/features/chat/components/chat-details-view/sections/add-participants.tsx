@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { getContactShortName } from '@/utils/format-user-name';
+import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { Check, Loader2, Search, UserPlus, X } from 'lucide-react';
 import type React from 'react';
 
@@ -140,7 +140,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                     </div>
                     <div className="flex flex-col">
                       <span className="font-body text-sm font-medium text-gray-900">
-                        {contact.name}
+                        {getContactDisplayName(contact)}
                       </span>
                       {contact.description && (
                         <span className="font-body text-xs text-gray-500">

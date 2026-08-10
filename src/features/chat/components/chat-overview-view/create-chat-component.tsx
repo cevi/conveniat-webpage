@@ -8,7 +8,7 @@ import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { getContactShortName } from '@/utils/format-user-name';
+import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Users, X } from 'lucide-react';
@@ -406,9 +406,7 @@ export const CreateNewChatPage: React.FC = () => {
                       </div>
                       <div className="flex-1">
                         <p className="font-body text-sm font-medium text-gray-900">
-                          {contact.nickname !== undefined && contact.nickname.trim().length > 0
-                            ? `${contact.name} v/o ${contact.nickname}`
-                            : contact.name}
+                          {getContactDisplayName(contact)}
                         </p>
                         {contact.description && (
                           <p className="font-body text-xs text-gray-500">{contact.description}</p>
