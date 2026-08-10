@@ -13,6 +13,59 @@ jobs:
       - name: 🛎️ Checkout
         uses: actions/checkout@v6
 
+      - name: 🛠️ Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+
+      - name: 📦 Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: 💾 Get pnpm store directory
+        id: pnpm-cache
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: ♻️ Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: ⚡ Setup Next.js cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
+
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🏗️ Build Next.js app
+        run: |
+          if [ "${NEXT_PUBLIC_APP_HOST_URL}" != "https://conveniat27.ch" ]; then
+            cp public/dev-icons/* public/
+          fi
+          sh create_build_info.sh
+          npx prisma generate --no-hints
+          pnpm run build
+          mkdir -p .next/standalone/node_modules/@img && cp -r node_modules/@img/* .next/standalone/node_modules/@img/ 2>/dev/null || true
+          mkdir -p .next/standalone/node_modules/.pnpm && cp -r node_modules/.pnpm/* .next/standalone/node_modules/.pnpm/ 2>/dev/null || true
+          mkdir -p .next/cache/fs-fallback
+        env:
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: BGXpnSSQfJS84zCk6qka6-3qC_bTK6feOUaLz6ZJY6ThmdcY-h20V0QB8P8nq84Pb6vpbZLvYwISwlSmH9aZwjU
+          NEXT_PUBLIC_APP_HOST_URL: https://conveniat27.ch
+          NEXT_PUBLIC_POSTHOG_KEY: phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
+          NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          PRISMA_OUTPUT: 'src/lib/prisma/client/'
+
       - name: 🔐 Login to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -27,15 +80,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile.ci
           push: true
           tags: registry.cevi.tools/cevi/conveniat27-webpage:latest
-          build-args: |
-            NEXT_PUBLIC_VAPID_PUBLIC_KEY=BGXpnSSQfJS84zCk6qka6-3qC_bTK6feOUaLz6ZJY6ThmdcY-h20V0QB8P8nq84Pb6vpbZLvYwISwlSmH9aZwjU
-            NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
-            NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
-            NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
-            POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
-            POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
           cache-from: type=gha
           cache-to: type=gha
