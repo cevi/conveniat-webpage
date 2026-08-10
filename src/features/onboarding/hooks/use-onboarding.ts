@@ -127,9 +127,17 @@ export const useOnboarding = (): UseOnboardingReturn => {
     hasNativePushSubscription,
   ]);
 
-  // Clear skip auth cookie if signalled by query param
+  // Keep track of whether we initially booted in app-mode
+  const isAppModeInitial = useRef(
+    searchParameters.get('app-mode') === 'true' ||
+      searchParameters.get(DesignModeTriggers.QUERY_PARAM_FORCE) === 'true',
+  );
+
+  // Clear skip auth cookie if signalled by query param or if navigating manually to /entrypoint
   useEffect(() => {
-    if (searchParameters.get('clearSkip') === 'true') {
+    // If the user manually navigated to /entrypoint (without app-mode on initial load), they likely want to log in.
+    // Clear the skipped auth cookie so they are presented with the login screen.
+    if (searchParameters.get('clearSkip') === 'true' || !isAppModeInitial.current) {
       Cookies.remove(Cookie.HAS_SKIPPED_AUTH);
       dispatch({
         type: OnboardingAction.UPDATE_CONTEXT,
