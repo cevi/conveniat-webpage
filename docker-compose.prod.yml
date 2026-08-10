@@ -103,6 +103,23 @@ services:
     env_file:
       - .env
 
+    # OpenTelemetry wiring for the shared, multi-tenant observability stack.
+    # Declared here rather than in .env so the telemetry identity of this
+    # deployment is version-controlled. These override any OTEL_* left in .env
+    # (compose `environment:` beats `env_file:`), but OTEL_SDK_DISABLED must
+    # still be removed from .env or the SDK stays off entirely.
+    environment:
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
+      # Selects the tenant in Loki and Tempo.
+      OTEL_TENANT_ID: conveniat27-prod
+      OTEL_SERVICE_NAME: conveniat27-app
+      OTEL_SERVICE_NAMESPACE: conveniat27
+      DEPLOYMENT_ENV: production
+      # Head sampling ratio. A service produced ~900 MB/day of compressed trace
+      # blocks at 100%; 25% keeps it inside the shared 4 GB Tempo budget.
+      OTEL_TRACES_SAMPLER_ARG: '0.25'
+
     networks:
       - traefik-net-1400
       - backend-net
@@ -221,29 +238,9 @@ services:
     networks:
       - backend-net
 
-  tempo:
-    user: '0:0'
-    image: grafana/tempo:2.10.5
-    command: ['-config.file=/etc/tempo/tempo.yml']
-    volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/tempo:/tmp/tempo
-    configs:
-      - source: tempo-config
-        target: /etc/tempo/tempo.yml
-    networks:
-      - observability-net
-
-  loki:
-    image: grafana/loki:3.7.2
-    volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/loki:/loki
-    command:
-      - --config.file=/mnt/config/loki-config.yml
-    configs:
-      - source: loki-config
-        target: /mnt/config/loki-config.yml
-    networks:
-      - observability-net
+  # tempo / loki removed — telemetry now goes to the shared, multi-tenant stack
+  # (cevi/cevi-tools-infrastructure, stacks/observability) under the
+  # `conveniat27-prod` tenant, reached over the external observability-net.
 
   redis:
     image: redis:alpine
@@ -255,15 +252,6 @@ services:
       driver: none
     deploy:
       replicas: 1
-
-configs:
-  loki-config:
-    name: loki_config_conveniat_prod-${STAMP:-0}
-    file: /cluster/dist_storage_insane/config/conveniat27/loki/loki-config.yml
-
-  tempo-config:
-    name: tempo_config_conveniat_prod-${STAMP:-0}
-    file: /cluster/dist_storage_insane/config/conveniat27/tempo/tempo.yml
 
 networks:
   traefik-net-1400:

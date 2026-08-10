@@ -22,6 +22,31 @@ export function formatUserFullName(fullName?: string | null, nickname?: string |
 }
 
 /**
+ * Returns the full display name for a contact.
+ *
+ * Contact names delivered by the API are already formatted as
+ * "Vorname Nachname v/o Ceviname", so the nickname is only appended when it is
+ * actually missing from the name. This keeps the Ceviname from showing up twice.
+ */
+export function getContactDisplayName(contact: {
+  name: string;
+  nickname?: string | null | undefined;
+}): string {
+  const cleanName = contact.name.trim();
+  const cleanNickname = (contact.nickname?.trim() ?? '').replace(/^(v\/o\s+)/i, '').trim();
+
+  if (cleanNickname.length === 0) {
+    return cleanName;
+  }
+
+  if (cleanName.toLowerCase().endsWith(`v/o ${cleanNickname.toLowerCase()}`)) {
+    return cleanName;
+  }
+
+  return formatUserFullName(cleanName, cleanNickname);
+}
+
+/**
  * Returns a short display name for a contact in pill/selected lists.
  * Uses the Ceviname/nickname if available (without "v/o " prefix),
  * falling back to the user's first name if not available.
