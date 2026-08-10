@@ -1,6 +1,7 @@
 import build from '@/build';
 import { initHttpClient } from '@/lib/http-client';
 import { hostMetrics, sdk } from '@/tracing';
+import { installConsoleOtelBridge } from '@/utils/otel-console-bridge';
 
 export function register(): void {
   // eslint-disable-next-line n/no-process-env
@@ -16,6 +17,10 @@ export function register(): void {
 
   sdk.start();
   hostMetrics.start();
+
+  // Must come after sdk.start(): before the SDK registers a LoggerProvider the
+  // logs API hands back a no-op logger, so anything captured earlier is dropped.
+  installConsoleOtelBridge();
 }
 
 export const onRequestError = async (
