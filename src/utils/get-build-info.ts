@@ -13,20 +13,9 @@ interface BuildInfo {
  * The build file is generated during the build process and
  * contains information about the current build (git hash, timestamp, etc.).
  *
- * Cached with `'use cache'` because the result is constant for the lifetime of a
- * deployment: the build file is written at build time, and the only per-call
- * input is the locale used to format the timestamp.
- *
- * Without the cache this ran once per caller per render pass. A single traced
- * request to `/[locale]/[design]/app/schedule/[[...id]]` on konekta executed it
- * **8 times** for a combined 14.2 ms — the main menu, the footer and the
- * settings page each call it, and Next.js renders those across the metadata,
- * render and prerender passes. Almost all of that cost is
- * `toLocaleDateString` with an options object, which builds a fresh
- * `Intl.DateTimeFormat` every time.
- *
- * `cacheLife('max')` is deliberate: this value cannot change without a new
- * build, and a new build means a new container.
+ * Cached with `cacheLife('max')`: the value only changes with a new build, and a
+ * new build means a new container. It is read from several components across
+ * multiple render passes, and formatting the timestamp is not free.
  *
  * @returns {BuildInfo | undefined} The build information or undefined if not found.
  *
