@@ -20,7 +20,7 @@ export const cachedLlmsGenerator = async (): Promise<string> => {
   lines.push(
     '# conveniat27 - MIR SIND CEVI',
     '',
-    '> Das offizielle Webportal von conveniat27 – das Harzfest / Cevi Schweiz Grossanlass im Sommer 2027.',
+    '> Mit dem Motto «MIR SIND CEVI» hat sich ein junges, dynamisches Team aus allen Regionen der Schweiz zusammengeschlossen. Gemeinsam gestalten wir vom 24. Juli bis zum 2. August 2027 ein Lager im Obergoms VS, das verbindet, inspiriert und zeigt, was Cevi ausmacht: Zusammenhalt, Freundschaft, Glaube und Abenteuer, die bleiben. Wir erwarten etwa 5000 Teilnehmende sowie hunderte Helfende. Die Leitenden schaffen für die Kinder und Jugendlichen ein nachhaltiges und prägendes Lagererlebnis. Mit dem Motto «Mir sind CEVI!» wird die Wichtigkeit des gesamten Cevis in all seinen Facetten repräsentiert.',
     '',
     '## Hauptseiten & Informationen',
     '',
