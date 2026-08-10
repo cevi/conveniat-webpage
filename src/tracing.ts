@@ -7,6 +7,7 @@ import { HostMetrics } from '@opentelemetry/host-metrics';
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
 import type { SerializerPayload } from '@opentelemetry/instrumentation-mongoose';
 import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { BatchLogRecordProcessor } from '@opentelemetry/sdk-logs';
 import { NodeSDK } from '@opentelemetry/sdk-node';
@@ -15,6 +16,7 @@ import {
   BatchSpanProcessor,
   type IdGenerator,
   ParentBasedSampler,
+  TraceIdRatioBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 
@@ -53,14 +55,29 @@ const LOG_URL = process.env['OTEL_EXPORTER_OTLP_LOGS_ENDPOINT'] ?? 'http://loki:
 // eslint-disable-next-line n/no-process-env
 const METRICS_PORT = Number.parseInt(process.env['OTEL_EXPORTER_PROMETHEUS_PORT'] ?? '9464', 10);
 
+/**
+ * Tenant for the shared Loki and Tempo instances.
+ *
+ * Both run with multi-tenancy enabled, so every write must carry this header —
+ * without it the backend rejects the request rather than falling back to a
+ * default tenant. Set explicitly rather than via `OTEL_EXPORTER_OTLP_HEADERS`,
+ * because the exporters below are constructed with explicit config objects.
+ */
+// eslint-disable-next-line n/no-process-env
+const TENANT_ID = process.env['OTEL_TENANT_ID'] ?? 'default';
+
+const tenantHeaders = { 'X-Scope-OrgID': TENANT_ID };
+
 const traceExporter = new OTLPTraceExporter({
   url: TRACE_URL,
+  headers: tenantHeaders,
   concurrencyLimit: 10,
   timeoutMillis: 5000,
 });
 
 const logExporter = new OTLPLogExporter({
   url: LOG_URL,
+  headers: tenantHeaders,
   concurrencyLimit: 10,
   timeoutMillis: 5000,
 });
@@ -76,7 +93,15 @@ const metricsReader = new PrometheusExporter(
   },
 );
 
-class IgnoreTempoErrorLogger implements DiagLogger {
+/**
+ * Suppresses known-noisy OpenTelemetry diagnostics.
+ *
+ * This deliberately does NOT suppress connection failures. An earlier version
+ * swallowed every message mentioning `tempo`, `4318`, `ECONNREFUSED` or
+ * `ENOTFOUND`, which hid the fact that the log pipeline had never successfully
+ * delivered a single record to Loki. Export failures must stay visible.
+ */
+class IgnoreKnownOtelNoiseLogger implements DiagLogger {
   constructor(private readonly logger: DiagLogger = new DiagConsoleLogger()) {}
 
   error(message: string, ...args: unknown[]): void {
@@ -107,15 +132,6 @@ class IgnoreTempoErrorLogger implements DiagLogger {
   private shouldIgnore(message: string, args: unknown[]): boolean {
     const message_ = typeof message === 'string' ? message : '';
 
-    // Suppress tempo and OTLP port 4318 connection errors
-    if (
-      message_.includes('tempo') ||
-      message_.includes('4318') ||
-      message_.includes('ECONNREFUSED')
-    ) {
-      return true;
-    }
-
     // Suppress clock skew warnings from MongoDB instrumentation
     // This is a known issue: https://github.com/open-telemetry/opentelemetry-js/issues/4363
     if (message_.includes('Inconsistent start and end time')) {
@@ -139,16 +155,14 @@ class IgnoreTempoErrorLogger implements DiagLogger {
 
     const serialized = typeof argument === 'string' ? argument : JSON.stringify(argument);
     return (
-      serialized.includes('tempo') ||
-      serialized.includes('4318') ||
-      serialized.includes('ENOTFOUND') ||
-      serialized.includes('ECONNREFUSED')
+      serialized.includes('Inconsistent start and end time') ||
+      serialized.includes('Operation attempted on ended Span')
     );
   }
 }
 
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
-diag.setLogger(new IgnoreTempoErrorLogger(), DiagLogLevel.WARN);
+diag.setLogger(new IgnoreKnownOtelNoiseLogger(), DiagLogLevel.WARN);
 
 // eslint-disable-next-line n/no-process-env
 const POSTHOG_HOST = process.env['NEXT_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.i.posthog.com';
@@ -161,6 +175,43 @@ const postHogLogExporter = new OTLPLogExporter({
     Authorization: `Bearer ${POSTHOG_KEY}`,
   },
 });
+
+/**
+ * Telemetry identity of this deployment.
+ *
+ * These are read explicitly rather than relying on `OTEL_SERVICE_NAME` and
+ * `OTEL_RESOURCE_ATTRIBUTES`: the SDK is configured with
+ * `autoDetectResources: false` below, which disables the `envDetector` that
+ * would normally pick those up. Setting them via the standard environment
+ * variables alone has no effect here.
+ */
+// eslint-disable-next-line n/no-process-env
+const SERVICE_NAME = process.env['OTEL_SERVICE_NAME'] ?? 'conveniat27-app';
+// eslint-disable-next-line n/no-process-env
+const SERVICE_NAMESPACE = process.env['OTEL_SERVICE_NAMESPACE'] ?? 'conveniat27';
+// eslint-disable-next-line n/no-process-env
+const DEPLOYMENT_ENVIRONMENT = process.env['DEPLOYMENT_ENV'] ?? 'development';
+
+/**
+ * Head sampling ratio, between 0 and 1.
+ *
+ * Traces were previously always sampled, which produced roughly 900 MB/day of
+ * compressed blocks per service. The shared Tempo store has a 4 GB budget, so
+ * deployments set this to 0.25 (production) or 0.10 (development). Local
+ * development keeps every trace.
+ */
+const SAMPLING_RATIO = ((): number => {
+  // eslint-disable-next-line n/no-process-env
+  const raw = process.env['OTEL_TRACES_SAMPLER_ARG'];
+  if (raw === undefined) return 1;
+
+  const parsed = Number.parseFloat(raw);
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > 1) {
+    console.warn(`Invalid OTEL_TRACES_SAMPLER_ARG "${raw}", falling back to 1.0`);
+    return 1;
+  }
+  return parsed;
+})();
 
 export const sdk = new NodeSDK({
   traceExporter,
@@ -189,13 +240,18 @@ export const sdk = new NodeSDK({
     }),
   ],
   resource: resourceFromAttributes({
+    'service.namespace': SERVICE_NAMESPACE,
+    // Distinguishes conveniat27 production from development, which otherwise
+    // report an identical service name into the same shared backend.
+    'deployment.environment.name': DEPLOYMENT_ENVIRONMENT,
     version: build.version,
     commitHash: build.git.hash,
     branch: build.git.branch,
   }),
-  serviceName: 'conveniat27-app',
+  serviceName: SERVICE_NAME,
   sampler: new ParentBasedSampler({
-    root: new AlwaysOnSampler(),
+    root:
+      SAMPLING_RATIO >= 1 ? new AlwaysOnSampler() : new TraceIdRatioBasedSampler(SAMPLING_RATIO),
   }),
   autoDetectResources: false,
   instrumentations: [
@@ -225,6 +281,13 @@ export const sdk = new NodeSDK({
       },
     }),
     new PrismaInstrumentation({ enabled: true }),
+    // Bridges Payload's pino logger into the OpenTelemetry log pipeline. Without
+    // this nothing in the application ever emits a LogRecord, so the OTLP log
+    // exporters above have no input and Loki stays empty.
+    //
+    // Also stamps trace_id/span_id onto every log line, which is what makes the
+    // trace <-> log links in Grafana work.
+    new PinoInstrumentation({ disableLogSending: false }),
   ],
 });
 
