@@ -63,7 +63,12 @@ export class RedisCache extends BaseCacheHandler {
       if (metadata.tags.length > 0) {
         for (const tag of metadata.tags) {
           pipeline.sadd(`tags:${tag}`, key);
-          if (ttl > 0) pipeline.expire(`tags:${tag}`, ttl);
+          // The `tags:<tag>` registry is shared with the route cache handler
+          // (`incremental-cache.ts`), whose entries live longer than ours.
+          // Only ever extend the registry TTL (`GT`), never shorten it —
+          // otherwise the set can expire before the route entries it points
+          // at, and `revalidateTag` silently stops evicting them.
+          if (ttl > 0) pipeline.expire(`tags:${tag}`, ttl, 'GT');
         }
       }
 

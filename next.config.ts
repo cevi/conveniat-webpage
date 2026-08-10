@@ -80,8 +80,10 @@ const nextConfig: NextConfig = {
     cacheHandler: require.resolve('./src/cache-handlers/incremental-cache.cjs'),
 
     /**
-     * Required: otherwise each replica keeps its own in-memory LRU in front of
-     * the shared store and the replicas diverge again.
+     * Defensive, not strictly required: the per-process LRU lives inside
+     * Next's default `FileSystemCache`, which the custom `cacheHandler` above
+     * replaces entirely. Kept at 0 so no in-memory layer can ever reappear in
+     * front of the shared store (e.g. if the custom handler is removed again).
      */
     cacheMaxMemorySize: 0,
   }),

@@ -71,8 +71,16 @@ const isBuild =
 const REQUEST_KIND_FETCH = 'FETCH' as IncrementalCacheKind.FETCH;
 const VALUE_KIND_FETCH = 'FETCH' as CachedRouteKind.FETCH;
 
-/** One year - Redis TTLs are only a garbage collection backstop here. */
-const DEFAULT_TTL_SECONDS = 31_536_000;
+/**
+ * Fourteen days - Redis TTLs are only a garbage collection backstop here
+ * (staleness is governed by Next via `lastModified` + the prerender manifest,
+ * not by the TTL). Kept deliberately short because keys are namespaced by
+ * build id: every deploy strands the previous build's entries, and the
+ * deployed Redis has no `maxmemory` configured, so long TTLs would accumulate
+ * garbage until Redis OOMs and takes the `'use cache'` handler down with it.
+ * The cost of a too-short TTL is only a re-render.
+ */
+const DEFAULT_TTL_SECONDS = 14 * 24 * 60 * 60;
 
 /** Never let a short `expire` turn the shared cache into a thrashing cache. */
 const MINIMUM_TTL_SECONDS = 60;
@@ -246,9 +254,12 @@ export class RedisIncrementalCache {
       for (const tag of tags) {
         const tagKey = buildTagKey(tag);
         pipeline.sadd(tagKey, key);
-        // The tag registry outlives the individual entries on purpose: it must
-        // never expire before the entries it points at.
-        pipeline.expire(tagKey, DEFAULT_TTL_SECONDS);
+        // The tag registry must never expire before the entries it points at,
+        // otherwise `revalidateTag` finds an empty set and stale entries are
+        // served until their own TTL runs out. The registry is shared with the
+        // `'use cache'` handler, whose entries have shorter TTLs, so only ever
+        // extend the TTL (`GT`), never shorten it.
+        pipeline.expire(tagKey, DEFAULT_TTL_SECONDS, 'GT');
       }
 
       await pipeline.exec();
