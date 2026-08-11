@@ -1,9 +1,10 @@
 import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
 import type { CacheEntry } from '@/cache-handlers/types';
+import { createLogger } from '@/utils/server-logger';
 import { metrics, ValueType } from '@opentelemetry/api';
 import Redis from 'ioredis';
 
-const LOG_PREFIX = '[RedisCache]';
+const logger = createLogger('cache:redis');
 // eslint-disable-next-line n/no-process-env
 const REDIS_URL = process.env['REDIS_URL'] || 'redis://localhost:6379';
 
@@ -27,7 +28,7 @@ export class RedisCache extends BaseCacheHandler {
 
     this.redis.on('error', (error: { code: string }) => {
       if (error.code !== 'EAI_AGAIN') {
-        console.error(`${LOG_PREFIX} Connection Error`, error);
+        logger.error('Connection error', { error });
       }
     });
   }
@@ -39,13 +40,14 @@ export class RedisCache extends BaseCacheHandler {
 
       return this.deserialize(data);
     } catch (error) {
-      console.warn(`${LOG_PREFIX} GET FAILED: ${key}`, (error as Error).message);
+      logger.warn('GET failed', { 'cache.key': key, error });
       return;
     }
   }
 
   async set(key: string, value: Buffer, metadata: CacheEntry): Promise<void> {
-    console.log(`${LOG_PREFIX} SET CALLED: ${key}`);
+    // Fires on every cache write; the dominant source of log volume before #1525.
+    logger.debug('SET called', { 'cache.key': key });
 
     try {
       // Use base class helper
@@ -69,12 +71,12 @@ export class RedisCache extends BaseCacheHandler {
 
       await pipeline.exec();
     } catch (error) {
-      console.error(`${LOG_PREFIX} SET FAILED: ${key}`, (error as Error).message);
+      logger.error('SET failed', { 'cache.key': key, error });
     }
   }
 
   async invalidateTags(tags: string[]): Promise<void> {
-    console.log(`${LOG_PREFIX} INVALIDATING: [${tags.join(', ')}]`);
+    logger.info('Invalidating tags', { 'cache.tags': tags.join(', ') });
     for (const tag of tags) {
       const tagKey = `tags:${tag}`;
       try {
@@ -84,14 +86,16 @@ export class RedisCache extends BaseCacheHandler {
           await this.redis.unlink(...keys);
           await this.redis.del(tagKey);
           cacheInvalidationCounter.add(1, { type: 'tag', tag });
-          console.log(
-            `${LOG_PREFIX} CLEARED ${keys.length} keys for tag: ${tag} [${keys.join(', ')}]`,
-          );
+          logger.debug(`Cleared ${keys.length} keys for tag ${tag}`, {
+            'cache.tag': tag,
+            'cache.cleared_keys': keys.length,
+            'cache.keys': keys.join(', '),
+          });
         } else {
-          console.log(`${LOG_PREFIX} NO KEYS for tag: ${tag} (Skipping)`);
+          logger.debug(`No keys for tag ${tag}, skipping`, { 'cache.tag': tag });
         }
       } catch (error) {
-        console.warn(`${LOG_PREFIX} Invalidate tags failed for ${tag}:`, (error as Error).message);
+        logger.warn('Invalidate tags failed', { 'cache.tag': tag, error });
       }
     }
   }

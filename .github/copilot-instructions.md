@@ -56,7 +56,37 @@ These are strict rules. Please enforce them in all code suggestions and reviews.
 - For all code, follow these additional conventions:
   - use ES6+ syntax and the built-in `fetch` for HTTP requests
   - always use `import` statements, never use `require`
-  - use logger.log() for output, not console.log()
+  - use a logger for output, not console.log() — see [Logging](#logging)
+
+### Logging
+
+Server-side code must not log through `console.log` / `info` / `debug` / `trace`. Those are not bridged into
+OpenTelemetry, so they never reach Loki, they cannot be filtered per environment, and they are the reason cache
+and render debug output used to dominate the container logs (see #1525). ESLint enforces this.
+
+Pick, in order:
+
+1. **`req.payload.logger`** — whenever a Payload request is in scope.
+2. **`createLogger(name)` from `@/utils/server-logger`** — everywhere else on the server. It writes through the
+   same destination as Payload's logger, so records reach Loki with the service, environment and commit hash,
+   and carry the `trace_id` / `span_id` of the request that produced them, while still appearing on stdout.
+
+```ts
+import { createLogger } from '@/utils/server-logger';
+
+const logger = createLogger('cache:redis');
+
+logger.debug('SET called', { 'cache.key': key }); // off in production
+logger.info('Invalidating tags', { 'cache.tags': tags.join(', ') });
+logger.error('SET failed', { 'cache.key': key, error }); // Errors are flattened, not stringified to {}
+```
+
+Choose the level by how often the line fires: anything that fires per request, per render or per cache write is
+`debug`. `LOG_LEVEL` overrides the default (`info` in production, `debug` elsewhere).
+
+`console.warn` / `console.error` remain allowed — the console bridge ships those to Loki as a safety net — but a
+logger call with attributes is better. Browser and service-worker code keeps using `console.*`; the server logger
+does not run there.
 
 ### Styling with Tailwind CSS & cn()
 

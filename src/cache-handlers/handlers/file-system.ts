@@ -1,12 +1,13 @@
 import { BaseCacheHandler } from '@/cache-handlers/handlers/base';
 import type { CacheEntry } from '@/cache-handlers/types';
+import { createLogger } from '@/utils/server-logger';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { access, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const LOG_PREFIX = '[FileSystemCache]';
+const logger = createLogger('cache:file-system');
 
 const isBuild =
   // eslint-disable-next-line n/no-process-env
@@ -20,25 +21,28 @@ export class FileSystemCache extends BaseCacheHandler {
   constructor() {
     super();
     if (isBuild) {
-      console.log(`${LOG_PREFIX} Initialized for BUILD (Write Enabled)`);
+      logger.info('Initialized for BUILD (write enabled)');
       try {
         mkdirSync(FALLBACK_CACHE_DIR, { recursive: true });
       } catch (error) {
-        console.error(`${LOG_PREFIX} Failed to create cache dir:`, error);
+        logger.error('Failed to create cache dir', { 'cache.dir': FALLBACK_CACHE_DIR, error });
       }
     } else {
-      console.log(`${LOG_PREFIX} Initialized for RUNTIME (Read-Only)`);
+      logger.info('Initialized for RUNTIME (read-only)');
 
       // list cache content
       try {
         if (existsSync(FALLBACK_CACHE_DIR)) {
           const files = readdirSync(FALLBACK_CACHE_DIR);
-          console.log(`${LOG_PREFIX} Cache directory contents:`, files);
+          logger.debug('Cache directory contents', {
+            'cache.dir': FALLBACK_CACHE_DIR,
+            'cache.files': files.length,
+          });
         } else {
-          console.warn(`${LOG_PREFIX} Cache directory does not exist: ${FALLBACK_CACHE_DIR}`);
+          logger.warn('Cache directory does not exist', { 'cache.dir': FALLBACK_CACHE_DIR });
         }
       } catch (error) {
-        console.error(`${LOG_PREFIX} Failed to read cache dir:`, error);
+        logger.error('Failed to read cache dir', { 'cache.dir': FALLBACK_CACHE_DIR, error });
       }
     }
   }
@@ -60,7 +64,7 @@ export class FileSystemCache extends BaseCacheHandler {
       const rawData = await readFile(filePath);
       return this.deserialize(rawData);
     } catch (error) {
-      console.error(`${LOG_PREFIX} GET ERROR: ${key}`, error);
+      logger.error('GET failed', { 'cache.key': key, error });
       return;
     }
   }
@@ -77,9 +81,9 @@ export class FileSystemCache extends BaseCacheHandler {
       await writeFile(temporaryPath, finalBuffer);
       await rename(temporaryPath, filePath);
 
-      console.log(`${LOG_PREFIX} WRITTEN: ${key}`);
+      logger.debug('Written', { 'cache.key': key });
     } catch (error) {
-      console.error(`${LOG_PREFIX} SET ERROR: ${key}`, error);
+      logger.error('SET failed', { 'cache.key': key, error });
     }
   }
 
