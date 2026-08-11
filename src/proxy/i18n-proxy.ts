@@ -19,6 +19,11 @@ import { type NextRequest, NextResponse } from 'next/server';
  * @param config.request - The original NextRequest
  * @param config.response - The original NextResponse
  */
+const supportedLocales = new Set<string>(Object.values(LOCALE));
+
+const isSupportedLocale = (value: string | undefined): value is Locale =>
+  value !== undefined && supportedLocales.has(value);
+
 export const localeReplacingRewrite = (config: {
   locale: string;
   request: NextRequest;
@@ -70,7 +75,11 @@ export const localeReplacingRewrite = (config: {
  * @param next
  */
 export const i18nProxy: ProxyModule = (next) => async (request, event, response) => {
-  const cookieLocale = request.cookies.get(i18nConfig.localeCookie)?.value as Locale | undefined;
+  // The cookie is attacker- and history-controlled, so it cannot be trusted to
+  // hold a supported locale. An unsupported value would otherwise be rewritten
+  // into the path and written straight back to the cookie, making it stick.
+  const rawCookieLocale = request.cookies.get(i18nConfig.localeCookie)?.value;
+  const cookieLocale = isSupportedLocale(rawCookieLocale) ? rawCookieLocale : undefined;
   const urlLocale = getLocaleFromUrl(request, response);
   const locale = urlLocale ?? cookieLocale ?? i18nConfig.defaultLocale;
 
