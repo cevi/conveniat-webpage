@@ -9,7 +9,6 @@ import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { environmentVariables } from '@/config/environment-variables';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
 import type { Locale, NavigationMode } from '@/types/types';
@@ -17,7 +16,6 @@ import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
 import { SessionProvider } from 'next-auth/react';
-import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -53,27 +51,10 @@ const GlobalAppFooterWrapper: React.FC<{
   );
 };
 
-const validLocales = new Set<string>(Object.values(LOCALE));
-const validDesigns = new Set<string>(Object.values(DesignCodes));
-
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
   const { locale, design } = await params;
   const isInAppDesign = design === DesignCodes.APP_DESIGN;
   const isRedesignedMenuEnabled = await getFeatureFlag(FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED);
-
-  // `[locale]/[design]` matches any two segments, so a path this app does not own — a
-  // `/_next/static/...` asset dropped from the current build, say — would otherwise render
-  // this layout and return 200 with an HTML body. The browser then parses that HTML as
-  // JavaScript ("Unexpected token '<'") and the service worker caches it under the asset's
-  // URL, so the failure survives reloads.
-  //
-  // This has to run *after* the cached read above, never before it: skipping a cached call on
-  // one prerender pass and making it on the other is what produces "Unexpected cache miss
-  // after cache warming phase".
-  if (!validLocales.has(locale) || !validDesigns.has(design)) {
-    notFound();
-  }
-
   const navigationMode: NavigationMode =
     isRedesignedMenuEnabled && !isInAppDesign ? 'top-nav' : 'side-nav';
 
