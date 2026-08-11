@@ -52,7 +52,7 @@ jobs:
           if [ "${NEXT_PUBLIC_APP_HOST_URL}" != "https://conveniat27.ch" ]; then
             cp public/dev-icons/* public/
           fi
-          sh create_build_info.sh
+          bash create_build_info.sh
           npx prisma generate --no-hints
           pnpm run build
           mkdir -p .next/standalone/node_modules/@img && cp -r node_modules/@img/* .next/standalone/node_modules/@img/ 2>/dev/null || true
