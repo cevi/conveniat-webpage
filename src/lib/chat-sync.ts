@@ -212,22 +212,60 @@ export const syncAllOfflineData = async (
             updateById.set(entry.id, recordToSave);
           }
 
+          // A batch is rejected as a unit, so one record the collection schema refuses (e.g. a
+          // dangling relation) would otherwise discard every other valid record in the same
+          // batch while the download still reported success - leaving the offline collection
+          // stale. Fall back to per-record writes so only the offending entry is lost.
+          const overwrite = (draft: Record<string, unknown>, record: object): void => {
+            // The callback has to mutate the draft - TanStack DB tracks property assignments
+            // and discards the returned value.
+            for (const key of Object.keys(draft)) {
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+              delete draft[key];
+            }
+            Object.assign(draft, record);
+          };
+
           if (toInsert.length > 0) {
-            scheduleEntriesCollection.insert(toInsert);
+            try {
+              scheduleEntriesCollection.insert(toInsert);
+            } catch (error) {
+              console.warn('[Offline Sync] Batched insert rejected, retrying per entry:', error);
+              for (const record of toInsert) {
+                try {
+                  scheduleEntriesCollection.insert(record);
+                } catch (entryError) {
+                  console.error(
+                    `[Offline Sync] Skipped schedule entry "${record.id}":`,
+                    entryError,
+                  );
+                }
+              }
+            }
           }
           if (updateKeys.length > 0) {
-            scheduleEntriesCollection.update(updateKeys, (drafts) => {
-              for (const draft of drafts) {
-                const record = updateById.get(draft.id);
-                if (record === undefined) continue;
-                // The callback has to mutate the draft - TanStack DB tracks property
-                // assignments and discards the returned value.
-                for (const key of Object.keys(draft)) {
-                  delete draft[key as keyof typeof draft];
+            try {
+              scheduleEntriesCollection.update(updateKeys, (drafts) => {
+                for (const draft of drafts) {
+                  const record = updateById.get(draft.id);
+                  if (record === undefined) continue;
+                  overwrite(draft, record);
                 }
-                Object.assign(draft, record);
+              });
+            } catch (error) {
+              console.warn('[Offline Sync] Batched update rejected, retrying per entry:', error);
+              for (const key of updateKeys) {
+                const record = updateById.get(key);
+                if (record === undefined) continue;
+                try {
+                  scheduleEntriesCollection.update(key, (draft) => {
+                    overwrite(draft, record);
+                  });
+                } catch (entryError) {
+                  console.error(`[Offline Sync] Skipped schedule entry "${key}":`, entryError);
+                }
               }
-            });
+            }
           }
         } catch (error) {
           console.warn('[Offline Sync] Failed to update TanStack DB schedule collection:', error);
