@@ -8,11 +8,12 @@ import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pa
 import { PreviewWarning } from '@/features/payload-cms/utils/preview/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 import type { Metadata } from 'next';
+import { cacheLife, cacheTag } from 'next/cache';
 
 import { notFound, redirect, unstable_rethrow } from 'next/navigation';
-import { connection } from 'next/server';
 import type React from 'react';
 import { cache } from 'react';
 
@@ -46,6 +47,9 @@ const getCanonicalData = (
 const normalizeAlternativePath = (alternativePath: string): string =>
   alternativePath.replace(/^\/+/, '');
 
+const validLocales = new Set<string>(Object.values(LOCALE));
+const validDesigns = new Set<string>(Object.values(DesignCodes));
+
 const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
   const specialPage = getSpecialPage(collection);
   if (!specialPage) return {};
@@ -69,38 +73,79 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
 };
 
 /**
- * Cached helper to generate metadata, avoiding redundant DB lookups.
+ * Resolves the metadata for a route by asking the matching collection component.
+ */
+const resolveRouteMetadata = async (
+  locale: Locale,
+  slugs: string[] | undefined,
+  isPreview: boolean,
+): Promise<Metadata> => {
+  const collection = slugs?.[0] ?? '';
+  const remainingSlugs = slugs?.slice(1) ?? [];
+
+  if (isSpecialPage(collection)) {
+    return handleSpecialPage(collection, locale);
+  }
+
+  let collectionPage = routeResolutionTable[collection];
+
+  if (!collectionPage && routeResolutionTable['']) {
+    collectionPage = routeResolutionTable[''];
+    remainingSlugs.unshift(collection);
+  }
+
+  if (collectionPage?.component.generateMetadata) {
+    return await collectionPage.component.generateMetadata({
+      locale,
+      slugs: remainingSlugs,
+      isPreview,
+    });
+  }
+
+  return {};
+};
+
+/**
+ * The same read, cached across requests.
+ *
+ * This previously used React's `cache()` alone, which memoises only within a single render —
+ * so despite the name, every request re-read the CMS to build the metadata for every page.
+ * That is the defect #1534 fixed for the Payload globals; this is the same one on the route
+ * that serves every CMS page. `revalidateTag('payload')` already fires from the collections'
+ * afterChange hooks, so an edit still takes effect immediately and `cacheLife` is only the
+ * upper bound if that ever fails.
+ */
+const readRouteMetadata = async (
+  locale: Locale,
+  slugs: string[] | undefined,
+): Promise<Metadata> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', `route-metadata:${locale}:${(slugs ?? []).join('/')}`);
+
+  return await resolveRouteMetadata(locale, slugs, false);
+};
+
+/**
+ * Request-level memoisation on top of the persistent layer, so several callers within one
+ * render share a single lookup.
+ *
+ * The build-phase guard stays out here: during `next build` there is no database, and its
+ * placeholder return value must never be written to the persistent cache. Preview reads bypass
+ * the persistent layer entirely — an editor must see what they just typed, not an entry that is
+ * up to an hour old.
  */
 const generateMetadataCached = cache(
   async (locale: Locale, slugs: string[] | undefined, isPreview: boolean): Promise<Metadata> => {
-    // Check if we should bail out during build time
     if (await forceDynamicOnBuild()) {
       return {};
     }
 
-    const collection = slugs?.[0] ?? '';
-    const remainingSlugs = slugs?.slice(1) ?? [];
-
-    if (isSpecialPage(collection)) {
-      return handleSpecialPage(collection, locale);
+    if (isPreview) {
+      return await resolveRouteMetadata(locale, slugs, true);
     }
 
-    let collectionPage = routeResolutionTable[collection];
-
-    if (!collectionPage && routeResolutionTable['']) {
-      collectionPage = routeResolutionTable[''];
-      remainingSlugs.unshift(collection);
-    }
-
-    if (collectionPage?.component.generateMetadata) {
-      return await collectionPage.component.generateMetadata({
-        locale,
-        slugs: remainingSlugs,
-        isPreview,
-      });
-    }
-
-    return {};
+    return await readRouteMetadata(locale, slugs);
   },
 );
 
@@ -117,12 +162,15 @@ export const generateMetadata = async ({
 }): Promise<Metadata> => {
   const { slugs, locale, design } = await params;
 
-  const displaySlug =
-    locale === '_next'
-      ? `/_next/${design}/${(slugs ?? []).join('/')}`
-      : `/${(slugs ?? []).join('/')}`;
-
-  console.log(`Generate metadata for page with slug: ${displaySlug}`);
+  // `[locale]/[design]` matches any two segments, so requests this app does not own reach here
+  // too — a missing `/_next/static/...` asset, a stray font, a crawler guessing paths. The
+  // layout answers those with notFound(), which aborts the render pass. Doing the cached
+  // metadata read first would then leave a cached call recorded in one prerender pass and not
+  // the other, which is what "Unexpected cache miss after cache warming phase" reports, and it
+  // writes a cache entry for a route that does not exist. Bail out before that happens.
+  if (!validLocales.has(locale) || !validDesigns.has(design)) {
+    return {};
+  }
 
   let isPreview = false;
   try {
@@ -148,10 +196,14 @@ export const generateMetadata = async ({
     }
   }
 
-  // During build, 'await connection()' signals that this function depends on
-  // request-time info (like headers), effectively opting out of static pre-rendering
-  // for this specific execution if it were truly dynamic.
-  await connection();
+  // During build, this opts out of static pre-rendering so the CMS lookup below is not
+  // attempted against an unavailable database.
+  //
+  // This MUST stay gated on the build phase. An unconditional `connection()` also runs during
+  // the runtime prerender, where it rejects as soon as the prerender completes ("During
+  // prerendering, `connection()` rejects when the prerender is complete"), throwing away the
+  // prerender pass for every request to this route.
+  await forceDynamicOnBuild();
   return await generateMetadataCached(locale as Locale, slugs, isPreview);
 };
 

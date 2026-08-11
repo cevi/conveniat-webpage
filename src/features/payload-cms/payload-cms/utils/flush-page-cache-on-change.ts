@@ -29,13 +29,16 @@ export const flushPageCacheOnChange: CollectionAfterChangeHook = ({
   }
 };
 
-export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ req }): void => {
+export const flushPageCacheOnChangeGlobal: GlobalAfterChangeHook = ({ req, global }): void => {
   if (Boolean(req.context['disableRevalidation'])) {
     return;
   }
   console.log(`Flush all pages due to Global change`);
   try {
     revalidateTag('payload', 'max');
+    // Also expire just this global, so the per-global entries written by `cached-globals.ts`
+    // can be invalidated on their own once the blanket `payload` tag is narrowed down.
+    revalidateTag(`global:${global.slug}`, 'max');
   } catch {
     console.warn('Revalidate failed (non-critical)');
   }

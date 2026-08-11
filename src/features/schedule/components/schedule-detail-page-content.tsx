@@ -40,7 +40,7 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
 
-    refetchOnMount: 'always',
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
 

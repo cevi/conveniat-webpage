@@ -70,16 +70,6 @@ const isRenderableRecord = (record: ScheduleEntryRecord): boolean => {
 };
 
 /**
- * Convert a frontend entry to a local DB record.
- */
-const frontendTypeToRecord = (entry: CampScheduleEntryFrontendType): ScheduleEntryRecord => {
-  return {
-    ...entry,
-    _syncedAt: Date.now(),
-  } as ScheduleEntryRecord;
-};
-
-/**
  * Report a failed entry sync without taking the page down.
  *
  * A single malformed entry (e.g. a dangling relation the collection schema rejects) must never
@@ -101,43 +91,116 @@ const reportSyncFailure = (entryId: string, error: unknown): void => {
 };
 
 /**
- * Write the server state into the local collection.
+ * Serialises a record ignoring `_syncedAt`, which changes on every sync by definition and would
+ * otherwise mark every entry as modified.
+ */
+const contentFingerprint = (record: object): string =>
+  JSON.stringify({ ...record, _syncedAt: undefined });
+
+/**
+ * Overwrite a draft in place.
  *
  * The update callback has to *mutate* the draft it receives - TanStack DB derives the mutation
  * from the tracked property assignments and ignores the callback's return value, so returning a
  * new object silently produced an empty change set and left stale records in localStorage forever.
  */
+const overwriteDraft = (draft: Record<string, unknown>, record: ScheduleEntryRecord): void => {
+  for (const key of Object.keys(draft)) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete draft[key];
+  }
+  Object.assign(draft, record);
+};
+
+/**
+ * Write the server state into the local collection.
+ *
+ * Every write is batched. The localStorage-backed collection re-serialises and rewrites the
+ * *whole* collection on each mutation, so the previous one-call-per-entry loop turned a sync of
+ * ~485 entries carrying Lexical descriptions into ~485 full-collection JSON writes on the main
+ * thread - and `useLiveQuery` re-rendered on each one. This runs on every visit to the schedule
+ * (the overview calls syncFromServer from an effect), which is what made a cold navigation to
+ * /app/schedule take seconds. Entries whose content is unchanged are skipped entirely, so a
+ * repeat visit writes nothing at all.
+ *
+ * A batch that throws falls back to per-entry writes: a single malformed entry (e.g. a dangling
+ * relation the collection schema rejects) must never escape this function, or React forwards the
+ * throw to the nearest error boundary and replaces the whole schedule page with the error screen.
+ */
 const applyServerEntries = (serverEntries: CampScheduleEntryFrontendType[]): void => {
   const currentItems = [...scheduleEntriesCollection.state.values()];
-  const currentIds = new Set(currentItems.map((item) => item.id));
+  const currentById = new Map(currentItems.map((item) => [item.id, item]));
   const serverIds = new Set(serverEntries.map((entry) => entry.id));
 
-  // Update or insert entries
+  const syncedAt = Date.now();
+  const toInsert: ScheduleEntryRecord[] = [];
+  const updateKeys: string[] = [];
+  const updateById = new Map<string, ScheduleEntryRecord>();
+
   for (const entry of serverEntries) {
-    const record = frontendTypeToRecord(entry);
+    const record = { ...entry, _syncedAt: syncedAt } as unknown as ScheduleEntryRecord;
+    const current = currentById.get(entry.id);
+
+    if (current === undefined) {
+      toInsert.push(record);
+      continue;
+    }
+    if (contentFingerprint(current) === contentFingerprint(record)) continue;
+
+    updateKeys.push(entry.id);
+    updateById.set(entry.id, record);
+  }
+
+  const toDelete = currentItems.filter((item) => !serverIds.has(item.id)).map((item) => item.id);
+
+  if (toInsert.length > 0) {
     try {
-      if (currentIds.has(entry.id)) {
-        scheduleEntriesCollection.update(entry.id, (draft) => {
-          for (const key of Object.keys(draft)) {
-            delete draft[key as keyof typeof draft];
-          }
-          Object.assign(draft, record);
-        });
-      } else {
-        scheduleEntriesCollection.insert(record);
+      scheduleEntriesCollection.insert(toInsert);
+    } catch {
+      for (const record of toInsert) {
+        try {
+          scheduleEntriesCollection.insert(record);
+        } catch (error) {
+          reportSyncFailure(record.id, error);
+        }
       }
-    } catch (error) {
-      reportSyncFailure(entry.id, error);
     }
   }
 
-  // Remove entries that no longer exist on server
-  for (const item of currentItems) {
-    if (!serverIds.has(item.id)) {
-      try {
-        scheduleEntriesCollection.delete(item.id);
-      } catch (error) {
-        reportSyncFailure(item.id, error);
+  if (updateKeys.length > 0) {
+    try {
+      scheduleEntriesCollection.update(updateKeys, (drafts) => {
+        for (const draft of drafts) {
+          const record = updateById.get(draft.id);
+          if (record === undefined) continue;
+          overwriteDraft(draft, record);
+        }
+      });
+    } catch {
+      for (const key of updateKeys) {
+        const record = updateById.get(key);
+        if (record === undefined) continue;
+        try {
+          scheduleEntriesCollection.update(key, (draft) => {
+            overwriteDraft(draft, record);
+          });
+        } catch (error) {
+          reportSyncFailure(key, error);
+        }
+      }
+    }
+  }
+
+  if (toDelete.length > 0) {
+    try {
+      scheduleEntriesCollection.delete(toDelete);
+    } catch {
+      for (const id of toDelete) {
+        try {
+          scheduleEntriesCollection.delete(id);
+        } catch (error) {
+          reportSyncFailure(id, error);
+        }
       }
     }
   }

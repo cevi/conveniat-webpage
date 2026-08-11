@@ -20,6 +20,14 @@ export const s3StorageConfiguration = s3Storage({
     'chat-images': true,
     'bill-pdfs': true,
     form_collection: true,
+
+    // The import/export plugin registers these two as upload collections without a staticDir, so
+    // Payload defaults it to the collection slug - a *relative* path resolved against the process
+    // CWD. In the container that is /app, which the app user cannot write to, so every CSV import
+    // failed with `EACCES: permission denied, mkdir 'imports'` (a 500 on POST /api/imports).
+    // Routing them through MinIO like every other upload collection removes the local write.
+    imports: true,
+    exports: true,
   },
   bucket: MINIO_BUCKET_NAME,
   config: {

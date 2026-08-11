@@ -16,7 +16,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface OfflineContentEntrypointComponentProperties {
   callback: (accepted: boolean) => void;
@@ -35,8 +35,16 @@ export const OfflineContentEntrypointComponent: React.FC<
     dataSyncFn: () => syncAllOfflineData(trpcUtils),
   });
 
-  // Prefetch main destinations while user decides on offline download
+  // Prefetch main destinations while user decides on offline download.
+  //
+  // Guarded so each path is fetched once per mount: `router.prefetch()` can change the `router`
+  // identity this effect depends on, and with `staleTimes.dynamic` at 0 a repeat call always hits
+  // the network instead of the prefetch cache, so an unguarded effect re-issues the same `?_rsc=`
+  // request for as long as this step stays on screen. See the matching guard in use-onboarding.
+  const prefetchedReference = useRef(false);
   useEffect(() => {
+    if (prefetchedReference.current) return;
+    prefetchedReference.current = true;
     try {
       router.prefetch('/app/dashboard');
       router.prefetch('/app/chat');
