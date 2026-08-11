@@ -6,6 +6,11 @@
 FROM node:24.15-alpine AS runner
 WORKDIR /app
 
+# Same runtime packages as the `base` stage of Dockerfile. curl is what the swarm
+# healthcheck shells out to (`curl -fs http://localhost:3000/status`); without it the
+# check can never pass and the container is killed on a loop regardless of app health.
+RUN apk add --no-cache curl libc6-compat poppler-utils vips vips-dev
+
 ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=3000
