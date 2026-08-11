@@ -297,22 +297,36 @@ export const useOnboarding = (): UseOnboardingReturn => {
     return '/app/dashboard';
   }, [searchParameters]);
 
-  // Pre-fetch target routes while user is going through onboarding steps
+  // Pre-fetch target routes while user is going through onboarding steps.
+  //
+  // Every path is prefetched at most once per mount. `router.prefetch()` writes into the router
+  // cache, which can change the `router` identity this effect depends on, and `staleTimes.dynamic`
+  // is 0 so a repeat call is never a cache hit that quietly no-ops - it always goes to the network.
+  // Those two together form a loop that re-issues the identical `?_rsc=` request at RTT for as
+  // long as the page stays open; measured at a sustained 23 req/s from /entrypoint against
+  // /app/dashboard and /app/chat. The ref survives the re-runs and breaks it.
+  const prefetchedPathsReference = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (typeof globalThis === 'undefined') return;
 
-    try {
-      router.prefetch(targetRedirectPath);
+    const prefetchOnce = (path: string): void => {
+      if (prefetchedPathsReference.current.has(path)) return;
+      prefetchedPathsReference.current.add(path);
+      try {
+        router.prefetch(path);
+      } catch {
+        // ignore prefetch errors
+      }
+    };
 
-      // Pre-fetch primary app hubs if target path is custom
-      if (targetRedirectPath !== '/app/dashboard') {
-        router.prefetch('/app/dashboard');
-      }
-      if (!targetRedirectPath.startsWith('/app/chat')) {
-        router.prefetch('/app/chat');
-      }
-    } catch {
-      // ignore prefetch errors
+    prefetchOnce(targetRedirectPath);
+
+    // Pre-fetch primary app hubs if target path is custom
+    if (targetRedirectPath !== '/app/dashboard') {
+      prefetchOnce('/app/dashboard');
+    }
+    if (!targetRedirectPath.startsWith('/app/chat')) {
+      prefetchOnce('/app/chat');
     }
   }, [router, targetRedirectPath, onboardingStep]);
 
