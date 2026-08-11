@@ -76,6 +76,16 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
 
   experimental: {
+    // Next 16.3.0 defaults this to true. It livelocks the segment cache when a proxy rewrite
+    // injects a leading path segment into a fully dynamic route tree, which is exactly what
+    // design-rewrite-proxy does (/app/settings -> /de/design-mode-app/app/settings): the route
+    // entry is fulfilled and re-keyed every round, so it never rejects and no backoff applies,
+    // and the client re-requests the same `?_rsc=` tree prefetch at network RTT. Measured here
+    // as 1741 identical requests in 1.7 minutes.
+    // Upstream: vercel/next.js#97135, fixed by #97128 — merged to canary, in no release yet.
+    // Remove this once a release contains that fix.
+    optimisticRouting: false,
+
     useOffline: true,
     optimizePackageImports: [
       'lucide-react',
