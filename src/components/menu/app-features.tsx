@@ -131,7 +131,6 @@ export const AppFeatures: React.FC<{
           href="/app/chat"
           Icon={MessageSquare}
           text={chatFeatureTranslation[locale]}
-          prefetch
         />
         {featureFlags.forumEnabled !== false && (
           <AppFeatureMenuItem
@@ -144,19 +143,12 @@ export const AppFeatures: React.FC<{
           href="/app/emergency"
           Icon={Siren}
           text={emergencyInfoFeatureTranslation[locale]}
-          prefetch
         />
-        <AppFeatureMenuItem
-          href="/app/map"
-          Icon={Map}
-          text={campMapFeatureTranslation[locale]}
-          prefetch
-        />
+        <AppFeatureMenuItem href="/app/map" Icon={Map} text={campMapFeatureTranslation[locale]} />
         <AppFeatureMenuItem
           href="/app/schedule"
           Icon={Calendar}
           text={scheduleFeatureTranslation[locale]}
-          prefetch
         />
         {featureFlags.helperShiftsEnabled !== false && (
           <AppFeatureMenuItem
