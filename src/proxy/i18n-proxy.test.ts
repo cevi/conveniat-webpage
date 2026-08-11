@@ -324,14 +324,14 @@ describe('i18n-proxy', () => {
     // Execute
     await handler(request, {} as NextFetchEvent, mockResponse);
 
-    // assert rewrite is called with the invalid cookie locale ('es')
+    // assert rewrite falls back to the default locale, ignoring the invalid cookie
     expect(mockRewrite).toHaveBeenCalledTimes(1);
     expect(mockRewrite).toHaveBeenCalledWith(
-      new URL('https://example.com/es/products/123'), // Prepends 'es'
+      new URL('https://example.com/en/products/123'), // Prepends 'en'
     );
 
-    // assert cookie is set to 'es' (the invalid cookie)
-    expect(mockCookieSet).toHaveBeenCalledWith(i18nConfig.localeCookie, 'es', {});
+    // assert the invalid cookie is replaced with the default locale
+    expect(mockCookieSet).toHaveBeenCalledWith(i18nConfig.localeCookie, 'en', {});
 
     // Should NOT redirect, SHOULD call next
     expect(mockRedirect).not.toHaveBeenCalled();
@@ -387,12 +387,12 @@ describe('i18n-proxy', () => {
     // Execute
     await handler(request, {} as NextFetchEvent, mockResponse);
 
-    // assert rewrite is called with the invalid cookie locale ('it') and original path prefixed
+    // assert rewrite falls back to the default locale, ignoring the invalid cookie ('it')
     expect(mockRewrite).toHaveBeenCalledTimes(1);
-    expect(mockRewrite).toHaveBeenCalledWith(new URL('https://example.com/it/es/products/123'));
+    expect(mockRewrite).toHaveBeenCalledWith(new URL('https://example.com/en/es/products/123'));
 
-    // assert cookie is set to 'it'
-    expect(mockCookieSet).toHaveBeenCalledWith(i18nConfig.localeCookie, 'it', {});
+    // assert the invalid cookie is replaced with the default locale
+    expect(mockCookieSet).toHaveBeenCalledWith(i18nConfig.localeCookie, 'en', {});
 
     // Should NOT redirect, SHOULD call next
     expect(mockRedirect).not.toHaveBeenCalled();
