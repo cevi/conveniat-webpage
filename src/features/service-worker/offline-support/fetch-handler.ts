@@ -186,18 +186,14 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
-    const cleanPath = getCleanAppPath(url.pathname);
-    console.warn(
-      `[SW] RSC Cache Miss for: ${url.toString()}. Redirecting to document fallback: ${cleanPath}`,
-    );
+    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Failing the request.`);
 
-    // Redirect to document route so browser loads the cached offline HTML page
-    return new Response(undefined, {
-      status: 307,
-      headers: {
-        Location: cleanPath,
-      },
-    });
+    // Fail like the Server Action branch above rather than redirecting to the document route.
+    // A redirect answers a request carrying `RSC: 1` with HTML, which the Flight client cannot
+    // parse; the router then treats the prefetch as unresolved and re-issues it, so a single
+    // cache miss turns into a retry loop. `Response.error()` is a clean network failure that
+    // the router and the error boundary both already handle.
+    return Response.error();
   }
 
   // Strategy E: API Fallback
