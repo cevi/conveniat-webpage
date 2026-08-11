@@ -4,6 +4,13 @@ import type { trpc } from '@/trpc/client';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 /**
+ * Serialises a schedule entry ignoring `_syncedAt`, which changes on every sync by definition
+ * and would otherwise mark every entry as modified.
+ */
+const contentFingerprint = (record: object): string =>
+  JSON.stringify({ ...record, _syncedAt: undefined });
+
+/**
  * Prefetches all chats, chat details, and recent messages (first page) for the current user.
  * This populates the TanStack Query cache, which is automatically persisted in localStorage.
  */
@@ -169,31 +176,58 @@ export const syncAllOfflineData = async (
         }
         try {
           const { scheduleEntriesCollection } = await import('@/lib/tanstack-db');
+          type ScheduleEntryRecord = import('@/lib/tanstack-db').ScheduleEntryRecord;
+
+          // The localStorage collection re-serialises and rewrites the *whole* collection on
+          // every mutation, so one call per entry meant hundreds of full JSON writes on the
+          // main thread — with ~500 entries carrying Lexical descriptions that froze the UI
+          // for the duration of a sync. Both insert() and update() take arrays, so the writes
+          // are collected first and flushed at most twice.
+          const syncedAt = Date.now();
+          const toInsert: ScheduleEntryRecord[] = [];
+          const updateKeys: string[] = [];
+          const updateById = new Map<string, ScheduleEntryRecord>();
+
           for (const entry of scheduleEntries) {
-            if (typeof entry.id === 'string' && entry.id.length > 0) {
-              const current = scheduleEntriesCollection.get(entry.id);
-              const recordToSave = {
-                ...entry,
-                _syncedAt: Date.now(),
-              } as unknown as import('@/lib/tanstack-db').ScheduleEntryRecord;
-              try {
-                if (current === undefined) {
-                  scheduleEntriesCollection.insert(recordToSave);
-                } else {
-                  // The callback has to mutate the draft - TanStack DB tracks property
-                  // assignments and discards the returned value.
-                  scheduleEntriesCollection.update(entry.id, (old) => {
-                    for (const key of Object.keys(old)) {
-                      delete old[key as keyof typeof old];
-                    }
-                    Object.assign(old, recordToSave);
-                  });
-                }
-              } catch (error) {
-                // Skip the offending entry instead of aborting the rest of the schedule sync
-                console.warn(`[Offline Sync] Failed to store schedule entry "${entry.id}":`, error);
-              }
+            if (typeof entry.id !== 'string' || entry.id.length === 0) continue;
+
+            const recordToSave = {
+              ...entry,
+              _syncedAt: syncedAt,
+            } as unknown as ScheduleEntryRecord;
+            const current = scheduleEntriesCollection.get(entry.id);
+
+            if (current === undefined) {
+              toInsert.push(recordToSave);
+              continue;
             }
+
+            // Only rewrite entries whose content actually changed. Previously the update
+            // callback cleared and reassigned every key, so each entry counted as modified on
+            // every sync and the full write storm ran even when nothing had changed.
+            // `_syncedAt` is excluded because it changes on every sync by definition.
+            if (contentFingerprint(current) === contentFingerprint(recordToSave)) continue;
+
+            updateKeys.push(entry.id);
+            updateById.set(entry.id, recordToSave);
+          }
+
+          if (toInsert.length > 0) {
+            scheduleEntriesCollection.insert(toInsert);
+          }
+          if (updateKeys.length > 0) {
+            scheduleEntriesCollection.update(updateKeys, (drafts) => {
+              for (const draft of drafts) {
+                const record = updateById.get(draft.id);
+                if (record === undefined) continue;
+                // The callback has to mutate the draft - TanStack DB tracks property
+                // assignments and discards the returned value.
+                for (const key of Object.keys(draft)) {
+                  delete draft[key as keyof typeof draft];
+                }
+                Object.assign(draft, record);
+              }
+            });
           }
         } catch (error) {
           console.warn('[Offline Sync] Failed to update TanStack DB schedule collection:', error);

@@ -5,11 +5,10 @@ import { flushPersonalData } from '@/lib/flush-personal-data';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { defaultShouldDehydrateQuery } from '@tanstack/react-query';
+import { defaultShouldDehydrateQuery, QueryClientContext } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
-import * as TRPCReactModule from '@trpc/react-query';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import { signOut } from 'next-auth/react';
@@ -217,6 +216,17 @@ const persistOptions = {
       if (query.queryKey[0] === 'qrCodeSvgImage') {
         return false;
       }
+      // The offline sync calls schedule.getById.setData() for every entry, which duplicates the
+      // whole schedule a second time inside this blob — roughly 500 entries carrying Lexical
+      // descriptions. The blob is written and parsed as a single unit, so that duplication is
+      // paid again on every persist and on every startup, and until the parse completes no
+      // cached value is available and the schedule view loses the race to the network.
+      // Nothing is lost offline: the entry list itself is still persisted, the detail views
+      // already fall back to finding the entry in that list, and TanStack DB keeps its own copy.
+      const trpcPath = Array.isArray(query.queryKey[0]) ? (query.queryKey[0] as string[]) : [];
+      if (trpcPath[0] === 'schedule' && trpcPath[1] === 'getById') {
+        return false;
+      }
       return (
         defaultShouldDehydrateQuery(query) ||
         query.state.fetchStatus === 'paused' ||
@@ -248,13 +258,18 @@ export const TRPCProvider: React.FC<{
   );
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-const RealTRPCContext = (TRPCReactModule as any).TRPCContext as React.Context<unknown> | undefined;
-const fallbackContext = React.createContext<unknown>(undefined);
-
+/**
+ * Returns the tRPC utils, or undefined when rendered outside {@link TRPCProvider}.
+ *
+ * Detection goes through `QueryClientContext` because @trpc/react-query v11 does not export a
+ * context to read. The previous implementation looked for `TRPCContext` on the module, which
+ * does not exist there, so it resolved to undefined for every caller and silently disabled
+ * every consumer — `refreshAndOptimisticallyUpdateChat` never received utils. TRPCProvider
+ * renders PersistQueryClientProvider, so a QueryClient in scope means the tRPC provider is too.
+ */
 export function useOptionalTrpcUtils(): ReturnType<typeof trpc.useUtils> | undefined {
-  const context = React.useContext(RealTRPCContext ?? fallbackContext);
-  if (context === undefined || context === null) {
+  const queryClient = React.useContext(QueryClientContext);
+  if (queryClient === undefined) {
     return undefined;
   }
   return trpc.useUtils();

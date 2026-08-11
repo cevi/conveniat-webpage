@@ -88,8 +88,8 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
   const { data: scheduleList } = trpc.schedule.getScheduleEntries.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
 
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
   const trpcDirectEntries = trpcUtils.schedule.getScheduleEntries.getData();
   const listCachedEntry =
