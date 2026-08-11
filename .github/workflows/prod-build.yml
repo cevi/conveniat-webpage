@@ -18,10 +18,11 @@ jobs:
         with:
           node-version: 24.x
 
+      # No `version:` — action-setup reads the `packageManager` field in
+      # package.json. Pinning a different major here makes every pnpm call in
+      # this job fail, which leaves STORE_PATH empty below.
       - name: 📦 Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
+        uses: pnpm/action-setup@v6
 
       - name: 💾 Get pnpm store directory
         id: pnpm-cache
