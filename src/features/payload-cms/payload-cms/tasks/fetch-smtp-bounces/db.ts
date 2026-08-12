@@ -67,7 +67,9 @@ export const updateTrackingRecords = async (
       });
       return true;
     } catch {
-      payload.logger.info({
+      // Fires per scanned message on every bounce check, on every replica, and says
+      // nothing actionable — the per-run summary already reports the ignored count.
+      payload.logger.debug({
         msg: `Bounce tracking ID ${envelopeId} not found, likely belongs to another instance`,
       });
       return false;

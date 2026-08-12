@@ -4,11 +4,14 @@
 import { FileSystemCache } from '@/cache-handlers/handlers/file-system';
 import { RedisCache } from '@/cache-handlers/handlers/redis';
 import type { CacheEntry, CacheOrchestrator, Timestamp } from '@/cache-handlers/types';
+import { createLogger } from '@/utils/server-logger';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const isBuild =
   // eslint-disable-next-line n/no-process-env
   process.env['NEXT_PHASE'] === PHASE_PRODUCTION_BUILD || process.argv.includes('build');
+
+const logger = createLogger('cache:orchestrator');
 
 export class Orchestrator implements CacheOrchestrator {
   private readonly fsCache: FileSystemCache;
@@ -17,18 +20,19 @@ export class Orchestrator implements CacheOrchestrator {
   private readonly instanceId = Math.random().toString(36).slice(7);
 
   constructor() {
-    console.log(
-      `[Orchestrator] Initializing Cache Manager - Mode: ${isBuild ? 'BUILD' : 'RUNTIME'} (PID: ${process.pid}, Instance: ${this.instanceId})`,
-    );
+    logger.info('Initializing cache manager', {
+      'cache.mode': isBuild ? 'BUILD' : 'RUNTIME',
+      'cache.instance': this.instanceId,
+    });
     this.fsCache = new FileSystemCache();
 
     if (!isBuild) {
       this.redisCache = new RedisCache();
     }
 
-    console.log(
-      `[Orchestrator] Cache Manager initialized with layers: ${isBuild ? 'FileSystem' : 'Redis, FileSystem'}`,
-    );
+    logger.info('Cache manager initialized', {
+      'cache.layers': isBuild ? 'FileSystem' : 'Redis, FileSystem',
+    });
   }
 
   /**
@@ -100,13 +104,13 @@ export class Orchestrator implements CacheOrchestrator {
       } else {
         // Persist to appropriate layer
         if (!this.redisCache) {
-          console.warn('[Orchestrator] RedisCache not initialized for SET operation');
+          logger.warn('RedisCache not initialized for SET operation', { 'cache.key': cacheKey });
           return;
         }
         await this.redisCache.set(cacheKey, valueBuffer, entry);
       }
     } catch (error) {
-      console.error(`[Orchestrator] SET Error for ${cacheKey}:`, error);
+      logger.error('SET failed', { 'cache.key': cacheKey, error });
     } finally {
       resolveLock();
       if (this.pendingSets.get(cacheKey) === lock) {
@@ -137,7 +141,7 @@ export class Orchestrator implements CacheOrchestrator {
     // This is called when revalidation happens.
     // We strictly invalidate the keys associated with these tags.
     if (!this.redisCache) {
-      console.warn('[Orchestrator] RedisCache not initialized for tag update');
+      logger.warn('RedisCache not initialized for tag update');
       return;
     }
     await this.redisCache.invalidateTags(tags);
@@ -146,7 +150,7 @@ export class Orchestrator implements CacheOrchestrator {
   async revalidateTag(tag: string): Promise<void> {
     // Manually trigger invalidation
     if (!this.redisCache) {
-      console.warn('[Orchestrator] RedisCache not initialized for tag update');
+      logger.warn('RedisCache not initialized for tag update');
       return;
     }
     await this.redisCache.invalidateTags([tag]);

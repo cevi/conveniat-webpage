@@ -1,4 +1,7 @@
 import type { CacheEntry, InternalCacheHandler } from '@/cache-handlers/types';
+import { createLogger } from '@/utils/server-logger';
+
+const logger = createLogger('cache:handler');
 
 export abstract class BaseCacheHandler implements InternalCacheHandler {
   abstract name: string;
@@ -38,7 +41,7 @@ export abstract class BaseCacheHandler implements InternalCacheHandler {
 
       // Basic validation
       if (!metadata || typeof metadata !== 'object') {
-        console.error(`[${this.name}] Invalid metadata format`);
+        logger.error('Invalid metadata format', { 'cache.handler': this.name });
         return undefined;
       }
 
@@ -47,7 +50,7 @@ export abstract class BaseCacheHandler implements InternalCacheHandler {
 
       return { value, metadata: validatedMetadata };
     } catch (error) {
-      console.error(`[${this.name}] Deserialization failed`, error);
+      logger.error('Deserialization failed', { 'cache.handler': this.name, error });
       return undefined;
     }
   }

@@ -72,6 +72,20 @@ src/
 
 ---
 
-## 5. Detailed Coding Standards
+## 5. Logging
+
+Server-side code logs through a logger, never `console.log` / `info` / `debug` / `trace` (ESLint enforces this):
+
+- **`req.payload.logger`** where a Payload request is in scope.
+- **`createLogger(name)` from `@/utils/server-logger`** everywhere else on the server.
+
+Both reach Loki with trace correlation and real levels; plain `console.log` reaches neither. Anything that fires
+per request, per render or per cache write belongs at `debug`, and `console.error` is never the way to make a
+debug line visible — it destroys the error rate as a signal. Browser and service-worker code keeps `console.*`.
+See the Logging section of [.github/copilot-instructions.md](file:///.github/copilot-instructions.md).
+
+---
+
+## 6. Detailed Coding Standards
 
 For complete architectural conventions, component guidelines, Tailwind usage (`cn()`), static i18n rules, and custom hook requirements, consult [.github/copilot-instructions.md](file:///.github/copilot-instructions.md).
