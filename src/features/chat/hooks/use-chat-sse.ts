@@ -36,6 +36,29 @@ let currentSubscribedIds = new Set<string>();
 let updateTimeout: ReturnType<typeof setTimeout> | undefined;
 let hasConnectedBefore = false;
 
+/**
+ * Tells every subscriber to refetch, because the stream may have missed events -
+ * either it was down and reconnected, or the server signalled a delivery gap.
+ */
+const notifyReconnectListeners = (): void => {
+  for (const listener of activeReconnectListeners) {
+    try {
+      listener();
+    } catch (error) {
+      console.error('[Chat][SSE] Reconnect listener failed:', error);
+    }
+  }
+};
+
+/**
+ * The server lost and re-established its Postgres LISTEN connection while this
+ * stream stayed open: no error, no reconnect, just a gap in the delivered events.
+ */
+const handleServerResync = (): void => {
+  console.warn('[Chat][SSE] Server signalled a delivery gap, refetching');
+  notifyReconnectListeners();
+};
+
 const handleError = (): void => {
   const allSubscribedIds = [...activeChatSubscribers.keys()].map((id) => id.trim()).filter(Boolean);
   if (allSubscribedIds.length === 0) {
@@ -92,13 +115,7 @@ function updateGlobalEventSource(currentUser: string): void {
     const handleOpen = (): void => {
       console.log(`[Chat][SSE] Stream connected (subscribed chats: ${idsArray.join(', ')})`);
       if (hasConnectedBefore) {
-        for (const listener of activeReconnectListeners) {
-          try {
-            listener();
-          } catch (error) {
-            console.error('[Chat][SSE] Reconnect listener failed:', error);
-          }
-        }
+        notifyReconnectListeners();
       }
       hasConnectedBefore = true;
     };
@@ -134,6 +151,7 @@ function updateGlobalEventSource(currentUser: string): void {
 
     eventSource.addEventListener('open', handleOpen);
     eventSource.addEventListener('message', handleMessage);
+    eventSource.addEventListener('resync', handleServerResync);
     eventSource.addEventListener('error', handleError);
   }, 0);
 }

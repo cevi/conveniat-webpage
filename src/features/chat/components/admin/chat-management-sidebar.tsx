@@ -1,3 +1,5 @@
+import { RealtimeStatusBadge } from '@/features/chat/components/admin/realtime-status-badge';
+import type { RealtimeConnectionStatus } from '@/features/chat/hooks/use-admin-realtime-connection';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatStatus } from '@/lib/chat-shared';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -82,6 +84,9 @@ interface ChatManagementSidebarProperties {
   showClosed: boolean;
   onShowClosedChange: (show: boolean) => void;
   locale: Locale;
+  realtimeStatus: RealtimeConnectionStatus;
+  lastSignalAt: number | undefined;
+  onReconnect: () => void;
 }
 
 export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = ({
@@ -97,6 +102,9 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
   showClosed,
   onShowClosedChange,
   locale,
+  realtimeStatus,
+  lastSignalAt,
+  onReconnect,
 }) => {
   const scrollContainerReference = React.useRef<HTMLDivElement>(null);
 
@@ -134,17 +142,25 @@ export const ChatManagementSidebar: React.FC<ChatManagementSidebarProperties> = 
       <div className="space-y-4 border-b border-(--theme-border-color) p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-(--theme-elevation-900)">{title}</h2>
-          <button
-            onClick={onRefresh}
-            disabled={loadingChats || loadingMessages}
-            className="cursor-pointer rounded p-2 text-(--theme-elevation-500) transition-colors hover:bg-(--theme-elevation-100) hover:text-[var(--theme-elevation-800)] disabled:text-[var(--theme-elevation-300)]"
-            title={refreshLabel[locale]}
-          >
-            <RefreshCw
-              size={16}
-              className={`${loadingChats || loadingMessages ? 'animate-spin' : ''}`}
+          <div className="flex items-center gap-1">
+            <RealtimeStatusBadge
+              status={realtimeStatus}
+              lastSignalAt={lastSignalAt}
+              onReconnect={onReconnect}
+              locale={locale}
             />
-          </button>
+            <button
+              onClick={onRefresh}
+              disabled={loadingChats || loadingMessages}
+              className="cursor-pointer rounded p-2 text-(--theme-elevation-500) transition-colors hover:bg-(--theme-elevation-100) hover:text-[var(--theme-elevation-800)] disabled:text-[var(--theme-elevation-300)]"
+              title={refreshLabel[locale]}
+            >
+              <RefreshCw
+                size={16}
+                className={`${loadingChats || loadingMessages ? 'animate-spin' : ''}`}
+              />
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">

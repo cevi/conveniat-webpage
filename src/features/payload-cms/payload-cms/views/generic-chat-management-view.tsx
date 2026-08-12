@@ -94,6 +94,9 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
     sending,
     isClosing,
     isReopening,
+    realtimeStatus,
+    lastSignalAt,
+    reconnectRealtime,
     fetchChats,
     sendMessage,
     closeChat,
@@ -227,6 +230,9 @@ const GenericChatManagementContent: React.FC<GenericChatManagementViewProperties
           showClosed={showClosed}
           onShowClosedChange={setShowClosed}
           locale={locale}
+          realtimeStatus={realtimeStatus}
+          lastSignalAt={lastSignalAt}
+          onReconnect={reconnectRealtime}
         />
 
         {/* Right Column: Chat Details */}
