@@ -49,11 +49,16 @@ const toMainMenu = (header: Header): NonNullable<Header['mainMenu']> =>
 /**
  * The published menu, cached across requests.
  *
- * Tagged the same way as `readHeader` in `cached-globals.ts` — `payload` and `global:header` are
- * the tags the CMS hooks actually revalidate (`flush-page-cache-on-change.ts`). The previous
- * `cacheTag('header')` alone was dead: nothing in the repo calls `revalidateTag('header')`, so an
- * editor's change to the menu invalidated the inner `readHeader` entry but left this outer one in
- * place for the rest of its `cacheLife('hours')`.
+ * Tagged the same way as `readHeader` in `cached-globals.ts`. Note this is belt-and-braces rather
+ * than a fix: a nested `'use cache'` propagates its tags outwards
+ * (`propagateCacheLifeAndTagsToRevalidateStore` in Next's `use-cache-wrapper.js` unions the inner
+ * entry's tags into the outer one), so this entry already inherited `payload` / `global:header`
+ * from `readHeader` and was being invalidated with it. Declaring them here makes that legible and
+ * covers the one case where nothing is inherited: `getHeaderCached` short-circuits during the
+ * build phase without entering `readHeader`, so an entry written then would otherwise carry only
+ * the `header` tag — which nothing in this repo ever revalidates.
+ *
+ * The draft path had no such inheritance, which is what made it genuinely stale; see below.
  */
 const readPublishedMainMenuCached = async (
   locale: Locale,
