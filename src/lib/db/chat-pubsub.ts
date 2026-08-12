@@ -51,6 +51,7 @@ class ChatPubSub {
   private isListening = false;
   private connectingPromise: Promise<void> | undefined = undefined;
   private healthProbeInterval: NodeJS.Timeout | undefined = undefined;
+  private reconnectTimer: NodeJS.Timeout | undefined = undefined;
   private connectionListeners = new Set<() => void>();
   /** Set when a LISTEN connection is dropped, so the next successful connect can announce the gap. */
   private missedEventsDuringOutage = false;
@@ -141,11 +142,26 @@ class ChatPubSub {
       console.error('[ChatPubSub] Error ending bad PG client:', error);
     });
 
-    setTimeout(() => {
+    this.scheduleReconnect();
+  }
+
+  /**
+   * Keeps retrying until a LISTEN connection is back. Giving up after a single
+   * attempt would leave every open SSE stream permanently detached from Postgres
+   * whenever an outage outlasts that one retry.
+   */
+  private scheduleReconnect(): void {
+    if (this.reconnectTimer !== undefined) return;
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
       this.ensureListening().catch((error: unknown) => {
         console.error('[ChatPubSub] Reconnection attempt failed:', error);
+        this.scheduleReconnect();
       });
-    }, RECONNECT_DELAY_MS).unref();
+    }, RECONNECT_DELAY_MS);
+
+    this.reconnectTimer.unref();
   }
 
   private async ensureListening(): Promise<void> {
@@ -267,6 +283,10 @@ class ChatPubSub {
 
   public async close(): Promise<void> {
     this.stopHealthProbe();
+    if (this.reconnectTimer !== undefined) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
     if (this.pgClient) {
       try {
         await this.pgClient.end();

@@ -19,11 +19,26 @@ jest.mock('@/lib/db/prisma', () => ({
 type NotificationHandler = (message: { channel: string; payload?: string }) => void;
 const pgHandlers: Record<string, unknown> = {};
 
+/** Number of upcoming `connect()` calls that should fail, for the outage tests. */
+const pgConnectFailures = { remaining: 0 };
+const pgClientsCreated = { count: 0 };
+
+const connectMock = (): Promise<void> => {
+  if (pgConnectFailures.remaining > 0) {
+    pgConnectFailures.remaining -= 1;
+    return Promise.reject(new Error('connection refused'));
+  }
+  return Promise.resolve();
+};
+
 jest.mock('pg', () => ({
   __esModule: true,
   default: {
     Client: class {
-      public connect = jest.fn().mockResolvedValue(void 0);
+      public constructor() {
+        pgClientsCreated.count += 1;
+      }
+      public connect = jest.fn().mockImplementation(connectMock);
       public query = jest.fn().mockResolvedValue(void 0);
       public end = jest.fn().mockResolvedValue(void 0);
       public on(event: string, callback: unknown): void {
@@ -110,5 +125,48 @@ describe('ChatPubSub channel routing', () => {
     expect(chatListener).toHaveBeenCalledTimes(1);
 
     unsubscribeChat();
+  });
+});
+
+const flushPendingPromises = async (): Promise<void> => {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+};
+
+const failCurrentConnection = (): void => {
+  const handler = pgHandlers['error'] as (error: Error) => void;
+  handler(new Error('connection terminated unexpectedly'));
+};
+
+describe('ChatPubSub LISTEN recovery', () => {
+  it('keeps retrying until the LISTEN connection is back', async () => {
+    const unsubscribe = await chatPubSub.subscribe('chat-recovery', jest.fn());
+    const restored = jest.fn();
+    const unsubscribeRestored = chatPubSub.onConnectionRestored(restored);
+
+    jest.useFakeTimers();
+    try {
+      // The next reconnect attempt fails; without a retry loop the process would
+      // stay detached from Postgres while every SSE stream looks healthy.
+      pgConnectFailures.remaining = 1;
+      const clientsBefore = pgClientsCreated.count;
+
+      failCurrentConnection();
+
+      jest.advanceTimersByTime(5000);
+      await flushPendingPromises();
+      expect(pgClientsCreated.count).toBe(clientsBefore + 1);
+      expect(restored).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(5000);
+      await flushPendingPromises();
+      expect(pgClientsCreated.count).toBe(clientsBefore + 2);
+      expect(restored).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+      unsubscribeRestored();
+      unsubscribe();
+    }
   });
 });
