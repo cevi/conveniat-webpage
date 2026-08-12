@@ -15,7 +15,7 @@ import { cacheLife, cacheTag } from 'next/cache';
 
 import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import type React from 'react';
-import { cache } from 'react';
+import { cache, Suspense } from 'react';
 
 /**
  * Dynamic Payload CMS catch-all route handles dynamic slug resolution, locale switching,
@@ -209,16 +209,19 @@ export const generateMetadata = async ({
 
 /**
  *
- * Page component for the dynamic page route.
+ * Resolved body of the dynamic page route.
  *
  * This page is used as a fallback for all pages that aren't statically rendered using NextJS,
  * e.g. for all pages defined via PayloadCMS. The page resolves the url and maps it to the
  * corresponding page component defined for a given object in the CMS.
  *
+ * Everything that reads `params` or `searchParams` lives here rather than in `CMSPage`, because
+ * this component renders inside a `<Suspense>` boundary. See `CMSPage` below for why.
+ *
  * @param params - The parameters for the page route
  * @param searchParametersPromise - The search parameters for the page route
  */
-const CMSPage: React.FC<{
+const CMSPageContent: React.FC<{
   params: Promise<{
     slugs: string[] | undefined;
     locale: string;
@@ -351,6 +354,38 @@ const CMSPage: React.FC<{
   /////////////////////////////////////
   notFound();
 };
+
+/**
+ * Page component for the dynamic page route.
+ *
+ * This does nothing but hand `params` and `searchParams` to `CMSPageContent` *without awaiting
+ * them*, from inside a `<Suspense>` boundary.
+ *
+ * Under `cacheComponents`, reading request data outside a boundary makes the whole tree
+ * un-prerenderable: the prospective ("cache warming") prerender pass aborts at the first read,
+ * so every `'use cache'` call below it — the header, the footer, `getGenericPageBySlugCached`
+ * and the metadata readers — never gets warmed. The final prerender pass then misses every one
+ * of them, which is what "Unexpected cache miss after cache warming phase during prerendering"
+ * reports, and the page falls back to a fully dynamic render (~144 Mongo queries instead of 0).
+ *
+ * Awaiting here also blocked the *layout* from prerendering, since the layout cannot complete
+ * while its child holds the request. Keeping the await behind the boundary lets the shell
+ * prerender and only this subtree stream.
+ *
+ * @see https://nextjs.org/docs/messages/blocking-prerender-runtime
+ */
+const CMSPage: React.FC<{
+  params: Promise<{
+    slugs: string[] | undefined;
+    locale: string;
+    design: string;
+  }>;
+  searchParams: Promise<SearchParameters>;
+}> = ({ params, searchParams }) => (
+  <Suspense fallback={undefined}>
+    <CMSPageContent params={params} searchParams={searchParams} />
+  </Suspense>
+);
 
 // Optional: pre-render important pages at build time
 
