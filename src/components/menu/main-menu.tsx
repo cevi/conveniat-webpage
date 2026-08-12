@@ -550,6 +550,60 @@ const MenuItemsList = async ({
   );
 };
 
+/**
+ * The admin-only half of the menu: the draft/published switcher.
+ *
+ * This exists as its own component, behind a `<Suspense>` boundary, because it is the only part
+ * of the menu that depends on who is asking. Two things have to stay inside that boundary:
+ *
+ * 1. `isAdminSession()` reads cookies. Per the Cache Components authentication guide, "a request
+ *    read can't be part of the static shell, so it always sits behind a `<Suspense>` boundary".
+ * 2. `getMainMenuFromPayloadCached(locale, true)` is a `'use cache'` call made *only* for admins.
+ *    Gating a cached call on a request read is what produced "Unexpected cache miss after cache
+ *    warming phase during prerendering": the warming pass resolved `isAdmin` differently from the
+ *    final pass, so the draft entry was never warmed and the final pass could not find it. The
+ *    same hazard is already documented on `[locale]/[design]/layout.tsx` — "skipping a cached
+ *    call on one prerender pass and making it on the other".
+ *
+ * Behind the boundary this subtree is a dynamic hole, so the read happens at request time against
+ * the real cache handler and there is no warming expectation to violate.
+ */
+const AdminAwareMenuSection: React.FC<{
+  locale: Locale;
+  inAppDesign: boolean;
+  publishedMenu: NonNullable<Header['mainMenu']>;
+}> = async ({ locale, inAppDesign, publishedMenu }) => {
+  const isAdmin = !inAppDesign && (await isAdminSession());
+
+  if (!isAdmin) {
+    return (
+      <MenuItemsList
+        locale={locale}
+        mainMenuWithFallback={publishedMenu}
+        showPreviewForMainMenu={false}
+      />
+    );
+  }
+
+  const draftMenuRaw = await getMainMenuFromPayloadCached(locale, true);
+  const draftMenu = Array.isArray(draftMenuRaw) ? draftMenuRaw : publishedMenu;
+
+  return (
+    <PreviewMenuSwitcher
+      publishedMenu={
+        <MenuItemsList
+          locale={locale}
+          mainMenuWithFallback={publishedMenu}
+          showPreviewForMainMenu={false}
+        />
+      }
+      draftMenu={
+        <MenuItemsList locale={locale} mainMenuWithFallback={draftMenu} showPreviewForMainMenu />
+      }
+    />
+  );
+};
+
 export const MainMenu: React.FC<{
   locale: Locale;
   inAppDesign: boolean;
@@ -557,17 +611,9 @@ export const MainMenu: React.FC<{
   const build = await getBuildInfo(locale);
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
-  // if the user is logged in as admin, we fetch both preview and published menus
-  const isAdmin = !inAppDesign && (await isAdminSession());
-
+  // Unconditional, so this cached call is made identically on both prerender passes.
   const publishedMenuRaw = await getMainMenuFromPayloadCached(locale, false);
   const publishedMenu = Array.isArray(publishedMenuRaw) ? publishedMenuRaw : [];
-
-  let draftMenu = publishedMenu;
-  if (isAdmin) {
-    const draftMenuRaw = await getMainMenuFromPayloadCached(locale, true);
-    draftMenu = Array.isArray(draftMenuRaw) ? draftMenuRaw : [];
-  }
 
   return (
     <div
@@ -590,30 +636,27 @@ export const MainMenu: React.FC<{
             <h3 className="text-conveniat-green mb-2 font-bold">{webContentTitle[locale]}</h3>
           )}
 
-          {isAdmin ? (
-            <PreviewMenuSwitcher
-              publishedMenu={
-                <MenuItemsList
-                  locale={locale}
-                  mainMenuWithFallback={publishedMenu}
-                  showPreviewForMainMenu={false}
-                />
-              }
-              draftMenu={
-                <MenuItemsList
-                  locale={locale}
-                  mainMenuWithFallback={draftMenu}
-                  showPreviewForMainMenu
-                />
-              }
-            />
-          ) : (
-            <MenuItemsList
+          {/*
+            The fallback is the published menu, not a spinner or `undefined`: it is what every
+            non-admin ends up seeing anyway, so the shell carries the real menu and only the
+            admin switcher streams in. An empty fallback here would put a blank gap in the
+            prerendered shell on every navigation.
+          */}
+          <React.Suspense
+            fallback={
+              <MenuItemsList
+                locale={locale}
+                mainMenuWithFallback={publishedMenu}
+                showPreviewForMainMenu={false}
+              />
+            }
+          >
+            <AdminAwareMenuSection
               locale={locale}
-              mainMenuWithFallback={publishedMenu}
-              showPreviewForMainMenu={false}
+              inAppDesign={inAppDesign}
+              publishedMenu={publishedMenu}
             />
-          )}
+          </React.Suspense>
         </div>
       </div>
 
