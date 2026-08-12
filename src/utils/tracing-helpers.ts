@@ -15,10 +15,29 @@ export async function withSpan<T>(
   attributes?: Attributes,
 ): Promise<T> {
   // Skip tracing during build-time prerendering AND dev-mode prerendering.
-  // The OpenTelemetry tracer internally calls Date.now() inside startActiveSpan(),
-  // which Next.js 16 forbids in Server Components before accessing uncached data
-  // (cookies(), headers(), connection()) or fetch(). This affects both production
-  // builds (NEXT_PHASE === PHASE_PRODUCTION_BUILD) and dev-mode prerendering.
+  //
+  // `@opentelemetry/sdk-trace-base`'s Span constructor calls `Date.now()` unconditionally
+  // (Span.js: `const now = Date.now()`), and with `cacheComponents` Next.js replaces the global
+  // `Date` so that reading the clock counts as IO. What that costs depends *entirely* on the
+  // scope the span is created in — see `next/dist/server/node-environment-extensions/io-utils.js`:
+  //
+  //   - inside a `'use cache'` scope   -> store type is 'cache', the guard is a no-op. Tracing a
+  //                                       cached function is free, and the clock read is simply
+  //                                       cached along with everything else. Do NOT "fix" this by
+  //                                       hoisting `withSpan` outside the cache boundary: that
+  //                                       moves the `Date.now()` from a scope that ignores it into
+  //                                       one that aborts on it, i.e. exactly backwards.
+  //   - inside a prerender scope       -> store type is 'prerender' / 'prerender-runtime', and the
+  //     (an uncached Server Component)    guard calls `abortOnSynchronousPlatformIOAccess`, killing
+  //                                       the prerender pass at the first span. Every `'use cache'`
+  //                                       call below it then never warms, so the final prerender
+  //                                       pass misses them all.
+  //
+  // So this guard is about scope, not phase, and the phase check below is only an approximation:
+  // it covers the build and dev prerenders but NOT the production runtime prerender. Until there
+  // is a public API to detect a prerender scope, the rule is a convention: call `withSpan` from
+  // inside a `'use cache'` body, or from code that does not render (route handlers, jobs, Payload
+  // hooks, auth callbacks) — never from an uncached Server Component.
   // eslint-disable-next-line n/no-process-env
   if (isBuildPhase() || process.env['NODE_ENV'] === 'development') {
     const dummySpan: Span = {
