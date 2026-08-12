@@ -34,6 +34,29 @@ const sentText: StaticTranslationString = {
   fr: 'Envoyé',
 };
 
+const dialogDescriptionText: StaticTranslationString = {
+  de: 'Details und Status der Nachricht',
+  en: 'Message details and status',
+  fr: 'Détails et statut du message',
+};
+
+const statusLabels: Record<MessageEventType, StaticTranslationString> = {
+  [MessageEventType.CREATED]: { de: 'Wird gesendet', en: 'Sending', fr: 'Envoi en cours' },
+  [MessageEventType.STORED]: { de: 'Gesendet', en: 'Sent', fr: 'Envoyé' },
+  [MessageEventType.DISTRIBUTED]: { de: 'Zugestellt', en: 'Delivered', fr: 'Distribué' },
+  [MessageEventType.RECEIVED]: { de: 'Empfangen', en: 'Received', fr: 'Reçu' },
+  [MessageEventType.READ]: { de: 'Gelesen', en: 'Read', fr: 'Lu' },
+};
+
+/**
+ * Cached messages can carry a status this build does not know yet, so the lookup is
+ * widened to a string key and falls back to the raw value instead of crashing.
+ */
+const localizedStatus = (status: MessageEventType, locale: Locale): string => {
+  const labels: Partial<Record<string, StaticTranslationString>> = statusLabels;
+  return labels[status]?.[locale] ?? status;
+};
+
 /**
  * A full-screen overlay that displays message event timestamps and details.
  */
@@ -53,7 +76,7 @@ export const MessageInfoDropdown: React.FC<{
       <ChatDialogContent className="sm:max-w-md">
         <ChatDialogHeader>
           <ChatDialogTitle>{messageInfoText[locale]}</ChatDialogTitle>
-          <DialogDescription className="sr-only">Message details and status</DialogDescription>
+          <DialogDescription className="sr-only">{dialogDescriptionText[locale]}</DialogDescription>
         </ChatDialogHeader>
 
         <div className="space-y-6 py-4">
@@ -111,8 +134,8 @@ export const MessageInfoDropdown: React.FC<{
                 {message.status === MessageEventType.STORED && (
                   <Check className="h-4 w-4 text-gray-400" />
                 )}
-                <span className="font-body text-sm text-gray-500 capitalize">
-                  {message.status.toLowerCase()}
+                <span className="font-body text-sm text-gray-500">
+                  {localizedStatus(message.status, locale)}
                 </span>
               </div>
             </div>
