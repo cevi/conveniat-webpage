@@ -51,7 +51,7 @@ export async function sendFcmNotification(
       [key: string]: string | undefined;
     };
   },
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; errorCode?: string }> {
   const adminInstance = getFirebaseAdmin();
 
   if (!adminInstance) {
@@ -148,7 +148,16 @@ export async function sendFcmNotification(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // The Admin SDK reports the machine-readable reason on `errorInfo.code`
+    // (e.g. `messaging/registration-token-not-registered`). Only the human-readable message used
+    // to be returned, which left the caller string-matching on text like `NotRegistered` and
+    // unable to tell a permanently dead token from a transient failure.
+    const errorCode = (error as { errorInfo?: { code?: unknown } } | undefined)?.errorInfo?.code;
     console.error('Failed to send FCM notification:', error);
-    return { success: false, error: errorMessage };
+    return {
+      success: false,
+      error: errorMessage,
+      ...(typeof errorCode === 'string' && { errorCode }),
+    };
   }
 }

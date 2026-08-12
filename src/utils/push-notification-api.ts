@@ -307,7 +307,13 @@ export async function sendNotificationToSubscription(
           }),
         },
       });
-      if (!result.success) throw new Error(result.error);
+      if (!result.success) {
+        const fcmError: Error & { fcmErrorCode?: string } = new Error(
+          result.error ?? 'FCM send failed',
+        );
+        if (result.errorCode !== undefined) fcmError.fcmErrorCode = result.errorCode;
+        throw fcmError;
+      }
     } else {
       let webSub = subscription as webpush.PushSubscription;
       // If it's a Payload subscription, format it for web-push
@@ -390,15 +396,37 @@ export async function sendNotificationToSubscription(
       });
     }
 
-    // Auto-prune dead/expired tokens from Payload CMS
+    // Auto-prune dead/expired tokens from Payload CMS.
+    //
+    // FCM reports a dead token as the bare message `NotRegistered`, and a dead APNs token as
+    // `APNs device token is disabled.`. The previous checks were case-sensitive and expected
+    // hyphenated spellings, so neither matched: those subscriptions were never pruned and every
+    // later notification retried them forever, filling the logs with the same two errors.
+    // Prefer the machine-readable code and keep the message checks as a case-insensitive
+    // fallback for the web-push side.
+    const fcmErrorCode = (error as { fcmErrorCode?: string } | undefined)?.fcmErrorCode;
+    const normalizedMessage = errorMessage.toLowerCase();
+
+    const indicatesDeadToken =
+      normalizedMessage.includes('notregistered') ||
+      normalizedMessage.includes('not-registered') ||
+      normalizedMessage.includes('invalid-registration-token') ||
+      normalizedMessage.includes('registration-token-not-registered') ||
+      normalizedMessage.includes('device token is disabled') ||
+      normalizedMessage.includes('not a valid fcm registration token');
+
     const isExpired =
+      fcmErrorCode === 'messaging/registration-token-not-registered' ||
+      fcmErrorCode === 'messaging/invalid-registration-token' ||
+      // `invalid-argument` is also raised for a malformed payload, which is our bug and not the
+      // subscriber's - only treat it as fatal when the message actually names the token, so a
+      // bad payload can never delete healthy subscriptions.
+      (fcmErrorCode === 'messaging/invalid-argument' && indicatesDeadToken) ||
+      indicatesDeadToken ||
       errorMessage.includes('410') ||
       errorMessage.includes('404') ||
-      errorMessage.includes('not-registered') ||
-      errorMessage.includes('invalid-registration-token') ||
-      errorMessage.includes('registration-token-not-registered') ||
-      errorMessage.toLowerCase().includes('not found') ||
-      errorMessage.toLowerCase().includes('gone');
+      normalizedMessage.includes('not found') ||
+      normalizedMessage.includes('gone');
 
     if (isExpired) {
       console.log('[PushNotification:API] Auto-pruning expired push subscription');
