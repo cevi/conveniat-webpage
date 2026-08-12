@@ -88,6 +88,11 @@ Choose the level by how often the line fires: anything that fires per request, p
 logger call with attributes is better. Browser and service-worker code keeps using `console.*`; the server logger
 does not run there.
 
+Never reach for `console.error` to get a debug line into Loki. It is the one console method ESLint cannot stop
+you from abusing, and because it is the only one that ships, it is the one people reach for: three
+`console.error` calls tracing a tRPC query were 82% of everything production logged at error level over a 12h
+window, which makes the error rate useless as a signal. Log non-errors at `debug` through a logger instead.
+
 ### Styling with Tailwind CSS & cn()
 
 All styling must be done with Tailwind CSS. For conditional or combined classes, always use the cn() utility from

@@ -80,7 +80,8 @@ Server-side code logs through a logger, never `console.log` / `info` / `debug` /
 - **`createLogger(name)` from `@/utils/server-logger`** everywhere else on the server.
 
 Both reach Loki with trace correlation and real levels; plain `console.log` reaches neither. Anything that fires
-per request, per render or per cache write belongs at `debug`. Browser and service-worker code keeps `console.*`.
+per request, per render or per cache write belongs at `debug`, and `console.error` is never the way to make a
+debug line visible — it destroys the error rate as a signal. Browser and service-worker code keeps `console.*`.
 See the Logging section of [.github/copilot-instructions.md](file:///.github/copilot-instructions.md).
 
 ---
