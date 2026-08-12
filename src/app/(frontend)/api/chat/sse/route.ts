@@ -12,8 +12,11 @@ import superjson from 'superjson';
  */
 const HEARTBEAT_INTERVAL_MS = 20_000;
 
-/** Reserved key for the pub/sub reconnect subscription inside `activeListeners`. */
-const CONNECTION_RESTORED_KEY = '__connection_restored__';
+/**
+ * Reconnect interval handed to the client when the stream is closed because its
+ * subscriptions could not be established.
+ */
+const SUBSCRIBE_FAILURE_RETRY_MS = 5000;
 
 export async function GET(request: NextRequest): Promise<Response> {
   const session = await auth();
@@ -78,6 +81,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const encoder = new TextEncoder();
   let keepAliveInterval: NodeJS.Timeout | undefined = undefined;
   const activeListeners = new Map<string, () => void>();
+  let unsubscribeConnectionRestored: (() => void) | undefined = undefined;
   let cleanedUp = false;
   const isCleanedUp = (): boolean => cleanedUp;
 
@@ -92,6 +96,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (keepAliveInterval) {
       clearInterval(keepAliveInterval);
     }
+    unsubscribeConnectionRestored?.();
+    unsubscribeConnectionRestored = undefined;
     for (const unsubscribe of activeListeners.values()) {
       unsubscribe();
     }
@@ -147,8 +153,25 @@ export async function GET(request: NextRequest): Promise<Response> {
       if (isCleanedUp()) {
         unsubscribeRestored();
       } else {
-        activeListeners.set(CONNECTION_RESTORED_KEY, unsubscribeRestored);
+        unsubscribeConnectionRestored = unsubscribeRestored;
       }
+
+      /**
+       * A stream whose subscriptions failed delivers nothing while still looking
+       * perfectly healthy to the client - heartbeats keep arriving. Ending it instead
+       * lets the browser reconnect (paced by the `retry` hint) once the pub/sub
+       * backend is reachable again.
+       */
+      const failSubscription = (context: string, error: unknown): void => {
+        console.error(`[SSE] ${context}, closing the stream so the client reconnects:`, error);
+        write(`retry: ${SUBSCRIBE_FAILURE_RETRY_MS}\n\n`);
+        cleanup();
+        try {
+          controller.close();
+        } catch {
+          // Already closed by the client going away.
+        }
+      };
 
       // Automatically subscribe to the user's personal channel (user.uuid) to receive direct updates
       try {
@@ -159,7 +182,8 @@ export async function GET(request: NextRequest): Promise<Response> {
           activeListeners.set(user.uuid, unsubscribeUser);
         }
       } catch (error) {
-        console.error(`[SSE] Failed to subscribe to user channel ${user.uuid}:`, error);
+        failSubscription(`Failed to subscribe to user channel ${user.uuid}`, error);
+        return;
       }
 
       // Register subscriber for each chat channel
@@ -177,7 +201,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
           activeListeners.set(chatId, unsubscribe);
         } catch (error) {
-          console.error(`[SSE] Failed to subscribe to chat ${chatId}:`, error);
+          failSubscription(`Failed to subscribe to chat ${chatId}`, error);
+          return;
         }
       }
     },

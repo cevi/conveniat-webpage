@@ -154,6 +154,30 @@ describe('GET /api/chat/sse', () => {
     await reader?.cancel();
   });
 
+  it('ends the stream when the subscription fails, instead of serving a silent one', async () => {
+    const mockUser = { uuid: 'user-uuid-123', group_ids: [] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+    (chatPubSub.subscribe as unknown as jest.Mock).mockRejectedValueOnce(
+      new Error('pub/sub unavailable'),
+    );
+
+    const request = new NextRequest('https://konekta.ch/api/chat/sse');
+    const response = await GET(request);
+
+    const reader = response.body?.getReader();
+    let frames = '';
+    let done = false;
+    while (!done) {
+      const chunk = await reader?.read();
+      done = chunk?.done ?? true;
+      if (chunk?.value) frames += new TextDecoder().decode(chunk.value);
+    }
+
+    // A `retry:` hint paces the browser's own reconnect attempts.
+    expect(frames).toContain('retry:');
+  });
+
   it('tells the client to refetch when the pub/sub connection was re-established', async () => {
     const mockUser = { uuid: 'user-uuid-123', group_ids: [] };
     mockAuth.mockResolvedValue({ user: mockUser });
