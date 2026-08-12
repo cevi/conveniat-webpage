@@ -97,14 +97,8 @@ export const getHeaderCached = cache(
       return {} as Header;
     }
     // Preview reads must reflect unpublished edits immediately, so they skip the persistent cache.
-    //
-    // Deliberately not wrapped in `withSpan`: this branch runs in an *uncached* scope, and
-    // OpenTelemetry's Span constructor calls `Date.now()` unconditionally. In an uncached Server
-    // Component that aborts the prerender pass, whereas inside a `'use cache'` body it is a no-op
-    // — see the scope table on `withSpan` in `@/utils/tracing-helpers`. The published branch below
-    // keeps its span because it runs inside `readHeader`'s cache scope.
     if (draft) {
-      return await queryHeader(locale, true);
+      return await withSpan('getHeaderCached', async () => await queryHeader(locale, true));
     }
     return await readHeader(locale);
   },

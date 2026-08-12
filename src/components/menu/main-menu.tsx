@@ -43,54 +43,40 @@ const DeletedMenuEntry: React.FC<{ message: string; className?: string }> = ({
   );
 };
 
-const toMainMenu = (header: Header): NonNullable<Header['mainMenu']> =>
-  Array.isArray(header.mainMenu) ? header.mainMenu : [];
-
 /**
- * The published menu, cached across requests.
+ * The main menu, cached across requests — for the draft view as well as the published one.
  *
- * Tagged the same way as `readHeader` in `cached-globals.ts`. Note this is belt-and-braces rather
- * than a fix: a nested `'use cache'` propagates its tags outwards
+ * Both variants stay cached. A header read is expensive (`queryHeader` populates every
+ * `linkField.reference` in a four-level menu, ~33 Mongo round-trips, ~170ms), and `MainMenu`
+ * renders on every page, so making the admin view uncached would put that on every page load for
+ * editors. Freshness comes from invalidation instead.
+ *
+ * The tags are what makes that work, and the previous `cacheTag('header')` was the bug: nothing in
+ * this repo ever calls `revalidateTag('header')`. The published variant survived that mistake by
+ * accident — a nested `'use cache'` propagates its tags outwards
  * (`propagateCacheLifeAndTagsToRevalidateStore` in Next's `use-cache-wrapper.js` unions the inner
- * entry's tags into the outer one), so this entry already inherited `payload` / `global:header`
- * from `readHeader` and was being invalidated with it. Declaring them here makes that legible and
- * covers the one case where nothing is inherited: `getHeaderCached` short-circuits during the
- * build phase without entering `readHeader`, so an entry written then would otherwise carry only
- * the `header` tag — which nothing in this repo ever revalidates.
+ * entry's tags into the outer one), so it inherited `payload` / `global:header` from `readHeader`.
+ * The draft variant has no inner cached call to inherit from — `getHeaderCached` short-circuits
+ * straight to `queryHeader` for drafts — so it carried only the dead tag and went stale for a full
+ * `cacheLife('hours')`. That is what pinned admin previews to hour-old drafts.
  *
- * The draft path had no such inheritance, which is what made it genuinely stale; see below.
- */
-const readPublishedMainMenuCached = async (
-  locale: Locale,
-): Promise<NonNullable<Header['mainMenu']>> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'header', 'global:header');
-
-  return toMainMenu(await getHeaderCached(locale, false));
-};
-
-/**
- * The draft branch deliberately has no `'use cache'`.
- *
- * `getHeaderCached(locale, true)` already skips the persistent layer so an editor sees
- * unpublished edits immediately; wrapping it in a cached function re-cached exactly what it went
- * out of its way not to cache, and under a tag nothing revalidates. The result was an admin
- * preview menu pinned for up to an hour.
- *
- * Keeping the cached call out of this branch also means the set of `'use cache'` calls made by a
- * render no longer depends on who is asking, which is one fewer way for the two prerender passes
- * to disagree.
+ * Declaring the real tags here fixes the draft variant and makes the published one explicit rather
+ * than dependent on propagation. `flushPageCacheOnChangeGlobal` fires both on every save of the
+ * header global, and Payload runs global `afterChange` hooks unconditionally — the draft/autosave
+ * path is not excluded (`payload/dist/globals/operations/update.js`) — so an editor's keystroke
+ * evicts this entry and the next render rebuilds it.
  */
 export const getMainMenuFromPayloadCached = async (
   locale: Locale,
   showPreviewForMainMenu: boolean,
 ): Promise<NonNullable<Header['mainMenu']>> => {
-  if (showPreviewForMainMenu) {
-    return toMainMenu(await getHeaderCached(locale, true));
-  }
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'header', 'global:header');
 
-  return await readPublishedMainMenuCached(locale);
+  const header = await getHeaderCached(locale, showPreviewForMainMenu);
+  const mainMenu = header.mainMenu;
+  return Array.isArray(mainMenu) ? mainMenu : [];
 };
 
 const webContentTitle: StaticTranslationString = {
@@ -594,10 +580,12 @@ export const MainMenu: React.FC<{
   const build = await getBuildInfo(locale);
   const actionURL = specialPagesTable['search']?.alternatives[locale] ?? '/suche';
 
-  // Start the published-menu read before the session read, not after it. This is the one cached
-  // call every render needs, and it does not depend on who is asking, so there is no reason for
-  // it to queue behind `isAdminSession()`. Ordering it first also means it is already resolved
-  // when a prerender's cache-warming pass stops waiting, rather than not yet started.
+  // Start the published-menu read before the session read, not after it. This is not a latency
+  // win — both are sequential awaits either way — it is about which one gets *initiated*. A
+  // prerender's cache-warming pass stops at `cacheSignal.cacheReady()`, which waits for cache
+  // reads that are in flight but not for ones that have not started yet. Behind
+  // `await isAdminSession()` this read could still be unstarted at that point and so never warm;
+  // in front of it, it is always in flight. It needs no session data, so nothing is lost.
   const publishedMenu = await getMainMenuFromPayloadCached(locale, false);
 
   // if the user is logged in as admin, we fetch both preview and published menus
