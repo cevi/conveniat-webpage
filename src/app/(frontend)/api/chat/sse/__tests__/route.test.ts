@@ -34,6 +34,7 @@ jest.mock('@/utils/auth-helpers', () => ({
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: {
     subscribe: jest.fn().mockResolvedValue(jest.fn()),
+    onConnectionRestored: jest.fn().mockReturnValue(jest.fn()),
   },
 }));
 
@@ -132,5 +133,51 @@ describe('GET /api/chat/sse', () => {
 
     expect(response.status).toBe(200);
     expect(chatPubSub.subscribe).toHaveBeenCalledWith(objectId, expect.any(Function));
+  });
+
+  it('opens the stream with a heartbeat event, so clients can detect a dead connection', async () => {
+    const mockUser = { uuid: 'user-uuid-123', group_ids: [] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+
+    const request = new NextRequest('https://konekta.ch/api/chat/sse');
+    const response = await GET(request);
+
+    const reader = response.body?.getReader();
+    const firstChunk = await reader?.read();
+    const opening = new TextDecoder().decode(firstChunk?.value);
+    const secondChunk = await reader?.read();
+    const heartbeat = new TextDecoder().decode(secondChunk?.value);
+
+    expect(opening).toContain(':ok');
+    expect(heartbeat).toContain('event: heartbeat');
+    await reader?.cancel();
+  });
+
+  it('tells the client to refetch when the pub/sub connection was re-established', async () => {
+    const mockUser = { uuid: 'user-uuid-123', group_ids: [] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+
+    const request = new NextRequest('https://konekta.ch/api/chat/sse');
+    const response = await GET(request);
+
+    const restoredCalls = (chatPubSub.onConnectionRestored as unknown as jest.Mock).mock
+      .calls as (() => void)[][];
+    const onRestored = restoredCalls[0]?.[0];
+    if (onRestored === undefined) {
+      throw new Error('the route did not subscribe to pub/sub connection changes');
+    }
+
+    const reader = response.body?.getReader();
+    // Drain the opening frames (`:ok` and the first heartbeat) before the gap
+    // notification is written.
+    await reader?.read();
+    await reader?.read();
+    onRestored();
+    const chunk = await reader?.read();
+
+    expect(new TextDecoder().decode(chunk?.value)).toContain('event: resync');
+    await reader?.cancel();
   });
 });

@@ -38,15 +38,114 @@ export interface ChatRealtimeEvent {
   };
 }
 
+/** How often the LISTEN connection is probed with a round-trip query. */
+const HEALTH_PROBE_INTERVAL_MS = 30_000;
+/** A probe that does not answer within this window counts as a dead connection. */
+const HEALTH_PROBE_TIMEOUT_MS = 10_000;
+/** Delay before a recycled LISTEN connection is re-established. */
+const RECONNECT_DELAY_MS = 5000;
+
 class ChatPubSub {
   private emitter = new EventEmitter();
   private pgClient: pg.Client | undefined = undefined;
   private isListening = false;
   private connectingPromise: Promise<void> | undefined = undefined;
+  private healthProbeInterval: NodeJS.Timeout | undefined = undefined;
+  private connectionListeners = new Set<() => void>();
+  /** Set when a LISTEN connection is dropped, so the next successful connect can announce the gap. */
+  private missedEventsDuringOutage = false;
 
   constructor() {
     // Set to unlimited listeners to prevent memory leak warnings
     this.emitter.setMaxListeners(0);
+  }
+
+  /**
+   * Registers a callback that fires once the LISTEN connection has been
+   * re-established after an outage. Notifications published during the outage are
+   * lost, so subscribers have to treat this as "your view may be stale".
+   *
+   * @returns an unsubscribe function
+   */
+  public onConnectionRestored(listener: () => void): () => void {
+    this.connectionListeners.add(listener);
+    return (): void => {
+      this.connectionListeners.delete(listener);
+    };
+  }
+
+  private notifyConnectionRestored(): void {
+    for (const listener of this.connectionListeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.error('[ChatPubSub] Connection-restored listener failed:', error);
+      }
+    }
+  }
+
+  private stopHealthProbe(): void {
+    if (this.healthProbeInterval) {
+      clearInterval(this.healthProbeInterval);
+      this.healthProbeInterval = undefined;
+    }
+  }
+
+  /**
+   * A LISTEN connection can go half-open - an idle NAT mapping expiring, a peer
+   * disappearing without an RST - without `pg` ever emitting `error`. `isListening`
+   * then stays true while no notification ever arrives again, and every SSE stream in
+   * this process goes quiet until a restart. Only a round-trip query detects that.
+   */
+  private startHealthProbe(client: pg.Client): void {
+    this.stopHealthProbe();
+
+    this.healthProbeInterval = setInterval((): void => {
+      let timeoutHandle: NodeJS.Timeout | undefined = undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(
+          () => reject(new Error('health probe timed out')),
+          HEALTH_PROBE_TIMEOUT_MS,
+        );
+      });
+
+      Promise.race([client.query('SELECT 1'), timeout])
+        .catch((error: unknown) => {
+          this.recycleClient(client, `health probe failed: ${String(error)}`);
+        })
+        .finally(() => {
+          if (timeoutHandle) clearTimeout(timeoutHandle);
+        });
+    }, HEALTH_PROBE_INTERVAL_MS);
+
+    this.healthProbeInterval.unref();
+  }
+
+  /**
+   * Tears down a LISTEN connection that can no longer be trusted and schedules a
+   * fresh one. Safe to call for a client that has already been replaced.
+   */
+  private recycleClient(client: pg.Client, reason: string): void {
+    console.error(`[ChatPubSub] Recycling PG LISTEN connection (${reason})`);
+
+    if (this.pgClient === client) {
+      this.stopHealthProbe();
+      this.pgClient = undefined;
+      this.isListening = false;
+      this.connectingPromise = undefined;
+      this.missedEventsDuringOutage = true;
+    }
+
+    // Explicitly close the client to release connection handles and event listeners
+    client.end().catch((error: unknown) => {
+      console.error('[ChatPubSub] Error ending bad PG client:', error);
+    });
+
+    setTimeout(() => {
+      this.ensureListening().catch((error: unknown) => {
+        console.error('[ChatPubSub] Reconnection attempt failed:', error);
+      });
+    }, RECONNECT_DELAY_MS).unref();
   }
 
   private async ensureListening(): Promise<void> {
@@ -61,6 +160,8 @@ class ChatPubSub {
       try {
         const client = new pg.Client({
           connectionString: environmentVariables.CHAT_DATABASE_URL,
+          keepAlive: true,
+          keepAliveInitialDelayMillis: 30_000,
         });
 
         await client.connect();
@@ -83,34 +184,18 @@ class ChatPubSub {
         });
 
         client.on('error', (error: Error) => {
-          console.error('[ChatPubSub] Dedicated PG client error:', error);
-
-          // Explicitly close the errored client to release connection handles and event listeners
-          try {
-            client.end().catch((error_: unknown) => {
-              console.error('[ChatPubSub] Error ending bad PG client:', error_);
-            });
-          } catch {
-            // Ignore synchronous errors
-          }
-
-          if (this.pgClient === client) {
-            this.pgClient = undefined;
-          }
-
-          this.isListening = false;
-          this.connectingPromise = undefined;
-          // Attempt reconnection after delay
-          setTimeout(() => {
-            this.ensureListening().catch((error_: unknown) => {
-              console.error('[ChatPubSub] Reconnection attempt failed:', error_);
-            });
-          }, 5000);
+          this.recycleClient(client, `client error: ${error.message}`);
         });
 
         this.pgClient = client;
         this.isListening = true;
+        this.startHealthProbe(client);
         console.log('[ChatPubSub] Successfully listening to PG chat_events');
+
+        if (this.missedEventsDuringOutage) {
+          this.missedEventsDuringOutage = false;
+          this.notifyConnectionRestored();
+        }
       } catch (error) {
         console.error('[ChatPubSub] Failed to start PG LISTEN connection:', error);
         this.connectingPromise = undefined;
@@ -181,6 +266,7 @@ class ChatPubSub {
   }
 
   public async close(): Promise<void> {
+    this.stopHealthProbe();
     if (this.pgClient) {
       try {
         await this.pgClient.end();

@@ -6,6 +6,15 @@ import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { type NextRequest } from 'next/server';
 import superjson from 'superjson';
 
+/**
+ * Cadence of the `heartbeat` frames that let a client detect a stream which is still
+ * open but no longer delivering anything.
+ */
+const HEARTBEAT_INTERVAL_MS = 20_000;
+
+/** Reserved key for the pub/sub reconnect subscription inside `activeListeners`. */
+const CONNECTION_RESTORED_KEY = '__connection_restored__';
+
 export async function GET(request: NextRequest): Promise<Response> {
   const session = await auth();
   const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
@@ -94,15 +103,29 @@ export async function GET(request: NextRequest): Promise<Response> {
       // Send initial handshake comment
       controller.enqueue(encoder.encode(':ok\n\n'));
 
-      // Keepalive heartbeat to prevent timeouts (every 30 seconds)
-      keepAliveInterval = setInterval(() => {
+      const write = (frame: string): boolean => {
         try {
-          controller.enqueue(encoder.encode(':keepalive\n\n'));
+          controller.enqueue(encoder.encode(frame));
+          return true;
         } catch {
           // Stream might be already closed, handled in cancel/abort
           cleanup();
+          return false;
         }
-      }, 30_000);
+      };
+
+      // Named heartbeat rather than a `:keepalive` comment: comments keep the
+      // connection warm but are invisible to `EventSource`, so a client cannot tell a
+      // silently dead stream apart from a quiet one. Clients time out after three
+      // missed beats; keep HEARTBEAT_INTERVAL_MS and that watchdog in sync.
+      const sendHeartbeat = (): void => {
+        write(`event: heartbeat\ndata: ${JSON.stringify({ at: Date.now() })}\n\n`);
+      };
+
+      sendHeartbeat();
+      keepAliveInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS);
+      // The open request keeps the process alive on its own; the timer must not.
+      keepAliveInterval.unref();
 
       const listener = (event: ChatRealtimeEvent): void => {
         try {
@@ -110,8 +133,22 @@ export async function GET(request: NextRequest): Promise<Response> {
           controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));
         } catch (error) {
           console.error('[SSE] Failed to write event to stream controller:', error);
+          // A closed controller never recovers; releasing the subscriptions here keeps
+          // the process from holding listeners for a stream nobody reads anymore.
+          cleanup();
         }
       };
+
+      // The Postgres LISTEN connection behind the pub/sub can be recycled while this
+      // stream stays open. Nothing is replayed, so tell the client to refetch.
+      const unsubscribeRestored = chatPubSub.onConnectionRestored((): void => {
+        write('event: resync\ndata: {}\n\n');
+      });
+      if (isCleanedUp()) {
+        unsubscribeRestored();
+      } else {
+        activeListeners.set(CONNECTION_RESTORED_KEY, unsubscribeRestored);
+      }
 
       // Automatically subscribe to the user's personal channel (user.uuid) to receive direct updates
       try {
