@@ -1,5 +1,4 @@
 import type { ChatMessage } from '@/features/chat/api/types';
-import type { RealtimeConnectionStatus } from '@/features/chat/hooks/use-admin-realtime-connection';
 import { useAdminRealtimeConnection } from '@/features/chat/hooks/use-admin-realtime-connection';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { generateMessageId, mergeStoredMessage } from '@/features/chat/utils';
@@ -8,6 +7,7 @@ import {
   playMessageTone,
   unlockNotificationSounds,
 } from '@/features/chat/utils/notification-sounds';
+import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
 import { ChatStatus, SYSTEM_MSG_TYPE_EMERGENCY_ALERT, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
