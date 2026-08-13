@@ -15,6 +15,17 @@ const RECONNECT_BASE_DELAY_MS = 1000;
 const RECONNECT_MAX_DELAY_MS = 30_000;
 
 /**
+ * Window the refetch that follows a gap is spread over.
+ *
+ * Every client loses its stream at the same instant when a replica restarts, and each
+ * one answers with a full resync - the chat list, plus the messages and details of
+ * every subscribed chat. Firing those the moment the stream reopens points the whole
+ * fleet at a process that has just started. Well under a second of added staleness
+ * buys a burst spread across seconds instead.
+ */
+const RESYNC_JITTER_MS = 3000;
+
+/**
  * `EventSource.CLOSED`, spelled out so the check does not depend on the constant
  * existing on the global (it does not in every test environment).
  */
@@ -79,6 +90,7 @@ export const createRealtimeConnection = ({
   let status: RealtimeConnectionStatus = 'connecting';
   let lastSignalAt: number | undefined = undefined;
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  let resyncTimer: ReturnType<typeof setTimeout> | undefined = undefined;
   let watchdogTimer: ReturnType<typeof setInterval> | undefined = undefined;
   let reconnectAttempts = 0;
   let hasConnectedBefore = false;
@@ -109,13 +121,40 @@ export const createRealtimeConnection = ({
     watchdogTimer = undefined;
   };
 
+  const clearResyncTimer = (): void => {
+    if (resyncTimer === undefined) return;
+    clearTimeout(resyncTimer);
+    resyncTimer = undefined;
+  };
+
+  /**
+   * Queues the refetch that follows a delivery gap.
+   *
+   * Deferred by a random slice of {@link RESYNC_JITTER_MS} so that a fleet-wide
+   * reconnect does not turn into a fleet-wide refetch at the same instant, and
+   * collapsed while one is already pending: reopening the stream and receiving a
+   * `resync` frame describe the same gap and only need one refetch between them.
+   */
+  const requestResync = (): void => {
+    if (resyncTimer !== undefined) return;
+
+    resyncTimer = setTimeout(() => {
+      resyncTimer = undefined;
+      onResync();
+    }, Math.random() * RESYNC_JITTER_MS);
+  };
+
   const scheduleReconnect = (): void => {
     if (url === undefined) return;
     if (reconnectTimer !== undefined) return;
 
     const attempt = reconnectAttempts;
     reconnectAttempts = attempt + 1;
-    const delay = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** attempt, RECONNECT_MAX_DELAY_MS);
+    const ceiling = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** attempt, RECONNECT_MAX_DELAY_MS);
+    // Equal jitter: half the backoff is fixed, half is random. Full randomisation
+    // would let a failing endpoint be retried almost immediately, while no jitter at
+    // all keeps every client that dropped together retrying together, forever.
+    const delay = ceiling / 2 + Math.random() * (ceiling / 2);
 
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined;
@@ -147,7 +186,7 @@ export const createRealtimeConnection = ({
       connect();
       return;
     }
-    onResync();
+    requestResync();
   };
 
   const attachWakeListeners = (): void => {
@@ -194,7 +233,7 @@ export const createRealtimeConnection = ({
       // Anything published while the stream was down was never delivered and is not
       // replayed, so a reconnect is only correct if it is followed by a refetch.
       if (hasConnectedBefore) {
-        onResync();
+        requestResync();
       }
       hasConnectedBefore = true;
     });
@@ -208,7 +247,7 @@ export const createRealtimeConnection = ({
     nextSource.addEventListener('resync', (): void => {
       console.warn(`${logPrefix} Server signalled a delivery gap, refetching`);
       markAlive();
-      onResync();
+      requestResync();
     });
 
     nextSource.addEventListener('message', (event): void => {
@@ -236,6 +275,7 @@ export const createRealtimeConnection = ({
 
   const teardown = (): void => {
     clearReconnectTimer();
+    clearResyncTimer();
     stopWatchdog();
     detachWakeListeners();
     source?.close();
