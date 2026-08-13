@@ -21,7 +21,10 @@ jest.mock('firebase-admin', () => ({
 import { sendFcmNotification } from '@/lib/firebase-admin';
 
 interface SentMessage {
-  android?: { notification?: { channelId?: string; sound?: string }; priority?: string };
+  android?: {
+    notification?: { channelId?: string; sound?: string; priority?: string };
+    priority?: string;
+  };
   apns?: { payload?: { aps?: { sound?: string } } };
 }
 
@@ -52,8 +55,10 @@ describe('sendFcmNotification', () => {
     await sendFcmNotification('token-1', { title: 'Alarm', body: 'Einsatz', data: {} });
 
     const message = lastSentMessage();
-    // `sound` still matters below API 26, where channels do not exist.
+    // Below API 26 there is no channel, so sound and display priority carry the banner.
     expect(message.android?.notification?.sound).toBe('default');
+    expect(message.android?.notification?.priority).toBe('high');
+    // Delivery priority is a different field at a different nesting level.
     expect(message.android?.priority).toBe('high');
     // iOS has no channels; its sound must keep coming from the APNs payload.
     expect(message.apns?.payload?.aps?.sound).toBe('default');

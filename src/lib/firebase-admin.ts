@@ -148,8 +148,13 @@ export async function sendFcmNotification(
         notification: {
           title: payload.title,
           body: payload.body,
-          // Only honoured below API 26; from Android O on, the channel owns the sound.
+          // Both of these only matter below API 26, where notification channels do not
+          // exist yet: without them `NotificationCompat` defaults to PRIORITY_DEFAULT and
+          // shows no heads-up banner. From Android O on the channel owns sound and
+          // importance and both fields are ignored. Note this is the *display* priority,
+          // unlike `android.priority` above, which controls delivery.
           sound: 'default',
+          priority: 'high',
           channelId: ANDROID_NOTIFICATION_CHANNEL_ID,
         },
         data: {
