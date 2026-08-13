@@ -3,6 +3,13 @@ import type { PushNotificationSubscription } from '@/features/payload-cms/payloa
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
+/**
+ * Fan-out size that is worth a log line. Every subscription above this is another
+ * parallel FCM call further down, so a sudden jump is the first hint that a send is
+ * about to be expensive.
+ */
+const LARGE_FANOUT_WARNING_THRESHOLD = 500;
+
 async function getSubscriptions(
   recipientUserIds: string[],
 ): Promise<PushNotificationSubscription[]> {
@@ -18,10 +25,21 @@ async function getSubscriptions(
         in: recipientUserIds,
       },
     },
+    // No `limit`: an explicit limit binds even alongside `pagination: false`
+    // (`sanitizedLimit = limit ?? (usePagination ? 10 : 0)` in payload's find
+    // operation), so the previous `limit: 1000` silently truncated the recipient
+    // list. Nobody past the cap received a notification, and nothing reported it.
+    // A camp of a few hundred people with a phone and a browser each sits right at
+    // that boundary, so the cap would have started dropping people mid-event.
     pagination: false,
-    limit: 1000,
     depth: 0,
   });
+
+  if (subscriptions.length > LARGE_FANOUT_WARNING_THRESHOLD) {
+    console.warn(
+      `[Push] Large fan-out: ${subscriptions.length} subscriptions for ${recipientUserIds.length} recipients`,
+    );
+  }
 
   return subscriptions;
 }
