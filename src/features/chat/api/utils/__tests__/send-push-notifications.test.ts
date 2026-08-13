@@ -70,3 +70,69 @@ describe('sendNotification recipient lookup', () => {
     expect(mockSendToSubscription).not.toHaveBeenCalled();
   });
 });
+
+/** Mirrors `PUSH_FANOUT_CONCURRENCY` in the module under test. */
+const EXPECTED_CONCURRENCY_CEILING = 25;
+
+describe('sendNotification fan-out', () => {
+  let consoleErrorSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCount.mockResolvedValue({ totalDocs: 200 });
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+    mockSendToSubscription.mockReset();
+    mockSendToSubscription.mockResolvedValue({ success: true });
+  });
+
+  /**
+   * The recipient lookup is deliberately uncapped, so the only thing standing between
+   * a camp-wide chat and a thousand simultaneous log writes plus push requests is this
+   * ceiling. Without it the sends fail on prisma pool acquisition, not on anything the
+   * push code can report on.
+   */
+  it('caps the number of sends in flight', async () => {
+    mockFind.mockResolvedValue({
+      docs: Array.from({ length: 200 }, (_, index) => ({ id: `s${index}`, user: 'user-1' })),
+    });
+
+    let inFlight = 0;
+    let peakInFlight = 0;
+    mockSendToSubscription.mockImplementation(async () => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await new Promise((resolve) => setImmediate(resolve));
+      inFlight--;
+      return { success: true };
+    });
+
+    await sendNotification('hi', ['user-1'], 'chat-1');
+
+    expect(mockSendToSubscription).toHaveBeenCalledTimes(200);
+    expect(peakInFlight).toBeLessThanOrEqual(EXPECTED_CONCURRENCY_CEILING);
+    // Still a fan-out, not a serial loop - one send per tick would take minutes.
+    expect(peakInFlight).toBeGreaterThan(1);
+  });
+
+  it('keeps sending after one subscription throws, and reports the failure', async () => {
+    mockFind.mockResolvedValue({
+      docs: [
+        { id: 's1', user: 'user-1' },
+        { id: 's2', user: 'user-1' },
+        { id: 's3', user: 'user-1' },
+      ],
+    });
+    mockSendToSubscription
+      .mockRejectedValueOnce(new Error('push endpoint gone'))
+      .mockResolvedValue({ success: true });
+
+    const result = await sendNotification('hi', ['user-1'], 'chat-1');
+
+    expect(mockSendToSubscription).toHaveBeenCalledTimes(3);
+    expect(result.success).toBe(false);
+  });
+});

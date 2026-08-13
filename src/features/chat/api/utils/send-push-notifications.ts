@@ -10,6 +10,51 @@ import { getPayload } from 'payload';
  */
 const LARGE_FANOUT_WARNING_THRESHOLD = 500;
 
+/**
+ * Upper bound on sends in flight at once. Every send holds a prisma connection for
+ * its log row plus an outbound FCM / web-push request, and the recipient lookup is
+ * deliberately uncapped, so a camp-wide chat would otherwise start a thousand of
+ * them in the same tick and exhaust the connection pool - sends then fail on pool
+ * acquisition rather than on anything push-related. The ceiling has to live here.
+ */
+const PUSH_FANOUT_CONCURRENCY = 25;
+
+/**
+ * Runs `send` over every subscription with at most {@link PUSH_FANOUT_CONCURRENCY}
+ * in flight.
+ *
+ * @returns the number of subscriptions whose send threw
+ */
+async function dispatchBounded(
+  subscriptions: PushNotificationSubscription[],
+  send: (subscription: PushNotificationSubscription) => Promise<unknown>,
+): Promise<number> {
+  let nextIndex = 0;
+  let failures = 0;
+
+  const worker = async (): Promise<void> => {
+    while (nextIndex < subscriptions.length) {
+      const subscription = subscriptions[nextIndex];
+      nextIndex++;
+      if (subscription === undefined) continue;
+      try {
+        await send(subscription);
+      } catch (error) {
+        // One unreachable device must not cut the fan-out short for everyone
+        // queued behind it.
+        failures++;
+        console.error('[Push] Sending to a subscription failed:', error);
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(PUSH_FANOUT_CONCURRENCY, subscriptions.length) }, () => worker()),
+  );
+
+  return failures;
+}
+
 async function getSubscriptions(
   recipientUserIds: string[],
 ): Promise<PushNotificationSubscription[]> {
@@ -131,10 +176,14 @@ export async function sendNotification(
   console.log(`Sending notification to ${subscriptions.length} subscriptions`);
 
   try {
-    const webPushPromises = subscriptions.map((subscription) =>
+    const failures = await dispatchBounded(subscriptions, (subscription) =>
       processSubscription(subscription, message, chatURL, messageId, chatId, options),
     );
-    await Promise.all(webPushPromises);
+
+    if (failures > 0) {
+      console.error(`[Push] ${failures} of ${subscriptions.length} subscriptions failed to send`);
+      return { success: false, error: 'Failed to send notification' };
+    }
 
     console.log('Push notifications sent successfully');
     return { success: true };
