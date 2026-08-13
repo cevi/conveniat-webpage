@@ -49,7 +49,7 @@ describe('useChatSSE', () => {
           invalidate: jest.fn().mockResolvedValue(true),
           setData: jest.fn(),
         },
-        getMessage: { setData: jest.fn() },
+        getMessage: { setData: jest.fn(), invalidate: jest.fn().mockResolvedValue(true) },
       },
     });
 

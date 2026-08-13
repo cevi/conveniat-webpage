@@ -375,6 +375,11 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
 
     const reconnectListener = (): void => {
       trpcUtils.chat.chats.invalidate().catch(console.error);
+      // Without an argument, because the gap could have covered any message: an open
+      // thread's parent and the quoted-message preview read from `getMessage`, whose
+      // only realtime update is the reply-count patch below. Missing that would leave
+      // them stale for the full 5 minute `staleTime`.
+      trpcUtils.chat.getMessage.invalidate().catch(console.error);
       for (const chatId of ids) {
         trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
         trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
