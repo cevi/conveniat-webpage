@@ -3498,8 +3498,10 @@ export interface PhotoContest {
   slug: string;
   title: string;
   description?: string | null;
-  contestType?: ('PRESELECTED' | 'LIVE_EVENT') | null;
-  status?: ('DRAFT' | 'UPLOADING' | 'VOTING' | 'CLOSED') | null;
+  /**
+   * Controls what participants see in the app: nothing, the vote, only the photos, or photos including the score.
+   */
+  status: 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
   maxPointsPerUser?: number | null;
   maxPointsPerImage?: number | null;
   images?:
@@ -5742,7 +5744,6 @@ export interface PhotoContestsSelect<T extends boolean = true> {
   slug?: T;
   title?: T;
   description?: T;
-  contestType?: T;
   status?: T;
   maxPointsPerUser?: T;
   maxPointsPerImage?: T;
