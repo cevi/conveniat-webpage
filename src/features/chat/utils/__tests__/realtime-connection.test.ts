@@ -9,6 +9,9 @@ const EVENT_SOURCE_CONNECTING = 0;
 const EVENT_SOURCE_OPEN = 1;
 const EVENT_SOURCE_CLOSED = 2;
 
+/** Upper bound of the jitter the engine spreads post-gap refetches over. */
+const RESYNC_JITTER_MS = 3000;
+
 class FakeEventSource {
   public static instances: FakeEventSource[] = [];
 
@@ -120,6 +123,7 @@ describe('createRealtimeConnection', () => {
 
     // Events published between the two streams were never delivered.
     latestSource().open();
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
     expect(onResync).toHaveBeenCalledTimes(1);
   });
 
@@ -128,6 +132,7 @@ describe('createRealtimeConnection', () => {
     latestSource().open();
 
     latestSource().emit('resync');
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
 
     expect(onResync).toHaveBeenCalledTimes(1);
   });
@@ -169,7 +174,48 @@ describe('createRealtimeConnection', () => {
 
     latestSource().open();
     expect(connection.getStatus()).toBe('live');
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
     expect(onResync).toHaveBeenCalledTimes(1);
+  });
+
+  it('spreads the post-gap refetch over the jitter window', () => {
+    connection.setUrl('/api/chat/sse?chatIds=a');
+    latestSource().open();
+
+    latestSource().emit('resync');
+
+    // Firing immediately would point every client that dropped together at the same
+    // just-restarted replica at the same instant.
+    expect(onResync).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
+    expect(onResync).toHaveBeenCalledTimes(1);
+  });
+
+  it('collapses overlapping gap signals into a single refetch', () => {
+    connection.setUrl('/api/chat/sse?chatIds=a');
+    latestSource().open();
+
+    // A reconnect and a server-signalled gap describe the same hole in delivery.
+    latestSource().emit('resync');
+    latestSource().emit('error');
+    latestSource().open();
+    latestSource().emit('resync');
+
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
+
+    expect(onResync).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fire a queued refetch after the connection is closed', () => {
+    connection.setUrl('/api/chat/sse?chatIds=a');
+    latestSource().open();
+    latestSource().emit('resync');
+
+    connection.close();
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
+
+    expect(onResync).not.toHaveBeenCalled();
   });
 
   it('tracks the last signal from the server', () => {

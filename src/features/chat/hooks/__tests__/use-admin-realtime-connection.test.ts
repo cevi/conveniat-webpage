@@ -10,6 +10,14 @@ const EVENT_SOURCE_CONNECTING = 0;
 const EVENT_SOURCE_OPEN = 1;
 const EVENT_SOURCE_CLOSED = 2;
 
+/** The engine spreads post-gap refetches over this window; drain it to see them. */
+const RESYNC_JITTER_MS = 3000;
+const flushResync = (): void => {
+  act(() => {
+    jest.advanceTimersByTime(RESYNC_JITTER_MS);
+  });
+};
+
 class FakeEventSource {
   public static instances: FakeEventSource[] = [];
 
@@ -94,6 +102,7 @@ describe('useAdminRealtimeConnection', () => {
     // The browser dropped and re-opened the stream on its own.
     act(() => latestSource().emit('error'));
     act(() => latestSource().open());
+    flushResync();
 
     expect(onResync).toHaveBeenCalledTimes(1);
 
@@ -105,6 +114,7 @@ describe('useAdminRealtimeConnection', () => {
 
     act(() => latestSource().open());
     act(() => latestSource().emit('resync'));
+    flushResync();
 
     expect(onResync).toHaveBeenCalledTimes(1);
 
@@ -157,6 +167,7 @@ describe('useAdminRealtimeConnection', () => {
 
     act(() => latestSource().open());
     expect(result.current.status).toBe('live');
+    flushResync();
     expect(onResync).toHaveBeenCalledTimes(1);
 
     unmount();
