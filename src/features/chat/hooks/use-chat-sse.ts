@@ -3,10 +3,15 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { mergeStoredMessage, mergeStoredMessageAcrossPages } from '@/features/chat/utils';
+import type {
+  RealtimeConnection,
+  RealtimeConnectionStatus,
+} from '@/features/chat/utils/realtime-connection';
+import { createRealtimeConnection } from '@/features/chat/utils/realtime-connection';
 import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
 import type { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import superjson from 'superjson';
 
 interface ChatRealtimeEvent {
@@ -31,22 +36,94 @@ const isUnconfirmed = (message: ChatMessage): boolean =>
 // Global registry of all active chat subscribers on the client to enable multiplexing/deduplication
 const activeChatSubscribers = new Map<string, Set<(event: ChatRealtimeEvent) => void>>();
 const activeReconnectListeners = new Set<() => void>();
-let globalEventSource: EventSource | undefined;
-let currentSubscribedIds = new Set<string>();
 let updateTimeout: ReturnType<typeof setTimeout> | undefined;
-let hasConnectedBefore = false;
 
-const handleError = (): void => {
-  const allSubscribedIds = [...activeChatSubscribers.keys()].map((id) => id.trim()).filter(Boolean);
-  if (allSubscribedIds.length === 0) {
-    if (globalEventSource) {
-      globalEventSource.close();
-      globalEventSource = undefined;
+/**
+ * Tells every subscriber to refetch, because the stream may have missed events -
+ * either it was down and reconnected, or the server signalled a delivery gap.
+ */
+const notifyReconnectListeners = (): void => {
+  for (const listener of activeReconnectListeners) {
+    try {
+      listener();
+    } catch (error) {
+      console.error('[Chat][SSE] Reconnect listener failed:', error);
     }
-    currentSubscribedIds.clear();
-    return;
   }
-  console.warn('[SSE] EventSource connection error, will auto-reconnect');
+};
+
+const handleMessage = (event: MessageEvent): void => {
+  try {
+    if (typeof event.data !== 'string') return;
+
+    const parsed = superjson.parse(event.data);
+    if (parsed === null || typeof parsed !== 'object') return;
+
+    const data = parsed as unknown as ChatRealtimeEvent;
+
+    // Dispatch to all listeners registered for the delivery channel. Events
+    // delivered on the user's personal channel (e.g. new_chat) carry a
+    // `channel` field because the client has no listener for the chat yet.
+    const channel = data.channel ?? data.chatId;
+    const listeners = activeChatSubscribers.get(channel);
+    if (listeners) {
+      for (const listener of listeners) {
+        try {
+          listener(data);
+        } catch (error) {
+          console.error('[Chat][SSE] Listener callback failed:', error);
+        }
+      }
+    } else {
+      console.warn(`[Chat][SSE] No listener registered for channel ${channel}, event dropped.`);
+    }
+  } catch (error) {
+    console.error('[Chat][SSE] Failed to process message event:', error);
+  }
+};
+
+/**
+ * Connection status, published as an external store so that both chat screens can
+ * render it without the hook having to write state from an effect.
+ */
+let connectionStatus: RealtimeConnectionStatus = 'connecting';
+const statusListeners = new Set<() => void>();
+
+const subscribeToStatus = (listener: () => void): (() => void) => {
+  statusListeners.add(listener);
+  return (): void => {
+    statusListeners.delete(listener);
+  };
+};
+
+const getStatusSnapshot = (): RealtimeConnectionStatus => connectionStatus;
+/** The server renders no stream at all, so it is always still connecting. */
+const getServerStatusSnapshot = (): RealtimeConnectionStatus => 'connecting';
+
+/**
+ * The single stream shared by every mounted chat screen.
+ *
+ * Both `/app/chat` and `/app/chat/<id>` subscribe through this module, and the overview
+ * stays mounted behind the detail view, so one multiplexed connection covering the union
+ * of their chat ids is both cheaper and the only way a chat opened from the list does not
+ * race its own subscription. Created lazily: the module is imported during SSR, where
+ * there is no `EventSource` to build.
+ */
+let connection: RealtimeConnection | undefined;
+
+const getConnection = (): RealtimeConnection => {
+  connection ??= createRealtimeConnection({
+    logPrefix: '[Chat][SSE]',
+    onEvent: handleMessage,
+    onResync: notifyReconnectListeners,
+    onStatusChange: (status): void => {
+      connectionStatus = status;
+      for (const listener of statusListeners) {
+        listener();
+      }
+    },
+  });
+  return connection;
 };
 
 function updateGlobalEventSource(currentUser: string): void {
@@ -54,93 +131,44 @@ function updateGlobalEventSource(currentUser: string): void {
     clearTimeout(updateTimeout);
   }
 
+  // Coalesced to the end of the tick: mounting a screen registers its channels one by
+  // one, and reconnecting for each intermediate set would drop events on every step.
   updateTimeout = setTimeout(() => {
     const allSubscribedIds = [...activeChatSubscribers.keys()]
       .map((id) => id.trim())
       .filter(Boolean);
 
-    if (currentUser === '' || currentUser.trim() === '' || allSubscribedIds.length === 0) {
-      if (globalEventSource) {
-        globalEventSource.close();
-        globalEventSource = undefined;
-      }
-      currentSubscribedIds.clear();
+    if (currentUser.trim() === '' || allSubscribedIds.length === 0) {
+      getConnection().setUrl(undefined);
       return;
     }
 
-    // Exact match check: if the new IDs exactly match the current live set, skip reconnect
-    const isExactMatch =
-      allSubscribedIds.length === currentSubscribedIds.size &&
-      allSubscribedIds.every((id) => currentSubscribedIds.has(id));
-    if (isExactMatch && globalEventSource) {
-      return;
-    }
-
-    // Close existing event source because we need to expand the subscription set
-    if (globalEventSource) {
-      globalEventSource.close();
-      globalEventSource = undefined;
-    }
-
-    currentSubscribedIds = new Set(allSubscribedIds);
-    const idsArray = [...currentSubscribedIds].sort();
-
-    const url = `/api/chat/sse?chatIds=${idsArray.join(',')}`;
-    const eventSource = new EventSource(url);
-    globalEventSource = eventSource;
-
-    const handleOpen = (): void => {
-      console.log(`[Chat][SSE] Stream connected (subscribed chats: ${idsArray.join(', ')})`);
-      if (hasConnectedBefore) {
-        for (const listener of activeReconnectListeners) {
-          try {
-            listener();
-          } catch (error) {
-            console.error('[Chat][SSE] Reconnect listener failed:', error);
-          }
-        }
-      }
-      hasConnectedBefore = true;
-    };
-
-    const handleMessage = (event: MessageEvent<string>): void => {
-      try {
-        const parsed = superjson.parse(event.data);
-        if (parsed === null || typeof parsed !== 'object') return;
-
-        const data = parsed as unknown as ChatRealtimeEvent;
-        console.log(`[Chat][SSE] Received "${data.type}" event for chat ${data.chatId}`);
-
-        // Dispatch to all listeners registered for the delivery channel. Events
-        // delivered on the user's personal channel (e.g. new_chat) carry a
-        // `channel` field because the client has no listener for the chat yet.
-        const channel = data.channel ?? data.chatId;
-        const listeners = activeChatSubscribers.get(channel);
-        if (listeners) {
-          for (const listener of listeners) {
-            try {
-              listener(data);
-            } catch (error) {
-              console.error('[Chat][SSE] Listener callback failed:', error);
-            }
-          }
-        } else {
-          console.warn(`[Chat][SSE] No listener registered for channel ${channel}, event dropped.`);
-        }
-      } catch (error) {
-        console.error('[Chat][SSE] Failed to process message event:', error);
-      }
-    };
-
-    eventSource.addEventListener('open', handleOpen);
-    eventSource.addEventListener('message', handleMessage);
-    eventSource.addEventListener('error', handleError);
+    // The engine reconnects only when the URL actually changes, so an unchanged
+    // subscription set costs nothing.
+    getConnection().setUrl(`/api/chat/sse?chatIds=${allSubscribedIds.sort().join(',')}`);
   }, 0);
 }
 
-export const useChatSSE = (chatIds: string[]): void => {
+export interface ChatRealtimeSync {
+  /** Whether live updates are actually arriving; drives the live-sync indicator. */
+  status: RealtimeConnectionStatus;
+  /** Drops the shared stream and opens a fresh one, then refetches. */
+  reconnect: () => void;
+}
+
+export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
   const trpcUtils = trpc.useUtils();
   const { data: currentUser } = trpc.chat.user.useQuery({});
+
+  const status = useSyncExternalStore(
+    subscribeToStatus,
+    getStatusSnapshot,
+    getServerStatusSnapshot,
+  );
+
+  const reconnect = useCallback((): void => {
+    getConnection().reconnect();
+  }, []);
 
   const validChatIds = chatIds.map((id) => id.trim()).filter(Boolean);
   const chatIdsString = validChatIds.sort().join(',');
@@ -347,6 +375,11 @@ export const useChatSSE = (chatIds: string[]): void => {
 
     const reconnectListener = (): void => {
       trpcUtils.chat.chats.invalidate().catch(console.error);
+      // Without an argument, because the gap could have covered any message: an open
+      // thread's parent and the quoted-message preview read from `getMessage`, whose
+      // only realtime update is the reply-count patch below. Missing that would leave
+      // them stale for the full 5 minute `staleTime`.
+      trpcUtils.chat.getMessage.invalidate().catch(console.error);
       for (const chatId of ids) {
         trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
         trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
@@ -392,4 +425,6 @@ export const useChatSSE = (chatIds: string[]): void => {
       updateGlobalEventSource(currentUser);
     };
   }, [chatIdsString, currentUser, trpcUtils]);
+
+  return { status, reconnect };
 };

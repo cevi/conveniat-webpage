@@ -5,6 +5,27 @@ import * as admin from 'firebase-admin';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 
+/**
+ * Android notification channel every push is addressed to.
+ *
+ * It must match the channel the native shell actually creates - today
+ * `MainApplication.createNotificationChannel()` in cevi/konekta-app, which registers
+ * `konekta-default` at `IMPORTANCE_HIGH` on every app start.
+ *
+ * Addressing it explicitly works around a mismatch in the native app: its manifest
+ * points `com.google.firebase.messaging.default_notification_channel_id` at
+ * `konekta-push`, a channel nothing ever creates. Without a channel id on the message
+ * FCM falls back to that manifest value, finds no such channel, and posts to its own
+ * auto-created fallback channel at default importance - which is why Android showed no
+ * heads-up banner. Naming the real channel skips the broken indirection entirely.
+ *
+ * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
+ *
+ * Remove this once the native app aligns its manifest with the channel it creates; a
+ * channel id the installed app does not know silently falls back again.
+ */
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-default';
+
 let firebaseAdminInitialized = false;
 
 export function getFirebaseAdmin(): typeof admin | undefined {
@@ -51,7 +72,7 @@ export async function sendFcmNotification(
       [key: string]: string | undefined;
     };
   },
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; errorCode?: string }> {
   const adminInstance = getFirebaseAdmin();
 
   if (!adminInstance) {
@@ -127,7 +148,14 @@ export async function sendFcmNotification(
         notification: {
           title: payload.title,
           body: payload.body,
+          // Both of these only matter below API 26, where notification channels do not
+          // exist yet: without them `NotificationCompat` defaults to PRIORITY_DEFAULT and
+          // shows no heads-up banner. From Android O on the channel owns sound and
+          // importance and both fields are ignored. Note this is the *display* priority,
+          // unlike `android.priority` above, which controls delivery.
           sound: 'default',
+          priority: 'high',
+          channelId: ANDROID_NOTIFICATION_CHANNEL_ID,
         },
         data: {
           title: payload.title,
@@ -148,7 +176,16 @@ export async function sendFcmNotification(
     return { success: true };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // The Admin SDK reports the machine-readable reason on `errorInfo.code`
+    // (e.g. `messaging/registration-token-not-registered`). Only the human-readable message used
+    // to be returned, which left the caller string-matching on text like `NotRegistered` and
+    // unable to tell a permanently dead token from a transient failure.
+    const errorCode = (error as { errorInfo?: { code?: unknown } } | undefined)?.errorInfo?.code;
     console.error('Failed to send FCM notification:', error);
-    return { success: false, error: errorMessage };
+    return {
+      success: false,
+      error: errorMessage,
+      ...(typeof errorCode === 'string' && { errorCode }),
+    };
   }
 }

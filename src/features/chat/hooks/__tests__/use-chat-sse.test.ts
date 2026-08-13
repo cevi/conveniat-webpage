@@ -49,7 +49,7 @@ describe('useChatSSE', () => {
           invalidate: jest.fn().mockResolvedValue(true),
           setData: jest.fn(),
         },
-        getMessage: { setData: jest.fn() },
+        getMessage: { setData: jest.fn(), invalidate: jest.fn().mockResolvedValue(true) },
       },
     });
 
@@ -59,7 +59,11 @@ describe('useChatSSE', () => {
   });
 
   afterEach(() => {
-    jest.runAllTimers();
+    // Flushes the coalescing timeout that tears the shared stream down, so the next
+    // test starts without a subscription. `runAllTimers` cannot be used: the shared
+    // engine keeps a heartbeat watchdog interval running while a stream is open.
+    jest.advanceTimersByTime(1);
+    jest.clearAllTimers();
     jest.useRealTimers();
   });
 
@@ -67,7 +71,7 @@ describe('useChatSSE', () => {
     const chatId = '550e8400-e29b-41d4-a716-446655440000';
     const { unmount } = renderHook(() => useChatSSE([chatId, '', '   ']));
 
-    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
 
     expect(mockEventSourceConstructor).toHaveBeenCalledTimes(1);
     const calls = mockEventSourceConstructor.mock.calls as string[][];
@@ -79,13 +83,13 @@ describe('useChatSSE', () => {
     expect(calledUrl).not.toMatch(/chatIds=(,|$)/);
 
     unmount();
-    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
   });
 
   it('connects to user channel when chatIds is empty array', () => {
     const { unmount } = renderHook(() => useChatSSE([]));
 
-    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
 
     expect(mockEventSourceConstructor).toHaveBeenCalledTimes(1);
     const calls = mockEventSourceConstructor.mock.calls as string[][];
@@ -93,7 +97,7 @@ describe('useChatSSE', () => {
     expect(calledUrl).toBe('/api/chat/sse?chatIds=user-uuid-123');
 
     unmount();
-    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
   });
 
   it('does not open EventSource if currentUser is empty or undefined', () => {
@@ -103,11 +107,11 @@ describe('useChatSSE', () => {
 
     const { unmount } = renderHook(() => useChatSSE(['550e8400-e29b-41d4-a716-446655440000']));
 
-    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
 
     expect(mockEventSourceConstructor).not.toHaveBeenCalled();
 
     unmount();
-    jest.runAllTimers();
+    jest.advanceTimersByTime(1);
   });
 });

@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { useAdminRealtimeConnection } from '@/features/chat/hooks/use-admin-realtime-connection';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { generateMessageId, mergeStoredMessage } from '@/features/chat/utils';
 import {
@@ -6,11 +7,12 @@ import {
   playMessageTone,
   unlockNotificationSounds,
 } from '@/features/chat/utils/notification-sounds';
+import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
 import { ChatStatus, SYSTEM_MSG_TYPE_EMERGENCY_ALERT, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import superjson from 'superjson';
 
 /**
@@ -50,6 +52,12 @@ export const useAdminChatManagement = ({
   sending: boolean;
   isClosing: boolean;
   isReopening: boolean;
+  /** Health of the realtime stream that feeds this view. */
+  realtimeStatus: RealtimeConnectionStatus;
+  /** Timestamp of the last signal received from the realtime stream. */
+  lastSignalAt: number | undefined;
+  /** Forces a fresh realtime connection and refetches the view. */
+  reconnectRealtime: () => void;
   fetchChats: () => Promise<void>;
   sendMessage: (content: string, type?: MessageType) => Promise<void>;
   closeChat: () => Promise<void>;
@@ -217,11 +225,8 @@ export const useAdminChatManagement = ({
   // account sent elsewhere, e.g. from the app on another device (tone).
   const recentLocalMessageIdsReference = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    const url = `/api/chat/sse?chatIds=all`;
-    const eventSource = new EventSource(url);
-
-    const handleMessage = (event: MessageEvent): void => {
+  const handleRealtimeMessage = useCallback(
+    (event: MessageEvent): void => {
       try {
         if (typeof event.data !== 'string') return;
         const data = superjson.parse<{ json: ChatRealtimeEvent }>(event.data);
@@ -265,15 +270,29 @@ export const useAdminChatManagement = ({
       } catch (error) {
         console.error('[Admin SSE] Failed to parse real-time event:', error);
       }
-    };
+    },
+    [utils],
+  );
 
-    eventSource.addEventListener('message', handleMessage);
-
-    return (): void => {
-      eventSource.removeEventListener('message', handleMessage);
-      eventSource.close();
-    };
+  // Whatever was published while the stream was down is not replayed, so a
+  // reconnect has to be followed by a refetch or the panel silently stays stale.
+  const handleRealtimeResync = useCallback((): void => {
+    void utils.admin.listSupportChats.invalidate();
+    const currentSelectedChatId = selectedChatIdReference.current;
+    if (currentSelectedChatId !== undefined && currentSelectedChatId !== null) {
+      void utils.admin.getChatMessages.invalidate({ chatId: currentSelectedChatId });
+    }
   }, [utils]);
+
+  const {
+    status: realtimeStatus,
+    lastSignalAt,
+    reconnect: reconnectRealtime,
+  } = useAdminRealtimeConnection({
+    url: '/api/chat/sse?chatIds=all',
+    onEvent: handleRealtimeMessage,
+    onResync: handleRealtimeResync,
+  });
 
   const reopenChatMutation = trpc.admin.reopenChat.useMutation({
     onSuccess: () => {
@@ -293,6 +312,12 @@ export const useAdminChatManagement = ({
     sending: sendMessageMutation.isPending,
     isClosing: closeChatMutation.isPending,
     isReopening: reopenChatMutation.isPending,
+    realtimeStatus,
+    lastSignalAt,
+    reconnectRealtime: (): void => {
+      reconnectRealtime();
+      handleRealtimeResync();
+    },
     fetchChats: async (): Promise<void> => {
       await refetchChats();
     },

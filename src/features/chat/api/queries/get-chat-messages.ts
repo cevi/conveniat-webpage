@@ -2,9 +2,12 @@ import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { trpcBaseProcedure } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
 import { MessageEventType } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:messages');
 
 export const getChatMessages = trpcBaseProcedure
   .input(
@@ -37,7 +40,12 @@ export const getChatMessages = trpcBaseProcedure
         });
       }
 
-      console.error('getChatMessages called:', { chatId, cursor, limit, parentId });
+      logger.debug('Fetching chat messages', {
+        'chat.id': chatId,
+        'chat.cursor': cursor,
+        'chat.limit': limit,
+        'chat.parent_id': parentId,
+      });
 
       const messages = await prisma.message.findMany({
         take: limit + 1, // Get an extra item at the end to know if there's a next page
@@ -88,14 +96,18 @@ export const getChatMessages = trpcBaseProcedure
         },
       });
 
-      console.error('Messages fetched:', { count: messages.length, limit });
-
       let nextCursor: typeof cursor | undefined = undefined;
       if (messages.length > limit) {
         const nextItem = messages.pop();
         nextCursor = nextItem?.uuid;
       }
-      console.error('Final nextCursor:', nextCursor);
+
+      logger.debug('Chat message page resolved', {
+        'chat.id': chatId,
+        'chat.count': messages.length,
+        'chat.limit': limit,
+        'chat.next_cursor': nextCursor,
+      });
 
       const mappedMessages = messages.map((message) => {
         const isReadByAdmin = chat.adminReadAt !== null && message.createdAt <= chat.adminReadAt;
