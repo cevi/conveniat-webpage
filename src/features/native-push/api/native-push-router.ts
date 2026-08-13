@@ -76,7 +76,6 @@ export const nativePushRouter = createTRPCRouter({
             },
           });
         } else {
-          isNewSubscription = true;
           // Delete any existing subscriptions with the exact same token globally to ensure token uniqueness
           await payload.delete({
             collection: 'push-notification-subscriptions',
@@ -96,6 +95,10 @@ export const nativePushRouter = createTRPCRouter({
               lastUsedAt: new Date().toISOString(),
             },
           });
+          // Only after the row exists: a welcome push is sent below on the strength of
+          // this flag, and claiming a successful subscription that was never stored is
+          // exactly the lie this endpoint used to tell.
+          isNewSubscription = true;
         }
         console.log(
           '[NativePush:API] registerDevice: success — token registered for user',
@@ -104,9 +107,41 @@ export const nativePushRouter = createTRPCRouter({
           isNewSubscription,
         );
       } catch (error: unknown) {
-        // Under concurrent requests, fallback to create
         const message = error instanceof Error ? error.message : String(error);
-        console.warn('[NativePush:API] registerDevice: create/update status:', message);
+
+        // Two registrations for the same token can race here and one loses. That is
+        // harmless as long as the subscription exists afterwards, so check before
+        // deciding. Anything else is a real failure and must not be reported as
+        // success: the client sets "registered" on a resolved call, so swallowing this
+        // left users believing push was on while no subscription existed - silently,
+        // permanently, and with a "you have successfully subscribed" push to confirm it.
+        let isPersisted = false;
+        try {
+          const persisted = await payload.find({
+            collection: 'push-notification-subscriptions',
+            where: { token: { equals: input.token } },
+            limit: 1,
+          });
+          isPersisted = persisted.totalDocs > 0;
+        } catch (verificationError: unknown) {
+          console.error(
+            '[NativePush:API] registerDevice: could not verify subscription after write failure:',
+            verificationError,
+          );
+        }
+
+        if (!isPersisted) {
+          console.error('[NativePush:API] registerDevice: failed to store subscription:', message);
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Failed to store push subscription',
+          });
+        }
+
+        console.warn(
+          '[NativePush:API] registerDevice: write lost a race but the subscription exists:',
+          message,
+        );
       }
 
       // Send welcome confirmation push notification ONLY when creating a brand new subscription
