@@ -203,12 +203,15 @@ class ChatPubSub {
     }
 
     this.connectingPromise = withSpan('chat.pubsub.connect', async (): Promise<void> => {
+      // Kept outside the try so a half-initialized client can still be closed below.
+      let pendingClient: pg.Client | undefined = undefined;
       try {
         const client = new pg.Client({
           connectionString: environmentVariables.CHAT_DATABASE_URL,
           keepAlive: true,
           keepAliveInitialDelayMillis: 30_000,
         });
+        pendingClient = client;
 
         await client.connect();
         await client.query('LISTEN chat_events');
@@ -256,6 +259,20 @@ class ChatPubSub {
       } catch (error) {
         recordPubSubConnectionEvent('connect_failed');
         logger.error('Failed to start PG LISTEN connection', { error });
+
+        // A client that connected before `LISTEN` failed still holds a backend
+        // session, and its `error` handler is only attached after the LISTEN - an
+        // orphan emits `error` with no listener once its socket dies, which takes
+        // the process down. `scheduleReconnect` retries every few seconds, so each
+        // failed attempt would arm another one. `end()` is a no-op if the client
+        // never connected. Skipped once the client is installed as `pgClient`, so
+        // a late failure cannot tear down a connection that is already listening.
+        if (this.pgClient !== pendingClient) {
+          await pendingClient?.end().catch((endError: unknown) => {
+            logger.error('Error ending partially initialized PG client', { error: endError });
+          });
+        }
+
         this.connectingPromise = undefined;
         throw error;
       }

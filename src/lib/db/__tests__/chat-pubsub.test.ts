@@ -34,12 +34,24 @@ const pgHandlers: Record<string, unknown> = {};
 
 /** Number of upcoming `connect()` calls that should fail, for the outage tests. */
 const pgConnectFailures = { remaining: 0 };
+/** Number of upcoming `LISTEN` queries that should fail after a successful connect. */
+const pgListenFailures = { remaining: 0 };
 const pgClientsCreated = { count: 0 };
+/** Every client the module has constructed, so a discarded one can be inspected. */
+const pgClients: unknown[] = [];
 
 const connectMock = (): Promise<void> => {
   if (pgConnectFailures.remaining > 0) {
     pgConnectFailures.remaining -= 1;
     return Promise.reject(new Error('connection refused'));
+  }
+  return Promise.resolve();
+};
+
+const queryMock = (sql: string): Promise<void> => {
+  if (sql.startsWith('LISTEN') && pgListenFailures.remaining > 0) {
+    pgListenFailures.remaining -= 1;
+    return Promise.reject(new Error('permission denied for LISTEN'));
   }
   return Promise.resolve();
 };
@@ -50,9 +62,10 @@ jest.mock('pg', () => ({
     Client: class {
       public constructor() {
         pgClientsCreated.count += 1;
+        pgClients.push(this);
       }
       public connect = jest.fn().mockImplementation(connectMock);
-      public query = jest.fn().mockResolvedValue(void 0);
+      public query = jest.fn().mockImplementation(queryMock);
       public end = jest.fn().mockResolvedValue(void 0);
       public on(event: string, callback: unknown): void {
         pgHandlers[event] = callback;
@@ -141,10 +154,12 @@ describe('ChatPubSub channel routing', () => {
   });
 });
 
+// Generous on purpose: a reconnect attempt walks connect -> LISTEN -> teardown ->
+// the retry scheduler, and each hop adds microtask turns the tests have to sit out.
 const flushPendingPromises = async (): Promise<void> => {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let index = 0; index < 20; index++) {
+    await Promise.resolve();
+  }
 };
 
 const failCurrentConnection = (): void => {
@@ -179,6 +194,42 @@ describe('ChatPubSub LISTEN recovery', () => {
     } finally {
       jest.useRealTimers();
       unsubscribeRestored();
+      unsubscribe();
+    }
+  });
+});
+
+describe('ChatPubSub LISTEN setup failure', () => {
+  /**
+   * A client that connected but never got past `LISTEN` is unreachable from the
+   * instance and has no `error` handler attached yet, so leaving it open strands a
+   * backend session and arms an unhandled `error` event that would take the process
+   * down. The retry loop fires every few seconds, so each attempt would arm another.
+   */
+  it('closes the client when the LISTEN query fails after connecting', async () => {
+    const unsubscribe = await chatPubSub.subscribe('chat-listen-fail', jest.fn());
+    jest.useFakeTimers();
+    try {
+      failCurrentConnection();
+      pgListenFailures.remaining = 1;
+      const clientsBefore = pgClients.length;
+
+      jest.advanceTimersByTime(5000);
+      await flushPendingPromises();
+
+      expect(pgClients.length).toBe(clientsBefore + 1);
+      const discardedClient = pgClients.at(-1) as { end: jest.Mock };
+      expect(discardedClient.end).toHaveBeenCalledTimes(1);
+
+      // ... and the retry loop still brings a healthy connection back afterwards.
+      jest.advanceTimersByTime(5000);
+      await flushPendingPromises();
+      expect(pgClients.length).toBe(clientsBefore + 2);
+      const listeningClient = pgClients.at(-1) as { end: jest.Mock };
+      expect(listeningClient.end).not.toHaveBeenCalled();
+    } finally {
+      pgListenFailures.remaining = 0;
+      jest.useRealTimers();
       unsubscribe();
     }
   });
