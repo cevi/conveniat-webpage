@@ -39,11 +39,18 @@ const PaymentMethodLogos: React.FC<{
   locale: Locale;
   isHighlighted: boolean;
 }> = ({ paymentMethods, locale, isHighlighted }) => {
+  // Key by the array row, not by the image: the same logo may be selected in
+  // several rows, which would give those siblings a duplicate React key.
   const logos = paymentMethods
-    .map((paymentMethod) => paymentMethod.logo)
+    .map((paymentMethod, index) => ({
+      key: paymentMethod.id ?? `payment-method-${index}`,
+      logo: paymentMethod.logo,
+    }))
     .filter(
-      (logo): logo is ImageType & { url: string } =>
-        typeof logo === 'object' && typeof logo.url === 'string' && logo.url !== '',
+      (entry): entry is { key: string; logo: ImageType & { url: string } } =>
+        typeof entry.logo === 'object' &&
+        typeof entry.logo.url === 'string' &&
+        entry.logo.url !== '',
     );
 
   if (logos.length === 0) return <></>;
@@ -59,9 +66,9 @@ const PaymentMethodLogos: React.FC<{
         {paymentMethodsLabel[locale]}
       </span>
       <div className="flex flex-wrap items-center gap-2">
-        {logos.map((logo) => (
+        {logos.map(({ key, logo }) => (
           <div
-            key={logo.id}
+            key={key}
             className="relative h-7 w-14 shrink-0 overflow-hidden rounded-md bg-white p-1 shadow-xs"
           >
             <ImageNode
@@ -96,6 +103,11 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
 }) => {
   const url = getURLForLinkField(linkField, locale);
   const isHighlighted = variant === 'highlight';
+
+  // The destination is a required field, but it can still resolve to undefined
+  // at render time — e.g. for a reference that was deleted or is not populated.
+  const hasDestination = url !== undefined && url !== '';
+  const hasNote = note !== undefined && note !== null && note !== '';
 
   return (
     <div
@@ -161,28 +173,30 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
         )}
       </div>
 
-      {url !== undefined && url !== '' && (
+      {(hasDestination || hasNote) && (
         <div className="flex shrink-0 flex-col items-stretch gap-2 md:items-end">
-          <LinkComponent
-            href={url}
-            openInNewTab={openURLInNewTab(linkField)}
-            hideExternalIcon
-            className="block no-underline"
-          >
-            <span
-              className={cn(
-                'font-heading group inline-flex w-full items-center justify-center gap-2 rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold duration-100',
-                isHighlighted
-                  ? 'text-conveniat-green bg-white hover:bg-green-50'
-                  : 'bg-red-700 text-red-100 hover:bg-red-800',
-              )}
+          {hasDestination && (
+            <LinkComponent
+              href={url}
+              openInNewTab={openURLInNewTab(linkField)}
+              hideExternalIcon
+              className="block no-underline"
             >
-              {buttonLabel}
-              <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </span>
-          </LinkComponent>
+              <span
+                className={cn(
+                  'font-heading group inline-flex w-full items-center justify-center gap-2 rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold duration-100',
+                  isHighlighted
+                    ? 'text-conveniat-green bg-white hover:bg-green-50'
+                    : 'bg-red-700 text-red-100 hover:bg-red-800',
+                )}
+              >
+                {buttonLabel}
+                <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" />
+              </span>
+            </LinkComponent>
+          )}
 
-          {note !== undefined && note !== null && note !== '' && (
+          {hasNote && (
             <p
               className={cn(
                 'font-body max-w-[280px] text-center text-xs leading-snug md:text-right',
