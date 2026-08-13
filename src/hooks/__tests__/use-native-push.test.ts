@@ -74,6 +74,23 @@ const buildDuplicateMessageEvent = (): CustomEvent =>
     },
   });
 
+const dispatchToken = async (token: string): Promise<void> => {
+  await act(async () => {
+    globalThis.dispatchEvent(
+      new CustomEvent('app-webview-native-push-event', {
+        detail: { type: 'native-push-token', payload: { token, platform: 'android' } },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
+
+const openEvent = (url: string, bubbles: boolean): CustomEvent =>
+  new CustomEvent('app-webview-native-push-event', {
+    bubbles,
+    detail: { type: 'native-push-open', payload: { url } },
+  });
+
 describe('useNativePush', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -190,6 +207,92 @@ describe('useNativePush', () => {
     expect(result.current.isRegisteredOnBackend).toBe(false);
     expect(result.current.isUnauthenticated).toBe(true);
     expect(result.current.lastError).toBeUndefined();
+  });
+
+  /**
+   * The bridge re-emits `native-push-token` several times per permission change - three
+   * times in the same millisecond is normal. Every emission used to fire its own
+   * `registerDevice`; batched into one request they raced over the same row server-side,
+   * most of them lost, and the user was told registration had failed for a subscription
+   * that was in fact stored.
+   */
+  describe('duplicate registration suppression', () => {
+    const mockRegisterDevice = jest.fn().mockResolvedValue({ success: true });
+    const mockUnregisterDevice = jest.fn().mockResolvedValue({ success: true });
+
+    beforeEach(() => {
+      mockRegisterDevice.mockClear();
+      mockUnregisterDevice.mockClear();
+      // A leftover pending redirect would navigate on mount and blur the count below.
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const trpcMock = jest.requireMock('@/trpc/client');
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+      trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
+        mutateAsync: mockRegisterDevice,
+      });
+      trpcMock.trpc.nativePush.unregisterDevice.useMutation.mockReturnValue({
+        mutateAsync: mockUnregisterDevice,
+      });
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+    });
+
+    it('registers a repeated token only once', async () => {
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-repeat');
+      await dispatchToken('token-repeat');
+      await dispatchToken('token-repeat');
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(1);
+    });
+
+    it('registers a new token after the previous one was deleted', async () => {
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-old');
+
+      await act(async () => {
+        globalThis.dispatchEvent(
+          new CustomEvent('app-webview-native-push-event', {
+            detail: {
+              type: 'native-push-token-deleted',
+              payload: { token: 'token-old', platform: 'android' },
+            },
+          }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      await dispatchToken('token-new');
+
+      expect(mockUnregisterDevice).toHaveBeenCalledTimes(1);
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * The handler is attached to both `globalThis` and `document`, because the native
+     * side is not consistent about where it dispatches. A bubbling event is then
+     * delivered twice - the same Event object, handled once.
+     */
+    it('handles an event that bubbles from document to window only once', () => {
+      renderHook(() => useNativePush());
+
+      // Establish what a single delivery costs, then check that a bubbling one - which
+      // reaches the document listener and the window listener - costs exactly the same.
+      act(() => {
+        globalThis.dispatchEvent(openEvent('/app/dashboard', false));
+      });
+      const navigationsPerDelivery = mockPush.mock.calls.length;
+      mockPush.mockClear();
+
+      act(() => {
+        document.dispatchEvent(openEvent('/app/schedule', true));
+      });
+
+      expect(navigationsPerDelivery).toBeGreaterThan(0);
+      expect(mockPush).toHaveBeenCalledTimes(navigationsPerDelivery);
+    });
   });
 
   describe('extractMessageIdentifier', () => {
