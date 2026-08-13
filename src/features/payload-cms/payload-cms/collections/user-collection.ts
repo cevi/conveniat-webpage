@@ -16,7 +16,7 @@ const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCE
 
 const syncUserToPostgres: NonNullable<
   NonNullable<CollectionConfig['hooks']>['afterChange']
->[number] = async ({ doc }): Promise<void> => {
+>[number] = async ({ doc, req }): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const uuid = doc.id as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -27,6 +27,8 @@ const syncUserToPostgres: NonNullable<
   const hidden = doc.hidden as boolean | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const description = doc.description as string | undefined | null;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const presentAtCamp = (doc.presentAtCamp as boolean | undefined | null) ?? false;
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -35,6 +37,17 @@ const syncUserToPostgres: NonNullable<
   const name = formatUserFullName(fullName, nickname);
 
   try {
+    /**
+     * Postgres is the source of truth for the presence state: the presence slider, the dashboard
+     * widget and the density plot all read it from there. Editing the checkbox in the admin panel
+     * only writes to Payload, so without mirroring it here the two stores drift apart and the
+     * dashboard keeps reporting users that were already checked out in the admin panel.
+     */
+    const knownUser = await prisma.user.findUnique({
+      where: { uuid },
+      select: { presentAtCamp: true },
+    });
+
     await prisma.user.upsert({
       where: { uuid },
       update: {
@@ -49,10 +62,49 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        presentAtCamp: presentAtCamp,
         // set date to 1970-01-01 to avoid null values
         lastSeen: new Date('1970-01-01T00:00:00Z'),
       },
     });
+
+    // The presence mutation writes Postgres before it writes Payload, so a difference here only
+    // ever originates from the admin panel — the slider never produces a duplicate entry.
+    if (knownUser !== null && knownUser.presentAtCamp !== presentAtCamp) {
+      const timestamp = new Date();
+
+      /**
+       * The flag is written last, and together with its log entry: the density plot and the
+       * evaluation are built from the logs, so a flag that is stored without its entry would
+       * corrupt them permanently — the next save would compare against the already updated flag
+       * and never log the transition again. This way a failed write leaves the old flag in place
+       * and the next save retries the whole transition.
+       */
+      const payloadLog = await req.payload.create({
+        collection: 'presence-logs',
+        data: {
+          user: uuid,
+          isPresent: presentAtCamp,
+          timestamp: timestamp.toISOString(),
+        },
+      });
+
+      try {
+        await prisma.$transaction([
+          prisma.user.update({ where: { uuid }, data: { presentAtCamp: presentAtCamp } }),
+          prisma.presenceLog.create({
+            data: { userUuid: uuid, isPresent: presentAtCamp, timestamp },
+          }),
+        ]);
+      } catch (error) {
+        try {
+          await req.payload.delete({ collection: 'presence-logs', id: payloadLog.id });
+        } catch (revertError: unknown) {
+          console.error('[syncUserToPostgres] Failed to revert Payload presence log:', revertError);
+        }
+        throw error;
+      }
+    }
   } catch (error) {
     console.error('[syncUserToPostgres] Non-fatal error syncing user to Postgres:', error);
   }
