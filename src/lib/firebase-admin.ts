@@ -5,6 +5,27 @@ import * as admin from 'firebase-admin';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 
+/**
+ * Android notification channel every push is addressed to.
+ *
+ * It must match the channel the native shell actually creates - today
+ * `MainApplication.createNotificationChannel()` in cevi/konekta-app, which registers
+ * `konekta-default` at `IMPORTANCE_HIGH` on every app start.
+ *
+ * Addressing it explicitly works around a mismatch in the native app: its manifest
+ * points `com.google.firebase.messaging.default_notification_channel_id` at
+ * `konekta-push`, a channel nothing ever creates. Without a channel id on the message
+ * FCM falls back to that manifest value, finds no such channel, and posts to its own
+ * auto-created fallback channel at default importance - which is why Android showed no
+ * heads-up banner. Naming the real channel skips the broken indirection entirely.
+ *
+ * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
+ *
+ * Remove this once the native app aligns its manifest with the channel it creates; a
+ * channel id the installed app does not know silently falls back again.
+ */
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-default';
+
 let firebaseAdminInitialized = false;
 
 export function getFirebaseAdmin(): typeof admin | undefined {
@@ -127,7 +148,9 @@ export async function sendFcmNotification(
         notification: {
           title: payload.title,
           body: payload.body,
+          // Only honoured below API 26; from Android O on, the channel owns the sound.
           sound: 'default',
+          channelId: ANDROID_NOTIFICATION_CHANNEL_ID,
         },
         data: {
           title: payload.title,
