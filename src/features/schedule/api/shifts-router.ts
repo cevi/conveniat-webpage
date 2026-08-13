@@ -5,7 +5,7 @@ import { databaseTransactionWrapper } from '@/trpc/middleware/database-transacti
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
-import { getPayload } from 'payload';
+import { getPayload, NotFound } from 'payload';
 import { z } from 'zod';
 
 const enrollInShiftSchema = z.object({
@@ -37,9 +37,20 @@ export const shiftsRouter = createTRPCRouter({
         id: shiftId,
         depth: 0,
       });
-    } catch {
-      // eslint-disable-next-line unicorn/no-null
-      return null;
+    } catch (error) {
+      // A deleted shift is a real answer and stays `null`. Anything else — a database hiccup, a
+      // connection pool timeout while the offline sync asks for every shift at once — is not, and
+      // must surface as an error: a `null` here is a *successful* response, so the client cached
+      // and persisted it and then rendered "offline" for that one shift forever.
+      if (error instanceof NotFound) {
+        // eslint-disable-next-line unicorn/no-null
+        return null;
+      }
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to load helper shift ${shiftId}`,
+        cause: error,
+      });
     }
 
     const enrollments = await prisma.enrollment.findMany({

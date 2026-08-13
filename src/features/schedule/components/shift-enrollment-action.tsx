@@ -17,9 +17,10 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle, Loader2, Users, WifiOff } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2, RefreshCw, Users, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { useOffline } from 'next/offline';
 import React, { useState } from 'react';
 
 const localizedEnroll: StaticTranslationString = {
@@ -56,6 +57,18 @@ const localizedOffline: StaticTranslationString = {
   de: 'Offline – Anmeldung nicht möglich.',
   en: 'Offline – Enrollment unavailable.',
   fr: 'Hors ligne – Inscription impossible.',
+};
+
+const localizedUnavailable: StaticTranslationString = {
+  de: 'Anmeldestatus konnte nicht geladen werden.',
+  en: 'Could not load the enrollment status.',
+  fr: "Impossible de charger l'état des inscriptions.",
+};
+
+const localizedRetry: StaticTranslationString = {
+  de: 'Erneut versuchen',
+  en: 'Try again',
+  fr: 'Réessayer',
 };
 
 const localizedConflict: StaticTranslationString = {
@@ -110,11 +123,28 @@ export const ShiftEnrollmentAction: React.FC<{
 
   const utils = trpc.useUtils();
 
-  const { data: status, isLoading } = trpc.shifts.getShiftStatus.useQuery(
+  // `navigator.onLine` only reports the OS network interface, so it stays `true` on a phone that
+  // is on WiFi with no upstream. Next's own signal is driven by real RSC fetch failures plus a
+  // polling connectivity probe, and it clears itself as soon as the connection is back.
+  const isOffline = useOffline();
+
+  const {
+    data: status,
+    isLoading,
+    isFetching,
+    refetch,
+  } = trpc.shifts.getShiftStatus.useQuery(
     { shiftId },
     {
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 60 * 24 * 7,
+      // The global default is `refetchOnMount: false`, which meant a cached value was never
+      // revalidated by reopening the shift — only a reconnect or an unrelated enrollment could
+      // clear it. Combined with the 7-day `gcTime` and disk persistence, one bad value stuck.
+      // A plain `true` would still respect `staleTime`, so a value cached less than five minutes
+      // ago would survive the next visit; an empty status is never worth keeping for a moment, so
+      // refetch it unconditionally and leave real data on the normal staleness schedule.
+      refetchOnMount: (query) => (query.state.data == undefined ? 'always' : true),
     },
   );
 
@@ -179,16 +209,36 @@ export const ShiftEnrollmentAction: React.FC<{
 
   if (!enableEnrolment) return <></>;
 
-  if (isLoading) {
+  // `isLoading` only covers the first ever fetch. A shift whose cached value is unusable is not
+  // loading by that definition, so keep the skeleton up while its refetch is in flight too.
+  if (isLoading || (isFetching && !status)) {
     return <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200" />;
   }
 
-  // Cannot show enrollment if we don't have status yet and are not loading
+  // Missing status is not the same as missing connectivity: it also happens when the request
+  // failed or when a previously cached value turned out to be unusable. Only claim "offline" when
+  // the app really is offline, and otherwise offer a retry instead of a dead end.
   if (!status) {
-    return (
+    return isOffline ? (
       <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
         <WifiOff className="h-5 w-5 flex-shrink-0" />
         <span className="text-sm">{localizedOffline[locale]}</span>
+      </div>
+    ) : (
+      <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+          <span className="text-sm">{localizedUnavailable[locale]}</span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 self-start text-sm"
+          onClick={() => void refetch()}
+        >
+          <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+          {localizedRetry[locale]}
+        </Button>
       </div>
     );
   }
