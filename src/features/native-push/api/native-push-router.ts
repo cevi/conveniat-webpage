@@ -110,16 +110,22 @@ export const nativePushRouter = createTRPCRouter({
         const message = error instanceof Error ? error.message : String(error);
 
         // Two registrations for the same token can race here and one loses. That is
-        // harmless as long as the subscription exists afterwards, so check before
-        // deciding. Anything else is a real failure and must not be reported as
-        // success: the client sets "registered" on a resolved call, so swallowing this
-        // left users believing push was on while no subscription existed - silently,
+        // harmless as long as *this user's* subscription exists afterwards, so check
+        // before deciding. The user filter matters: `token` is unique, so two accounts
+        // registering the same device concurrently produce a duplicate-key error for
+        // the loser, and a token-only query would happily match the winner's row and
+        // report success for a subscription that was never stored for this user.
+        // Anything else is a real failure and must not be reported as success either:
+        // the client sets "registered" on a resolved call, so swallowing this left
+        // users believing push was on while no subscription existed - silently,
         // permanently, and with a "you have successfully subscribed" push to confirm it.
         let isPersisted = false;
         try {
           const persisted = await payload.find({
             collection: 'push-notification-subscriptions',
-            where: { token: { equals: input.token } },
+            where: {
+              and: [{ token: { equals: input.token } }, { user: { equals: payloadUser.id } }],
+            },
             limit: 1,
           });
           isPersisted = persisted.totalDocs > 0;
