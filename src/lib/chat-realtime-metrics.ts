@@ -102,9 +102,11 @@ const sseStreamCounter = meter.createCounter('chat_sse_streams_total', {
   valueType: ValueType.INT,
 });
 
+// The unit is carried by the metric name rather than the `unit` field: exporters may
+// append a unit suffix, and a name that shifts under us silently breaks the dashboard
+// panels built on `chat_sse_stream_duration_seconds_bucket`.
 const sseStreamDuration = meter.createHistogram('chat_sse_stream_duration_seconds', {
-  description: 'How long SSE chat streams stayed open',
-  unit: 's',
+  description: 'How long SSE chat streams stayed open, in seconds',
   valueType: ValueType.DOUBLE,
 });
 
