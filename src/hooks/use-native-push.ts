@@ -485,7 +485,12 @@ export function useNativePush(): {
         setIsUnauthenticated(false);
         setLastError(undefined);
       } catch (error: unknown) {
-        registeredTokenReference.current = undefined;
+        // Only this token's failure says anything about this token. A registration for
+        // a token that has since been rotated away must not clear the record of the
+        // newer one, or a repeat emission of it would register a second time.
+        if (registeredTokenReference.current === token) {
+          registeredTokenReference.current = undefined;
+        }
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('[NativePush:PWA] registerDevice: failed', error);
         addLog(`registerDevice failed: ${errorMessage}`, error);
@@ -513,7 +518,12 @@ export function useNativePush(): {
           }
         }
       } finally {
-        registrationInFlightReference.current = undefined;
+        // Clear the slot only if it is still ours. Two registrations for different
+        // tokens can overlap, and the first to settle would otherwise release the
+        // marker the second is still relying on.
+        if (registrationInFlightReference.current === token) {
+          registrationInFlightReference.current = undefined;
+        }
       }
     };
 

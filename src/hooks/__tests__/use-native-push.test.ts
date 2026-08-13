@@ -222,6 +222,9 @@ describe('useNativePush', () => {
 
     beforeEach(() => {
       mockRegisterDevice.mockClear();
+      // Restores the default after a test that installs a pending implementation,
+      // which `mockClear` on its own would leave in place for the next one.
+      mockRegisterDevice.mockResolvedValue({ success: true });
       mockUnregisterDevice.mockClear();
       // A leftover pending redirect would navigate on mount and blur the count below.
       sessionStorage.removeItem('pending_push_redirect');
@@ -267,6 +270,38 @@ describe('useNativePush', () => {
       await dispatchToken('token-new');
 
       expect(mockUnregisterDevice).toHaveBeenCalledTimes(1);
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * The token can rotate while a registration for the previous one is still open.
+     * The in-flight marker holds a single token, so the older call settling must not
+     * release the marker the newer call is relying on - otherwise a repeat emission
+     * of the newer token starts a second registration for a request still in flight,
+     * which is the duplication this whole guard exists to prevent.
+     */
+    it('keeps a newer token in flight when an overlapping older registration settles', async () => {
+      const pendingRegistrations = new Map<string, (value: unknown) => void>();
+      mockRegisterDevice.mockImplementation(
+        async ({ token }: { token: string }) =>
+          new Promise((resolve) => pendingRegistrations.set(token, resolve)),
+      );
+
+      renderHook(() => useNativePush());
+
+      // Neither call resolves, so both are open at the same time.
+      await dispatchToken('token-a');
+      await dispatchToken('token-b');
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+
+      // The older one wins the race back.
+      await act(async () => {
+        pendingRegistrations.get('token-a')?.({ success: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      await dispatchToken('token-b');
+
       expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
     });
 
