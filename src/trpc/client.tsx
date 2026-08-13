@@ -70,10 +70,32 @@ const getUrl = (): string => {
   return `${base}/api/trpc`;
 };
 
+/**
+ * Ceiling for a batched query URL, in characters.
+ *
+ * `httpBatchLink` defaults to `Infinity`: however many queries happen to resolve in the same tick
+ * all go out as one GET, and the URL grows without bound. Nothing in the deployment tolerates
+ * that. Requests reach the app through Traefik and then a per-stack nginx, and nginx is the
+ * tightest hop by a wide margin — neither `client_header_buffer_size` nor
+ * `large_client_header_buffers` is set in `nginx/nginx.conf`, so its defaults apply and the
+ * request line has to fit a single 8k buffer. Past that nginx answers `414 Request-URI Too Large`
+ * and the whole batch fails, taking every unrelated query that shared the tick with it. (Traefik
+ * allows ~1 MiB via Go's `MaxHeaderBytes` default and Node allows 16 KB, so neither is reached.)
+ *
+ * 6000 sits ~2100 characters below the 8179 that survives `GET ` + ` HTTP/1.1`. The headroom
+ * matters in the other direction too: a batch is split until each part fits, but a *single*
+ * operation that cannot fit throws instead, and `schedule.getCourseStatuses` legitimately carries
+ * 40 ids in one input. This has to stay comfortably above that, so lower it with care.
+ *
+ * Only GET batches are measured; mutations carry their input in a POST body and are unaffected.
+ */
+const MAX_BATCH_URL_LENGTH = 6000;
+
 const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
   return httpBatchLink({
     url: getUrl(),
     transformer: superjson,
+    maxURLLength: MAX_BATCH_URL_LENGTH,
     fetch: fetchWithAuthRedirect as unknown as NonNullable<
       Parameters<typeof httpBatchLink>[0]['fetch']
     >,
