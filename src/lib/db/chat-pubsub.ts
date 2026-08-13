@@ -1,9 +1,21 @@
 /* eslint-disable unicorn/prefer-event-target */
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  recordPubSubConnectionEvent,
+  recordPubSubNotification,
+  recordPubSubPublish,
+  setPubSubListening,
+  setPubSubSubscriberCount,
+  type PubSubRecycleReason,
+} from '@/lib/chat-realtime-metrics';
 import prisma from '@/lib/db/prisma';
+import { createLogger } from '@/utils/server-logger';
+import { withSpan } from '@/utils/tracing-helpers';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import EventEmitter from 'node:events';
 import pg from 'pg';
+
+const logger = createLogger('chat:pubsub');
 
 const isBuild =
   // eslint-disable-next-line n/no-process-env
@@ -80,9 +92,20 @@ class ChatPubSub {
       try {
         listener();
       } catch (error) {
-        console.error('[ChatPubSub] Connection-restored listener failed:', error);
+        logger.error('Connection-restored listener failed', { error });
       }
     }
+  }
+
+  /**
+   * Republishes the emitter's subscription count as a gauge. Called wherever a
+   * subscription is added or removed, so the metric cannot drift from reality.
+   */
+  private reportSubscriberCount(): void {
+    const total = this.emitter
+      .eventNames()
+      .reduce((sum, name) => sum + this.emitter.listenerCount(name as string), 0);
+    setPubSubSubscriberCount(total);
   }
 
   private stopHealthProbe(): void {
@@ -112,7 +135,7 @@ class ChatPubSub {
 
       Promise.race([client.query('SELECT 1'), timeout])
         .catch((error: unknown) => {
-          this.recycleClient(client, `health probe failed: ${String(error)}`);
+          this.recycleClient(client, 'health_probe', error);
         })
         .finally(() => {
           if (timeoutHandle) clearTimeout(timeoutHandle);
@@ -126,20 +149,24 @@ class ChatPubSub {
    * Tears down a LISTEN connection that can no longer be trusted and schedules a
    * fresh one. Safe to call for a client that has already been replaced.
    */
-  private recycleClient(client: pg.Client, reason: string): void {
-    console.error(`[ChatPubSub] Recycling PG LISTEN connection (${reason})`);
+  private recycleClient(client: pg.Client, reason: PubSubRecycleReason, cause: unknown): void {
+    // Error level on purpose: every SSE stream on this replica stops receiving
+    // events until the replacement connection is up.
+    logger.error('Recycling PG LISTEN connection', { reason, error: cause });
+    recordPubSubConnectionEvent('recycled', reason);
 
     if (this.pgClient === client) {
       this.stopHealthProbe();
       this.pgClient = undefined;
       this.isListening = false;
+      setPubSubListening(false);
       this.connectingPromise = undefined;
       this.missedEventsDuringOutage = true;
     }
 
     // Explicitly close the client to release connection handles and event listeners
     client.end().catch((error: unknown) => {
-      console.error('[ChatPubSub] Error ending bad PG client:', error);
+      logger.error('Error ending bad PG client', { error });
     });
 
     this.scheduleReconnect();
@@ -156,7 +183,10 @@ class ChatPubSub {
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
       this.ensureListening().catch((error: unknown) => {
-        console.error('[ChatPubSub] Reconnection attempt failed:', error);
+        logger.error('Reconnection attempt failed, will retry', {
+          error,
+          retryInMs: RECONNECT_DELAY_MS,
+        });
         this.scheduleReconnect();
       });
     }, RECONNECT_DELAY_MS);
@@ -172,7 +202,7 @@ class ChatPubSub {
       return this.connectingPromise;
     }
 
-    this.connectingPromise = (async (): Promise<void> => {
+    this.connectingPromise = withSpan('chat.pubsub.connect', async (): Promise<void> => {
       try {
         const client = new pg.Client({
           connectionString: environmentVariables.CHAT_DATABASE_URL,
@@ -191,33 +221,45 @@ class ChatPubSub {
               if (event.message && typeof event.message.createdAt === 'string') {
                 event.message.createdAt = new Date(event.message.createdAt);
               }
-              this.emitter.emit(`chat:${event.channel ?? event.chatId}`, event);
+              const channel = event.channel ?? event.chatId;
+              recordPubSubNotification('delivered');
+              logger.debug('Notification received', {
+                'chat.event.type': event.type,
+                'chat.channel': channel,
+              });
+              this.emitter.emit(`chat:${channel}`, event);
               this.emitter.emit('chat:all', event);
             } catch (error) {
-              console.error('[ChatPubSub] Failed to parse PG notification payload:', error);
+              recordPubSubNotification('parse_error');
+              logger.error('Failed to parse PG notification payload', { error });
             }
           }
         });
 
         client.on('error', (error: Error) => {
-          this.recycleClient(client, `client error: ${error.message}`);
+          this.recycleClient(client, 'client_error', error);
         });
 
         this.pgClient = client;
         this.isListening = true;
+        setPubSubListening(true);
         this.startHealthProbe(client);
-        console.log('[ChatPubSub] Successfully listening to PG chat_events');
+        recordPubSubConnectionEvent('connected');
+        logger.info('Listening to PG chat_events');
 
         if (this.missedEventsDuringOutage) {
           this.missedEventsDuringOutage = false;
+          recordPubSubConnectionEvent('restored');
+          logger.warn('LISTEN connection restored after an outage, events were missed');
           this.notifyConnectionRestored();
         }
       } catch (error) {
-        console.error('[ChatPubSub] Failed to start PG LISTEN connection:', error);
+        recordPubSubConnectionEvent('connect_failed');
+        logger.error('Failed to start PG LISTEN connection', { error });
         this.connectingPromise = undefined;
         throw error;
       }
-    })();
+    });
 
     return this.connectingPromise;
   }
@@ -231,7 +273,8 @@ class ChatPubSub {
     let event: ChatRealtimeEvent | undefined;
     if (typeof chatIdOrEvent === 'string') {
       if (!possibleEvent) {
-        console.error('[ChatPubSub] publish called with string but missing event object');
+        recordPubSubPublish('invalid');
+        logger.error('publish called with string but missing event object');
         return;
       }
       // The string form addresses a specific channel (e.g. a user's personal
@@ -247,26 +290,52 @@ class ChatPubSub {
 
     const runtimeEvent = event as unknown;
     if (runtimeEvent === undefined || runtimeEvent === null) {
-      console.error('[ChatPubSub] publish called with undefined event');
+      recordPubSubPublish('invalid');
+      logger.error('publish called with undefined event');
       return;
     }
 
-    const payload = JSON.stringify(event);
+    const publishedEvent = event;
+    const payload = JSON.stringify(publishedEvent);
+    const payloadBytes = Buffer.byteLength(payload, 'utf8');
+    const channel = publishedEvent.channel ?? publishedEvent.chatId;
 
     // Safety check for pg_notify payload size (Postgres limit is 8000 bytes)
-    if (Buffer.byteLength(payload, 'utf8') > 7900) {
-      console.warn(
-        `[ChatPubSub] Notification payload size exceeds 8KB limit. Event will not be published:`,
-        event,
-      );
+    if (payloadBytes > 7900) {
+      recordPubSubPublish('oversized');
+      logger.warn('Notification payload exceeds the pg_notify limit, event not published', {
+        'chat.event.type': publishedEvent.type,
+        'chat.channel': channel,
+        payloadBytes,
+      });
       return;
     }
 
-    try {
-      await prisma.$executeRaw`SELECT pg_notify('chat_events', ${payload})`;
-    } catch (error) {
-      console.error('[ChatPubSub] Failed to execute pg_notify:', error);
-    }
+    // Traced so that a message send can be followed from the mutation through to the
+    // notify that fans it out; a publish that never happened is otherwise invisible.
+    await withSpan(
+      'chat.pubsub.publish',
+      async (span): Promise<void> => {
+        try {
+          await prisma.$executeRaw`SELECT pg_notify('chat_events', ${payload})`;
+          recordPubSubPublish('published');
+          span.setAttribute('chat.publish.ok', true);
+        } catch (error) {
+          recordPubSubPublish('error');
+          span.setAttribute('chat.publish.ok', false);
+          logger.error('Failed to execute pg_notify', {
+            error,
+            'chat.event.type': publishedEvent.type,
+            'chat.channel': channel,
+          });
+        }
+      },
+      {
+        'chat.event.type': publishedEvent.type,
+        'chat.channel': channel,
+        'chat.payload.bytes': payloadBytes,
+      },
+    );
   }
 
   public async subscribe(
@@ -276,8 +345,10 @@ class ChatPubSub {
     if (isBuild) return () => {};
     await this.ensureListening();
     this.emitter.on(`chat:${chatId}`, callback);
+    this.reportSubscriberCount();
     return () => {
       this.emitter.off(`chat:${chatId}`, callback);
+      this.reportSubscriberCount();
     };
   }
 
@@ -291,10 +362,11 @@ class ChatPubSub {
       try {
         await this.pgClient.end();
       } catch (error) {
-        console.error('[ChatPubSub] Error closing PG connection:', error);
+        logger.error('Error closing PG connection', { error });
       }
       this.pgClient = undefined;
       this.isListening = false;
+      setPubSubListening(false);
       this.connectingPromise = undefined;
     }
   }
