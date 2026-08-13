@@ -45,12 +45,18 @@ export const nativePushRouter = createTRPCRouter({
        * behind rather than a stale read.
        */
       const persistSubscription = async (): Promise<boolean> => {
+        // Normalised once, then both stored and looked up in that form. Storing the
+        // raw value while matching on the trimmed one would make a padded id - a
+        // legacy or hand-edited `localStorage` entry - fail to find its own row on
+        // every token rotation, and each rotation would add another subscription.
+        const deviceId = input.deviceId?.trim();
+
         const data = {
           platform: input.platform,
           token: input.token,
           user: payloadUser.id,
           // eslint-disable-next-line unicorn/no-null
-          deviceId: input.deviceId ?? null,
+          deviceId: deviceId ?? null,
           lastUsedAt: new Date().toISOString(),
         };
 
@@ -76,7 +82,6 @@ export const nativePushRouter = createTRPCRouter({
         // Same device, rotated token: FCM issued a new one and this user's existing
         // row still points at the old. Update it in place, otherwise it lingers as a
         // subscription that can never be delivered to again.
-        const deviceId = input.deviceId?.trim();
         if (deviceId !== undefined && deviceId !== '') {
           const rowsForDevice = await payload.find({
             collection: 'push-notification-subscriptions',

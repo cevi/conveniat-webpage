@@ -62,7 +62,11 @@ const EMPTY = { totalDocs: 0, docs: [] };
 
 interface UpdateArguments {
   id: string;
-  data: { token: string; user: string };
+  data: { token: string; user: string; deviceId: string | null };
+}
+
+interface DeviceLookup {
+  where: { and: { deviceId?: { equals: string } }[] };
 }
 
 const firstUpdateArguments = (update: jest.Mock): UpdateArguments | undefined =>
@@ -135,6 +139,29 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
     const updateArguments = firstUpdateArguments(update);
     expect(updateArguments?.id).toBe('sub-device');
     expect(updateArguments?.data.token).toBe('token-1');
+  });
+
+  /**
+   * A padded `deviceId` - a legacy or hand-edited `localStorage` entry - has to be
+   * stored in the same form it is matched on. Persisting it raw while looking it up
+   * trimmed would make the rotation branch above miss the device's own row, so every
+   * token rotation would leave another undeliverable subscription behind and welcome
+   * the device again.
+   */
+  it('stores a padded device id in the form it is matched on', async () => {
+    find
+      .mockResolvedValueOnce(EMPTY)
+      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-device' }] });
+
+    await expect(
+      caller().registerDevice({ token: 'token-1', platform: 'android', deviceId: '  device-1  ' }),
+    ).resolves.toEqual({ success: true });
+
+    const deviceLookup = (find.mock.calls as unknown[][])[1]?.[0] as DeviceLookup | undefined;
+    const deviceClause = deviceLookup?.where.and.find((clause) => clause.deviceId !== undefined);
+
+    expect(deviceClause?.deviceId?.equals).toBe('device-1');
+    expect(firstUpdateArguments(update)?.data.deviceId).toBe('device-1');
   });
 
   it('creates a subscription and welcomes the device when nothing matches', async () => {
