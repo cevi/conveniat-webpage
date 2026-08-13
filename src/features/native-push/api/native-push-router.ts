@@ -31,28 +31,34 @@ export const nativePushRouter = createTRPCRouter({
         '| deduplicating existing token/device',
       );
 
-      // Check if this specific user already has a subscription for this deviceId or token
-      const existingSubscription = await payload.find({
-        collection: 'push-notification-subscriptions',
-        where: {
-          and: [
-            { user: { equals: payloadUser.id } },
-            {
-              or: [
-                { token: { equals: input.token } },
-                ...(input.deviceId && input.deviceId.trim() !== ''
-                  ? [{ deviceId: { equals: input.deviceId } }]
-                  : []),
-              ],
-            },
-          ],
-        },
-        limit: 1,
-      });
+      /**
+       * Stores the subscription and reports whether it was newly created. The lookup
+       * lives inside so that every attempt re-reads the current state: the row this
+       * call intends to update can be deleted by a competing registration between the
+       * find and the write, and a retry has to see that.
+       */
+      const persistSubscription = async (): Promise<boolean> => {
+        let createdNewSubscription = false;
 
-      let isNewSubscription = false;
+        // Check if this specific user already has a subscription for this deviceId or token
+        const existingSubscription = await payload.find({
+          collection: 'push-notification-subscriptions',
+          where: {
+            and: [
+              { user: { equals: payloadUser.id } },
+              {
+                or: [
+                  { token: { equals: input.token } },
+                  ...(input.deviceId && input.deviceId.trim() !== ''
+                    ? [{ deviceId: { equals: input.deviceId } }]
+                    : []),
+                ],
+              },
+            ],
+          },
+          limit: 1,
+        });
 
-      try {
         if (existingSubscription.totalDocs > 0 && existingSubscription.docs[0]?.id) {
           const existingId = existingSubscription.docs[0].id;
           // Delete any existing subscriptions with the exact same token belonging to other records
@@ -98,56 +104,86 @@ export const nativePushRouter = createTRPCRouter({
           // Only after the row exists: a welcome push is sent below on the strength of
           // this flag, and claiming a successful subscription that was never stored is
           // exactly the lie this endpoint used to tell.
-          isNewSubscription = true;
+          createdNewSubscription = true;
         }
+
+        return createdNewSubscription;
+      };
+
+      let isNewSubscription = false;
+
+      try {
+        isNewSubscription = await persistSubscription();
         console.log(
           '[NativePush:API] registerDevice: success — token registered for user',
           payloadUser.id,
           'isNew =',
           isNewSubscription,
         );
-      } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
+      } catch (firstAttemptError: unknown) {
+        const firstMessage =
+          firstAttemptError instanceof Error
+            ? firstAttemptError.message
+            : String(firstAttemptError);
 
-        // Two registrations for the same token can race here and one loses. That is
-        // harmless as long as *this user's* subscription exists afterwards, so check
-        // before deciding. The user filter matters: `token` is unique, so two accounts
-        // registering the same device concurrently produce a duplicate-key error for
-        // the loser, and a token-only query would happily match the winner's row and
-        // report success for a subscription that was never stored for this user.
-        // Anything else is a real failure and must not be reported as success either:
-        // the client sets "registered" on a resolved call, so swallowing this left
-        // users believing push was on while no subscription existed - silently,
-        // permanently, and with a "you have successfully subscribed" push to confirm it.
-        let isPersisted = false;
+        // A device emits several identical registrations at once and they are batched
+        // into one request, so they race over the same row: one call deletes the row
+        // another was about to update, and that one fails with a not-found it could
+        // have recovered from. Writing again off a fresh read is that recovery - by
+        // now the competing write has landed, so this attempt either updates its row
+        // or creates the missing one.
         try {
-          const persisted = await payload.find({
-            collection: 'push-notification-subscriptions',
-            where: {
-              and: [{ token: { equals: input.token } }, { user: { equals: payloadUser.id } }],
-            },
-            limit: 1,
-          });
-          isPersisted = persisted.totalDocs > 0;
-        } catch (verificationError: unknown) {
-          console.error(
-            '[NativePush:API] registerDevice: could not verify subscription after write failure:',
-            verificationError,
+          isNewSubscription = await persistSubscription();
+          console.warn(
+            '[NativePush:API] registerDevice: first write attempt lost a race, retry stored it:',
+            firstMessage,
+          );
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+
+          // Two registrations for the same token can race here and one loses. That is
+          // harmless as long as *this user's* subscription exists afterwards, so check
+          // before deciding. The user filter matters: `token` is unique, so two accounts
+          // registering the same device concurrently produce a duplicate-key error for
+          // the loser, and a token-only query would happily match the winner's row and
+          // report success for a subscription that was never stored for this user.
+          // Anything else is a real failure and must not be reported as success either:
+          // the client sets "registered" on a resolved call, so swallowing this left
+          // users believing push was on while no subscription existed - silently,
+          // permanently, and with a "you have successfully subscribed" push to confirm it.
+          let isPersisted = false;
+          try {
+            const persisted = await payload.find({
+              collection: 'push-notification-subscriptions',
+              where: {
+                and: [{ token: { equals: input.token } }, { user: { equals: payloadUser.id } }],
+              },
+              limit: 1,
+            });
+            isPersisted = persisted.totalDocs > 0;
+          } catch (verificationError: unknown) {
+            console.error(
+              '[NativePush:API] registerDevice: could not verify subscription after write failure:',
+              verificationError,
+            );
+          }
+
+          if (!isPersisted) {
+            console.error(
+              '[NativePush:API] registerDevice: failed to store subscription:',
+              message,
+            );
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'Failed to store push subscription',
+            });
+          }
+
+          console.warn(
+            '[NativePush:API] registerDevice: write lost a race but the subscription exists:',
+            message,
           );
         }
-
-        if (!isPersisted) {
-          console.error('[NativePush:API] registerDevice: failed to store subscription:', message);
-          throw new TRPCError({
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Failed to store push subscription',
-          });
-        }
-
-        console.warn(
-          '[NativePush:API] registerDevice: write lost a race but the subscription exists:',
-          message,
-        );
       }
 
       // Send welcome confirmation push notification ONLY when creating a brand new subscription
