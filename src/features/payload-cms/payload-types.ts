@@ -416,6 +416,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | DonationCtaBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -2047,6 +2048,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | DonationCtaBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -2540,6 +2542,68 @@ export interface Countdown {
   id?: string | null;
   blockName?: string | null;
   blockType: 'countdown';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationCtaBlock".
+ */
+export interface DonationCtaBlock {
+  eyebrow?: string | null;
+  title: string;
+  description?: string | null;
+  buttonLabel: string;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  /**
+   * Optional logos (e.g. TWINT, Visa, Mastercard). Upload the official logos to the media library and select them here.
+   */
+  paymentMethods?:
+    | {
+        logo: string | Image;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * e.g. "Payments are processed securely via RaiseNow."
+   */
+  note?: string | null;
+  variant: 'highlight' | 'card';
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'donationCta';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4680,6 +4744,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              donationCta?: T | DonationCtaBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -5044,6 +5109,36 @@ export interface CountdownSelect<T extends boolean = true> {
   title?: T;
   descriptionAbove?: T;
   descriptionBelow?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationCtaBlock_select".
+ */
+export interface DonationCtaBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
+  paymentMethods?:
+    | T
+    | {
+        logo?: T;
+        id?: T;
+      };
+  note?: T;
+  variant?: T;
   id?: T;
   blockName?: T;
 }
@@ -5615,6 +5710,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              donationCta?: T | DonationCtaBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -7596,6 +7692,7 @@ export interface AppLandingPage {
             blockName?: string | null;
             blockType: 'callToAction';
           }
+        | DonationCtaBlock
         | {
             linkField?: {
               type?: ('reference' | 'custom' | 'email') | null;
@@ -8152,6 +8249,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        donationCta?: T | DonationCtaBlockSelect<T>;
         newsCard?:
           | T
           | {

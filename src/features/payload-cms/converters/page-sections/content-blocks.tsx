@@ -15,6 +15,8 @@ import type { ContactPersonType } from '@/features/payload-cms/components/conten
 import { ContactPersonBlock } from '@/features/payload-cms/components/content-blocks/contact-person';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
+import type { DonationCtaType } from '@/features/payload-cms/components/content-blocks/donation-cta';
+import { DonationCta } from '@/features/payload-cms/components/content-blocks/donation-cta';
 import { FeaturedSection } from '@/features/payload-cms/components/content-blocks/featured-section';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
@@ -83,6 +85,7 @@ export type ContentBlockTypeNames =
   | 'countdown'
   | 'whiteSpace'
   | 'callToAction'
+  | 'donationCta'
   | 'newsCard'
   | 'campScheduleEntryBlock'
   | 'twoColumnBlock'
@@ -661,6 +664,32 @@ export const RenderCallToAction: SectionRenderer<CallToActionType> = ({
       locale={locale}
     >
       <CallToActionBlock {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderDonationCta: SectionRenderer<DonationCtaType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Spenden-Aufruf',
+          en: 'donation call-to-action',
+          fr: 'l’appel aux dons',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <DonationCta {...block} locale={locale} />
     </SectionWrapper>
   );
 };
