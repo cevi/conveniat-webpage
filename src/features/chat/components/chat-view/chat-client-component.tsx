@@ -5,6 +5,7 @@ import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { ThreadView } from '@/features/chat/components/chat-view/thread-view';
+import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatActionsProvider, useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
@@ -89,7 +90,9 @@ const ChatClientContent: React.FC = () => {
   } = useChatDetail(chatId);
   const { activeThreadId, closeThread } = useChatActions();
 
-  useChatSSE(chatId === '' ? [] : [chatId]);
+  const { status: realtimeStatus, reconnect: reconnectRealtime } = useChatSSE(
+    chatId === '' ? [] : [chatId],
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
@@ -103,6 +106,7 @@ const ChatClientContent: React.FC = () => {
     <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
       <AppFooterController hideAppFooter />
       <ChatHeader />
+      <RealtimeSyncBanner status={realtimeStatus} onReconnect={reconnectRealtime} />
       <div className="flex-1 overflow-hidden">
         <MessageList />
       </div>

@@ -1,4 +1,4 @@
-import type { RealtimeConnectionStatus } from '@/features/chat/hooks/use-admin-realtime-connection';
+import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
