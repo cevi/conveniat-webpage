@@ -58,13 +58,22 @@ const caller = (): ReturnType<typeof createCaller> =>
 const register = async (): Promise<{ success: boolean }> =>
   caller().registerDevice({ token: 'token-1', platform: 'android', deviceId: 'device-1' });
 
+const EMPTY = { totalDocs: 0, docs: [] };
+
+interface UpdateArguments {
+  id: string;
+  data: { token: string; user: string };
+}
+
+const firstUpdateArguments = (update: jest.Mock): UpdateArguments | undefined =>
+  (update.mock.calls as unknown[][])[0]?.[0] as UpdateArguments | undefined;
+
 /**
  * A device emits `native-push-token` several times per permission change, so several
- * identical `registerDevice` calls arrive in one batch and race over the same row:
- * one deletes the row another is about to update, and that one fails with a not-found
- * it can recover from by writing again off a fresh read. Before the retry, whoever lost
- * the race returned INTERNAL_SERVER_ERROR and the client reported "registration failed"
- * for a subscription that was in fact stored.
+ * identical `registerDevice` calls arrive in one batch and race each other. The write
+ * is an upsert on the unique `token` so they converge on one row instead of deleting
+ * it out from under each other; the retry covers the one race that survives, two
+ * calls creating a token nobody holds yet.
  */
 describe('nativePushRouter.registerDevice under concurrent registrations', () => {
   const find = jest.fn();
@@ -92,48 +101,81 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
     jest.restoreAllMocks();
   });
 
-  it('retries the write when a competing registration removed the row mid-flight', async () => {
-    // First attempt finds the row, but it is gone by the time the update lands. The
-    // retry re-reads (now empty) and creates it.
-    find
-      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-1' }] })
-      .mockResolvedValueOnce({ totalDocs: 0, docs: [] });
-    update.mockRejectedValueOnce(new Error('Nicht gefunden'));
+  /**
+   * The delete was the whole problem: it made room for a write that a parallel call
+   * was about to perform on the row being removed. `token` is unique, so the row can
+   * simply be claimed - and nothing else may be deleted to get there.
+   */
+  it('claims the row that already holds the token instead of deleting it', async () => {
+    find.mockResolvedValue({ totalDocs: 1, docs: [{ id: 'sub-existing' }] });
 
     await expect(register()).resolves.toEqual({ success: true });
 
-    expect(find).toHaveBeenCalledTimes(2);
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(deleteMany).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+
+    const updateArguments = firstUpdateArguments(update);
+    expect(updateArguments?.id).toBe('sub-existing');
+    expect(updateArguments?.data.token).toBe('token-1');
+    expect(updateArguments?.data.user).toBe('user-1');
   });
 
-  it('does not send a second welcome push when the retry only updates an existing row', async () => {
+  it('moves this device to its new token when FCM rotates it', async () => {
     find
-      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-1' }] })
-      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-2' }] });
-    update.mockRejectedValueOnce(new Error('Nicht gefunden'));
+      // nobody holds the new token ...
+      .mockResolvedValueOnce(EMPTY)
+      // ... but this user already has a row for the device
+      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-device' }] });
 
     await expect(register()).resolves.toEqual({ success: true });
 
+    expect(create).not.toHaveBeenCalled();
+    expect(deleteMany).not.toHaveBeenCalled();
+
+    const updateArguments = firstUpdateArguments(update);
+    expect(updateArguments?.id).toBe('sub-device');
+    expect(updateArguments?.data.token).toBe('token-1');
+  });
+
+  it('creates a subscription and welcomes the device when nothing matches', async () => {
+    find.mockResolvedValue(EMPTY);
+
+    await expect(register()).resolves.toEqual({ success: true });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(mockSendFcmNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('claims the winner row when a concurrent create took the token first', async () => {
+    find
+      .mockResolvedValueOnce(EMPTY)
+      .mockResolvedValueOnce(EMPTY)
+      // the retry sees the row the competing registration created
+      .mockResolvedValue({ totalDocs: 1, docs: [{ id: 'sub-winner' }] });
+    create.mockRejectedValueOnce(new Error('duplicate key value violates unique constraint'));
+
+    await expect(register()).resolves.toEqual({ success: true });
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ id: 'sub-winner' }));
+    // The row is not this call's creation, so the device must not be welcomed twice.
     expect(mockSendFcmNotification).not.toHaveBeenCalled();
   });
 
-  it('reports success when the retry fails but a concurrent write stored the subscription', async () => {
+  it('reports success when both attempts fail but the subscription exists anyway', async () => {
     find
-      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-1' }] })
-      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-1' }] })
+      .mockResolvedValueOnce(EMPTY)
+      .mockResolvedValueOnce(EMPTY)
+      .mockResolvedValueOnce(EMPTY)
+      .mockResolvedValueOnce(EMPTY)
       // the verification lookup after the second failure
-      .mockResolvedValueOnce({ totalDocs: 1, docs: [{ id: 'sub-9' }] });
-    update.mockRejectedValue(new Error('Nicht gefunden'));
+      .mockResolvedValue({ totalDocs: 1, docs: [{ id: 'sub-9' }] });
+    create.mockRejectedValue(new Error('duplicate key value violates unique constraint'));
 
     await expect(register()).resolves.toEqual({ success: true });
   });
 
   it('still fails loudly when the subscription genuinely cannot be stored', async () => {
-    find
-      .mockResolvedValueOnce({ totalDocs: 0, docs: [] })
-      .mockResolvedValueOnce({ totalDocs: 0, docs: [] })
-      // nothing was persisted for this user
-      .mockResolvedValueOnce({ totalDocs: 0, docs: [] });
+    find.mockResolvedValue(EMPTY);
     create.mockRejectedValue(new Error('connection pool timeout'));
 
     await expect(register()).rejects.toBeInstanceOf(TRPCError);
