@@ -9,18 +9,21 @@ import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
 /**
- * Users are checked out in batches so that a failure part-way through leaves a consistent state:
- * everyone already processed is checked out and logged, everyone else still carries
- * `presentAtCamp`, and the next scheduled run picks exactly those up again.
+ * Removes a check-out entry that was written to Payload for a check-out that then did not happen
+ * in Postgres, so that the retry on the next run cannot produce a second one.
  */
-const CHECKOUT_BATCH_SIZE = 100;
-
-const chunk = <T>(items: T[], size: number): T[][] => {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
+const dropPayloadLog = async (
+  request: PayloadRequest,
+  id: number | string,
+  uuid: string,
+): Promise<void> => {
+  try {
+    await request.payload.delete({ collection: 'presence-logs', id });
+  } catch (revertError: unknown) {
+    request.payload.logger.warn(
+      `[autoCheckoutPresence] Could not revert the Payload check-out entry of ${uuid}: ${String(revertError)}`,
+    );
   }
-  return chunks;
 };
 
 export const autoCheckoutPresenceTask: TaskConfig<{
@@ -99,62 +102,86 @@ export const autoCheckoutPresenceTask: TaskConfig<{
       select: { uuid: true },
     });
 
-    if (presentUsers.length === 0) {
-      return { output: { checkedOut: 0 } };
+    if (presentUsers.length > 0) {
+      logger.info(
+        `Campsite presence ended at ${endDate.toISOString()}, checking out ${presentUsers.length} user(s).`,
+      );
     }
-
-    logger.info(
-      `Campsite presence ended at ${endDate.toISOString()}, checking out ${presentUsers.length} user(s).`,
-    );
 
     let checkedOut = 0;
 
-    for (const batch of chunk(
-      presentUsers.map((user) => user.uuid),
-      CHECKOUT_BATCH_SIZE,
-    )) {
-      /**
-       * Postgres first, mirroring the order the presence slider writes in: the `users`
-       * afterChange hook compares against Postgres, so the Payload update below sees a value
-       * that already matches and does not append a second log entry.
-       */
-      await prisma.$transaction([
-        prisma.user.updateMany({
-          where: { uuid: { in: batch } },
-          data: { presentAtCamp: false },
-        }),
-        prisma.presenceLog.createMany({
-          data: batch.map((uuid) => ({ userUuid: uuid, isPresent: false, timestamp: endDate })),
-        }),
-      ]);
+    for (const { uuid } of presentUsers) {
+      let payloadLogId: number | string | undefined;
 
-      await payload.update({
-        collection: 'users',
-        where: { id: { in: batch } },
-        data: { presentAtCamp: false },
-      });
+      try {
+        /**
+         * The Payload log entry is written before the flag it describes, the same way the `users`
+         * afterChange hook does it: a flag stored without its log entry would corrupt the density
+         * plot and the evaluation permanently, because the user no longer shows up as present and
+         * the transition is never logged again.
+         */
+        const payloadLog = await payload.create({
+          collection: 'presence-logs',
+          data: {
+            user: uuid,
+            isPresent: false,
+            timestamp: endDate.toISOString(),
+          },
+        });
+        payloadLogId = payloadLog.id;
 
-      for (const uuid of batch) {
-        try {
-          await payload.create({
-            collection: 'presence-logs',
-            data: {
-              user: uuid,
-              isPresent: false,
-              timestamp: endDate.toISOString(),
-            },
+        /**
+         * `presentAtCamp: true` in the filter makes the check-out conditional: a user who checked
+         * out through the slider between the query above and this transaction is not touched, and
+         * gets no second check-out entry. `count` reports whether this run was the one that
+         * closed the record, so only then is the log entry kept.
+         */
+        const closedByThisRun = await prisma.$transaction(async (tx) => {
+          const { count } = await tx.user.updateMany({
+            where: { uuid, presentAtCamp: true },
+            data: { presentAtCamp: false },
           });
-        } catch (error) {
-          // The Prisma log above is what the density plot and the export read, so a failed
-          // mirror must not stop the checkout — it only leaves a gap in the admin panel view.
-          logger.warn(
-            `[autoCheckoutPresence] Could not mirror the check-out of ${uuid} to Payload: ${String(error)}`,
-          );
-        }
-      }
 
-      checkedOut += batch.length;
+          if (count === 0) return false;
+
+          await tx.presenceLog.create({
+            data: { userUuid: uuid, isPresent: false, timestamp: endDate },
+          });
+          return true;
+        });
+
+        if (closedByThisRun) {
+          checkedOut += 1;
+        } else {
+          await dropPayloadLog(request, payloadLogId, uuid);
+        }
+      } catch (error) {
+        // The flag is left as it is so the next run retries this user, and the mirror entry is
+        // taken back out so that retry cannot produce a second one. One user failing must not
+        // stop the others from being checked out.
+        if (payloadLogId !== undefined) {
+          await dropPayloadLog(request, payloadLogId, uuid);
+        }
+        logger.warn(
+          `[autoCheckoutPresence] Could not check out ${uuid}, retrying on the next run: ${String(error)}`,
+        );
+      }
     }
+
+    /**
+     * Reconciliation pass: the Payload flag is cleared for everyone at once, independently of what
+     * happened above. Because it does not select on the Postgres state, it also repairs users
+     * whose Payload document stayed checked in after a failed run — those are invisible to the
+     * query at the top, which only sees users who are still present in Postgres.
+     *
+     * Postgres has already been written at this point, so the `users` afterChange hook compares
+     * two matching values and does not append another log entry.
+     */
+    await payload.update({
+      collection: 'users',
+      where: { presentAtCamp: { equals: true } },
+      data: { presentAtCamp: false },
+    });
 
     logger.info(`Checked out ${checkedOut} user(s) at the end of the campsite presence period.`);
 
