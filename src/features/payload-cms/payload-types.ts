@@ -219,6 +219,7 @@ export interface Config {
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -4324,6 +4325,7 @@ export interface PayloadJob {
           | 'generateBills'
           | 'sendBills'
           | 'cleanupTemporaryFormFiles'
+          | 'autoCheckoutPresence'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -4379,6 +4381,7 @@ export interface PayloadJob {
         | 'generateBills'
         | 'sendBills'
         | 'cleanupTemporaryFormFiles'
+        | 'autoCheckoutPresence'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -8586,6 +8589,16 @@ export interface TaskSendBills {
 export interface TaskCleanupTemporaryFormFiles {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAutoCheckoutPresence".
+ */
+export interface TaskAutoCheckoutPresence {
+  input?: unknown;
+  output: {
+    checkedOut?: number | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
