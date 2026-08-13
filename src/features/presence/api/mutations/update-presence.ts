@@ -20,23 +20,31 @@ export const updatePresence = trpcBaseProcedure
 
     const now = new Date();
 
-    if (globalData.startDate) {
-      const startDate = new Date(globalData.startDate);
-      if (now < startDate) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Campsite presence tracking has not started yet.',
-        });
+    /**
+     * Checking *in* only makes sense inside the tracking period. Checking *out* stays possible at
+     * any time: the `autoCheckoutPresence` task closes open records at `endDate`, and a user who
+     * leaves the campsite before that job has run must still be able to close their own record
+     * instead of being reported as present until the job catches up.
+     */
+    if (input.presentAtCamp) {
+      if (globalData.startDate) {
+        const startDate = new Date(globalData.startDate);
+        if (now < startDate) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Campsite presence tracking has not started yet.',
+          });
+        }
       }
-    }
 
-    if (globalData.endDate) {
-      const endDate = new Date(globalData.endDate);
-      if (now > endDate) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Campsite presence tracking has ended.',
-        });
+      if (globalData.endDate) {
+        const endDate = new Date(globalData.endDate);
+        if (now > endDate) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Campsite presence tracking has ended.',
+          });
+        }
       }
     }
 
