@@ -305,6 +305,12 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
   const saveTimerReference = useRef<ReturnType<typeof setTimeout>>(undefined);
   const latestSaveReference = useRef(0);
 
+  // castVotes replaces the user's whole allocation for the contest, so two writes in flight at
+  // once can commit in either order and leave the older allocation in the database while the UI
+  // reports the newer one as saved. Writes are therefore chained rather than fired in parallel:
+  // at most one is ever outstanding, and the next one starts only once it has committed.
+  const saveQueueReference = useRef<Promise<void>>(Promise.resolve());
+
   useEffect(
     () => (): void => {
       clearTimeout(saveTimerReference.current);
@@ -323,28 +329,31 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
         latestSaveReference.current += 1;
         const saveId = latestSaveReference.current;
 
-        castVotesMutation.mutate(
-          {
-            contestId,
-            allocations: Object.entries(nextVotes)
-              .map(([imageId, points]) => ({ imageId, points }))
-              .filter((allocation) => allocation.points > 0),
-          },
-          {
-            // A late reply from a superseded write must not overwrite a newer acknowledgement.
-            onSuccess: () => {
-              if (saveId === latestSaveReference.current) setLastSavedVotes(nextVotes);
-            },
-            onError: (error) => {
-              toast.error(error.message);
-              // Fall back to what the server actually holds rather than leaving a lie on screen.
-              if (saveId === latestSaveReference.current) setLocalOverrides(undefined);
-            },
-          },
-        );
+        saveQueueReference.current = saveQueueReference.current.then(async (): Promise<void> => {
+          // Another tap landed while this one waited for its turn, so this allocation is already
+          // obsolete. Skipping it entirely — rather than only ignoring its reply — is what keeps
+          // a superseded write from reaching the database at all.
+          if (saveId !== latestSaveReference.current) return;
+
+          try {
+            await castVotesMutation.mutateAsync({
+              contestId,
+              allocations: Object.entries(nextVotes)
+                .map(([imageId, points]) => ({ imageId, points }))
+                .filter((allocation) => allocation.points > 0),
+            });
+            setLastSavedVotes(nextVotes);
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+            // Fall back to what the server actually holds rather than leaving a lie on screen.
+            setLocalOverrides(undefined);
+            setLastSavedVotes(undefined);
+            void currentContestQuery.refetch();
+          }
+        });
       }, AUTOSAVE_DELAY_MS);
     },
-    [contestId, castVotesMutation],
+    [contestId, castVotesMutation, currentContestQuery],
   );
 
   const handleAddPoint = (imageId: string): void => {
