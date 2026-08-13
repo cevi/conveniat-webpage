@@ -298,17 +298,27 @@ export const syncAllOfflineData = async (
     (async (): Promise<void> => {
       // eslint-disable-next-line unicorn/no-useless-undefined
       const shifts = await safePrefetch(trpcUtils.schedule.getHelperShifts.ensureData(undefined));
-      if (Array.isArray(shifts) && shifts.length > 0) {
-        await Promise.all(
-          shifts.map((shift) => {
-            if (typeof shift.id === 'string' && shift.id.length > 0) {
-              return safePrefetch(
-                trpcUtils.shifts.getShiftStatus.ensureData({ shiftId: shift.id }),
-              );
-            }
-            return Promise.resolve();
-          }),
+      const shiftIds = Array.isArray(shifts)
+        ? shifts.map((shift) => shift.id).filter((id) => typeof id === 'string' && id.length > 0)
+        : [];
+
+      if (shiftIds.length > 0) {
+        // One request per shift, all released in the same tick, meant the whole camp's shifts hit
+        // the server as a single unbounded batch. Unlike the course statuses above there is no
+        // list procedure to spread the load over, so chunk the fan-out the same way: whichever
+        // shift lost that race came back empty and was rendered as "offline" from then on (#1537).
+        const CHUNK_SIZE = 40;
+        const chunks = Array.from({ length: Math.ceil(shiftIds.length / CHUNK_SIZE) }, (_, index) =>
+          shiftIds.slice(index * CHUNK_SIZE, index * CHUNK_SIZE + CHUNK_SIZE),
         );
+
+        for (const chunk of chunks) {
+          await Promise.all(
+            chunk.map((shiftId) =>
+              safePrefetch(trpcUtils.shifts.getShiftStatus.ensureData({ shiftId })),
+            ),
+          );
+        }
       }
     })(),
     safePrefetch(trpcUtils.map.getMapAnnotations.ensureData({ locale: 'de' })),

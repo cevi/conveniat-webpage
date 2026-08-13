@@ -113,14 +113,20 @@ describe('ShiftEnrollmentAction when the status query has no usable data', () =>
   /**
    * The query client defaults to `refetchOnMount: false`, so without this override a bad cached
    * value survived every reopen of the shift — for the 7 days of its `gcTime`, across restarts,
-   * because the cache is persisted to IndexedDB.
+   * because the cache is persisted to IndexedDB. A plain `true` would not be enough either: it
+   * still respects the five-minute `staleTime`, so a freshly persisted empty value would outlive
+   * the next visit.
    */
-  it('revalidates a stale cached status on mount', () => {
+  it('refetches an empty cached status on mount without waiting for it to go stale', () => {
     render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
 
-    expect(mockUseQuery).toHaveBeenCalledWith(
-      { shiftId: 'shift-1' },
-      expect.objectContaining({ refetchOnMount: true }),
-    );
+    const options = mockUseQuery.mock.calls[0]?.[1] as {
+      refetchOnMount: (query: { state: { data: unknown } }) => boolean | string;
+    };
+
+    // eslint-disable-next-line unicorn/no-null -- the exact value the server used to hand back
+    expect(options.refetchOnMount({ state: { data: null } })).toBe('always');
+    expect(options.refetchOnMount({ state: { data: undefined } })).toBe('always');
+    expect(options.refetchOnMount({ state: { data: { enrolledCount: 1 } } })).toBe(true);
   });
 });
