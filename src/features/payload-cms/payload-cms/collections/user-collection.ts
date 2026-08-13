@@ -55,7 +55,6 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
-        presentAtCamp: presentAtCamp,
       },
       create: {
         uuid: uuid,
@@ -69,14 +68,19 @@ const syncUserToPostgres: NonNullable<
       },
     });
 
-    // The presence mutation writes Postgres before it writes Payload, so this only logs presence
-    // changes that originate from the admin panel — the slider never produces a duplicate entry.
+    // The presence mutation writes Postgres before it writes Payload, so a difference here only
+    // ever originates from the admin panel — the slider never produces a duplicate entry.
     if (knownUser !== null && knownUser.presentAtCamp !== presentAtCamp) {
       const timestamp = new Date();
-      await prisma.presenceLog.create({
-        data: { userUuid: uuid, isPresent: presentAtCamp, timestamp },
-      });
-      await req.payload.create({
+
+      /**
+       * The flag is written last, and together with its log entry: the density plot and the
+       * evaluation are built from the logs, so a flag that is stored without its entry would
+       * corrupt them permanently — the next save would compare against the already updated flag
+       * and never log the transition again. This way a failed write leaves the old flag in place
+       * and the next save retries the whole transition.
+       */
+      const payloadLog = await req.payload.create({
         collection: 'presence-logs',
         data: {
           user: uuid,
@@ -84,6 +88,22 @@ const syncUserToPostgres: NonNullable<
           timestamp: timestamp.toISOString(),
         },
       });
+
+      try {
+        await prisma.$transaction([
+          prisma.user.update({ where: { uuid }, data: { presentAtCamp: presentAtCamp } }),
+          prisma.presenceLog.create({
+            data: { userUuid: uuid, isPresent: presentAtCamp, timestamp },
+          }),
+        ]);
+      } catch (error) {
+        try {
+          await req.payload.delete({ collection: 'presence-logs', id: payloadLog.id });
+        } catch (revertError: unknown) {
+          console.error('[syncUserToPostgres] Failed to revert Payload presence log:', revertError);
+        }
+        throw error;
+      }
     }
   } catch (error) {
     console.error('[syncUserToPostgres] Non-fatal error syncing user to Postgres:', error);
