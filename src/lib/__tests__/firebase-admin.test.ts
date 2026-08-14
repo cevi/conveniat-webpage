@@ -39,16 +39,16 @@ describe('sendFcmNotification', () => {
   });
 
   /**
-   * The native app's manifest names a default channel (`konekta-push`) that nothing
-   * creates, so a message without a channel id lands on FCM's fallback channel at
-   * default importance and Android shows no heads-up banner. Addressing the channel
-   * the shell really creates is the whole point of this field.
+   * A channel id the app never created makes FCM post to its own auto-created
+   * fallback channel at default importance instead, showing no heads-up banner.
+   * Addressing the channel the shell really creates (`konekta-push`) is the whole
+   * point of this field. See cevi/conveniat-webpage#1583.
    */
   it('addresses the Android channel the native app actually creates', async () => {
     await sendFcmNotification('token-1', { title: 'Alarm', body: 'Einsatz', data: {} });
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    expect(lastSentMessage().android?.notification?.channelId).toBe('konekta-default');
+    expect(lastSentMessage().android?.notification?.channelId).toBe('konekta-push');
   });
 
   it('keeps the high priority and legacy sound fields alongside the channel', async () => {

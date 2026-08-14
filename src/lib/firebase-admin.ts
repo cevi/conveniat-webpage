@@ -6,25 +6,22 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 
 /**
- * Android notification channel every push is addressed to.
+ * Android notification channel every non-emergency push is addressed to.
  *
  * It must match the channel the native shell actually creates - today
- * `MainApplication.createNotificationChannel()` in cevi/konekta-app, which registers
- * `konekta-default` at `IMPORTANCE_HIGH` on every app start.
+ * `MainApplication.ensureChannels()` / `LocalNotificationsModule.ensureChannel()` in
+ * cevi/konekta-app, which registers `konekta-push` at `IMPORTANCE_HIGH` on every app
+ * start (its `AndroidManifest.xml` also points
+ * `com.google.firebase.messaging.default_notification_channel_id` at the same channel).
  *
- * Addressing it explicitly works around a mismatch in the native app: its manifest
- * points `com.google.firebase.messaging.default_notification_channel_id` at
- * `konekta-push`, a channel nothing ever creates. Without a channel id on the message
- * FCM falls back to that manifest value, finds no such channel, and posts to its own
- * auto-created fallback channel at default importance - which is why Android showed no
- * heads-up banner. Naming the real channel skips the broken indirection entirely.
+ * Addressing it explicitly matters because a channel id the app never created makes
+ * FCM post to its own auto-created fallback channel at default importance instead -
+ * which shows no heads-up banner. This constant previously named `konekta-default`, a
+ * channel the app has never created; see cevi/conveniat-webpage#1583.
  *
  * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
- *
- * Remove this once the native app aligns its manifest with the channel it creates; a
- * channel id the installed app does not know silently falls back again.
  */
-const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-default';
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-push';
 
 let firebaseAdminInitialized = false;
 
