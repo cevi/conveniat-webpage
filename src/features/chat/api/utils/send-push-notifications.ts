@@ -99,6 +99,8 @@ async function processSubscription(
     chatName?: string;
     senderName?: string;
     title?: string;
+    /** Routes the push to the native siren channel/sound. See issue #47. */
+    notificationType?: 'emergency';
   },
 ): Promise<{ success: boolean; error?: string }> {
   const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
@@ -138,6 +140,9 @@ async function processSubscription(
       // push channel and the realtime (SSE) stream.
       ...(messageId === undefined ? {} : { messageId }),
       ...(typeof notificationTitle === 'string' ? { title: notificationTitle } : {}),
+      ...(options?.notificationType === undefined
+        ? {}
+        : { notificationType: options.notificationType }),
     },
   );
 }
@@ -160,6 +165,8 @@ export async function sendNotification(
     chatName?: string;
     senderName?: string;
     title?: string;
+    /** Routes the push to the native siren channel/sound. See issue #47. */
+    notificationType?: 'emergency';
   },
 ): Promise<{ success: boolean; error?: string }> {
   const subscriptions = await getSubscriptions(recipientUserIds);

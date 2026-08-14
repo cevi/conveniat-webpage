@@ -225,6 +225,8 @@ export async function sendNotificationToSubscription(
     title?: string;
     /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
     messageId?: string;
+    /** Routes the push to the native siren channel/sound. See issue #47. */
+    notificationType?: 'emergency';
   },
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
@@ -304,6 +306,9 @@ export async function sendNotificationToSubscription(
           }),
           ...(options?.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
+          }),
+          ...(options?.notificationType !== undefined && {
+            notificationType: options.notificationType,
           }),
         },
       });

@@ -59,6 +59,23 @@ describe('foreground notifications', () => {
     expect(mockToast).not.toHaveBeenCalled();
   });
 
+  it('forwards notificationType="emergency" to the native shell (issue #47)', () => {
+    const showNotification = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
+
+    notifyForegroundMessage({ ...baseNotification, notificationType: 'emergency' });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ notificationType: 'emergency' }),
+    );
+  });
+
   it('falls back to the in-app banner on app builds without showNotification', () => {
     globalThis.AppWebViewNativePush = {
       getStatus: jest.fn(),

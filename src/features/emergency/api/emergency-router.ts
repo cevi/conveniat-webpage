@@ -312,6 +312,7 @@ export const emergencyRouter = createTRPCRouter({
 
         sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
           chatName: chat.name,
+          notificationType: 'emergency',
         }).catch((error: unknown) => {
           console.error('Failed to send push notification to piket members:', error);
         });

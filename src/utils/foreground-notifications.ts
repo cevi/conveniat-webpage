@@ -61,6 +61,8 @@ export interface ForegroundNotification {
   body: string;
   /** In-app path opened when the user interacts with the notification. */
   targetPath: string;
+  /** Routes the native notification to the siren channel/sound. See issue #47. */
+  notificationType?: 'emergency' | undefined;
 }
 
 const notifiedKeys = new Set<string>();
@@ -160,6 +162,9 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
       url: notification.targetPath,
       ...(notification.chatId !== undefined && { chatId: notification.chatId }),
       ...(notification.messageId !== undefined && { messageId: notification.messageId }),
+      ...(notification.notificationType !== undefined && {
+        notificationType: notification.notificationType,
+      }),
     });
     return true;
   } catch (error: unknown) {

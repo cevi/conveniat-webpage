@@ -26,6 +26,23 @@ import * as fs from 'node:fs';
  */
 const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-default';
 
+/**
+ * Second Android channel for emergency/Pikett alerts (issue #47): the native
+ * shell registers it at startup (`MainApplication.onCreate` in cevi/konekta-app)
+ * with a siren sound and a distinct vibration pattern, so it must be addressed
+ * explicitly here rather than relying on the default channel.
+ */
+const ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID = 'konekta-emergency';
+
+/**
+ * Sound resource names for the emergency siren, bundled natively on each
+ * platform (`res/raw/emergency_siren.mp3` on Android, `emergency_siren.caf`
+ * in the iOS app bundle). FCM's `android.notification.sound` takes the raw
+ * resource name without extension; APNs wants the bundled filename with it.
+ */
+const EMERGENCY_ANDROID_SOUND_RESOURCE = 'emergency_siren';
+const EMERGENCY_IOS_SOUND_FILE = 'emergency_siren.caf';
+
 let firebaseAdminInitialized = false;
 
 export function getFirebaseAdmin(): typeof admin | undefined {
@@ -69,6 +86,8 @@ export async function sendFcmNotification(
       notificationId?: string;
       ignoreIfAppOpen?: string;
       ignoreIfUrlMatches?: string;
+      /** `'emergency'` routes the push to the siren channel/sound. See issue #47. */
+      notificationType?: string;
       [key: string]: string | undefined;
     };
   },
@@ -89,6 +108,7 @@ export async function sendFcmNotification(
       payload.data.notificationId !== undefined && payload.data.notificationId !== ''
         ? payload.data.notificationId
         : randomUUID();
+    const isEmergency = payload.data.notificationType === 'emergency';
     await adminInstance.messaging().send({
       token,
       notification: {
@@ -108,6 +128,7 @@ export async function sendFcmNotification(
         ...(payload.data.ignoreIfUrlMatches !== undefined && {
           ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
         }),
+        ...(isEmergency && { notificationType: 'emergency' }),
       },
       apns: {
         headers: {
@@ -121,7 +142,11 @@ export async function sendFcmNotification(
               title: payload.title,
               body: payload.body,
             },
-            sound: 'default',
+            sound: isEmergency ? EMERGENCY_IOS_SOUND_FILE : 'default',
+            // Lets the siren break through Focus/DND when the recipient allows
+            // time-sensitive notifications, without requiring Apple's Critical
+            // Alerts entitlement. See issue #47.
+            ...(isEmergency && { interruptionLevel: 'time-sensitive' }),
           },
           notificationId,
           ...(payload.data.url !== undefined && { url: payload.data.url }),
@@ -130,6 +155,7 @@ export async function sendFcmNotification(
           ...(payload.data.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
+          ...(isEmergency && { notificationType: 'emergency' }),
           data: {
             title: payload.title,
             body: payload.body,
@@ -140,6 +166,7 @@ export async function sendFcmNotification(
             ...(payload.data.ignoreIfUrlMatches !== undefined && {
               ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
             }),
+            ...(isEmergency && { notificationType: 'emergency' }),
           },
         },
       },
@@ -153,9 +180,11 @@ export async function sendFcmNotification(
           // shows no heads-up banner. From Android O on the channel owns sound and
           // importance and both fields are ignored. Note this is the *display* priority,
           // unlike `android.priority` above, which controls delivery.
-          sound: 'default',
+          sound: isEmergency ? EMERGENCY_ANDROID_SOUND_RESOURCE : 'default',
           priority: 'high',
-          channelId: ANDROID_NOTIFICATION_CHANNEL_ID,
+          channelId: isEmergency
+            ? ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID
+            : ANDROID_NOTIFICATION_CHANNEL_ID,
         },
         data: {
           title: payload.title,
@@ -170,6 +199,7 @@ export async function sendFcmNotification(
           ...(payload.data.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
+          ...(isEmergency && { notificationType: 'emergency' }),
         },
       },
     });

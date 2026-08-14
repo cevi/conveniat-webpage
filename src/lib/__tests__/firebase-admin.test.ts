@@ -24,8 +24,12 @@ interface SentMessage {
   android?: {
     notification?: { channelId?: string; sound?: string; priority?: string };
     priority?: string;
+    data?: { notificationType?: string };
   };
-  apns?: { payload?: { aps?: { sound?: string } } };
+  apns?: {
+    payload?: { aps?: { sound?: string; interruptionLevel?: string } };
+  };
+  data?: { notificationType?: string };
 }
 
 const lastSentMessage = (): SentMessage => {
@@ -72,5 +76,57 @@ describe('sendFcmNotification', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+});
+
+/**
+ * Emergency/Pikett alerts (issue #47) route to a distinct siren channel/sound
+ * instead of the default ones exercised above.
+ */
+describe('sendFcmNotification — emergency notificationType', () => {
+  beforeEach(() => {
+    mockSend.mockClear();
+  });
+
+  it('addresses the emergency Android channel, not the default one', async () => {
+    await sendFcmNotification('token-1', {
+      title: 'Notfall',
+      body: 'Alarm ausgelöst',
+      data: { notificationType: 'emergency' },
+    });
+
+    expect(lastSentMessage().android?.notification?.channelId).toBe('konekta-emergency');
+  });
+
+  it('uses the bundled siren sound on both platforms', async () => {
+    await sendFcmNotification('token-1', {
+      title: 'Notfall',
+      body: 'Alarm ausgelöst',
+      data: { notificationType: 'emergency' },
+    });
+
+    const message = lastSentMessage();
+    expect(message.android?.notification?.sound).toBe('emergency_siren');
+    expect(message.apns?.payload?.aps?.sound).toBe('emergency_siren.caf');
+  });
+
+  it('sets iOS time-sensitive interruption level so the siren can break through Focus/DND', async () => {
+    await sendFcmNotification('token-1', {
+      title: 'Notfall',
+      body: 'Alarm ausgelöst',
+      data: { notificationType: 'emergency' },
+    });
+
+    expect(lastSentMessage().apns?.payload?.aps?.interruptionLevel).toBe('time-sensitive');
+  });
+
+  it('leaves regular (non-emergency) pushes on the default channel and sound', async () => {
+    await sendFcmNotification('token-1', { title: 'Chat', body: 'Neue Nachricht', data: {} });
+
+    const message = lastSentMessage();
+    expect(message.android?.notification?.channelId).toBe('konekta-default');
+    expect(message.android?.notification?.sound).toBe('default');
+    expect(message.apns?.payload?.aps?.sound).toBe('default');
+    expect(message.apns?.payload?.aps?.interruptionLevel).toBeUndefined();
   });
 });

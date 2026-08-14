@@ -303,6 +303,75 @@ describe('useNativePush', () => {
       });
     });
 
+    it('forwards notificationType="emergency" to the native shell (issue #47)', () => {
+      const showNotification = jest.fn();
+      globalThis.AppWebViewNativePush = {
+        getStatus: jest.fn(),
+        requestPermission: jest.fn(),
+        deleteToken: jest.fn(),
+        openSettings: jest.fn(),
+        showNotification,
+      };
+
+      renderHook(() => useNativePush());
+
+      const event = new CustomEvent('app-webview-native-push-event', {
+        detail: {
+          type: 'native-push-message',
+          payload: {
+            notification: {
+              title: 'Notfall',
+              body: 'Alarm ausgelöst',
+            },
+            data: {
+              chatId: 'chat-emergency',
+              messageId: 'message-5',
+              notificationType: 'emergency',
+            },
+          },
+        },
+      });
+
+      act(() => {
+        globalThis.dispatchEvent(event);
+      });
+
+      expect(showNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ notificationType: 'emergency' }),
+      );
+    });
+
+    it('omits notificationType for regular chat messages', () => {
+      const showNotification = jest.fn();
+      globalThis.AppWebViewNativePush = {
+        getStatus: jest.fn(),
+        requestPermission: jest.fn(),
+        deleteToken: jest.fn(),
+        openSettings: jest.fn(),
+        showNotification,
+      };
+
+      renderHook(() => useNativePush());
+
+      const event = new CustomEvent('app-webview-native-push-event', {
+        detail: {
+          type: 'native-push-message',
+          payload: {
+            notification: { title: 'Team Alpha', body: 'Bob: hi' },
+            data: { chatId: 'chat-abc', messageId: 'message-6' },
+          },
+        },
+      });
+
+      act(() => {
+        globalThis.dispatchEvent(event);
+      });
+
+      const calls = showNotification.mock.calls as unknown[][];
+      const request = calls[0]?.[0] as Record<string, unknown>;
+      expect(request['notificationType']).toBeUndefined();
+    });
+
     it('falls back to an in-app banner when the shell cannot show notifications', () => {
       renderHook(() => useNativePush());
 

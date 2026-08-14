@@ -374,6 +374,38 @@ export function extractMessageIdentifier(payload: Record<string, unknown>): stri
   return undefined;
 }
 
+/**
+ * Reads the `notificationType` marker (currently only `'emergency'`, see
+ * issue #47) off a foreground push payload, checking the same set of shapes
+ * the other `extract*` helpers above tolerate.
+ */
+export function extractNotificationType(payload: Record<string, unknown>): string | undefined {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+  const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
+    Record<string, unknown> | undefined;
+  const userInfoObject = (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+    Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload,
+    payload['data'] as Record<string, unknown> | undefined,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    userInfoObject,
+    apsObject,
+  ];
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+
+    const value: unknown = object_['notificationType'];
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -677,12 +709,14 @@ export function useNativePush(): {
           // foreground, so the WebView has to surface it. `notifyForegroundMessage`
           // owns the "is the user already looking at this chat?" decision and
           // de-duplicates against the same message arriving over SSE.
+          const notificationType = extractNotificationType(payload);
           notifyForegroundMessage({
             chatId: targetChatId,
             messageId: extractMessageIdentifier(payload),
             title: notificationTitle,
             body: notificationBody,
             targetPath,
+            ...(notificationType === 'emergency' && { notificationType }),
           });
           break;
         }

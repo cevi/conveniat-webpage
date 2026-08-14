@@ -136,3 +136,35 @@ describe('sendNotification fan-out', () => {
     expect(result.success).toBe(false);
   });
 });
+
+/**
+ * Emergency/Pikett alerts (issue #47) must carry the `notificationType`
+ * marker all the way to `sendNotificationToSubscription`, which is what
+ * ultimately tells `sendFcmNotification` to pick the siren channel/sound.
+ */
+const lastOptionsArgument = (): Record<string, unknown> | undefined =>
+  (mockSendToSubscription.mock.calls as unknown[][]).at(-1)?.[6] as
+    Record<string, unknown> | undefined;
+
+describe('sendNotification — emergency notificationType passthrough', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCount.mockResolvedValue({ totalDocs: 1 });
+    mockFind.mockResolvedValue({ docs: [{ id: 's1', user: 'user-1' }] });
+  });
+
+  it('forwards notificationType="emergency" to sendNotificationToSubscription', async () => {
+    await sendNotification('Notfall!', ['user-1'], 'chat-1', undefined, {
+      chatName: 'Notfall-Chat',
+      notificationType: 'emergency',
+    });
+
+    expect(lastOptionsArgument()).toMatchObject({ notificationType: 'emergency' });
+  });
+
+  it('omits notificationType for regular chat messages', async () => {
+    await sendNotification('hi', ['user-1'], 'chat-1', undefined, { chatName: 'Chat' });
+
+    expect(lastOptionsArgument()?.['notificationType']).toBeUndefined();
+  });
+});
