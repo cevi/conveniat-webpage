@@ -1,7 +1,24 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { getPayload } from 'payload';
+
+/**
+ * `console.log` is not bridged into Loki - only `error` and `warn` are, see
+ * `@/utils/otel-console-bridge` - so everything this module knew about a send was
+ * invisible in Grafana unless it failed. How many devices a message actually fanned
+ * out to, and how many of those the push service rejected, are the two numbers you
+ * want when a chat "does not notify anyone", and neither could be answered.
+ */
+const logger = createLogger('push:fanout');
+
+interface FanoutOutcome {
+  /** Sends that threw, i.e. never reached a verdict. */
+  thrown: number;
+  /** Sends that completed but were rejected by the push service (expired device, …). */
+  rejected: number;
+}
 
 /**
  * Fan-out size that is worth a log line. Every subscription above this is another
@@ -23,14 +40,15 @@ const PUSH_FANOUT_CONCURRENCY = 25;
  * Runs `send` over every subscription with at most {@link PUSH_FANOUT_CONCURRENCY}
  * in flight.
  *
- * @returns the number of subscriptions whose send threw
+ * @returns how the fan-out ended, see {@link FanoutOutcome}
  */
 async function dispatchBounded(
   subscriptions: PushNotificationSubscription[],
-  send: (subscription: PushNotificationSubscription) => Promise<unknown>,
-): Promise<number> {
+  send: (subscription: PushNotificationSubscription) => Promise<{ success: boolean }>,
+): Promise<FanoutOutcome> {
   let nextIndex = 0;
-  let failures = 0;
+  let thrown = 0;
+  let rejected = 0;
 
   const worker = async (): Promise<void> => {
     while (nextIndex < subscriptions.length) {
@@ -38,12 +56,13 @@ async function dispatchBounded(
       nextIndex++;
       if (subscription === undefined) continue;
       try {
-        await send(subscription);
+        const result = await send(subscription);
+        if (!result.success) rejected++;
       } catch (error) {
         // One unreachable device must not cut the fan-out short for everyone
         // queued behind it.
-        failures++;
-        console.error('[Push] Sending to a subscription failed:', error);
+        thrown++;
+        logger.error('Sending to a subscription failed', { error });
       }
     }
   };
@@ -52,7 +71,7 @@ async function dispatchBounded(
     Array.from({ length: Math.min(PUSH_FANOUT_CONCURRENCY, subscriptions.length) }, () => worker()),
   );
 
-  return failures;
+  return { thrown, rejected };
 }
 
 async function getSubscriptions(
@@ -81,9 +100,10 @@ async function getSubscriptions(
   });
 
   if (subscriptions.length > LARGE_FANOUT_WARNING_THRESHOLD) {
-    console.warn(
-      `[Push] Large fan-out: ${subscriptions.length} subscriptions for ${recipientUserIds.length} recipients`,
-    );
+    logger.warn('Large fan-out', {
+      'push.subscriptions': subscriptions.length,
+      'push.recipients': recipientUserIds.length,
+    });
   }
 
   return subscriptions;
@@ -173,22 +193,33 @@ export async function sendNotification(
 
   const chatURL = environmentVariables.APP_HOST_URL + '/app/chat/' + chatId;
 
-  console.log(`Sending notification to ${subscriptions.length} subscriptions`);
-
   try {
-    const failures = await dispatchBounded(subscriptions, (subscription) =>
+    const { thrown, rejected } = await dispatchBounded(subscriptions, (subscription) =>
       processSubscription(subscription, message, chatURL, messageId, chatId, options),
     );
 
-    if (failures > 0) {
-      console.error(`[Push] ${failures} of ${subscriptions.length} subscriptions failed to send`);
+    // One line per send, carrying the whole shape of the fan-out: how many devices it
+    // reached, how many the push service turned away, and how many never got a
+    // verdict. `rejected` is mostly expired devices and is not by itself a failure -
+    // it is, however, the number that says whether a chat notified anybody.
+    const outcome = {
+      'push.subscriptions': subscriptions.length,
+      'push.recipients': recipientUserIds.length,
+      'push.delivered': subscriptions.length - thrown - rejected,
+      'push.rejected': rejected,
+      'push.thrown': thrown,
+      'chat.id': chatId,
+    };
+
+    if (thrown > 0) {
+      logger.error('Push fan-out finished with failed sends', outcome);
       return { success: false, error: 'Failed to send notification' };
     }
 
-    console.log('Push notifications sent successfully');
+    logger.info('Push fan-out finished', outcome);
     return { success: true };
   } catch (error) {
-    console.error('Error sending push notification:', error);
+    logger.error('Push fan-out aborted', { error, 'chat.id': chatId });
     return { success: false, error: 'Failed to send notification' };
   }
 }

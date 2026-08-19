@@ -219,6 +219,7 @@ export interface Config {
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -3498,8 +3499,10 @@ export interface PhotoContest {
   slug: string;
   title: string;
   description?: string | null;
-  contestType?: ('PRESELECTED' | 'LIVE_EVENT') | null;
-  status?: ('DRAFT' | 'UPLOADING' | 'VOTING' | 'CLOSED') | null;
+  /**
+   * Controls what participants see in the app: nothing, the vote, only the photos, or photos including the score.
+   */
+  status: 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
   maxPointsPerUser?: number | null;
   maxPointsPerImage?: number | null;
   images?:
@@ -4324,6 +4327,7 @@ export interface PayloadJob {
           | 'generateBills'
           | 'sendBills'
           | 'cleanupTemporaryFormFiles'
+          | 'autoCheckoutPresence'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -4379,6 +4383,7 @@ export interface PayloadJob {
         | 'generateBills'
         | 'sendBills'
         | 'cleanupTemporaryFormFiles'
+        | 'autoCheckoutPresence'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -5742,7 +5747,6 @@ export interface PhotoContestsSelect<T extends boolean = true> {
   slug?: T;
   title?: T;
   description?: T;
-  contestType?: T;
   status?: T;
   maxPointsPerUser?: T;
   maxPointsPerImage?: T;
@@ -8586,6 +8590,16 @@ export interface TaskSendBills {
 export interface TaskCleanupTemporaryFormFiles {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAutoCheckoutPresence".
+ */
+export interface TaskAutoCheckoutPresence {
+  input?: unknown;
+  output: {
+    checkedOut?: number | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
