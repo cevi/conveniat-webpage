@@ -34,6 +34,14 @@ export const noiseMessages = [
   // This causes an 'undefined is not an object (evaluating 'r.bufferBelongsToIframe')' error.
   'bufferBelongsToIframe',
 
+  // see: https://github.com/cevi/conveniat-webpage/issues/1589
+  // Crypto wallet browser extensions (MetaMask, Coinbase Wallet, ...) inject a provider and
+  // then assign to `window.ethereum.selectedAddress`. When the injection is blocked or another
+  // extension removed the provider first, the assignment throws
+  // 'undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')'.
+  // We never touch `window.ethereum`, so any such error originates outside of our code.
+  'window.ethereum',
+
   // Safari quirk/extension injecting code that tries to detect Firefox reader mode.
   // This causes an 'undefined is not an object (evaluating 'window.__firefox__.reader')' error.
   // see: https://github.com/cevi/conveniat-webpage/issues/1150
