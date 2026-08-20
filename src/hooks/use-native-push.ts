@@ -508,20 +508,7 @@ export function useNativePush(): {
         addLog(`Calling registerDevice: platform=${platform}`);
         const { getOrCreateDeviceId } = await import('@/utils/device-id');
         const deviceId = getOrCreateDeviceId();
-        // Which build this device runs decides which notification channels exist on
-        // it, and only the shell knows. Injected before the first byte of the page, so
-        // it is already there; absent on builds too old to inject it, which is exactly
-        // the case the server treats as "no emergency channel".
-        const nativeAppInfo = globalThis.AppWebViewNativeApp;
-        await registerDevice({
-          token,
-          platform,
-          deviceId,
-          ...(typeof nativeAppInfo?.version === 'string' && { appVersion: nativeAppInfo.version }),
-          ...(typeof nativeAppInfo?.buildNumber === 'string' && {
-            appBuildNumber: nativeAppInfo.buildNumber,
-          }),
-        });
+        await registerDevice({ token, platform, deviceId });
         registeredTokenReference.current = token;
         console.log('[NativePush:PWA] registerDevice: success');
         addLog(`registerDevice: success`);

@@ -21,12 +21,24 @@ import * as fs from 'node:fs';
  * Keeping these in sync with the shell is not optional, because the shell has drifted
  * out from under them before (#1583): the app really did create `konekta-default`
  * until cevi/konekta-app@29d3af24 renamed it to `konekta-push`, and this file kept
- * naming the old id. A channel id the device does not know is not simply ignored -
- * FCM first falls back to the manifest's `default_notification_channel_id`, and only
- * if that channel is missing too does it auto-create its own at `IMPORTANCE_DEFAULT`,
- * which shows no heads-up banner. Both hops missed here, because until
- * cevi/konekta-app#50 the shell created its channels lazily on the first foreground
- * notification rather than at startup.
+ * naming the old id.
+ *
+ * What happens to a channel id the device does not know is the documented FCM chain,
+ * and it is also why no version check guards `konekta-emergency` here. FCM tries, in
+ * order: the id on the message, then the manifest's `default_notification_channel_id`,
+ * then a channel it auto-creates itself at `IMPORTANCE_DEFAULT` (no heads-up banner).
+ * The manifest points at `konekta-push`, which `MainApplication.onCreate()` has created
+ * at `IMPORTANCE_HIGH` on every app start since cevi/konekta-app@29d3af24 - so a build
+ * predating the emergency channel lands on the regular channel by itself: no siren, but
+ * a heads-up banner, which is exactly what an old build should get. Only the second hop
+ * failing drops a notification to default importance, and that needs an app so old it
+ * creates no channel at all.
+ *
+ * The alternative - having the server decide from a reported app version - was tried and
+ * removed: the shell's version info is captured at bundle time and release builds ship
+ * stale values (cevi/konekta-app#51), so it would have silently downgraded up-to-date
+ * devices. There is nothing on the bridge to feature-detect the channel with either;
+ * cevi/konekta-app#50 added no observable command, event, or status field.
  *
  * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
  */

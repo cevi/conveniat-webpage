@@ -3,7 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
-import { supportsEmergencyChannel, type NotificationType } from '@/lib/notification-type';
+import type { NotificationType } from '@/lib/notification-type';
 import { PushNotificationChannel } from '@/lib/prisma';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
@@ -295,21 +295,6 @@ export async function sendNotificationToSubscription(
         }
       }
 
-      // A channel the installed build never created is worse than not asking for one:
-      // Android falls through to its own auto-created channel at default importance, so
-      // the alert would arrive *quieter* than an ordinary chat message. Devices that
-      // predate the emergency channel get the regular one instead - no siren, but a
-      // heads-up banner. `appBuildNumber` is only present on native subscriptions, and
-      // only once a device has re-registered since the server started recording it.
-      const requestedType = options?.notificationType;
-      const notificationType: NotificationType | undefined =
-        requestedType === 'emergency' &&
-        !supportsEmergencyChannel(
-          'appBuildNumber' in subscription ? subscription.appBuildNumber : undefined,
-        )
-          ? 'default'
-          : requestedType;
-
       const result = await sendFcmNotification(subscription.token, {
         title: titleToSend,
         body: message,
@@ -326,7 +311,9 @@ export async function sendNotificationToSubscription(
           ...(options?.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
           }),
-          ...(notificationType !== undefined && { notificationType }),
+          ...(options?.notificationType !== undefined && {
+            notificationType: options.notificationType,
+          }),
         },
       });
       if (!result.success) {

@@ -99,32 +99,6 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
         readOnly: true,
       },
     },
-    /**
-     * Native shell version this device last registered with, straight from
-     * `AppWebViewNativeApp`. Only native subscriptions carry it - the WebView's user
-     * agent is a hardcoded `KonektaApp/1.0` and says nothing about the installed build.
-     *
-     * Recorded because the server has to know which notification channels a device
-     * actually has before addressing one; see `supportsEmergencyChannel`.
-     */
-    {
-      type: 'text',
-      name: 'appVersion',
-      required: false,
-      admin: {
-        readOnly: true,
-        description: 'Native app version reported at registration (e.g. "1.4").',
-      },
-    },
-    {
-      type: 'text',
-      name: 'appBuildNumber',
-      required: false,
-      admin: {
-        readOnly: true,
-        description: 'Native app build number reported at registration (e.g. "13").',
-      },
-    },
     {
       type: 'text',
       name: 'deviceId',

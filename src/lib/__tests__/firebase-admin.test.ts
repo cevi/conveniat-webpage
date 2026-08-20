@@ -54,11 +54,10 @@ describe('sendFcmNotification', () => {
   });
 
   /**
-   * A channel id the installed app does not know eventually lands on FCM's own
-   * auto-created fallback channel at default importance, where Android shows no
-   * heads-up banner. `konekta-push` is what `LocalNotificationsModule.ensureChannels()`
-   * registers; `konekta-default`, which this used to name, was renamed away in the app
-   * back in cevi/konekta-app@29d3af24 and has not existed on a device since (#1583).
+   * `konekta-push` is what the shell creates at startup. `konekta-default`, which this
+   * used to name, was renamed away in cevi/konekta-app@29d3af24 and has not existed on a
+   * device since (#1583) - leaving every push to be placed by FCM's fallback chain
+   * rather than by this field.
    */
   it('addresses the Android channel the native app actually creates', async () => {
     await sendFcmNotification('token-1', { title: 'Alarm', body: 'Einsatz', data: {} });
