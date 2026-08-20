@@ -12,6 +12,11 @@ export const nativePushRouter = createTRPCRouter({
         token: z.string().min(1),
         platform: z.enum(['ios', 'android']),
         deviceId: z.string().optional(),
+        // Reported by the shell through `AppWebViewNativeApp`. Optional because older
+        // builds do not inject it - and an absent value is itself the answer the send
+        // path needs, see `supportsEmergencyChannel`.
+        appVersion: z.string().optional(),
+        appBuildNumber: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -57,6 +62,14 @@ export const nativePushRouter = createTRPCRouter({
           user: payloadUser.id,
           // eslint-disable-next-line unicorn/no-null
           deviceId: deviceId ?? null,
+          // Rewritten on every registration, not just the first: this is how a device
+          // that updates the app stops being treated as an old build. `registerDevice`
+          // runs once per app session, so the recorded build follows the installed one
+          // within a launch.
+          // eslint-disable-next-line unicorn/no-null
+          appVersion: input.appVersion?.trim() ?? null,
+          // eslint-disable-next-line unicorn/no-null
+          appBuildNumber: input.appBuildNumber?.trim() ?? null,
           lastUsedAt: new Date().toISOString(),
         };
 

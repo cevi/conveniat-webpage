@@ -47,10 +47,12 @@ jest.mock('@/lib/firebase-admin', () => ({
 
 import { sendNotificationToSubscription } from '@/utils/push-notification-api';
 
+/** Build 13 is the first that creates `konekta-emergency`; see `supportsEmergencyChannel`. */
 const nativeSubscription = {
   id: 'sub-1',
   platform: 'android' as const,
   token: 'device-token',
+  appBuildNumber: '13',
 };
 
 interface FcmPayload {
@@ -92,5 +94,43 @@ describe('sendNotificationToSubscription native handover', () => {
     );
 
     expect(lastFcmPayload().data['notificationType']).toBeUndefined();
+  });
+
+  /**
+   * An app build that never created `konekta-emergency` does not merely ignore the
+   * channel - Android routes the push to its own auto-created fallback at
+   * `IMPORTANCE_DEFAULT`, so the alert would show up *quieter* than an ordinary chat
+   * message. Falling back to the regular channel keeps at least the heads-up banner.
+   */
+  it.each([
+    ['a build older than the emergency channel', '12'],
+    ['a device that has not re-registered since the server started recording it', undefined],
+    ['an unparseable build number', 'not-a-number'],
+  ])('downgrades an emergency alert for %s', async (_case, appBuildNumber) => {
+    await sendNotificationToSubscription(
+      { ...nativeSubscription, appBuildNumber },
+      'Notfall von Anna!',
+      '/app/chat/chat-1',
+      undefined,
+      undefined,
+      undefined,
+      { notificationType: 'emergency' },
+    );
+
+    expect(lastFcmPayload().data['notificationType']).toBe('default');
+  });
+
+  it('keeps the siren for a build newer than the one that introduced the channel', async () => {
+    await sendNotificationToSubscription(
+      { ...nativeSubscription, appBuildNumber: '27' },
+      'Notfall von Anna!',
+      '/app/chat/chat-1',
+      undefined,
+      undefined,
+      undefined,
+      { notificationType: 'emergency' },
+    );
+
+    expect(lastFcmPayload().data['notificationType']).toBe('emergency');
   });
 });
