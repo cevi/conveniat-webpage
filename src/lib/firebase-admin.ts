@@ -17,10 +17,16 @@ import * as fs from 'node:fs';
  * Naming the channel explicitly is what makes background and killed-state pushes work:
  * Android renders those itself without running any app code, so the channel id on the
  * message is the only thing deciding which sound and importance the notification gets.
- * When FCM cannot find the named channel on the device it silently posts to its own
- * auto-created fallback channel at default importance, which shows no heads-up banner -
- * exactly what happened while this file named `konekta-default`, a channel the app has
- * never created (#1583).
+ *
+ * Keeping these in sync with the shell is not optional, because the shell has drifted
+ * out from under them before (#1583): the app really did create `konekta-default`
+ * until cevi/konekta-app@29d3af24 renamed it to `konekta-push`, and this file kept
+ * naming the old id. A channel id the device does not know is not simply ignored -
+ * FCM first falls back to the manifest's `default_notification_channel_id`, and only
+ * if that channel is missing too does it auto-create its own at `IMPORTANCE_DEFAULT`,
+ * which shows no heads-up banner. Both hops missed here, because until
+ * cevi/konekta-app#50 the shell created its channels lazily on the first foreground
+ * notification rather than at startup.
  *
  * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
  */
@@ -29,8 +35,9 @@ const ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID = 'konekta-emergency';
 
 /**
  * Emergency siren shipped with the native app, named per platform because each OS
- * resolves it differently: Android by the `res/raw` resource name (`emergency_siren.mp3`),
- * iOS by the file name in the app bundle (`KonektaLocalNotifications.emergencySoundName`).
+ * resolves it differently: Android by the bare resource name, without the extension,
+ * of the file in `res/raw` (`emergency_siren.mp3`); iOS by the full file name in the
+ * app bundle (`KonektaLocalNotifications.emergencySoundName`).
  *
  * Only used for notifications the OS renders on its own; while the app is in the
  * foreground the shell picks the siren itself from `data.notificationType`.

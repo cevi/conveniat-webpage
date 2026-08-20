@@ -381,8 +381,9 @@ export function extractMessageIdentifier(payload: Record<string, unknown>): stri
  * Only relevant while the app is in the foreground: Firebase hands the message to
  * the shell instead of rendering it, so the channel the server named on the message
  * is never used and the WebView has to pass the type back down through
- * `showNotification`. The value is searched in the same places as the message id,
- * because iOS and Android nest the payload differently.
+ * `showNotification`. iOS and Android nest the payload differently, hence the
+ * candidate list - it deliberately omits `aps`, which `sendFcmNotification` never
+ * writes this key into; move the key there and this stops finding it.
  */
 export function extractNotificationType(payload: Record<string, unknown>): NotificationType {
   const notificationObject = payload['notification'] as Record<string, unknown> | undefined;

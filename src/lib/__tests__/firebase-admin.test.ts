@@ -54,10 +54,11 @@ describe('sendFcmNotification', () => {
   });
 
   /**
-   * A channel id the installed app does not know silently lands on FCM's own
+   * A channel id the installed app does not know eventually lands on FCM's own
    * auto-created fallback channel at default importance, where Android shows no
    * heads-up banner. `konekta-push` is what `LocalNotificationsModule.ensureChannels()`
-   * registers; `konekta-default`, which this used to name, never existed (#1583).
+   * registers; `konekta-default`, which this used to name, was renamed away in the app
+   * back in cevi/konekta-app@29d3af24 and has not existed on a device since (#1583).
    */
   it('addresses the Android channel the native app actually creates', async () => {
     await sendFcmNotification('token-1', { title: 'Alarm', body: 'Einsatz', data: {} });
@@ -95,10 +96,14 @@ describe('sendFcmNotification', () => {
 
     /**
      * Firebase hands a foreground message to the shell instead of rendering it, so the
-     * channel named above is never consulted. The shell picks the channel from this
-     * data field - it has to reach every payload variant the app reads.
+     * channel named above is never consulted; the shell picks the channel from this data
+     * field instead. Two of these placements are the ones it actually reads - `android.data`
+     * (which *replaces* the top-level `data` on Android rather than merging with it) and
+     * `apns.payload` top level (which merges into the iOS `userInfo`). The remaining two
+     * mirror the field alongside its siblings in the same blocks, so the whole payload
+     * stays uniform; asserted here to keep a future edit from splitting them apart.
      */
-    it('carries the type in every data payload the shell reads', async () => {
+    it('carries the type in every data payload alongside its siblings', async () => {
       await sendEmergency();
 
       const message = lastSentMessage();
