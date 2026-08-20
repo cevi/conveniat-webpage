@@ -1,5 +1,6 @@
 'use client';
 
+import type { NotificationType } from '@/lib/notification-type';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import {
@@ -374,6 +375,35 @@ export function extractMessageIdentifier(payload: Record<string, unknown>): stri
   return undefined;
 }
 
+/**
+ * Reads the `notificationType` the server put into the FCM `data` payload.
+ *
+ * Only relevant while the app is in the foreground: Firebase hands the message to
+ * the shell instead of rendering it, so the channel the server named on the message
+ * is never used and the WebView has to pass the type back down through
+ * `showNotification`. The value is searched in the same places as the message id,
+ * because iOS and Android nest the payload differently.
+ */
+export function extractNotificationType(payload: Record<string, unknown>): NotificationType {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload['data'] as Record<string, unknown> | undefined,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+      Record<string, unknown> | undefined,
+    notificationObject,
+    payload,
+  ];
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+    if (object_['notificationType'] === 'emergency') return 'emergency';
+  }
+
+  return 'default';
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -735,6 +765,7 @@ export function useNativePush(): {
             title: notificationTitle,
             body: notificationBody,
             targetPath,
+            notificationType: extractNotificationType(payload),
           });
           break;
         }
