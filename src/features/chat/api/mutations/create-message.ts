@@ -3,7 +3,12 @@ import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { ChatCapability, LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { TRPCError } from '@trpc/server';
@@ -125,6 +130,7 @@ export const createMessage = trpcBaseProcedure
       where: { uuid: validatedMessage.chatId },
       select: {
         name: true,
+        type: true,
         capabilities: true,
         chatMemberships: {
           select: {
@@ -319,6 +325,12 @@ export const createMessage = trpcBaseProcedure
       {
         chatName: chat.name,
         senderName: user.name,
+        // Every message in an emergency chat is part of a running alert, so the
+        // follow-ups reach the piket members on the siren channel too - a reply that
+        // only lands in the notification shade is exactly the failure mode the
+        // emergency channel exists to prevent. Support chats stay on the regular
+        // channel; they are not time critical in the same way.
+        ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
       },
     ).catch((error: unknown) => {
       console.error('Failed to send push notification:', error);

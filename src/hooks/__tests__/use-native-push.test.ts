@@ -5,6 +5,7 @@
 import {
   extractMessageIdentifier,
   extractNotificationTitleAndBody,
+  extractNotificationType,
   useNativePush,
 } from '@/hooks/use-native-push';
 import {
@@ -348,6 +349,31 @@ describe('useNativePush', () => {
 
     it('returns undefined when nothing identifies the message', () => {
       expect(extractMessageIdentifier({ data: { chatId: 'chat-abc' } })).toBeUndefined();
+    });
+  });
+
+  describe('extractNotificationType', () => {
+    it('finds the emergency type in the FCM data payload', () => {
+      expect(
+        extractNotificationType({
+          messageId: 'firebase-delivery-id',
+          data: { notificationType: 'emergency', chatId: 'chat-abc' },
+        }),
+      ).toBe('emergency');
+    });
+
+    // iOS delivers the same field under userInfo rather than data.
+    it('finds it in the iOS userInfo payload', () => {
+      expect(extractNotificationType({ userInfo: { notificationType: 'emergency' } })).toBe(
+        'emergency',
+      );
+    });
+
+    it('treats a missing or unknown type as a regular chat notification', () => {
+      expect(extractNotificationType({ data: { chatId: 'chat-abc' } })).toBe('default');
+      expect(extractNotificationType({ data: { notificationType: 'something-else' } })).toBe(
+        'default',
+      );
     });
   });
 

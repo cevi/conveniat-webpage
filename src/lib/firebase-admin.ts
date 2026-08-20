@@ -1,30 +1,61 @@
 import 'server-only';
 
 import { environmentVariables } from '@/config/environment-variables';
+import type { NotificationType } from '@/lib/notification-type';
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 
 /**
- * Android notification channel every push is addressed to.
+ * Android notification channels a push can be addressed to.
  *
- * It must match the channel the native shell actually creates - today
- * `MainApplication.createNotificationChannel()` in cevi/konekta-app, which registers
- * `konekta-default` at `IMPORTANCE_HIGH` on every app start.
+ * Both must match a channel the native shell actually creates - today
+ * `LocalNotificationsModule.ensureChannels()` in cevi/konekta-app, which registers
+ * `konekta-push` (regular chat pushes) and `konekta-emergency` (siren sound plus its
+ * own vibration pattern, cevi/konekta-app#47) at `IMPORTANCE_HIGH` on every app start.
  *
- * Addressing it explicitly works around a mismatch in the native app: its manifest
- * points `com.google.firebase.messaging.default_notification_channel_id` at
- * `konekta-push`, a channel nothing ever creates. Without a channel id on the message
- * FCM falls back to that manifest value, finds no such channel, and posts to its own
- * auto-created fallback channel at default importance - which is why Android showed no
- * heads-up banner. Naming the real channel skips the broken indirection entirely.
+ * Naming the channel explicitly is what makes background and killed-state pushes work:
+ * Android renders those itself without running any app code, so the channel id on the
+ * message is the only thing deciding which sound and importance the notification gets.
+ *
+ * Keeping these in sync with the shell is not optional, because the shell has drifted
+ * out from under them before (#1583): the app really did create `konekta-default`
+ * until cevi/konekta-app@29d3af24 renamed it to `konekta-push`, and this file kept
+ * naming the old id.
+ *
+ * What happens to a channel id the device does not know is the documented FCM chain,
+ * and it is also why no version check guards `konekta-emergency` here. FCM tries, in
+ * order: the id on the message, then the manifest's `default_notification_channel_id`,
+ * then a channel it auto-creates itself at `IMPORTANCE_DEFAULT` (no heads-up banner).
+ * The manifest points at `konekta-push`, which `MainApplication.onCreate()` has created
+ * at `IMPORTANCE_HIGH` on every app start since cevi/konekta-app@29d3af24 - so a build
+ * predating the emergency channel lands on the regular channel by itself: no siren, but
+ * a heads-up banner, which is exactly what an old build should get. Only the second hop
+ * failing drops a notification to default importance, and that needs an app so old it
+ * creates no channel at all.
+ *
+ * The alternative - having the server decide from a reported app version - was tried and
+ * removed: the shell's version info is captured at bundle time and release builds ship
+ * stale values (cevi/konekta-app#51), so it would have silently downgraded up-to-date
+ * devices. There is nothing on the bridge to feature-detect the channel with either;
+ * cevi/konekta-app#50 added no observable command, event, or status field.
  *
  * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
- *
- * Remove this once the native app aligns its manifest with the channel it creates; a
- * channel id the installed app does not know silently falls back again.
  */
-const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-default';
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-push';
+const ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID = 'konekta-emergency';
+
+/**
+ * Emergency siren shipped with the native app, named per platform because each OS
+ * resolves it differently: Android by the bare resource name, without the extension,
+ * of the file in `res/raw` (`emergency_siren.mp3`); iOS by the full file name in the
+ * app bundle (`KonektaLocalNotifications.emergencySoundName`).
+ *
+ * Only used for notifications the OS renders on its own; while the app is in the
+ * foreground the shell picks the siren itself from `data.notificationType`.
+ */
+const ANDROID_EMERGENCY_SOUND = 'emergency_siren';
+const IOS_EMERGENCY_SOUND = 'emergency_siren.caf';
 
 let firebaseAdminInitialized = false;
 
@@ -69,6 +100,11 @@ export async function sendFcmNotification(
       notificationId?: string;
       ignoreIfAppOpen?: string;
       ignoreIfUrlMatches?: string;
+      /**
+       * Selects the presentation the native shell applies. Defaults to `default`;
+       * `emergency` routes the push to the siren channel. See {@link NotificationType}.
+       */
+      notificationType?: NotificationType;
       [key: string]: string | undefined;
     };
   },
@@ -89,6 +125,13 @@ export async function sendFcmNotification(
       payload.data.notificationId !== undefined && payload.data.notificationId !== ''
         ? payload.data.notificationId
         : randomUUID();
+
+    // Three consumers, one decision: the Android channel and the iOS sound below cover
+    // the notification the OS renders while the app is backgrounded or killed, and the
+    // `notificationType` data field covers the one the shell renders itself while the
+    // app is in the foreground. All three have to agree or an emergency alert sirens on
+    // some devices and not on others.
+    const isEmergency = payload.data.notificationType === 'emergency';
     await adminInstance.messaging().send({
       token,
       notification: {
@@ -108,6 +151,7 @@ export async function sendFcmNotification(
         ...(payload.data.ignoreIfUrlMatches !== undefined && {
           ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
         }),
+        ...(isEmergency && { notificationType: 'emergency' }),
       },
       apns: {
         headers: {
@@ -121,7 +165,12 @@ export async function sendFcmNotification(
               title: payload.title,
               body: payload.body,
             },
-            sound: 'default',
+            // iOS renders the backgrounded/killed-state notification itself, so the
+            // siren has to be named here; the file ships in the app bundle. The
+            // time-sensitive interruption level mirrors what the shell sets on the
+            // foreground path and lets the alert break through Focus modes.
+            sound: isEmergency ? IOS_EMERGENCY_SOUND : 'default',
+            ...(isEmergency && { 'interruption-level': 'time-sensitive' }),
           },
           notificationId,
           ...(payload.data.url !== undefined && { url: payload.data.url }),
@@ -130,6 +179,7 @@ export async function sendFcmNotification(
           ...(payload.data.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
+          ...(isEmergency && { notificationType: 'emergency' }),
           data: {
             title: payload.title,
             body: payload.body,
@@ -140,6 +190,7 @@ export async function sendFcmNotification(
             ...(payload.data.ignoreIfUrlMatches !== undefined && {
               ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
             }),
+            ...(isEmergency && { notificationType: 'emergency' }),
           },
         },
       },
@@ -153,9 +204,11 @@ export async function sendFcmNotification(
           // shows no heads-up banner. From Android O on the channel owns sound and
           // importance and both fields are ignored. Note this is the *display* priority,
           // unlike `android.priority` above, which controls delivery.
-          sound: 'default',
+          sound: isEmergency ? ANDROID_EMERGENCY_SOUND : 'default',
           priority: 'high',
-          channelId: ANDROID_NOTIFICATION_CHANNEL_ID,
+          channelId: isEmergency
+            ? ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID
+            : ANDROID_NOTIFICATION_CHANNEL_ID,
         },
         data: {
           title: payload.title,
@@ -170,6 +223,7 @@ export async function sendFcmNotification(
           ...(payload.data.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: payload.data.ignoreIfUrlMatches,
           }),
+          ...(isEmergency && { notificationType: 'emergency' }),
         },
       },
     });

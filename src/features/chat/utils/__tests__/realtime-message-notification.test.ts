@@ -53,6 +53,56 @@ describe('notifyRealtimeChatMessage', () => {
     );
   });
 
+  /**
+   * SSE and push race for the same message and the loser is dropped by the shared
+   * de-duplication window. If only the push path knew about the emergency channel,
+   * whether an alert sirens would come down to which channel happened to arrive first.
+   */
+  it('renders a message from an emergency chat on the emergency channel', () => {
+    const showNotification = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
+
+    notifyRealtimeChatMessage({
+      chatId: 'chat-1',
+      chatName: 'Notfall 42',
+      chatType: 'EMERGENCY',
+      message: buildMessage(),
+      currentUserId: 'user-alice',
+    });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ notificationType: 'emergency' }),
+    );
+  });
+
+  it('leaves every other chat type on the regular channel', () => {
+    const showNotification = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
+
+    notifyRealtimeChatMessage({
+      chatId: 'chat-1',
+      chatName: 'Support',
+      chatType: 'SUPPORT_GROUP',
+      message: buildMessage(),
+      currentUserId: 'user-alice',
+    });
+
+    const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, string>;
+    expect(request['notificationType']).toBeUndefined();
+  });
+
   it('ignores messages sent by the current user', () => {
     notifyRealtimeChatMessage({
       chatId: 'chat-1',
