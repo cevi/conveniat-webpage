@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
+import type { NotificationType } from '@/lib/notification-type';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -119,6 +120,7 @@ async function processSubscription(
     chatName?: string;
     senderName?: string;
     title?: string;
+    notificationType?: NotificationType;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
@@ -158,6 +160,9 @@ async function processSubscription(
       // push channel and the realtime (SSE) stream.
       ...(messageId === undefined ? {} : { messageId }),
       ...(typeof notificationTitle === 'string' ? { title: notificationTitle } : {}),
+      ...(options?.notificationType === undefined
+        ? {}
+        : { notificationType: options.notificationType }),
     },
   );
 }
@@ -169,7 +174,9 @@ async function processSubscription(
  * @param recipientUserIds - An array of user IDs to whom the notification should be sent.
  * @param chatId - The ID of the chat, used to construct the deep link URL.
  * @param messageId - Optional ID of the message for logging purposes.
- * @param options - Optional formatting configuration (chatName, senderName, title).
+ * @param options - Optional formatting configuration (chatName, senderName, title) and
+ *   the notification type, which decides whether native clients present the push on the
+ *   regular chat channel or on the emergency channel with its siren.
  */
 export async function sendNotification(
   message: string,
@@ -180,6 +187,7 @@ export async function sendNotification(
     chatName?: string;
     senderName?: string;
     title?: string;
+    notificationType?: NotificationType;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const subscriptions = await getSubscriptions(recipientUserIds);

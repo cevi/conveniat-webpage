@@ -3,6 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
+import type { NotificationType } from '@/lib/notification-type';
 import { PushNotificationChannel } from '@/lib/prisma';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
@@ -225,6 +226,11 @@ export async function sendNotificationToSubscription(
     title?: string;
     /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
     messageId?: string;
+    /**
+     * How urgently the notification should be presented. `emergency` routes native
+     * pushes to the siren channel; see {@link NotificationType}.
+     */
+    notificationType?: NotificationType;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
@@ -304,6 +310,9 @@ export async function sendNotificationToSubscription(
           }),
           ...(options?.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
+          }),
+          ...(options?.notificationType !== undefined && {
+            notificationType: options.notificationType,
           }),
         },
       });

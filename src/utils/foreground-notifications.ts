@@ -1,5 +1,6 @@
 'use client';
 
+import type { NotificationType } from '@/lib/notification-type';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
 import { toast } from 'sonner';
@@ -61,6 +62,12 @@ export interface ForegroundNotification {
   body: string;
   /** In-app path opened when the user interacts with the notification. */
   targetPath: string;
+  /**
+   * Which channel the native shell should render this on. Defaults to `default`;
+   * `emergency` gets the siren and the alarm vibration pattern. See
+   * {@link NotificationType}.
+   */
+  notificationType?: NotificationType | undefined;
 }
 
 const notifiedKeys = new Set<string>();
@@ -160,6 +167,9 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
       url: notification.targetPath,
       ...(notification.chatId !== undefined && { chatId: notification.chatId }),
       ...(notification.messageId !== undefined && { messageId: notification.messageId }),
+      // The shell reads this to pick the emergency channel; anything other than
+      // `emergency` (including omitting it) means the regular chat channel.
+      ...(notification.notificationType === 'emergency' && { notificationType: 'emergency' }),
     });
     return true;
   } catch (error: unknown) {

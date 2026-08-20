@@ -521,7 +521,7 @@ export const adminRouter = createTRPCRouter({
 
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
-        select: { chatMemberships: true, name: true },
+        select: { chatMemberships: true, name: true, type: true },
       });
 
       if (!chat) {
@@ -561,6 +561,11 @@ export const adminRouter = createTRPCRouter({
       sendNotification(input.content, recipientUserIds, input.chatId, message.uuid, {
         chatName: chat.name,
         senderName: user.name,
+        // This is the reply path of the CMS Alert Management view, so it posts into
+        // emergency chats as well and has to reach the same verdict as the in-app
+        // send in `create-message`: same message, same channel, whichever way it
+        // was typed.
+        ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
       }).catch((error: unknown) => {
         console.error('Failed to send admin push notification:', error);
       });
