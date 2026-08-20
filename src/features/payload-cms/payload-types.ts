@@ -3832,7 +3832,13 @@ export interface PushNotificationSubscription {
     auth?: string | null;
   };
   userAgent?: string | null;
+  /**
+   * Native app version reported at registration (e.g. "1.4").
+   */
   appVersion?: string | null;
+  /**
+   * Native app build number reported at registration (e.g. "13").
+   */
   appBuildNumber?: string | null;
   deviceId?: string | null;
   lastUsedAt?: string | null;
