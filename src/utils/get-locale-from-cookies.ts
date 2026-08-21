@@ -13,7 +13,14 @@ import { cookies } from 'next/headers';
  */
 export const getLocaleFromCookies = async (): Promise<Locale> => {
   const cookieStore = await cookies();
-  let locale = cookieStore.get(Cookie.LOCALE_COOKIE)?.value as Locale | undefined;
-  locale ??= i18nConfig.defaultLocale as Locale;
-  return locale;
+  const rawLocale = cookieStore.get(Cookie.LOCALE_COOKIE)?.value;
+
+  // The cookie is client-controlled and outlives a change to the enabled locales, so it can name
+  // a locale this deployment does not serve. Payload is configured with `fallback: false` and
+  // would happily read that locale, surfacing content the route is not supposed to show.
+  if (rawLocale !== undefined && i18nConfig.locales.includes(rawLocale)) {
+    return rawLocale as Locale;
+  }
+
+  return i18nConfig.defaultLocale as Locale;
 };
