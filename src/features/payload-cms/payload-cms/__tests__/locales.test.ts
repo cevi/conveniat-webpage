@@ -2,6 +2,7 @@
 interface LocalesModule {
   enabledLocales: string[];
   locales: { code: string }[];
+  LOCALE: Record<string, string>;
 }
 
 /**
@@ -54,9 +55,16 @@ describe('enabled locales feature flag', () => {
   });
 
   it('tolerates whitespace, casing and unknown codes', async () => {
-    const { enabledLocales } = await loadLocales(' DE , fr , klingon ');
+    // `de` is kept unconditionally, so `FR` is what actually pins the trimming and lowercasing.
+    const { enabledLocales } = await loadLocales(' de , FR , klingon ');
 
     expect(enabledLocales).toEqual(['de', 'fr']);
+  });
+
+  it('keeps the full locale union available for content shapes', async () => {
+    const { LOCALE } = await loadLocales('de,fr');
+
+    expect(Object.values(LOCALE)).toEqual(['de', 'fr', 'en']);
   });
 
   it('always keeps the default locale, even if the flag omits it', async () => {
