@@ -1,12 +1,10 @@
-import {
-  getLexicalText,
-  publishAnnouncementToPostgres,
-} from '@/features/payload-cms/payload-cms/collections/announcements';
+import { publishAnnouncementToPostgres } from '@/features/payload-cms/payload-cms/collections/announcements';
 import {
   cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import { getLexicalText } from '@/features/payload-cms/payload-cms/utils/lexical-to-markdown';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
