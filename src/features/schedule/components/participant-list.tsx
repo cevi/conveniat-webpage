@@ -79,13 +79,23 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
   const { data: fetchedCourseStatus, isLoading: isLoadingCourse } =
     trpc.schedule.getCourseStatus.useQuery(
       { courseId },
-      { enabled: courseStatus === undefined && !isShift, staleTime: 1000 * 60 * 5 },
+      {
+        enabled: courseStatus === undefined && !isShift,
+        staleTime: 1000 * 60 * 5,
+        // see `schedule-detail-view`: organiser-ship changes in the CMS, never through a
+        // mutation here, so a persisted status would pin `isAdmin` for days.
+        refetchOnMount: 'always',
+      },
     );
 
   const { data: fetchedShiftStatus, isLoading: isLoadingShift } =
     trpc.shifts.getShiftStatus.useQuery(
       { shiftId: courseId },
-      { enabled: courseStatus === undefined && isShift, staleTime: 1000 * 60 * 5 },
+      {
+        enabled: courseStatus === undefined && isShift,
+        staleTime: 1000 * 60 * 5,
+        refetchOnMount: 'always',
+      },
     );
 
   const status = courseStatus ?? (isShift ? fetchedShiftStatus : fetchedCourseStatus);

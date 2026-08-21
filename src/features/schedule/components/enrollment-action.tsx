@@ -137,6 +137,9 @@ export const EnrollmentAction: React.FC<{
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
+      // The detail page reads the singular status for the roster and the admin actions; without
+      // this it kept showing the participant list from before this enrolment.
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
@@ -173,6 +176,9 @@ export const EnrollmentAction: React.FC<{
   const switchEnrollment = trpc.schedule.switchEnrollment.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
+      // The detail page reads the singular status for the roster and the admin actions; without
+      // this it kept showing the participant list from before this enrolment.
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
@@ -191,6 +197,9 @@ export const EnrollmentAction: React.FC<{
   const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
+      // The detail page reads the singular status for the roster and the admin actions; without
+      // this it kept showing the participant list from before this enrolment.
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();

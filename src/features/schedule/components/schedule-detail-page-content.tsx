@@ -69,7 +69,21 @@ const DetailContent: React.FC<{ id: string }> = ({ id }) => {
   // 3. Get course status to determine if user is admin
   const { data: courseStatus } = trpc.schedule.getCourseStatus.useQuery(
     { courseId: id },
-    { enabled: !!entry, staleTime: 1000 * 60 * 5 },
+    {
+      enabled: !!entry,
+      staleTime: 1000 * 60 * 5,
+      /**
+       * The global default is `refetchOnMount: false` with a 72h `gcTime` and disk persistence,
+       * so this status is fetched once per course and then served from IndexedDB for days. That
+       * is fine for the enrolment counts, which every mutation invalidates - but `isAdmin` is
+       * decided by the organiser relationship in the CMS, which changes without any mutation
+       * this client ever makes. Adding somebody as an organiser therefore never reached them:
+       * their cached `isAdmin: false` outlived the change and hid the admin actions and the
+       * participant list. Revalidate on every open - it is one small request on a deliberate
+       * navigation, and `networkMode: 'online'` still serves the cached value when offline.
+       */
+      refetchOnMount: 'always',
+    },
   );
 
   // 4. Use shared edit hook
