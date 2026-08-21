@@ -43,6 +43,12 @@ ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 ARG POSTHOG_API_KEY
 ARG POSTHOG_PROJECT_ID
 
+# Locales this deployment serves, as a comma separated list (e.g. `de,fr`). Empty means all
+# locales, which is what conveniat27 ships; konekta builds pass `de,fr` to drop English.
+# This must be available at build time: it is inlined into the client bundle.
+ARG NEXT_PUBLIC_ENABLED_LOCALES
+ENV NEXT_PUBLIC_ENABLED_LOCALES=${NEXT_PUBLIC_ENABLED_LOCALES}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 

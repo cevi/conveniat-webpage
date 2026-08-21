@@ -4,6 +4,7 @@ import { LexicalRichTextSection } from '@/features/payload-cms/components/conten
 import type { Announcement, AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import configPromise from '@/features/payload-cms/payload.config';
 import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
 
 import {
@@ -104,7 +105,7 @@ export default async function AnnouncementPreviewPage({
   }
 
   const { id, locale } = await params;
-  const validatedLocale: Locale = ['de', 'fr', 'en'].includes(locale) ? locale : 'de';
+  const validatedLocale: Locale = i18nConfig.locales.includes(locale) ? locale : 'de';
 
   const payload = await getPayload({ config: configPromise });
 

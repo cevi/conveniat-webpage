@@ -1,12 +1,11 @@
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { LocaleCode } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { PrismaClient } from '@/lib/prisma';
 import type { ITXClientDenyList } from '@/lib/prisma/runtime/client';
 import type { Metadata } from 'next';
 import type { Config } from 'next-i18n-router/dist/types';
 import type { CollectionConfig, Config as PayloadConfig } from 'payload';
 import type React from 'react';
-
-const locales = Object.values(LOCALE);
 
 export enum Cookie {
   DESIGN_MODE = 'design-mode',
@@ -28,13 +27,15 @@ interface I18nConfig extends Config {
 }
 
 export const i18nConfig: I18nConfig = {
-  locales: locales,
+  // Only the locales this deployment actually serves — see `enabledLocales`. The `Locale` type
+  // below stays the full set, so localized content keeps a stable shape across deployments.
+  locales: enabledLocales,
   defaultLocale: LOCALE.DE,
   localeCookie: Cookie.LOCALE_COOKIE,
   serverSetCookie: 'always',
 };
 
-export type Locale = (typeof locales)[number];
+export type Locale = LocaleCode;
 export type StaticTranslationString = Record<Locale, string>;
 export type NavigationMode = 'top-nav' | 'side-nav';
 

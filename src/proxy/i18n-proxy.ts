@@ -1,4 +1,4 @@
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
 import type { ProxyModule } from '@/proxy/types';
 import { getLocaleFromUrl } from '@/proxy/utils/get-locale-from-url';
 import type { Locale } from '@/types/types';
@@ -19,7 +19,7 @@ import { type NextRequest, NextResponse } from 'next/server';
  * @param config.request - The original NextRequest
  * @param config.response - The original NextResponse
  */
-const supportedLocales = new Set<string>(Object.values(LOCALE));
+const supportedLocales = new Set<string>(enabledLocales);
 
 const isSupportedLocale = (value: string | undefined): value is Locale =>
   value !== undefined && supportedLocales.has(value);
@@ -31,7 +31,7 @@ export const localeReplacingRewrite = (config: {
 }): NextResponse<unknown> => {
   const { locale, request, response } = config;
 
-  const validLocales = new Set<string>(Object.values(LOCALE));
+  const validLocales = new Set<string>(enabledLocales);
   const pathname = new URL(response.headers.get(Header.MIDDLEWARE_REWRITES) ?? request.url)
     .pathname;
 

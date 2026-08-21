@@ -2,6 +2,7 @@
 
 import type { ProcessedMainMenuItem } from '@/components/menu/main-menu';
 import { LinkComponent } from '@/components/ui/link-component';
+import { languageOptions } from '@/config/language-options';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Languages, Search, X } from 'lucide-react';
@@ -143,7 +144,7 @@ export const DesktopNav: React.FC<{
       newPath = newPath.slice(0, -1);
     }
 
-    globalThis.location.href = newPath;
+    globalThis.location.assign(newPath);
   };
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
@@ -347,42 +348,21 @@ export const DesktopNav: React.FC<{
           {isLangOpen && (
             <div className="absolute top-full right-0 z-50 w-32 pt-2">
               <div className="animate-in fade-in-0 slide-in-from-top-1 rounded-xl border border-gray-200/80 bg-white/95 p-1.5 backdrop-blur-xl duration-150">
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange('de')}
-                  className={cn(
-                    'block w-full rounded-lg px-3 py-1.5 text-left text-xs font-semibold transition-colors',
-                    locale === 'de'
-                      ? 'bg-conveniat-green/10 text-conveniat-green font-bold'
-                      : 'hover:text-conveniat-green text-gray-700 hover:bg-gray-100',
-                  )}
-                >
-                  Deutsch
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange('fr')}
-                  className={cn(
-                    'block w-full rounded-lg px-3 py-1.5 text-left text-xs font-semibold transition-colors',
-                    locale === 'fr'
-                      ? 'bg-conveniat-green/10 text-conveniat-green font-bold'
-                      : 'hover:text-conveniat-green text-gray-700 hover:bg-gray-100',
-                  )}
-                >
-                  Français
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleLanguageChange('en')}
-                  className={cn(
-                    'block w-full rounded-lg px-3 py-1.5 text-left text-xs font-semibold transition-colors',
-                    locale === 'en'
-                      ? 'bg-conveniat-green/10 text-conveniat-green font-bold'
-                      : 'hover:text-conveniat-green text-gray-700 hover:bg-gray-100',
-                  )}
-                >
-                  English
-                </button>
+                {languageOptions.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleLanguageChange(value)}
+                    className={cn(
+                      'block w-full rounded-lg px-3 py-1.5 text-left text-xs font-semibold transition-colors',
+                      locale === value
+                        ? 'bg-conveniat-green/10 text-conveniat-green font-bold'
+                        : 'hover:text-conveniat-green text-gray-700 hover:bg-gray-100',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           )}

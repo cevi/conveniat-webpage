@@ -104,6 +104,18 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
+    /**
+     * Comma separated list of the locales this deployment serves, e.g. `de,fr`.
+     *
+     * Unset means "all locales" (conveniat27); the konekta deployment restricts it to German
+     * and French. German is always kept, it is the default and fallback locale.
+     *
+     * This is a build time flag: it is inlined into the client bundle, because the language
+     * switchers are client components. It is read in
+     * `@/features/payload-cms/payload-cms/locales`, not through this module — that module has to
+     * stay dependency free for the proxy (middleware) bundle.
+     */
+    NEXT_PUBLIC_ENABLED_LOCALES: z.string().optional(),
     NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
     NEXT_PUBLIC_HITOBITO_API_URL: z.string().url().optional(),
     NEXT_PUBLIC_SUPPORT_GROUP_ID: z.string().min(1).optional(),
@@ -115,6 +127,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'],
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: process.env['ENABLE_CON27_SHORT_URLS'] === 'true',
+    NEXT_PUBLIC_ENABLED_LOCALES: process.env['NEXT_PUBLIC_ENABLED_LOCALES'],
     NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
     NEXT_PUBLIC_HITOBITO_API_URL: process.env['NEXT_PUBLIC_HITOBITO_API_URL'],
     NEXT_PUBLIC_SUPPORT_GROUP_ID: process.env['NEXT_PUBLIC_SUPPORT_GROUP_ID'],
