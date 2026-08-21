@@ -11,7 +11,6 @@ import type React from 'react';
 
 const labels = {
   admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },
-  participants: { de: 'Teilnehmer', en: 'Participants', fr: 'Participants' },
   management: { de: 'Verwaltung', en: 'Management', fr: 'Gestion' },
   createChat: {
     de: 'Gruppenchat erstellen',
@@ -22,11 +21,6 @@ const labels = {
     de: 'Gruppenchat öffnen',
     en: 'View Group Chat',
     fr: 'Voir le chat de groupe',
-  },
-  noParticipants: {
-    de: 'Noch keine Teilnehmer',
-    en: 'No participants yet',
-    fr: 'Pas encore de participants',
   },
 } as const;
 
@@ -98,7 +92,8 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
       </h2>
 
       <div className="space-y-5">
-        {/* Management Section */}
+        {/* Management Section. The roster itself lives in `ParticipantList`, rendered as its
+            own section on the detail page rather than buried in this admin card. */}
         <div>
           <h3 className="mb-2 text-xs font-semibold text-gray-500">{labels.management[locale]}</h3>
           {hasChatCreated ? (
@@ -126,29 +121,6 @@ export const WorkshopAdminActions: React.FC<WorkshopAdminActionsProperties> = ({
               {labels.createChat[locale]}
             </Button>
           )}
-        </div>
-
-        {/* Participant List Section */}
-        <div>
-          <h3 className="mb-2 text-xs font-semibold text-gray-500">
-            {labels.participants[locale]} ({status.participants.length})
-          </h3>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {status.participants.map((p: { uuid: string; name: string }) => (
-              <div
-                key={p.uuid}
-                className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-700"
-              >
-                <div className="bg-conveniat-green h-2 w-2 rounded-full" />
-                {p.name}
-              </div>
-            ))}
-            {status.participants.length === 0 && (
-              <div className="col-span-2 text-sm text-gray-400 italic">
-                {labels.noParticipants[locale]}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

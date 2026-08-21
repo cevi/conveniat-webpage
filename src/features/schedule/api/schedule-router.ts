@@ -107,8 +107,22 @@ export const scheduleRouter = createTRPCRouter({
       enableEnrolment: course.enable_enrolment,
       hideList: course.hide_participant_list,
       chatId: courseChat?.uuid,
+      /**
+       * The roster is for the organisers of the course and nobody else, and they only get it
+       * while "Teilnehmerliste ausblenden" is off - with it on, the list stays exclusive to
+       * the admin panel, whose export never consults the flag.
+       *
+       * Both halves are decided here rather than in the UI: a client-side guard would still
+       * ship the names in the tRPC response, where any participant could read them straight
+       * out of the payload.
+       *
+       * The flag is compared against `true` rather than `false` because it is a checkbox
+       * added after the collection existed, so Payload only materialises it on documents
+       * saved since - older courses carry `undefined`, which has to read as its `false`
+       * default ("not hidden") rather than withhold the list.
+       */
       participants:
-        isAdmin || course.hide_participant_list === false
+        isAdmin && course.hide_participant_list !== true
           ? enrollments.map((enrollment_) => ({
               uuid: enrollment_.user.uuid,
               name: enrollment_.user.name,
