@@ -17,7 +17,6 @@ import { databaseTransactionWrapper } from '@/trpc/middleware/database-transacti
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
 import config from '@payload-config';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
@@ -116,9 +115,7 @@ export const scheduleRouter = createTRPCRouter({
           : [],
       // Markdown versions for editing
       descriptionMarkdown: isAdmin ? convertLexicalToMarkdown(course.description) : undefined,
-      targetGroupMarkdown: isAdmin
-        ? convertLexicalToMarkdown(course.target_group as SerializedEditorState)
-        : undefined,
+      targetGroupMarkdown: isAdmin ? convertLexicalToMarkdown(course.target_group) : undefined,
     };
   }),
 
