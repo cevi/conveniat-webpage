@@ -1,4 +1,4 @@
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
 import type { ProxyModule } from '@/proxy/types';
 import { Cookie, Header } from '@/types/types';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
@@ -26,7 +26,7 @@ export const createPrefixedRewriteResponse = (config: {
 }): NextResponse<unknown> => {
   const { prefix, request, response } = config;
 
-  const validLocales = new Set<string>(Object.values(LOCALE));
+  const validLocales = new Set<string>(enabledLocales);
   const pathname = new URL(response.headers.get(Header.MIDDLEWARE_REWRITES) ?? request.url)
     .pathname;
 

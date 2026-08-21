@@ -27,7 +27,7 @@ const getCanonicalData = (
   specialPage: SpecialRouteResolutionEntry,
   locale: Locale,
 ): { canonical: string; languages: { [k: string]: string } } => {
-  const availableLocales: Locale[] = ['de', 'fr', 'en'];
+  const availableLocales = i18nConfig.locales as Locale[];
   const canonicalLocale = specialPage.alternatives['de'] === '' ? locale : 'de';
   const canonicalPath = specialPage.alternatives[canonicalLocale];
 
