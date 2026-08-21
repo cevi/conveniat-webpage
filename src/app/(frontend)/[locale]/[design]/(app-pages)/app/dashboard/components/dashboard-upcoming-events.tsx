@@ -223,8 +223,9 @@ export const DashboardUpcomingEvents: React.FC<DashboardUpcomingEventsProperties
     return <DashboardUpcomingEventsSkeleton locale={locale} />;
   }
 
-  // We need "today" in the context of the user or the event? Usually user's local time.
-  const today = new Date();
+  // the user's local time, which is both the day they mean by "today" and the point the card
+  // measures "what is still ahead of me" against
+  const now = new Date();
 
   const displayEvents = selectTodaysDashboardEvents({
     scheduleEntries: scheduleEvents,
@@ -232,7 +233,7 @@ export const DashboardUpcomingEvents: React.FC<DashboardUpcomingEventsProperties
     shifts: shifts ?? [],
     enrolledShiftIds: enrolledShiftIds ?? [],
     organisedShiftIds: organisedShiftIds ?? [],
-    today,
+    now,
     limit: MAX_DISPLAYED_EVENTS,
   });
   const isEmpty = displayEvents.length === 0;
