@@ -148,8 +148,8 @@ describe('getHelperShifts', () => {
 
   /**
    * The organiser relationship carries the whole user document at `depth: 1`, and this result is
-   * shared cache handed to every helper - so only the three fields the contact block renders may
-   * ride along. Roles, the Hitobito payload and everything else must be dropped here.
+   * shared cache handed to every helper - so only the fields the contact block renders may ride
+   * along. Roles, the Hitobito payload and everything else must be dropped here.
    */
   describe('the organisers', () => {
     beforeEach(() => {
@@ -181,6 +181,43 @@ describe('getHelperShifts', () => {
 
       expect(shift?.organiser).toEqual([
         { id: 'org-1', fullName: 'Otto Organisator', email: 'otto@example.test' },
+      ]);
+    });
+
+    /**
+     * The Ceviname is how helpers actually know each other, so the contact block spells the
+     * organiser out as "Vorname Nachname v/o Ceviname" - which needs the nickname to survive
+     * the narrowing.
+     */
+    it('keep the Ceviname of an organiser who has one', async () => {
+      mockFind.mockResolvedValue({
+        docs: [
+          {
+            id: 'shift-1',
+            title: 'Aufbau',
+            description: 'Aufbau der Stände',
+            timeslot: { date: '2026-08-01', time: '08:00 - 12:00' },
+            organiser: [
+              {
+                id: 'org-1',
+                fullName: 'Otto Organisator',
+                nickname: 'Otti',
+                email: 'otto@example.test',
+              },
+            ],
+          },
+        ],
+      });
+
+      const [shift] = await getHelperShifts({}, 'de');
+
+      expect(shift?.organiser).toEqual([
+        {
+          id: 'org-1',
+          fullName: 'Otto Organisator',
+          nickname: 'Otti',
+          email: 'otto@example.test',
+        },
       ]);
     });
 

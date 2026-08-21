@@ -25,6 +25,26 @@ describe('ShiftOrganisers', () => {
     expect(screen.getByText('anna@example.org')).toBeInTheDocument();
   });
 
+  /**
+   * Helpers know each other by Ceviname, so the contact row spells it out the way the chat
+   * contact list does - "Vorname Nachname v/o Ceviname" - rather than by the civil name alone.
+   */
+  it('spells out the Ceviname of an organiser who has one', () => {
+    render(<ShiftOrganisers organisers={[{ ...anna, nickname: 'Ameise' }]} locale="de" />);
+
+    expect(screen.getByText('Anna Muster v/o Ameise')).toBeInTheDocument();
+  });
+
+  /**
+   * A shift restored from the persisted query cache was written before `nickname` existed, so
+   * the field is simply absent there - the row must still render the plain name.
+   */
+  it('falls back to the plain name when no Ceviname is set', () => {
+    render(<ShiftOrganisers organisers={[anna]} locale="de" />);
+
+    expect(screen.getByText('Anna Muster')).toBeInTheDocument();
+  });
+
   it('renders nothing for a shift without organisers', () => {
     const { container } = render(<ShiftOrganisers organisers={[]} locale="de" />);
 

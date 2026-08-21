@@ -19,6 +19,11 @@ import { getPayload } from 'payload';
 export interface HelperShiftOrganiser {
   id: string;
   fullName: string;
+  /**
+   * The Ceviname, optional because most users never set one - and because a shift restored
+   * from a persisted query cache written before this field existed simply has no value here.
+   */
+  nickname?: string | null | undefined;
   email: string;
 }
 
@@ -43,7 +48,7 @@ export interface HelperShiftFrontendType {
 }
 
 /**
- * Narrows the populated organiser relationship down to the three fields the helper portal
+ * Narrows the populated organiser relationship down to the few fields the helper portal
  * renders. The rest of the user document - roles, the Hitobito payload, everything the admin
  * panel keeps - must not ride along: this result is shared cache, handed to every helper.
  *
@@ -55,7 +60,7 @@ const toOrganisers = (organiser: HelperShift['organiser']): HelperShiftOrganiser
   (organiser ?? []).flatMap((entry) =>
     typeof entry === 'string'
       ? []
-      : [{ id: entry.id, fullName: entry.fullName, email: entry.email }],
+      : [{ id: entry.id, fullName: entry.fullName, nickname: entry.nickname, email: entry.email }],
   );
 
 const getHelperShiftsCached = async (

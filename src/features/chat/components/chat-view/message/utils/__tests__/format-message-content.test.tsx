@@ -81,3 +81,41 @@ describe('formatMessageContent phone number parser', () => {
     });
   });
 });
+
+const isLineBreak = (node: React.ReactNode): boolean =>
+  typeof node === 'object' && node !== null && (node as React.ReactElement).type === 'br';
+
+describe('formatMessageContent line breaks', () => {
+  it('renders a newline as a line break element', () => {
+    const result = formatMessageContent('Zeile 1\nZeile 2', 'de');
+
+    expect(result[0]).toBe('Zeile 1');
+    expect(isLineBreak(result[1])).toBe(true);
+    expect(result[2]).toBe('Zeile 2');
+  });
+
+  it('renders a blank line as two line break elements', () => {
+    const result = formatMessageContent('Oben\n\nUnten', 'de');
+
+    expect(result.filter((node) => isLineBreak(node))).toHaveLength(2);
+    expect(result.filter((node) => typeof node === 'string')).toEqual(['Oben', 'Unten']);
+  });
+
+  it('keeps the line breaks of a localized announcement payload', () => {
+    const announcementPayload = {
+      de: {
+        title: 'Wetterwarnung',
+        body: 'Zieht euch warm an.\nDas Zelt bleibt zu.',
+        text: '*Wetterwarnung*\n\nZieht euch warm an.\nDas Zelt bleibt zu.',
+      },
+    };
+
+    const result = formatMessageContent(announcementPayload, 'de');
+
+    expect(result.filter((node) => isLineBreak(node))).toHaveLength(3);
+    expect(result.filter((node) => typeof node === 'string')).toEqual([
+      'Zieht euch warm an.',
+      'Das Zelt bleibt zu.',
+    ]);
+  });
+});

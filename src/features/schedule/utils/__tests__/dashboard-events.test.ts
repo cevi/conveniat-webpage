@@ -3,7 +3,7 @@ import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { selectTodaysDashboardEvents } from '@/features/schedule/utils/dashboard-events';
 
-const today = new Date('2027-07-24T09:00:00');
+const now = new Date('2027-07-24T09:00:00');
 const TODAY_ISO = '2027-07-24';
 const TOMORROW_ISO = '2027-07-25';
 
@@ -37,7 +37,7 @@ const select = (
     shifts: [],
     enrolledShiftIds: [],
     organisedShiftIds: [],
-    today,
+    now,
     limit: 3,
     ...overrides,
   });
@@ -111,19 +111,92 @@ describe('selectTodaysDashboardEvents', () => {
     expect(events.map((event) => event.id)).toEqual(['entry-early', 'shift-noon', 'entry-late']);
   });
 
-  it('caps the list at the requested limit', () => {
+  it('caps the list at the requested limit, counting only what is still ahead', () => {
     const events = select({
       scheduleEntries: [
-        makeEntry({ id: 'a', timeslot: { date: TODAY_ISO, time: '08:00' } }),
-        makeEntry({ id: 'b', timeslot: { date: TODAY_ISO, time: '09:00' } }),
-        makeEntry({ id: 'c', timeslot: { date: TODAY_ISO, time: '10:00' } }),
-        makeEntry({ id: 'd', timeslot: { date: TODAY_ISO, time: '11:00' } }),
+        makeEntry({ id: 'a', timeslot: { date: TODAY_ISO, time: '09:00 - 10:00' } }),
+        makeEntry({ id: 'b', timeslot: { date: TODAY_ISO, time: '10:00 - 11:00' } }),
+        makeEntry({ id: 'c', timeslot: { date: TODAY_ISO, time: '11:00 - 12:00' } }),
+        makeEntry({ id: 'd', timeslot: { date: TODAY_ISO, time: '12:00 - 13:00' } }),
       ],
       starredEntryIds: new Set(['a', 'b', 'c', 'd']),
       limit: 3,
     });
 
     expect(events.map((event) => event.id)).toEqual(['a', 'b', 'c']);
+  });
+
+  it('hides the entries of today that already ended', () => {
+    const events = select({
+      scheduleEntries: [
+        makeEntry({ id: 'over', timeslot: { date: TODAY_ISO, time: '07:00 - 08:30' } }),
+        makeEntry({ id: 'running', timeslot: { date: TODAY_ISO, time: '08:00 - 10:00' } }),
+        makeEntry({ id: 'upcoming', timeslot: { date: TODAY_ISO, time: '11:00 - 12:00' } }),
+      ],
+      starredEntryIds: new Set(['over', 'running', 'upcoming']),
+    });
+
+    expect(events.map((event) => event.id)).toEqual(['running', 'upcoming']);
+  });
+
+  it('hides a shift that already ended', () => {
+    const events = select({
+      shifts: [
+        makeShift({ id: 'shift-over', timeslot: { date: TODAY_ISO, time: '05:00 - 08:00' } }),
+        makeShift({ id: 'shift-next', timeslot: { date: TODAY_ISO, time: '13:00 - 17:00' } }),
+      ],
+      enrolledShiftIds: ['shift-over', 'shift-next'],
+    });
+
+    expect(events.map((event) => event.id)).toEqual(['shift-next']);
+  });
+
+  it('keeps an entry that ends exactly now', () => {
+    const events = select({
+      scheduleEntries: [
+        makeEntry({ id: 'ending-now', timeslot: { date: TODAY_ISO, time: '08:00 - 09:00' } }),
+      ],
+      starredEntryIds: new Set(['ending-now']),
+    });
+
+    expect(events.map((event) => event.id)).toEqual(['ending-now']);
+  });
+
+  it('drops the first three entries once they are over and shows the next three', () => {
+    const events = select({
+      scheduleEntries: [
+        makeEntry({ id: 'past-1', timeslot: { date: TODAY_ISO, time: '06:00 - 07:00' } }),
+        makeEntry({ id: 'past-2', timeslot: { date: TODAY_ISO, time: '07:00 - 08:00' } }),
+        makeEntry({ id: 'past-3', timeslot: { date: TODAY_ISO, time: '08:00 - 08:45' } }),
+        makeEntry({ id: 'next-1', timeslot: { date: TODAY_ISO, time: '10:00 - 11:00' } }),
+        makeEntry({ id: 'next-2', timeslot: { date: TODAY_ISO, time: '12:00 - 13:00' } }),
+        makeEntry({ id: 'next-3', timeslot: { date: TODAY_ISO, time: '14:00 - 15:00' } }),
+        makeEntry({ id: 'next-4', timeslot: { date: TODAY_ISO, time: '16:00 - 17:00' } }),
+      ],
+      starredEntryIds: new Set([
+        'past-1',
+        'past-2',
+        'past-3',
+        'next-1',
+        'next-2',
+        'next-3',
+        'next-4',
+      ]),
+      limit: 3,
+    });
+
+    expect(events.map((event) => event.id)).toEqual(['next-1', 'next-2', 'next-3']);
+  });
+
+  it('keeps an entry whose time it cannot parse rather than hiding it', () => {
+    const events = select({
+      scheduleEntries: [
+        makeEntry({ id: 'unparsable', timeslot: { date: TODAY_ISO, time: 'ganzer Tag' } }),
+      ],
+      starredEntryIds: new Set(['unparsable']),
+    });
+
+    expect(events.map((event) => event.id)).toEqual(['unparsable']);
   });
 
   it('resolves the location relationship and drops unpopulated ones', () => {
