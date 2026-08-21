@@ -1,4 +1,4 @@
-import type { CampCategory } from '@/features/payload-cms/payload-types';
+import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS } from '@/lib/feature-flags';
@@ -21,8 +21,8 @@ export interface HelperShiftFrontendType {
     date: string;
     time: string;
   };
-  location?: unknown;
   // relationships can be unpopulated (ID string) or dangling (null) at runtime
+  location?: string | CampMapAnnotation | null | undefined;
   category?: string | CampCategory | null | undefined;
   participants_max?: number | undefined;
   enable_enrolment?: boolean | undefined;

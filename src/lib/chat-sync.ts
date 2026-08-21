@@ -295,6 +295,8 @@ export const syncAllOfflineData = async (
     safePrefetch(trpcUtils.schedule.getMyEnrollments.ensureData(undefined)),
     // eslint-disable-next-line unicorn/no-useless-undefined
     safePrefetch(trpcUtils.shifts.getMyShiftEnrollments.ensureData(undefined)),
+    // eslint-disable-next-line unicorn/no-useless-undefined
+    safePrefetch(trpcUtils.shifts.getMyOrganisedShifts.ensureData(undefined)),
     (async (): Promise<void> => {
       // eslint-disable-next-line unicorn/no-useless-undefined
       const shifts = await safePrefetch(trpcUtils.schedule.getHelperShifts.ensureData(undefined));

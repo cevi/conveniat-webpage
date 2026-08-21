@@ -4,6 +4,7 @@ import {
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
+import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import {
   ChatMembershipPermission,
@@ -958,6 +959,9 @@ export const scheduleRouter = createTRPCRouter({
               skipDuplicates: true,
             });
           }
+
+          // organisers get their own blocks starred for them, see `ensureOrganiserStars`
+          await ensureOrganiserStars(prisma, user.uuid);
 
           const allStars = await prisma.star.findMany({
             where: { userId: user.uuid },
