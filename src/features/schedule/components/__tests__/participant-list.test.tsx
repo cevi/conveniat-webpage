@@ -17,7 +17,14 @@ let mockQueryResult: { data: CourseStatus | undefined; isLoading: boolean } = {
   data: undefined,
   isLoading: false,
 };
+let mockShiftQueryResult: { data: CourseStatus | undefined; isLoading: boolean } = {
+  data: undefined,
+  isLoading: false,
+};
 const mockUseQuery = jest.fn<typeof mockQueryResult, [unknown, unknown]>(() => mockQueryResult);
+const mockShiftUseQuery = jest.fn<typeof mockShiftQueryResult, [unknown, unknown]>(
+  () => mockShiftQueryResult,
+);
 
 jest.mock('next-i18n-router/client', () => ({
   useCurrentLocale: (): string => 'de',
@@ -28,6 +35,11 @@ jest.mock('@/trpc/client', () => ({
     schedule: {
       getCourseStatus: {
         useQuery: (input: unknown, options: unknown): unknown => mockUseQuery(input, options),
+      },
+    },
+    shifts: {
+      getShiftStatus: {
+        useQuery: (input: unknown, options: unknown): unknown => mockShiftUseQuery(input, options),
       },
     },
   },
@@ -49,6 +61,7 @@ describe('ParticipantList', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockQueryResult = { data: undefined, isLoading: false };
+    mockShiftQueryResult = { data: undefined, isLoading: false };
   });
 
   it('lists the enrolled participants with the enrolled count for an organiser', () => {
@@ -80,6 +93,10 @@ describe('ParticipantList', () => {
 
     expect(mockUseQuery).toHaveBeenCalledWith(
       { courseId: 'course-1' },
+      expect.objectContaining({ enabled: false }),
+    );
+    expect(mockShiftUseQuery).toHaveBeenCalledWith(
+      { shiftId: 'course-1' },
       expect.objectContaining({ enabled: false }),
     );
   });
@@ -157,5 +174,75 @@ describe('ParticipantList', () => {
     const { container } = render(<ParticipantList courseId="course-1" />);
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  /**
+   * A helper shift is a different collection behind a different router, so `courseType` has to
+   * route the standalone fetch - asking `schedule.getCourseStatus` for a shift id answers `null`,
+   * which reads as "deleted" and would silently hide the roster from its organiser.
+   */
+  describe('on a helper shift', () => {
+    it('asks the shifts router for the status and leaves the schedule query disabled', () => {
+      mockShiftQueryResult = { data: organiserStatus(), isLoading: false };
+
+      render(<ParticipantList courseId="shift-1" courseType="shift" />);
+
+      expect(mockShiftUseQuery).toHaveBeenCalledWith(
+        { shiftId: 'shift-1' },
+        expect.objectContaining({ enabled: true }),
+      );
+      expect(mockUseQuery).toHaveBeenCalledWith(
+        { courseId: 'shift-1' },
+        expect.objectContaining({ enabled: false }),
+      );
+    });
+
+    it('lists the enrolled helpers for the organiser of the shift', () => {
+      mockShiftQueryResult = { data: organiserStatus(), isLoading: false };
+
+      render(<ParticipantList courseId="shift-1" courseType="shift" />);
+
+      expect(screen.getByText('Angemeldete Helfende (2)')).toBeInTheDocument();
+      expect(screen.getByText('Anna Muster')).toBeInTheDocument();
+      expect(screen.getByText('Beat Beispiel')).toBeInTheDocument();
+    });
+
+    it('renders nothing for a helper who does not organise the shift', () => {
+      mockShiftQueryResult = {
+        data: organiserStatus({ isAdmin: false, participants: [] }),
+        isLoading: false,
+      };
+
+      const { container } = render(<ParticipantList courseId="shift-1" courseType="shift" />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('names the empty state after helpers rather than participants', () => {
+      mockShiftQueryResult = {
+        data: organiserStatus({ enrolledCount: 0, participants: [] }),
+        isLoading: false,
+      };
+
+      render(<ParticipantList courseId="shift-1" courseType="shift" />);
+
+      expect(screen.getByText('Noch keine Helfenden angemeldet')).toBeInTheDocument();
+    });
+
+    /**
+     * `getShiftStatus` answers `null` for a deleted shift, which is a *successful* response
+     * rather than an error, so it arrives as data and must not crash the roster.
+     */
+    it('renders nothing for a shift that no longer exists', () => {
+      mockShiftQueryResult = {
+        // eslint-disable-next-line unicorn/no-null
+        data: null as unknown as undefined,
+        isLoading: false,
+      };
+
+      const { container } = render(<ParticipantList courseId="gone" courseType="shift" />);
+
+      expect(container).toBeEmptyDOMElement();
+    });
   });
 });
