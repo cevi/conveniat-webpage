@@ -34,6 +34,12 @@ jest.mock('@/features/onboarding/hooks/use-onboarding', () => ({
   }),
 }));
 
+// The layout's logo pulls in `@/config/environment-variables`, which validates env at import
+// time and throws when the vars are absent (as in CI). Stub it so this render stays hermetic.
+jest.mock('@/features/onboarding/components/centered-conveniat-logo', () => ({
+  CenteredConveniatLogo: (): undefined => undefined,
+}));
+
 // Sibling steps pull in tRPC, next-auth and the service worker; they are not under test here.
 jest.mock('@/features/onboarding/components/language-switcher', () => ({
   LanguageSwitcher: (): undefined => undefined,
