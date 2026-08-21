@@ -24,6 +24,7 @@ const makeShift = (
   title: 'Some Shift',
   description: 'Some description',
   timeslot: { date: TODAY_ISO, time: '08:00 - 12:00' },
+  organiser: [],
   ...overrides,
 });
 

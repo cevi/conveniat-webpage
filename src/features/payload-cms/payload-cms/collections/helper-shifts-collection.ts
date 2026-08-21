@@ -253,9 +253,9 @@ export const HelperShiftsCollection: CollectionConfig = {
       required: false,
       admin: {
         description: {
-          en: 'Organisers of this shift. The shift shows up in their daily program automatically.',
-          de: 'Organisatoren dieses Schichteinsatzes. Der Einsatz erscheint automatisch in ihrem Tagesprogramm.',
-          fr: 'Organisateurs de ce service. Le service apparaît automatiquement dans leur programme du jour.',
+          en: 'Organisers of this shift. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.',
+          de: 'Organisatoren dieses Schichteinsatzes. Der Einsatz erscheint automatisch in ihrem Tagesprogramm, sie werden den Helfenden als Kontakt angezeigt und sehen als Einzige die Liste der angemeldeten Helfenden in der App.',
+          fr: 'Organisateurs de ce service. Le service apparaît automatiquement dans leur programme du jour, ils sont affichés aux helpers comme contacts et sont les seuls à voir la liste des helpers inscrits dans l’app.',
         },
         position: 'sidebar',
       },

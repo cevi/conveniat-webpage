@@ -62,8 +62,27 @@ export const shiftsRouter = createTRPCRouter({
       ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
       : false;
 
+    // `depth: 0` leaves the relationship as plain user IDs, which is all an ownership check
+    // needs - populating the organisers here would only pay for documents nobody renders.
+    const organiserIds = (shift.organiser ?? []).map((organiser) =>
+      typeof organiser === 'string' ? organiser : organiser.id,
+    );
+    const isAdmin = user ? organiserIds.includes(user.uuid) : false;
+
+    /**
+     * Mirrors `schedule.getCourseStatus`: the roster belongs to the organisers of the shift and
+     * nobody else, and only while "Teilnehmerliste ausblenden" is off - with it on the list stays
+     * exclusive to the admin panel, whose export never consults the flag.
+     *
+     * This is decided on the server rather than in the card, because a client-side guard would
+     * still ship the helper names in the tRPC response for any enrolled user to read.
+     *
+     * The flag is compared against `true` rather than `false` because Payload only materialises
+     * a checkbox on documents saved since it was added - shifts predating it carry `undefined`,
+     * which has to read as its `false` default ("not hidden") rather than withhold the list.
+     */
     const participants =
-      shift.hide_participant_list === false
+      isAdmin && shift.hide_participant_list !== true
         ? enrollments.map((enrollment_) => ({
             uuid: enrollment_.user.uuid,
             name: enrollment_.user.name,
@@ -75,6 +94,7 @@ export const shiftsRouter = createTRPCRouter({
       maxParticipants:
         typeof shift.participants_max === 'number' ? shift.participants_max : undefined,
       isEnrolled,
+      isAdmin,
       enableEnrolment: shift.enable_enrolment,
       hideList: shift.hide_participant_list,
       participants,

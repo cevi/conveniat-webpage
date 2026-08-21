@@ -1,4 +1,8 @@
-import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import type {
+  CampCategory,
+  CampMapAnnotation,
+  HelperShift,
+} from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS } from '@/lib/feature-flags';
@@ -12,6 +16,12 @@ import { cacheLife, cacheTag } from 'next/cache';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
+export interface HelperShiftOrganiser {
+  id: string;
+  fullName: string;
+  email: string;
+}
+
 export interface HelperShiftFrontendType {
   id: string;
   title: string;
@@ -24,12 +34,29 @@ export interface HelperShiftFrontendType {
   // relationships can be unpopulated (ID string) or dangling (null) at runtime
   location?: string | CampMapAnnotation | null | undefined;
   category?: string | CampCategory | null | undefined;
+  organiser: HelperShiftOrganiser[];
   participants_max?: number | undefined;
   enable_enrolment?: boolean | undefined;
   hide_participant_list?: boolean | undefined;
   hide_when_full?: boolean | undefined;
   mainContent?: unknown;
 }
+
+/**
+ * Narrows the populated organiser relationship down to the three fields the helper portal
+ * renders. The rest of the user document - roles, the Hitobito payload, everything the admin
+ * panel keeps - must not ride along: this result is shared cache, handed to every helper.
+ *
+ * Entries that are still ID strings are dropped rather than rendered as a nameless contact
+ * row - that is also how a relationship pointing at a deleted user comes back, so a stale
+ * organiser drops out of the card instead of showing a chat button that goes nowhere.
+ */
+const toOrganisers = (organiser: HelperShift['organiser']): HelperShiftOrganiser[] =>
+  (organiser ?? []).flatMap((entry) =>
+    typeof entry === 'string'
+      ? []
+      : [{ id: entry.id, fullName: entry.fullName, email: entry.email }],
+  );
 
 const getHelperShiftsCached = async (
   where: Where = {},
@@ -65,6 +92,7 @@ const getHelperShiftsCached = async (
       },
       location: document_.location,
       category: document_.category,
+      organiser: toOrganisers(document_.organiser),
       participants_max:
         typeof document_.participants_max === 'number' ? document_.participants_max : undefined,
       enable_enrolment:
