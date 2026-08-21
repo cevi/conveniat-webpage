@@ -14,6 +14,7 @@ import {
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
+import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -53,12 +54,6 @@ const localizedConflict: StaticTranslationString = {
   de: 'Zeitkonflikt',
   en: 'Time conflict',
   fr: 'Conflit horaire',
-};
-
-const localizedSpotsLeft: StaticTranslationString = {
-  de: 'Plätze frei',
-  en: 'spots left',
-  fr: 'places restantes',
 };
 
 const localizedOffline: StaticTranslationString = {
@@ -287,7 +282,7 @@ export const EnrollmentAction: React.FC<{
           </span>
           {spotsLeft !== undefined && spotsLeft > 0 && (
             <span className="text-green-600">
-              ({spotsLeft} {localizedSpotsLeft[locale]})
+              ({spotsLeft} {getSpotsLeftText(spotsLeft, locale)})
             </span>
           )}
           {isFull && <span className="font-medium text-red-500">({localizedFull[locale]})</span>}

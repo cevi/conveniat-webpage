@@ -13,6 +13,7 @@ import {
   ChatAlertDialogTitle,
 } from '@/features/chat/components/ui/chat-alert-dialog';
 /* eslint-enable import/no-restricted-paths */
+import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -45,12 +46,6 @@ const localizedEnrolled: StaticTranslationString = {
   de: 'Angemeldet',
   en: 'Enrolled',
   fr: 'Inscrit',
-};
-
-const localizedSpotsLeft: StaticTranslationString = {
-  de: 'Plätze frei',
-  en: 'spots left',
-  fr: 'places restantes',
 };
 
 const localizedOffline: StaticTranslationString = {
@@ -284,7 +279,7 @@ export const ShiftEnrollmentAction: React.FC<{
           </span>
           {spotsLeft !== undefined && spotsLeft > 0 && (
             <span className="text-green-600">
-              ({spotsLeft} {localizedSpotsLeft[locale]})
+              ({spotsLeft} {getSpotsLeftText(spotsLeft, locale)})
             </span>
           )}
           {isFull && <span className="font-medium text-red-500">({localizedFull[locale]})</span>}
