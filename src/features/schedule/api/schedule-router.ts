@@ -3,8 +3,8 @@ import {
   getJoinGroupMessagePayload,
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
-import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import {
   ChatMembershipPermission,
@@ -90,8 +90,7 @@ export const scheduleRouter = createTRPCRouter({
     const isEnrolled = user
       ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
       : false;
-    const organisers = (course.organiser ?? []) as PayloadUser[];
-    const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
+    const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
 
     // Check if a group chat exists for this course
     const courseChat = await prisma.chat.findFirst({
@@ -103,7 +102,13 @@ export const scheduleRouter = createTRPCRouter({
       enrolledCount: enrollments.length,
       maxParticipants: course.participants_max ?? undefined,
       isEnrolled,
-      isAdmin,
+      /**
+       * Organiser-ship, not a role: `isAdmin` is the long-standing name for it and stays so the
+       * existing consumers (edit rights, the admin actions card) keep working. `isOrganiser` is
+       * the honest one - an organiser needs no admin-panel access.
+       */
+      isAdmin: isOrganiser,
+      isOrganiser,
       enableEnrolment: course.enable_enrolment,
       hideList: course.hide_participant_list,
       chatId: courseChat?.uuid,
@@ -122,15 +127,15 @@ export const scheduleRouter = createTRPCRouter({
        * default ("not hidden") rather than withhold the list.
        */
       participants:
-        isAdmin && course.hide_participant_list !== true
+        isOrganiser && course.hide_participant_list !== true
           ? enrollments.map((enrollment_) => ({
               uuid: enrollment_.user.uuid,
               name: enrollment_.user.name,
             }))
           : [],
       // Markdown versions for editing
-      descriptionMarkdown: isAdmin ? convertLexicalToMarkdown(course.description) : undefined,
-      targetGroupMarkdown: isAdmin ? convertLexicalToMarkdown(course.target_group) : undefined,
+      descriptionMarkdown: isOrganiser ? convertLexicalToMarkdown(course.description) : undefined,
+      targetGroupMarkdown: isOrganiser ? convertLexicalToMarkdown(course.target_group) : undefined,
     };
   }),
 
@@ -188,6 +193,7 @@ export const scheduleRouter = createTRPCRouter({
           maxParticipants: number | undefined;
           isEnrolled: boolean;
           isAdmin: boolean;
+          isOrganiser: boolean;
           enableEnrolment: boolean | null | undefined;
           hideList: boolean | null | undefined;
           chatId: string | undefined;
@@ -202,14 +208,14 @@ export const scheduleRouter = createTRPCRouter({
         const isEnrolled = user
           ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
           : false;
-        const organisers = (course.organiser ?? []) as PayloadUser[];
-        const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
+        const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
 
         result[courseId] = {
           enrolledCount: enrollments.length,
           maxParticipants: course.participants_max ?? undefined,
           isEnrolled,
-          isAdmin,
+          isAdmin: isOrganiser,
+          isOrganiser,
           enableEnrolment: course.enable_enrolment,
           hideList: course.hide_participant_list,
           chatId: chatsByCourse.get(courseId),
@@ -247,8 +253,7 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       // Check if user is an organizer of this course
-      const organisers = (course.organiser ?? []) as string[];
-      const isOrganiser = organisers.includes(user.uuid);
+      const isOrganiser = isOrganiserOf(course.organiser, user.uuid);
 
       if (course.enable_enrolment === false) {
         throw new TRPCError({

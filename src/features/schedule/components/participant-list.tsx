@@ -11,6 +11,12 @@ import type React from 'react';
 interface CourseStatus {
   enrolledCount: number;
   isAdmin: boolean;
+  /**
+   * Organiser-ship of this entry. Independent of any role: an organiser of a workshop or a
+   * helper shift needs no admin-panel access. Optional so a status still held in the persisted
+   * client cache from before this field existed falls back to the `isAdmin` alias.
+   */
+  isOrganiser?: boolean;
   enableEnrolment: boolean | null | undefined;
   hideList: boolean | null | undefined;
   participants: { uuid: string; name: string }[];
@@ -105,9 +111,9 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
   if (isLoading && !status) return;
   if (!status?.enableEnrolment) return;
 
-  // Only the organisers of the workshop get to see who enrolled, and only while the
-  // organiser has not hidden the list - then it stays exclusive to the admin panel.
-  if (!status.isAdmin) return;
+  // Only the organisers get to see who enrolled, and only while the list is not hidden -
+  // then it stays exclusive to the admin panel.
+  if (status.isOrganiser !== true && !status.isAdmin) return;
   if (status.hideList === true) return;
 
   const participants = status.participants;

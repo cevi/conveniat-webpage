@@ -1,3 +1,4 @@
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { CourseType } from '@/lib/prisma';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
@@ -64,10 +65,7 @@ export const shiftsRouter = createTRPCRouter({
 
     // `depth: 0` leaves the relationship as plain user IDs, which is all an ownership check
     // needs - populating the organisers here would only pay for documents nobody renders.
-    const organiserIds = (shift.organiser ?? []).map((organiser) =>
-      typeof organiser === 'string' ? organiser : organiser.id,
-    );
-    const isAdmin = user ? organiserIds.includes(user.uuid) : false;
+    const isOrganiser = isOrganiserOf(shift.organiser, user?.uuid);
 
     /**
      * Mirrors `schedule.getCourseStatus`: the roster belongs to the organisers of the shift and
@@ -82,7 +80,7 @@ export const shiftsRouter = createTRPCRouter({
      * which has to read as its `false` default ("not hidden") rather than withhold the list.
      */
     const participants =
-      isAdmin && shift.hide_participant_list !== true
+      isOrganiser && shift.hide_participant_list !== true
         ? enrollments.map((enrollment_) => ({
             uuid: enrollment_.user.uuid,
             name: enrollment_.user.name,
@@ -94,7 +92,8 @@ export const shiftsRouter = createTRPCRouter({
       maxParticipants:
         typeof shift.participants_max === 'number' ? shift.participants_max : undefined,
       isEnrolled,
-      isAdmin,
+      isAdmin: isOrganiser,
+      isOrganiser,
       enableEnrolment: shift.enable_enrolment,
       hideList: shift.hide_participant_list,
       participants,
