@@ -246,16 +246,22 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
   // --> search
   const searchPage = specialPagesTable['search'];
   if (searchPage?.alternatives) {
-    const pageUrlsByLocale: SitemapAlternates = {
-      fr: {
-        url: combineUrlSegments([APP_HOST_URL, 'fr', searchPage.alternatives.fr.replace('/', '')]),
-        hreflang: 'fr',
-      },
-      en: {
-        url: combineUrlSegments([APP_HOST_URL, 'en', searchPage.alternatives.en.replace('/', '')]),
-        hreflang: 'en',
-      },
-    };
+    // The German URL is the entry itself, the remaining enabled locales become its alternates.
+    const pageUrlsByLocale: SitemapAlternates = Object.fromEntries(
+      enabledLocales
+        .filter((locale) => locale !== LOCALE.DE)
+        .map((locale) => [
+          locale,
+          {
+            url: combineUrlSegments([
+              APP_HOST_URL,
+              locale,
+              searchPage.alternatives[locale].replace('/', ''),
+            ]),
+            hreflang: locale,
+          },
+        ]),
+    );
     sitemap.push(
       createSitemapEntry(combineUrlSegments([APP_HOST_URL, 'suche']), {}, pageUrlsByLocale),
     );
