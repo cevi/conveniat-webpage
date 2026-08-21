@@ -3591,6 +3591,10 @@ export interface HelperShift {
       )[]
     | null;
   /**
+   * Organisers of this shift. The shift shows up in their daily program automatically.
+   */
+  organiser?: (string | User)[] | null;
+  /**
    * Location of the shift (optional).
    */
   location?: (string | null) | CampMapAnnotation;
@@ -5878,6 +5882,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  organiser?: T;
   location?: T;
   category?: T;
   participants_max?: T;

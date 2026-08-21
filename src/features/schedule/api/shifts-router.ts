@@ -92,6 +92,21 @@ export const shiftsRouter = createTRPCRouter({
     return enrollments.map((enrollment_) => enrollment_.courseId);
   }),
 
+  /**
+   * IDs of the shifts the user organises.
+   *
+   * Organisers have to see their own shift in "Programm von heute" without taking up one of the
+   * helper slots, so - unlike workshops, where organiser-ship is materialised as a star - shift
+   * organiser-ship is reported separately and merged with the enrolments on the dashboard.
+   */
+  getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
+    const { user } = ctx;
+    if (!user) return [];
+
+    const { getOrganisedShiftIds } = await import('./organiser-entries');
+    return getOrganisedShiftIds(user.uuid);
+  }),
+
   enrollInShift: trpcBaseProcedure
     .input(enrollInShiftSchema)
     .use(ensureUserExistsMiddleware)

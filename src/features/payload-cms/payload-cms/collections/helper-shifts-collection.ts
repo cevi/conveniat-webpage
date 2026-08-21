@@ -241,6 +241,26 @@ export const HelperShiftsCollection: CollectionConfig = {
     },
     // Sidebar & hidden metrics fields
     {
+      name: 'organiser',
+      label: {
+        en: 'Organiser',
+        de: 'Organisator',
+        fr: 'Organisateur',
+      },
+      type: 'relationship',
+      relationTo: 'users',
+      hasMany: true,
+      required: false,
+      admin: {
+        description: {
+          en: 'Organisers of this shift. The shift shows up in their daily program automatically.',
+          de: 'Organisatoren dieses Schichteinsatzes. Der Einsatz erscheint automatisch in ihrem Tagesprogramm.',
+          fr: 'Organisateurs de ce service. Le service apparaît automatiquement dans leur programme du jour.',
+        },
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'location',
       label: {
         en: 'Location',
