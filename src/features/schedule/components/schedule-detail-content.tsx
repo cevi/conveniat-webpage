@@ -3,6 +3,7 @@ import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
 import {
@@ -310,6 +311,11 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
         {/* Enrollment Section (when enabled & not editing) */}
         {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
+
+        {/* Participant List (organisers only, when enrolment is enabled & not editing) */}
+        {!isEditing && isAdmin && (
+          <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
+        )}
 
         {/* Contact Organisers Section */}
         {organisers.length > 0 && !isEditing && (

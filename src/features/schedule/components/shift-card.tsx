@@ -1,7 +1,9 @@
 'use client';
 
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
+import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
+import { ShiftOrganisers } from '@/features/schedule/components/shift-organisers';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -80,6 +82,15 @@ export const ShiftCard: React.FC<{
       </div>
 
       <ShiftEnrollmentAction shiftId={shift.id} enableEnrolment={shift.enable_enrolment} />
+
+      {/*
+        Who signed up, for the organisers of this shift only. The component renders nothing for
+        everyone else - the decision is the server's, `getShiftStatus` leaves `participants` empty
+        unless the caller organises the shift - so there is no condition to repeat here.
+      */}
+      <ParticipantList courseId={shift.id} courseType="shift" variant="inline" />
+
+      <ShiftOrganisers organisers={shift.organiser} locale={locale} />
 
       {children && (
         <div className="mt-4 border-t border-gray-100 pt-3">

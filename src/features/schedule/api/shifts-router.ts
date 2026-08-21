@@ -1,3 +1,4 @@
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { CourseType } from '@/lib/prisma';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
@@ -62,8 +63,24 @@ export const shiftsRouter = createTRPCRouter({
       ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
       : false;
 
+    // `depth: 0` leaves the relationship as plain user IDs, which is all an ownership check
+    // needs - populating the organisers here would only pay for documents nobody renders.
+    const isOrganiser = isOrganiserOf(shift.organiser, user?.uuid);
+
+    /**
+     * Mirrors `schedule.getCourseStatus`: the roster belongs to the organisers of the shift and
+     * nobody else, and only while "Teilnehmerliste ausblenden" is off - with it on the list stays
+     * exclusive to the admin panel, whose export never consults the flag.
+     *
+     * This is decided on the server rather than in the card, because a client-side guard would
+     * still ship the helper names in the tRPC response for any enrolled user to read.
+     *
+     * The flag is compared against `true` rather than `false` because Payload only materialises
+     * a checkbox on documents saved since it was added - shifts predating it carry `undefined`,
+     * which has to read as its `false` default ("not hidden") rather than withhold the list.
+     */
     const participants =
-      shift.hide_participant_list === false
+      isOrganiser && shift.hide_participant_list !== true
         ? enrollments.map((enrollment_) => ({
             uuid: enrollment_.user.uuid,
             name: enrollment_.user.name,
@@ -75,6 +92,8 @@ export const shiftsRouter = createTRPCRouter({
       maxParticipants:
         typeof shift.participants_max === 'number' ? shift.participants_max : undefined,
       isEnrolled,
+      isAdmin: isOrganiser,
+      isOrganiser,
       enableEnrolment: shift.enable_enrolment,
       hideList: shift.hide_participant_list,
       participants,
@@ -90,6 +109,21 @@ export const shiftsRouter = createTRPCRouter({
       select: { courseId: true },
     });
     return enrollments.map((enrollment_) => enrollment_.courseId);
+  }),
+
+  /**
+   * IDs of the shifts the user organises.
+   *
+   * Organisers have to see their own shift in "Programm von heute" without taking up one of the
+   * helper slots, so - unlike workshops, where organiser-ship is materialised as a star - shift
+   * organiser-ship is reported separately and merged with the enrolments on the dashboard.
+   */
+  getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
+    const { user } = ctx;
+    if (!user) return [];
+
+    const { getOrganisedShiftIds } = await import('./organiser-entries');
+    return getOrganisedShiftIds(user.uuid);
   }),
 
   enrollInShift: trpcBaseProcedure
