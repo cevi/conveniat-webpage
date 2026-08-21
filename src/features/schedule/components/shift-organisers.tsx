@@ -20,10 +20,17 @@ const contactOrganisersText: StaticTranslationString = {
  * list rather than on a page of its own.
  */
 export const ShiftOrganisers: React.FC<{
-  organisers: HelperShiftOrganiser[];
+  /**
+   * Optional against the type of the shift it comes from: the card renders whatever the
+   * persisted React Query cache holds, and that blob can have been written by a build that
+   * predates this field. With `refetchOnMount: false` and a 24h persist window, a helper who
+   * opens the app right after an update renders the old shape for the rest of the session, so
+   * reading `.length` off it took the whole helper portal down to the error boundary.
+   */
+  organisers: HelperShiftOrganiser[] | undefined;
   locale: Locale;
 }> = ({ organisers, locale }) => {
-  if (organisers.length === 0) return <></>;
+  if (organisers === undefined || organisers.length === 0) return <></>;
 
   return (
     <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
