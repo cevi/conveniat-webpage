@@ -3607,6 +3607,10 @@ export interface HelperShift {
    */
   participants_max?: number | null;
   enable_enrolment?: boolean | null;
+  /**
+   * How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.
+   */
+  unenrollment_deadline_minutes?: number | null;
   hide_participant_list?: boolean | null;
   /**
    * Hide this slot when full for users who are not enrolled in it.
@@ -5891,6 +5895,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
   category?: T;
   participants_max?: T;
   enable_enrolment?: T;
+  unenrollment_deadline_minutes?: T;
   hide_participant_list?: T;
   hide_when_full?: T;
   notes?: T;

@@ -13,12 +13,14 @@ import {
   ChatAlertDialogTitle,
 } from '@/features/chat/components/ui/chat-alert-dialog';
 /* eslint-enable import/no-restricted-paths */
+import { useIsUnenrollmentClosed } from '@/features/schedule/hooks/use-unenrollment-window';
 import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
+import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertTriangle, CheckCircle, Loader2, RefreshCw, Users, WifiOff } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2, Lock, RefreshCw, Users, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useOffline } from 'next/offline';
@@ -102,6 +104,18 @@ const localizedSwitching: StaticTranslationString = {
   fr: 'Changement...',
 };
 
+const localizedUnenrollClosed: StaticTranslationString = {
+  de: 'Abmelden nicht mehr möglich',
+  en: 'Withdrawal no longer possible',
+  fr: 'Désinscription plus possible',
+};
+
+const localizedUnenrollClosedHint: StaticTranslationString = {
+  de: 'Kurz vor Beginn des Schichteinsatzes ist eine Abmeldung nicht mehr möglich. Melde dich bei den Organisatoren.',
+  en: 'Shortly before the shift starts you can no longer withdraw. Please contact the organisers.',
+  fr: 'Peu avant le début du service, la désinscription n’est plus possible. Contactez les organisateurs.',
+};
+
 const localizedSwitchQuestion: StaticTranslationString = {
   de: 'Möchtest du dich abmelden und dich für diesen Schichteinsatz anmelden?',
   en: 'Would you like to unenroll and enroll in this shift instead?',
@@ -142,6 +156,16 @@ export const ShiftEnrollmentAction: React.FC<{
       refetchOnMount: (query) => (query.state.data == undefined ? 'always' : true),
     },
   );
+
+  /**
+   * A withdrawal the server refused as too late. The status is refetched at the same time, so this
+   * only has to cover the moment between the rejection and the fresh deadline arriving - but
+   * without it, a mutation fired from a page that had gone stale would fail silently.
+   */
+  const [wasRejectedAsTooLate, setWasRejectedAsTooLate] = useState(false);
+
+  // called before the early returns below, as hooks must be
+  const isUnenrollmentWindowClosed = useIsUnenrollmentClosed(status?.unenrollmentDeadline);
 
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');
@@ -189,6 +213,12 @@ export const ShiftEnrollmentAction: React.FC<{
       setConflictInfo(undefined);
     },
     onError: (error) => {
+      // switching away from a shift is a withdrawal from it, so it hits the same deadline
+      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+        setWasRejectedAsTooLate(true);
+        void utils.shifts.getShiftStatus.invalidate();
+        return;
+      }
       console.error('Switch enrollment failed:', error.message);
     },
   });
@@ -199,6 +229,12 @@ export const ShiftEnrollmentAction: React.FC<{
       void utils.shifts.getMyShiftEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
+    },
+    onError: (error) => {
+      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+        setWasRejectedAsTooLate(true);
+        void utils.shifts.getShiftStatus.invalidate();
+      }
     },
   });
 
@@ -243,27 +279,46 @@ export const ShiftEnrollmentAction: React.FC<{
   const spotsLeft = maxParticipants === undefined ? undefined : maxParticipants - enrolledCount;
 
   if (isEnrolled) {
+    /**
+     * The window is closed either because the deadline the server sent has passed, or because the
+     * server just refused a withdrawal - the second case covers a page whose cached deadline was
+     * already out of date by the time the helper tapped.
+     */
+    const isWithdrawalClosed = isUnenrollmentWindowClosed || wasRejectedAsTooLate;
+
     return (
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <span className="font-medium text-green-600">{localizedEnrolled[locale]}</span>
-          {maxParticipants && (
-            <span className="text-gray-400">
-              ({enrolledCount} / {maxParticipants})
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="font-medium text-green-600">{localizedEnrolled[locale]}</span>
+            {maxParticipants && (
+              <span className="text-gray-400">
+                ({enrolledCount} / {maxParticipants})
+              </span>
+            )}
+          </div>
+          {isWithdrawalClosed ? (
+            <span className="flex items-center gap-1.5 text-sm text-gray-400">
+              <Lock className="h-3.5 w-3.5" />
+              {localizedUnenrollClosed[locale]}
             </span>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => unenroll.mutate({ shiftId })}
+              disabled={unenroll.isPending}
+              className="h-8 text-sm"
+            >
+              {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {localizedUnenroll[locale]}
+            </Button>
           )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => unenroll.mutate({ shiftId })}
-          disabled={unenroll.isPending}
-          className="h-8 text-sm"
-        >
-          {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-          {localizedUnenroll[locale]}
-        </Button>
+        {isWithdrawalClosed && (
+          <p className="text-xs text-gray-400">{localizedUnenrollClosedHint[locale]}</p>
+        )}
       </div>
     );
   }
@@ -324,6 +379,13 @@ export const ShiftEnrollmentAction: React.FC<{
               </div>
             </div>
             <p className="text-center text-sm text-gray-500">{localizedSwitchQuestion[locale]}</p>
+            {/* the shift being left is too close to its start, so the switch was refused */}
+            {wasRejectedAsTooLate && (
+              <p className="flex items-center gap-1.5 text-center text-sm text-amber-700">
+                <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+                {localizedUnenrollClosedHint[locale]}
+              </p>
+            )}
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
             <ChatAlertDialogAction
