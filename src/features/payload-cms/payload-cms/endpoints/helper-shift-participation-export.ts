@@ -23,6 +23,7 @@ const EXPORT_COLUMNS: { header: string; key: keyof HelperShiftParticipationRow; 
     { header: 'Vorname', key: 'firstName', width: 20 },
     { header: 'Nachname', key: 'lastName', width: 22 },
     { header: 'Ceviname', key: 'nickname', width: 20 },
+    { header: 'E-Mail', key: 'email', width: 32 },
     { header: 'Anzahl Schichteinsätze', key: 'shiftCount', width: 20 },
     { header: 'Stunden total', key: 'totalHours', width: 14 },
     { header: 'Schichteinsätze', key: 'shiftTitles', width: 80 },
@@ -58,6 +59,7 @@ const findParticipants = async (
         id: user.id,
         fullName: user.fullName,
         nickname: user.nickname,
+        email: user.email,
       })),
     );
   }
@@ -67,8 +69,8 @@ const findParticipants = async (
 
 /**
  * Exports an Excel workbook listing every helper that is enrolled in at least one helper shift,
- * together with the number of shifts, the total hours derived from the shift time slots and the
- * titles of those shifts.
+ * together with their contact details, the number of shifts, the total hours derived from the
+ * shift time slots and the titles of those shifts.
  *
  * Exposed on the `helper-shifts` collection as `GET /api/helper-shifts/participation-export`.
  */

@@ -12,9 +12,9 @@ const exportButtonLabel: StaticTranslationString = {
 };
 
 const exportDescription: StaticTranslationString = {
-  en: 'One row per helper enrolled in at least one shift: name, Ceviname, number of shifts, total hours and the titles of those shifts.',
-  de: 'Eine Zeile pro Helfende:r mit mindestens einem Schichteinsatz: Name, Ceviname, Anzahl Schichteinsätze, Stundentotal und die Titel dieser Schichteinsätze.',
-  fr: 'Une ligne par helper inscrit à au moins un service : nom, Ceviname, nombre de services, total des heures et les titres de ces services.',
+  en: 'One row per helper enrolled in at least one shift: name, Ceviname, email, number of shifts, total hours and the titles of those shifts.',
+  de: 'Eine Zeile pro Helfende:r mit mindestens einem Schichteinsatz: Name, Ceviname, E-Mail, Anzahl Schichteinsätze, Stundentotal und die Titel dieser Schichteinsätze.',
+  fr: 'Une ligne par helper inscrit à au moins un service : nom, Ceviname, e-mail, nombre de services, total des heures et les titres de ces services.',
 };
 
 /**

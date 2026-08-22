@@ -92,10 +92,10 @@ describe('aggregateHelperShiftParticipation', () => {
   ];
 
   const participants: HelperShiftParticipant[] = [
-    { id: 'user-1', fullName: 'Anna Meier', nickname: 'Bambi' },
-    { id: 'user-2', fullName: 'Hans von Gunten', nickname: 'Specht' },
+    { id: 'user-1', fullName: 'Anna Meier', nickname: 'Bambi', email: 'anna@example.org' },
+    { id: 'user-2', fullName: 'Hans von Gunten', nickname: 'Specht', email: 'hans@example.org' },
     // eslint-disable-next-line unicorn/no-null
-    { id: 'user-3', fullName: 'Lea Zwahlen', nickname: null },
+    { id: 'user-3', fullName: 'Lea Zwahlen', nickname: null, email: 'lea@example.org' },
   ];
 
   it('sums the hours and lists the shift titles chronologically', () => {
@@ -112,6 +112,7 @@ describe('aggregateHelperShiftParticipation', () => {
       firstName: 'Anna',
       lastName: 'Meier',
       nickname: 'Bambi',
+      email: 'anna@example.org',
       shiftCount: 3,
       totalHours: 8.5,
       shiftTitles: 'Aufbau, Küche Mittag, Abwasch',
@@ -147,6 +148,29 @@ describe('aggregateHelperShiftParticipation', () => {
     const rows = aggregateHelperShiftParticipation({ shifts, enrollments, participants });
 
     expect(rows[0]?.nickname).toBe('');
+  });
+
+  it('carries the email address of every helper', () => {
+    const enrollments: HelperShiftEnrollment[] = [
+      { userId: 'user-1', courseId: 'shift-a' },
+      { userId: 'user-2', courseId: 'shift-b' },
+    ];
+
+    const rows = aggregateHelperShiftParticipation({ shifts, enrollments, participants });
+
+    expect(rows.map((row) => row.email)).toEqual(['anna@example.org', 'hans@example.org']);
+  });
+
+  it('renders a missing email as an empty cell', () => {
+    const enrollments: HelperShiftEnrollment[] = [{ userId: 'user-4', courseId: 'shift-a' }];
+
+    const rows = aggregateHelperShiftParticipation({
+      shifts,
+      enrollments,
+      participants: [{ id: 'user-4', fullName: 'Tim Roth', nickname: 'Fuchs' }],
+    });
+
+    expect(rows[0]?.email).toBe('');
   });
 
   it('sorts rows by last name, then first name', () => {

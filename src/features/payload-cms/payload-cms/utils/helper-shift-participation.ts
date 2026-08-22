@@ -29,6 +29,7 @@ export interface HelperShiftParticipant {
   id: string;
   fullName?: string | null | undefined;
   nickname?: string | null | undefined;
+  email?: string | null | undefined;
 }
 
 /** One row of the participation export. */
@@ -37,6 +38,7 @@ export interface HelperShiftParticipationRow {
   firstName: string;
   lastName: string;
   nickname: string;
+  email: string;
   /** Sum of the durations of all shifts the user is enrolled in, in hours. */
   totalHours: number;
   /** Number of shifts the user is enrolled in. */
@@ -190,6 +192,7 @@ export const aggregateHelperShiftParticipation = ({
       firstName,
       lastName,
       nickname: participant?.nickname ?? '',
+      email: participant?.email ?? '',
       // Sum in minutes and convert once, so that half-hour slots do not accumulate float noise.
       totalHours: Math.round((totalMinutes / MINUTES_PER_HOUR) * 100) / 100,
       shiftCount: orderedShifts.length,
