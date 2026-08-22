@@ -5,6 +5,7 @@ import {
 } from '@/features/chat/api/utils/system-message-helpers';
 import { SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import type { StaticTranslationString } from '@/types/types';
+import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 
 const locationSharedText: StaticTranslationString = {
   de: '📍 Standort geteilt',
@@ -16,6 +17,12 @@ const locationSharedText: StaticTranslationString = {
  * Extracts a preview text from the last message's content versions.
  * Converts system messages and special messages to a text
  * representation for preview purposes.
+ *
+ * Author-written text is run through {@link stripMarkdownFormatting}: the chat
+ * overview shows the preview as plain text, so the markers of the dialect
+ * `format-message-content.tsx` renders (`*bold*`, `_italic_`, `~struck~`,
+ * `[label](url)`) would otherwise leak through verbatim - a link even showing
+ * its whole URL instead of the label the reader sees in the bubble.
  *
  * @param lastMessage
  */
@@ -41,7 +48,7 @@ export const getMessagePreviewText = (lastMessage: {
         return getJoinedAsAdminMessagePayload(joinedAdminMatch[1]);
       }
 
-      return payload;
+      return stripMarkdownFormatting(payload);
     }
     return '';
   }
@@ -73,7 +80,7 @@ export const getMessagePreviewText = (lastMessage: {
   }
 
   if ('text' in p && typeof p['text'] === 'string') {
-    return p['text'];
+    return stripMarkdownFormatting(p['text']);
   }
 
   if (
@@ -88,11 +95,11 @@ export const getMessagePreviewText = (lastMessage: {
 
   // Handle Alert Response and Alert Question
   if ('message' in p && typeof p['message'] === 'string') {
-    return p['message'];
+    return stripMarkdownFormatting(p['message']);
   }
 
   if ('question' in p && typeof p['question'] === 'string') {
-    return p['question'];
+    return stripMarkdownFormatting(p['question']);
   }
 
   // Handle system messages and announcements with translations
@@ -106,10 +113,11 @@ export const getMessagePreviewText = (lastMessage: {
 
     const extractText = (val: unknown): string => {
       if (val === undefined || val === null) return '';
-      if (typeof val === 'string') return val;
+      if (typeof val === 'string') return stripMarkdownFormatting(val);
       if (typeof val === 'object') {
         const objectValue = val as Record<string, unknown>;
-        return (objectValue['text'] ?? objectValue['body'] ?? objectValue['title'] ?? '') as string;
+        const nested = objectValue['text'] ?? objectValue['body'] ?? objectValue['title'] ?? '';
+        return typeof nested === 'string' ? stripMarkdownFormatting(nested) : '';
       }
       return '';
     };
