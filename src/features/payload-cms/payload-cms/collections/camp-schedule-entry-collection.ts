@@ -9,6 +9,7 @@ import { CourseType } from '@/lib/prisma';
 import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
 
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { campScheduleOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
@@ -21,6 +22,11 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     afterRead: [makeInjectEnrollmentCount(CourseType.PROGRAM)],
   },
   endpoints: [
+    {
+      path: '/organiser-export',
+      method: 'get',
+      handler: campScheduleOrganiserExportHandler,
+    },
     {
       path: '/:id/participants-export',
       method: 'get',
@@ -56,6 +62,11 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     groupBy: true,
     disableCopyToLocale: true,
     defaultColumns: ['title', 'timeslot', 'location', 'participants_max', 'enrolledStatus'],
+    components: {
+      beforeListTable: [
+        '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport',
+      ],
+    },
   },
   access: {
     read: hasAdminOrWebAccess,
