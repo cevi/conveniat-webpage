@@ -2,7 +2,8 @@ import { sendNotification } from '@/features/chat/api/utils/send-push-notificati
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
-import { getLexicalText } from '@/features/payload-cms/payload-cms/utils/lexical-to-markdown';
+import type { AnnouncementLocalePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
+import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -11,9 +12,16 @@ import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
 import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest } from 'payload';
 
+/**
+ * Prisma's `InputJsonValue` only accepts types that carry an implicit index signature,
+ * which an interface does not have. The announcement payload is plain JSON, so writing it
+ * through this alias is safe.
+ */
+type PrismaJsonPayload = Parameters<typeof prisma.messageContent.create>[0]['data']['payload'];
+
 export const publishAnnouncementToPostgres = async (
   channelId: string,
-  localizedPayload: Record<string, { text: string; title: string; body: string }>,
+  localizedPayload: Record<string, AnnouncementLocalePayload>,
   authorUuid: string,
   request: PayloadRequest,
 ): Promise<{ messageUuid: string; publishedAt: Date }> => {
@@ -56,7 +64,7 @@ export const publishAnnouncementToPostgres = async (
       contentVersions: {
         create: [
           {
-            payload: localizedPayload,
+            payload: localizedPayload as unknown as PrismaJsonPayload,
           },
         ],
       },
@@ -164,7 +172,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
       }
 
       // 1. Fetch the full document with all locales to get all translations
-      let documentAll: Record<string, Record<string, unknown>> | undefined;
+      let documentAll: Record<string, unknown> | undefined;
       if (originalDoc?.id !== undefined) {
         const fetchedDocument = await request.payload.findByID({
           collection: 'announcements',
@@ -172,27 +180,19 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
           locale: 'all',
           draft: true,
         });
-        documentAll = fetchedDocument as unknown as Record<string, Record<string, unknown>>;
+        documentAll = fetchedDocument as unknown as Record<string, unknown>;
       }
 
       // 2. Build the localized payload for all locales
-      const localizedPayload: Record<string, { text: string; title: string; body: string }> = {};
-      for (const lang of ['de', 'en', 'fr']) {
-        const documentTitle = documentAll?.['title'] as Record<string, string> | undefined;
-        const documentContent = documentAll?.['content'];
-
-        const title = (lang === locale ? data.title : undefined) ?? documentTitle?.[lang] ?? '';
-        const content = (lang === locale ? data.content : undefined) ?? documentContent?.[lang];
-        if (title !== '' || content !== undefined) {
-          const formattedContent = getLexicalText(content);
-          const fullTextContent = `*${title}*\n\n${formattedContent}`;
-          localizedPayload[lang] = {
-            text: fullTextContent,
-            title: title,
-            body: formattedContent,
-          };
-        }
-      }
+      const localizedPayload = await buildAnnouncementMessagePayload({
+        payload: request.payload,
+        documentAll,
+        override: { locale, title: data.title, content: data.content },
+        // `images` is not localized, so the incoming value is authoritative whenever the
+        // field is part of the request at all - including when it was emptied, which a
+        // `??` fallback would silently undo.
+        imageReferences: 'images' in dataAsRecord ? data.images : documentAll?.['images'],
+      });
 
       const chatMessageUuid = data.chatMessageUuid ?? originalDoc?.chatMessageUuid;
 
@@ -227,7 +227,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             data: {
               messageId: chatMessageUuid,
               revision: nextRevision,
-              payload: localizedPayload,
+              payload: localizedPayload as unknown as PrismaJsonPayload,
             },
           });
 
@@ -345,9 +345,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             data: {
               messageId: chatMessageUuid,
               revision: nextRevision,
-              payload: updatedPayload as unknown as Parameters<
-                typeof prisma.messageContent.create
-              >[0]['data']['payload'],
+              payload: updatedPayload as unknown as PrismaJsonPayload,
             },
           });
         }
@@ -411,6 +409,27 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       editor: lexicalEditor({
         features: [...minimalEditorFeatures, UnorderedListFeature(), AlignFeature()],
       }),
+    },
+    {
+      name: 'images',
+      label: {
+        en: 'Attached Images',
+        de: 'Angehängte Bilder',
+        fr: 'Images jointes',
+      },
+      type: 'relationship',
+      relationTo: 'images',
+      hasMany: true,
+      // The images are shared by every translation of the announcement; their alt text
+      // and caption are maintained per language on the image document itself.
+      localized: false,
+      admin: {
+        description: {
+          en: 'These images are sent along with the announcement into the chat.',
+          de: 'Diese Bilder werden zusammen mit der Ankündigung in den Chat geschickt.',
+          fr: "Ces images sont envoyées dans le chat avec l'annonce.",
+        },
+      },
     },
     {
       name: 'channel',
