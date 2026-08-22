@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
+  '@monaco-editor/react': d52ccf0bff2acb7da39aa5832ead26cb333170da953d148723071a69b25b1076
   '@payloadcms/next': 7a41180d65e9e878cc4b2d24722c9906363516dd863f85d02f6ddb8ca7f98dbd
 
 importers:
@@ -12443,7 +12444,7 @@ snapshots:
     dependencies:
       state-local: 1.0.7
 
-  '@monaco-editor/react@4.7.0(monaco-editor@0.55.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@monaco-editor/react@4.7.0(patch_hash=d52ccf0bff2acb7da39aa5832ead26cb333170da953d148723071a69b25b1076)(monaco-editor@0.55.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@monaco-editor/loader': 1.7.0
       monaco-editor: 0.55.1
@@ -13667,7 +13668,7 @@ snapshots:
       '@faceless-ui/modal': 3.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@faceless-ui/scroll-info': 2.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@faceless-ui/window-info': 3.0.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@monaco-editor/react': 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@monaco-editor/react': 4.7.0(patch_hash=d52ccf0bff2acb7da39aa5832ead26cb333170da953d148723071a69b25b1076)(monaco-editor@0.55.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@payloadcms/translations': 3.87.1
       bson-objectid: 2.0.4
       date-fns: 4.1.0

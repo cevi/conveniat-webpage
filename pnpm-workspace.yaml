@@ -10,4 +10,5 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 patchedDependencies:
+  '@monaco-editor/react': patches/@monaco-editor__react.patch
   '@payloadcms/next': patches/@payloadcms__next.patch
