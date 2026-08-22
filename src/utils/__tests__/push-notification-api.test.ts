@@ -54,6 +54,8 @@ const nativeSubscription = {
 };
 
 interface FcmPayload {
+  title: string;
+  body: string;
   data: Record<string, string | undefined>;
 }
 
@@ -92,5 +94,24 @@ describe('sendNotificationToSubscription native handover', () => {
     );
 
     expect(lastFcmPayload().data['notificationType']).toBeUndefined();
+  });
+
+  // The OS renders the body verbatim, so anything the chat's markdown dialect
+  // marks up has to be plain text by the time it leaves this function - most
+  // visibly the announcement title, which the publish hook wraps in `*…*`.
+  it('strips the chat markdown out of the title and the body', async () => {
+    await sendNotificationToSubscription(
+      nativeSubscription,
+      '*Znacht verschoben*\n\nWir essen um _19:30_.',
+      '/app/chat/chat-1',
+      undefined,
+      undefined,
+      undefined,
+      { title: '*Lagerinfo*' },
+    );
+
+    const payload = lastFcmPayload();
+    expect(payload.title).toBe('Lagerinfo');
+    expect(payload.body).toBe('Znacht verschoben\n\nWir essen um 19:30.');
   });
 });

@@ -1,7 +1,16 @@
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
-import type { Announcement, AnnouncementChannel } from '@/features/payload-cms/payload-types';
+import {
+  getImageAltInLocale,
+  getImageCaptionInLocale,
+  getRelativeImageUrl,
+} from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
+import type {
+  Announcement,
+  AnnouncementChannel,
+  Image as ImageDocument,
+} from '@/features/payload-cms/payload-types';
 import configPromise from '@/features/payload-cms/payload.config';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -17,6 +26,7 @@ import {
   Smartphone,
   Users,
 } from 'lucide-react';
+import ImageNode from 'next/image';
 import { notFound } from 'next/navigation';
 import { getPayload } from 'payload';
 import React from 'react';
@@ -146,6 +156,13 @@ export default async function AnnouncementPreviewPage({
       .filter((n) => n !== '')
       .join(', ')}`;
   }
+
+  // `depth: 2` populates the upload relationship, but an unsaved draft may still carry
+  // plain ids, and an upload that failed has no file - neither can be rendered.
+  const attachedImages = (announcement.images ?? []).filter(
+    (image): image is ImageDocument =>
+      typeof image === 'object' && getRelativeImageUrl(image.sizes?.large?.url ?? image.url) !== '',
+  );
 
   const statusColors = {
     draft: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -337,6 +354,31 @@ export default async function AnnouncementPreviewPage({
                       <Megaphone className="h-3 w-3" />
                       <span>{translations.channelLabel[validatedLocale]}</span>
                     </div>
+
+                    {/* Attached images, rendered above the text just like in the app */}
+                    {attachedImages.length > 0 && (
+                      <div className="mb-2 flex flex-col gap-2">
+                        {attachedImages.map((image) => {
+                          const caption = getImageCaptionInLocale(validatedLocale, image);
+                          return (
+                            <figure key={image.id} className="overflow-hidden rounded-lg">
+                              <ImageNode
+                                src={getRelativeImageUrl(image.sizes?.large?.url ?? image.url)}
+                                alt={getImageAltInLocale(validatedLocale, image)}
+                                width={image.sizes?.large?.width ?? image.width ?? 800}
+                                height={image.sizes?.large?.height ?? image.height ?? 600}
+                                className="h-auto w-full object-cover"
+                              />
+                              {caption !== undefined && caption !== null && caption !== '' && (
+                                <figcaption className="mt-1 text-[9px] leading-snug text-slate-400">
+                                  {caption}
+                                </figcaption>
+                              )}
+                            </figure>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* Announcement Title */}
                     <h4 className="mb-2 text-sm leading-snug font-bold text-white">

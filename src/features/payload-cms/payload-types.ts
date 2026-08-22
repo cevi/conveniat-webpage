@@ -3693,6 +3693,10 @@ export interface Announcement {
     };
     [k: string]: unknown;
   };
+  /**
+   * These images are sent along with the announcement into the chat.
+   */
+  images?: (string | Image)[] | null;
   channel: string | AnnouncementChannel;
   status: 'scheduled' | 'published';
   scheduledAt?: string | null;
@@ -5955,6 +5959,7 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   _locale?: T;
   title?: T;
   content?: T;
+  images?: T;
   channel?: T;
   status?: T;
   scheduledAt?: T;
