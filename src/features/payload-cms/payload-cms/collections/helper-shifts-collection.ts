@@ -3,6 +3,7 @@ import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payloa
 import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
+import { helperShiftParticipationExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-participation-export';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
@@ -23,6 +24,11 @@ export const HelperShiftsCollection: CollectionConfig = {
     afterRead: [makeInjectEnrollmentCount(CourseType.SHIFT)],
   },
   endpoints: [
+    {
+      path: '/participation-export',
+      method: 'get',
+      handler: helperShiftParticipationExportHandler,
+    },
     {
       path: '/:id/participants-export',
       method: 'get',
@@ -65,6 +71,11 @@ export const HelperShiftsCollection: CollectionConfig = {
     ],
     groupBy: true,
     disableCopyToLocale: true,
+    components: {
+      beforeListTable: [
+        '@/features/payload-cms/payload-cms/components/helper-shift-participation-export#HelperShiftParticipationExport',
+      ],
+    },
   },
   access: {
     read: () => true,
