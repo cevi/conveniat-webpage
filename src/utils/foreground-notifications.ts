@@ -3,6 +3,7 @@
 import type { NotificationType } from '@/lib/notification-type';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
+import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import { toast } from 'sonner';
 
 /**
@@ -223,13 +224,17 @@ export const notifyForegroundMessage = (notification: ForegroundNotification): v
 
   if (!registerNotificationKey(deduplicationKey)) return;
 
+  // Neither the system notification the shell renders nor the in-app banner
+  // understands the chat's markdown dialect, so the markers have to go - the same
+  // way the server strips them off the push it sends (see
+  // `stripMarkdownFormatting`). Both channels show the same message; they must not
+  // disagree about whether it is wrapped in asterisks.
+  const strippedTitle = stripMarkdownFormatting(notification.title).trim();
+
   const resolvedNotification: ForegroundNotification = {
     ...notification,
-    title:
-      notification.title.trim() === ''
-        ? defaultNotificationTitle[getDocumentLocale()]
-        : notification.title.trim(),
-    body: notification.body.trim(),
+    title: strippedTitle === '' ? defaultNotificationTitle[getDocumentLocale()] : strippedTitle,
+    body: stripMarkdownFormatting(notification.body).trim(),
   };
 
   if (requestNativeSystemNotification(resolvedNotification)) return;
