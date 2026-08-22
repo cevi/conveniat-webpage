@@ -147,6 +147,74 @@ describe('getHelperShifts', () => {
   });
 
   /**
+   * An organiser never takes up one of the helper slots, so once the shift fills up the
+   * "hide when full" rule used to sweep it out from under the very people running it - taking
+   * the roster and the contact block, which are only reachable through the card, with it.
+   */
+  describe('a full shift and its organisers', () => {
+    const shiftsWithOrganiser = [
+      {
+        ...sampleShifts[0],
+      },
+      {
+        ...sampleShifts[1],
+        organiser: [{ id: 'org-1', fullName: 'Otto Organisator', email: 'otto@example.test' }],
+      },
+      {
+        ...sampleShifts[2],
+      },
+    ];
+
+    /** Nobody is enrolled in a shift *they* organise, so `findMany` stays empty throughout. */
+    const filledUpCounts = [
+      { courseId: 'shift-open', _count: { courseId: 1 } },
+      { courseId: 'shift-full', _count: { courseId: 2 } },
+      { courseId: 'shift-full-override', _count: { courseId: 2 } },
+    ];
+
+    beforeEach(() => {
+      (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+      mockFind.mockResolvedValue({ docs: shiftsWithOrganiser });
+    });
+
+    it('stays visible to an organiser who is not enrolled in it', async () => {
+      const mockPrisma = {
+        enrollment: {
+          groupBy: jest.fn().mockResolvedValue(filledUpCounts),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      };
+
+      const result = await getHelperShifts({}, 'de', {
+        prisma: mockPrisma as unknown as PrismaClient,
+        user: { uuid: 'org-1' },
+      });
+
+      expect(result.map((shift) => shift.id)).toEqual([
+        'shift-open',
+        'shift-full',
+        'shift-full-override',
+      ]);
+    });
+
+    it('stays hidden from someone who organises a different shift', async () => {
+      const mockPrisma = {
+        enrollment: {
+          groupBy: jest.fn().mockResolvedValue(filledUpCounts),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      };
+
+      const result = await getHelperShifts({}, 'de', {
+        prisma: mockPrisma as unknown as PrismaClient,
+        user: { uuid: 'org-2' },
+      });
+
+      expect(result.map((shift) => shift.id)).toEqual(['shift-open', 'shift-full-override']);
+    });
+  });
+
+  /**
    * The organiser relationship carries the whole user document at `depth: 1`, and this result is
    * shared cache handed to every helper - so only the fields the contact block renders may ride
    * along. Roles, the Hitobito payload and everything else must be dropped here.
