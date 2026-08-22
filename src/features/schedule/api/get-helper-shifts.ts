@@ -3,6 +3,7 @@ import type {
   CampMapAnnotation,
   HelperShift,
 } from '@/features/payload-cms/payload-types';
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS } from '@/lib/feature-flags';
@@ -197,7 +198,19 @@ export const getHelperShifts = async (
     userEnrolledShiftIds = new Set(userEnrollments.map((enrollment_) => enrollment_.courseId));
   }
 
+  /**
+   * A full shift disappears for the helpers who could still have taken it, and for nobody else.
+   *
+   * The people it stays visible to are the ones the shift is *about*: whoever is enrolled - who
+   * would otherwise lose the entry from their own program the moment the last slot went - and
+   * the organisers, who have to reach their shift to see the roster and the contact block even
+   * though they never take up a slot themselves. Organiser-ship is read off the relationship the
+   * shift already carries, so it needs no extra query.
+   */
   return shifts.filter(
-    (shift) => !fullShiftIds.has(shift.id) || userEnrolledShiftIds.has(shift.id),
+    (shift) =>
+      !fullShiftIds.has(shift.id) ||
+      userEnrolledShiftIds.has(shift.id) ||
+      isOrganiserOf(shift.organiser, userId),
   );
 };
