@@ -1,6 +1,7 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
+import { helperShiftOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { helperShiftParticipationExportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-shift-participation-export';
@@ -28,6 +29,11 @@ export const HelperShiftsCollection: CollectionConfig = {
       path: '/participation-export',
       method: 'get',
       handler: helperShiftParticipationExportHandler,
+    },
+    {
+      path: '/organiser-export',
+      method: 'get',
+      handler: helperShiftOrganiserExportHandler,
     },
     {
       path: '/:id/participants-export',
@@ -74,6 +80,7 @@ export const HelperShiftsCollection: CollectionConfig = {
     components: {
       beforeListTable: [
         '@/features/payload-cms/payload-cms/components/helper-shift-participation-export#HelperShiftParticipationExport',
+        '@/features/payload-cms/payload-cms/components/helper-shift-organiser-export#HelperShiftOrganiserExport',
       ],
     },
   },
