@@ -342,7 +342,6 @@ const joinWithAnd = (names: string[]): string => {
 };
 
 const iconMarkerSelectOptions = [
-  'MapPin' as const,
   'Tent' as const,
   'Utensils' as const,
   'Flag' as const,
@@ -369,7 +368,7 @@ const markerPointsOfInterest: { title: string; icon: (typeof iconMarkerSelectOpt
     { title: 'Recycling Station', icon: 'Recycle' },
     { title: 'Fahnenmast', icon: 'Flag' },
     { title: 'Materialzelt', icon: 'Tent' },
-    { title: 'Treffpunkt Lagerleitung', icon: 'MapPin' },
+    { title: 'Treffpunkt Lagerleitung', icon: 'Flag' },
   ];
 
 const getRandomTime = (): string => {

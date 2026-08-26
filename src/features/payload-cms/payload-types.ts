@@ -2353,18 +2353,7 @@ export interface CampMapAnnotation {
   color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
-    | (
-        | 'MapPin'
-        | 'Tent'
-        | 'Utensils'
-        | 'Flag'
-        | 'HelpCircle'
-        | 'Recycle'
-        | 'GlassWater'
-        | 'Stage'
-        | 'Toilet'
-        | 'BriefcaseMedical'
-      )
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
     | null;
   /**
    * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
