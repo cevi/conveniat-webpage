@@ -131,7 +131,7 @@ describe('ShiftEnrollmentAction when the status query has no usable data', () =>
   });
 });
 
-const WITHDRAWAL_CLOSED_TEXT = 'Abmelden nicht mehr möglich';
+const WITHDRAWAL_CLOSED_TEXT = 'Abmeldefrist abgelaufen';
 
 const enrolledStatus = (unenrollmentDeadline?: string): Record<string, unknown> => ({
   enrolledCount: 1,

@@ -62,7 +62,8 @@ export const ShiftCard: React.FC<{
         {shift.description && <p className="mt-1 text-sm text-gray-500">{shift.description}</p>}
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+      {/* gray-400 on white is 2.5:1 and this line carries the time and the meeting point */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-gray-500">
         <span className="flex items-center gap-1">
           <Clock className="h-3.5 w-3.5" />
           {shift.timeslot.time}
