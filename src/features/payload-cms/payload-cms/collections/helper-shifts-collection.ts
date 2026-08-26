@@ -215,14 +215,14 @@ export const HelperShiftsCollection: CollectionConfig = {
                 required: false,
                 label: {
                   en: 'Detailed Description',
-                  de: 'Detailierte Beschreibung',
+                  de: 'Detaillierte Beschreibung',
                   fr: 'Description détaillée',
                 },
                 admin: {
                   ...mainContentField.admin,
                   description: {
                     en: 'Detailed description of the shift (optional).',
-                    de: 'Detailierte Beschreibung des Schichteinsatzes (optional).',
+                    de: 'Detaillierte Beschreibung des Schichteinsatzes (optional).',
                     fr: 'Description détaillée du service (optionnelle).',
                   },
                 },

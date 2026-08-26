@@ -52,11 +52,13 @@ export const ShiftOrganisers: React.FC<{
                 <div className="bg-conveniat-green font-heading flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs">
                   {organiser.fullName.charAt(0).toUpperCase()}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-body truncate text-sm font-semibold text-gray-900">
-                    {displayName}
-                  </div>
-                  <div className="font-body truncate text-xs text-gray-500">{organiser.email}</div>
+                {/*
+                  The name carries the Ceviname, which is how helpers know each other; the address
+                  underneath was a second line of small grey text nobody types into anything -
+                  reaching this person is what the button next to it is for.
+                */}
+                <div className="font-body min-w-0 flex-1 text-sm leading-snug font-semibold break-words text-gray-900">
+                  {displayName}
                 </div>
               </div>
               <div className="shrink-0">

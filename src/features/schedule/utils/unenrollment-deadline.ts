@@ -115,6 +115,57 @@ export const getShiftStart = (timeslot: ShiftTimeslot): Date | undefined => {
   );
 };
 
+/** The camp day after the given one, kept on the calendar rather than by adding 24 hours. */
+const nextCampDay = (
+  wallClock: Pick<CampWallClock, 'year' | 'month' | 'day'>,
+): Pick<CampWallClock, 'year' | 'month' | 'day'> => {
+  // `Date.UTC` normalises the overflow for us, so the 31st rolls into the next month and the
+  // 31st of December into the next year without any of that being spelled out here
+  const next = new Date(Date.UTC(wallClock.year, wallClock.month - 1, wallClock.day + 1));
+  return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1, day: next.getUTCDate() };
+};
+
+/**
+ * The instant a shift ends, or `undefined` when its timeslot cannot be read.
+ *
+ * A slot whose end is not after its start runs past midnight - `23:30 - 02:00` is a night watch,
+ * not a shift that ended twenty-one and a half hours before it began - so it ends on the
+ * following camp day. Resolving that on the calendar rather than by adding 24 hours is what
+ * keeps the two nights of the year that are 23 or 25 hours long from landing an hour off.
+ */
+export const getShiftEnd = (timeslot: ShiftTimeslot): Date | undefined => {
+  const start = getShiftStart(timeslot);
+  if (start === undefined) return undefined;
+
+  const endOfSlot = timeslot.time.split(' - ')[1]?.trim();
+  if (endOfSlot === undefined || endOfSlot === '') return undefined;
+
+  const endMinutes = parseTimeToMinutes(endOfSlot);
+  if (Number.isNaN(endMinutes)) return undefined;
+
+  const startOfSlot = timeslot.time.split(' - ')[0]?.trim() ?? '';
+  const startMinutes = parseTimeToMinutes(startOfSlot);
+  if (Number.isNaN(startMinutes)) return undefined;
+
+  const campDay = readCampWallClock(new Date(timeslot.date).getTime());
+  const endDay = endMinutes <= startMinutes ? nextCampDay(campDay) : campDay;
+
+  return new Date(campWallClockToInstant(endDay.year, endDay.month, endDay.day, endMinutes));
+};
+
+/**
+ * Whether a shift has already finished at `now`.
+ *
+ * An unreadable timeslot counts as not over. Greying out a shift nobody can place in time would
+ * hide it from the helpers who still have to turn up for it.
+ */
+export const isShiftOver = (timeslot: ShiftTimeslot, now: Date = new Date()): boolean => {
+  const end = getShiftEnd(timeslot);
+  if (end === undefined) return false;
+
+  return now.getTime() >= end.getTime();
+};
+
 /**
  * The last instant at which a helper may still withdraw from a shift.
  *
@@ -157,4 +208,74 @@ export const isUnenrollmentClosed = (
   if (Number.isNaN(deadlineTime)) return false;
 
   return now.getTime() >= deadlineTime;
+};
+
+/**
+ * A deadline as a helper would read it off a clock in the camp.
+ *
+ * Formatted in the camp's timezone rather than the device's: a helper who left their phone on
+ * the timezone they flew in from would otherwise be told a withdrawal deadline that no clock at
+ * the camp agrees with. The weekday and date are always included because a long window puts the
+ * deadline on the day before the shift.
+ */
+export const formatCampDateTime = (instant: Date | string, locale: string): string => {
+  const date = typeof instant === 'string' ? new Date(instant) : instant;
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: CAMP_TIME_ZONE,
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+};
+
+/** The calendar day of a timeslot, as a helper reads it: `Do., 27.08.` */
+export const formatCampDay = (isoDate: string, locale: string): string => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: CAMP_TIME_ZONE,
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+  }).format(date);
+};
+
+/** Just the time of day, as the camp's clocks show it: `09:00` */
+export const formatCampTime = (instant: Date, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    timeZone: CAMP_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(instant);
+
+/**
+ * The stretch two timeslots have in common, or `undefined` when they do not actually collide.
+ *
+ * A conflict dialog that only lists two time ranges leaves the reader to intersect them in their
+ * head. Resolved through the same camp-clock instants as everything else here, so a slot that
+ * runs past midnight overlaps the early hours of the next day rather than the same morning.
+ */
+export const getTimeslotOverlap = (
+  a: ShiftTimeslot,
+  b: ShiftTimeslot,
+): { start: Date; end: Date } | undefined => {
+  const aStart = getShiftStart(a);
+  const aEnd = getShiftEnd(a);
+  const bStart = getShiftStart(b);
+  const bEnd = getShiftEnd(b);
+  if (aStart === undefined || aEnd === undefined || bStart === undefined || bEnd === undefined) {
+    return undefined;
+  }
+
+  const start = Math.max(aStart.getTime(), bStart.getTime());
+  const end = Math.min(aEnd.getTime(), bEnd.getTime());
+  if (end <= start) return undefined;
+
+  return { start: new Date(start), end: new Date(end) };
 };
