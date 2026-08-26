@@ -198,4 +198,138 @@ describe('shiftsRouter.getShiftStatus', () => {
       expect(result).toMatchObject({ isAdmin: false, participants: [] });
     });
   });
+
+  /**
+   * The client needs the instant, not a verdict: the status is cached for five minutes and
+   * persisted across restarts, so a "you may still leave" boolean computed here would outlive the
+   * window it describes.
+   */
+  describe('the withdrawal deadline', () => {
+    it('is reported as an absolute instant in the camp timezone', async () => {
+      findByID.mockResolvedValue({
+        enable_enrolment: true,
+        timeslot: { date: '2027-07-24T00:00:00.000Z', time: '08:00 - 12:00' },
+        unenrollment_deadline_minutes: 30,
+      });
+
+      const result = await caller().getShiftStatus({ shiftId: 'shift-1' });
+
+      // 08:00 in Zurich is 06:00 UTC in July, so the window shuts at 05:30 UTC
+      expect(result?.unenrollmentDeadline).toBe('2027-07-24T05:30:00.000Z');
+    });
+
+    it('is absent, rather than fatal, for a shift whose timeslot cannot be read', async () => {
+      findByID.mockResolvedValue({ enable_enrolment: true, timeslot: { time: 'ganztags' } });
+
+      const result = await caller().getShiftStatus({ shiftId: 'shift-1' });
+
+      expect(result?.unenrollmentDeadline).toBeUndefined();
+    });
+  });
+});
+
+const morningShift = (unenrollmentDeadlineMinutes?: number): unknown => ({
+  enable_enrolment: true,
+  timeslot: { date: '2027-07-24T00:00:00.000Z', time: '08:00 - 12:00' },
+  unenrollment_deadline_minutes: unenrollmentDeadlineMinutes,
+});
+
+/** `instant` is UTC; the camp reads it two hours later in July */
+const withClockAt = (instant: string): void => {
+  jest.setSystemTime(new Date(instant));
+};
+
+/**
+ * Helpers used to be able to drop out of a shift right up to the moment it started, which left
+ * organisers standing at the meeting point one helper short with no time to react. The window
+ * shuts `unenrollment_deadline_minutes` before the start - 30 by default - and it has to shut
+ * here, on the server: the client's button is a courtesy, a queued offline mutation is not.
+ */
+describe('shiftsRouter.unenrollFromShift', () => {
+  const findByID = jest.fn();
+  const deleteMany = jest.fn();
+  const upsert = jest.fn();
+
+  const prisma: Record<string, unknown> = {
+    user: { upsert },
+    enrollment: { deleteMany },
+    $transaction: async (run: (tx: unknown) => Promise<unknown>): Promise<unknown> =>
+      await run(prisma),
+  };
+
+  const caller = (): ReturnType<typeof createCaller> =>
+    createCaller({
+      user: { uuid: 'helper-1', name: 'Anna Muster' },
+      locale: 'de',
+      prisma,
+    } as unknown as Context);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    (getPayload as unknown as jest.Mock).mockResolvedValue({ findByID });
+    deleteMany.mockResolvedValue({ count: 1 });
+    upsert.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('lets a helper out while the window is still open', async () => {
+    findByID.mockResolvedValue(morningShift(30));
+    withClockAt('2027-07-24T05:29:00.000Z'); // 07:29 in Zurich, a minute before the deadline
+
+    await expect(caller().unenrollFromShift({ shiftId: 'shift-1' })).resolves.toEqual({
+      success: true,
+    });
+    expect(deleteMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses a withdrawal once the deadline has passed', async () => {
+    findByID.mockResolvedValue(morningShift(30));
+    withClockAt('2027-07-24T05:55:00.000Z'); // 07:55 in Zurich, five minutes before the start
+
+    await expect(caller().unenrollFromShift({ shiftId: 'shift-1' })).rejects.toBeInstanceOf(
+      TRPCError,
+    );
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Payload only materialises a field on documents saved since it was added, so every shift
+   * planned before this feature carries no value at all. Those fall back to the default window
+   * rather than staying open until the start.
+   */
+  it('applies the default window to a shift saved before the field existed', async () => {
+    findByID.mockResolvedValue(morningShift());
+    withClockAt('2027-07-24T05:40:00.000Z'); // 07:40 in Zurich, inside the default 30 minutes
+
+    await expect(caller().unenrollFromShift({ shiftId: 'shift-1' })).rejects.toBeInstanceOf(
+      TRPCError,
+    );
+  });
+
+  it('keeps the window open all the way to the start when an admin sets it to zero', async () => {
+    findByID.mockResolvedValue(morningShift(0));
+    withClockAt('2027-07-24T05:59:00.000Z'); // 07:59 in Zurich, one minute before the start
+
+    await expect(caller().unenrollFromShift({ shiftId: 'shift-1' })).resolves.toEqual({
+      success: true,
+    });
+  });
+
+  /**
+   * The enrolment is dangling once the shift is gone, and deleting it is the only sensible
+   * outcome - a missing shift must not leave the helper with a row they can never get rid of.
+   */
+  it('still removes the enrolment when the shift itself is gone', async () => {
+    findByID.mockRejectedValue(Object.create(NotFound.prototype) as Error);
+    withClockAt('2027-07-24T05:55:00.000Z');
+
+    await expect(caller().unenrollFromShift({ shiftId: 'gone' })).resolves.toEqual({
+      success: true,
+    });
+    expect(deleteMany).toHaveBeenCalledTimes(1);
+  });
 });

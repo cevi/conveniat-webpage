@@ -130,3 +130,74 @@ describe('ShiftEnrollmentAction when the status query has no usable data', () =>
     expect(options.refetchOnMount({ state: { data: { enrolledCount: 1 } } })).toBe(true);
   });
 });
+
+const WITHDRAWAL_CLOSED_TEXT = 'Abmeldefrist abgelaufen';
+
+const enrolledStatus = (unenrollmentDeadline?: string): Record<string, unknown> => ({
+  enrolledCount: 1,
+  maxParticipants: 5,
+  isEnrolled: true,
+  isAdmin: false,
+  isOrganiser: false,
+  enableEnrolment: true,
+  participants: [],
+  unenrollmentDeadline,
+});
+
+/**
+ * A helper used to be able to drop out of a shift seconds before it started. The window closes
+ * `unenrollment_deadline_minutes` before the shift begins, and the card has to reflect that rather
+ * than offer a button the server will refuse.
+ */
+describe('ShiftEnrollmentAction once the withdrawal deadline has passed', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsOffline = false;
+  });
+
+  it('still offers the withdrawal while the deadline is ahead', () => {
+    mockQueryResult = {
+      data: enrolledStatus('2100-01-01T00:00:00.000Z'),
+      isLoading: false,
+      isFetching: false,
+      refetch: mockRefetch,
+    };
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+
+    expect(screen.getByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
+    expect(screen.queryByText(WITHDRAWAL_CLOSED_TEXT)).toBeNull();
+  });
+
+  it('replaces the button with a hint once the deadline is behind us', () => {
+    mockQueryResult = {
+      data: enrolledStatus('2000-01-01T00:00:00.000Z'),
+      isLoading: false,
+      isFetching: false,
+      refetch: mockRefetch,
+    };
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+
+    expect(screen.getByText(WITHDRAWAL_CLOSED_TEXT)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Abmelden/ })).toBeNull();
+  });
+
+  /**
+   * A status persisted before the field existed carries no deadline. Withdrawal stays open in that
+   * case - the server still refuses a late one, and locking helpers out over a stale cache would
+   * be the worse failure.
+   */
+  it('keeps the withdrawal available when the cached status carries no deadline', () => {
+    mockQueryResult = {
+      data: enrolledStatus(),
+      isLoading: false,
+      isFetching: false,
+      refetch: mockRefetch,
+    };
+
+    render(<ShiftEnrollmentAction shiftId="shift-1" enableEnrolment />);
+
+    expect(screen.getByRole('button', { name: /Abmelden/ })).toBeInTheDocument();
+  });
+});

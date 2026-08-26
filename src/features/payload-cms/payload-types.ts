@@ -2353,18 +2353,7 @@ export interface CampMapAnnotation {
   color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
-    | (
-        | 'MapPin'
-        | 'Tent'
-        | 'Utensils'
-        | 'Flag'
-        | 'HelpCircle'
-        | 'Recycle'
-        | 'GlassWater'
-        | 'Stage'
-        | 'Toilet'
-        | 'BriefcaseMedical'
-      )
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
     | null;
   /**
    * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
@@ -3607,6 +3596,10 @@ export interface HelperShift {
    */
   participants_max?: number | null;
   enable_enrolment?: boolean | null;
+  /**
+   * How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.
+   */
+  unenrollment_deadline_minutes?: number | null;
   hide_participant_list?: boolean | null;
   /**
    * Hide this slot when full for users who are not enrolled in it.
@@ -5891,6 +5884,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
   category?: T;
   participants_max?: T;
   enable_enrolment?: T;
+  unenrollment_deadline_minutes?: T;
   hide_participant_list?: T;
   hide_when_full?: T;
   notes?: T;

@@ -208,15 +208,14 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
                   type: 'select',
                   required: true,
                   localized: true,
+                  /*
+                   * No map-pin option on purpose: the app draws that symbol on the annotation a
+                   * helper has selected, the way any map marks the place you looked up. An
+                   * annotation carrying it as its own icon would claim to be selected wherever
+                   * it appeared. Annotations saved with it before this still render - as the
+                   * fallback icon, not as a pin.
+                   */
                   options: [
-                    {
-                      label: {
-                        en: 'Map Pin',
-                        de: 'Kartenmarkierung',
-                        fr: 'Épingle de carte',
-                      },
-                      value: 'MapPin',
-                    },
                     {
                       label: {
                         en: 'Tent',

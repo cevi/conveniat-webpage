@@ -14,6 +14,7 @@ import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fiel
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import { DEFAULT_UNENROLLMENT_DEADLINE_MINUTES } from '@/features/schedule/utils/unenrollment-deadline';
 import { CourseType } from '@/lib/prisma';
 import type { BlocksField, CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
@@ -214,14 +215,14 @@ export const HelperShiftsCollection: CollectionConfig = {
                 required: false,
                 label: {
                   en: 'Detailed Description',
-                  de: 'Detailierte Beschreibung',
+                  de: 'Detaillierte Beschreibung',
                   fr: 'Description détaillée',
                 },
                 admin: {
                   ...mainContentField.admin,
                   description: {
                     en: 'Detailed description of the shift (optional).',
-                    de: 'Detailierte Beschreibung des Schichteinsatzes (optional).',
+                    de: 'Detaillierte Beschreibung des Schichteinsatzes (optional).',
                     fr: 'Description détaillée du service (optionnelle).',
                   },
                 },
@@ -364,6 +365,27 @@ export const HelperShiftsCollection: CollectionConfig = {
       defaultValue: true,
       admin: {
         position: 'sidebar',
+      },
+    },
+    {
+      name: 'unenrollment_deadline_minutes',
+      label: {
+        en: 'Withdrawal Deadline (minutes)',
+        de: 'Abmeldefrist (Minuten)',
+        fr: 'Délai de désinscription (minutes)',
+      },
+      type: 'number',
+      defaultValue: DEFAULT_UNENROLLMENT_DEADLINE_MINUTES,
+      min: 0,
+      admin: {
+        position: 'sidebar',
+        step: 5,
+        description: {
+          en: 'How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.',
+          de: 'Wie viele Minuten vor Beginn des Schichteinsatzes sich Helfende nicht mehr abmelden können. 0 erlaubt das Abmelden bis zum Beginn.',
+          fr: 'Combien de minutes avant le début du service les helpers ne peuvent plus se désinscrire. 0 permet la désinscription jusqu’au début du service.',
+        },
+        condition: (data) => Boolean(data['enable_enrolment']),
       },
     },
     {
