@@ -1,7 +1,10 @@
 import {
   DEFAULT_UNENROLLMENT_DEADLINE_MINUTES,
+  getShiftEnd,
   getShiftStart,
+  getTimeslotOverlap,
   getUnenrollmentDeadline,
+  isShiftOver,
   isUnenrollmentClosed,
 } from '@/features/schedule/utils/unenrollment-deadline';
 
@@ -97,5 +100,85 @@ describe('isUnenrollmentClosed', () => {
     expect(isUnenrollmentClosed(new Date(deadline), new Date('2027-07-24T06:00:00.000Z'))).toBe(
       true,
     );
+  });
+});
+
+describe('getShiftEnd', () => {
+  it('reads the end of the timeslot on a Swiss clock', () => {
+    const end = getShiftEnd({ date: SUMMER_DAY, time: '08:00 - 12:00' });
+
+    expect(end?.toISOString()).toBe('2027-07-24T10:00:00.000Z');
+  });
+
+  it('carries a slot that runs past midnight into the next day', () => {
+    // a night watch, not a shift that ended twenty-one and a half hours before it started
+    const end = getShiftEnd({ date: SUMMER_DAY, time: '23:30 - 02:00' });
+
+    expect(end?.toISOString()).toBe('2027-07-25T00:00:00.000Z');
+  });
+
+  it('rolls a slot past midnight over the end of the month', () => {
+    const end = getShiftEnd({ date: '2027-07-31T00:00:00.000Z', time: '22:00 - 01:00' });
+
+    expect(end?.toISOString()).toBe('2027-07-31T23:00:00.000Z');
+  });
+
+  it('has no end for an unreadable timeslot', () => {
+    expect(getShiftEnd({ date: SUMMER_DAY, time: '08:00' })).toBeUndefined();
+    expect(getShiftEnd({ date: 'not a date', time: '08:00 - 12:00' })).toBeUndefined();
+  });
+});
+
+describe('isShiftOver', () => {
+  it('is over once the end has passed', () => {
+    const timeslot = { date: SUMMER_DAY, time: '08:00 - 12:00' };
+
+    expect(isShiftOver(timeslot, new Date('2027-07-24T10:00:01.000Z'))).toBe(true);
+  });
+
+  it('is not over while it is still running', () => {
+    const timeslot = { date: SUMMER_DAY, time: '08:00 - 12:00' };
+
+    expect(isShiftOver(timeslot, new Date('2027-07-24T09:00:00.000Z'))).toBe(false);
+  });
+
+  /**
+   * Greying out a shift whose slot cannot be placed in time would hide it from the helpers who
+   * still have to turn up for it, so an unreadable slot counts as not over.
+   */
+  it('treats an unreadable timeslot as not over', () => {
+    expect(isShiftOver({ date: SUMMER_DAY, time: 'irgendwann' }, new Date())).toBe(false);
+  });
+});
+
+describe('getTimeslotOverlap', () => {
+  it('returns the stretch two slots have in common', () => {
+    const overlap = getTimeslotOverlap(
+      { date: SUMMER_DAY, time: '09:00 - 12:00' },
+      { date: SUMMER_DAY, time: '07:00 - 10:00' },
+    );
+
+    expect(overlap?.start.toISOString()).toBe('2027-07-24T07:00:00.000Z'); // 09:00 in Zurich
+    expect(overlap?.end.toISOString()).toBe('2027-07-24T08:00:00.000Z'); // 10:00 in Zurich
+  });
+
+  it('has no overlap for slots that merely touch', () => {
+    const overlap = getTimeslotOverlap(
+      { date: SUMMER_DAY, time: '09:00 - 12:00' },
+      { date: SUMMER_DAY, time: '12:00 - 14:00' },
+    );
+
+    expect(overlap).toBeUndefined();
+  });
+
+  /** A night watch collides with the early shift of the *next* morning, not of the same one. */
+  it('carries a slot past midnight into the following day', () => {
+    const overlap = getTimeslotOverlap(
+      { date: SUMMER_DAY, time: '23:00 - 02:00' },
+      { date: '2027-07-25T00:00:00.000Z', time: '01:00 - 03:00' },
+    );
+
+    expect(overlap?.start.toISOString()).toBe('2027-07-24T23:00:00.000Z'); // 01:00 in Zurich
+    expect(overlap?.end.toISOString()).toBe('2027-07-25T00:00:00.000Z'); // 02:00 in Zurich
   });
 });
