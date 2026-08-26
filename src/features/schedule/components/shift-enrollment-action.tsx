@@ -105,15 +105,15 @@ const localizedSwitching: StaticTranslationString = {
 };
 
 const localizedUnenrollClosed: StaticTranslationString = {
-  de: 'Abmelden nicht mehr möglich',
-  en: 'Withdrawal no longer possible',
-  fr: 'Désinscription plus possible',
+  de: 'Abmeldefrist abgelaufen',
+  en: 'Withdrawal deadline passed',
+  fr: 'Délai de désinscription dépassé',
 };
 
 const localizedUnenrollClosedHint: StaticTranslationString = {
-  de: 'Kurz vor Beginn des Schichteinsatzes ist eine Abmeldung nicht mehr möglich. Melde dich bei den Organisatoren.',
-  en: 'Shortly before the shift starts you can no longer withdraw. Please contact the organisers.',
-  fr: 'Peu avant le début du service, la désinscription n’est plus possible. Contactez les organisateurs.',
+  de: 'Melde dich direkt bei den Organisatoren, wenn du nicht kommen kannst.',
+  en: 'Contact the organisers directly if you cannot make it.',
+  fr: 'Contacte directement les organisateurs si tu ne peux pas venir.',
 };
 
 const localizedSwitchQuestion: StaticTranslationString = {
@@ -287,37 +287,50 @@ export const ShiftEnrollmentAction: React.FC<{
     const isWithdrawalClosed = isUnenrollmentWindowClosed || wasRejectedAsTooLate;
 
     return (
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="font-medium text-green-600">{localizedEnrolled[locale]}</span>
-            {maxParticipants && (
-              <span className="text-gray-400">
-                ({enrolledCount} / {maxParticipants})
-              </span>
-            )}
-          </div>
-          {isWithdrawalClosed ? (
-            <span className="flex items-center gap-1.5 text-sm text-gray-400">
-              <Lock className="h-3.5 w-3.5" />
-              {localizedUnenrollClosed[locale]}
+      /*
+        The enrolment status is the one thing a helper opens this card for, so it gets its own
+        band rather than another line of grey meta text. Everything about the enrolment lives
+        inside it: the confirmation, how full the shift is, and either the way out or the reason
+        there no longer is one.
+      */
+      <div className="rounded-lg border border-green-200 bg-green-50/60 px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="flex items-center gap-2 text-sm font-semibold text-green-700">
+            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+            {localizedEnrolled[locale]}
+          </span>
+          {/* `whitespace-nowrap`: the count is one token to a reader and must never break apart */}
+          {maxParticipants && (
+            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium whitespace-nowrap text-green-700 ring-1 ring-green-200 ring-inset">
+              {enrolledCount} / {maxParticipants}
             </span>
-          ) : (
+          )}
+          {!isWithdrawalClosed && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => unenroll.mutate({ shiftId })}
               disabled={unenroll.isPending}
-              className="h-8 text-sm"
+              className="ml-auto h-8 border-green-200 bg-white text-sm hover:bg-white"
             >
               {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               {localizedUnenroll[locale]}
             </Button>
           )}
         </div>
+        {/*
+          Sits under the status on its own row instead of beside it: the two say different things
+          - you are in, and you can no longer get out - and side by side they competed for the
+          same line and wrapped into each other on a phone.
+        */}
         {isWithdrawalClosed && (
-          <p className="text-xs text-gray-400">{localizedUnenrollClosedHint[locale]}</p>
+          <div className="mt-2.5 flex items-start gap-2 border-t border-green-200/70 pt-2.5">
+            <Lock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gray-500" />
+            <p className="text-xs leading-relaxed text-gray-500">
+              <span className="font-semibold text-gray-700">{localizedUnenrollClosed[locale]}</span>{' '}
+              {localizedUnenrollClosedHint[locale]}
+            </p>
+          </div>
         )}
       </div>
     );
@@ -381,10 +394,13 @@ export const ShiftEnrollmentAction: React.FC<{
             <p className="text-center text-sm text-gray-500">{localizedSwitchQuestion[locale]}</p>
             {/* the shift being left is too close to its start, so the switch was refused */}
             {wasRejectedAsTooLate && (
-              <p className="flex items-center gap-1.5 text-center text-sm text-amber-700">
-                <Lock className="h-3.5 w-3.5 flex-shrink-0" />
-                {localizedUnenrollClosedHint[locale]}
-              </p>
+              <div className="flex w-full items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-800">
+                <Lock className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                <p>
+                  <span className="font-semibold">{localizedUnenrollClosed[locale]}</span>{' '}
+                  {localizedUnenrollClosedHint[locale]}
+                </p>
+              </div>
             )}
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
