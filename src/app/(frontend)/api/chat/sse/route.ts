@@ -1,10 +1,21 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  recordSseEventDelivered,
+  recordSseStreamClosed,
+  recordSseStreamOpened,
+  recordSseStreamRejected,
+  type SseStreamOutcome,
+} from '@/lib/chat-realtime-metrics';
 import { chatPubSub, type ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { createLogger } from '@/utils/server-logger';
+import { trace } from '@opentelemetry/api';
 import { type NextRequest } from 'next/server';
 import superjson from 'superjson';
+
+const logger = createLogger('chat:sse');
 
 /**
  * Cadence of the `heartbeat` frames that let a client detect a stream which is still
@@ -23,6 +34,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
   if (typeof user?.uuid !== 'string' || user.uuid === '') {
+    recordSseStreamRejected('unauthorized');
     return new Response('Unauthorized', { status: 401 });
   }
 
@@ -48,6 +60,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const containsAll = rawChatIds.includes('all');
   if (containsAll && !isAdmin) {
+    recordSseStreamRejected('forbidden');
+    logger.warn('Non-admin requested the all channel', { 'chat.user.id': user.uuid });
     return new Response('Forbidden: Non-admins cannot subscribe to the all channel', {
       status: 403,
     });
@@ -59,6 +73,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   for (const id of chatIds) {
     if (id === 'all') continue;
     if (!validIdRegex.test(id)) {
+      recordSseStreamRejected('bad_request');
       return new Response(`Invalid chat ID format: ${id}`, { status: 400 });
     }
   }
@@ -72,11 +87,25 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
 
     if (memberships.length !== chatIds.length) {
+      recordSseStreamRejected('forbidden');
+      logger.warn('Subscription requested for chats the user is not a member of', {
+        'chat.user.id': user.uuid,
+        requested: chatIds.length,
+        allowed: memberships.length,
+      });
       return new Response('Forbidden: You are not a member of all requested chats', {
         status: 403,
       });
     }
   }
+
+  // The subscribed channels are the one thing that makes an SSE trace readable: the
+  // span otherwise records only that "some stream" ran for a while.
+  trace.getActiveSpan()?.setAttributes({
+    'chat.user.id': user.uuid,
+    'chat.sse.channel_count': chatIds.length + 1,
+    'chat.sse.is_admin': isAdmin,
+  });
 
   const encoder = new TextEncoder();
   let keepAliveInterval: NodeJS.Timeout | undefined = undefined;
@@ -84,6 +113,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   let unsubscribeConnectionRestored: (() => void) | undefined = undefined;
   let cleanedUp = false;
   const isCleanedUp = (): boolean => cleanedUp;
+
+  const openedAt = Date.now();
+  let deliveredEvents = 0;
+  /** Overwritten by `failSubscription`; a stream that simply ends was closed by the client. */
+  let closeOutcome: SseStreamOutcome = 'client_disconnect';
 
   const onAbort = (): void => {
     cleanup();
@@ -102,12 +136,24 @@ export async function GET(request: NextRequest): Promise<Response> {
       unsubscribe();
     }
     activeListeners.clear();
+
+    const durationSeconds = (Date.now() - openedAt) / 1000;
+    recordSseStreamClosed(closeOutcome, durationSeconds);
+    // Debug, not info: this fires for every navigation. The metric carries the signal;
+    // the line is here for when a single user's session has to be reconstructed.
+    logger.debug('Stream closed', {
+      'chat.user.id': user.uuid,
+      'chat.sse.outcome': closeOutcome,
+      'chat.sse.duration_s': durationSeconds,
+      'chat.sse.events_delivered': deliveredEvents,
+    });
   };
 
   const stream = new ReadableStream({
     async start(controller: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
       // Send initial handshake comment
       controller.enqueue(encoder.encode(':ok\n\n'));
+      recordSseStreamOpened();
 
       const write = (frame: string): boolean => {
         try {
@@ -137,8 +183,14 @@ export async function GET(request: NextRequest): Promise<Response> {
         try {
           const dataString = superjson.stringify(event);
           controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));
+          deliveredEvents += 1;
+          recordSseEventDelivered(event.type);
         } catch (error) {
-          console.error('[SSE] Failed to write event to stream controller:', error);
+          logger.error('Failed to write event to stream controller', {
+            error,
+            'chat.user.id': user.uuid,
+            'chat.event.type': event.type,
+          });
           // A closed controller never recovers; releasing the subscriptions here keeps
           // the process from holding listeners for a stream nobody reads anymore.
           cleanup();
@@ -163,7 +215,12 @@ export async function GET(request: NextRequest): Promise<Response> {
        * backend is reachable again.
        */
       const failSubscription = (context: string, error: unknown): void => {
-        console.error(`[SSE] ${context}, closing the stream so the client reconnects:`, error);
+        closeOutcome = 'subscribe_failed';
+        logger.error('Subscription failed, closing the stream so the client reconnects', {
+          error,
+          context,
+          'chat.user.id': user.uuid,
+        });
         write(`retry: ${SUBSCRIBE_FAILURE_RETRY_MS}\n\n`);
         cleanup();
         try {
@@ -207,9 +264,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       }
     },
 
+    // `cleanup` already records the close and logs it; cancelling is just one of the
+    // ways a stream ends, not an event worth a line of its own.
     cancel(): void {
       cleanup();
-      console.log(`[SSE] Stream cancelled for user ${user.uuid}`);
     },
   });
 

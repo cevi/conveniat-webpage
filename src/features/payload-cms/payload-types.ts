@@ -219,6 +219,7 @@ export interface Config {
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -2354,18 +2355,7 @@ export interface CampMapAnnotation {
   color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
-    | (
-        | 'MapPin'
-        | 'Tent'
-        | 'Utensils'
-        | 'Flag'
-        | 'HelpCircle'
-        | 'Recycle'
-        | 'GlassWater'
-        | 'Stage'
-        | 'Toilet'
-        | 'BriefcaseMedical'
-      )
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
     | null;
   /**
    * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
@@ -3562,8 +3552,10 @@ export interface PhotoContest {
   slug: string;
   title: string;
   description?: string | null;
-  contestType?: ('PRESELECTED' | 'LIVE_EVENT') | null;
-  status?: ('DRAFT' | 'UPLOADING' | 'VOTING' | 'CLOSED') | null;
+  /**
+   * Controls what participants see in the app: nothing, the vote, only the photos, or photos including the score.
+   */
+  status: 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
   maxPointsPerUser?: number | null;
   maxPointsPerImage?: number | null;
   images?:
@@ -3652,6 +3644,10 @@ export interface HelperShift {
       )[]
     | null;
   /**
+   * Organisers of this shift. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.
+   */
+  organiser?: (string | User)[] | null;
+  /**
    * Location of the shift (optional).
    */
   location?: (string | null) | CampMapAnnotation;
@@ -3664,6 +3660,10 @@ export interface HelperShift {
    */
   participants_max?: number | null;
   enable_enrolment?: boolean | null;
+  /**
+   * How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.
+   */
+  unenrollment_deadline_minutes?: number | null;
   hide_participant_list?: boolean | null;
   /**
    * Hide this slot when full for users who are not enrolled in it.
@@ -3750,6 +3750,10 @@ export interface Announcement {
     };
     [k: string]: unknown;
   };
+  /**
+   * These images are sent along with the announcement into the chat.
+   */
+  images?: (string | Image)[] | null;
   channel: string | AnnouncementChannel;
   status: 'scheduled' | 'published';
   scheduledAt?: string | null;
@@ -4388,6 +4392,7 @@ export interface PayloadJob {
           | 'generateBills'
           | 'sendBills'
           | 'cleanupTemporaryFormFiles'
+          | 'autoCheckoutPresence'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -4443,6 +4448,7 @@ export interface PayloadJob {
         | 'generateBills'
         | 'sendBills'
         | 'cleanupTemporaryFormFiles'
+        | 'autoCheckoutPresence'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -5838,7 +5844,6 @@ export interface PhotoContestsSelect<T extends boolean = true> {
   slug?: T;
   title?: T;
   description?: T;
-  contestType?: T;
   status?: T;
   maxPointsPerUser?: T;
   maxPointsPerImage?: T;
@@ -5970,10 +5975,12 @@ export interface HelperShiftsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  organiser?: T;
   location?: T;
   category?: T;
   participants_max?: T;
   enable_enrolment?: T;
+  unenrollment_deadline_minutes?: T;
   hide_participant_list?: T;
   hide_when_full?: T;
   notes?: T;
@@ -6042,6 +6049,7 @@ export interface AnnouncementsSelect<T extends boolean = true> {
   _locale?: T;
   title?: T;
   content?: T;
+  images?: T;
   channel?: T;
   status?: T;
   scheduledAt?: T;
@@ -8684,6 +8692,16 @@ export interface TaskSendBills {
 export interface TaskCleanupTemporaryFormFiles {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAutoCheckoutPresence".
+ */
+export interface TaskAutoCheckoutPresence {
+  input?: unknown;
+  output: {
+    checkedOut?: number | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

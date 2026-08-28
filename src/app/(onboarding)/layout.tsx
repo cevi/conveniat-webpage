@@ -7,6 +7,8 @@ import '@/app/globals.scss';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { environmentVariables } from '@/config/environment-variables';
+import { BootHydrationMarker } from '@/features/onboarding/components/boot-hydration-marker';
+import { BootWatchdog } from '@/features/onboarding/components/boot-watchdog';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
 import { sharedFontClassName } from '@/utils/fonts';
@@ -86,7 +88,14 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
 })();`,
           }}
         />
+        {/*
+          Boot watchdog: recovers the entrypoint if the client bundle never loads (weak network),
+          which would otherwise strand the user on the server-rendered loading screen. The inline
+          script runs even when the app chunks do not; the marker signals a successful hydration.
+        */}
+        <BootWatchdog locale={locale} />
         <PostHogProvider>
+          <BootHydrationMarker />
           <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
             <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
           </div>

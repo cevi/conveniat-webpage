@@ -5,6 +5,7 @@ import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import { ChatsOverviewSkeleton } from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
+import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import { useMobileMenuNavigation } from '@/hooks/use-mobile-menu-navigation';
@@ -136,7 +137,7 @@ export const ChatsOverviewClientComponent: React.FC<{
     if (!chats) return [];
     return [...chats].map((chat) => chat.id).sort();
   }, [chats]);
-  useChatSSE(chatIds);
+  const { status: realtimeStatus, reconnect: reconnectRealtime } = useChatSSE(chatIds);
 
   // Check capability instead of raw feature flag
   const { data: createChatsEnabled } = trpc.chat.checkCapability.useQuery(
@@ -189,6 +190,12 @@ export const ChatsOverviewClientComponent: React.FC<{
 
   return (
     <div className="flex flex-col space-y-6">
+      <RealtimeSyncBanner
+        status={realtimeStatus}
+        onReconnect={reconnectRealtime}
+        className="rounded-xl border border-red-200"
+      />
+
       {/* Search Bar - only shown if non-empty or search active */}
       {hasChats && (
         <AppSearchBar

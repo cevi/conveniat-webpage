@@ -3,6 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { PostHogContext, usePostHog } from '@/providers/posthog-context';
 import { filterPostHogNoise } from '@/utils/posthog-filters';
+import { registerPostHogSuperProperties } from '@/utils/posthog-super-properties';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { PostHog } from 'posthog-js';
 import type React from 'react';
@@ -59,6 +60,8 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [client, setClient] = useState<PostHog | undefined>();
 
   useEffect(() => {
+    let disposeSuperProperties: (() => void) | undefined;
+
     // Suppress ResizeObserver loop errors (often caused by browser extensions)
     const handleError = (errorEvent: ErrorEvent): void => {
       const message =
@@ -156,7 +159,10 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
             console.debug('[PostHog] Request failed silently:', error);
           },
         });
+        // Client first: super-property registration is best-effort telemetry setup
+        // and must never sit between init and the client being wired up.
         setClient(posthog);
+        disposeSuperProperties = registerPostHogSuperProperties(posthog);
       });
     }
 
@@ -165,6 +171,7 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
       globalThis.removeEventListener('unhandledrejection', handleUnhandledRejection, {
         capture: true,
       });
+      disposeSuperProperties?.();
     };
   }, []);
 

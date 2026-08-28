@@ -3,11 +3,13 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
+import type { NotificationType } from '@/lib/notification-type';
 import { PushNotificationChannel } from '@/lib/prisma';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
+import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
@@ -225,10 +227,22 @@ export async function sendNotificationToSubscription(
     title?: string;
     /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
     messageId?: string;
+    /**
+     * How urgently the notification should be presented. `emergency` routes native
+     * pushes to the siren channel; see {@link NotificationType}.
+     */
+    notificationType?: NotificationType;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
-  const titleToSend = options?.title ?? 'conveniat27';
+
+  // The operating system renders the notification verbatim, so the chat's markdown
+  // markers would show up as literal `*` and `_` on the lock screen. Stripping
+  // happens here rather than in the callers because this is the single hop every
+  // push goes through - chat messages, announcements, emergency alerts and the CMS
+  // test send alike.
+  const bodyToSend = stripMarkdownFormatting(message);
+  const titleToSend = stripMarkdownFormatting(options?.title ?? 'conveniat27');
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
@@ -243,7 +257,7 @@ export async function sendNotificationToSubscription(
       const log = await prisma.pushNotificationLog.create({
         data: {
           userId,
-          content: logContent ?? message,
+          content: logContent ?? bodyToSend,
           status: 'PENDING',
           channel,
         },
@@ -291,7 +305,7 @@ export async function sendNotificationToSubscription(
 
       const result = await sendFcmNotification(subscription.token, {
         title: titleToSend,
-        body: message,
+        body: bodyToSend,
         data: {
           ...(normalizedUrl !== undefined && { url: normalizedUrl }),
           ...(normalizedUrl !== undefined && { path: normalizedUrl }),
@@ -304,6 +318,9 @@ export async function sendNotificationToSubscription(
           }),
           ...(options?.ignoreIfUrlMatches !== undefined && {
             ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
+          }),
+          ...(options?.notificationType !== undefined && {
+            notificationType: options.notificationType,
           }),
         },
       });
@@ -336,7 +353,7 @@ export async function sendNotificationToSubscription(
         webSub,
         JSON.stringify({
           title: titleToSend,
-          body: message,
+          body: bodyToSend,
           data: {
             url: urlToSend,
             notificationId: logId,

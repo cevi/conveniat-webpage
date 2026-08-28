@@ -1,12 +1,10 @@
-import {
-  getLexicalText,
-  publishAnnouncementToPostgres,
-} from '@/features/payload-cms/payload-cms/collections/announcements';
+import { publishAnnouncementToPostgres } from '@/features/payload-cms/payload-cms/collections/announcements';
 import {
   cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
@@ -88,26 +86,13 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
           id: announcement.id,
           locale: 'all',
           draft: true,
-        })) as unknown as Record<string, Record<string, unknown>>;
+        })) as unknown as Record<string, unknown>;
 
         // 2. Build the localized payload for all locales
-        const localizedPayload: Record<string, { text: string; title: string; body: string }> = {};
-        for (const lang of ['de', 'en', 'fr']) {
-          const documentTitle = announcementAll['title'] as Record<string, string> | undefined;
-          const documentContent = announcementAll['content'];
-
-          const title = documentTitle?.[lang] ?? '';
-          const content = documentContent?.[lang];
-          if (title !== '' || content !== undefined) {
-            const formattedContent = getLexicalText(content);
-            const fullTextContent = `*${title}*\n\n${formattedContent}`;
-            localizedPayload[lang] = {
-              text: fullTextContent,
-              title: title,
-              body: formattedContent,
-            };
-          }
-        }
+        const localizedPayload = await buildAnnouncementMessagePayload({
+          payload,
+          documentAll: announcementAll,
+        });
 
         const { messageUuid, publishedAt } = await publishAnnouncementToPostgres(
           channelId,

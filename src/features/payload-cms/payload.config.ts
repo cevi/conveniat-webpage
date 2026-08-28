@@ -31,6 +31,7 @@ import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/t
 import { syncNewUserAnnouncementChatsTask } from '@/features/payload-cms/payload-cms/tasks/sync-new-user-announcement-chats';
 import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/sync-participants';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
+import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/auto-checkout-presence';
 import { registrationWorkflow } from '@/features/registration_process/workflows/registration-workflow';
 import { blockJobStep } from '@/features/registration_process/workflows/steps/block-job';
 import { cleanupTemporaryRolesStep } from '@/features/registration_process/workflows/steps/cleanup-temporary-roles';
@@ -375,6 +376,7 @@ const jobsConfig: JobsConfig = {
     generateBillsTask,
     sendBillsTask,
     cleanupTemporaryFormFilesTask,
+    autoCheckoutPresenceTask,
   ],
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS

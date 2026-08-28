@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import type { User } from '@/features/payload-cms/payload-types';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
 import { trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
@@ -11,6 +12,15 @@ import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
 import { Agent, setGlobalDispatcher } from 'undici';
 import { z } from 'zod';
+
+/**
+ * The token refresh is the one flow here whose *successes* have to be visible, not just its
+ * failures. `console.log` is not bridged into Loki (see `@/utils/otel-console-bridge`), so the
+ * terminal `invalid_grant` errors arrived without the attempts they came out of - no user, no
+ * reason, and no denominator to tell a user whose Hitobito authorisation genuinely expired from
+ * a refresh this app broke itself. Everything on that path goes through the structured logger.
+ */
+const logger = createLogger('next-auth');
 
 const TokenIdentitySchema = z.object({
   uuid: z.string({ required_error: 'uuid missing from token' }),
@@ -241,8 +251,12 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
       return await fetch(url, { ...options, cache: 'no-store' });
     } catch (error) {
       attempt++;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.warn(`[NextAuth] Fetch attempt ${attempt} failed for ${url}: ${errorMessage}`);
+      logger.warn('Fetch attempt against Hitobito failed', {
+        'http.url': url,
+        'retry.attempt': attempt,
+        'retry.max_attempts': retries,
+        error,
+      });
       if (attempt >= retries) throw error;
       // Exponential backoff: 500ms, 1000ms, 2000ms
       await new Promise((resolve) => setTimeout(resolve, 500 * Math.pow(2, attempt)));
@@ -261,7 +275,9 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
     const payload = await getPayload({ config: config.default });
     await saveAndFetchUserFromPayload(payload, profile);
   } catch (error) {
-    console.error('Failed to background sync user with Payload DB during token refresh:', error);
+    logger.error('Failed to background sync user with Payload DB during token refresh', {
+      error,
+    });
   }
 }
 
@@ -303,7 +319,10 @@ class TerminalRefreshError extends Error {
  */
 async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   try {
-    console.log('Refreshing access token for user', token.uuid, 'Reason:', reason);
+    logger.info('Refreshing access token', {
+      'auth.user_uuid': token.uuid,
+      'hitobito.refresh_reason': reason,
+    });
 
     const activeSpan = trace.getActiveSpan();
     if (activeSpan !== undefined) {
@@ -389,7 +408,10 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
         lastName: profile.last_name,
       };
     } else {
-      console.error('Failed to refetch user profile after token refresh');
+      logger.error('Failed to refetch user profile after token refresh', {
+        'auth.user_uuid': token.uuid,
+        'http.status_code': profileResponse.status,
+      });
       // If profile fetch fails, we still return the refreshed token but keep old user data (or maybe we should error?)
       // For now, let's just update the tokens
       return {
@@ -400,12 +422,20 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
       };
     }
   } catch (error) {
-    console.error('Error refreshing access token', error);
     const activeSpan = trace.getActiveSpan();
     if (activeSpan !== undefined) {
       activeSpan.recordException(error as Error);
     }
     const isTerminal = error instanceof TerminalRefreshError;
+    // Terminal means the refresh token is gone for good and the user is about to be sent back
+    // through the login: worth an error. A retryable failure is the network, and the next
+    // request tries again.
+    logger[isTerminal ? 'error' : 'warn']('Error refreshing access token', {
+      'auth.user_uuid': token.uuid,
+      'hitobito.refresh_reason': reason,
+      'hitobito.refresh_terminal': isTerminal,
+      error,
+    });
     return {
       ...token,
       error: 'RefreshAccessTokenError',

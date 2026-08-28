@@ -20,7 +20,10 @@ export interface CampScheduleEntryFrontendType {
     | (
         | string
         | {
+            id: string;
             fullName: string;
+            /** The Ceviname, absent for the many users who never set one. */
+            nickname?: string | null | undefined;
             email: string;
           }
       )[]

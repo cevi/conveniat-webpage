@@ -126,9 +126,18 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     {
       enabled: !!entry,
       staleTime: 1000 * 60 * 5,
-
-      refetchOnMount: false,
       refetchOnWindowFocus: false,
+      /**
+       * The global default is `refetchOnMount: false` with a 72h `gcTime` and disk persistence,
+       * so this status is fetched once per course and then served from IndexedDB for days. That
+       * is fine for the enrolment counts, which every mutation invalidates - but `isAdmin` is
+       * decided by the organiser relationship in the CMS, which changes without any mutation
+       * this client ever makes. Adding somebody as an organiser therefore never reached them:
+       * their cached `isAdmin: false` outlived the change and hid the admin actions and the
+       * participant list. Revalidate on every open - it is one small request on a deliberate
+       * navigation, and `networkMode: 'online'` still serves the cached value when offline.
+       */
+      refetchOnMount: 'always',
     },
   );
 

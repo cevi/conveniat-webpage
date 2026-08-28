@@ -2,9 +2,9 @@
 
 import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Locale } from '@/types/types';
-import { Cookie } from '@/types/types';
+import { Cookie, i18nConfig } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -30,9 +30,15 @@ export const useOnboardingLocale = (onboardingStep: OnboardingStep): UseOnboardi
   // Sync locale state with cookie on mount to handle hydration and browser preference
   useEffect(() => {
     const cookieLocale = Cookies.get(Cookie.LOCALE_COOKIE);
-    let targetLocale: Locale = LOCALE.EN;
 
-    const supportedLocales = Object.values(LOCALE) as string[];
+    // English is the neutral fallback for a visitor whose browser language we do not serve.
+    // Deployments that do not serve English at all fall back to the default locale instead —
+    // otherwise the whole onboarding would render in a language the rest of the app cannot show.
+    let targetLocale: Locale = enabledLocales.includes(LOCALE.EN)
+      ? LOCALE.EN
+      : (i18nConfig.defaultLocale as Locale);
+
+    const supportedLocales = enabledLocales as string[];
 
     if (cookieLocale && supportedLocales.includes(cookieLocale)) {
       targetLocale = cookieLocale as Locale;

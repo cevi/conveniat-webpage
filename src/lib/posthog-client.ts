@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { filterPostHogNoise } from '@/utils/posthog-filters';
+import { registerPostHogSuperProperties } from '@/utils/posthog-super-properties';
 import posthog, { type PostHog } from 'posthog-js';
 
 // detect globalThis for SSR safety
@@ -35,6 +36,11 @@ export const initPostHog = (instance: any = posthog): PostHog | undefined => {
       before_send: filterPostHogNoise,
     });
     isInitialized = true;
+
+    // After init, so the properties are attached to the live instance. This is a
+    // module-level singleton with no teardown, so the disposer is intentionally
+    // dropped - the bridge poll is bounded and stops on its own.
+    registerPostHogSuperProperties(instance as PostHog);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return

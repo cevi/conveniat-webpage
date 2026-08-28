@@ -139,7 +139,6 @@ const config = defineConfig([
 
       // Temporary: not yet migrated. This list shrinks per area as #1525
       // progresses; do not add to it.
-      'src/app/(frontend)/api/chat/sse/route.ts',
       // Bracketed route segments are glob character classes, so these are matched by directory.
       'src/app/(frontend)/**/app/chat/new-chat-with-user/**',
       'src/app/(frontend)/**/(payload-pages)/**',
@@ -174,7 +173,6 @@ const config = defineConfig([
       'src/hooks/use-native-push.ts',
       'src/instrumentation.ts',
       'src/lib/chat-sync.ts',
-      'src/lib/db/chat-pubsub.ts',
       'src/lib/toast.ts',
       'src/providers/post-hog-provider.tsx',
       'src/proxy/design-rewrite-proxy.ts',

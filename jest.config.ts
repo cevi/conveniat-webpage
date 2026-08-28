@@ -35,6 +35,10 @@ const config: Config = {
     '<rootDir>/.next/',
     '<rootDir>/e2e/',
     '<rootDir>/worktrees/',
+    // Agent worktrees live here. They are full checkouts, so without this a plain
+    // `pnpm test` runs every stale copy of the suite - playwright specs included -
+    // and reports failures that belong to code the working tree does not contain.
+    '<rootDir>/.claude/',
   ],
 };
 

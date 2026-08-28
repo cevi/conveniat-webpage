@@ -1,11 +1,18 @@
+import type { HelperShift } from '@/features/payload-cms/payload-types';
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
+import {
+  getUnenrollmentDeadline,
+  isUnenrollmentClosed,
+  UNENROLLMENT_DEADLINE_PASSED,
+} from '@/features/schedule/utils/unenrollment-deadline';
 import { CourseType } from '@/lib/prisma';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
-import { getPayload } from 'payload';
+import { getPayload, NotFound } from 'payload';
 import { z } from 'zod';
 
 const enrollInShiftSchema = z.object({
@@ -16,6 +23,68 @@ const switchIntoShiftSchema = z.object({
   fromCourseId: z.string(),
   toShiftId: z.string(),
 });
+
+/**
+ * As much of a shift as the withdrawal window is decided from.
+ *
+ * The timeslot is accepted as incomplete on purpose: a shift whose slot cannot be read must fall
+ * out of the guard rather than take the whole status query down with it - that query is the one
+ * every card on the helper portal waits for.
+ */
+interface ShiftWithdrawalWindow {
+  timeslot?: { date?: string | null; time?: string | null };
+  unenrollment_deadline_minutes?: number | null;
+}
+
+/**
+ * The last instant at which a helper may still withdraw from `shift`.
+ *
+ * A shift saved before the field existed carries no value, which has to read as the default
+ * window rather than as "no deadline": the rule is what protects a shift that is about to start
+ * from losing its helpers, and it must hold for the shifts that were planned first.
+ */
+const getShiftUnenrollmentDeadline = (shift: ShiftWithdrawalWindow): Date | undefined => {
+  const { date, time } = shift.timeslot ?? {};
+  if (typeof date !== 'string' || typeof time !== 'string') return undefined;
+
+  return getUnenrollmentDeadline({ date, time }, shift.unenrollment_deadline_minutes);
+};
+
+/**
+ * Rejects a withdrawal that comes in after the shift's deadline.
+ *
+ * The client hides the button once the window closes, so reaching this is either a stale page, a
+ * queued offline mutation, or a direct call - all three have to be refused here, because this is
+ * the only place that sees the current time against the current shift.
+ */
+const assertUnenrollmentIsOpen = (shift: ShiftWithdrawalWindow): void => {
+  if (isUnenrollmentClosed(getShiftUnenrollmentDeadline(shift))) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: UNENROLLMENT_DEADLINE_PASSED });
+  }
+};
+
+/**
+ * Loads a shift for a mutation that has to check it, or `undefined` when it is gone.
+ *
+ * A withdrawal from a shift that no longer exists is not something to block: the enrolment is
+ * dangling and deleting it is the only sensible outcome, so a missing shift skips the guard
+ * instead of leaving the user with a row they can never get rid of.
+ */
+const findShiftOrUndefined = async (
+  payload: Awaited<ReturnType<typeof getPayload>>,
+  shiftId: string,
+): Promise<HelperShift | undefined> => {
+  try {
+    return await payload.findByID({ collection: 'helper-shifts', id: shiftId, depth: 0 });
+  } catch (error) {
+    if (error instanceof NotFound) return undefined;
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: `Failed to load helper shift ${shiftId}`,
+      cause: error,
+    });
+  }
+};
 
 export const shiftsRouter = createTRPCRouter({
   getShifts: publicProcedure.query(async ({ ctx }) => {
@@ -37,9 +106,20 @@ export const shiftsRouter = createTRPCRouter({
         id: shiftId,
         depth: 0,
       });
-    } catch {
-      // eslint-disable-next-line unicorn/no-null
-      return null;
+    } catch (error) {
+      // A deleted shift is a real answer and stays `null`. Anything else — a database hiccup, a
+      // connection pool timeout while the offline sync asks for every shift at once — is not, and
+      // must surface as an error: a `null` here is a *successful* response, so the client cached
+      // and persisted it and then rendered "offline" for that one shift forever.
+      if (error instanceof NotFound) {
+        // eslint-disable-next-line unicorn/no-null
+        return null;
+      }
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: `Failed to load helper shift ${shiftId}`,
+        cause: error,
+      });
     }
 
     const enrollments = await prisma.enrollment.findMany({
@@ -51,8 +131,24 @@ export const shiftsRouter = createTRPCRouter({
       ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
       : false;
 
+    // `depth: 0` leaves the relationship as plain user IDs, which is all an ownership check
+    // needs - populating the organisers here would only pay for documents nobody renders.
+    const isOrganiser = isOrganiserOf(shift.organiser, user?.uuid);
+
+    /**
+     * Mirrors `schedule.getCourseStatus`: the roster belongs to the organisers of the shift and
+     * nobody else, and only while "Teilnehmerliste ausblenden" is off - with it on the list stays
+     * exclusive to the admin panel, whose export never consults the flag.
+     *
+     * This is decided on the server rather than in the card, because a client-side guard would
+     * still ship the helper names in the tRPC response for any enrolled user to read.
+     *
+     * The flag is compared against `true` rather than `false` because Payload only materialises
+     * a checkbox on documents saved since it was added - shifts predating it carry `undefined`,
+     * which has to read as its `false` default ("not hidden") rather than withhold the list.
+     */
     const participants =
-      shift.hide_participant_list === false
+      isOrganiser && shift.hide_participant_list !== true
         ? enrollments.map((enrollment_) => ({
             uuid: enrollment_.user.uuid,
             name: enrollment_.user.name,
@@ -63,7 +159,15 @@ export const shiftsRouter = createTRPCRouter({
       enrolledCount: enrollments.length,
       maxParticipants:
         typeof shift.participants_max === 'number' ? shift.participants_max : undefined,
+      /**
+       * The instant after which withdrawing is refused, as an absolute timestamp rather than a
+       * "can I still leave" flag: the status is cached for five minutes and persisted across
+       * restarts, so a boolean computed here would still read "yes" long after the window closed.
+       */
+      unenrollmentDeadline: getShiftUnenrollmentDeadline(shift)?.toISOString(),
       isEnrolled,
+      isAdmin: isOrganiser,
+      isOrganiser,
       enableEnrolment: shift.enable_enrolment,
       hideList: shift.hide_participant_list,
       participants,
@@ -79,6 +183,21 @@ export const shiftsRouter = createTRPCRouter({
       select: { courseId: true },
     });
     return enrollments.map((enrollment_) => enrollment_.courseId);
+  }),
+
+  /**
+   * IDs of the shifts the user organises.
+   *
+   * Organisers have to see their own shift in "Programm von heute" without taking up one of the
+   * helper slots, so - unlike workshops, where organiser-ship is materialised as a star - shift
+   * organiser-ship is reported separately and merged with the enrolments on the dashboard.
+   */
+  getMyOrganisedShifts: publicProcedure.query(async ({ ctx }) => {
+    const { user } = ctx;
+    if (!user) return [];
+
+    const { getOrganisedShiftIds } = await import('./organiser-entries');
+    return getOrganisedShiftIds(user.uuid);
   }),
 
   enrollInShift: trpcBaseProcedure
@@ -194,6 +313,12 @@ export const shiftsRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { user, prisma } = ctx;
 
+      const payload = await getPayload({ config });
+      const shift = await findShiftOrUndefined(payload, input.shiftId);
+      if (shift !== undefined) {
+        assertUnenrollmentIsOpen(shift);
+      }
+
       await prisma.enrollment.deleteMany({
         where: { userId: user.uuid, courseId: input.shiftId, courseType: CourseType.SHIFT },
       });
@@ -236,6 +361,19 @@ export const shiftsRouter = createTRPCRouter({
           code: 'BAD_REQUEST',
           message: 'Not currently enrolled in the course you are trying to switch from.',
         });
+      }
+
+      /**
+       * Switching away from a shift is a withdrawal from it, so it closes at the same moment.
+       * Without this the deadline would only cost a helper two taps: enrol somewhere overlapping
+       * and take the switch the conflict dialog offers. Workshops have no such window, so only a
+       * shift on the leaving side is checked.
+       */
+      if (existingEnrollment.courseType === CourseType.SHIFT) {
+        const fromShift = await findShiftOrUndefined(payload, fromCourseId);
+        if (fromShift !== undefined) {
+          assertUnenrollmentIsOpen(fromShift);
+        }
       }
 
       // Lock new shift constraints

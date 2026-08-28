@@ -34,10 +34,24 @@ export const noiseMessages = [
   // This causes an 'undefined is not an object (evaluating 'r.bufferBelongsToIframe')' error.
   'bufferBelongsToIframe',
 
-  // Safari quirk/extension injecting code that tries to detect Firefox reader mode.
-  // This causes an 'undefined is not an object (evaluating 'window.__firefox__.reader')' error.
+  // see: https://github.com/cevi/conveniat-webpage/issues/1589
+  // Crypto wallet browser extensions (MetaMask, Coinbase Wallet, ...) inject a provider and
+  // then assign to `window.ethereum.selectedAddress`. When the injection is blocked or another
+  // extension removed the provider first, the assignment throws
+  // 'undefined is not an object (evaluating 'window.ethereum.selectedAddress = undefined')'.
+  // We never touch `window.ethereum`, so any such error originates outside of our code.
+  'window.ethereum',
+
+  // Firefox for iOS injects a `__firefox__` helper object into every page (reader mode,
+  // YouTube quality fixes, ...). Its own injected scripts then reference it after the object
+  // was torn down or before it was installed, which surfaces as our errors:
+  //   'undefined is not an object (evaluating 'window.__firefox__.reader')'
+  //   'undefined is not an object (evaluating 'window.__firefox__.refresh_youtube_quality_...')'
+  //   "Can't find variable: __firefox__"
+  // We never reference `__firefox__`, so match the whole family.
   // see: https://github.com/cevi/conveniat-webpage/issues/1150
-  'window.__firefox__.reader',
+  // see: https://github.com/cevi/conveniat-webpage/issues/1597
+  '__firefox__',
 
   // see: https://github.com/cevi/conveniat-webpage/issues/1169
   // Common Android WebView error triggered by injected scripts (like Facebook in-app browser)

@@ -138,6 +138,27 @@ export const MapLibreRenderer = ({
     }
   }, [updatedMapData, locale]);
 
+  /*
+   * Keep the selected annotation resolved against the annotations actually on the map.
+   *
+   * The initial state is read once, from the props - but this component then fetches the whole
+   * annotation set itself and replaces them. A caller that asks for an annotation the passed
+   * arrays did not contain (a mini map handed a polygon, a deep link opened before the data
+   * arrived) therefore had nothing selected, and nothing on the map was marked as the one being
+   * asked about.
+   */
+  useEffect(() => {
+    if (selectedAnnotationId === undefined || selectedAnnotationId === '') return;
+    if (openAnnotation?.id === selectedAnnotationId) return;
+
+    const selected =
+      annotationPoints.find((annotation) => annotation.id === selectedAnnotationId) ??
+      annotationPolygons.find((annotation) => annotation.id === selectedAnnotationId);
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selected !== undefined) setOpenAnnotation(selected);
+  }, [selectedAnnotationId, annotationPoints, annotationPolygons, openAnnotation?.id]);
+
   // Sync openAnnotation reference when state updates
   useEffect(() => {
     if (openAnnotation) {

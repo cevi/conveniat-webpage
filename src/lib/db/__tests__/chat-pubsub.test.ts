@@ -1,3 +1,4 @@
+import * as chatRealtimeMetrics from '@/lib/chat-realtime-metrics';
 import type { ChatRealtimeEvent } from '@/lib/db/chat-pubsub';
 
 jest.mock('@/config/environment-variables', () => ({
@@ -16,17 +17,41 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// The factory must build the mocks itself: `jest.mock` is hoisted above any const
+// it would otherwise close over, and chat-pubsub imports this module on load.
+jest.mock('@/lib/chat-realtime-metrics', () => ({
+  recordPubSubConnectionEvent: jest.fn(),
+  recordPubSubNotification: jest.fn(),
+  recordPubSubPublish: jest.fn(),
+  setPubSubListening: jest.fn(),
+  setPubSubSubscriberCount: jest.fn(),
+}));
+
+const mockMetrics = jest.mocked(chatRealtimeMetrics);
+
 type NotificationHandler = (message: { channel: string; payload?: string }) => void;
 const pgHandlers: Record<string, unknown> = {};
 
 /** Number of upcoming `connect()` calls that should fail, for the outage tests. */
 const pgConnectFailures = { remaining: 0 };
+/** Number of upcoming `LISTEN` queries that should fail after a successful connect. */
+const pgListenFailures = { remaining: 0 };
 const pgClientsCreated = { count: 0 };
+/** Every client the module has constructed, so a discarded one can be inspected. */
+const pgClients: unknown[] = [];
 
 const connectMock = (): Promise<void> => {
   if (pgConnectFailures.remaining > 0) {
     pgConnectFailures.remaining -= 1;
     return Promise.reject(new Error('connection refused'));
+  }
+  return Promise.resolve();
+};
+
+const queryMock = (sql: string): Promise<void> => {
+  if (sql.startsWith('LISTEN') && pgListenFailures.remaining > 0) {
+    pgListenFailures.remaining -= 1;
+    return Promise.reject(new Error('permission denied for LISTEN'));
   }
   return Promise.resolve();
 };
@@ -37,9 +62,10 @@ jest.mock('pg', () => ({
     Client: class {
       public constructor() {
         pgClientsCreated.count += 1;
+        pgClients.push(this);
       }
       public connect = jest.fn().mockImplementation(connectMock);
-      public query = jest.fn().mockResolvedValue(void 0);
+      public query = jest.fn().mockImplementation(queryMock);
       public end = jest.fn().mockResolvedValue(void 0);
       public on(event: string, callback: unknown): void {
         pgHandlers[event] = callback;
@@ -128,10 +154,12 @@ describe('ChatPubSub channel routing', () => {
   });
 });
 
+// Generous on purpose: a reconnect attempt walks connect -> LISTEN -> teardown ->
+// the retry scheduler, and each hop adds microtask turns the tests have to sit out.
 const flushPendingPromises = async (): Promise<void> => {
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let index = 0; index < 20; index++) {
+    await Promise.resolve();
+  }
 };
 
 const failCurrentConnection = (): void => {
@@ -166,6 +194,105 @@ describe('ChatPubSub LISTEN recovery', () => {
     } finally {
       jest.useRealTimers();
       unsubscribeRestored();
+      unsubscribe();
+    }
+  });
+});
+
+describe('ChatPubSub LISTEN setup failure', () => {
+  /**
+   * A client that connected but never got past `LISTEN` is unreachable from the
+   * instance and has no `error` handler attached yet, so leaving it open strands a
+   * backend session and arms an unhandled `error` event that would take the process
+   * down. The retry loop fires every few seconds, so each attempt would arm another.
+   */
+  it('closes the client when the LISTEN query fails after connecting', async () => {
+    const unsubscribe = await chatPubSub.subscribe('chat-listen-fail', jest.fn());
+    jest.useFakeTimers();
+    try {
+      failCurrentConnection();
+      pgListenFailures.remaining = 1;
+      const clientsBefore = pgClients.length;
+
+      jest.advanceTimersByTime(5000);
+      await flushPendingPromises();
+
+      expect(pgClients.length).toBe(clientsBefore + 1);
+      const discardedClient = pgClients.at(-1) as { end: jest.Mock };
+      expect(discardedClient.end).toHaveBeenCalledTimes(1);
+
+      // ... and the retry loop still brings a healthy connection back afterwards.
+      jest.advanceTimersByTime(5000);
+      await flushPendingPromises();
+      expect(pgClients.length).toBe(clientsBefore + 2);
+      const listeningClient = pgClients.at(-1) as { end: jest.Mock };
+      expect(listeningClient.end).not.toHaveBeenCalled();
+    } finally {
+      pgListenFailures.remaining = 0;
+      jest.useRealTimers();
+      unsubscribe();
+    }
+  });
+});
+
+describe('ChatPubSub telemetry', () => {
+  beforeEach(() => {
+    mockMetrics.recordPubSubConnectionEvent.mockClear();
+    mockMetrics.recordPubSubNotification.mockClear();
+    mockMetrics.recordPubSubPublish.mockClear();
+    mockMetrics.setPubSubListening.mockClear();
+  });
+
+  it('counts a successful publish', async () => {
+    await chatPubSub.publish({ type: 'new_message', chatId: 'chat-t1', senderId: 'user-1' });
+
+    expect(mockMetrics.recordPubSubPublish).toHaveBeenCalledWith('published');
+  });
+
+  it('counts a payload too large for pg_notify instead of publishing it', async () => {
+    await chatPubSub.publish({
+      type: 'new_message',
+      chatId: 'chat-t2',
+      senderId: 'user-1',
+      message: {
+        id: 'm1',
+        createdAt: new Date(0),
+        messagePayload: { text: 'x'.repeat(8000) },
+        senderId: 'user-1',
+        status: 'STORED',
+        type: 'TEXT_MSG',
+      },
+    });
+
+    expect(mockMetrics.recordPubSubPublish).toHaveBeenCalledWith('oversized');
+  });
+
+  it('counts notifications received from Postgres', async () => {
+    const unsubscribe = await chatPubSub.subscribe('chat-t3', jest.fn());
+    try {
+      simulateNotification({ type: 'new_message', chatId: 'chat-t3', senderId: 'user-1' });
+
+      expect(mockMetrics.recordPubSubNotification).toHaveBeenCalledWith('delivered');
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it('reports the replica as no longer listening once the connection is recycled', async () => {
+    const unsubscribe = await chatPubSub.subscribe('chat-t4', jest.fn());
+    jest.useFakeTimers();
+    try {
+      failCurrentConnection();
+
+      // The gauge is what makes a deaf replica visible; without it the process keeps
+      // serving streams that deliver nothing and every other signal stays green.
+      expect(mockMetrics.setPubSubListening).toHaveBeenCalledWith(false);
+      expect(mockMetrics.recordPubSubConnectionEvent).toHaveBeenCalledWith(
+        'recycled',
+        'client_error',
+      );
+    } finally {
+      jest.useRealTimers();
       unsubscribe();
     }
   });
