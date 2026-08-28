@@ -336,6 +336,24 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
     },
     {
+      name: 'financeNote',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'textarea',
+      label: {
+        en: 'Note for finance',
+        de: 'Bemerkung für die Finanzen',
+        fr: 'Remarque pour les finances',
+      },
+      admin: {
+        description: {
+          en: 'Free text carried into the finance overview export. Never touched by a Cevi.DB sync.',
+          de: 'Freitext, der in den Rechnungsübersicht-Export übernommen wird. Wird von einem Cevi.DB-Abgleich nie überschrieben.',
+          fr: "Texte libre repris dans l'export de synthèse. Jamais écrasé par une synchronisation Cevi.DB.",
+        },
+        disableGroupBy: true,
+      },
+    },
+    {
       name: 'removedDate',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',

@@ -1366,7 +1366,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'brevoContactWorkflow';
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;
@@ -4073,6 +4073,10 @@ export interface BillParticipant {
   lastSyncDate?: string | null;
   billCreatedDate?: string | null;
   billSentDate?: string | null;
+  /**
+   * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
+   */
+  financeNote?: string | null;
   removedDate?: string | null;
   reAddedDate?: string | null;
   referenceNumber?: string | null;
@@ -6413,6 +6417,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   lastSyncDate?: T;
   billCreatedDate?: T;
   billSentDate?: T;
+  financeNote?: T;
   removedDate?: T;
   reAddedDate?: T;
   referenceNumber?: T;

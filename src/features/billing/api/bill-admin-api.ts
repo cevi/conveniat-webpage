@@ -273,6 +273,39 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
 };
 
 /**
+ * GET /api/confidential/billing/export-xlsx – Finance overview workbook
+ *
+ * A different report from the CSV next to it: that one is the accounting import, this is
+ * the per-bill overview the finance team reads.
+ */
+export const billingExportXlsxHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { generateFinanceOverviewWorkbook } =
+      await import('@/features/billing/services/finance-overview-export');
+    const workbook = await generateFinanceOverviewWorkbook(request.payload);
+    const filename = `rechnungsuebersicht-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    return new Response(new Uint8Array(workbook), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache',
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Finance overview export failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
  * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group
  * 4337 and save them to the bill settings.
  *

@@ -1,6 +1,7 @@
 import {
   billingCancelHandler,
   billingExportCsvHandler,
+  billingExportXlsxHandler,
   billingGenerateHandler,
   billingPopulateSubeventsHandler,
   billingPreviewPdfHandler,
@@ -53,6 +54,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/export-csv',
     method: 'get',
     handler: billingExportCsvHandler,
+  },
+  {
+    path: '/confidential/billing/export-xlsx',
+    method: 'get',
+    handler: billingExportXlsxHandler,
   },
   {
     path: '/confidential/billing/preview-pdf',

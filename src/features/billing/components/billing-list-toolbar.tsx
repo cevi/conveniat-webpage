@@ -15,7 +15,15 @@ import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import type { StaticTranslationString } from '@/types/types';
 import { Banner, useLocale } from '@payloadcms/ui';
-import { AlertTriangle, Download, FilePlus, MoreHorizontal, RefreshCcw, Send } from 'lucide-react';
+import {
+  AlertTriangle,
+  Download,
+  FilePlus,
+  FileSpreadsheet,
+  MoreHorizontal,
+  RefreshCcw,
+  Send,
+} from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -128,9 +136,15 @@ const moreActionsLabel: StaticTranslationString = {
 };
 
 const csvExportLabel: StaticTranslationString = {
-  de: 'CSV herunterladen',
-  en: 'Download CSV',
-  fr: 'Télécharger le CSV',
+  de: 'Buchhaltungs-CSV herunterladen',
+  en: 'Download accounting CSV',
+  fr: 'Télécharger le CSV comptable',
+};
+
+const xlsxExportLabel: StaticTranslationString = {
+  de: 'Rechnungsübersicht (Excel)',
+  en: 'Bill overview (Excel)',
+  fr: 'Synthèse des factures (Excel)',
 };
 
 const regenerateAllLabel: StaticTranslationString = {
@@ -208,6 +222,10 @@ const failedCountLabel: StaticTranslationString = {
 
 const handleCsvExport = (): void => {
   globalThis.open('/api/confidential/billing/export-csv', '_blank');
+};
+
+const handleXlsxExport = (): void => {
+  globalThis.open('/api/confidential/billing/export-xlsx', '_blank');
 };
 
 /**
@@ -337,6 +355,16 @@ export const BillingListToolbar: React.FC = () => {
             align="end"
             className="w-52 border-(--theme-elevation-150) bg-(--theme-elevation-0) text-(--theme-elevation-800) shadow-lg"
           >
+            <DropdownMenuItem
+              onClick={(event): void => {
+                event.preventDefault();
+                handleXlsxExport();
+              }}
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-(--theme-elevation-100)"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>{xlsxExportLabel[locale]}</span>
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={(event): void => {
                 event.preventDefault();
