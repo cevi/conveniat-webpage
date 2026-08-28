@@ -246,7 +246,9 @@ export const BillingListToolbar: React.FC = () => {
   ];
 
   return (
-    <div className="mb-6">
+    // Constrained the way Payload constrains its own document fields: at full list width
+    // each step's action button would sit most of a screen away from the step it runs.
+    <div className="mb-6 max-w-3xl">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-semibold text-(--theme-elevation-800)">
@@ -321,7 +323,7 @@ export const BillingListToolbar: React.FC = () => {
       </ol>
 
       {actionError !== undefined && (
-        <Banner className="mt-3" type="error">
+        <Banner className="mt-3 mb-0" type="error">
           {actionError}
         </Banner>
       )}

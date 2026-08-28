@@ -220,18 +220,20 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
     <li className="relative grid grid-cols-[1.5rem_1fr] gap-x-3 pb-4 last:pb-0">
       {/* Step marker and the connector that makes the three steps read as a sequence. */}
       <div className="flex flex-col items-center">
-        <span
-          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium ${markerClasses}`}
-        >
-          {succeeded && <Check className="h-3 w-3" />}
-          {finishedWithErrors && <AlertTriangle className="h-3 w-3" />}
-          {!succeeded && !finishedWithErrors && stepNumber}
+        <span className="flex h-7 shrink-0 items-center">
+          <span
+            className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-medium ${markerClasses}`}
+          >
+            {succeeded && <Check className="h-3 w-3" />}
+            {finishedWithErrors && <AlertTriangle className="h-3 w-3" />}
+            {!succeeded && !finishedWithErrors && stepNumber}
+          </span>
         </span>
-        {!isLast && <span className="mt-1 w-px flex-1 bg-(--theme-elevation-150)" />}
+        {!isLast && <span className="w-px flex-1 bg-(--theme-elevation-150)" />}
       </div>
 
       <div className="min-w-0">
-        <div className="flex min-h-6 flex-wrap items-center justify-between gap-2">
+        <div className="flex min-h-7 flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-(--theme-elevation-450)">{icon}</span>
             <span className="truncate text-sm font-medium text-(--theme-elevation-800)">
@@ -245,18 +247,20 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
           {isPending ? (
             <Button
               buttonStyle="secondary"
-              size="small"
               disabled={isCancelling}
               icon={<X className="h-3.5 w-3.5" />}
               iconPosition="left"
+              // Payload's `.btn` ships ~24px of block margin, which a compact row
+              // cannot absorb; every step would sit a line away from its own marker.
+              margin={false}
               onClick={onCancel}
+              size="small"
             >
               {isCancelling ? cancellingLabel[locale] : cancelActionLabel[locale]}
             </Button>
           ) : (
             <Button
               buttonStyle="secondary"
-              size="small"
               disabled={isBlocked}
               icon={
                 isStarting ? (
@@ -266,7 +270,9 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
                 )
               }
               iconPosition="left"
+              margin={false}
               onClick={onStart}
+              size="small"
             >
               {isStarting ? startingLabel[locale] : actionLabel}
             </Button>
@@ -335,7 +341,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         )}
 
         {hasFailed && (
-          <Banner className="mt-2" type="error">
+          <Banner className="mt-2 mb-0" type="error">
             {job.error ?? failedLabel[locale]}
           </Banner>
         )}
