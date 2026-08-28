@@ -1,4 +1,5 @@
 import {
+  billingCancelHandler,
   billingExportCsvHandler,
   billingGenerateHandler,
   billingPopulateSubeventsHandler,
@@ -57,6 +58,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/preview-pdf',
     method: 'get',
     handler: billingPreviewPdfHandler,
+  },
+  {
+    path: '/confidential/billing/cancel',
+    method: 'post',
+    handler: billingCancelHandler,
   },
   {
     path: '/confidential/billing/populate-subevents',

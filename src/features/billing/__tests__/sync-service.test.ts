@@ -13,8 +13,35 @@ import type {
 } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import type {
+  JobProgressReporter,
+  JobProgressUpdate,
+} from '@/features/billing/services/job-progress-reporter';
 import { syncParticipantsUseCase } from '@/features/billing/services/sync-service';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
+
+/**
+ * A reporter that records what the use case published, so a test can assert on the frames
+ * an operator would have seen.
+ */
+const collectingReporter = (
+  shouldCancel: () => boolean,
+): { reporter: JobProgressReporter; updates: JobProgressUpdate[] } => {
+  const updates: JobProgressUpdate[] = [];
+  return {
+    updates,
+    reporter: {
+      report: async (update): Promise<void> => {
+        updates.push(update);
+        await Promise.resolve();
+      },
+      shouldCancel: async (): Promise<boolean> => {
+        await Promise.resolve();
+        return shouldCancel();
+      },
+    },
+  };
+};
 
 describe('Sync Service', () => {
   let mockParticipantRepo: jest.Mocked<ParticipantRepositoryPort>;
@@ -207,5 +234,79 @@ describe('Sync Service', () => {
         missingAnmeldeangaben: ['AHV-Nummer'],
       }),
     );
+  });
+
+  describe('progress reporting', () => {
+    const threeEvents = [
+      { eventId: 'event-1', eventName: 'Lager Bern', groupId: 'group-1' },
+      { eventId: 'event-2', eventName: 'Lager Chur', groupId: 'group-2' },
+      { eventId: 'event-3', eventName: 'Lager Sitten', groupId: 'group-3' },
+    ];
+
+    beforeEach(() => {
+      mockSettingsRepo.getBillSettings.mockResolvedValue({
+        events: threeEvents,
+      } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+      mockHitobitoService.fetchParticipations.mockResolvedValue([]);
+    });
+
+    it('names the event it is about to walk, and closes on the full count', async () => {
+      const { reporter, updates } = collectingReporter(() => false);
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+        reporter,
+      );
+
+      expect(summary.cancelled).toBeUndefined();
+      expect(updates.map((update) => update.processedItems)).toEqual([0, 1, 2, 3]);
+      expect(updates.map((update) => update.currentItemName)).toEqual([
+        'Lager Bern',
+        'Lager Chur',
+        'Lager Sitten',
+        '',
+      ]);
+      expect(updates.every((update) => update.totalItems === 3)).toBe(true);
+    });
+
+    it('stops at the next event boundary when a cancellation is requested', async () => {
+      // Cancel is requested while the first event is being walked.
+      let cancelled = false;
+      const { reporter, updates } = collectingReporter(() => cancelled);
+      mockHitobitoService.fetchParticipations.mockImplementation(async () => {
+        cancelled = true;
+        await Promise.resolve();
+        return [];
+      });
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+        reporter,
+      );
+
+      expect(summary.cancelled).toBe(true);
+      // Event one ran to completion; event two was never fetched.
+      expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(1);
+      // No closing full-count frame — the bar must not jump to 100% on a cancelled run.
+      expect(updates.at(-1)?.processedItems).toBe(1);
+    });
+
+    it('runs unchanged when no reporter is supplied', async () => {
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(summary.cancelled).toBeUndefined();
+      expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(3);
+    });
   });
 });

@@ -37,6 +37,8 @@ export interface SyncedParticipant {
  * Summary returned after a sync operation.
  */
 export interface SyncSummary {
+  /** Set when an operator stopped the run early; the counters are then partial. */
+  cancelled?: boolean;
   newCount: number;
   removedCount: number;
   reAddedCount: number;
@@ -50,6 +52,8 @@ export interface SyncSummary {
  * Summary returned after bill generation.
  */
 export interface GenerationSummary {
+  /** Set when an operator stopped the run early; the counters are then partial. */
+  cancelled?: boolean;
   generatedCount: number;
   skippedCount: number;
   skippedAlreadyExistingCount: number;
@@ -60,6 +64,8 @@ export interface GenerationSummary {
  * Summary returned after sending bills.
  */
 export interface SendSummary {
+  /** Set when an operator stopped the run early; the counters are then partial. */
+  cancelled?: boolean;
   sentCount: number;
   failedCount: number;
   errors: string[];

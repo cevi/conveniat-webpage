@@ -5,6 +5,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncSummary } from '@/features/billing/types';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
@@ -411,6 +412,7 @@ export async function syncParticipantsUseCase(
     warn: (message: string) => void;
     error: (message: string) => void;
   },
+  reporter?: JobProgressReporter,
 ): Promise<SyncSummary> {
   const now = new Date().toISOString();
   const summary: SyncSummary = {
@@ -432,13 +434,47 @@ export async function syncParticipantsUseCase(
   }
 
   // 2. Fetch participations for each event
-  for (const event of events) {
+  const runningSummary = (): Record<string, number> => ({
+    newCount: summary.newCount,
+    removedCount: summary.removedCount,
+    reAddedCount: summary.reAddedCount,
+    changedCount: summary.changedCount,
+    unchangedCount: summary.unchangedCount,
+  });
+
+  for (const [index, event] of events.entries()) {
+    // Reported before the event is walked so the operator sees the name of what is
+    // currently being fetched, not the one that just finished.
+    await reporter?.report({
+      processedItems: index,
+      totalItems: events.length,
+      currentItemName: event.eventName,
+      runningSummary: runningSummary(),
+    });
+
+    if (await reporter?.shouldCancel()) {
+      summary.cancelled = true;
+      logger.info(
+        `Sync cancelled by operator after ${String(index)} of ${String(events.length)} events.`,
+      );
+      break;
+    }
+
     try {
       await syncSingleEventTraced(event, hitobitoService, participantRepo, now, summary);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${errorMessage}`);
     }
+  }
+
+  if (summary.cancelled !== true) {
+    await reporter?.report({
+      processedItems: events.length,
+      totalItems: events.length,
+      currentItemName: '',
+      runningSummary: runningSummary(),
+    });
   }
 
   logger.info(
@@ -451,7 +487,10 @@ export async function syncParticipantsUseCase(
 /**
  * Backwards compatible syncParticipants wrapper function.
  */
-async function syncParticipantsImpl(payload: Payload): Promise<SyncSummary> {
+async function syncParticipantsImpl(
+  payload: Payload,
+  reporter?: JobProgressReporter,
+): Promise<SyncSummary> {
   const settingsRepo = new PayloadSettingsAdapter(payload);
   const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
 
@@ -490,7 +529,7 @@ async function syncParticipantsImpl(payload: Payload): Promise<SyncSummary> {
     logger,
   );
 
-  return syncParticipantsUseCase(participantRepo, hitobitoService, settingsRepo, logger);
+  return syncParticipantsUseCase(participantRepo, hitobitoService, settingsRepo, logger, reporter);
 }
 
 /**

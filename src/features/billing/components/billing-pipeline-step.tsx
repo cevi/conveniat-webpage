@@ -1,0 +1,338 @@
+'use client';
+
+import type { BillingJobView } from '@/features/billing/hooks/use-billing-jobs';
+import { useElapsedSeconds } from '@/features/billing/hooks/use-elapsed-seconds';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { AlertTriangle, Check, RefreshCw, X } from 'lucide-react';
+import type React from 'react';
+
+const neverRunLabel: StaticTranslationString = {
+  de: 'Noch nie ausgeführt',
+  en: 'Never run',
+  fr: 'Jamais exécuté',
+};
+
+const runningLabel: StaticTranslationString = {
+  de: 'Läuft',
+  en: 'Running',
+  fr: 'En cours',
+};
+
+const failedLabel: StaticTranslationString = {
+  de: 'Fehlgeschlagen',
+  en: 'Failed',
+  fr: 'Échoué',
+};
+
+const doneLabel: StaticTranslationString = {
+  de: 'Abgeschlossen',
+  en: 'Done',
+  fr: 'Terminé',
+};
+
+const cancelledLabel: StaticTranslationString = {
+  de: 'Abgebrochen',
+  en: 'Cancelled',
+  fr: 'Annulé',
+};
+
+const cancelActionLabel: StaticTranslationString = {
+  de: 'Abbrechen',
+  en: 'Cancel',
+  fr: 'Annuler',
+};
+
+const cancellingLabel: StaticTranslationString = {
+  de: 'Wird abgebrochen...',
+  en: 'Cancelling...',
+  fr: 'Annulation...',
+};
+
+const startingLabel: StaticTranslationString = {
+  de: 'Wird gestartet...',
+  en: 'Starting...',
+  fr: 'Démarrage...',
+};
+
+const errorDetailsLabel: StaticTranslationString = {
+  de: 'Fehler anzeigen',
+  en: 'Show errors',
+  fr: 'Afficher les erreurs',
+};
+
+/** `mm:ss`, which is the resolution that matters for a job measured in minutes. */
+const formatElapsed = (seconds: number): string => {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${String(minutes)}:${String(remainder).padStart(2, '0')}`;
+};
+
+/**
+ * "vor 3 Minuten" rather than a timestamp: the question an operator is asking of a
+ * finished run is how fresh it is, not when exactly it happened. The exact time stays
+ * available on hover.
+ */
+const formatRelativeTime = (isoDate: string, locale: Locale): string => {
+  const deltaSeconds = Math.round((new Date(isoDate).getTime() - Date.now()) / 1000);
+  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+  const thresholds: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+    ['second', 60],
+    ['minute', 60],
+    ['hour', 24],
+    ['day', 7],
+  ];
+
+  let value = deltaSeconds;
+  for (const [unit, step] of thresholds) {
+    if (Math.abs(value) < step) return formatter.format(value, unit);
+    value = Math.round(value / step);
+  }
+  return formatter.format(value, 'week');
+};
+
+const readErrors = (summary: Record<string, unknown> | undefined): string[] => {
+  const errors = summary?.['errors'];
+  if (!Array.isArray(errors)) return [];
+  return errors.map(String);
+};
+
+const readCounters = (
+  source: Record<string, unknown> | undefined,
+  counterLabels: Array<{ key: string; label: string }>,
+): Array<{ key: string; label: string; value: number }> => {
+  if (source === undefined) return [];
+  return counterLabels.map(({ key, label }) => ({
+    key,
+    label,
+    value: typeof source[key] === 'number' ? source[key] : 0,
+  }));
+};
+
+export interface BillingPipelineStepProperties {
+  stepNumber: number;
+  title: string;
+  icon: React.ReactNode;
+  actionLabel: string;
+  /** Rendered under the title when the step has never run — says what it will do. */
+  hint: string;
+  counterLabels: Array<{ key: string; label: string }>;
+  job: BillingJobView | undefined;
+  isPending: boolean;
+  isStarting: boolean;
+  isCancelling: boolean;
+  /** True while any other job runs — the pipeline steps are not meant to overlap. */
+  isBlocked: boolean;
+  isLast: boolean;
+  locale: Locale;
+  onStart: () => void;
+  onCancel: () => void;
+}
+
+/**
+ * One step of the billing pipeline: its state, its live progress while it runs, the
+ * counters its last run produced, and the button that starts or stops it.
+ */
+export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
+  stepNumber,
+  title,
+  icon,
+  actionLabel,
+  hint,
+  counterLabels,
+  job,
+  isPending,
+  isStarting,
+  isCancelling,
+  isBlocked,
+  isLast,
+  locale,
+  onStart,
+  onCancel,
+}) => {
+  const progress = job?.progress;
+  const elapsedSeconds = useElapsedSeconds(isPending ? progress?.startedAt : undefined);
+
+  const wasCancelled = job?.summary?.['cancelled'] === true;
+  const hasFailed = job?.status === 'failed';
+  const hasRun = job !== undefined;
+
+  const percentage =
+    progress !== undefined && progress.totalItems > 0
+      ? Math.round((progress.processedItems / progress.totalItems) * 100)
+      : 0;
+
+  const counters = isPending
+    ? readCounters(progress?.runningSummary, counterLabels)
+    : readCounters(job?.summary, counterLabels);
+
+  const errors = readErrors(job?.summary);
+
+  let statusLabel = neverRunLabel[locale];
+  let statusClasses = 'bg-(--theme-elevation-100) text-(--theme-elevation-600)';
+  if (isPending) {
+    statusLabel = runningLabel[locale];
+    statusClasses = 'bg-(--theme-warning-100) text-(--theme-warning-600)';
+  } else if (hasFailed) {
+    statusLabel = failedLabel[locale];
+    statusClasses = 'bg-(--theme-error-100) text-(--theme-error-600)';
+  } else if (wasCancelled) {
+    statusLabel = cancelledLabel[locale];
+    statusClasses = 'bg-(--theme-elevation-100) text-(--theme-elevation-700)';
+  } else if (hasRun) {
+    statusLabel = doneLabel[locale];
+    statusClasses = 'bg-(--theme-success-100) text-(--theme-success-600)';
+  }
+
+  let markerClasses =
+    'border-(--theme-elevation-200) bg-(--theme-elevation-0) text-(--theme-elevation-500)';
+  if (isPending) {
+    markerClasses =
+      'border-(--theme-warning-500) bg-(--theme-warning-50) text-(--theme-warning-600)';
+  } else if (hasFailed) {
+    markerClasses = 'border-(--theme-error-500) bg-(--theme-error-50) text-(--theme-error-600)';
+  } else if (hasRun && !wasCancelled) {
+    markerClasses =
+      'border-(--theme-success-500) bg-(--theme-success-500) text-(--theme-elevation-0)';
+  }
+
+  return (
+    <li className="relative grid grid-cols-[2rem_1fr] gap-x-3 pb-4 last:pb-0">
+      {/* Step marker and the connector that makes the three steps read as a sequence. */}
+      <div className="flex flex-col items-center">
+        <span
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${markerClasses}`}
+        >
+          {hasRun && !isPending && !hasFailed && !wasCancelled ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            stepNumber
+          )}
+        </span>
+        {!isLast && <span className="mt-1 w-px flex-1 bg-(--theme-elevation-150)" />}
+      </div>
+
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="text-(--theme-elevation-500)">{icon}</span>
+            <h4 className="m-0 truncate text-sm font-semibold text-(--theme-elevation-900)">
+              {title}
+            </h4>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${statusClasses}`}
+            >
+              {statusLabel}
+            </span>
+          </div>
+
+          {isPending ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isCancelling}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) px-3 py-1.5 text-xs font-medium text-(--theme-elevation-800) hover:bg-(--theme-elevation-100) disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <X className="h-3.5 w-3.5" />
+              {isCancelling ? cancellingLabel[locale] : cancelActionLabel[locale]}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onStart}
+              disabled={isBlocked}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-3 py-1.5 text-xs font-medium text-(--theme-elevation-800) hover:bg-(--theme-elevation-100) disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isStarting ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <span className="contents">{icon}</span>
+              )}
+              {isStarting ? startingLabel[locale] : actionLabel}
+            </button>
+          )}
+        </div>
+
+        {isPending && (
+          <div className="mt-2">
+            <div
+              className="h-1.5 w-full overflow-hidden rounded-full bg-(--theme-elevation-100)"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={percentage}
+              aria-label={title}
+            >
+              <div
+                className="h-full rounded-full bg-(--theme-warning-500) transition-[width] duration-500 ease-out"
+                style={{ width: `${String(percentage)}%` }}
+              />
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-xs text-(--theme-elevation-600)">
+              {progress !== undefined && progress.totalItems > 0 && (
+                <span className="font-mono">
+                  {progress.processedItems}/{progress.totalItems}
+                </span>
+              )}
+              {progress !== undefined && progress.currentItemName !== '' && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="min-w-0 truncate">{progress.currentItemName}</span>
+                </>
+              )}
+              {elapsedSeconds !== undefined && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="font-mono">{formatElapsed(elapsedSeconds)}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!hasRun && !isPending && (
+          <p className="mt-1 mb-0 text-xs text-(--theme-elevation-500)">{hint}</p>
+        )}
+
+        {counters.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-(--theme-elevation-600)">
+            {counters.map((counter) => (
+              <span key={counter.key}>
+                {counter.label}{' '}
+                <span className="font-semibold text-(--theme-elevation-900)">{counter.value}</span>
+              </span>
+            ))}
+            {!isPending && job !== undefined && (
+              <span
+                className="text-(--theme-elevation-500)"
+                title={new Date(job.updatedAt).toLocaleString(locale)}
+              >
+                {formatRelativeTime(job.updatedAt, locale)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {hasFailed && (
+          <p className="mt-1.5 mb-0 flex items-start gap-1.5 text-xs text-(--theme-error-600)">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 break-words">{job.error ?? failedLabel[locale]}</span>
+          </p>
+        )}
+
+        {errors.length > 0 && (
+          <details className="mt-1.5 text-xs">
+            <summary className="cursor-pointer text-(--theme-error-600)">
+              {errorDetailsLabel[locale]} ({errors.length})
+            </summary>
+            <ul className="mt-1 max-h-28 list-inside list-disc overflow-y-auto rounded bg-(--theme-elevation-50) p-2 text-(--theme-elevation-700)">
+              {errors.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+    </li>
+  );
+};

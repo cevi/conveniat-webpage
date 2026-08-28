@@ -1,7 +1,9 @@
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
+import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
+import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
@@ -339,6 +341,8 @@ interface SyncJobStatus {
   summary?: Record<string, unknown>;
   error?: string;
   updatedAt: string;
+  /** Only present while the job is running and reporting. */
+  progress?: BillingJobProgress;
 }
 
 function getJobDerivedStatus(job: {
@@ -426,6 +430,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
     }
 
     // Otherwise, return the latest job for each task type
+    const progressStore = new RedisJobProgressAdapter();
     const getLatestJob = async (taskSlug: BillingTaskSlug): Promise<SyncJobStatus | undefined> => {
       const result = await request.payload.find({
         collection: 'payload-jobs',
@@ -458,6 +463,15 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
         jobData.error = error;
       }
 
+      if (status === BillingJobStatus.Pending) {
+        // Only trust a progress record that belongs to this job — a crashed run can
+        // leave one behind until its TTL expires.
+        const progress = await progressStore.read(taskSlug);
+        if (progress?.jobId === job.id) {
+          jobData.progress = progress;
+        }
+      }
+
       return jobData;
     };
 
@@ -476,6 +490,50 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Fetch sync status failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+const CancelTaskSchema = z.object({
+  task: z.enum([
+    BillingTaskSlug.SyncParticipants,
+    BillingTaskSlug.GenerateBills,
+    BillingTaskSlug.SendBills,
+  ]),
+});
+
+/**
+ * POST /api/confidential/billing/cancel – Ask a running billing job to stop.
+ *
+ * Cancellation is cooperative: the flag is picked up at the next item boundary, so the
+ * item in flight still finishes and the job reports the partial counters it reached.
+ * Nothing already written is rolled back.
+ */
+export const billingCancelHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body: unknown = await request.json?.();
+    const parseResult = CancelTaskSchema.safeParse(body);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    await new RedisJobProgressAdapter().requestCancel(parseResult.data.task);
+    request.payload.logger.info(
+      `Cancellation requested for billing task ${parseResult.data.task}.`,
+    );
+
+    return Response.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Cancelling billing job failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
