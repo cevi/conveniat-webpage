@@ -97,6 +97,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
         <PostHogProvider>
           <BootHydrationMarker />
           <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
+            {/* No height cap: the boot screen centres the mark in the full viewport. */}
             <BackgroundLogo />
           </div>
           {children}

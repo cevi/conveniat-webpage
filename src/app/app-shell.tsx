@@ -58,7 +58,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
                       isTopNavMode ? 'lg:hidden' : 'xl:pl-[480px]',
                     )}
                   >
-                    <BackgroundLogo />
+                    <BackgroundLogo className="max-h-[60vh]" />
                   </div>
                 )}
 

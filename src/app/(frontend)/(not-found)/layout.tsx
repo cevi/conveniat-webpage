@@ -30,7 +30,7 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
           <DynamicAppTitleProvider>
             <HeaderComponent locale={locale} inAppDesign={isInAppDesign} />
             <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
-              <BackgroundLogo />
+              <BackgroundLogo className="max-h-[60vh]" />
             </div>
 
             <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
