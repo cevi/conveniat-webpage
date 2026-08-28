@@ -12,7 +12,7 @@ const authSessionProxy: ProxyModule = (next) => {
     // but not for purely static assets to save overhead.
     const { pathname } = request.nextUrl;
     const isStaticAsset =
-      /\.(png|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|js|map|json|css)$/i.test(pathname) ||
+      /\.(png|webp|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|js|map|json|css)$/i.test(pathname) ||
       pathname.startsWith('/imgs/') ||
       pathname.startsWith('/.well-known/') ||
       pathname === '/apple-app-site-association' ||
