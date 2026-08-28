@@ -106,3 +106,41 @@ export enum BillingJobStatus {
   Failed = 'failed',
   Success = 'success',
 }
+
+/**
+ * A subgroup event discovered on Cevi.DB and stored in the bill-settings event list.
+ */
+export interface PopulatedSubevent {
+  eventId: string;
+  eventName: string;
+  groupId: string;
+}
+
+/**
+ * Frames streamed (newline-delimited JSON) by
+ * `POST /api/confidential/billing/populate-subevents`.
+ *
+ * The walk over all subgroups takes ~45s, so the handler reports progress as it goes
+ * instead of leaving the admin UI with a spinner and no information. Once the last
+ * `progress` frame has arrived the walk is done and the merged list is being written,
+ * which is the phase the UI labels as "saving" until `done` arrives.
+ */
+export type PopulateSubeventsStreamMessage =
+  | {
+      type: 'progress';
+      processedGroups: number;
+      totalGroups: number;
+      /** Events found since the previous frame — append, do not replace. */
+      foundEvents: PopulatedSubevent[];
+    }
+  | {
+      type: 'done';
+      /** The subset of the discovered events that was not in the settings yet. */
+      newEvents: PopulatedSubevent[];
+      /**
+       * The complete event list as it was just written to the settings, so the admin
+       * form can adopt it without a page reload.
+       */
+      allEvents: PopulatedSubevent[];
+    }
+  | { type: 'error'; error: string };

@@ -8,9 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
-import { Button } from '@payloadcms/ui';
+import { Button, useListQuery } from '@payloadcms/ui';
 import { Download, FilePlus, MoreHorizontal, RefreshCcw, RefreshCw, Send } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import React from 'react';
 
 interface ActionResult {
@@ -59,7 +58,10 @@ const handleCsvExport = (): void => {
  * Provides bulk actions: Sync, Generate, Send, CSV export, and Regenerate all.
  */
 export const BillingListToolbar: React.FC = () => {
-  const router = useRouter();
+  // The list table keeps its rows in the ListQuery provider, not in the server-rendered
+  // tree, so `router.refresh()` leaves it stale. Re-running the current query is what
+  // actually pulls the freshly synced participants in.
+  const { query, refineListData } = useListQuery();
 
   const [loading, setLoading] = React.useState(false);
   const [actionType, setActionType] = React.useState('');
@@ -188,7 +190,6 @@ export const BillingListToolbar: React.FC = () => {
       ) {
         delete updatedActiveJobs.sync;
         changed = true;
-        router.refresh();
       }
       if (
         currentActiveJobs.generate !== undefined &&
@@ -197,7 +198,6 @@ export const BillingListToolbar: React.FC = () => {
       ) {
         delete updatedActiveJobs.generate;
         changed = true;
-        router.refresh();
       }
       if (
         currentActiveJobs.send !== undefined &&
@@ -206,14 +206,16 @@ export const BillingListToolbar: React.FC = () => {
       ) {
         delete updatedActiveJobs.send;
         changed = true;
-        router.refresh();
       }
 
       if (changed === true) {
         setActiveJobs(updatedActiveJobs);
+        // A job that just finished wrote to bill-participants; reload the table once,
+        // no matter how many of the three jobs completed in this tick.
+        await refineListData(query);
       }
     },
-    [fetchStatuses, router],
+    [fetchStatuses, query, refineListData],
   );
 
   // Polling interval when jobs are active
