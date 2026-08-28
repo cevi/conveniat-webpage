@@ -4,8 +4,8 @@ import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
+import { BackgroundLogo } from '@/components/background-logo';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
-import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { environmentVariables } from '@/config/environment-variables';
 import { BootHydrationMarker } from '@/features/onboarding/components/boot-hydration-marker';
 import { BootWatchdog } from '@/features/onboarding/components/boot-watchdog';
@@ -97,7 +97,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
         <PostHogProvider>
           <BootHydrationMarker />
           <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
-            <CeviLogo className="mx-auto h-full w-full max-w-[384px] opacity-10 blur-md" />
+            <BackgroundLogo />
           </div>
           {children}
         </PostHogProvider>

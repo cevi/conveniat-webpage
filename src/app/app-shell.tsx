@@ -1,12 +1,12 @@
 'use client';
 
+import { BackgroundLogo } from '@/components/background-logo';
 import { AppErrorFallback } from '@/components/error-boundary/app-error-fallback';
 import { FooterClientWrapper } from '@/components/footer/footer-client-wrapper';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
 import { NativePushProvider } from '@/components/native-push-provider';
-import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { useHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { ClientProviders } from '@/context/client-providers';
 import { OfflineQueueSync } from '@/features/chat/hooks/use-offline-queue-processor';
@@ -58,7 +58,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
                       isTopNavMode ? 'lg:hidden' : 'xl:pl-[480px]',
                     )}
                   >
-                    <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
+                    <BackgroundLogo />
                   </div>
                 )}
 
