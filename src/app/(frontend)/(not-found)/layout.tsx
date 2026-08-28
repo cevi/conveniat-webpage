@@ -1,6 +1,6 @@
+import { BackgroundLogo } from '@/components/background-logo';
 import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-name';
 import { HeaderComponent } from '@/components/header/header-component';
-import { CeviLogo } from '@/components/svg-logos/cevi-logo';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { sharedFontClassName } from '@/utils/fonts';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -30,7 +30,7 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
           <DynamicAppTitleProvider>
             <HeaderComponent locale={locale} inAppDesign={isInAppDesign} />
             <div className="absolute top-0 z-[-999] h-screen w-full p-[56px] xl:pl-[480px]">
-              <CeviLogo className="mx-auto h-full max-h-[60vh] w-full max-w-[384px] opacity-10 blur-md" />
+              <BackgroundLogo className="max-h-[60vh]" />
             </div>
 
             <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
