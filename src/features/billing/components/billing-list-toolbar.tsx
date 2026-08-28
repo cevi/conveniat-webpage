@@ -205,6 +205,7 @@ export const BillingListToolbar: React.FC = () => {
     hint: string;
     icon: React.ReactNode;
     counterLabels: Array<{ key: string; label: string }>;
+    actionVariant?: 'neutral' | 'publish';
   }> = [
     {
       key: 'sync',
@@ -238,6 +239,7 @@ export const BillingListToolbar: React.FC = () => {
       action: sendAction[locale],
       hint: sendHint[locale],
       icon: <Send className="h-3.5 w-3.5" />,
+      actionVariant: 'publish',
       counterLabels: [
         { key: 'sentCount', label: sentCountLabel[locale] },
         { key: 'failedCount', label: failedCountLabel[locale] },
@@ -314,6 +316,7 @@ export const BillingListToolbar: React.FC = () => {
             isStarting={isPending[step.key] && jobs[step.key]?.progress === undefined}
             isCancelling={isCancelling[step.key]}
             isBlocked={isBusy}
+            actionVariant={step.actionVariant ?? 'neutral'}
             isLast={index === steps.length - 1}
             locale={locale}
             onStart={() => void startJob(step.key)}
