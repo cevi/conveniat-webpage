@@ -1,11 +1,13 @@
 'use client';
 
+import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
 import { BILLING_ADMIN_DOCUMENTS, readAdminDocumentKeys } from '@/features/billing/admin-documents';
 import { BillingErrorsDialog } from '@/features/billing/components/billing-errors-dialog';
 import type { BillingJobView } from '@/features/billing/hooks/use-billing-jobs';
 import { useElapsedSeconds } from '@/features/billing/hooks/use-elapsed-seconds';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Button, Pill } from '@payloadcms/ui';
 import { AlertTriangle, Check, ExternalLink, Lock, RefreshCw, X } from 'lucide-react';
 import type React from 'react';
@@ -138,6 +140,8 @@ export interface BillingPipelineStepProperties {
   isBusy: boolean;
   /** Set when an earlier step has not succeeded yet; explains why this one is locked. */
   blockedReason: string | undefined;
+  /** Settings pages this admin panel actually exposes; the rest are named, not linked. */
+  availableDocuments: BillingAdminDocumentKey[];
   locale: Locale;
   onStart: () => void;
   onCancel: () => void;
@@ -161,6 +165,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
   isCancelling,
   isBusy,
   blockedReason,
+  availableDocuments,
   locale,
   onStart,
   onCancel,
@@ -230,6 +235,13 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
   }
 
   const isLocked = blockedReason !== undefined && !isPending;
+  const isActionDisabled = isBusy || isLocked;
+  const actionClasses = isActionDisabled
+    ? cn(
+        'inline-flex w-full cursor-not-allowed items-center justify-center gap-x-[0.4rem]',
+        'border border-(--theme-elevation-100) bg-(--theme-elevation-50) opacity-60',
+      )
+    : documentControlButtonClasses.neutral('w-full justify-center');
 
   return (
     <li className="flex min-w-0 flex-col rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-4">
@@ -335,16 +347,18 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         )}
 
         {!isPending &&
-          relatedDocuments.map((key) => (
-            <a
-              key={key}
-              className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-(--theme-elevation-700) underline hover:text-(--theme-elevation-900)"
-              href={BILLING_ADMIN_DOCUMENTS[key].href}
-            >
-              <ExternalLink className="h-3 w-3 shrink-0" />
-              {BILLING_ADMIN_DOCUMENTS[key].label[locale]}
-            </a>
-          ))}
+          relatedDocuments
+            .filter((key) => availableDocuments.includes(key))
+            .map((key) => (
+              <a
+                key={key}
+                className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-(--theme-elevation-700) underline hover:text-(--theme-elevation-900)"
+                href={BILLING_ADMIN_DOCUMENTS[key].href}
+              >
+                <ExternalLink className="h-3 w-3 shrink-0" />
+                {BILLING_ADMIN_DOCUMENTS[key].label[locale]}
+              </a>
+            ))}
       </div>
 
       {isLocked && (
@@ -377,8 +391,8 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         ) : (
           <Button
             buttonStyle="transparent"
-            className={documentControlButtonClasses.neutral('w-full justify-center')}
-            disabled={isBusy || isLocked}
+            className={actionClasses}
+            disabled={isActionDisabled}
             margin={false}
             onClick={(event): void => {
               event.preventDefault();

@@ -503,6 +503,15 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
       // offering an action that fails only once it has been confirmed.
       capabilities: {
         regenerateAll: environmentVariables.BILLING_ALLOW_REGENERATE_ALL,
+        // `registration-management` is hidden from the admin unless its feature flag is
+        // on, and Payload 404s a hidden global — so a link to it is only worth
+        // rendering where the page exists.
+        availableDocuments: [
+          'billSettings',
+          ...(environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+            ? ['registrationManagement']
+            : []),
+        ],
       },
     });
   } catch (error) {

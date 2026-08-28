@@ -233,6 +233,7 @@ export const BillingListToolbar: React.FC = () => {
     regenerateAll,
     isRegenerating,
     canRegenerateAll,
+    availableDocuments,
   } = useBillingJobs();
 
   const steps: Array<{
@@ -368,6 +369,7 @@ export const BillingListToolbar: React.FC = () => {
           <BillingPipelineStep
             key={step.key}
             actionLabel={step.action}
+            availableDocuments={availableDocuments}
             blockedReason={blockedReasonFor(step.requires)}
             counterLabels={step.counterLabels}
             hint={step.hint}
