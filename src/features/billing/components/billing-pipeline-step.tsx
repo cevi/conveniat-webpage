@@ -1,12 +1,13 @@
 'use client';
 
+import { BILLING_ADMIN_DOCUMENTS, readAdminDocumentKeys } from '@/features/billing/admin-documents';
 import { BillingErrorsDialog } from '@/features/billing/components/billing-errors-dialog';
 import type { BillingJobView } from '@/features/billing/hooks/use-billing-jobs';
 import { useElapsedSeconds } from '@/features/billing/hooks/use-elapsed-seconds';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Button, Pill } from '@payloadcms/ui';
-import { AlertTriangle, Check, Lock, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, Check, ExternalLink, Lock, RefreshCw, X } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -173,6 +174,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
   const hasFailed = job?.status === 'failed';
   const hasRun = job !== undefined;
   const errors = readErrors(job?.summary);
+  const relatedDocuments = readAdminDocumentKeys(job?.summary);
 
   // A job that returns a summary full of errors still counts as completed to the job
   // queue — the handler did not throw. Reporting that as a green tick is how an aborted
@@ -331,11 +333,30 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
             </span>
           </button>
         )}
+
+        {!isPending &&
+          relatedDocuments.map((key) => (
+            <a
+              key={key}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-(--theme-elevation-700) underline hover:text-(--theme-elevation-900)"
+              href={BILLING_ADMIN_DOCUMENTS[key].href}
+            >
+              <ExternalLink className="h-3 w-3 shrink-0" />
+              {BILLING_ADMIN_DOCUMENTS[key].label[locale]}
+            </a>
+          ))}
       </div>
+
+      {isLocked && (
+        <p className="m-0 mt-3 flex items-start gap-1.5 rounded border border-(--theme-elevation-100) bg-(--theme-elevation-50) p-2 text-xs text-(--theme-elevation-600)">
+          <Lock className="mt-0.5 h-3 w-3 shrink-0" />
+          <span className="min-w-0">{blockedReason}</span>
+        </p>
+      )}
 
       {/* `title` sits on the wrapper, not the button: a disabled button fires no pointer
           events, so a tooltip on it would never appear. */}
-      <span className="mt-3 block" title={blockedReason}>
+      <span className={isLocked ? 'mt-2 block' : 'mt-3 block'} title={blockedReason}>
         {isPending ? (
           <Button
             buttonStyle="transparent"
@@ -381,6 +402,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         isOpen={isErrorsDialogOpen}
         locale={locale}
         onClose={() => setIsErrorsDialogOpen(false)}
+        relatedDocuments={relatedDocuments}
         title={title}
       />
     </li>

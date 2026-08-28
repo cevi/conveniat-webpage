@@ -1,8 +1,10 @@
 'use client';
 
+import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
+import { BILLING_ADMIN_DOCUMENTS } from '@/features/billing/admin-documents';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Button } from '@payloadcms/ui';
-import { X } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import type React from 'react';
 import { createPortal } from 'react-dom';
 
@@ -35,8 +37,10 @@ export const BillingErrorsDialog: React.FC<{
   onClose: () => void;
   title: string;
   errors: string[];
+  /** Settings pages that have to be fixed for the run to succeed. */
+  relatedDocuments: BillingAdminDocumentKey[];
   locale: Locale;
-}> = ({ isOpen, onClose, title, errors, locale }) => {
+}> = ({ isOpen, onClose, title, errors, relatedDocuments, locale }) => {
   if (!isOpen) return <></>;
 
   const dialog = (
@@ -86,6 +90,21 @@ export const BillingErrorsDialog: React.FC<{
             </ol>
           )}
         </div>
+
+        {relatedDocuments.length > 0 && (
+          <div className="flex flex-wrap gap-2 border-t border-(--theme-elevation-100) px-5 py-3">
+            {relatedDocuments.map((key) => (
+              <a
+                key={key}
+                className="inline-flex items-center gap-1.5 rounded border border-(--theme-elevation-150) px-3 py-1.5 text-sm text-(--theme-elevation-800) hover:bg-(--theme-elevation-100)"
+                href={BILLING_ADMIN_DOCUMENTS[key].href}
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                {BILLING_ADMIN_DOCUMENTS[key].label[locale]}
+              </a>
+            ))}
+          </div>
+        )}
 
         <div className="flex justify-end border-t border-(--theme-elevation-100) p-4">
           <Button buttonStyle="secondary" margin={false} onClick={onClose} size="medium">

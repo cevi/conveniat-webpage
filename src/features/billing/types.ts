@@ -1,3 +1,4 @@
+import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
 import type { z } from 'zod';
 
 import type {
@@ -39,6 +40,8 @@ export interface SyncedParticipant {
 export interface SyncSummary {
   /** Set when an operator stopped the run early; the counters are then partial. */
   cancelled?: boolean;
+  /** Admin documents an operator has to fix for this run to succeed. */
+  relatedDocuments?: BillingAdminDocumentKey[];
   newCount: number;
   removedCount: number;
   reAddedCount: number;
@@ -54,6 +57,8 @@ export interface SyncSummary {
 export interface GenerationSummary {
   /** Set when an operator stopped the run early; the counters are then partial. */
   cancelled?: boolean;
+  /** Admin documents an operator has to fix for this run to succeed. */
+  relatedDocuments?: BillingAdminDocumentKey[];
   generatedCount: number;
   skippedCount: number;
   skippedAlreadyExistingCount: number;
@@ -66,6 +71,8 @@ export interface GenerationSummary {
 export interface SendSummary {
   /** Set when an operator stopped the run early; the counters are then partial. */
   cancelled?: boolean;
+  /** Admin documents an operator has to fix for this run to succeed. */
+  relatedDocuments?: BillingAdminDocumentKey[];
   sentCount: number;
   failedCount: number;
   errors: string[];

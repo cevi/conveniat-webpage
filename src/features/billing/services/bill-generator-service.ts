@@ -242,12 +242,14 @@ export async function generateBillsUseCase(
     settings.creditorName === ''
   ) {
     summary.errors.push('Creditor IBAN or name not configured in Bill Settings.');
+    summary.relatedDocuments = ['billSettings'];
     return summary;
   }
 
   const rolePricing = settings.rolePricing;
   if (rolePricing === undefined || rolePricing === null || rolePricing.length === 0) {
     summary.errors.push('No role pricing configured in Bill Settings.');
+    summary.relatedDocuments = ['billSettings'];
     return summary;
   }
 

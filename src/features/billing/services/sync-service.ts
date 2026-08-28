@@ -430,6 +430,7 @@ export async function syncParticipantsUseCase(
   const events = (settings.events as BillSettingsEvent[] | undefined) ?? [];
   if (events.length === 0) {
     summary.errors.push('No events configured in Bill Settings.');
+    summary.relatedDocuments = ['billSettings'];
     return summary;
   }
 
@@ -517,6 +518,7 @@ async function syncParticipantsImpl(
       unchangedCount: 0,
       syncDate: new Date().toISOString(),
       errors: [errorMessage],
+      relatedDocuments: ['registrationManagement'],
     };
   }
 

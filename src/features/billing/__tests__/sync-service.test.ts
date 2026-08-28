@@ -309,4 +309,22 @@ describe('Sync Service', () => {
       expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(3);
     });
   });
+
+  it('points the operator at Registration Management when the browser cookie is missing', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue({
+      events: [],
+    } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    // Without configured events the run cannot start, and the settings page that fixes
+    // it has to reach the admin UI as a link rather than as prose.
+    expect(summary.errors).toEqual(['No events configured in Bill Settings.']);
+    expect(summary.relatedDocuments).toEqual(['billSettings']);
+  });
 });
