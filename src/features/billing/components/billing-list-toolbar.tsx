@@ -11,9 +11,10 @@ import { BillingPipelineStep } from '@/features/billing/components/billing-pipel
 import type { BillingTaskKey } from '@/features/billing/hooks/use-billing-jobs';
 import { useBillingJobs } from '@/features/billing/hooks/use-billing-jobs';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import type { StaticTranslationString } from '@/types/types';
-import { useLocale } from '@payloadcms/ui';
+import { Banner, useLocale } from '@payloadcms/ui';
 import { AlertTriangle, Download, FilePlus, MoreHorizontal, RefreshCcw, Send } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -245,18 +246,11 @@ export const BillingListToolbar: React.FC = () => {
   ];
 
   return (
-    // Capped rather than full-bleed: at list width the action buttons would sit a
-    // screen away from the step they belong to, and the panel would read as part of
-    // the table rather than as the controls above it.
-    <div className="mb-4 max-w-4xl rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-4">
+    <div className="mb-6">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="m-0 text-sm font-semibold text-(--theme-elevation-900)">
-            {pipelineHeading[locale]}
-          </h3>
-          <p className="m-0 mt-0.5 text-xs text-(--theme-elevation-600)">
-            {pipelineDescription[locale]}
-          </p>
+          <h3 className="field-label mb-0">{pipelineHeading[locale]}</h3>
+          <div className="field-description mt-0.5">{pipelineDescription[locale]}</div>
         </div>
 
         <DropdownMenu>
@@ -264,14 +258,14 @@ export const BillingListToolbar: React.FC = () => {
             <button
               type="button"
               aria-label={moreActionsLabel[locale]}
-              className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-1.5 text-(--theme-elevation-700) hover:bg-(--theme-elevation-100)"
+              className={documentControlButtonClasses.iconOnly()}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-52 border-(--theme-elevation-150) bg-(--theme-elevation-0) text-(--theme-elevation-900) shadow-lg"
+            className="w-52 border-(--theme-elevation-150) bg-(--theme-elevation-0) text-(--theme-elevation-800) shadow-lg"
           >
             <DropdownMenuItem
               onClick={(event): void => {
@@ -290,7 +284,7 @@ export const BillingListToolbar: React.FC = () => {
                 setIsRegenerateModalOpen(true);
               }}
               disabled={isBusy}
-              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-(--theme-error-600) hover:bg-(--theme-error-50)"
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-(--theme-error-500) hover:bg-(--theme-elevation-100)"
             >
               <AlertTriangle className="h-4 w-4" />
               <span>{regenerateAllLabel[locale]}</span>
@@ -299,7 +293,7 @@ export const BillingListToolbar: React.FC = () => {
         </DropdownMenu>
       </div>
 
-      <ol className="m-0 list-none p-0">
+      <ol className="m-0 list-none border-t border-(--theme-elevation-100) p-0 pt-4">
         {steps.map((step, index) => (
           <BillingPipelineStep
             key={step.key}
@@ -323,10 +317,9 @@ export const BillingListToolbar: React.FC = () => {
       </ol>
 
       {actionError !== undefined && (
-        <p className="mt-3 mb-0 flex items-start gap-1.5 rounded-md bg-(--theme-error-50) p-2 text-xs text-(--theme-error-600)">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span className="min-w-0 break-words">{actionError}</span>
-        </p>
+        <Banner className="mt-3" type="error">
+          {actionError}
+        </Banner>
       )}
 
       <ConfirmationModal

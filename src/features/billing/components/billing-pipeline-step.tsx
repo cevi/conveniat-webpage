@@ -3,6 +3,7 @@
 import type { BillingJobView } from '@/features/billing/hooks/use-billing-jobs';
 import { useElapsedSeconds } from '@/features/billing/hooks/use-elapsed-seconds';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { Banner, Button, Pill } from '@payloadcms/ui';
 import { AlertTriangle, Check, RefreshCw, X } from 'lucide-react';
 import type React from 'react';
 
@@ -185,49 +186,45 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
   const counters =
     finishedWithErrors && rawCounters.every((counter) => counter.value === 0) ? [] : rawCounters;
 
+  // Payload's own pill palette, so the step states read like every other status in the
+  // admin panel rather than like a second design system bolted on top.
   let statusLabel = neverRunLabel[locale];
-  let statusClasses = 'bg-(--theme-elevation-100) text-(--theme-elevation-600)';
+  let statusPillStyle: React.ComponentProps<typeof Pill>['pillStyle'] = 'light-gray';
   if (isPending) {
     statusLabel = runningLabel[locale];
-    statusClasses = 'bg-(--theme-warning-100) text-(--theme-warning-600)';
+    statusPillStyle = 'warning';
   } else if (hasFailed) {
     statusLabel = failedLabel[locale];
-    statusClasses = 'bg-(--theme-error-100) text-(--theme-error-600)';
+    statusPillStyle = 'error';
   } else if (wasCancelled) {
     statusLabel = cancelledLabel[locale];
-    statusClasses = 'bg-(--theme-elevation-100) text-(--theme-elevation-700)';
+    statusPillStyle = 'light-gray';
   } else if (finishedWithErrors) {
     statusLabel = doneWithErrorsLabel[locale];
-    statusClasses = 'bg-(--theme-warning-100) text-(--theme-warning-600)';
+    statusPillStyle = 'warning';
   } else if (hasRun) {
     statusLabel = doneLabel[locale];
-    statusClasses = 'bg-(--theme-success-100) text-(--theme-success-600)';
+    statusPillStyle = 'success';
   }
 
-  let markerClasses =
-    'border-(--theme-elevation-200) bg-(--theme-elevation-0) text-(--theme-elevation-500)';
-  if (isPending) {
-    markerClasses =
-      'border-(--theme-warning-500) bg-(--theme-warning-50) text-(--theme-warning-600)';
+  let markerClasses = 'border-(--theme-elevation-150) text-(--theme-elevation-500)';
+  if (isPending || finishedWithErrors) {
+    markerClasses = 'border-(--theme-elevation-250) text-(--theme-elevation-800)';
   } else if (hasFailed) {
-    markerClasses = 'border-(--theme-error-500) bg-(--theme-error-50) text-(--theme-error-600)';
-  } else if (finishedWithErrors) {
-    markerClasses =
-      'border-(--theme-warning-500) bg-(--theme-warning-50) text-(--theme-warning-600)';
+    markerClasses = 'border-(--theme-error-500) text-(--theme-error-500)';
   } else if (succeeded) {
-    markerClasses =
-      'border-(--theme-success-500) bg-(--theme-success-500) text-(--theme-elevation-0)';
+    markerClasses = 'border-(--theme-success-500) text-(--theme-success-500)';
   }
 
   return (
-    <li className="relative grid grid-cols-[2rem_1fr] gap-x-3 pb-4 last:pb-0">
+    <li className="relative grid grid-cols-[1.75rem_1fr] gap-x-3 pb-5 last:pb-0">
       {/* Step marker and the connector that makes the three steps read as a sequence. */}
       <div className="flex flex-col items-center">
         <span
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${markerClasses}`}
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium ${markerClasses}`}
         >
-          {succeeded && <Check className="h-4 w-4" />}
-          {finishedWithErrors && <AlertTriangle className="h-4 w-4" />}
+          {succeeded && <Check className="h-3.5 w-3.5" />}
+          {finishedWithErrors && <AlertTriangle className="h-3.5 w-3.5" />}
           {!succeeded && !finishedWithErrors && stepNumber}
         </span>
         {!isLast && <span className="mt-1 w-px flex-1 bg-(--theme-elevation-150)" />}
@@ -236,48 +233,48 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="text-(--theme-elevation-500)">{icon}</span>
-            <h4 className="m-0 truncate text-sm font-semibold text-(--theme-elevation-900)">
-              {title}
-            </h4>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-medium whitespace-nowrap ${statusClasses}`}
-            >
+            <span className="text-(--theme-elevation-450)">{icon}</span>
+            <span className="field-label mb-0 truncate">{title}</span>
+            <Pill pillStyle={statusPillStyle} size="small">
               {statusLabel}
-            </span>
+            </Pill>
           </div>
 
           {isPending ? (
-            <button
-              type="button"
-              onClick={onCancel}
+            <Button
+              buttonStyle="secondary"
+              size="small"
               disabled={isCancelling}
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) px-3 py-1.5 text-xs font-medium text-(--theme-elevation-800) hover:bg-(--theme-elevation-100) disabled:cursor-not-allowed disabled:opacity-60"
+              icon={<X className="h-3.5 w-3.5" />}
+              iconPosition="left"
+              onClick={onCancel}
             >
-              <X className="h-3.5 w-3.5" />
               {isCancelling ? cancellingLabel[locale] : cancelActionLabel[locale]}
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
-              onClick={onStart}
+            <Button
+              buttonStyle="secondary"
+              size="small"
               disabled={isBlocked}
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-3 py-1.5 text-xs font-medium text-(--theme-elevation-800) hover:bg-(--theme-elevation-100) disabled:cursor-not-allowed disabled:opacity-50"
+              icon={
+                isStarting ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <span>{icon}</span>
+                )
+              }
+              iconPosition="left"
+              onClick={onStart}
             >
-              {isStarting ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <span className="contents">{icon}</span>
-              )}
               {isStarting ? startingLabel[locale] : actionLabel}
-            </button>
+            </Button>
           )}
         </div>
 
         {isPending && (
           <div className="mt-2">
             <div
-              className="h-1.5 w-full overflow-hidden rounded-full bg-(--theme-elevation-100)"
+              className="h-1 w-full overflow-hidden rounded-full bg-(--theme-elevation-150)"
               role="progressbar"
               aria-valuemin={0}
               aria-valuemax={100}
@@ -285,13 +282,13 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
               aria-label={title}
             >
               <div
-                className="h-full rounded-full bg-(--theme-warning-500) transition-[width] duration-500 ease-out"
+                className="h-full bg-(--theme-elevation-800) transition-[width] duration-500 ease-out"
                 style={{ width: `${String(percentage)}%` }}
               />
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-xs text-(--theme-elevation-600)">
+            <div className="field-description mt-1.5 flex flex-wrap items-center gap-x-2">
               {progress !== undefined && progress.totalItems > 0 && (
-                <span className="font-mono">
+                <span>
                   {progress.processedItems}/{progress.totalItems}
                 </span>
               )}
@@ -304,50 +301,47 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
               {elapsedSeconds !== undefined && (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span className="font-mono">{formatElapsed(elapsedSeconds)}</span>
+                  <span>{formatElapsed(elapsedSeconds)}</span>
                 </>
               )}
             </div>
           </div>
         )}
 
-        {!hasRun && !isPending && (
-          <p className="mt-1 mb-0 text-xs text-(--theme-elevation-500)">{hint}</p>
-        )}
+        {!hasRun && !isPending && <div className="field-description mt-1">{hint}</div>}
 
         {counters.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-(--theme-elevation-600)">
+          <div className="field-description mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
             {counters.map((counter) => (
               <span key={counter.key}>
                 {counter.label}{' '}
-                <span className="font-semibold text-(--theme-elevation-900)">{counter.value}</span>
+                <span className="font-semibold text-(--theme-elevation-800)">{counter.value}</span>
               </span>
             ))}
           </div>
         )}
 
         {!isPending && job !== undefined && (
-          <p
-            className="mt-1 mb-0 text-xs text-(--theme-elevation-500)"
+          <div
+            className="field-description mt-1"
             title={new Date(job.updatedAt).toLocaleString(locale)}
           >
             {formatRelativeTime(job.updatedAt, locale)}
-          </p>
+          </div>
         )}
 
         {hasFailed && (
-          <p className="mt-1.5 mb-0 flex items-start gap-1.5 text-xs text-(--theme-error-600)">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span className="min-w-0 break-words">{job.error ?? failedLabel[locale]}</span>
-          </p>
+          <Banner className="mt-2" type="error">
+            {job.error ?? failedLabel[locale]}
+          </Banner>
         )}
 
         {errors.length > 0 && (
-          <details className="mt-1.5 text-xs">
-            <summary className="cursor-pointer text-(--theme-error-600)">
+          <details className="mt-2">
+            <summary className="field-description cursor-pointer text-(--theme-error-500)">
               {errorDetailsLabel[locale]} ({errors.length})
             </summary>
-            <ul className="mt-1 max-h-28 list-inside list-disc overflow-y-auto rounded bg-(--theme-elevation-50) p-2 text-(--theme-elevation-700)">
+            <ul className="field-description mt-1 max-h-28 list-inside list-disc overflow-y-auto rounded border border-(--theme-elevation-100) p-2">
               {errors.map((message, index) => (
                 <li key={index}>{message}</li>
               ))}
