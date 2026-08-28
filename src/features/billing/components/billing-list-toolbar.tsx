@@ -363,7 +363,7 @@ export const BillingListToolbar: React.FC = () => {
         </DropdownMenu>
       </div>
 
-      <ol className="m-0 grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-3">
+      <ol className="m-0 grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-3">
         {steps.map((step, index) => (
           <BillingPipelineStep
             key={step.key}

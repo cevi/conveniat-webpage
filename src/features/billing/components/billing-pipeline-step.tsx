@@ -231,7 +231,10 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
 
   return (
     <li className="flex min-w-0 flex-col rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-4">
-      <div className="flex items-center gap-2">
+      {/* Wraps rather than truncates: at high browser zoom the column is narrow, and a
+          title clipped to "Teilnehmer …" tells the operator nothing. The badge drops to
+          its own line when the two no longer fit side by side. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span
           className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium ${markerClasses}`}
         >
@@ -240,10 +243,10 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
           {!succeeded && !hasFailed && !finishedWithErrors && stepNumber}
         </span>
         <Icon className="h-3.5 w-3.5 shrink-0 text-(--theme-elevation-450)" />
-        <span className="min-w-0 truncate text-sm font-medium text-(--theme-elevation-800)">
+        <span className="text-sm font-medium break-words text-(--theme-elevation-800)">
           {title}
         </span>
-        <Pill className="ml-auto shrink-0" pillStyle={statusPillStyle} size="small">
+        <Pill className="shrink-0" pillStyle={statusPillStyle} size="small">
           {statusLabel}
         </Pill>
       </div>
@@ -279,7 +282,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
               )}
             </div>
             {progress !== undefined && progress.currentItemName !== '' && (
-              <p className="m-0 mt-1 truncate text-xs text-(--theme-elevation-600)">
+              <p className="m-0 mt-1 line-clamp-2 text-xs text-(--theme-elevation-600)">
                 {progress.currentItemName}
               </p>
             )}
@@ -318,7 +321,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
           >
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span className="min-w-0">
-              <span className="block truncate font-medium">
+              <span className="line-clamp-2 block font-medium">
                 {job.error ?? errors[0] ?? failedLabel[locale]}
               </span>
               <span className="underline">
@@ -348,9 +351,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
             size="medium"
           >
             <X className="mr-2 h-4 w-4" />
-            <span className="truncate">
-              {isCancelling ? cancellingLabel[locale] : cancelActionLabel[locale]}
-            </span>
+            <span>{isCancelling ? cancellingLabel[locale] : cancelActionLabel[locale]}</span>
           </Button>
         ) : (
           <Button
@@ -367,7 +368,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
             {isStarting && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
             {!isStarting && isLocked && <Lock className="mr-2 h-4 w-4" />}
             {!isStarting && !isLocked && <Icon className="mr-2 h-4 w-4" />}
-            <span className="truncate">
+            <span>
               {isStarting && startingLabel[locale]}
               {!isStarting && (needsRetry ? retryLabel : actionLabel)}
             </span>
