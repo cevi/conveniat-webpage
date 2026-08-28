@@ -45,9 +45,9 @@ export const BillParticipantsCollection: CollectionConfig = {
       'actions',
     ],
     description: {
-      en: 'Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.',
-      de: 'Synchronisiert von der Cevi.DB. Nutze die Aktionsleiste über der Tabelle zum Synchronisieren, Generieren und Versenden.',
-      fr: "Synchronisé depuis Cevi.DB. Utilisez la barre d'outils au-dessus du tableau pour synchroniser, générer et envoyer.",
+      en: 'Participants synced from Cevi.DB, and the bills raised for them.',
+      de: 'Von Cevi.DB abgeglichene Teilnehmende und die dazu erstellten Rechnungen.',
+      fr: 'Participants synchronisés depuis Cevi.DB et les factures établies pour eux.',
     },
     components: {
       beforeListTable: ['@/features/billing/components/billing-list-toolbar'],
@@ -332,6 +332,24 @@ export const BillParticipantsCollection: CollectionConfig = {
         fr: "Date d'envoi de la facture",
       },
       admin: {
+        disableGroupBy: true,
+      },
+    },
+    {
+      name: 'financeNote',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'textarea',
+      label: {
+        en: 'Note for finance',
+        de: 'Bemerkung für die Finanzen',
+        fr: 'Remarque pour les finances',
+      },
+      admin: {
+        description: {
+          en: 'Free text carried into the finance overview export. Never touched by a Cevi.DB sync.',
+          de: 'Freitext, der in den Rechnungsübersicht-Export übernommen wird. Wird von einem Cevi.DB-Abgleich nie überschrieben.',
+          fr: "Texte libre repris dans l'export de synthèse. Jamais écrasé par une synchronisation Cevi.DB.",
+        },
         disableGroupBy: true,
       },
     },

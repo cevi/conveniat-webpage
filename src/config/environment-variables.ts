@@ -22,6 +22,12 @@ export const environmentVariables = createEnv({
     API_TOKEN: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
     BILLING_ADMIN_GROUP_ID: z.string().optional(),
+    // Destructive: resets every participant to `new` and overwrites their PDFs and
+    // invoice numbers. Off unless a deployment opts in explicitly.
+    BILLING_ALLOW_REGENERATE_ALL: z
+      .string()
+      .optional()
+      .transform((value) => value === 'true'),
     EVENT_ID: z.string().optional(),
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),

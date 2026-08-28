@@ -4,6 +4,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { GenerationSummary } from '@/features/billing/types';
 import { generateQrReference } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
@@ -222,6 +223,7 @@ export async function generateBillsUseCase(
     error: (message: string) => void;
   },
   participantId?: string,
+  reporter?: JobProgressReporter,
 ): Promise<GenerationSummary> {
   const summary: GenerationSummary = {
     generatedCount: 0,
@@ -240,12 +242,14 @@ export async function generateBillsUseCase(
     settings.creditorName === ''
   ) {
     summary.errors.push('Creditor IBAN or name not configured in Bill Settings.');
+    summary.relatedDocuments = ['billSettings'];
     return summary;
   }
 
   const rolePricing = settings.rolePricing;
   if (rolePricing === undefined || rolePricing === null || rolePricing.length === 0) {
     summary.errors.push('No role pricing configured in Bill Settings.');
+    summary.relatedDocuments = ['billSettings'];
     return summary;
   }
 
@@ -260,7 +264,28 @@ export async function generateBillsUseCase(
   // 3. Track current reference number
   let currentReferenceNumber = settings.nextReferenceNumber ?? 1;
 
-  for (const document_ of participants) {
+  const runningSummary = (): Record<string, number> => ({
+    generatedCount: summary.generatedCount,
+    skippedCount: summary.skippedCount,
+    skippedAlreadyExistingCount: summary.skippedAlreadyExistingCount,
+  });
+
+  for (const [index, document_] of participants.entries()) {
+    await reporter?.report({
+      processedItems: index,
+      totalItems: participants.length,
+      currentItemName: String(document_.fullName),
+      runningSummary: runningSummary(),
+    });
+
+    if (await reporter?.shouldCancel()) {
+      summary.cancelled = true;
+      logger.info(
+        `Bill generation cancelled by operator after ${String(index)} of ${String(participants.length)} participants.`,
+      );
+      break;
+    }
+
     try {
       if (document_.status !== 'new') {
         if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
@@ -467,6 +492,7 @@ export async function generateBills(
   payload: Payload,
   participantId?: string,
   dependencies?: { hitobitoClient?: HitobitoClient },
+  reporter?: JobProgressReporter,
 ): Promise<GenerationSummary> {
   const settingsRepo = new PayloadSettingsAdapter(payload);
   const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
@@ -503,6 +529,7 @@ export async function generateBills(
     hitobitoService,
     logger,
     participantId,
+    reporter,
   );
 }
 
