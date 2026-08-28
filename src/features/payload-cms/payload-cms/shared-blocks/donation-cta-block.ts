@@ -41,9 +41,16 @@ export const donationCtaBlock: Block = {
       type: 'text',
       required: true,
       label: {
-        de: 'Titel (z.B. Jetzt spenden)',
-        en: 'Title (e.g. Donate now)',
-        fr: 'Titre (par ex. Faire un don)',
+        de: 'Titel',
+        en: 'Title',
+        fr: 'Titre',
+      },
+      admin: {
+        description: {
+          de: 'Ein Titel, der die Wirkung benennt, trägt weiter als einer, der die Handlung benennt: «Jedem Kind ein Lager ermöglichen» oder «Lagerbeitrag schenken» statt «Jetzt spenden».',
+          en: 'A title that names the impact carries further than one that names the action: "Give every child a camp" rather than "Donate now".',
+          fr: 'Un titre qui nomme l’impact porte plus loin qu’un titre qui nomme l’action : « Offrir un camp à chaque enfant » plutôt que « Faire un don ».',
+        },
       },
     },
     {

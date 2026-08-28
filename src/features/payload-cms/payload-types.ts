@@ -2539,6 +2539,9 @@ export interface Countdown {
  */
 export interface DonationCtaBlock {
   eyebrow?: string | null;
+  /**
+   * A title that names the impact carries further than one that names the action: "Give every child a camp" rather than "Donate now".
+   */
   title: string;
   description?: string | null;
   buttonLabel: string;

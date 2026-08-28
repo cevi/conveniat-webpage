@@ -69,14 +69,14 @@ const PaymentMethodLogos: React.FC<{
         {logos.map(({ key, logo }) => (
           <div
             key={key}
-            className="relative h-7 w-14 shrink-0 overflow-hidden rounded-md bg-white p-1 shadow-xs"
+            className="relative h-9 w-16 shrink-0 overflow-hidden rounded-md bg-white shadow-xs"
           >
             <ImageNode
               src={logo.url}
               alt={getImageAltInLocale(locale, logo)}
               fill
-              sizes="56px"
-              className="object-contain p-1"
+              sizes="64px"
+              className="object-contain p-1.5"
             />
           </div>
         ))}
@@ -108,14 +108,31 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
   // at render time — e.g. for a reference that was deleted or is not populated.
   const hasDestination = url !== undefined && url !== '';
   const hasNote = note !== undefined && note !== null && note !== '';
+  const hasDescription = description !== undefined && description !== null && description !== '';
+  const hasPaymentMethods =
+    paymentMethods !== undefined && paymentMethods !== null && paymentMethods.length > 0;
+
+  // A card carrying nothing but a title and a link is a single row. Given the
+  // padding the full variant needs, it just reads as hollow.
+  const isCompact = !isHighlighted && !hasDescription && !hasPaymentMethods;
+
+  // The note is the payment-assurance line ("… sicher über RaiseNow …"). It
+  // does its trust-signal job right next to the badges it vouches for, so it
+  // only falls back under the button when there are no badges.
+  const noteBesideBadges = hasNote && hasPaymentMethods;
+  const noteBelowButton = hasNote && !hasPaymentMethods;
 
   return (
     <div
       className={cn(
-        'flex flex-col gap-6 rounded-2xl p-6 sm:p-8 md:flex-row md:items-center md:justify-between md:gap-10',
+        'flex flex-col rounded-2xl md:flex-row md:items-center md:justify-between',
         isHighlighted
-          ? 'bg-conveniat-green text-white shadow-md'
-          : 'border border-gray-200 bg-white shadow-2xs',
+          ? 'bg-conveniat-green gap-6 p-6 text-white shadow-md sm:p-8 md:gap-10'
+          : 'gap-4 border border-gray-200 bg-white p-5 shadow-2xs sm:p-6 md:gap-8',
+        // Kept in its own argument: tailwind-merge drops the accent if the
+        // generic `border-gray-200` is allowed to come after it.
+        !isHighlighted && 'border-l-conveniat-green border-l-4',
+        isCompact && 'gap-3 py-4 sm:py-4',
       )}
     >
       <div className="min-w-0 flex-1">
@@ -123,7 +140,7 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
           <div
             className={cn(
               'flex size-10 shrink-0 items-center justify-center rounded-full',
-              isHighlighted ? 'bg-white/15 text-white' : 'text-conveniat-green bg-green-100',
+              isHighlighted ? 'bg-white/15 text-white' : 'bg-conveniat-green text-white',
             )}
             aria-hidden="true"
           >
@@ -151,7 +168,7 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
           </div>
         </div>
 
-        {description !== undefined && description !== null && description !== '' && (
+        {hasDescription && (
           <p
             className={cn(
               'font-body mt-4 text-sm leading-relaxed whitespace-pre-line',
@@ -163,17 +180,27 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
         )}
 
         {paymentMethods && paymentMethods.length > 0 && (
-          <div className="mt-5">
+          <div className="mt-5 flex flex-col gap-1.5">
             <PaymentMethodLogos
               paymentMethods={paymentMethods}
               locale={locale}
               isHighlighted={isHighlighted}
             />
+            {noteBesideBadges && (
+              <p
+                className={cn(
+                  'font-body max-w-[26rem] text-xs leading-snug text-pretty',
+                  isHighlighted ? 'text-green-200' : 'text-gray-500',
+                )}
+              >
+                {note}
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {(hasDestination || hasNote) && (
+      {(hasDestination || noteBelowButton) && (
         <div className="flex shrink-0 flex-col items-stretch gap-2 md:items-end">
           {hasDestination && (
             <LinkComponent
@@ -184,10 +211,10 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
             >
               <span
                 className={cn(
-                  'font-heading group inline-flex w-full items-center justify-center gap-2 rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold duration-100',
+                  'font-heading group inline-flex w-full items-center justify-center gap-2 leading-normal font-bold duration-100',
                   isHighlighted
-                    ? 'text-conveniat-green bg-white hover:bg-green-50'
-                    : 'bg-red-700 text-red-100 hover:bg-red-800',
+                    ? 'text-conveniat-green rounded-[8px] bg-white px-8 py-3 text-center text-lg hover:bg-green-50'
+                    : 'text-conveniat-green hover:text-conveniat-green/75 py-1 text-base underline-offset-4 hover:underline md:w-auto',
                 )}
               >
                 {buttonLabel}
@@ -196,10 +223,10 @@ export const DonationCta: React.FC<DonationCtaType & { locale: Locale }> = ({
             </LinkComponent>
           )}
 
-          {hasNote && (
+          {noteBelowButton && (
             <p
               className={cn(
-                'font-body max-w-[280px] text-center text-xs leading-snug md:text-right',
+                'font-body max-w-[17rem] text-center text-xs leading-snug text-balance md:text-right',
                 isHighlighted ? 'text-green-200' : 'text-gray-500',
               )}
             >
