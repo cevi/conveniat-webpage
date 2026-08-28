@@ -4034,7 +4034,7 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
- * Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.
+ * Participants synced from Cevi.DB, and the bills raised for them.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bill-participants".

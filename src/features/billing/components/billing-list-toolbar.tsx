@@ -245,7 +245,10 @@ export const BillingListToolbar: React.FC = () => {
   ];
 
   return (
-    <div className="mb-4 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-4">
+    // Capped rather than full-bleed: at list width the action buttons would sit a
+    // screen away from the step they belong to, and the panel would read as part of
+    // the table rather than as the controls above it.
+    <div className="mb-4 max-w-4xl rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-semibold text-(--theme-elevation-900)">

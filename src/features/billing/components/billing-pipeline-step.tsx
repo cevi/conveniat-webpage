@@ -30,6 +30,12 @@ const doneLabel: StaticTranslationString = {
   fr: 'Terminé',
 };
 
+const doneWithErrorsLabel: StaticTranslationString = {
+  de: 'Mit Fehlern beendet',
+  en: 'Finished with errors',
+  fr: 'Terminé avec des erreurs',
+};
+
 const cancelledLabel: StaticTranslationString = {
   de: 'Abgebrochen',
   en: 'Cancelled',
@@ -162,11 +168,22 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
       ? Math.round((progress.processedItems / progress.totalItems) * 100)
       : 0;
 
-  const counters = isPending
+  const errors = readErrors(job?.summary);
+
+  // A job that returns a summary full of errors still counts as completed to the job
+  // queue — the handler did not throw. Reporting that as a green tick is how an aborted
+  // sync came to look like a successful one, so errors in the summary downgrade the step.
+  const finishedWithErrors = !isPending && hasRun && errors.length > 0;
+  const succeeded = hasRun && !isPending && !hasFailed && !wasCancelled && !finishedWithErrors;
+
+  const rawCounters = isPending
     ? readCounters(progress?.runningSummary, counterLabels)
     : readCounters(job?.summary, counterLabels);
 
-  const errors = readErrors(job?.summary);
+  // A run that aborted before touching anything reports every counter as zero; next to
+  // the reason it failed, that row is noise rather than information.
+  const counters =
+    finishedWithErrors && rawCounters.every((counter) => counter.value === 0) ? [] : rawCounters;
 
   let statusLabel = neverRunLabel[locale];
   let statusClasses = 'bg-(--theme-elevation-100) text-(--theme-elevation-600)';
@@ -179,6 +196,9 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
   } else if (wasCancelled) {
     statusLabel = cancelledLabel[locale];
     statusClasses = 'bg-(--theme-elevation-100) text-(--theme-elevation-700)';
+  } else if (finishedWithErrors) {
+    statusLabel = doneWithErrorsLabel[locale];
+    statusClasses = 'bg-(--theme-warning-100) text-(--theme-warning-600)';
   } else if (hasRun) {
     statusLabel = doneLabel[locale];
     statusClasses = 'bg-(--theme-success-100) text-(--theme-success-600)';
@@ -191,7 +211,10 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
       'border-(--theme-warning-500) bg-(--theme-warning-50) text-(--theme-warning-600)';
   } else if (hasFailed) {
     markerClasses = 'border-(--theme-error-500) bg-(--theme-error-50) text-(--theme-error-600)';
-  } else if (hasRun && !wasCancelled) {
+  } else if (finishedWithErrors) {
+    markerClasses =
+      'border-(--theme-warning-500) bg-(--theme-warning-50) text-(--theme-warning-600)';
+  } else if (succeeded) {
     markerClasses =
       'border-(--theme-success-500) bg-(--theme-success-500) text-(--theme-elevation-0)';
   }
@@ -203,11 +226,9 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         <span
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${markerClasses}`}
         >
-          {hasRun && !isPending && !hasFailed && !wasCancelled ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            stepNumber
-          )}
+          {succeeded && <Check className="h-4 w-4" />}
+          {finishedWithErrors && <AlertTriangle className="h-4 w-4" />}
+          {!succeeded && !finishedWithErrors && stepNumber}
         </span>
         {!isLast && <span className="mt-1 w-px flex-1 bg-(--theme-elevation-150)" />}
       </div>
@@ -302,15 +323,16 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
                 <span className="font-semibold text-(--theme-elevation-900)">{counter.value}</span>
               </span>
             ))}
-            {!isPending && job !== undefined && (
-              <span
-                className="text-(--theme-elevation-500)"
-                title={new Date(job.updatedAt).toLocaleString(locale)}
-              >
-                {formatRelativeTime(job.updatedAt, locale)}
-              </span>
-            )}
           </div>
+        )}
+
+        {!isPending && job !== undefined && (
+          <p
+            className="mt-1 mb-0 text-xs text-(--theme-elevation-500)"
+            title={new Date(job.updatedAt).toLocaleString(locale)}
+          >
+            {formatRelativeTime(job.updatedAt, locale)}
+          </p>
         )}
 
         {hasFailed && (

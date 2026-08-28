@@ -45,9 +45,9 @@ export const BillParticipantsCollection: CollectionConfig = {
       'actions',
     ],
     description: {
-      en: 'Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.',
-      de: 'Synchronisiert von der Cevi.DB. Nutze die Aktionsleiste über der Tabelle zum Synchronisieren, Generieren und Versenden.',
-      fr: "Synchronisé depuis Cevi.DB. Utilisez la barre d'outils au-dessus du tableau pour synchroniser, générer et envoyer.",
+      en: 'Participants synced from Cevi.DB, and the bills raised for them.',
+      de: 'Von Cevi.DB abgeglichene Teilnehmende und die dazu erstellten Rechnungen.',
+      fr: 'Participants synchronisés depuis Cevi.DB et les factures établies pour eux.',
     },
     components: {
       beforeListTable: ['@/features/billing/components/billing-list-toolbar'],
