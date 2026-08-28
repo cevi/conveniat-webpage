@@ -217,24 +217,26 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
   }
 
   return (
-    <li className="relative grid grid-cols-[1.75rem_1fr] gap-x-3 pb-5 last:pb-0">
+    <li className="relative grid grid-cols-[1.5rem_1fr] gap-x-3 pb-4 last:pb-0">
       {/* Step marker and the connector that makes the three steps read as a sequence. */}
       <div className="flex flex-col items-center">
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-medium ${markerClasses}`}
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium ${markerClasses}`}
         >
-          {succeeded && <Check className="h-3.5 w-3.5" />}
-          {finishedWithErrors && <AlertTriangle className="h-3.5 w-3.5" />}
+          {succeeded && <Check className="h-3 w-3" />}
+          {finishedWithErrors && <AlertTriangle className="h-3 w-3" />}
           {!succeeded && !finishedWithErrors && stepNumber}
         </span>
         {!isLast && <span className="mt-1 w-px flex-1 bg-(--theme-elevation-150)" />}
       </div>
 
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-h-6 flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className="text-(--theme-elevation-450)">{icon}</span>
-            <span className="field-label mb-0 truncate">{title}</span>
+            <span className="truncate text-sm font-medium text-(--theme-elevation-800)">
+              {title}
+            </span>
             <Pill pillStyle={statusPillStyle} size="small">
               {statusLabel}
             </Pill>
@@ -286,7 +288,7 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
                 style={{ width: `${String(percentage)}%` }}
               />
             </div>
-            <div className="field-description mt-1.5 flex flex-wrap items-center gap-x-2">
+            <div className="m-0 mt-1.5 flex flex-wrap items-center gap-x-2 text-xs text-(--theme-elevation-500)">
               {progress !== undefined && progress.totalItems > 0 && (
                 <span>
                   {progress.processedItems}/{progress.totalItems}
@@ -308,10 +310,12 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
           </div>
         )}
 
-        {!hasRun && !isPending && <div className="field-description mt-1">{hint}</div>}
+        {!hasRun && !isPending && (
+          <p className="m-0 mt-1 text-xs text-(--theme-elevation-500)">{hint}</p>
+        )}
 
         {counters.length > 0 && (
-          <div className="field-description mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+          <div className="m-0 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-(--theme-elevation-500)">
             {counters.map((counter) => (
               <span key={counter.key}>
                 {counter.label}{' '}
@@ -322,12 +326,12 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
         )}
 
         {!isPending && job !== undefined && (
-          <div
-            className="field-description mt-1"
+          <p
+            className="m-0 mt-1 text-xs text-(--theme-elevation-450)"
             title={new Date(job.updatedAt).toLocaleString(locale)}
           >
             {formatRelativeTime(job.updatedAt, locale)}
-          </div>
+          </p>
         )}
 
         {hasFailed && (
@@ -338,10 +342,10 @@ export const BillingPipelineStep: React.FC<BillingPipelineStepProperties> = ({
 
         {errors.length > 0 && (
           <details className="mt-2">
-            <summary className="field-description cursor-pointer text-(--theme-error-500)">
+            <summary className="cursor-pointer text-xs text-(--theme-error-500)">
               {errorDetailsLabel[locale]} ({errors.length})
             </summary>
-            <ul className="field-description mt-1 max-h-28 list-inside list-disc overflow-y-auto rounded border border-(--theme-elevation-100) p-2">
+            <ul className="m-0 mt-1 max-h-28 list-inside list-disc overflow-y-auto rounded border border-(--theme-elevation-100) p-2 text-xs text-(--theme-elevation-600)">
               {errors.map((message, index) => (
                 <li key={index}>{message}</li>
               ))}

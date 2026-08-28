@@ -249,8 +249,12 @@ export const BillingListToolbar: React.FC = () => {
     <div className="mb-6">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="field-label mb-0">{pipelineHeading[locale]}</h3>
-          <div className="field-description mt-0.5">{pipelineDescription[locale]}</div>
+          <h3 className="m-0 text-sm font-semibold text-(--theme-elevation-800)">
+            {pipelineHeading[locale]}
+          </h3>
+          <p className="m-0 mt-0.5 text-xs text-(--theme-elevation-500)">
+            {pipelineDescription[locale]}
+          </p>
         </div>
 
         <DropdownMenu>
@@ -293,7 +297,7 @@ export const BillingListToolbar: React.FC = () => {
         </DropdownMenu>
       </div>
 
-      <ol className="m-0 list-none border-t border-(--theme-elevation-100) p-0 pt-4">
+      <ol className="m-0 list-none border-t border-(--theme-elevation-100) p-0 pt-3">
         {steps.map((step, index) => (
           <BillingPipelineStep
             key={step.key}
