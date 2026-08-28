@@ -1,7 +1,10 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
+import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
+import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
@@ -77,6 +80,18 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
     if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Enforced here, not only in the admin UI: this wipes every existing PDF and
+    // invoice number, so a deployment has to opt in before it can be reached at all.
+    if (!environmentVariables.BILLING_ALLOW_REGENERATE_ALL) {
+      request.payload.logger.warn(
+        'Rejected bulk regenerate: BILLING_ALLOW_REGENERATE_ALL is not enabled on this deployment.',
+      );
+      return Response.json(
+        { error: 'Bulk regeneration is disabled on this deployment.' },
+        { status: 403 },
+      );
+    }
 
     const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
     const existing = await participantRepo.findForRegenerateAll();
@@ -258,6 +273,39 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
 };
 
 /**
+ * GET /api/confidential/billing/export-xlsx – Finance overview workbook
+ *
+ * A different report from the CSV next to it: that one is the accounting import, this is
+ * the per-bill overview the finance team reads.
+ */
+export const billingExportXlsxHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { generateFinanceOverviewWorkbook } =
+      await import('@/features/billing/services/finance-overview-export');
+    const workbook = await generateFinanceOverviewWorkbook(request.payload);
+    const filename = `rechnungsuebersicht-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    return new Response(new Uint8Array(workbook), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-cache',
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Finance overview export failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
  * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group
  * 4337 and save them to the bill settings.
  *
@@ -339,6 +387,8 @@ interface SyncJobStatus {
   summary?: Record<string, unknown>;
   error?: string;
   updatedAt: string;
+  /** Only present while the job is running and reporting. */
+  progress?: BillingJobProgress;
 }
 
 function getJobDerivedStatus(job: {
@@ -426,6 +476,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
     }
 
     // Otherwise, return the latest job for each task type
+    const progressStore = new RedisJobProgressAdapter();
     const getLatestJob = async (taskSlug: BillingTaskSlug): Promise<SyncJobStatus | undefined> => {
       const result = await request.payload.find({
         collection: 'payload-jobs',
@@ -458,6 +509,15 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
         jobData.error = error;
       }
 
+      if (status === BillingJobStatus.Pending) {
+        // Only trust a progress record that belongs to this job — a crashed run can
+        // leave one behind until its TTL expires.
+        const progress = await progressStore.read(taskSlug);
+        if (progress?.jobId === job.id) {
+          jobData.progress = progress;
+        }
+      }
+
       return jobData;
     };
 
@@ -472,10 +532,68 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
       sync: syncJob,
       generate: generateJob,
       send: sendJob,
+      // Lets the toolbar disable what the server would refuse anyway, instead of
+      // offering an action that fails only once it has been confirmed.
+      capabilities: {
+        regenerateAll: environmentVariables.BILLING_ALLOW_REGENERATE_ALL,
+        // `registration-management` is hidden from the admin unless its feature flag is
+        // on, and Payload 404s a hidden global — so a link to it is only worth
+        // rendering where the page exists.
+        availableDocuments: [
+          'billSettings',
+          ...(environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
+            ? ['registrationManagement']
+            : []),
+        ],
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Fetch sync status failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+const CancelTaskSchema = z.object({
+  task: z.enum([
+    BillingTaskSlug.SyncParticipants,
+    BillingTaskSlug.GenerateBills,
+    BillingTaskSlug.SendBills,
+  ]),
+});
+
+/**
+ * POST /api/confidential/billing/cancel – Ask a running billing job to stop.
+ *
+ * Cancellation is cooperative: the flag is picked up at the next item boundary, so the
+ * item in flight still finishes and the job reports the partial counters it reached.
+ * Nothing already written is rolled back.
+ */
+export const billingCancelHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body: unknown = await request.json?.();
+    const parseResult = CancelTaskSchema.safeParse(body);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    await new RedisJobProgressAdapter().requestCancel(parseResult.data.task);
+    request.payload.logger.info(
+      `Cancellation requested for billing task ${parseResult.data.task}.`,
+    );
+
+    return Response.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Cancelling billing job failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };

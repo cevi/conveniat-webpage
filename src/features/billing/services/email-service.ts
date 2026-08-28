@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
@@ -22,6 +23,7 @@ export async function sendBills(
   payload: Payload,
   participantId?: string,
   dependencies?: { hitobitoClient?: HitobitoClient; s3Client?: S3Client },
+  reporter?: JobProgressReporter,
 ): Promise<SendSummary> {
   const summary: SendSummary = {
     sentCount: 0,
@@ -99,7 +101,22 @@ export async function sendBills(
       forcePathStyle: true,
     });
 
-  for (const document_ of participants.docs) {
+  for (const [index, document_] of participants.docs.entries()) {
+    await reporter?.report({
+      processedItems: index,
+      totalItems: participants.docs.length,
+      currentItemName: String(document_.fullName),
+      runningSummary: { sentCount: summary.sentCount, failedCount: summary.failedCount },
+    });
+
+    if (await reporter?.shouldCancel()) {
+      summary.cancelled = true;
+      payload.logger.info(
+        `Bill sending cancelled by operator after ${String(index)} of ${String(participants.docs.length)} participants.`,
+      );
+      break;
+    }
+
     try {
       const userId = document_.userId;
       const fullName = document_.fullName;

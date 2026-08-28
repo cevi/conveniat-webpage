@@ -4034,7 +4034,7 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
- * Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.
+ * Participants synced from Cevi.DB, and the bills raised for them.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bill-participants".
@@ -4073,6 +4073,10 @@ export interface BillParticipant {
   lastSyncDate?: string | null;
   billCreatedDate?: string | null;
   billSentDate?: string | null;
+  /**
+   * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
+   */
+  financeNote?: string | null;
   removedDate?: string | null;
   reAddedDate?: string | null;
   referenceNumber?: string | null;
@@ -6413,6 +6417,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   lastSyncDate?: T;
   billCreatedDate?: T;
   billSentDate?: T;
+  financeNote?: T;
   removedDate?: T;
   reAddedDate?: T;
   referenceNumber?: T;

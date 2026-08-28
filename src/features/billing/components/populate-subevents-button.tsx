@@ -4,6 +4,7 @@ import type { PopulateSubeventsState } from '@/features/billing/hooks/use-popula
 import { usePopulateSubevents } from '@/features/billing/hooks/use-populate-subevents';
 import type { PopulatedSubevent } from '@/features/billing/types';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { useDocumentInfo, useForm, useLocale, useServerFunctions } from '@payloadcms/ui';
 import { AlertTriangle, CheckCircle2, Download, RefreshCw, Sparkles } from 'lucide-react';
@@ -130,15 +131,6 @@ const groupLabel: StaticTranslationString = {
   fr: 'Groupe',
 };
 
-/**
- * `Config['locale']` also carries `'all'`, which no translation table covers.
- * German is the primary language of this admin panel, so it is the fallback.
- */
-const resolveLocale = (code: string): Locale => {
-  if (code === 'de' || code === 'en' || code === 'fr') return code;
-  return 'de';
-};
-
 const progressSummary = (locale: Locale, processed: number, total: number): string => {
   const counts = `${String(processed)}/${String(total)}`;
   if (locale === 'en') return `${counts} subgroups`;
@@ -172,7 +164,7 @@ const computePercentage = (state: PopulateSubeventsState): number => {
  */
 export const PopulateSubeventsButton: React.FC = () => {
   const { code } = useLocale();
-  const locale = resolveLocale(code);
+  const locale = resolveAdminLocale(code);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [didRefreshForm, setDidRefreshForm] = useState(true);
 
