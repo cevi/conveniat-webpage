@@ -4,6 +4,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
+import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
@@ -257,43 +258,78 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
 };
 
 /**
- * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group 4337 and save to settings
+ * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group
+ * 4337 and save them to the bill settings.
+ *
+ * The walk over every subgroup takes roughly 45 seconds, so the response is a stream of
+ * newline-delimited {@link PopulateSubeventsStreamMessage} frames rather than a single
+ * JSON body: the admin UI renders a progress bar and the names of the events as they are
+ * discovered. Failures after the first frame are reported as an `error` frame, because
+ * the status code is already on the wire by then.
  */
 export const billingPopulateSubeventsHandler: PayloadHandler = async (request) => {
-  try {
-    const hasAccess = await canAccessBilling({ req: request });
-    if (hasAccess !== true) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const settingsRepo = new PayloadSettingsAdapter(request.payload);
-    const regManagement = await settingsRepo.getRegistrationManagement();
-    const cookieValue = regManagement.browserCookie;
-    const browserCookie =
-      typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
-
-    const logger = {
-      info: (m: string): void => request.payload.logger.info(m),
-      warn: (m: string): void => request.payload.logger.warn(m),
-      error: (m: string): void => request.payload.logger.error(m),
-    };
-
-    const hitobitoService = new HitobitoServiceAdapter(
-      {
-        baseUrl: HITOBITO_CONFIG.baseUrl,
-        apiToken: HITOBITO_CONFIG.apiToken,
-        browserCookie,
-      },
-      logger,
-    );
-
-    const result = await populateSubeventsUseCase(hitobitoService, settingsRepo, logger);
-    return Response.json(result);
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);
-    return Response.json({ error: message }, { status: 500 });
+  const hasAccess = await canAccessBilling({ req: request });
+  if (hasAccess !== true) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller): Promise<void> {
+      const send = (message: PopulateSubeventsStreamMessage): void => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(message)}\n`));
+      };
+
+      try {
+        const settingsRepo = new PayloadSettingsAdapter(request.payload);
+        const regManagement = await settingsRepo.getRegistrationManagement();
+        const cookieValue = regManagement.browserCookie;
+        const browserCookie =
+          typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
+        const logger = {
+          info: (m: string): void => request.payload.logger.info(m),
+          warn: (m: string): void => request.payload.logger.warn(m),
+          error: (m: string): void => request.payload.logger.error(m),
+        };
+
+        const hitobitoService = new HitobitoServiceAdapter(
+          {
+            baseUrl: HITOBITO_CONFIG.baseUrl,
+            apiToken: HITOBITO_CONFIG.apiToken,
+            browserCookie,
+          },
+          logger,
+        );
+
+        const result = await populateSubeventsUseCase(
+          hitobitoService,
+          settingsRepo,
+          logger,
+          (progress) => send({ type: 'progress', ...progress }),
+        );
+
+        send({ type: 'done', newEvents: result.newEvents, allEvents: result.allEvents });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);
+        send({ type: 'error', error: message });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'application/x-ndjson; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      // Without this a buffering reverse proxy would hold the frames back and the
+      // progress bar would only appear once the whole walk is finished.
+      'X-Accel-Buffering': 'no',
+    },
+  });
 };
 
 interface SyncJobStatus {
