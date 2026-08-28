@@ -47,3 +47,22 @@ div#action-unpublish-popup {
 .login__brand {
   display: none;
 }
+
+// The billing pipeline is mounted through `beforeListTable`, the only list slot that
+// renders inside the page gutter — but that is *below* the search and filter controls,
+// which makes those controls read as if they filtered the pipeline. Payload has no slot
+// between the list header and the controls, so the wrapper becomes a flex column and the
+// three blocks are ordered explicitly. Scoped with `:has()` so no other collection's
+// list layout is touched.
+.collection-list__wrap:has(> .billing-pipeline) {
+  display: flex;
+  flex-direction: column;
+
+  > .list-header {
+    order: -2;
+  }
+
+  > .billing-pipeline {
+    order: -1;
+  }
+}

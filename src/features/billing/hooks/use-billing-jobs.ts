@@ -43,6 +43,7 @@ interface StatusResponse {
   sync?: BillingJobView;
   generate?: BillingJobView;
   send?: BillingJobView;
+  capabilities?: { regenerateAll?: boolean };
 }
 
 const readStoredActiveJobs = (): ActiveJobs => {
@@ -77,6 +78,8 @@ export const useBillingJobs = (): {
   cancelJob: (task: BillingTaskKey) => Promise<void>;
   regenerateAll: () => Promise<void>;
   isRegenerating: boolean;
+  /** False unless the deployment enabled `BILLING_ALLOW_REGENERATE_ALL`. */
+  canRegenerateAll: boolean;
 } => {
   const { query, refineListData } = useListQuery();
 
@@ -92,6 +95,9 @@ export const useBillingJobs = (): {
   );
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
+  // Assume not allowed until the server says otherwise, so the destructive action is
+  // never offered on a deployment that would refuse it.
+  const [canRegenerateAll, setCanRegenerateAll] = useState(false);
 
   useEffect((): void => {
     // eslint-disable-next-line unicorn/prefer-global-this
@@ -106,6 +112,7 @@ export const useBillingJobs = (): {
       if (data.success !== true) return undefined;
 
       setJobs({ sync: data.sync, generate: data.generate, send: data.send });
+      setCanRegenerateAll(data.capabilities?.regenerateAll === true);
 
       // Adopt jobs started elsewhere (another tab, or before a reload wiped the entry).
       const pendingJobs: ActiveJobs = {};
@@ -274,5 +281,6 @@ export const useBillingJobs = (): {
     cancelJob,
     regenerateAll,
     isRegenerating,
+    canRegenerateAll,
   };
 };

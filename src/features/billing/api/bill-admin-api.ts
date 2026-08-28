@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
@@ -79,6 +80,18 @@ export const billingRegenerateAllHandler: PayloadHandler = async (request) => {
   try {
     const hasAccess = await canAccessBilling({ req: request });
     if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Enforced here, not only in the admin UI: this wipes every existing PDF and
+    // invoice number, so a deployment has to opt in before it can be reached at all.
+    if (!environmentVariables.BILLING_ALLOW_REGENERATE_ALL) {
+      request.payload.logger.warn(
+        'Rejected bulk regenerate: BILLING_ALLOW_REGENERATE_ALL is not enabled on this deployment.',
+      );
+      return Response.json(
+        { error: 'Bulk regeneration is disabled on this deployment.' },
+        { status: 403 },
+      );
+    }
 
     const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
     const existing = await participantRepo.findForRegenerateAll();
@@ -486,6 +499,11 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
       sync: syncJob,
       generate: generateJob,
       send: sendJob,
+      // Lets the toolbar disable what the server would refuse anyway, instead of
+      // offering an action that fails only once it has been confirmed.
+      capabilities: {
+        regenerateAll: environmentVariables.BILLING_ALLOW_REGENERATE_ALL,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

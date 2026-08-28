@@ -85,6 +85,42 @@ const sendHint: StaticTranslationString = {
   fr: 'Envoie les factures générées aux participants par e-mail.',
 };
 
+const syncRetry: StaticTranslationString = {
+  de: 'Erneut abgleichen',
+  en: 'Sync again',
+  fr: 'Synchroniser à nouveau',
+};
+
+const generateRetry: StaticTranslationString = {
+  de: 'Erneut generieren',
+  en: 'Generate again',
+  fr: 'Générer à nouveau',
+};
+
+const sendRetry: StaticTranslationString = {
+  de: 'Erneut versenden',
+  en: 'Send again',
+  fr: 'Envoyer à nouveau',
+};
+
+const requiresSync: StaticTranslationString = {
+  de: 'Erst nach erfolgreichem Abgleich verfügbar',
+  en: 'Available once the sync has completed successfully',
+  fr: 'Disponible après une synchronisation réussie',
+};
+
+const requiresGenerate: StaticTranslationString = {
+  de: 'Erst nach erfolgreicher Generierung verfügbar',
+  en: 'Available once generation has completed successfully',
+  fr: 'Disponible après une génération réussie',
+};
+
+const regenerateAllDisabledHint: StaticTranslationString = {
+  de: 'Auf dieser Umgebung deaktiviert (BILLING_ALLOW_REGENERATE_ALL)',
+  en: 'Disabled on this deployment (BILLING_ALLOW_REGENERATE_ALL)',
+  fr: 'Désactivé sur cet environnement (BILLING_ALLOW_REGENERATE_ALL)',
+};
+
 const moreActionsLabel: StaticTranslationString = {
   de: 'Weitere Aktionen',
   en: 'More actions',
@@ -196,6 +232,7 @@ export const BillingListToolbar: React.FC = () => {
     cancelJob,
     regenerateAll,
     isRegenerating,
+    canRegenerateAll,
   } = useBillingJobs();
 
   const steps: Array<{
@@ -203,16 +240,19 @@ export const BillingListToolbar: React.FC = () => {
     title: string;
     action: string;
     hint: string;
-    icon: React.ReactNode;
+    Icon: React.ComponentType<{ className?: string }>;
     counterLabels: Array<{ key: string; label: string }>;
-    actionVariant?: 'neutral' | 'publish';
+    retry: string;
+    /** Shown when the step before this one has not completed cleanly. */
+    requires?: BillingTaskKey;
   }> = [
     {
       key: 'sync',
       title: syncTitle[locale],
       action: syncAction[locale],
       hint: syncHint[locale],
-      icon: <RefreshCcw className="h-3.5 w-3.5" />,
+      Icon: RefreshCcw,
+      retry: syncRetry[locale],
       counterLabels: [
         { key: 'newCount', label: newCountLabel[locale] },
         { key: 'changedCount', label: changedCountLabel[locale] },
@@ -226,7 +266,9 @@ export const BillingListToolbar: React.FC = () => {
       title: generateTitle[locale],
       action: generateAction[locale],
       hint: generateHint[locale],
-      icon: <FilePlus className="h-3.5 w-3.5" />,
+      Icon: FilePlus,
+      retry: generateRetry[locale],
+      requires: 'sync',
       counterLabels: [
         { key: 'generatedCount', label: generatedCountLabel[locale] },
         { key: 'skippedAlreadyExistingCount', label: alreadyExistingCountLabel[locale] },
@@ -238,8 +280,9 @@ export const BillingListToolbar: React.FC = () => {
       title: sendTitle[locale],
       action: sendAction[locale],
       hint: sendHint[locale],
-      icon: <Send className="h-3.5 w-3.5" />,
-      actionVariant: 'publish',
+      Icon: Send,
+      retry: sendRetry[locale],
+      requires: 'generate',
       counterLabels: [
         { key: 'sentCount', label: sentCountLabel[locale] },
         { key: 'failedCount', label: failedCountLabel[locale] },
@@ -247,10 +290,28 @@ export const BillingListToolbar: React.FC = () => {
     },
   ];
 
+  /**
+   * A step only unlocks once the one before it finished cleanly — sending bills that were
+   * never generated, or generating from participants that were never synced, is the kind
+   * of mistake the old row of three equal buttons invited.
+   */
+  const blockedReasonFor = (requires: BillingTaskKey | undefined): string | undefined => {
+    if (requires === undefined) return undefined;
+    const upstream = jobs[requires];
+    const upstreamErrors = upstream?.summary?.['errors'];
+    const upstreamSucceeded =
+      upstream?.status === 'success' &&
+      upstream.summary?.['cancelled'] !== true &&
+      !(Array.isArray(upstreamErrors) && upstreamErrors.length > 0);
+
+    if (upstreamSucceeded) return undefined;
+    return requires === 'sync' ? requiresSync[locale] : requiresGenerate[locale];
+  };
+
   return (
-    // Constrained the way Payload constrains its own document fields: at full list width
-    // each step's action button would sit most of a screen away from the step it runs.
-    <div className="mb-6 max-w-3xl">
+    // `billing-pipeline` is the hook the list-ordering rule in custom.scss keys on; it
+    // lifts this block above the search and filter controls.
+    <div className="billing-pipeline mb-6">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="m-0 text-sm font-semibold text-(--theme-elevation-800)">
@@ -291,8 +352,9 @@ export const BillingListToolbar: React.FC = () => {
                 event.preventDefault();
                 setIsRegenerateModalOpen(true);
               }}
-              disabled={isBusy}
-              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-(--theme-error-500) hover:bg-(--theme-elevation-100)"
+              disabled={isBusy || !canRegenerateAll}
+              title={canRegenerateAll ? undefined : regenerateAllDisabledHint[locale]}
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-(--theme-error-500) hover:bg-(--theme-elevation-100) data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
             >
               <AlertTriangle className="h-4 w-4" />
               <span>{regenerateAllLabel[locale]}</span>
@@ -301,26 +363,26 @@ export const BillingListToolbar: React.FC = () => {
         </DropdownMenu>
       </div>
 
-      <ol className="m-0 list-none border-t border-(--theme-elevation-100) p-0 pt-3">
+      <ol className="m-0 grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-3">
         {steps.map((step, index) => (
           <BillingPipelineStep
             key={step.key}
-            stepNumber={index + 1}
-            title={step.title}
-            icon={step.icon}
             actionLabel={step.action}
-            hint={step.hint}
+            blockedReason={blockedReasonFor(step.requires)}
             counterLabels={step.counterLabels}
-            job={jobs[step.key]}
+            hint={step.hint}
+            Icon={step.Icon}
+            isBusy={isBusy}
+            isCancelling={isCancelling[step.key]}
             isPending={isPending[step.key]}
             isStarting={isPending[step.key] && jobs[step.key]?.progress === undefined}
-            isCancelling={isCancelling[step.key]}
-            isBlocked={isBusy}
-            actionVariant={step.actionVariant ?? 'neutral'}
-            isLast={index === steps.length - 1}
+            job={jobs[step.key]}
             locale={locale}
-            onStart={() => void startJob(step.key)}
             onCancel={() => void cancelJob(step.key)}
+            onStart={() => void startJob(step.key)}
+            retryLabel={step.retry}
+            stepNumber={index + 1}
+            title={step.title}
           />
         ))}
       </ol>
