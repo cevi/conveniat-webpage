@@ -22,7 +22,8 @@ describe('ShiftOrganisers', () => {
 
     expect(screen.getByText('Organisatoren kontaktieren')).toBeInTheDocument();
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
-    expect(screen.getByText('anna@example.org')).toBeInTheDocument();
+    // the address is deliberately not rendered: the chat button is how an organiser is reached
+    expect(screen.queryByText('anna@example.org')).toBeNull();
   });
 
   /**

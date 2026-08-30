@@ -47,6 +47,7 @@ export type SupportedTimezones = 'Europe/Zurich';
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    'payload-mcp-api-keys': PayloadMcpApiKeyAuthOperations;
   };
   blocks: {};
   collections: {
@@ -85,6 +86,7 @@ export interface Config {
     go: Go;
     exports: Export;
     imports: Import;
+    'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-folders': FolderInterface;
@@ -148,6 +150,7 @@ export interface Config {
     go: GoSelect<false> | GoSelect<true>;
     exports: ExportsSelect<false> | ExportsSelect<true>;
     imports: ImportsSelect<false> | ImportsSelect<true>;
+    'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
@@ -199,7 +202,7 @@ export interface Config {
     'email-stats': EmailStatsWidget;
     collections: CollectionsWidget;
   };
-  user: User;
+  user: User | PayloadMcpApiKey;
   jobs: {
     tasks: {
       resolveUser: TaskResolveUser;
@@ -234,6 +237,24 @@ export interface Config {
   };
 }
 export interface UserAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
+export interface PayloadMcpApiKeyAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -417,6 +438,7 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | DonationCtaBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -2048,6 +2070,7 @@ export interface GenericPage {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | DonationCtaBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -2353,18 +2376,7 @@ export interface CampMapAnnotation {
   color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
   annotationType: 'marker' | 'polygon';
   icon?:
-    | (
-        | 'MapPin'
-        | 'Tent'
-        | 'Utensils'
-        | 'Flag'
-        | 'HelpCircle'
-        | 'Recycle'
-        | 'GlassWater'
-        | 'Stage'
-        | 'Toilet'
-        | 'BriefcaseMedical'
-      )
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
     | null;
   /**
    * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
@@ -2541,6 +2553,71 @@ export interface Countdown {
   id?: string | null;
   blockName?: string | null;
   blockType: 'countdown';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationCtaBlock".
+ */
+export interface DonationCtaBlock {
+  eyebrow?: string | null;
+  /**
+   * A title that names the impact carries further than one that names the action: "Give every child a camp" rather than "Donate now".
+   */
+  title: string;
+  description?: string | null;
+  buttonLabel: string;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  /**
+   * Optional logos (e.g. TWINT, Visa, Mastercard). Upload the official logos to the media library and select them here.
+   */
+  paymentMethods?:
+    | {
+        logo: string | Image;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * e.g. "Payments are processed securely via RaiseNow."
+   */
+  note?: string | null;
+  variant: 'highlight' | 'card';
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'donationCta';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3607,6 +3684,10 @@ export interface HelperShift {
    */
   participants_max?: number | null;
   enable_enrolment?: boolean | null;
+  /**
+   * How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.
+   */
+  unenrollment_deadline_minutes?: number | null;
   hide_participant_list?: boolean | null;
   /**
    * Hide this slot when full for users who are not enrolled in it.
@@ -3974,7 +4055,7 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
- * Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.
+ * Participants synced from Cevi.DB, and the bills raised for them.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bill-participants".
@@ -4013,6 +4094,10 @@ export interface BillParticipant {
   lastSyncDate?: string | null;
   billCreatedDate?: string | null;
   billSentDate?: string | null;
+  /**
+   * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
+   */
+  financeNote?: string | null;
   removedDate?: string | null;
   reAddedDate?: string | null;
   referenceNumber?: string | null;
@@ -4246,6 +4331,61 @@ export interface Import {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+}
+/**
+ * Bearer tokens that let an MCP client (Claude, Cursor, …) read and edit content. Point the client at /api/mcp on this site and send the key as the header "Authorization: Bearer <key>". Every capability below is off until you tick it, and the key can never do more than the user it belongs to. Copy the key right after saving — it is only readable while the document is open.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-mcp-api-keys".
+ */
+export interface PayloadMcpApiKey {
+  id: string;
+  /**
+   * The user this key acts as. Every read and write the MCP client makes is checked against this user's roles, so the key inherits their permissions — and nothing more. Defaults to you.
+   */
+  user: string | User;
+  /**
+   * A useful label for the API key.
+   */
+  label?: string | null;
+  /**
+   * The purpose of the API key.
+   */
+  description?: string | null;
+  genericPage?: {
+    /**
+     * Allow clients to find generic-page.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create generic-page.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update generic-page.
+     */
+    update?: boolean | null;
+  };
+  forms?: {
+    /**
+     * Allow clients to find forms.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create forms.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update forms.
+     */
+    update?: boolean | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  collection: 'payload-mcp-api-keys';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4551,14 +4691,23 @@ export interface PayloadLockedDocument {
         value: string | Go;
       } | null)
     | ({
+        relationTo: 'payload-mcp-api-keys';
+        value: string | PayloadMcpApiKey;
+      } | null)
+    | ({
         relationTo: 'payload-folders';
         value: string | FolderInterface;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'payload-mcp-api-keys';
+        value: string | PayloadMcpApiKey;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -4568,10 +4717,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: string;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'payload-mcp-api-keys';
+        value: string | PayloadMcpApiKey;
+      };
   key?: string | null;
   value?:
     | {
@@ -4693,6 +4847,7 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              donationCta?: T | DonationCtaBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -5057,6 +5212,36 @@ export interface CountdownSelect<T extends boolean = true> {
   title?: T;
   descriptionAbove?: T;
   descriptionBelow?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationCtaBlock_select".
+ */
+export interface DonationCtaBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
+  paymentMethods?:
+    | T
+    | {
+        logo?: T;
+        id?: T;
+      };
+  note?: T;
+  variant?: T;
   id?: T;
   blockName?: T;
 }
@@ -5628,6 +5813,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              donationCta?: T | DonationCtaBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -5891,6 +6077,7 @@ export interface HelperShiftsSelect<T extends boolean = true> {
   category?: T;
   participants_max?: T;
   enable_enrolment?: T;
+  unenrollment_deadline_minutes?: T;
   hide_participant_list?: T;
   hide_when_full?: T;
   notes?: T;
@@ -6320,6 +6507,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   lastSyncDate?: T;
   billCreatedDate?: T;
   billSentDate?: T;
+  financeNote?: T;
   removedDate?: T;
   reAddedDate?: T;
   referenceNumber?: T;
@@ -6906,6 +7094,34 @@ export interface ImportsSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-mcp-api-keys_select".
+ */
+export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
+  user?: T;
+  label?: T;
+  description?: T;
+  genericPage?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
+  forms?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7610,6 +7826,7 @@ export interface AppLandingPage {
             blockName?: string | null;
             blockType: 'callToAction';
           }
+        | DonationCtaBlock
         | {
             linkField?: {
               type?: ('reference' | 'custom' | 'email') | null;
@@ -8166,6 +8383,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        donationCta?: T | DonationCtaBlockSelect<T>;
         newsCard?:
           | T
           | {

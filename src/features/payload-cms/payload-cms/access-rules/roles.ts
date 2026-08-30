@@ -22,18 +22,34 @@ export enum Roles {
   ProgramTeam = 'program-team',
 }
 
+/**
+ * Reads the CeviDB groups off an authenticated user.
+ *
+ * The MCP plugin registers `payload-mcp-api-keys` as a second auth-enabled collection,
+ * which widens Payload's `TypedUser` from `User` to `User | PayloadMcpApiKey`. An API key
+ * document never acts as the user in an access rule — the MCP endpoint resolves the bearer
+ * key to the `User` it is bound to and runs every operation as that user — so narrowing
+ * here is safe, and beats threading the widened union through every rule below.
+ */
+export const getUserGroups = (
+  user: ClientUser | TypedUser | null | undefined,
+): { id: number }[] => {
+  if (!user || !('groups' in user) || !Array.isArray(user.groups)) return [];
+  return user.groups as { id: number }[];
+};
+
 export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups?.some((group) => CEVIDB_GROUP_FULL_ADMIN.includes(group.id)) ?? false;
+  return getUserGroups(user).some((group) => CEVIDB_GROUP_FULL_ADMIN.includes(group.id));
 };
 
 export const isWebCoreTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups?.some((group) => CEVIDB_GROUP_WEB_CORE_TEAM.includes(group.id)) ?? false;
+  return getUserGroups(user).some((group) => CEVIDB_GROUP_WEB_CORE_TEAM.includes(group.id));
 };
 
 export const isTranslationTeam: ({
@@ -42,14 +58,14 @@ export const isTranslationTeam: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  return user.groups?.some((group) => CEVIDB_GROUP_TRANSLATION_TEAM.includes(group.id)) ?? false;
+  return getUserGroups(user).some((group) => CEVIDB_GROUP_TRANSLATION_TEAM.includes(group.id));
 };
 
 export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
   req: { user },
 }) => {
   if (!user) return false;
-  return user.groups?.some((group) => CEVIDB_GROUP_PROGRAM_TEAM.includes(group.id)) ?? false;
+  return getUserGroups(user).some((group) => CEVIDB_GROUP_PROGRAM_TEAM.includes(group.id));
 };
 
 export const hasAccessToThisUser: ({
@@ -100,7 +116,7 @@ export const hasAccessToThis: ({
   req: PayloadRequest;
   requiredRoles: Roles[];
 }) => boolean = ({ req: { user }, requiredRoles }) => {
-  return hasAccessToThisUser({ user: { groups: user?.groups ?? [] }, requiredRoles });
+  return hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles });
 };
 
 export const hasAdminOrWebAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
@@ -151,7 +167,7 @@ export const shouldHideInAdminPanel: ({
   if (!user) return true;
   const allowedRoles = [Roles.FullAdmin, Roles.WebCoreTeam];
   const hasAccess = hasAccessToThisUser({
-    user: { groups: user['groups'] as { id: number }[] },
+    user: { groups: getUserGroups(user) },
     requiredRoles: allowedRoles,
   });
   return !hasAccess;
@@ -165,7 +181,7 @@ export const shouldHideInAdminPanelIfNotAdmin: ({
   if (!user) return true;
   const allowedRoles = [Roles.FullAdmin];
   const hasAccess = hasAccessToThisUser({
-    user: { groups: user['groups'] as { id: number }[] },
+    user: { groups: getUserGroups(user) },
     requiredRoles: allowedRoles,
   });
   return !hasAccess;

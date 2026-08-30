@@ -1,3 +1,4 @@
+import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
 import type { z } from 'zod';
 
 import type {
@@ -37,6 +38,10 @@ export interface SyncedParticipant {
  * Summary returned after a sync operation.
  */
 export interface SyncSummary {
+  /** Set when an operator stopped the run early; the counters are then partial. */
+  cancelled?: boolean;
+  /** Admin documents an operator has to fix for this run to succeed. */
+  relatedDocuments?: BillingAdminDocumentKey[];
   newCount: number;
   removedCount: number;
   reAddedCount: number;
@@ -50,6 +55,10 @@ export interface SyncSummary {
  * Summary returned after bill generation.
  */
 export interface GenerationSummary {
+  /** Set when an operator stopped the run early; the counters are then partial. */
+  cancelled?: boolean;
+  /** Admin documents an operator has to fix for this run to succeed. */
+  relatedDocuments?: BillingAdminDocumentKey[];
   generatedCount: number;
   skippedCount: number;
   skippedAlreadyExistingCount: number;
@@ -60,6 +69,10 @@ export interface GenerationSummary {
  * Summary returned after sending bills.
  */
 export interface SendSummary {
+  /** Set when an operator stopped the run early; the counters are then partial. */
+  cancelled?: boolean;
+  /** Admin documents an operator has to fix for this run to succeed. */
+  relatedDocuments?: BillingAdminDocumentKey[];
   sentCount: number;
   failedCount: number;
   errors: string[];
@@ -106,3 +119,41 @@ export enum BillingJobStatus {
   Failed = 'failed',
   Success = 'success',
 }
+
+/**
+ * A subgroup event discovered on Cevi.DB and stored in the bill-settings event list.
+ */
+export interface PopulatedSubevent {
+  eventId: string;
+  eventName: string;
+  groupId: string;
+}
+
+/**
+ * Frames streamed (newline-delimited JSON) by
+ * `POST /api/confidential/billing/populate-subevents`.
+ *
+ * The walk over all subgroups takes ~45s, so the handler reports progress as it goes
+ * instead of leaving the admin UI with a spinner and no information. Once the last
+ * `progress` frame has arrived the walk is done and the merged list is being written,
+ * which is the phase the UI labels as "saving" until `done` arrives.
+ */
+export type PopulateSubeventsStreamMessage =
+  | {
+      type: 'progress';
+      processedGroups: number;
+      totalGroups: number;
+      /** Events found since the previous frame — append, do not replace. */
+      foundEvents: PopulatedSubevent[];
+    }
+  | {
+      type: 'done';
+      /** The subset of the discovered events that was not in the settings yet. */
+      newEvents: PopulatedSubevent[];
+      /**
+       * The complete event list as it was just written to the settings, so the admin
+       * form can adopt it without a page reload.
+       */
+      allEvents: PopulatedSubevent[];
+    }
+  | { type: 'error'; error: string };
