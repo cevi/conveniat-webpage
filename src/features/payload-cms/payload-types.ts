@@ -4333,7 +4333,7 @@ export interface Import {
   focalY?: number | null;
 }
 /**
- * API keys control which collections, resources, tools, and prompts MCP clients can access
+ * Bearer tokens that let an MCP client (Claude, Cursor, …) read and edit content. Point the client at /api/mcp on this site and send the key as the header "Authorization: Bearer <key>". Every capability below is off until you tick it, and the key can never do more than the user it belongs to. Copy the key right after saving — it is only readable while the document is open.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-mcp-api-keys".
@@ -4341,7 +4341,7 @@ export interface Import {
 export interface PayloadMcpApiKey {
   id: string;
   /**
-   * The user that the API key is associated with.
+   * The user this key acts as. Every read and write the MCP client makes is checked against this user's roles, so the key inherits their permissions — and nothing more. Defaults to you.
    */
   user: string | User;
   /**

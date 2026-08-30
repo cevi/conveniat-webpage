@@ -1,4 +1,3 @@
-import { environmentVariables as env } from '@/config/environment-variables';
 import {
   hasAccessToThisHelper,
   Roles,
@@ -27,29 +26,31 @@ const isFullAdmin = hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] });
  */
 const defaultToCurrentUser: DefaultValue = ({ user }) => user?.id;
 
-const MCP_ENDPOINT = `${env.APP_HOST_URL}/api/mcp`;
-
 /**
- * Shown above the list and on every key. The endpoint is built from `APP_HOST_URL`, so it
- * always names the environment the admin is actually looking at.
+ * Shown above the list and on every key.
+ *
+ * Kept free of interpolated environment values on purpose: Payload copies admin
+ * descriptions into `payload-types.ts` as JSDoc, so a host name from `APP_HOST_URL` would
+ * make the generated file differ per environment and break CI's "types are up to date"
+ * hash check. The path is relative to whichever site the admin is already looking at.
  */
 const apiKeyCollectionDescription = {
   en:
     `Bearer tokens that let an MCP client (Claude, Cursor, …) read and edit content. ` +
-    `Point the client at ${MCP_ENDPOINT} and send the key as the header ` +
+    `Point the client at /api/mcp on this site and send the key as the header ` +
     `"Authorization: Bearer <key>". Every capability below is off until you tick it, and ` +
     `the key can never do more than the user it belongs to. Copy the key right after ` +
     `saving — it is only readable while the document is open.`,
   de:
     `Bearer-Tokens, mit denen ein MCP-Client (Claude, Cursor, …) Inhalte lesen und ` +
-    `bearbeiten kann. Den Client auf ${MCP_ENDPOINT} richten und den Schlüssel als Header ` +
-    `"Authorization: Bearer <Schlüssel>" mitschicken. Alle Berechtigungen unten sind ` +
+    `bearbeiten kann. Den Client auf /api/mcp dieser Seite richten und den Schlüssel als ` +
+    `Header "Authorization: Bearer <Schlüssel>" mitschicken. Alle Berechtigungen unten sind ` +
     `deaktiviert, bis du sie anhakst, und ein Schlüssel kann nie mehr als die Person, der ` +
     `er gehört. Schlüssel direkt nach dem Speichern kopieren — er ist nur sichtbar, ` +
     `solange das Dokument offen ist.`,
   fr:
     `Jetons Bearer qui permettent à un client MCP (Claude, Cursor, …) de lire et de ` +
-    `modifier du contenu. Dirigez le client vers ${MCP_ENDPOINT} et envoyez la clé dans ` +
+    `modifier du contenu. Dirigez le client vers /api/mcp de ce site et envoyez la clé dans ` +
     `l'en-tête "Authorization: Bearer <clé>". Toutes les capacités ci-dessous sont ` +
     `désactivées tant que vous ne les cochez pas, et une clé ne peut jamais faire plus ` +
     `que la personne à qui elle appartient. Copiez la clé juste après l'enregistrement — ` +
