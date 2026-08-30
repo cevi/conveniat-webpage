@@ -82,8 +82,18 @@ export const FormControls: React.FC<FormControlsProperties> = ({
         </button>
       )}
 
+      {/*
+       * The keys are load-bearing. Without them React reconciles these two branches onto the
+       * same <button> DOM node and merely patches `type` from "button" to "submit". Advancing
+       * to the last step happens in a microtask (`await formMethods.trigger(...)` in
+       * `useFormSteps.next`), which the browser runs *during* the click dispatch that is still
+       * in flight - so by the time it reaches the activation behaviour the very button the user
+       * pressed to go forward has become a submit button, and the form submits on its own.
+       * Distinct keys make React mount a fresh node instead, leaving nothing to activate.
+       */}
       {isLast ? (
         <button
+          key="submit"
           type="submit"
           disabled={isDisabled}
           form={formId}
@@ -93,6 +103,7 @@ export const FormControls: React.FC<FormControlsProperties> = ({
         </button>
       ) : (
         <button
+          key="next"
           type="button"
           onClick={onNext}
           disabled={isDisabled}
