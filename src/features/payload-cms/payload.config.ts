@@ -12,6 +12,7 @@ import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
 import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
 import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { mcpPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-plugin-configuration';
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
@@ -451,6 +452,7 @@ export const payloadConfig: RoutableConfig = {
     searchPluginConfiguration,
     redirectsPluginConfiguration,
     importExportConfiguration,
+    mcpPluginConfiguration,
   ],
   jobs: jobsConfig,
   i18n: {
