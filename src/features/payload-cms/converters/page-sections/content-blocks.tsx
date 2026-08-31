@@ -29,6 +29,8 @@ import {
 import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
+import { MediaText } from '@/features/payload-cms/components/content-blocks/media-text';
+import { ProcessSteps } from '@/features/payload-cms/components/content-blocks/process-steps';
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
 import {
   SponsorGrid,
@@ -45,6 +47,8 @@ import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/r
 import type {
   AccordionBlocks,
   FeaturedSectionBlock,
+  MediaTextBlock,
+  ProcessStepsBlock,
   SectionSeparatorBlock,
   Timeline,
   TimelineCategory,
@@ -95,6 +99,8 @@ export type ContentBlockTypeNames =
   | 'tabsBlock'
   | 'featuredSection'
   | 'heroSection'
+  | 'mediaText'
+  | 'processSteps'
   | 'sectionSeparator';
 
 export type SectionRenderer<T = object> = React.FC<
@@ -742,6 +748,61 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = (
       locale={locale}
     >
       <CampScheduleEntryContentBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderMediaText: SectionRenderer<MediaTextBlock> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  const payload = await getPayload({ config });
+  await resolveRichTextLinks(block.richTextSection, payload, locale);
+
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Bild-mit-Text-Block',
+          en: 'media and text block',
+          fr: 'le bloc image et texte',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <MediaText {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderProcessSteps: SectionRenderer<ProcessStepsBlock> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Ablauf-Block',
+          en: 'process steps block',
+          fr: 'le bloc des étapes',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <ProcessSteps {...block} />
     </SectionWrapper>
   );
 };
