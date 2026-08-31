@@ -77,15 +77,17 @@ config file is **not** mounted for this step — the client needs to write its t
 ```bash
 # production, on a swarm node
 docker run -it --rm \
+  -e ONEDRIVE_UID=1000 -e ONEDRIVE_GID=1000 \
   -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
   -v /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data \
-  driveone/onedrive:latest onedrive
+  driveone/onedrive:latest
 
 # local
 docker run -it --rm \
+  -e ONEDRIVE_UID=1000 -e ONEDRIVE_GID=1000 \
   -v conveniat-webpage_onedrive-conf:/onedrive/conf \
   -v conveniat-webpage_bill-archive:/onedrive/data \
-  driveone/onedrive:latest onedrive
+  driveone/onedrive:latest
 ```
 
 It prints a URL. Open it, sign in with the **cevi.ch work account** that has access to the
@@ -102,9 +104,14 @@ The account has more than one drive; the client has to be told which. Ask it:
 
 ```bash
 docker run -it --rm \
+  --entrypoint /usr/local/bin/onedrive \
   -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
-  driveone/onedrive:latest onedrive --get-sharepoint-drive-id "ConveniatDue-TeamFinanzen"
+  driveone/onedrive:latest --confdir /onedrive/conf \
+  --get-sharepoint-drive-id "ConveniatDue-TeamFinanzen"
 ```
+
+The default entrypoint starts a sync loop, so it has to be overridden for any command that
+is meant to answer a question and exit.
 
 It lists the libraries on that site with their ids. Take the one for **Freigegebene
 Dokumente** and put it in `src/config/onedrive.config`:
@@ -120,11 +127,12 @@ entirely, and it will happily start uploading there.
 
 ```bash
 docker run -it --rm \
+  --entrypoint /usr/local/bin/onedrive \
   -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
   -v /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data \
   -v "$PWD/src/config/onedrive.config:/onedrive/conf/config:ro" \
   -v "$PWD/src/config/onedrive.sync_list:/onedrive/conf/sync_list:ro" \
-  driveone/onedrive:latest onedrive --sync --dry-run --verbose
+  driveone/onedrive:latest --confdir /onedrive/conf --sync --dry-run --verbose
 ```
 
 Check that it reports the finance library and only walks
