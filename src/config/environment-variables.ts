@@ -67,11 +67,6 @@ export const environmentVariables = createEnv({
 
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
-    /**
-     * Directory the `abraunegg/onedrive` sidecar syncs to OneDrive. Bills are filed there
-     * when they are mailed. Unset disables archiving rather than failing the send.
-     */
-    BILL_ARCHIVE_DIR: z.string().optional(),
     MINIO_ROOT_USER: z.string().min(5),
     MINIO_ROOT_PASSWORD: z.string().min(5),
     MINIO_ACCESS_KEY_ID: z.string().min(5),

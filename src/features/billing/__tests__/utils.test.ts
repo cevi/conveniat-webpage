@@ -1,5 +1,4 @@
 import {
-  buildBillArchivePath,
   calculateModule10Recursive,
   describeQrReference,
   formatQrReference,
@@ -7,7 +6,6 @@ import {
   generateQrReference,
   resolveRoleDisplayName,
   resolveRoleOptions,
-  toArchivePathSegment,
 } from '@/features/billing/utils';
 
 describe('Billing Utilities', () => {
@@ -187,63 +185,5 @@ describe('resolveRoleOptions', () => {
 
   it('returns nothing when no role pricing is configured', () => {
     expect(resolveRoleOptions('Event::Role::Leader', [])).toEqual([]);
-  });
-});
-
-describe('toArchivePathSegment', () => {
-  it('replaces the characters OneDrive rejects rather than dropping them', () => {
-    // Dropping them would collapse "Hof/Süd" and "HofSüd" into one folder.
-    expect(toArchivePathSegment('Hof/Süd: 2027?', 'x')).toBe('Hof-Süd- 2027-');
-  });
-
-  it('keeps umlauts, which the folder names are searched by', () => {
-    expect(toArchivePathSegment('Zürich Höngg', 'x')).toBe('Zürich Höngg');
-  });
-
-  it('strips trailing dots and spaces, which OneDrive silently rejects', () => {
-    expect(toArchivePathSegment('Anlass. ', 'x')).toBe('Anlass');
-  });
-
-  it('falls back when there is nothing usable left', () => {
-    expect(toArchivePathSegment('', 'Ohne Anlass')).toBe('Ohne Anlass');
-    expect(toArchivePathSegment('   ', 'Ohne Anlass')).toBe('Ohne Anlass');
-    // eslint-disable-next-line unicorn/no-null -- Payload hands back null for an unset field
-    expect(toArchivePathSegment(null, 'Ohne Anlass')).toBe('Ohne Anlass');
-  });
-
-  it('caps the length without leaving a trailing space behind', () => {
-    const segment = toArchivePathSegment('a'.repeat(200), 'x');
-    expect(segment).toHaveLength(120);
-  });
-});
-
-describe('buildBillArchivePath', () => {
-  it('files by year and event, named by invoice number', () => {
-    expect(
-      buildBillArchivePath({
-        eventName: 'Hauptlager conveniat27 – Hof Süd',
-        invoiceNumber: '2027-0001',
-        fullName: 'Maximilian Muster',
-        billDate: new Date('2026-11-02T00:00:00Z'),
-      }),
-    ).toBe('2026/Hauptlager conveniat27 – Hof Süd/Rechnung-2027-0001_Maximilian Muster.pdf');
-  });
-
-  it('never produces a path that escapes the archive', () => {
-    const archivePath = buildBillArchivePath({
-      eventName: '../../etc',
-      invoiceNumber: '../../passwd',
-      fullName: '../root',
-      billDate: new Date('2026-11-02T00:00:00Z'),
-    });
-
-    expect(archivePath.split('/')).toHaveLength(3);
-    expect(archivePath).not.toContain('..' + '/');
-  });
-
-  it('still files a bill that is missing its event or number', () => {
-    expect(
-      buildBillArchivePath({ fullName: 'Max Muster', billDate: new Date('2026-11-02T00:00:00Z') }),
-    ).toBe('2026/Ohne Anlass/Rechnung-ohne-Nummer_Max Muster.pdf');
   });
 });

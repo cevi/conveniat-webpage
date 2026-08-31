@@ -93,10 +93,6 @@ services:
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/next-cache:/app/.next/cache
       - /cluster/dist_storage_insane/service_data/conveniat-prod/firebase-service-account.json:/app/firebase-service-account.json:ro
-      # The bill archive spool. On NFS on purpose: payload runs two replicas on different
-      # swarm nodes and the onedrive service runs on a third, so a node-local path would
-      # leave whatever the other nodes wrote unsynced and invisible.
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data
 
     dns:
       - 8.8.8.8 # Replace with your desired DNS server
@@ -256,36 +252,6 @@ services:
       driver: none
     deploy:
       replicas: 1
-
-  # Uploads the bill archive to OneDrive. Payload writes PDFs into the shared spool when a
-  # bill is mailed; this owns the OAuth token and the upload.
-  #
-  # Microsoft only gives us a personal account — the organisation cannot issue service
-  # principals — so the token is minted by a human once and refreshed from then on. It lives
-  # in the config directory below and survives redeploys; if that directory is lost, someone
-  # has to sign in again before anything is archived. See docs/bill-archive-onedrive.md.
-  onedrive:
-    image: driveone/onedrive:latest
-    volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data
-      - ./src/config/onedrive.config:/onedrive/conf/config:ro
-      - ./src/config/onedrive.sync_list:/onedrive/conf/sync_list:ro
-    environment:
-      # Match the uid/gid payload writes as, or the client cannot read the spool.
-      - ONEDRIVE_UID=1000
-      - ONEDRIVE_GID=1000
-    deploy:
-      # Exactly one. Two clients sharing one refresh token and one sync database corrupt
-      # each other's state.
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-        delay: 30s
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
 
 networks:
   traefik-net-1400:

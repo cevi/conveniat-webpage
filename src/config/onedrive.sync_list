@@ -1,8 +1,0 @@
-# Paths inside the "Freigegebene Dokumente" library that the client may touch.
-# Everything else in the finance team's library is out of scope: it is not ours to sync,
-# and enumerating it on every run is slow enough to invite throttling.
-#
-# Verify a change here with a dry run before deploying it:
-#   onedrive --synchronize --dry-run --verbose
-#
-Ressort Finanzen/97_Rechnungen_LB/Normal/*

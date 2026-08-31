@@ -14,7 +14,6 @@ services:
       - next-cache:/home/node/app/.next
       - node_modules:/home/node/app/node_modules
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
-      - bill-archive:/onedrive/data
     working_dir: /home/node/app/
     command: >
       sh -c "export PRISMA_OUTPUT='src/lib/prisma/client/' && rm -rf .next/* /nodecache/* && corepack enable pnpm && pnpm i --frozen-lockfile && npx prisma generate --no-hints && (until npx prisma db push --accept-data-loss; do echo 'Waiting for Postgres db push...'; sleep 2; done) && (npx prisma studio --browser none &) && sh /home/node/app/create_build_info.sh && pnpm dev-next"
@@ -152,29 +151,6 @@ services:
     volumes:
       - minio-data:/data
       - ./src/scripts/s3-lifecycle-policy.json:/lifecycle.json
-
-  # Syncs the bill archive to OneDrive. Payload writes a PDF into the shared spool volume
-  # when a bill is mailed; this container uploads it and owns the OAuth token, so the app
-  # never speaks to Microsoft itself.
-  #
-  # Not started by default: it needs a one-time interactive sign-in before it can do
-  # anything (see docs/bill-archive-onedrive.md). Once that is done:
-  #   docker compose --profile onedrive up -d onedrive
-  onedrive:
-    profiles:
-      - onedrive
-    image: driveone/onedrive:latest
-    restart: unless-stopped
-    environment:
-      # Must match the uid/gid payload writes as, or the client cannot read what it is
-      # meant to upload.
-      - ONEDRIVE_UID=1000
-      - ONEDRIVE_GID=1000
-    volumes:
-      - onedrive-conf:/onedrive/conf
-      - bill-archive:/onedrive/data
-      - ./src/config/onedrive.config:/onedrive/conf/config:ro
-      - ./src/config/onedrive.sync_list:/onedrive/conf/sync_list:ro
 
   fake-oauth:
     build: dev-oauth
@@ -331,10 +307,6 @@ volumes:
   minio-data:
   node-cache:
   postgress-data:
-  # The bill archive spool: payload writes, onedrive uploads.
-  bill-archive:
-  # Holds the OAuth refresh token. Losing this volume means signing in again.
-  onedrive-conf:
 
   # Volumes for observability components
   logging-prometheus-storage:
