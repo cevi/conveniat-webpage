@@ -897,11 +897,11 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
 
     const roleOptions = parameters.registration.roleOptions;
     if (roleOptions.length > 0) {
-      drawRoleRow('Rolle', roleOptions);
+      drawRoleRow('Rolle im Lager', roleOptions);
     } else {
       // No role pricing configured — fall back to naming the role rather than printing
       // an empty checklist.
-      drawTextRow('Rolle', formatRoleName(parameters.registration.roleType));
+      drawTextRow('Rolle im Lager', formatRoleName(parameters.registration.roleType));
     }
 
     document_.font('Helvetica-Oblique');

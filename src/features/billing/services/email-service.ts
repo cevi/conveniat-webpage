@@ -1,6 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { OneDriveSpoolAdapter } from '@/features/billing/adapters/onedrive-spool.adapter';
+import type { BillArchivePort } from '@/features/billing/ports/bill-archive.port';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
+import { buildBillArchivePath } from '@/features/billing/utils';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
@@ -22,7 +25,11 @@ interface SyncHistoryEntry {
 export async function sendBills(
   payload: Payload,
   participantId?: string,
-  dependencies?: { hitobitoClient?: HitobitoClient; s3Client?: S3Client },
+  dependencies?: {
+    hitobitoClient?: HitobitoClient;
+    s3Client?: S3Client;
+    billArchive?: BillArchivePort;
+  },
   reporter?: JobProgressReporter,
 ): Promise<SendSummary> {
   const summary: SendSummary = {
@@ -100,6 +107,18 @@ export async function sendBills(
       },
       forcePathStyle: true,
     });
+
+  // 5. The finance archive. Filing is best-effort by design: a bill that cannot be filed is
+  // still a bill the participant is waiting for, so a failure is reported rather than
+  // thrown. It lands in the run's errors, which the admin panel shows.
+  const billArchive =
+    dependencies?.billArchive ?? new OneDriveSpoolAdapter(environmentVariables.BILL_ARCHIVE_DIR);
+
+  if (!billArchive.isEnabled) {
+    payload.logger.warn(
+      'BILL_ARCHIVE_DIR is not configured — sent bills will not be filed to OneDrive.',
+    );
+  }
 
   for (const [index, document_] of participants.docs.entries()) {
     await reporter?.report({
@@ -180,6 +199,34 @@ export async function sendBills(
         .replaceAll('{{amount}}', String(invoiceAmount))
         .replaceAll('{{reference}}', referenceNumber);
 
+      // File the bill before it goes out. The archive is meant to hold every bill that was
+      // raised and mailed, and a transport failure does not un-raise one, so filing first
+      // means a bounce cannot leave a gap in it.
+      let archivedPath: string | undefined;
+      if (billArchive.isEnabled) {
+        const archivePath = buildBillArchivePath({
+          eventName: document_.eventName,
+          invoiceNumber: document_.invoiceNumber,
+          fullName,
+          billDate:
+            typeof document_.billCreatedDate === 'string'
+              ? new Date(document_.billCreatedDate)
+              : new Date(),
+        });
+        try {
+          await billArchive.archive(archivePath, pdfBuffer);
+          archivedPath = archivePath;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          payload.logger.error(
+            `Could not file bill for participant ${String(document_.id)} (${fullName}) at ${archivePath}: ${message}`,
+          );
+          summary.errors.push(
+            `Rechnung für ${fullName} konnte nicht im Archiv abgelegt werden: ${message}`,
+          );
+        }
+      }
+
       // Send email via Payload's built-in transport, tracked in outgoing-emails
       await sendTrackedEmail(
         payload,
@@ -215,6 +262,11 @@ export async function sendBills(
           syncHistory: [
             ...history,
             { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
+            // Recorded so a gap in the archive can be found without diffing it against
+            // OneDrive by hand.
+            ...(archivedPath === undefined
+              ? []
+              : [{ date: new Date().toISOString(), action: `bill_archived:${archivedPath}` }]),
           ],
         },
       });
