@@ -133,3 +133,34 @@ export const resolveSyncStatus = ({
   if (hasChanges) return { status: 'updated' };
   return { status: currentStatus as BillingStatus };
 };
+
+/**
+ * What each status is called in German — the wording the admin panel shows.
+ *
+ * Kept here so the status cell, the finance export and the messages a run reports all
+ * name a status the same way. An operator reading "der Status war wieder \'updated\'"
+ * has to translate an internal slug in their head to find the row it is about.
+ */
+export const BILLING_STATUS_LABELS_DE: Record<BillingStatus, string> = {
+  new: 'Vollständig erfasst',
+  pflichtangaben_missing: 'Pflichtangaben fehlen',
+  invalid_anmeldeangaben: 'Anmeldeangaben ungültig',
+  needs_manual_review: 'Manuelle Prüfung nötig',
+  bill_created: 'Rechnung erstellt',
+  bill_sent: 'Rechnung gesendet',
+  removed: 'Entfernt',
+  re_added: 'Erneut hinzugefügt',
+  updated: 'Aktualisiert',
+  reminder_sent: 'Mahnung gesendet',
+};
+
+/** The German label for a status, falling back to the raw value for anything unknown. */
+export const formatBillingStatus = (status: string | null | undefined = ''): string => {
+  const key = status ?? '';
+  if (key === '') return 'unbekannt';
+  // A status the map does not know is shown as-is rather than swallowed: a blank cell
+  // would hide the very row an operator is looking for.
+  return Object.hasOwn(BILLING_STATUS_LABELS_DE, key)
+    ? BILLING_STATUS_LABELS_DE[key as BillingStatus]
+    : key;
+};

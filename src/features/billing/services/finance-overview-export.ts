@@ -1,14 +1,10 @@
-import { ACCOUNTED_STATUSES } from '@/features/billing/services/billing-status';
+import {
+  ACCOUNTED_STATUSES,
+  formatBillingStatus,
+} from '@/features/billing/services/billing-status';
 import type { BillParticipant, BillSetting } from '@/features/payload-cms/payload-types';
 import ExcelJS from 'exceljs';
 import type { Payload } from 'payload';
-
-const STATUS_LABELS: Record<string, string> = {
-  bill_created: 'Rechnung erstellt',
-  bill_sent: 'Rechnung gesendet',
-  reminder_sent: 'Mahnung gesendet',
-  needs_manual_review: 'Manuelle Prüfung nötig',
-};
 
 interface RolePricingEntry {
   roleTypePattern: string;
@@ -78,7 +74,7 @@ export function buildFinanceOverviewRows(
       amount: participant.invoiceAmount ?? 0,
       eventName: participant.eventName ?? '',
       role: resolveRoleLabel(roleType, rolePricing),
-      status: STATUS_LABELS[status] ?? status,
+      status: formatBillingStatus(status),
       note: participant.financeNote ?? '',
       // The deadline runs from the day the bill was raised, matching what is printed on it.
       dueDate: billCreated === undefined ? undefined : addDays(billCreated, paymentDeadlineDays),
