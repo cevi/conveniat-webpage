@@ -31,6 +31,15 @@ interface SyncHistoryEntry {
   reviewReason?: string;
 }
 
+/**
+ * Below this many active registrations, a large proportional drop says nothing — losing
+ * one of two participants is 50% and entirely ordinary.
+ */
+const MIN_PARTICIPANTS_FOR_DROP_GUARD = 5;
+
+/** A single sync removing more of an event than this is treated as a bad read. */
+const MAX_REMOVED_FRACTION_PER_SYNC = 0.5;
+
 function findInvoiceEmail(answers: Record<string, string>): string | null {
   const findAnswer = (questionKeywords: string[]): string | undefined => {
     const entry = Object.entries(answers).find(([qText]) =>
@@ -104,12 +113,9 @@ async function syncSingleEvent(
           answers,
         };
         const validatedOutput = validateParticipant(input);
-        if (!validatedOutput.isValid) {
-          console.log(
-            '[VALIDATION DEBUG] Participant registration invalid. Missing fields:',
-            validatedOutput.missingFields,
-          );
-        }
+        // Which fields are missing is on the span below and on the participant record
+        // itself; a `console.log` of it on every invalid registration was debug output
+        // that shipped.
         span.setAttributes({
           'participant.id': participation.participantId,
           'participation.id': participation.participationId,
@@ -365,23 +371,48 @@ async function syncSingleEvent(
   // Detect removed participations (in DB but not in API response)
   const allExistingForEvent = await participantRepo.findActiveForEvent(event.eventId);
 
-  // Safety guard: If API returns 0 participations for an event that has existing active participants in DB,
-  // abort removal detection to prevent catastrophic data wiping caused by unauthenticated/failed API responses.
-  if (participations.length === 0 && allExistingForEvent.length > 0) {
+  const vanished = allExistingForEvent.filter(
+    (document_) => !fetchedParticipationIds.has(document_.participationUuid),
+  );
+
+  // An empty participation list used to abort the whole event, because a failed fetch and
+  // a genuinely empty event both arrived here as `[]`. They no longer do: the client
+  // throws on a transport error and now also on an unparseable body, so reaching this
+  // point means Cevi.DB answered and meant it. An event that really has emptied out is
+  // therefore reconciled rather than reported as an irreconcilable error on every run.
+  //
+  // What remains worth guarding is the shape the old check never covered: a response that
+  // is readable but *partial*. Losing most of an event at once is not something a camp
+  // does between two syncs, so a removal that large is refused and left for a human.
+  const isSuspiciousDrop =
+    allExistingForEvent.length >= MIN_PARTICIPANTS_FOR_DROP_GUARD &&
+    vanished.length / allExistingForEvent.length > MAX_REMOVED_FRACTION_PER_SYNC;
+
+  if (isSuspiciousDrop) {
     throw new Error(
-      `Received 0 participations from Hitobito for event ${event.eventId} (${event.eventName}) which has ${allExistingForEvent.length} active participant(s) in the database. Aborting removal detection for safety.`,
+      `Cevi.DB meldet für Anlass ${event.eventId} (${event.eventName}) nur noch ` +
+        `${String(participations.length)} von ${String(allExistingForEvent.length)} Anmeldungen. ` +
+        `Das sind ${String(vanished.length)} Abmeldungen auf einmal – der Abgleich hat sie nicht ` +
+        `übernommen, damit ein unvollständiger Abruf nicht ganze Anlässe leert. Bitte im Cevi.DB prüfen.`,
     );
   }
 
-  for (const document_ of allExistingForEvent) {
-    const participationUuid = document_.participationUuid;
-    if (!fetchedParticipationIds.has(participationUuid)) {
+  for (const document_ of vanished) {
+    {
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
       await participantRepo.update(document_.id, {
         status: 'removed',
         removedDate: now,
         lastSyncDate: now,
-        syncHistory: [...history, { date: now, action: 'removed_detected' }],
+        syncHistory: [
+          ...history,
+          {
+            date: now,
+            action: 'removed_detected',
+            reviewReason:
+              'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden und wurde deshalb auf „Entfernt“ gesetzt.',
+          },
+        ],
       });
       summary.removedCount++;
     }

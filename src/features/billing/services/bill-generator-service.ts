@@ -6,6 +6,7 @@ import type { ParticipantRepositoryPort } from '@/features/billing/ports/partici
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   BILLED_STATUSES,
+  formatBillingStatus,
   hasRaisedBill,
   isBillable,
   NEEDS_MANUAL_REVIEW,
@@ -27,6 +28,7 @@ import {
   resolveRoleOptions,
 } from '@/features/billing/utils';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Payload } from 'payload';
@@ -89,6 +91,76 @@ export function resolvePricing(
     }
   }
   return undefined;
+}
+
+/** Separator between the footer's items, and the only place the footer may wrap. */
+const FOOTER_SEPARATOR = '  |  ';
+
+/** The identity block printed at the bottom of page 1, as its individual items. */
+export function buildCreditorFooterItems(creditor: {
+  name: string;
+  street: string;
+  buildingNumber?: string | undefined;
+  zip: string;
+  city: string;
+  account: string;
+  uid?: string | undefined;
+  email?: string | undefined;
+  website?: string | undefined;
+}): string[] {
+  const items: string[] = [];
+  items.push(
+    `${creditor.name} | ${creditor.street} ${creditor.buildingNumber ?? ''}`
+      .trim()
+      .replace(/ \|$/, ''),
+  );
+  if (creditor.zip !== '' && creditor.city !== '') items.push(`${creditor.zip} ${creditor.city}`);
+  if (creditor.account !== '') items.push(`IBAN: ${creditor.account}`);
+  if (creditor.uid !== undefined && creditor.uid !== '') items.push(`MWST-Nr.: ${creditor.uid}`);
+  if (creditor.email !== undefined && creditor.email !== '')
+    items.push(`E-Mail: ${creditor.email}`);
+  if (creditor.website !== undefined && creditor.website !== '')
+    items.push(`Web: ${creditor.website}`);
+  return items;
+}
+
+/**
+ * Packs footer items into lines that fit, never splitting an item across two of them.
+ *
+ * The footer used to be one long string handed to PDFKit with a width, which wrapped it
+ * wherever it liked — and what it liked was the space in `E-Mail: admin@…`, leaving the
+ * label stranded at the end of a line and its address orphaned at the start of the next.
+ * A non-breaking space does not help: PDFKit then breaks the hyphen in `E-Mail` instead,
+ * which is worse. The only reliable answer is to decide the lines here and render each one
+ * with wrapping switched off.
+ *
+ * `measure` is the caller's text measurement, so packing is decided with the same font and
+ * size the line is later drawn in.
+ */
+export function layoutFooterLines(
+  items: string[],
+  measure: (text: string) => number,
+  maxWidth: number,
+): string[] {
+  const lines: string[] = [];
+  let current: string | undefined;
+
+  for (const item of items) {
+    if (current === undefined) {
+      current = item;
+      continue;
+    }
+    const candidate = `${current}${FOOTER_SEPARATOR}${item}`;
+    if (measure(candidate) <= maxWidth) {
+      current = candidate;
+    } else {
+      lines.push(current);
+      current = item;
+    }
+  }
+
+  if (current !== undefined) lines.push(current);
+  return lines;
 }
 
 /**
@@ -304,7 +376,8 @@ export async function generateBillsUseCase(
           continue;
         }
         summary.errors.push(
-          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist "${String(document_.status)}".`,
+          `${String(document_.fullName)}: keine Rechnung erstellt – die Anmeldung steht auf ` +
+            `„${formatBillingStatus(document_.status)}“ und muss zuerst bereinigt werden.`,
         );
         summary.skippedCount++;
         continue;
@@ -325,12 +398,19 @@ export async function generateBillsUseCase(
             {
               date: new Date().toISOString(),
               action: 'manual_review_required',
-              reviewReason: `Rechnung ${String(document_.invoiceNumber)} besteht bereits, der Status war aber wieder "${String(document_.status)}".`,
+              reviewReason:
+                `Für diese Anmeldung besteht bereits die Rechnung ${String(document_.invoiceNumber)}, ` +
+                `sie stand aber wieder auf „${formatBillingStatus(document_.status)}“ und wäre erneut ` +
+                `verrechnet worden. Der Rechnungslauf hat das verhindert: eine zweite Rechnung hätte eine ` +
+                `neue Nummer und eine neue QR-Referenz erhalten, gegen die eine bereits geleistete Zahlung ` +
+                `nicht mehr zugeordnet werden kann. Bestehende Rechnung prüfen und nur bei Bedarf über ` +
+                `„Neu generieren“ bewusst ersetzen.`,
             },
           ],
         });
         summary.errors.push(
-          `${String(document_.fullName)}: Rechnung ${String(document_.invoiceNumber)} besteht bereits – zur manuellen Prüfung markiert, statt eine zweite zu erstellen.`,
+          `${String(document_.fullName)}: Rechnung ${String(document_.invoiceNumber)} besteht bereits. ` +
+            `Es wurde keine zweite erstellt; die Anmeldung ist neu auf „Manuelle Prüfung nötig“ gesetzt.`,
         );
         summary.skippedCount++;
         continue;
@@ -385,15 +465,16 @@ export async function generateBillsUseCase(
       const personAttributes = await hitobitoService.fetchPersonDetails(userId);
 
       logger.info(
-        `[Billing] Hitobito person attributes for userId=${userId}: ` +
+        // Whether the lookup worked, and which address fields came back — never the
+        // values. This used to log the participant's full name and home address on every
+        // bill, minors included, straight into the log aggregator.
+        `[Billing] Hitobito person lookup for userId=${userId}: ` +
           JSON.stringify({
             success: personAttributes !== null,
-            firstName: personAttributes?.firstName,
-            lastName: personAttributes?.lastName,
-            street: personAttributes?.street,
-            houseNumber: personAttributes?.houseNumber,
-            zip: personAttributes?.zip,
-            town: personAttributes?.town,
+            hasName: Boolean(personAttributes?.firstName ?? personAttributes?.lastName),
+            hasStreet: Boolean(personAttributes?.street),
+            hasZip: Boolean(personAttributes?.zip),
+            hasTown: Boolean(personAttributes?.town),
           }),
       );
 
@@ -576,6 +657,8 @@ export async function generateBills(
   participantId?: string,
   dependencies?: { hitobitoClient?: HitobitoClient },
   reporter?: JobProgressReporter,
+  /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
+  runOwner?: string,
 ): Promise<GenerationSummary> {
   // Every route into generation goes through here — the queued task, "Alle neu
   // generieren", and the per-row "Neu generieren" — so this is where two of them are kept
@@ -586,15 +669,36 @@ export async function generateBills(
   // the pure use case below.
   const { RedisRunLockAdapter } =
     await import('@/features/billing/adapters/redis-run-lock.adapter');
-  const lock = await new RedisRunLockAdapter().acquire(
+  const { classifyLockConflict } = await import('@/features/billing/ports/run-lock.port');
+
+  const owner = runOwner ?? `request:${randomUUID()}`;
+  const result = await new RedisRunLockAdapter().acquire(
     BillingTaskSlug.GenerateBills,
     RUN_LOCK_TTL_SECONDS,
+    owner,
   );
-  if (lock === undefined) {
+
+  if (!result.acquired) {
+    const empty = { generatedCount: 0, skippedCount: 0, skippedAlreadyExistingCount: 0 };
+
+    if (classifyLockConflict(result.heldBy, owner) === 'duplicate-worker') {
+      // Both replicas poll the job queue, so both can pick up the same queued job. The
+      // worker holding the lock is doing exactly the work that was asked for; this one
+      // has nothing to add and nothing to report. Telling the operator "a run is already
+      // in progress" here is how a healthy run came to look like a failure.
+      payload.logger.info(
+        `Bill generation for job ${owner} is already running on another worker; skipping this duplicate execution.`,
+      );
+      return { ...empty, duplicate: true, errors: [] };
+    }
+
+    // A genuinely different run. Logged, because the refusal used to leave no trace at
+    // all — the operator saw a message that nothing in the logs could account for.
+    payload.logger.warn(
+      `Refused to start bill generation for ${owner}: run ${result.heldBy ?? 'unknown'} holds the lock.`,
+    );
     return {
-      generatedCount: 0,
-      skippedCount: 0,
-      skippedAlreadyExistingCount: 0,
+      ...empty,
       errors: ['Es läuft bereits ein Rechnungslauf. Bitte warte, bis dieser abgeschlossen ist.'],
     };
   }
@@ -602,7 +706,7 @@ export async function generateBills(
   try {
     return await generateBillsLocked(payload, participantId, dependencies, reporter);
   } finally {
-    await lock.release();
+    await result.lock.release();
   }
 }
 
@@ -1065,31 +1169,36 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     }
 
     // Legal Footer
-    const footerLines = [];
-    footerLines.push(
-      `${parameters.creditor.name} | ${parameters.creditor.street} ${parameters.creditor.buildingNumber ?? ''}`
-        .trim()
-        .replace(/ \|$/, ''),
-    );
-    if (parameters.creditor.zip !== '' && parameters.creditor.city !== '')
-      footerLines.push(`${parameters.creditor.zip} ${parameters.creditor.city}`);
-    if (parameters.creditor.account !== '')
-      footerLines.push(`IBAN: ${parameters.creditor.account}`);
-    if (parameters.creditor.uid !== undefined && parameters.creditor.uid !== '')
-      footerLines.push(`MWST-Nr.: ${parameters.creditor.uid}`);
-    if (parameters.creditor.email !== undefined && parameters.creditor.email !== '')
-      footerLines.push(`E-Mail: ${parameters.creditor.email}`);
-    if (parameters.creditor.website !== undefined && parameters.creditor.website !== '')
-      footerLines.push(`Web: ${parameters.creditor.website}`);
+    const footerItems = buildCreditorFooterItems(parameters.creditor);
 
-    if (footerLines.length > 0) {
+    if (footerItems.length > 0) {
       document_.fontSize(8);
       document_.fillColor('gray');
       document_.font('Helvetica');
-      document_.text(footerLines.join('  |  '), mm2pt(22), mm2pt(280), {
-        width: mm2pt(165),
-        align: 'center',
-      });
+
+      const footerWidth = mm2pt(165);
+      const footerLines = layoutFooterLines(
+        footerItems,
+        (text) => document_.widthOfString(text),
+        footerWidth,
+      );
+
+      // Anchored at its bottom and grown upwards, so a footer that needs an extra line
+      // takes it from the whitespace above rather than pushing past the bottom margin,
+      // which would cost the bill a third page.
+      const lineHeight = document_.currentLineHeight();
+      let footerY = mm2pt(286) - footerLines.length * lineHeight;
+
+      for (const line of footerLines) {
+        // Wrapping is off: the packing above already guarantees the line fits, and
+        // leaving it on is what let PDFKit split an item in the first place.
+        document_.text(line, mm2pt(22), footerY, {
+          width: footerWidth,
+          align: 'center',
+          lineBreak: false,
+        });
+        footerY += lineHeight;
+      }
     }
 
     // ── Page 2: the bill itself, above the QR slip it is paid with ──

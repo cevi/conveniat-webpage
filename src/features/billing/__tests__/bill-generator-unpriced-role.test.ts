@@ -6,7 +6,9 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
+  buildCreditorFooterItems,
   generateBillsUseCase,
+  layoutFooterLines,
   resolvePricing,
 } from '@/features/billing/services/bill-generator-service';
 import { NEEDS_MANUAL_REVIEW } from '@/features/billing/services/billing-status';
@@ -271,5 +273,86 @@ describe('reference number reservation', () => {
     await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
 
     expect(settingsRepo.updateNextReferenceNumber).not.toHaveBeenCalled();
+  });
+});
+
+describe('buildCreditorFooterItems', () => {
+  const creditor = {
+    name: 'conveniat27',
+    street: 'Sihlstrasse',
+    buildingNumber: '33',
+    zip: '8001',
+    city: 'Zürich',
+    account: 'CH1030700114904034095',
+    uid: 'CHE-470.917.124',
+    email: 'admin.conveniat27@cevi.ch',
+    website: 'conveniat27.ch',
+  };
+
+  it('keeps every label attached to its value', () => {
+    expect(buildCreditorFooterItems(creditor)).toEqual([
+      'conveniat27 | Sihlstrasse 33',
+      '8001 Zürich',
+      'IBAN: CH1030700114904034095',
+      'MWST-Nr.: CHE-470.917.124',
+      'E-Mail: admin.conveniat27@cevi.ch',
+      'Web: conveniat27.ch',
+    ]);
+  });
+
+  it('omits the optional items that are not configured', () => {
+    const items = buildCreditorFooterItems({
+      ...creditor,
+      uid: undefined,
+      email: '',
+      website: undefined,
+    });
+    expect(items).toEqual([
+      'conveniat27 | Sihlstrasse 33',
+      '8001 Zürich',
+      'IBAN: CH1030700114904034095',
+    ]);
+  });
+
+  it('drops the dangling separator when there is no building number', () => {
+    const items = buildCreditorFooterItems({ ...creditor, street: '', buildingNumber: undefined });
+    expect(items[0]).toBe('conveniat27');
+  });
+});
+
+// One unit per character, so the packing is decided by lengths the test can state.
+const measure = (text: string): number => text.length;
+
+describe('layoutFooterLines', () => {
+  it('keeps everything on one line when it fits', () => {
+    expect(layoutFooterLines(['aaa', 'bbb'], measure, 100)).toEqual(['aaa  |  bbb']);
+  });
+
+  it('never splits an item across two lines', () => {
+    // The regression: `E-Mail:` used to be left at the end of one line and its address
+    // orphaned at the start of the next.
+    const items = ['MWST-Nr.: CHE-470.917.124', 'E-Mail: admin.conveniat27@cevi.ch'];
+    const lines = layoutFooterLines(items, measure, 30);
+
+    expect(lines).toEqual(items);
+    for (const line of lines) {
+      expect(line.startsWith('admin.')).toBe(false);
+      expect(line.endsWith('E-Mail:')).toBe(false);
+    }
+  });
+
+  it('fills a line before starting the next', () => {
+    expect(layoutFooterLines(['aa', 'bb', 'cc'], measure, 11)).toEqual(['aa  |  bb', 'cc']);
+  });
+
+  it('gives an item too wide for the box a line of its own', () => {
+    expect(layoutFooterLines(['short', 'a-very-long-item-indeed'], measure, 10)).toEqual([
+      'short',
+      'a-very-long-item-indeed',
+    ]);
+  });
+
+  it('returns nothing for no items', () => {
+    expect(layoutFooterLines([], measure, 100)).toEqual([]);
   });
 });

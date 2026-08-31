@@ -221,6 +221,7 @@ export interface Config {
       syncParticipants: TaskSyncParticipants;
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
+      sendWeeklyReport: TaskSendWeeklyReport;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
@@ -4601,6 +4602,7 @@ export interface PayloadJob {
           | 'syncParticipants'
           | 'generateBills'
           | 'sendBills'
+          | 'sendWeeklyReport'
           | 'cleanupTemporaryFormFiles'
           | 'autoCheckoutPresence'
           | 'createCollectionExport'
@@ -4657,6 +4659,7 @@ export interface PayloadJob {
         | 'syncParticipants'
         | 'generateBills'
         | 'sendBills'
+        | 'sendWeeklyReport'
         | 'cleanupTemporaryFormFiles'
         | 'autoCheckoutPresence'
         | 'createCollectionExport'
@@ -8282,6 +8285,32 @@ export interface BillSetting {
   accountDebit?: string | null;
   accountCredit?: string | null;
   /**
+   * Emails the registration report and the bill overview on a fixed weekday.
+   */
+  scheduledReport?: {
+    enabled?: boolean | null;
+    weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
+    hour?: number | null;
+    attachPdf?: boolean | null;
+    attachExcel?: boolean | null;
+    /**
+     * Comma-separated. Leave empty to use the finance recipients below.
+     */
+    recipients?: string | null;
+    /**
+     * Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.
+     */
+    subject?: string | null;
+    /**
+     * Same placeholders as the subject.
+     */
+    body?: string | null;
+    /**
+     * Written by the scheduler. Also what stops a second send in the same week.
+     */
+    lastSentAt?: string | null;
+  };
+  /**
    * Comma-separated list of email addresses to receive the CSV export.
    */
   financeEmailRecipients?: string | null;
@@ -8764,6 +8793,19 @@ export interface BillSettingsSelect<T extends boolean = true> {
       };
   accountDebit?: T;
   accountCredit?: T;
+  scheduledReport?:
+    | T
+    | {
+        enabled?: T;
+        weekday?: T;
+        hour?: T;
+        attachPdf?: T;
+        attachExcel?: T;
+        recipients?: T;
+        subject?: T;
+        body?: T;
+        lastSentAt?: T;
+      };
   financeEmailRecipients?: T;
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
@@ -9066,6 +9108,14 @@ export interface TaskGenerateBills {
  * via the `definition` "TaskSendBills".
  */
 export interface TaskSendBills {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendWeeklyReport".
+ */
+export interface TaskSendWeeklyReport {
   input?: unknown;
   output?: unknown;
 }

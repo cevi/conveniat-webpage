@@ -7,7 +7,83 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import type { StaticTranslationString } from '@/types/types';
+import { useLocale } from '@payloadcms/ui';
 import React from 'react';
+
+const regenerateTitle: StaticTranslationString = {
+  de: 'Rechnung neu generieren?',
+  en: 'Regenerate the bill?',
+  fr: 'Régénérer la facture ?',
+};
+
+const regenerateMessage: StaticTranslationString = {
+  de: 'Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die Rechnungsnummer werden unwiderruflich überschrieben.',
+  en: 'Do you really want to regenerate this bill? The existing PDF and invoice number are irreversibly overwritten.',
+  fr: 'Voulez-vous vraiment régénérer cette facture ? Le PDF et le numéro de facture existants seront écrasés définitivement.',
+};
+
+const regenerateConfirm: StaticTranslationString = {
+  de: 'Neu generieren',
+  en: 'Regenerate',
+  fr: 'Régénérer',
+};
+
+const regeneratingLabel: StaticTranslationString = {
+  de: 'Wird generiert...',
+  en: 'Regenerating...',
+  fr: 'Régénération...',
+};
+
+const sendTitle: StaticTranslationString = {
+  de: 'Rechnung versenden?',
+  en: 'Send the bill?',
+  fr: 'Envoyer la facture ?',
+};
+
+const sendMessage: StaticTranslationString = {
+  de: 'Die Rechnung wird als E-Mail an die für die Rechnung hinterlegte Adresse dieser Person versendet. Das lässt sich nicht rückgängig machen.',
+  en: 'The bill is emailed to the invoice address on file for this person. This cannot be undone.',
+  fr: "La facture sera envoyée par e-mail à l'adresse de facturation enregistrée. Cette action est irréversible.",
+};
+
+const sendConfirm: StaticTranslationString = {
+  de: 'Versenden',
+  en: 'Send',
+  fr: 'Envoyer',
+};
+
+const sendingLabel: StaticTranslationString = {
+  de: 'Wird versendet...',
+  en: 'Sending...',
+  fr: 'Envoi...',
+};
+
+const removeTitle: StaticTranslationString = {
+  de: 'Anmeldung stornieren?',
+  en: 'Cancel this registration?',
+  fr: 'Annuler cette inscription ?',
+};
+
+const removeMessage: StaticTranslationString = {
+  de: 'Die Anmeldung wird auf „Entfernt“ gesetzt und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
+  en: 'The registration is set to “Removed” and is no longer billed or synced. Any bill already raised is kept for the record. This can only be undone by reactivating the registration in the Cevi.DB.',
+  fr: "L'inscription passe à « Supprimé » et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée.",
+};
+
+const removeConfirm: StaticTranslationString = {
+  de: 'Stornieren',
+  en: 'Cancel registration',
+  fr: "Annuler l'inscription",
+};
+
+const removingLabel: StaticTranslationString = {
+  de: 'Wird storniert...',
+  en: 'Cancelling...',
+  fr: 'Annulation...',
+};
 
 interface RowData {
   id: string;
@@ -22,7 +98,11 @@ interface RowData {
 export const BillingActionsCell: React.FC<{
   rowData: RowData;
 }> = ({ rowData }) => {
-  const [confirmAction, setConfirmAction] = React.useState<'regenerate' | 'send' | undefined>();
+  const { code } = useLocale();
+  const locale = resolveAdminLocale(code);
+  const [confirmAction, setConfirmAction] = React.useState<
+    'regenerate' | 'send' | 'remove' | undefined
+  >();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
 
@@ -93,12 +173,41 @@ export const BillingActionsCell: React.FC<{
     );
   };
 
-  const busyLabel = confirmAction === 'send' ? 'Wird versendet...' : 'Wird generiert...';
+  const copyByAction = {
+    send: { title: sendTitle, message: sendMessage, confirm: sendConfirm, busy: sendingLabel },
+    regenerate: {
+      title: regenerateTitle,
+      message: regenerateMessage,
+      confirm: regenerateConfirm,
+      busy: regeneratingLabel,
+    },
+    remove: {
+      title: removeTitle,
+      message: removeMessage,
+      confirm: removeConfirm,
+      busy: removingLabel,
+    },
+  } as const;
+
+  const active = copyByAction[confirmAction ?? 'regenerate'];
+  const copy = {
+    title: active.title[locale],
+    message: active.message[locale],
+    confirmLabel: active.confirm[locale],
+    submittingText: active.busy[locale],
+  };
 
   const handleRegenerate = async (): Promise<void> => {
     await runAction(
       '/api/confidential/billing/regenerate-single',
       'Die Rechnung konnte nicht neu generiert werden.',
+    );
+  };
+
+  const handleRemove = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/remove-participant',
+      'Die Anmeldung konnte nicht storniert werden.',
     );
   };
 
@@ -156,53 +265,45 @@ export const BillingActionsCell: React.FC<{
           >
             Neu generieren
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => {
+              setConfirmAction('remove');
+            }}
+            className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+          >
+            Stornieren
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {confirmAction !== undefined && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
-            <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-gray-100">
-              {confirmAction === 'send' ? 'Rechnung versenden?' : 'Rechnung neu generieren?'}
-            </h3>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-              {confirmAction === 'send'
-                ? 'Die Rechnung wird als E-Mail an die für die Rechnung hinterlegte Adresse ' +
-                  'dieser Person versendet. Das lässt sich nicht rückgängig machen.'
-                : 'Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die ' +
-                  'Rechnungsnummer werden unwiderruflich überschrieben.'}
-            </p>
-            {error !== undefined && (
-              <p className="mb-4 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
-                {error}
-              </p>
-            )}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={(): void => {
-                  setConfirmAction(undefined);
-                  setError(undefined);
-                }}
-                disabled={loading}
-                className="cursor-pointer rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={(): void => {
-                  void (confirmAction === 'send' ? handleSendEmail() : handleRegenerate());
-                }}
-                disabled={loading}
-                className="cursor-pointer rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-              >
-                {loading ? busyLabel : 'Bestätigen'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/*
+        Rendered through the shared modal, which portals to `document.body`. An overlay
+        written inline here cannot win on z-index at any value: Payload's table sets
+        `isolation: isolate` on `.table` and `position: relative; z-index: 1` on every
+        `th`/`td`, so the overlay was confined to its own cell's stacking context and any
+        cell later in the document painted straight over it.
+      */}
+      <ConfirmationModal
+        isOpen={confirmAction !== undefined}
+        onClose={(): void => {
+          setConfirmAction(undefined);
+          setError(undefined);
+        }}
+        onConfirm={async (): Promise<void> => {
+          if (confirmAction === 'send') await handleSendEmail();
+          else if (confirmAction === 'remove') await handleRemove();
+          else await handleRegenerate();
+        }}
+        title={copy.title}
+        // The shared modal renders the body with `whitespace-pre-line`, so a failure is
+        // appended as its own paragraph rather than needing a second slot.
+        message={error === undefined ? copy.message : `${copy.message}\n\n⚠ ${error}`}
+        confirmLabel={copy.confirmLabel}
+        submittingText={copy.submittingText}
+        isSubmitting={loading}
+        locale={locale}
+        confirmVariant="danger"
+      />
     </>
   );
 };
