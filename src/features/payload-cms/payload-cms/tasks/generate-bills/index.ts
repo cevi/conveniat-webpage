@@ -28,7 +28,7 @@ export const generateBillsTask: TaskConfig = {
     );
 
     try {
-      const result = await generateBills(payload, undefined, undefined, reporter);
+      const result = await generateBills(payload, undefined, undefined, reporter, String(job.id));
 
       return {
         output: {

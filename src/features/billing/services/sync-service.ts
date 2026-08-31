@@ -104,12 +104,9 @@ async function syncSingleEvent(
           answers,
         };
         const validatedOutput = validateParticipant(input);
-        if (!validatedOutput.isValid) {
-          console.log(
-            '[VALIDATION DEBUG] Participant registration invalid. Missing fields:',
-            validatedOutput.missingFields,
-          );
-        }
+        // Which fields are missing is on the span below and on the participant record
+        // itself; a `console.log` of it on every invalid registration was debug output
+        // that shipped.
         span.setAttributes({
           'participant.id': participation.participantId,
           'participation.id': participation.participationId,

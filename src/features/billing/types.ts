@@ -57,6 +57,11 @@ export interface SyncSummary {
  * Summary returned after bill generation.
  */
 export interface GenerationSummary {
+  /**
+   * Set when this execution did no work because another worker was already running the
+   * same queued job. Its counters are meaningless and must not be shown as a result.
+   */
+  duplicate?: boolean;
   /** Set when an operator stopped the run early; the counters are then partial. */
   cancelled?: boolean;
   /** Admin documents an operator has to fix for this run to succeed. */
@@ -71,6 +76,11 @@ export interface GenerationSummary {
  * Summary returned after sending bills.
  */
 export interface SendSummary {
+  /**
+   * Set when this execution did no work because another worker was already running the
+   * same queued job. Its counters are meaningless and must not be shown as a result.
+   */
+  duplicate?: boolean;
   /** Set when an operator stopped the run early; the counters are then partial. */
   cancelled?: boolean;
   /** Admin documents an operator has to fix for this run to succeed. */

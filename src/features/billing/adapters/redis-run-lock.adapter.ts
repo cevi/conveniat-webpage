@@ -1,4 +1,4 @@
-import type { RunLock, RunLockPort } from '@/features/billing/ports/run-lock.port';
+import type { RunLockPort, RunLockResult } from '@/features/billing/ports/run-lock.port';
 import type { BillingTaskSlug } from '@/features/billing/types';
 import { redis } from '@/lib/db/redis';
 import { randomUUID } from 'node:crypto';
@@ -9,7 +9,9 @@ const LOCK_KEY_PREFIX = 'billing:run-lock:';
  * Releases the lock only if this holder still owns it.
  *
  * A plain DEL would let a run that overran its TTL delete the lock a *different* run has
- * since taken, which is the one way a mutex can end up worse than no mutex at all.
+ * since taken, which is the one way a mutex can end up worse than no mutex at all. The
+ * whole stored value is compared, so the random token inside it is what makes this safe —
+ * the owner alone is not unique enough, since two workers on the same job share it.
  */
 const RELEASE_SCRIPT = `
 if redis.call("get", KEYS[1]) == ARGV[1] then
@@ -17,6 +19,23 @@ if redis.call("get", KEYS[1]) == ARGV[1] then
 end
 return 0
 `;
+
+interface StoredLock {
+  token: string;
+  owner: string;
+}
+
+const readOwner = (raw: string | null): string | undefined => {
+  if (raw === null || raw === '') return undefined;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredLock>;
+    return typeof parsed.owner === 'string' ? parsed.owner : undefined;
+  } catch {
+    // A value written by an older build, before the owner was recorded. Unreadable is
+    // treated as "someone else", which is the cautious direction.
+    return undefined;
+  }
+};
 
 /**
  * Redis-backed run lock, shared across replicas.
@@ -26,16 +45,30 @@ return 0
  * free the queue.
  */
 export class RedisRunLockAdapter implements RunLockPort {
-  async acquire(taskSlug: BillingTaskSlug, ttlSeconds: number): Promise<RunLock | undefined> {
+  async acquire(
+    taskSlug: BillingTaskSlug,
+    ttlSeconds: number,
+    owner: string,
+  ): Promise<RunLockResult> {
     const key = `${LOCK_KEY_PREFIX}${taskSlug}`;
-    const token = randomUUID();
-    const acquired = await redis.set(key, token, 'EX', ttlSeconds, 'NX');
-    if (acquired !== 'OK') return undefined;
+    const value = JSON.stringify({ token: randomUUID(), owner } satisfies StoredLock);
+    const acquired = await redis.set(key, value, 'EX', ttlSeconds, 'NX');
 
-    return {
-      release: async (): Promise<void> => {
-        await redis.eval(RELEASE_SCRIPT, 1, key, token);
-      },
-    };
+    if (acquired === 'OK') {
+      return {
+        acquired: true,
+        lock: {
+          release: async (): Promise<void> => {
+            await redis.eval(RELEASE_SCRIPT, 1, key, value);
+          },
+        },
+      };
+    }
+
+    // Read the holder so the caller can tell a rival run from a second worker that picked
+    // up the same job. The holder can expire between the SET and this GET, in which case
+    // the conflict is reported without an owner rather than retried — the next attempt
+    // will get the lock.
+    return { acquired: false, heldBy: readOwner(await redis.get(key)) };
   }
 }
