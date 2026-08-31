@@ -35,6 +35,7 @@ jobs:
             NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.cevi.tools
             NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
             NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+            NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
             POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
             POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
           cache-from: type=gha
