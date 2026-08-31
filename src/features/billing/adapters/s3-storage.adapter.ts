@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { StoragePort } from '@/features/billing/ports/storage.port';
+import { BILL_PDF_BUCKET_NAME } from '@/lib/s3';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 export class S3StorageAdapter implements StoragePort {
@@ -16,7 +17,7 @@ export class S3StorageAdapter implements StoragePort {
       },
       forcePathStyle: true,
     });
-    this.bucket = environmentVariables.MINIO_BUCKET_NAME;
+    this.bucket = BILL_PDF_BUCKET_NAME;
   }
 
   async fetchPdf(filename: string): Promise<Buffer> {

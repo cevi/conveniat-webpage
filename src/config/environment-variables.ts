@@ -72,6 +72,12 @@ export const environmentVariables = createEnv({
     MINIO_ACCESS_KEY_ID: z.string().min(5),
     MINIO_SECRET_ACCESS_KEY: z.string().min(5),
     MINIO_BUCKET_NAME: z.string().min(5),
+    /**
+     * Bucket for bill PDFs. Optional: unset means they stay in `MINIO_BUCKET_NAME`
+     * alongside every other upload, which is where they are today. The bucket has to
+     * exist before this is set — nothing creates it.
+     */
+    MINIO_BILL_PDF_BUCKET_NAME: z.string().min(3).optional(),
     MINIO_HOST: z.string().url(),
     MINIO_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
