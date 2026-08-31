@@ -8226,7 +8226,14 @@ export interface BillSetting {
   rolePricing?:
     | {
         roleTypePattern: string;
+        /**
+         * The position line on the invoice, e.g. "Teilnehmendenbeitrag". This is what is being charged, not what the person is.
+         */
         label: string;
+        /**
+         * What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.
+         */
+        roleName?: string | null;
         /**
          * Used only when no VAT split is defined below.
          */
@@ -8728,6 +8735,7 @@ export interface BillSettingsSelect<T extends boolean = true> {
     | {
         roleTypePattern?: T;
         label?: T;
+        roleName?: T;
         vatCode?: T;
         amount?: T;
         vatSplits?:

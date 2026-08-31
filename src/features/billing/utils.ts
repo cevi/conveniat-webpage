@@ -167,3 +167,56 @@ export function formatBirthday(birthday: string | null | undefined): string {
   if (match === null) return birthday.trim();
   return `${match[3]}.${match[2]}.${match[1]}`;
 }
+
+/** The role pricing fields this module needs; the full shape lives in `bill-settings`. */
+export interface RolePricingRoleFields {
+  roleTypePattern: string;
+  label: string;
+  roleName?: string | null;
+}
+
+/** One line of the role checklist printed on the registration confirmation. */
+export interface RoleOption {
+  name: string;
+  checked: boolean;
+}
+
+/**
+ * Resolves the name to show for a configured role: what an operator typed, falling back to
+ * the built-in German name for the Hitobito pattern, and finally to the pattern itself.
+ */
+export function resolveRoleDisplayName(pricing: RolePricingRoleFields): string {
+  const configured = pricing.roleName;
+  if (typeof configured === 'string' && configured.trim() !== '') return configured.trim();
+  return formatRoleName(pricing.roleTypePattern);
+}
+
+/**
+ * Builds the role checklist for a participant: every configured role, with the one that
+ * decided their fee ticked.
+ *
+ * A wrong role is the most expensive error on a registration and the hardest to notice —
+ * it is a Cevi.DB field the participant never sees. Printing only the resolved role invites
+ * them to read past it; printing all of them with one ticked makes a wrong tick obvious.
+ *
+ * The match repeats what `resolvePricing` does, fallback included, so the ticked box is
+ * always the entry that actually set the price rather than a second, prettier guess.
+ */
+export function resolveRoleOptions(
+  roleType: string | null | undefined,
+  rolePricing: RolePricingRoleFields[],
+): RoleOption[] {
+  if (rolePricing.length === 0) return [];
+
+  const normalisedRoleType = (roleType ?? '').toLowerCase();
+  const matchedIndex = rolePricing.findIndex((pricing) =>
+    normalisedRoleType.includes(pricing.roleTypePattern.toLowerCase()),
+  );
+  // `resolvePricing` bills an unmatched role at the first entry, so that is what gets ticked.
+  const billedIndex = matchedIndex === -1 ? 0 : matchedIndex;
+
+  return rolePricing.map((pricing, index) => ({
+    name: resolveRoleDisplayName(pricing),
+    checked: index === billedIndex,
+  }));
+}

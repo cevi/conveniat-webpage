@@ -12,7 +12,13 @@ import {
   formatVatLineLabel,
 } from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
-import { formatBirthday, formatRoleName, generateQrReference } from '@/features/billing/utils';
+import type { RoleOption } from '@/features/billing/utils';
+import {
+  formatBirthday,
+  formatRoleName,
+  generateQrReference,
+  resolveRoleOptions,
+} from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
@@ -420,6 +426,7 @@ export async function generateBillsUseCase(
           birthday: document_.birthday ?? undefined,
           eventName: document_.eventName ?? undefined,
           roleType,
+          roleOptions: resolveRoleOptions(roleType, rolePricing),
         },
         vatExemptionNote: describeVatExemptionRule(vatExemption),
         vat,
@@ -565,6 +572,8 @@ interface PdfGenerationParameters {
     birthday?: string | undefined;
     eventName?: string | undefined;
     roleType?: string | undefined;
+    /** Every configured role, with the one that set this fee ticked. */
+    roleOptions: RoleOption[];
   };
   /** How the youth exemption is configured, in prose. Omitted when it is switched off. */
   vatExemptionNote?: string | undefined;
@@ -763,34 +772,138 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // registered. Role and birthday especially: the role decides the fee, the birthday
     // decides whether MWST is owed at all, and neither is something a participant can
     // correct in the Cevi.DB themselves.
-    const registrationRows: Array<[string, string]> = [
-      ['Name', parameters.registration.fullName],
-      ...(parameters.registration.nickname !== undefined &&
+    //
+    // Drawn by hand rather than through the Table class because the role row needs real
+    // checkboxes, and the standard PDF fonts have no ballot-box glyph to fake them with.
+    const blockLeft = mm2pt(22);
+    const blockRight = mm2pt(187);
+    const valueLeft = mm2pt(62);
+    const labelWidth = valueLeft - blockLeft - 6;
+    const valueWidth = blockRight - valueLeft;
+
+    const rowFontSize = 9;
+    // `text(s, x, y)` puts the top of the capital letters at y, so the cap band is what has
+    // to be centred between the rules — centring the line box instead leaves every row
+    // sitting high by the depth of a descender the values do not have.
+    const capHeight = rowFontSize * 0.718;
+    const rowPadding = 6;
+    const wrappedLineStep = 12;
+
+    let rowY = document_.y;
+
+    const drawRowRule = (y: number): void => {
+      document_.moveTo(blockLeft, y).lineTo(blockRight, y).lineWidth(0.5);
+      document_.strokeColor('#E5E7E9').stroke();
+    };
+
+    const drawRowLabel = (label: string, y: number): void => {
+      document_.font('Helvetica').fontSize(rowFontSize).fillColor('#5D6D7E');
+      document_.text(label, blockLeft, y, { width: labelWidth, lineBreak: false });
+    };
+
+    /** Closes a row: advances past its content band and rules it off. */
+    const endRow = (contentHeight: number): void => {
+      rowY += contentHeight + rowPadding * 2;
+      drawRowRule(rowY);
+    };
+
+    const drawTextRow = (label: string, value: string): void => {
+      document_.font('Helvetica-Bold').fontSize(rowFontSize);
+      const lineCount = Math.max(
+        1,
+        Math.round(
+          document_.heightOfString(value, { width: valueWidth }) / document_.currentLineHeight(),
+        ),
+      );
+      const top = rowY + rowPadding;
+
+      drawRowLabel(label, top);
+      document_.font('Helvetica-Bold').fontSize(rowFontSize).fillColor('#000000');
+      document_.text(value, valueLeft, top, { width: valueWidth });
+
+      endRow(capHeight + (lineCount - 1) * wrappedLineStep);
+    };
+
+    /**
+     * Lists every configured role and ticks the one that set this participant's fee, so a
+     * wrong role reads as a wrong tick rather than as a line of text to skim past.
+     */
+    const drawRoleRow = (label: string, options: RoleOption[]): void => {
+      const boxSize = 8;
+      const boxTextGap = 5;
+      const itemGap = 16;
+      const lineStep = 14;
+
+      // The box is taller than the cap band, so the band is the box and the text is nudged
+      // down into the middle of it. Aligning their tops instead is what looked broken.
+      const bandHeight = Math.max(capHeight, boxSize);
+      const bandTop = rowY + rowPadding;
+      const boxOffset = (bandHeight - boxSize) / 2;
+      const textOffset = (bandHeight - capHeight) / 2;
+
+      drawRowLabel(label, bandTop + textOffset);
+
+      let x = valueLeft;
+      let lineTop = bandTop;
+
+      for (const option of options) {
+        document_.font(option.checked ? 'Helvetica-Bold' : 'Helvetica').fontSize(rowFontSize);
+        const textWidth = document_.widthOfString(option.name);
+        const itemWidth = boxSize + boxTextGap + textWidth;
+
+        if (x > valueLeft && x + itemWidth > blockRight) {
+          x = valueLeft;
+          lineTop += lineStep;
+        }
+
+        const boxTop = lineTop + boxOffset;
+        document_.rect(x, boxTop, boxSize, boxSize).lineWidth(0.8);
+        if (option.checked) {
+          document_.fillColor('#47564C').strokeColor('#47564C').fillAndStroke();
+          // The tick is described as fractions of the box so it keeps its shape if the box
+          // is ever resized.
+          document_
+            .moveTo(x + boxSize * 0.24, boxTop + boxSize * 0.52)
+            .lineTo(x + boxSize * 0.41, boxTop + boxSize * 0.72)
+            .lineTo(x + boxSize * 0.78, boxTop + boxSize * 0.27)
+            .lineWidth(1.3)
+            .strokeColor('#FFFFFF')
+            .stroke();
+        } else {
+          document_.strokeColor('#B3B6B7').stroke();
+        }
+
+        document_.fillColor(option.checked ? '#000000' : '#8A8F94');
+        document_.text(option.name, x + boxSize + boxTextGap, lineTop + textOffset, {
+          width: textWidth + 2,
+          lineBreak: false,
+        });
+
+        x += itemWidth + itemGap;
+      }
+
+      endRow(bandHeight + (lineTop - bandTop));
+    };
+
+    drawTextRow('Name', parameters.registration.fullName);
+    if (
+      parameters.registration.nickname !== undefined &&
       parameters.registration.nickname.trim() !== ''
-        ? ([['Ceviname', parameters.registration.nickname]] satisfies Array<[string, string]>)
-        : []),
-      ['Geburtsdatum', formatBirthday(parameters.registration.birthday)],
-      ['Anlass', parameters.registration.eventName ?? '–'],
-      ['Rolle', formatRoleName(parameters.registration.roleType)],
-    ];
+    ) {
+      drawTextRow('Ceviname', parameters.registration.nickname);
+    }
+    drawTextRow('Geburtsdatum', formatBirthday(parameters.registration.birthday));
+    drawTextRow('Anlass', parameters.registration.eventName ?? '–');
 
-    const registrationTable = new Table({
-      width: mm2pt(165),
-      padding: [5, 0, 5, 0],
-      rows: registrationRows.map(([label, value], index) => ({
-        fontSize: 9,
-        borderColor: '#E5E7E9',
-        // Rules between the rows only, so the block reads as one card rather than a grid.
-        borderWidth: index === 0 ? [0, 0, 0, 0] : [1, 0, 0, 0],
-        columns: [
-          { text: label, width: mm2pt(40), textColor: '#5D6D7E' },
-          { text: value, width: mm2pt(125), fontName: 'Helvetica-Bold' },
-        ],
-      })),
-    });
-    registrationTable.attachTo(document_, mm2pt(22));
+    const roleOptions = parameters.registration.roleOptions;
+    if (roleOptions.length > 0) {
+      drawRoleRow('Rolle', roleOptions);
+    } else {
+      // No role pricing configured — fall back to naming the role rather than printing
+      // an empty checklist.
+      drawTextRow('Rolle', formatRoleName(parameters.registration.roleType));
+    }
 
-    document_.moveDown(1);
     document_.font('Helvetica-Oblique');
     document_.fontSize(8);
     document_.fillColor('#5D6D7E');
@@ -800,8 +913,8 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         (parameters.vatExemptionNote === undefined
           ? 'Deine Rolle bestimmt den Lagerbeitrag.'
           : `Deine Rolle bestimmt den Lagerbeitrag, ${parameters.vatExemptionNote}.`),
-      mm2pt(22),
-      document_.y,
+      blockLeft,
+      rowY + 8,
       { width: mm2pt(165), lineGap: 1.5 },
     );
     document_.font('Helvetica');

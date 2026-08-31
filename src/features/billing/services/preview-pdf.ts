@@ -7,7 +7,7 @@ import {
   calculateVat,
   describeVatExemptionRule,
 } from '@/features/billing/services/vat-calculation';
-import { generateQrReference } from '@/features/billing/utils';
+import { generateQrReference, resolveRoleOptions } from '@/features/billing/utils';
 
 export interface PreviewPdfResult {
   pdfBuffer: Buffer;
@@ -161,6 +161,7 @@ export async function previewPdfUseCase(
       birthday: '2001-04-17',
       eventName: 'Hauptlager conveniat27 – Hof Süd',
       roleType: 'Event::Role::Participant',
+      roleOptions: resolveRoleOptions('Event::Role::Participant', rolePricing),
     },
     vatExemptionNote: describeVatExemptionRule(settings.vatExemption),
     vat,

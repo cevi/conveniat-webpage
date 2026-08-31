@@ -475,9 +475,33 @@ export const BillSettingsGlobal: GlobalConfig = {
                   type: 'text',
                   required: true,
                   label: {
-                    en: 'Display Label',
-                    de: 'Anzeigebezeichnung',
-                    fr: "Libellé d'affichage",
+                    en: 'Fee Label',
+                    de: 'Bezeichnung des Beitrags',
+                    fr: 'Libellé de la contribution',
+                  },
+                  admin: {
+                    description: {
+                      en: 'The position line on the invoice, e.g. "Teilnehmendenbeitrag". This is what is being charged, not what the person is.',
+                      de: 'Die Positionszeile auf der Rechnung, z.B. "Teilnehmendenbeitrag". Das ist, was verrechnet wird – nicht, was die Person ist.',
+                      fr: 'La ligne de position sur la facture, par ex. « Teilnehmendenbeitrag ».',
+                    },
+                  },
+                },
+                {
+                  name: 'roleName',
+                  type: 'text',
+                  required: false,
+                  label: {
+                    en: 'Role Name',
+                    de: 'Bezeichnung der Rolle',
+                    fr: 'Nom du rôle',
+                  },
+                  admin: {
+                    description: {
+                      en: 'What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.',
+                      de: 'Was die Person ist, z.B. "Teilnehmer:in". Wird auf der Anmeldebestätigung aufgeführt, damit Teilnehmende ihre Rolle prüfen können. Leer lassen, um die eingebaute deutsche Bezeichnung der Hitobito-Rolle zu verwenden.',
+                      fr: "Ce que la personne est, par ex. « Teilnehmer:in ». Affiché sur la confirmation d'inscription.",
+                    },
                   },
                 },
                 {
