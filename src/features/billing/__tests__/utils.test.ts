@@ -186,4 +186,71 @@ describe('resolveRoleOptions', () => {
   it('returns nothing when no role pricing is configured', () => {
     expect(resolveRoleOptions('Event::Role::Leader', [])).toEqual([]);
   });
+
+  it('collapses pricing entries that share a role name', () => {
+    // Leader and AssistantLeader are separate billing rows but the same thing to the
+    // person reading the bill, so naming them alike must not print the box twice.
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'Leitendenbeitrag', roleName: 'Leiter:in' },
+      {
+        roleTypePattern: 'Event::Role::AssistantLeader',
+        label: 'Leitendenbeitrag',
+        roleName: 'Leiter:in',
+      },
+      {
+        roleTypePattern: 'Event::Role::Participant',
+        label: 'Teilnehmendenbeitrag',
+        roleName: 'Teilnehmer:in',
+      },
+    ];
+
+    expect(resolveRoleOptions('Event::Role::Leader', shared)).toEqual([
+      { name: 'Leiter:in', checked: true },
+      { name: 'Teilnehmer:in', checked: false },
+    ]);
+  });
+
+  it('ticks the collapsed box when the second entry behind it is the billed one', () => {
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'Leitendenbeitrag', roleName: 'Leiter:in' },
+      {
+        roleTypePattern: 'Event::Role::AssistantLeader',
+        label: 'Leitendenbeitrag',
+        roleName: 'Leiter:in',
+      },
+    ];
+
+    // Billed as AssistantLeader, which hides behind the same box as Leader.
+    expect(resolveRoleOptions('Event::Role::AssistantLeader', shared)).toEqual([
+      { name: 'Leiter:in', checked: true },
+    ]);
+  });
+
+  it('keeps the spelling the operator typed first when names differ only by case', () => {
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'x', roleName: 'Leiter:in' },
+      { roleTypePattern: 'Event::Role::AssistantLeader', label: 'x', roleName: 'leiter:in' },
+    ];
+
+    expect(resolveRoleOptions('Event::Role::Leader', shared)).toEqual([
+      { name: 'Leiter:in', checked: true },
+    ]);
+  });
+
+  it('still ticks exactly one box after collapsing', () => {
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'x', roleName: 'Leiter:in' },
+      { roleTypePattern: 'Event::Role::AssistantLeader', label: 'x', roleName: 'Leiter:in' },
+      { roleTypePattern: 'Event::Role::Participant', label: 'x', roleName: 'Teilnehmer:in' },
+    ];
+
+    for (const role of [
+      'Event::Role::Leader',
+      'Event::Role::AssistantLeader',
+      'Event::Role::Participant',
+    ]) {
+      const ticked = resolveRoleOptions(role, shared).filter((option) => option.checked);
+      expect(ticked).toHaveLength(1);
+    }
+  });
 });

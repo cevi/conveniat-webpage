@@ -215,8 +215,29 @@ export function resolveRoleOptions(
   // `resolvePricing` bills an unmatched role at the first entry, so that is what gets ticked.
   const billedIndex = matchedIndex === -1 ? 0 : matchedIndex;
 
-  return rolePricing.map((pricing, index) => ({
-    name: resolveRoleDisplayName(pricing),
-    checked: index === billedIndex,
-  }));
+  // Several pricing entries can carry the same role name — Leiter:in and AssistantLeader
+  // are separate billing rows but the same thing to the person reading the bill. The
+  // checklist is about what someone is, not how they are billed, so those collapse into one
+  // box. It ticks if any of the entries behind it is the one that set the fee.
+  const options: RoleOption[] = [];
+  const positionByName = new Map<string, number>();
+
+  for (const [index, pricing] of rolePricing.entries()) {
+    const name = resolveRoleDisplayName(pricing);
+    const isBilled = index === billedIndex;
+    // Case-insensitive so "Leiter:in" and "leiter:in" do not both appear, while the first
+    // spelling an operator typed is the one shown.
+    const key = name.toLowerCase();
+    const existing = positionByName.get(key);
+
+    if (existing === undefined) {
+      positionByName.set(key, options.length);
+      options.push({ name, checked: isBilled });
+    } else if (isBilled) {
+      const option = options[existing];
+      if (option !== undefined) option.checked = true;
+    }
+  }
+
+  return options;
 }
