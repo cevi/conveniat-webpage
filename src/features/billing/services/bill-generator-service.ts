@@ -6,7 +6,11 @@ import type { ParticipantRepositoryPort } from '@/features/billing/ports/partici
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { VatCalculation, VatSplitConfig } from '@/features/billing/services/vat-calculation';
-import { calculateVat, formatVatLineLabel } from '@/features/billing/services/vat-calculation';
+import {
+  calculateVat,
+  describeVatExemptionRule,
+  formatVatLineLabel,
+} from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
 import { formatBirthday, formatRoleName, generateQrReference } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
@@ -417,6 +421,7 @@ export async function generateBillsUseCase(
           eventName: document_.eventName ?? undefined,
           roleType,
         },
+        vatExemptionNote: describeVatExemptionRule(vatExemption),
         vat,
         paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
         firstName,
@@ -561,6 +566,8 @@ interface PdfGenerationParameters {
     eventName?: string | undefined;
     roleType?: string | undefined;
   };
+  /** How the youth exemption is configured, in prose. Omitted when it is switched off. */
+  vatExemptionNote?: string | undefined;
   /** Precomputed by the caller so the invoice and the stored breakdown cannot diverge. */
   vat: VatCalculation;
   paymentDeadlineDays: number;
@@ -789,8 +796,10 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     document_.fillColor('#5D6D7E');
     document_.text(
       'Stimmen diese Angaben nicht? Melde dich bei der abteilungsverantwortlichen Person ' +
-        'deiner Abteilung, sie kann die Angaben in der Cevi.DB korrigieren. Die Rolle ' +
-        'bestimmt den Lagerbeitrag, das Geburtsdatum die Mehrwertsteuer.',
+        'deiner Abteilung, sie kann die Angaben in der Cevi.DB korrigieren. ' +
+        (parameters.vatExemptionNote === undefined
+          ? 'Deine Rolle bestimmt den Lagerbeitrag.'
+          : `Deine Rolle bestimmt den Lagerbeitrag, ${parameters.vatExemptionNote}.`),
       mm2pt(22),
       document_.y,
       { width: mm2pt(165), lineGap: 1.5 },

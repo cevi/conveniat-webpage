@@ -262,3 +262,37 @@ export const formatVatLineLabel = (component: VatComponent, isExempt: boolean): 
   const suffix = component.label === '' ? '' : ` (${component.label})`;
   return `MWST ${component.formattedVatCode}${suffix}`;
 };
+
+/**
+ * States the youth-exemption rule in the words a participant reads on the confirmation.
+ *
+ * The reference point is configurable, and getting it wrong on the page is worse than not
+ * mentioning it, so the sentence is derived from the same settings the calculation uses.
+ * Returns undefined when the exemption is switched off and there is nothing to explain.
+ */
+export const describeVatExemptionRule = (
+  exemption: VatExemptionConfig | null | undefined,
+): string | undefined => {
+  if ((exemption?.enabled ?? DEFAULT_VAT_EXEMPTION.enabled) === false) return undefined;
+
+  const rawMaxAge = exemption?.maxAge;
+  const maxAge =
+    typeof rawMaxAge === 'number' && Number.isFinite(rawMaxAge)
+      ? Math.trunc(rawMaxAge)
+      : DEFAULT_VAT_EXEMPTION.maxAge;
+
+  const mode = exemption?.referenceYearMode ?? DEFAULT_VAT_EXEMPTION.referenceYearMode;
+  const rawFixedYear = exemption?.fixedReferenceYear;
+  const fixedYear =
+    typeof rawFixedYear === 'number' && Number.isFinite(rawFixedYear)
+      ? Math.trunc(rawFixedYear)
+      : DEFAULT_VAT_EXEMPTION.fixedReferenceYear;
+
+  const reference =
+    mode === 'fixedYear' ? `Stichjahr ist ${String(fixedYear)}` : 'Stichtag ist das Rechnungsdatum';
+
+  return (
+    `die Mehrwertsteuer wird für alle ab ${String(maxAge)} Jahren fällig ` +
+    `(${reference}; wer in diesem Jahr erst ${String(maxAge)} wird, gilt noch als unter ${String(maxAge)})`
+  );
+};

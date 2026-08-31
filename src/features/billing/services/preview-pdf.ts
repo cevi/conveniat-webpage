@@ -3,7 +3,10 @@ import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { StoragePort } from '@/features/billing/ports/storage.port';
 import { generateQrBillPdf } from '@/features/billing/services/bill-generator-service';
 import type { VatSplitConfig } from '@/features/billing/services/vat-calculation';
-import { calculateVat } from '@/features/billing/services/vat-calculation';
+import {
+  calculateVat,
+  describeVatExemptionRule,
+} from '@/features/billing/services/vat-calculation';
 import { generateQrReference } from '@/features/billing/utils';
 
 export interface PreviewPdfResult {
@@ -159,6 +162,7 @@ export async function previewPdfUseCase(
       eventName: 'Hauptlager conveniat27 – Hof Süd',
       roleType: 'Event::Role::Participant',
     },
+    vatExemptionNote: describeVatExemptionRule(settings.vatExemption),
     vat,
     paymentDeadlineDays,
     firstName: 'Maximilian',

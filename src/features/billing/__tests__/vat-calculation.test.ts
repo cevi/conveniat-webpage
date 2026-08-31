@@ -2,6 +2,7 @@
    on file and the settings carry no rate. */
 import {
   calculateVat,
+  describeVatExemptionRule,
   formatVatLineLabel,
   isVatExempt,
   parseBirthYear,
@@ -237,5 +238,28 @@ describe('formatVatLineLabel', () => {
     expect(formatVatLineLabel(component, true)).toBe(
       'MWST 0.0% (steuerbefreite Leistung an Jugendliche)',
     );
+  });
+});
+
+describe('describeVatExemptionRule', () => {
+  it('names the invoice date as the reference point by default', () => {
+    expect(describeVatExemptionRule(undefined)).toBe(
+      'die Mehrwertsteuer wird für alle ab 18 Jahren fällig ' +
+        '(Stichtag ist das Rechnungsdatum; wer in diesem Jahr erst 18 wird, gilt noch als unter 18)',
+    );
+  });
+
+  it('names the configured year when the rule is pinned to one', () => {
+    expect(
+      describeVatExemptionRule({ referenceYearMode: 'fixedYear', fixedReferenceYear: 2027 }),
+    ).toContain('Stichjahr ist 2027');
+  });
+
+  it('follows a changed age limit', () => {
+    expect(describeVatExemptionRule({ maxAge: 16 })).toContain('ab 16 Jahren');
+  });
+
+  it('says nothing when the exemption is switched off', () => {
+    expect(describeVatExemptionRule({ enabled: false })).toBeUndefined();
   });
 });
