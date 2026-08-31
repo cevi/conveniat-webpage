@@ -24,15 +24,25 @@ export interface ValidationResult {
 }
 
 /**
- * Checks if the event participation role is allowed for billing.
+ * Whether a role can be billed at all — that is, whether the bill settings price it.
+ *
+ * This used to be a hard-coded list of three Hitobito roles that happened to match what was
+ * configured. The two drift: a role nobody has priced cannot be billed, and a bill raised
+ * for one would silently take whatever the first pricing row charges. So the question is
+ * answered from the configuration itself, using the same substring rule `resolvePricing`
+ * bills by, which is what keeps the two from disagreeing.
+ *
+ * With no pricing configured at all, nothing is billable.
  */
-export function isRoleAllowed(roleType: string | null | undefined): boolean {
-  const allowedRoles = [
-    'Event::Role::Participant',
-    'Event::Role::Leader',
-    'Event::Role::AssistantLeader',
-  ];
-  return allowedRoles.includes(roleType ?? '');
+export function isRoleAllowed(
+  roleType: string | null | undefined,
+  rolePricingPatterns: string[],
+): boolean {
+  const normalised = (roleType ?? '').toLowerCase();
+  if (normalised === '') return false;
+  return rolePricingPatterns.some(
+    (pattern) => pattern !== '' && normalised.includes(pattern.toLowerCase()),
+  );
 }
 
 const findAnswer = (

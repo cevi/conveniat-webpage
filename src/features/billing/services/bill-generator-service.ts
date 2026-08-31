@@ -42,6 +42,14 @@ export interface ResolvedPricing {
   vatSplits: VatSplitConfig[];
 }
 
+/**
+ * Finds the pricing row that governs a role, or undefined when none does.
+ *
+ * It used to fall back to the first row, which meant an unpriced role was quietly billed at
+ * somebody else's rate — and, once the confirmation started printing a role checklist, told
+ * the participant they were somebody else. An unpriced role is a configuration gap, and the
+ * only safe answer is to refuse and say so.
+ */
 export function resolvePricing(
   roleType: string,
   rolePricing: Array<{
@@ -51,24 +59,22 @@ export function resolvePricing(
     vatCode?: string | null;
     vatSplits?: VatSplitConfig[] | null;
   }>,
-): ResolvedPricing {
-  const toResolved = (pricing: (typeof rolePricing)[number] | undefined): ResolvedPricing => {
-    const amount = Number(pricing?.amount);
-    return {
-      amount: Number.isNaN(amount) ? 0 : amount,
-      label: pricing?.label ?? 'Teilnehmer:in',
-      vatCode: pricing?.vatCode ?? undefined,
-      vatSplits: pricing?.vatSplits ?? [],
-    };
-  };
-
+): ResolvedPricing | undefined {
   for (const pricing of rolePricing) {
-    if (roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())) {
-      return toResolved(pricing);
+    if (
+      pricing.roleTypePattern !== '' &&
+      roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())
+    ) {
+      const amount = Number(pricing.amount);
+      return {
+        amount: Number.isNaN(amount) ? 0 : amount,
+        label: pricing.label,
+        vatCode: pricing.vatCode ?? undefined,
+        vatSplits: pricing.vatSplits ?? [],
+      };
     }
   }
-  // Default to the first pricing entry if no match
-  return toResolved(rolePricing[0]);
+  return undefined;
 }
 
 /**
@@ -278,6 +284,30 @@ export async function generateBillsUseCase(
       const userId = document_.userId;
       const roleType = document_.roleType as string;
       const pricing = resolvePricing(roleType, rolePricing);
+
+      if (pricing === undefined) {
+        // Nothing prices this role. Flagged rather than billed at a neighbouring rate, and
+        // handled like any other unusable registration: no bill, visible in the admin, and
+        // named precisely enough that an operator knows the fix is in the settings.
+        const reason = `Rollentyp "${roleType}" ist in den Rechnungs-Einstellungen nicht konfiguriert.`;
+        // The field is stored as JSON, so it has to be narrowed before it can be appended to.
+        const existingReasons = Array.isArray(document_.missingAnmeldeangaben)
+          ? document_.missingAnmeldeangaben.filter(
+              (entry): entry is string => typeof entry === 'string',
+            )
+          : [];
+        await participantRepo.update(document_.id, {
+          status: 'invalid_anmeldeangaben',
+          missingAnmeldeangaben: existingReasons.includes(reason)
+            ? existingReasons
+            : [...existingReasons, reason],
+        });
+        summary.errors.push(`${String(document_.fullName)}: ${reason}`);
+        summary.relatedDocuments = ['billSettings'];
+        summary.skippedCount++;
+        continue;
+      }
+
       const amount = pricing.amount;
       const roleLabel = pricing.label;
 

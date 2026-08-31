@@ -199,8 +199,9 @@ export function resolveRoleDisplayName(pricing: RolePricingRoleFields): string {
  * it is a Cevi.DB field the participant never sees. Printing only the resolved role invites
  * them to read past it; printing all of them with one ticked makes a wrong tick obvious.
  *
- * The match repeats what `resolvePricing` does, fallback included, so the ticked box is
- * always the entry that actually set the price rather than a second, prettier guess.
+ * The match repeats what `resolvePricing` does, so the ticked box is always the entry that
+ * actually set the price rather than a second, prettier guess. A role nothing prices is
+ * never billed, so it leaves every box empty rather than borrowing someone else's.
  */
 export function resolveRoleOptions(
   roleType: string | null | undefined,
@@ -212,8 +213,10 @@ export function resolveRoleOptions(
   const matchedIndex = rolePricing.findIndex((pricing) =>
     normalisedRoleType.includes(pricing.roleTypePattern.toLowerCase()),
   );
-  // `resolvePricing` bills an unmatched role at the first entry, so that is what gets ticked.
-  const billedIndex = matchedIndex === -1 ? 0 : matchedIndex;
+  // An unmatched role is no longer billed at all — bill generation refuses it — so nothing
+  // is ticked. A checklist with no tick is the honest rendering of "we do not know what
+  // this person is", and it can only be reached on a bill raised before that rule existed.
+  const billedIndex = matchedIndex;
 
   // Several pricing entries can carry the same role name — Leiter:in and AssistantLeader
   // are separate billing rows but the same thing to the person reading the bill. The

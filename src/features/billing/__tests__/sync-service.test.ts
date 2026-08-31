@@ -84,6 +84,17 @@ describe('Sync Service', () => {
     mockSettingsRepo = {
       getBillSettings: jest.fn().mockResolvedValue({
         events: [mockEvent],
+        // A role is only billable if something prices it, so the fixture has to price the
+        // roles its participations use.
+        rolePricing: [
+          { roleTypePattern: 'Event::Role::Participant', label: 'Teilnehmendenbeitrag', amount: 1 },
+          { roleTypePattern: 'Event::Role::Leader', label: 'Leitendenbeitrag', amount: 1 },
+          {
+            roleTypePattern: 'Event::Role::AssistantLeader',
+            label: 'Leitendenbeitrag',
+            amount: 1,
+          },
+        ],
       }),
       getRegistrationManagement: jest.fn(),
       updateBillSettingsEvents: jest.fn(),

@@ -177,10 +177,12 @@ describe('resolveRoleOptions', () => {
     expect(ticked).toHaveLength(1);
   });
 
-  it('ticks the first entry for an unmatched role, which is the one that gets billed', () => {
-    // resolvePricing falls back to the first entry, so the tick has to agree with the price.
+  it('ticks nothing for a role that nothing prices', () => {
+    // Such a role is no longer billed at all, so borrowing the first entry's tick would
+    // tell the participant they are someone else.
     const options = resolveRoleOptions('Event::Role::Quartermaster', pricing);
-    expect(options[0]?.checked).toBe(true);
+    expect(options.every((option) => !option.checked)).toBe(true);
+    expect(options).toHaveLength(3);
   });
 
   it('returns nothing when no role pricing is configured', () => {

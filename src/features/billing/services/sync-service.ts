@@ -43,6 +43,7 @@ async function syncSingleEvent(
   participantRepo: ParticipantRepositoryPort,
   now: string,
   summary: SyncSummary,
+  rolePricingPatterns: string[],
 ): Promise<void> {
   const participations = await hitobitoService.fetchParticipations(event.groupId, event.eventId);
   const fetchedParticipationIds = new Set<string>();
@@ -147,7 +148,7 @@ async function syncSingleEvent(
         active: participation.active,
       };
 
-      const isRoleOk = isRoleAllowed(participation.roleType);
+      const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
       const isMissing = !validationResult.isValid;
       let finalStatus = isReAdded ? 're_added' : 'new';
       if (!isRoleOk) {
@@ -205,7 +206,7 @@ async function syncSingleEvent(
         JSON.stringify(document_.missingAnmeldeangaben ?? []) !==
         JSON.stringify(validationResult.missingAnmeldeangaben);
 
-      const isRoleOk = isRoleAllowed(participation.roleType);
+      const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
       const isMissing = !validationResult.isValid;
       const wasInvalidOrMissing =
         (document_.status as string) === 'pflichtangaben_missing' ||
@@ -428,6 +429,11 @@ export async function syncParticipantsUseCase(
   // 1. Load bill settings
   const settings = await settingsRepo.getBillSettings();
   const events = (settings.events as BillSettingsEvent[] | undefined) ?? [];
+  // A role nobody has priced cannot be billed, so the sync flags it rather than letting
+  // bill generation fall back to somebody else's price later.
+  const rolePricingPatterns = (settings.rolePricing ?? []).map(
+    (pricing) => pricing.roleTypePattern,
+  );
   if (events.length === 0) {
     summary.errors.push('No events configured in Bill Settings.');
     summary.relatedDocuments = ['billSettings'];
@@ -462,7 +468,14 @@ export async function syncParticipantsUseCase(
     }
 
     try {
-      await syncSingleEventTraced(event, hitobitoService, participantRepo, now, summary);
+      await syncSingleEventTraced(
+        event,
+        hitobitoService,
+        participantRepo,
+        now,
+        summary,
+        rolePricingPatterns,
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${errorMessage}`);

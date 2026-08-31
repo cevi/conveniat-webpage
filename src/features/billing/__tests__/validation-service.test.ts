@@ -104,17 +104,41 @@ describe('Validation Service', () => {
   });
 
   describe('isRoleAllowed', () => {
-    it('should allow valid event role types', () => {
-      expect(isRoleAllowed('Event::Role::Participant')).toBe(true);
-      expect(isRoleAllowed('Event::Role::Leader')).toBe(true);
-      expect(isRoleAllowed('Event::Role::AssistantLeader')).toBe(true);
+    const configured = [
+      'Event::Role::Participant',
+      'Event::Role::Leader',
+      'Event::Role::AssistantLeader',
+    ];
+
+    it('allows a role the bill settings price', () => {
+      expect(isRoleAllowed('Event::Role::Participant', configured)).toBe(true);
+      expect(isRoleAllowed('Event::Role::Leader', configured)).toBe(true);
+      expect(isRoleAllowed('Event::Role::AssistantLeader', configured)).toBe(true);
     });
 
-    it('should reject invalid role types', () => {
-      expect(isRoleAllowed('Event::Role::Guest')).toBe(false);
-      expect(isRoleAllowed('Event::Role::Visitor')).toBe(false);
-      expect(isRoleAllowed(undefined)).toBe(false);
-      expect(isRoleAllowed(null)).toBe(false);
+    it('rejects a role nothing prices', () => {
+      expect(isRoleAllowed('Event::Role::Guest', configured)).toBe(false);
+      expect(isRoleAllowed('Event::Role::Visitor', configured)).toBe(false);
+      // eslint-disable-next-line unicorn/no-useless-undefined -- a role can be missing
+      expect(isRoleAllowed(undefined, configured)).toBe(false);
+      // eslint-disable-next-line unicorn/no-null -- Payload hands back null for an unset field
+      expect(isRoleAllowed(null, configured)).toBe(false);
+      expect(isRoleAllowed('', configured)).toBe(false);
+    });
+
+    it('follows the configuration rather than a fixed list', () => {
+      // The old hard-coded list said Cook was never billable and Guest never was either.
+      expect(isRoleAllowed('Event::Role::Cook', ['Event::Role::Cook'])).toBe(true);
+      expect(isRoleAllowed('Event::Role::Leader', ['Event::Role::Cook'])).toBe(false);
+    });
+
+    it('matches on a substring, the way pricing is resolved', () => {
+      expect(isRoleAllowed('Event::Camp::Role::Leader', ['Leader'])).toBe(true);
+    });
+
+    it('bills nothing when no pricing is configured at all', () => {
+      expect(isRoleAllowed('Event::Role::Leader', [])).toBe(false);
+      expect(isRoleAllowed('Event::Role::Leader', [''])).toBe(false);
     });
   });
 });
