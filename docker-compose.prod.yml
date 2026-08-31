@@ -269,6 +269,8 @@ services:
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf
       - /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data
+      - ./src/config/onedrive.config:/onedrive/conf/config:ro
+      - ./src/config/onedrive.sync_list:/onedrive/conf/sync_list:ro
     environment:
       # Match the uid/gid payload writes as, or the client cannot read the spool.
       - ONEDRIVE_UID=1000

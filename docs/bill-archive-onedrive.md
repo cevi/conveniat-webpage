@@ -25,6 +25,31 @@ Files are written under a temporary name and renamed into place, because a renam
 only filesystem operation the sync client treats as atomic. Without that it will happily
 upload a half-written PDF.
 
+## Where the bills go
+
+Not a personal OneDrive, despite the name. The target is a **SharePoint document library**:
+
+|         |                                            |
+| ------- | ------------------------------------------ |
+| Site    | `ConveniatDue-TeamFinanzen`                |
+| Library | `Freigegebene Dokumente`                   |
+| Folder  | `Ressort Finanzen/97_Rechnungen_LB/Normal` |
+
+It also shows up in Cyrill's OneDrive as a shortcut named
+`conveniat27-Ressort Finanzen - Normal`. **Do not point the client at that shortcut.** It is
+a `remoteItem`, and the sync client does not follow those — it would sync the personal drive
+and never touch the library. The client is pointed at the library directly via `drive_id`.
+
+The spool root maps to the **root of the library**, and `BILL_ARCHIVE_DIR` points at the
+subfolder inside it:
+
+```
+BILL_ARCHIVE_DIR=/onedrive/data/Ressort Finanzen/97_Rechnungen_LB/Normal
+```
+
+That way the folder structure the app writes is the folder structure that appears in
+SharePoint, with no path translation anywhere.
+
 ## Layout in OneDrive
 
 ```
@@ -43,31 +68,69 @@ looked up by.
 The sidecar cannot do anything until somebody signs in. This is interactive and cannot be
 scripted.
 
-1. Start a throwaway container against the config volume you are about to use:
+### 1. Sign in
 
-   ```bash
-   # local
-   docker run -it --rm \
-     -v conveniat-webpage_onedrive-conf:/onedrive/conf \
-     -v conveniat-webpage_bill-archive:/onedrive/data \
-     driveone/onedrive:latest
+Start a throwaway container against the config directory the service will use. Note the
+config file is **not** mounted for this step — the client needs to write its token, and a
+`drive_id` that is not resolved yet would send it looking for a library it cannot find.
 
-   # production (on a swarm node)
-   docker run -it --rm \
-     -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
-     -v /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data \
-     driveone/onedrive:latest
-   ```
+```bash
+# production, on a swarm node
+docker run -it --rm \
+  -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
+  -v /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data \
+  driveone/onedrive:latest onedrive
 
-2. It prints a URL. Open it, sign in with the personal account that owns the archive, and
-   approve. The browser lands on a blank page — copy the **whole address bar** and paste it
-   back into the container.
+# local
+docker run -it --rm \
+  -v conveniat-webpage_onedrive-conf:/onedrive/conf \
+  -v conveniat-webpage_bill-archive:/onedrive/data \
+  driveone/onedrive:latest onedrive
+```
 
-3. The refresh token is written to `/onedrive/conf/refresh_token`. Confirm it is there, then
-   stop the container.
+It prints a URL. Open it, sign in with the **cevi.ch work account** that has access to the
+finance library, and approve. The browser lands on a blank page — copy the **whole address
+bar** and paste it back into the container.
 
-**That file is the whole setup.** Back it up. If the config volume is lost, nothing is
-archived until someone repeats these steps, and the app will not notice.
+The refresh token is written to `/onedrive/conf/refresh_token`. **Back that file up.** If the
+config directory is lost, nothing is archived until someone signs in again, and the app will
+not notice.
+
+### 2. Resolve the library
+
+The account has more than one drive; the client has to be told which. Ask it:
+
+```bash
+docker run -it --rm \
+  -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
+  driveone/onedrive:latest onedrive --get-sharepoint-drive-id "ConveniatDue-TeamFinanzen"
+```
+
+It lists the libraries on that site with their ids. Take the one for **Freigegebene
+Dokumente** and put it in `src/config/onedrive.config`:
+
+```
+drive_id = "b!..."
+```
+
+Without this the client syncs the account's personal OneDrive instead — the wrong drive
+entirely, and it will happily start uploading there.
+
+### 3. Dry run before letting it write
+
+```bash
+docker run -it --rm \
+  -v /cluster/dist_storage_insane/service_data/conveniat-prod/onedrive-conf:/onedrive/conf \
+  -v /cluster/dist_storage_insane/service_data/conveniat-prod/bill-archive:/onedrive/data \
+  -v "$PWD/src/config/onedrive.config:/onedrive/conf/config:ro" \
+  -v "$PWD/src/config/onedrive.sync_list:/onedrive/conf/sync_list:ro" \
+  driveone/onedrive:latest onedrive --sync --dry-run --verbose
+```
+
+Check that it reports the finance library and only walks
+`Ressort Finanzen/97_Rechnungen_LB/Normal`. If it lists the whole library, or anything from a
+personal drive, stop: `drive_id` or `sync_list` is wrong, and the next run would write into
+the wrong place.
 
 ## Running it
 
