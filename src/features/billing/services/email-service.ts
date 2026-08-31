@@ -5,6 +5,7 @@ import type { SendSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
 import type { Payload } from 'payload';
 
 /** How long a send run may hold its lock before it is assumed dead. */
@@ -26,15 +27,33 @@ export async function sendBills(
   participantId?: string,
   dependencies?: { s3Client?: S3Client },
   reporter?: JobProgressReporter,
+  /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
+  runOwner?: string,
 ): Promise<SendSummary> {
   // Both routes into sending — the queued task and the per-row "Email senden" — come
   // through here. Two overlapping runs would each pick up the same `bill_created` rows
   // and mail the same invoice twice before either had written `bill_sent` back.
-  const lock = await new RedisRunLockAdapter().acquire(
+  const { classifyLockConflict } = await import('@/features/billing/ports/run-lock.port');
+
+  const owner = runOwner ?? `request:${randomUUID()}`;
+  const result = await new RedisRunLockAdapter().acquire(
     BillingTaskSlug.SendBills,
     RUN_LOCK_TTL_SECONDS,
+    owner,
   );
-  if (lock === undefined) {
+
+  if (!result.acquired) {
+    if (classifyLockConflict(result.heldBy, owner) === 'duplicate-worker') {
+      // The same queued job, picked up by both replicas. The other worker is sending.
+      payload.logger.info(
+        `Bill sending for job ${owner} is already running on another worker; skipping this duplicate execution.`,
+      );
+      return { sentCount: 0, failedCount: 0, duplicate: true, errors: [] };
+    }
+
+    payload.logger.warn(
+      `Refused to start bill sending for ${owner}: run ${result.heldBy ?? 'unknown'} holds the lock.`,
+    );
     return {
       sentCount: 0,
       failedCount: 0,
@@ -45,7 +64,7 @@ export async function sendBills(
   try {
     return await sendBillsLocked(payload, participantId, dependencies, reporter);
   } finally {
-    await lock.release();
+    await result.lock.release();
   }
 }
 

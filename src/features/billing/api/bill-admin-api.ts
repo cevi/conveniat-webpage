@@ -5,6 +5,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
+import { selectTaskLogOutput } from '@/features/billing/services/job-log';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
@@ -452,8 +453,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
 
       const status = getJobDerivedStatus(job);
       const logs = Array.isArray(job.log) ? job.log : [];
-      const taskLog = logs.find((l) => l.taskSlug === job.taskSlug);
-      const output = taskLog?.output as Record<string, unknown> | undefined;
+      const output = selectTaskLogOutput(logs, job.taskSlug ?? '');
       const error = getJobErrorMessage(job);
 
       const jobData: SyncJobStatus = {
@@ -492,8 +492,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
 
       const status = getJobDerivedStatus(job);
       const logs = Array.isArray(job.log) ? job.log : [];
-      const taskLog = logs.find((l) => l.taskSlug === (taskSlug as string));
-      const output = taskLog?.output as Record<string, unknown> | undefined;
+      const output = selectTaskLogOutput(logs, taskSlug);
       const error = getJobErrorMessage(job);
 
       const jobData: SyncJobStatus = {

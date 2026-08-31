@@ -27,6 +27,7 @@ import {
   resolveRoleOptions,
 } from '@/features/billing/utils';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Payload } from 'payload';
@@ -385,15 +386,16 @@ export async function generateBillsUseCase(
       const personAttributes = await hitobitoService.fetchPersonDetails(userId);
 
       logger.info(
-        `[Billing] Hitobito person attributes for userId=${userId}: ` +
+        // Whether the lookup worked, and which address fields came back — never the
+        // values. This used to log the participant's full name and home address on every
+        // bill, minors included, straight into the log aggregator.
+        `[Billing] Hitobito person lookup for userId=${userId}: ` +
           JSON.stringify({
             success: personAttributes !== null,
-            firstName: personAttributes?.firstName,
-            lastName: personAttributes?.lastName,
-            street: personAttributes?.street,
-            houseNumber: personAttributes?.houseNumber,
-            zip: personAttributes?.zip,
-            town: personAttributes?.town,
+            hasName: Boolean(personAttributes?.firstName ?? personAttributes?.lastName),
+            hasStreet: Boolean(personAttributes?.street),
+            hasZip: Boolean(personAttributes?.zip),
+            hasTown: Boolean(personAttributes?.town),
           }),
       );
 
@@ -576,6 +578,8 @@ export async function generateBills(
   participantId?: string,
   dependencies?: { hitobitoClient?: HitobitoClient },
   reporter?: JobProgressReporter,
+  /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
+  runOwner?: string,
 ): Promise<GenerationSummary> {
   // Every route into generation goes through here — the queued task, "Alle neu
   // generieren", and the per-row "Neu generieren" — so this is where two of them are kept
@@ -586,15 +590,36 @@ export async function generateBills(
   // the pure use case below.
   const { RedisRunLockAdapter } =
     await import('@/features/billing/adapters/redis-run-lock.adapter');
-  const lock = await new RedisRunLockAdapter().acquire(
+  const { classifyLockConflict } = await import('@/features/billing/ports/run-lock.port');
+
+  const owner = runOwner ?? `request:${randomUUID()}`;
+  const result = await new RedisRunLockAdapter().acquire(
     BillingTaskSlug.GenerateBills,
     RUN_LOCK_TTL_SECONDS,
+    owner,
   );
-  if (lock === undefined) {
+
+  if (!result.acquired) {
+    const empty = { generatedCount: 0, skippedCount: 0, skippedAlreadyExistingCount: 0 };
+
+    if (classifyLockConflict(result.heldBy, owner) === 'duplicate-worker') {
+      // Both replicas poll the job queue, so both can pick up the same queued job. The
+      // worker holding the lock is doing exactly the work that was asked for; this one
+      // has nothing to add and nothing to report. Telling the operator "a run is already
+      // in progress" here is how a healthy run came to look like a failure.
+      payload.logger.info(
+        `Bill generation for job ${owner} is already running on another worker; skipping this duplicate execution.`,
+      );
+      return { ...empty, duplicate: true, errors: [] };
+    }
+
+    // A genuinely different run. Logged, because the refusal used to leave no trace at
+    // all — the operator saw a message that nothing in the logs could account for.
+    payload.logger.warn(
+      `Refused to start bill generation for ${owner}: run ${result.heldBy ?? 'unknown'} holds the lock.`,
+    );
     return {
-      generatedCount: 0,
-      skippedCount: 0,
-      skippedAlreadyExistingCount: 0,
+      ...empty,
       errors: ['Es läuft bereits ein Rechnungslauf. Bitte warte, bis dieser abgeschlossen ist.'],
     };
   }
@@ -602,7 +627,7 @@ export async function generateBills(
   try {
     return await generateBillsLocked(payload, participantId, dependencies, reporter);
   } finally {
-    await lock.release();
+    await result.lock.release();
   }
 }
 
