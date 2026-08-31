@@ -26,7 +26,6 @@ import {
   InstagramEmbed,
   type InstagramEmbedType,
 } from '@/features/payload-cms/components/content-blocks/instagram-embed';
-import { LeadSection } from '@/features/payload-cms/components/content-blocks/lead-section';
 import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
@@ -48,7 +47,6 @@ import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/r
 import type {
   AccordionBlocks,
   FeaturedSectionBlock,
-  LeadSectionBlock,
   MediaTextBlock,
   ProcessStepsBlock,
   SectionSeparatorBlock,
@@ -101,7 +99,6 @@ export type ContentBlockTypeNames =
   | 'tabsBlock'
   | 'featuredSection'
   | 'heroSection'
-  | 'leadSection'
   | 'mediaText'
   | 'processSteps'
   | 'sectionSeparator';
@@ -751,32 +748,6 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = (
       locale={locale}
     >
       <CampScheduleEntryContentBlock {...block} />
-    </SectionWrapper>
-  );
-};
-
-export const RenderLeadSection: SectionRenderer<LeadSectionBlock> = ({
-  block,
-  sectionClassName,
-  sectionOverrides,
-  locale,
-}) => {
-  return (
-    <SectionWrapper
-      block={block}
-      sectionClassName={sectionClassName}
-      sectionOverrides={sectionOverrides}
-      errorFallbackMessage={errorMessageForType(
-        {
-          de: 'Die Einleitung',
-          en: 'lead section',
-          fr: 'le chapeau',
-        },
-        locale,
-      )}
-      locale={locale}
-    >
-      <LeadSection {...block} locale={locale} />
     </SectionWrapper>
   );
 };

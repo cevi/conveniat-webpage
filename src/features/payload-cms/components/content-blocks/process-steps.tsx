@@ -4,10 +4,10 @@ import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 
 const StepNumber: React.FC<{ index: number }> = ({ index }) => (
-  <span
-    aria-hidden
-    className="border-conveniat-green/25 text-conveniat-green font-heading flex size-10 shrink-0 items-center justify-center rounded-full border bg-white text-base font-bold tabular-nums"
-  >
+  // Not aria-hidden: `list-none` makes Safari/VoiceOver drop list semantics, so
+  // the numeral is the only thing left carrying the order of a block whose
+  // whole point is that it is a sequence.
+  <span className="border-conveniat-green/25 text-conveniat-green font-heading flex size-10 shrink-0 items-center justify-center rounded-full border bg-white text-base font-bold tabular-nums">
     {index + 1}
   </span>
 );

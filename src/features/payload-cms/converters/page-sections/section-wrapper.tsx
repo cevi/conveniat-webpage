@@ -125,8 +125,7 @@ const SectionWrapper = async ({
             'max-w-[1120px]':
               block.blockType !== 'richTextSection' &&
               block.blockType !== 'twoColumnBlock' &&
-              block.blockType !== 'formBlock' &&
-              block.blockType !== 'heroSection',
+              block.blockType !== 'formBlock',
           })}
         >
           {children}

@@ -13,7 +13,6 @@ import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { heroSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
-import { leadSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/lead-section-block';
 import { mediaTextBlock } from '@/features/payload-cms/payload-cms/shared-blocks/media-text-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
@@ -34,7 +33,6 @@ import type { Block, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
   heroSectionBlock,
-  leadSectionBlock,
   sectionSeparatorBlock,
   richTextArticleBlock,
   mediaTextBlock,

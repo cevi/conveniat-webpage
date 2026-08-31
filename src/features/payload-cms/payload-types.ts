@@ -321,7 +321,6 @@ export interface Blog {
      */
     mainContent: (
       | HeroSectionBlock
-      | LeadSectionBlock
       | SectionSeparatorBlock
       | {
           richTextSection: {
@@ -746,69 +745,95 @@ export interface HeroSectionBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "LeadSectionBlock".
+ * via the `definition` "SectionSeparatorBlock".
  */
-export interface LeadSectionBlock {
+export interface SectionSeparatorBlock {
   /**
-   * Short label above the lead text (e.g. "Prevention & child protection").
+   * If enabled, the separator is rendered full page width (max 1120px centered). Otherwise column width.
    */
-  eyebrow?: string | null;
-  /**
-   * The opening paragraph. It is set in large type – two to four sentences are enough.
-   */
-  lead: string;
-  /**
-   * Optional image or logo next to the lead text.
-   */
-  image?: (string | null) | Image;
-  imageShape?: ('circle' | 'rounded' | 'plain') | null;
-  /**
-   * Up to four compact links directly below the lead text.
-   */
-  quickLinks?:
-    | {
-        label: string;
-        linkField?: {
-          type?: ('reference' | 'custom' | 'email') | null;
-          reference?:
-            | ({
-                relationTo: 'blog';
-                value: string | Blog;
-              } | null)
-            | ({
-                relationTo: 'generic-page';
-                value: string | GenericPage;
-              } | null)
-            | ({
-                relationTo: 'images';
-                value: string | Image;
-              } | null)
-            | ({
-                relationTo: 'documents';
-                value: string | Document;
-              } | null)
-            | ({
-                relationTo: 'camp-map-annotations';
-                value: string | CampMapAnnotation;
-              } | null)
-            | ({
-                relationTo: 'camp-schedule-entry';
-                value: string | CampScheduleEntry;
-              } | null);
-          /**
-           * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-           */
-          fragment?: string | null;
-          url?: string | null;
-          email?: string | null;
-          openInNewTab?: boolean | null;
-        };
-        id?: string | null;
-      }[]
-    | null;
+  isFullWidth?: boolean | null;
   id?: string | null;
   blockName?: string | null;
-  blockType: 'leadSection';
+  blockType: 'sectionSeparator';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock".
+ */
+export interface MediaTextBlock {
+  image: string | Image;
+  /**
+   * Which side the image sits on. On mobile the image is always on top.
+   */
+  imagePosition: 'right' | 'left';
+  /**
+   * How much room the image takes next to the text. Choose "Narrow" when there is a lot of text.
+   */
+  imageWidth: 'narrow' | 'medium' | 'wide';
+  imageShape: 'rounded' | 'circle' | 'plain';
+  /**
+   * A tinted background sets the section apart from the rest of the page.
+   */
+  background: 'none' | 'tinted';
+  eyebrow?: string | null;
+  title?: string | null;
+  richTextSection: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Label of the button below the text. Leave empty for no button.
+   */
+  linkLabel?: string | null;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaText';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -852,7 +877,6 @@ export interface GenericPage {
      */
     mainContent: (
       | HeroSectionBlock
-      | LeadSectionBlock
       | SectionSeparatorBlock
       | {
           richTextSection: {
@@ -1073,319 +1097,6 @@ export interface GenericPage {
   createdAt: string;
   deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "SectionSeparatorBlock".
- */
-export interface SectionSeparatorBlock {
-  /**
-   * If enabled, the separator is rendered full page width (max 1120px centered). Otherwise column width.
-   */
-  isFullWidth?: boolean | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'sectionSeparator';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "MediaTextBlock".
- */
-export interface MediaTextBlock {
-  image: string | Image;
-  /**
-   * Which side the image sits on. On mobile the image is always on top.
-   */
-  imagePosition: 'right' | 'left';
-  /**
-   * How much room the image takes next to the text. Choose "Narrow" when there is a lot of text.
-   */
-  imageWidth: 'narrow' | 'medium' | 'wide';
-  imageShape: 'rounded' | 'circle' | 'plain';
-  /**
-   * A tinted background sets the section apart from the rest of the page.
-   */
-  background: 'none' | 'tinted';
-  eyebrow?: string | null;
-  title?: string | null;
-  richTextSection: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Label of the button below the text. Leave empty for no button.
-   */
-  linkLabel?: string | null;
-  linkField?: {
-    type?: ('reference' | 'custom' | 'email') | null;
-    reference?:
-      | ({
-          relationTo: 'blog';
-          value: string | Blog;
-        } | null)
-      | ({
-          relationTo: 'generic-page';
-          value: string | GenericPage;
-        } | null)
-      | ({
-          relationTo: 'images';
-          value: string | Image;
-        } | null)
-      | ({
-          relationTo: 'documents';
-          value: string | Document;
-        } | null)
-      | ({
-          relationTo: 'camp-map-annotations';
-          value: string | CampMapAnnotation;
-        } | null)
-      | ({
-          relationTo: 'camp-schedule-entry';
-          value: string | CampScheduleEntry;
-        } | null);
-    /**
-     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-     */
-    fragment?: string | null;
-    url?: string | null;
-    email?: string | null;
-    openInNewTab?: boolean | null;
-  };
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'mediaText';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents".
- */
-export interface Document {
-  id: string;
-  /**
-   * Example: for the newsletter
-   */
-  internalDescription?: string | null;
-  pdfThumbnailUrl?: string | null;
-  permissions?: (string | null) | Permission;
-  lastEditedByUser?: (string | null) | User;
-  folder?: (string | null) | FolderInterface;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-folders".
- */
-export interface FolderInterface {
-  id: string;
-  name: string;
-  folder?: (string | null) | FolderInterface;
-  documentsAndFolders?: {
-    docs?: (
-      | {
-          relationTo?: 'payload-folders';
-          value: string | FolderInterface;
-        }
-      | {
-          relationTo?: 'documents';
-          value: string | Document;
-        }
-    )[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  folderType?: 'documents'[] | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-map-annotations".
- */
-export interface CampMapAnnotation {
-  id: string;
-  /**
-   * The title of the annotation.
-   */
-  title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
-  annotationType: 'marker' | 'polygon';
-  icon?:
-    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
-    | null;
-  /**
-   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
-   */
-  importance: 'high' | 'medium' | 'low';
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  geometry?: [number, number] | null;
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
-   */
-  showLabel?: boolean | null;
-  /**
-   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
-   */
-  isInteractive?: boolean | null;
-  /**
-   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
-   */
-  hiddenOnDefaultMap?: boolean | null;
-  /**
-   * If checked, users will be able to report issues and start a support chat from this location.
-   */
-  enableSupportChat?: boolean | null;
-  /**
-   * A detailed description of the annotation.
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  openingHours?:
-    | {
-        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
-        /**
-         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
-         */
-        time: string;
-        id?: string | null;
-      }[]
-    | null;
-  images?: (string | Image)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-schedule-entry".
- */
-export interface CampScheduleEntry {
-  id: string;
-  /**
-   * The title of the entry.
-   */
-  title: string;
-  /**
-   * The description of the entry
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Time slots for the schedule entry
-   */
-  timeslot: {
-    date: string;
-    /**
-     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
-     */
-    time: string;
-  };
-  target_group?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
-  /**
-   * Location of the Schedule Entry
-   */
-  location: string | CampMapAnnotation;
-  /**
-   * Organiser
-   */
-  organiser?: (string | User)[] | null;
-  category?: (string | null) | CampCategory;
-  lastEditedByUser?: (string | null) | User;
-  enrolledCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-categories".
- */
-export interface CampCategory {
-  id: string;
-  title: string;
-  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2336,6 +2047,58 @@ export interface SwisstopoMapEmbedding {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents".
+ */
+export interface Document {
+  id: string;
+  /**
+   * Example: for the newsletter
+   */
+  internalDescription?: string | null;
+  pdfThumbnailUrl?: string | null;
+  permissions?: (string | null) | Permission;
+  lastEditedByUser?: (string | null) | User;
+  folder?: (string | null) | FolderInterface;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-folders".
+ */
+export interface FolderInterface {
+  id: string;
+  name: string;
+  folder?: (string | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
+      | {
+          relationTo?: 'payload-folders';
+          value: string | FolderInterface;
+        }
+      | {
+          relationTo?: 'documents';
+          value: string | Document;
+        }
+    )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  folderType?: 'documents'[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "DetailsTable".
  */
 export interface DetailsTable {
@@ -2513,6 +2276,175 @@ export interface TeamMembersBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTeamMembersBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-map-annotations".
+ */
+export interface CampMapAnnotation {
+  id: string;
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
+  annotationType: 'marker' | 'polygon';
+  icon?:
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
+    | null;
+  /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
+   */
+  showLabel?: boolean | null;
+  /**
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
+   */
+  isInteractive?: boolean | null;
+  /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots for the schedule entry
+   */
+  timeslot: {
+    date: string;
+    /**
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
+     */
+    time: string;
+  };
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * Organiser
+   */
+  organiser?: (string | User)[] | null;
+  category?: (string | null) | CampCategory;
+  lastEditedByUser?: (string | null) | User;
+  enrolledCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4950,7 +4882,6 @@ export interface BlogSelect<T extends boolean = true> {
           | T
           | {
               heroSection?: T | HeroSectionBlockSelect<T>;
-              leadSection?: T | LeadSectionBlockSelect<T>;
               sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
@@ -5097,34 +5028,6 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
   secondaryCtaLink?: T;
   deadlineText?: T;
   image?: T;
-  id?: T;
-  blockName?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "LeadSectionBlock_select".
- */
-export interface LeadSectionBlockSelect<T extends boolean = true> {
-  eyebrow?: T;
-  lead?: T;
-  image?: T;
-  imageShape?: T;
-  quickLinks?:
-    | T
-    | {
-        label?: T;
-        linkField?:
-          | T
-          | {
-              type?: T;
-              reference?: T;
-              fragment?: T;
-              url?: T;
-              email?: T;
-              openInNewTab?: T;
-            };
-        id?: T;
-      };
   id?: T;
   blockName?: T;
 }
@@ -5994,7 +5897,6 @@ export interface GenericPageSelect<T extends boolean = true> {
           | T
           | {
               heroSection?: T | HeroSectionBlockSelect<T>;
-              leadSection?: T | LeadSectionBlockSelect<T>;
               sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
@@ -7966,7 +7868,6 @@ export interface AppLandingPage {
   pageContent?:
     | (
         | HeroSectionBlock
-        | LeadSectionBlock
         | SectionSeparatorBlock
         | {
             richTextSection: {
@@ -8570,7 +8471,6 @@ export interface AppLandingPageSelect<T extends boolean = true> {
     | T
     | {
         heroSection?: T | HeroSectionBlockSelect<T>;
-        leadSection?: T | LeadSectionBlockSelect<T>;
         sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T

@@ -3,6 +3,9 @@ import type { ContentBlock } from '@/features/payload-cms/converters/page-sectio
 import type {
   AccordionBlocks,
   DetailsTable,
+  HeroSectionBlock,
+  MediaTextBlock,
+  ProcessStepsBlock,
   SummaryBox,
   TwoColumnBlock,
 } from '@/features/payload-cms/payload-types';
@@ -77,6 +80,25 @@ export const extractTextContent = (mainContent: ContentBlock[]): string => {
             })
             .join('\n') ?? '';
 
+        break;
+      }
+      case 'heroSection': {
+        const hero = block as ContentBlock<HeroSectionBlock>;
+        searchContent +=
+          [hero.title, hero.badge, hero.description].filter(Boolean).join(' ') + '\n';
+        break;
+      }
+      case 'mediaText': {
+        const mediaText = block as ContentBlock<MediaTextBlock>;
+        searchContent += [mediaText.eyebrow, mediaText.title].filter(Boolean).join(' ') + ' ';
+        searchContent += convertLexicalToPlaintext({ data: mediaText.richTextSection }) + '\n';
+        break;
+      }
+      case 'processSteps': {
+        const processSteps = block as ContentBlock<ProcessStepsBlock>;
+        searchContent += (processSteps.title ?? '') + ' ';
+        searchContent +=
+          processSteps.steps.map((step) => `${step.title} ${step.description}`).join('\n') + '\n';
         break;
       }
       case 'twoColumnBlock': {

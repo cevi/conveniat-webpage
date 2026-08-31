@@ -77,13 +77,15 @@ export const MediaText: React.FC<MediaTextBlock & { locale: Locale }> = ({
         })}
       >
         <div className="grid grid-cols-1 items-center gap-8 @3xl:grid-cols-12 @3xl:gap-12">
-          <div
-            className={cn(
-              imageColumnClasses[width],
-              imagePosition === 'left' ? '@3xl:order-1' : '@3xl:order-2',
-            )}
-          >
-            {imageUrl !== '' && (
+          {/* The column itself is conditional: an unpopulated relationship would
+              otherwise leave 4-6 empty grid columns and squeeze the text. */}
+          {imageUrl !== '' && (
+            <div
+              className={cn(
+                imageColumnClasses[width],
+                imagePosition === 'left' ? '@3xl:order-1' : '@3xl:order-2',
+              )}
+            >
               <div
                 className={cn(
                   'relative mx-auto aspect-square w-full overflow-hidden',
@@ -96,11 +98,14 @@ export const MediaText: React.FC<MediaTextBlock & { locale: Locale }> = ({
                   alt={getImageAltInLocale(locale, imageObject)}
                   fill
                   className="object-contain p-2"
-                  sizes="(max-width: 768px) 100vw, 45vw"
+                  // Must track imageMaxWidthClasses: the slot is capped well
+                  // below the column width, so a viewport-relative hint would
+                  // pull a source several times larger than it can display.
+                  sizes="(max-width: 768px) 100vw, 500px"
                 />
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div
             className={cn(
