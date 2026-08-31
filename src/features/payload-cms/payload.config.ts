@@ -14,7 +14,7 @@ import { importExportConfiguration } from '@/features/payload-cms/payload-cms/pl
 import { lexicalEditor } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { mcpPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-plugin-configuration';
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
-import { s3StorageConfiguration } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
+import { s3StoragePlugins } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import {
@@ -450,7 +450,7 @@ export const payloadConfig: RoutableConfig = {
   telemetry: false,
   plugins: [
     formPluginConfiguration,
-    s3StorageConfiguration,
+    ...s3StoragePlugins,
     searchPluginConfiguration,
     redirectsPluginConfiguration,
     importExportConfiguration,
