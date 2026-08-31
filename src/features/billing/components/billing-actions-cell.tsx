@@ -61,6 +61,30 @@ const sendingLabel: StaticTranslationString = {
   fr: 'Envoi...',
 };
 
+const removeTitle: StaticTranslationString = {
+  de: 'Anmeldung stornieren?',
+  en: 'Cancel this registration?',
+  fr: 'Annuler cette inscription ?',
+};
+
+const removeMessage: StaticTranslationString = {
+  de: 'Die Anmeldung wird auf „Entfernt“ gesetzt und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
+  en: 'The registration is set to “Removed” and is no longer billed or synced. Any bill already raised is kept for the record. This can only be undone by reactivating the registration in the Cevi.DB.',
+  fr: "L'inscription passe à « Supprimé » et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée.",
+};
+
+const removeConfirm: StaticTranslationString = {
+  de: 'Stornieren',
+  en: 'Cancel registration',
+  fr: "Annuler l'inscription",
+};
+
+const removingLabel: StaticTranslationString = {
+  de: 'Wird storniert...',
+  en: 'Cancelling...',
+  fr: 'Annulation...',
+};
+
 interface RowData {
   id: string;
   billPdfs?: (string | { id: string })[];
@@ -76,7 +100,9 @@ export const BillingActionsCell: React.FC<{
 }> = ({ rowData }) => {
   const { code } = useLocale();
   const locale = resolveAdminLocale(code);
-  const [confirmAction, setConfirmAction] = React.useState<'regenerate' | 'send' | undefined>();
+  const [confirmAction, setConfirmAction] = React.useState<
+    'regenerate' | 'send' | 'remove' | undefined
+  >();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
 
@@ -147,18 +173,41 @@ export const BillingActionsCell: React.FC<{
     );
   };
 
-  const isSend = confirmAction === 'send';
+  const copyByAction = {
+    send: { title: sendTitle, message: sendMessage, confirm: sendConfirm, busy: sendingLabel },
+    regenerate: {
+      title: regenerateTitle,
+      message: regenerateMessage,
+      confirm: regenerateConfirm,
+      busy: regeneratingLabel,
+    },
+    remove: {
+      title: removeTitle,
+      message: removeMessage,
+      confirm: removeConfirm,
+      busy: removingLabel,
+    },
+  } as const;
+
+  const active = copyByAction[confirmAction ?? 'regenerate'];
   const copy = {
-    title: (isSend ? sendTitle : regenerateTitle)[locale],
-    message: (isSend ? sendMessage : regenerateMessage)[locale],
-    confirmLabel: (isSend ? sendConfirm : regenerateConfirm)[locale],
-    submittingText: (isSend ? sendingLabel : regeneratingLabel)[locale],
+    title: active.title[locale],
+    message: active.message[locale],
+    confirmLabel: active.confirm[locale],
+    submittingText: active.busy[locale],
   };
 
   const handleRegenerate = async (): Promise<void> => {
     await runAction(
       '/api/confidential/billing/regenerate-single',
       'Die Rechnung konnte nicht neu generiert werden.',
+    );
+  };
+
+  const handleRemove = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/remove-participant',
+      'Die Anmeldung konnte nicht storniert werden.',
     );
   };
 
@@ -216,6 +265,14 @@ export const BillingActionsCell: React.FC<{
           >
             Neu generieren
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => {
+              setConfirmAction('remove');
+            }}
+            className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+          >
+            Stornieren
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -233,7 +290,9 @@ export const BillingActionsCell: React.FC<{
           setError(undefined);
         }}
         onConfirm={async (): Promise<void> => {
-          await (isSend ? handleSendEmail() : handleRegenerate());
+          if (confirmAction === 'send') await handleSendEmail();
+          else if (confirmAction === 'remove') await handleRemove();
+          else await handleRegenerate();
         }}
         title={copy.title}
         // The shared modal renders the body with `whitespace-pre-line`, so a failure is

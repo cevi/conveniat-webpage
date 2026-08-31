@@ -280,10 +280,17 @@ export class EventService {
 
         const parsed = EventParticipationListResponseSchema.safeParse(response);
         if (!parsed.success) {
+          // Throw rather than break. Breaking returned whatever had been collected so far,
+          // so an unparseable body — a login page after the cookie expired, say — was
+          // indistinguishable from an event that genuinely has no participants, and a
+          // failure part-way through pagination silently returned a partial list. Callers
+          // decide removal from this list, so "empty" has to mean empty.
           this.logger?.error(
             `Failed to parse event_participations response: ${parsed.error.message}`,
           );
-          break;
+          throw new Error(
+            `Antwort von Cevi.DB für Anlass ${eventId} konnte nicht gelesen werden: ${parsed.error.message}`,
+          );
         }
 
         // Collect included people resources

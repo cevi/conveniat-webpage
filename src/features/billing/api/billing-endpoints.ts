@@ -7,6 +7,7 @@ import {
   billingPreviewPdfHandler,
   billingRegenerateAllHandler,
   billingRegenerateSingleHandler,
+  billingRemoveParticipantHandler,
   billingSendHandler,
   billingSendSingleHandler,
   billingSyncHandler,
@@ -39,6 +40,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/regenerate-single',
     method: 'post',
     handler: billingRegenerateSingleHandler,
+  },
+  {
+    path: '/confidential/billing/remove-participant',
+    method: 'post',
+    handler: billingRemoveParticipantHandler,
   },
   {
     path: '/confidential/billing/send',

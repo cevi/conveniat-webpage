@@ -15,6 +15,18 @@ import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { PayloadHandler } from 'payload';
 import { z } from 'zod';
 
+/** Names the operator behind a manual action, for the participant's history. */
+function describeActor(user: unknown): string {
+  if (user !== null && typeof user === 'object') {
+    const record = user as Record<string, unknown>;
+    for (const key of ['name', 'email', 'id']) {
+      const value = record[key];
+      if (typeof value === 'string' && value !== '') return value;
+    }
+  }
+  return 'unbekannt';
+}
+
 const ParticipantIdSchema = z.object({
   participantId: z.string().trim().min(1, 'Missing participantId'),
 });
@@ -131,6 +143,24 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
     const { participantId } = parseResult.data;
 
     const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+
+    // Regenerating used to set `new` on any row at all. On a participation already marked
+    // `removed` that brought a cancelled registration back to life, and the next sync then
+    // found an event whose Cevi.DB list no longer contained it — reporting the same
+    // irreconcilable error on every run. A cancelled registration has to be reinstated in
+    // the Cevi.DB, not here.
+    const existing = await participantRepo.findById(participantId);
+    if (existing?.status === 'removed') {
+      return Response.json(
+        {
+          error:
+            'Diese Anmeldung ist als „Entfernt“ markiert. Für eine entfernte Anmeldung wird keine ' +
+            'Rechnung erstellt – die Anmeldung muss zuerst in der Cevi.DB wieder aktiviert werden.',
+        },
+        { status: 409 },
+      );
+    }
+
     await participantRepo.update(participantId, { status: 'new' });
 
     const { generateBills } = await import('@/features/billing/services/bill-generator-service');
@@ -139,6 +169,72 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Single regenerate failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
+ * POST /api/confidential/billing/remove-participant – cancel a registration by hand.
+ *
+ * The counterpart to the sync's own removal detection, for the cases it cannot see: a
+ * participation cancelled outside the Cevi.DB, or one left stranded because a bill was
+ * regenerated for someone who had already dropped out. Everything about the bill is kept —
+ * invoice number, amount, PDFs — because a cancelled invoice still has to be traceable;
+ * only the status moves.
+ */
+export const billingRemoveParticipantHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    const participantRepo = new PayloadParticipantRepositoryAdapter(request.payload);
+    const participant = await participantRepo.findById(parseResult.data.participantId);
+    if (participant === null)
+      return Response.json({ error: 'Teilnehmer nicht gefunden.' }, { status: 404 });
+
+    if (participant.status === 'removed') {
+      return Response.json(
+        { error: 'Diese Anmeldung ist bereits als „Entfernt“ markiert.' },
+        { status: 409 },
+      );
+    }
+
+    const actor = describeActor(request.user);
+    const now = new Date().toISOString();
+    const history = Array.isArray(participant.syncHistory) ? participant.syncHistory : [];
+
+    await participantRepo.update(participant.id, {
+      status: 'removed',
+      removedDate: now,
+      syncHistory: [
+        ...history,
+        {
+          date: now,
+          action: 'manually_removed',
+          reviewReason:
+            `Manuell auf „Entfernt“ gesetzt durch ${actor}. Eine allfällige Rechnung bleibt zur ` +
+            `Nachvollziehbarkeit erhalten, wird aber nicht mehr als offen geführt.`,
+        },
+      ],
+    } as never);
+
+    request.payload.logger.info(
+      `Participant ${String(participant.id)} manually marked as removed by ${actor}.`,
+    );
+
+    return Response.json({ success: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Manual removal failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };
