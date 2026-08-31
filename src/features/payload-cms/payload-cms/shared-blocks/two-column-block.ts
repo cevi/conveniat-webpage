@@ -12,6 +12,7 @@ import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
+import { processStepsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/process-steps-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
@@ -45,6 +46,7 @@ export const genericBlocks = [
   campScheduleEntryBlock,
   cardGridBlock,
   contactPersonBlock,
+  processStepsBlock,
 ];
 
 export const twoColumnBlock: Block = {
