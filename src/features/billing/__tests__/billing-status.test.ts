@@ -1,3 +1,4 @@
+import type { SyncStatusDecision } from '@/features/billing/services/billing-status';
 import {
   ALLOWED_TRANSITIONS,
   BILLABLE_STATUSES,
@@ -268,5 +269,49 @@ describe('resolveSyncStatus only produces legal transitions', () => {
         }
       }
     }
+  });
+});
+
+/**
+ * The camp admin clears a mandatory field in the Cevi.DB on a participant who has already
+ * been invoiced.
+ */
+const afterFieldDeleted = (currentStatus: string, hasBill: boolean): SyncStatusDecision =>
+  resolveSyncStatus({
+    currentStatus,
+    hasBill,
+    isRoleOk: true,
+    isMissingMandatoryData: true,
+    hasChanges: true,
+  });
+
+describe('a Pflichtangabe deleted after the bill went out', () => {
+  // Entirely reachable, and it must not drop the row into `pflichtangaben_missing`: from
+  // there it can return to `new` and be billed a second time. It is flagged for a human
+  // instead, with the bill left intact.
+
+  it('flags a created bill for manual verification', () => {
+    const decision = afterFieldDeleted('bill_created', true);
+    expect(decision.status).toBe(NEEDS_MANUAL_REVIEW);
+    expect(decision.reviewReason).toContain('Pflichtangaben');
+  });
+
+  it('flags a bill that has already been sent', () => {
+    expect(afterFieldDeleted('bill_sent', true).status).toBe(NEEDS_MANUAL_REVIEW);
+    expect(afterFieldDeleted('reminder_sent', true).status).toBe(NEEDS_MANUAL_REVIEW);
+  });
+
+  it('never routes a billed registration to pflichtangaben_missing', () => {
+    for (const status of ['bill_created', 'bill_sent', 'reminder_sent']) {
+      expect(afterFieldDeleted(status, true).status).not.toBe('pflichtangaben_missing');
+      // Also with the invoice fields themselves cleared: the status alone is enough.
+      expect(afterFieldDeleted(status, false).status).not.toBe('pflichtangaben_missing');
+      expect(afterFieldDeleted(status, false).status).toBe(NEEDS_MANUAL_REVIEW);
+    }
+  });
+
+  it('still blocks a registration that was never billed', () => {
+    // The same deletion on an unbilled row is an ordinary Pflichtangaben gap.
+    expect(afterFieldDeleted('new', false).status).toBe('pflichtangaben_missing');
   });
 });

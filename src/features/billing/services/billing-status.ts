@@ -127,9 +127,11 @@ export const resolveSyncStatus = ({
   }
 
   // A row whose *status* says a bill exists carries one even if the invoice fields are
-  // missing — a data glitch must not be a way back into the billing queue. Without this,
-  // a `bill_created` row with an empty invoice number could be walked back to
-  // `pflichtangaben_missing` and from there to `new`, and billed a second time.
+  // empty. The case this is really for: the camp admin clears a Pflichtangabe in the
+  // Cevi.DB on someone who has already been invoiced. That is an ordinary thing to happen,
+  // and the bill has to be looked at — but it must not drop the row into
+  // `pflichtangaben_missing`, which leads back to `new` and to a second invoice. It is
+  // flagged for a human instead, with the bill left intact.
   const carriesBill = hasBill || (ACCOUNTED_STATUSES as readonly string[]).includes(currentStatus);
 
   if (carriesBill) {
