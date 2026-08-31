@@ -7,6 +7,43 @@ import React from 'react';
 
 export type ContentBlock<T = object> = { blockType: ContentBlockTypeNames; id: string } & T;
 
+/**
+ * True when a rich text block carries nothing but headings.
+ *
+ * Editors routinely put a section heading in its own block and the section's
+ * body in the next one. Both blocks then get the same top margin, which leaves
+ * the heading equally far from the section above it and from the content it
+ * introduces. Marking the block lets the converter pull the following section
+ * closer, so the heading reads as belonging to what comes after it.
+ */
+const isHeadingOnlyBlock = (block: ContentBlock): boolean => {
+  if (block.blockType !== 'richTextSection') return false;
+
+  const richText = (block as ContentBlock<{ richTextSection?: unknown }>).richTextSection;
+  if (typeof richText !== 'object' || richText === null) return false;
+
+  const root = (richText as { root?: { children?: unknown } }).root;
+  const children = root?.children;
+  if (!Array.isArray(children) || children.length === 0) return false;
+
+  return children.every(
+    (child) =>
+      typeof child === 'object' &&
+      child !== null &&
+      (child as { type?: unknown }).type === 'heading',
+  );
+};
+
+/**
+ * Extra rhythm for blocks that are not simply the next thing on the page.
+ * Applied before `sectionClassName`, so a column layout (which passes its own
+ * tighter margins) and per-page overrides both still win.
+ */
+const blockSpacing: Partial<Record<ContentBlockTypeNames, string>> = {
+  // A contact card closes off the content rather than continuing it.
+  contactPerson: 'mt-12',
+};
+
 const SectionWrapper = async ({
   block,
   sectionClassName,
@@ -69,8 +106,10 @@ const SectionWrapper = async ({
   return (
     <section
       key={block.id}
+      data-heading-only={isHeadingOnlyBlock(block) ? '' : undefined}
       className={cn(
         'mt-8 first:mt-0',
+        blockSpacing[block.blockType],
         sectionClassName ?? 'mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16',
         blockTypeOverrideClassName,
       )}

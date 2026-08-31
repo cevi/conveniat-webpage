@@ -13,9 +13,12 @@ import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blo
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { heroSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
+import { leadSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/lead-section-block';
+import { mediaTextBlock } from '@/features/payload-cms/payload-cms/shared-blocks/media-text-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { photoContestBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-contest-block';
+import { processStepsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/process-steps-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
 import { singlePictureBlock } from '@/features/payload-cms/payload-cms/shared-blocks/single-picture-block';
@@ -31,8 +34,11 @@ import type { Block, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
   heroSectionBlock,
+  leadSectionBlock,
   sectionSeparatorBlock,
   richTextArticleBlock,
+  mediaTextBlock,
+  processStepsBlock,
   blockPostsOverview,
   formBlock,
   approvedFormSubmissionsBlock,

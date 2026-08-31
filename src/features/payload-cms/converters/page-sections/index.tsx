@@ -18,9 +18,12 @@ import {
   RenderFormBlock,
   RenderHeroSection,
   RenderInstagramEmbed,
+  RenderLeadSection,
+  RenderMediaText,
   RenderNewsCard,
   RenderPhotoCarousel,
   RenderPhotoContestBlock,
+  RenderProcessSteps,
   RenderRichTextSection,
   RenderSectionSeparatorBlock,
   RenderSinglePicture,
@@ -84,11 +87,16 @@ export const PageSectionsConverter: React.FC<
     featuredSection: RenderFeaturedSection,
     tabsBlock: RenderTabsBlock,
     heroSection: RenderHeroSection,
+    leadSection: RenderLeadSection,
+    mediaText: RenderMediaText,
+    processSteps: RenderProcessSteps,
     sectionSeparator: RenderSectionSeparatorBlock,
   };
 
   return (
-    <div>
+    // A heading that lives in its own block would otherwise sit the same
+    // distance from the section above it as from the content it introduces.
+    <div className="[&>section[data-heading-only]+section]:mt-3">
       {blocks.map((block) => {
         const BlockComponent = componentMap[block.blockType];
         if (BlockComponent === undefined)
