@@ -761,6 +761,147 @@ export const BillSettingsGlobal: GlobalConfig = {
             },
 
             {
+              name: 'scheduledReport',
+              type: 'group',
+              label: {
+                en: 'Weekly Report',
+                de: 'Wöchentlicher Bericht',
+                fr: 'Rapport hebdomadaire',
+              },
+              admin: {
+                description: {
+                  en: 'Emails the registration report and the bill overview on a fixed weekday.',
+                  de: 'Verschickt den Anmeldestand-Bericht und die Rechnungsübersicht an einem festen Wochentag.',
+                  fr: "Envoie le rapport d'inscriptions et la synthèse des factures un jour fixe.",
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  label: {
+                    en: 'Send the weekly report',
+                    de: 'Wochenbericht versenden',
+                    fr: 'Envoyer le rapport hebdomadaire',
+                  },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'weekday',
+                      type: 'select',
+                      defaultValue: '1',
+                      label: { en: 'Weekday', de: 'Wochentag', fr: 'Jour' },
+                      options: [
+                        { value: '1', label: { en: 'Monday', de: 'Montag', fr: 'Lundi' } },
+                        { value: '2', label: { en: 'Tuesday', de: 'Dienstag', fr: 'Mardi' } },
+                        { value: '3', label: { en: 'Wednesday', de: 'Mittwoch', fr: 'Mercredi' } },
+                        { value: '4', label: { en: 'Thursday', de: 'Donnerstag', fr: 'Jeudi' } },
+                        { value: '5', label: { en: 'Friday', de: 'Freitag', fr: 'Vendredi' } },
+                        { value: '6', label: { en: 'Saturday', de: 'Samstag', fr: 'Samedi' } },
+                        { value: '0', label: { en: 'Sunday', de: 'Sonntag', fr: 'Dimanche' } },
+                      ],
+                    },
+                    {
+                      name: 'hour',
+                      type: 'number',
+                      defaultValue: 7,
+                      min: 0,
+                      max: 23,
+                      label: {
+                        en: 'Hour (0–23, Europe/Zurich)',
+                        de: 'Stunde (0–23, Europe/Zürich)',
+                        fr: 'Heure (0–23, Europe/Zurich)',
+                      },
+                    },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'attachPdf',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      label: {
+                        en: 'Attach the registration report (PDF)',
+                        de: 'Anmeldestand-Bericht anhängen (PDF)',
+                        fr: "Joindre le rapport d'inscriptions (PDF)",
+                      },
+                    },
+                    {
+                      name: 'attachExcel',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      label: {
+                        en: 'Attach the bill overview (Excel)',
+                        de: 'Rechnungsübersicht anhängen (Excel)',
+                        fr: 'Joindre la synthèse des factures (Excel)',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'recipients',
+                  type: 'text',
+                  label: {
+                    en: 'Recipients',
+                    de: 'Empfänger',
+                    fr: 'Destinataires',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Comma-separated. Leave empty to use the finance recipients below.',
+                      de: 'Kommagetrennt. Leer lassen, um die Finanz-Empfänger unten zu verwenden.',
+                      fr: 'Séparés par des virgules. Vide = destinataires finances ci-dessous.',
+                    },
+                  },
+                },
+                {
+                  name: 'subject',
+                  type: 'text',
+                  defaultValue: 'conveniat27 – Anmeldestand vom {{date}}',
+                  label: { en: 'Subject', de: 'Betreff', fr: 'Sujet' },
+                  admin: {
+                    description: {
+                      en: 'Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      de: 'Platzhalter: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      fr: 'Espaces réservés : {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                    },
+                  },
+                },
+                {
+                  name: 'body',
+                  type: 'textarea',
+                  defaultValue:
+                    'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                  label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
+                  admin: {
+                    description: {
+                      en: 'Same placeholders as the subject.',
+                      de: 'Gleiche Platzhalter wie beim Betreff.',
+                      fr: 'Mêmes espaces réservés que le sujet.',
+                    },
+                  },
+                },
+                {
+                  name: 'lastSentAt',
+                  type: 'date',
+                  label: { en: 'Last sent', de: 'Zuletzt versendet', fr: 'Dernier envoi' },
+                  admin: {
+                    readOnly: true,
+                    description: {
+                      en: 'Written by the scheduler. Also what stops a second send in the same week.',
+                      de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Versand in derselben Woche.',
+                      fr: 'Écrit par le planificateur; empêche un second envoi la même semaine.',
+                    },
+                  },
+                },
+              ],
+            },
+            {
               name: 'financeEmailRecipients',
               type: 'text',
               defaultValue: '',
