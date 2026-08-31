@@ -92,6 +92,76 @@ export function resolvePricing(
   return undefined;
 }
 
+/** Separator between the footer's items, and the only place the footer may wrap. */
+const FOOTER_SEPARATOR = '  |  ';
+
+/** The identity block printed at the bottom of page 1, as its individual items. */
+export function buildCreditorFooterItems(creditor: {
+  name: string;
+  street: string;
+  buildingNumber?: string | undefined;
+  zip: string;
+  city: string;
+  account: string;
+  uid?: string | undefined;
+  email?: string | undefined;
+  website?: string | undefined;
+}): string[] {
+  const items: string[] = [];
+  items.push(
+    `${creditor.name} | ${creditor.street} ${creditor.buildingNumber ?? ''}`
+      .trim()
+      .replace(/ \|$/, ''),
+  );
+  if (creditor.zip !== '' && creditor.city !== '') items.push(`${creditor.zip} ${creditor.city}`);
+  if (creditor.account !== '') items.push(`IBAN: ${creditor.account}`);
+  if (creditor.uid !== undefined && creditor.uid !== '') items.push(`MWST-Nr.: ${creditor.uid}`);
+  if (creditor.email !== undefined && creditor.email !== '')
+    items.push(`E-Mail: ${creditor.email}`);
+  if (creditor.website !== undefined && creditor.website !== '')
+    items.push(`Web: ${creditor.website}`);
+  return items;
+}
+
+/**
+ * Packs footer items into lines that fit, never splitting an item across two of them.
+ *
+ * The footer used to be one long string handed to PDFKit with a width, which wrapped it
+ * wherever it liked — and what it liked was the space in `E-Mail: admin@…`, leaving the
+ * label stranded at the end of a line and its address orphaned at the start of the next.
+ * A non-breaking space does not help: PDFKit then breaks the hyphen in `E-Mail` instead,
+ * which is worse. The only reliable answer is to decide the lines here and render each one
+ * with wrapping switched off.
+ *
+ * `measure` is the caller's text measurement, so packing is decided with the same font and
+ * size the line is later drawn in.
+ */
+export function layoutFooterLines(
+  items: string[],
+  measure: (text: string) => number,
+  maxWidth: number,
+): string[] {
+  const lines: string[] = [];
+  let current: string | undefined;
+
+  for (const item of items) {
+    if (current === undefined) {
+      current = item;
+      continue;
+    }
+    const candidate = `${current}${FOOTER_SEPARATOR}${item}`;
+    if (measure(candidate) <= maxWidth) {
+      current = candidate;
+    } else {
+      lines.push(current);
+      current = item;
+    }
+  }
+
+  if (current !== undefined) lines.push(current);
+  return lines;
+}
+
 /**
  * Renders text with basic markdown support (**bold**, *italic*, ***bold italic***).
  * Splits the input into segments and switches PDFKit fonts inline.
@@ -1090,31 +1160,36 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     }
 
     // Legal Footer
-    const footerLines = [];
-    footerLines.push(
-      `${parameters.creditor.name} | ${parameters.creditor.street} ${parameters.creditor.buildingNumber ?? ''}`
-        .trim()
-        .replace(/ \|$/, ''),
-    );
-    if (parameters.creditor.zip !== '' && parameters.creditor.city !== '')
-      footerLines.push(`${parameters.creditor.zip} ${parameters.creditor.city}`);
-    if (parameters.creditor.account !== '')
-      footerLines.push(`IBAN: ${parameters.creditor.account}`);
-    if (parameters.creditor.uid !== undefined && parameters.creditor.uid !== '')
-      footerLines.push(`MWST-Nr.: ${parameters.creditor.uid}`);
-    if (parameters.creditor.email !== undefined && parameters.creditor.email !== '')
-      footerLines.push(`E-Mail: ${parameters.creditor.email}`);
-    if (parameters.creditor.website !== undefined && parameters.creditor.website !== '')
-      footerLines.push(`Web: ${parameters.creditor.website}`);
+    const footerItems = buildCreditorFooterItems(parameters.creditor);
 
-    if (footerLines.length > 0) {
+    if (footerItems.length > 0) {
       document_.fontSize(8);
       document_.fillColor('gray');
       document_.font('Helvetica');
-      document_.text(footerLines.join('  |  '), mm2pt(22), mm2pt(280), {
-        width: mm2pt(165),
-        align: 'center',
-      });
+
+      const footerWidth = mm2pt(165);
+      const footerLines = layoutFooterLines(
+        footerItems,
+        (text) => document_.widthOfString(text),
+        footerWidth,
+      );
+
+      // Anchored at its bottom and grown upwards, so a footer that needs an extra line
+      // takes it from the whitespace above rather than pushing past the bottom margin,
+      // which would cost the bill a third page.
+      const lineHeight = document_.currentLineHeight();
+      let footerY = mm2pt(286) - footerLines.length * lineHeight;
+
+      for (const line of footerLines) {
+        // Wrapping is off: the packing above already guarantees the line fits, and
+        // leaving it on is what let PDFKit split an item in the first place.
+        document_.text(line, mm2pt(22), footerY, {
+          width: footerWidth,
+          align: 'center',
+          lineBreak: false,
+        });
+        footerY += lineHeight;
+      }
     }
 
     // ── Page 2: the bill itself, above the QR slip it is paid with ──
