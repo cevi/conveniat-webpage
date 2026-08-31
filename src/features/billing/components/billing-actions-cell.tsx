@@ -7,7 +7,59 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import type { StaticTranslationString } from '@/types/types';
+import { useLocale } from '@payloadcms/ui';
 import React from 'react';
+
+const regenerateTitle: StaticTranslationString = {
+  de: 'Rechnung neu generieren?',
+  en: 'Regenerate the bill?',
+  fr: 'Régénérer la facture ?',
+};
+
+const regenerateMessage: StaticTranslationString = {
+  de: 'Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die Rechnungsnummer werden unwiderruflich überschrieben.',
+  en: 'Do you really want to regenerate this bill? The existing PDF and invoice number are irreversibly overwritten.',
+  fr: 'Voulez-vous vraiment régénérer cette facture ? Le PDF et le numéro de facture existants seront écrasés définitivement.',
+};
+
+const regenerateConfirm: StaticTranslationString = {
+  de: 'Neu generieren',
+  en: 'Regenerate',
+  fr: 'Régénérer',
+};
+
+const regeneratingLabel: StaticTranslationString = {
+  de: 'Wird generiert...',
+  en: 'Regenerating...',
+  fr: 'Régénération...',
+};
+
+const sendTitle: StaticTranslationString = {
+  de: 'Rechnung versenden?',
+  en: 'Send the bill?',
+  fr: 'Envoyer la facture ?',
+};
+
+const sendMessage: StaticTranslationString = {
+  de: 'Die Rechnung wird als E-Mail an die für die Rechnung hinterlegte Adresse dieser Person versendet. Das lässt sich nicht rückgängig machen.',
+  en: 'The bill is emailed to the invoice address on file for this person. This cannot be undone.',
+  fr: "La facture sera envoyée par e-mail à l'adresse de facturation enregistrée. Cette action est irréversible.",
+};
+
+const sendConfirm: StaticTranslationString = {
+  de: 'Versenden',
+  en: 'Send',
+  fr: 'Envoyer',
+};
+
+const sendingLabel: StaticTranslationString = {
+  de: 'Wird versendet...',
+  en: 'Sending...',
+  fr: 'Envoi...',
+};
 
 interface RowData {
   id: string;
@@ -22,6 +74,8 @@ interface RowData {
 export const BillingActionsCell: React.FC<{
   rowData: RowData;
 }> = ({ rowData }) => {
+  const { code } = useLocale();
+  const locale = resolveAdminLocale(code);
   const [confirmAction, setConfirmAction] = React.useState<'regenerate' | 'send' | undefined>();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
@@ -93,7 +147,13 @@ export const BillingActionsCell: React.FC<{
     );
   };
 
-  const busyLabel = confirmAction === 'send' ? 'Wird versendet...' : 'Wird generiert...';
+  const isSend = confirmAction === 'send';
+  const copy = {
+    title: (isSend ? sendTitle : regenerateTitle)[locale],
+    message: (isSend ? sendMessage : regenerateMessage)[locale],
+    confirmLabel: (isSend ? sendConfirm : regenerateConfirm)[locale],
+    submittingText: (isSend ? sendingLabel : regeneratingLabel)[locale],
+  };
 
   const handleRegenerate = async (): Promise<void> => {
     await runAction(
@@ -159,50 +219,32 @@ export const BillingActionsCell: React.FC<{
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {confirmAction !== undefined && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
-            <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-gray-100">
-              {confirmAction === 'send' ? 'Rechnung versenden?' : 'Rechnung neu generieren?'}
-            </h3>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-              {confirmAction === 'send'
-                ? 'Die Rechnung wird als E-Mail an die für die Rechnung hinterlegte Adresse ' +
-                  'dieser Person versendet. Das lässt sich nicht rückgängig machen.'
-                : 'Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die ' +
-                  'Rechnungsnummer werden unwiderruflich überschrieben.'}
-            </p>
-            {error !== undefined && (
-              <p className="mb-4 rounded border border-red-200 bg-red-50 p-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-200">
-                {error}
-              </p>
-            )}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={(): void => {
-                  setConfirmAction(undefined);
-                  setError(undefined);
-                }}
-                disabled={loading}
-                className="cursor-pointer rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={(): void => {
-                  void (confirmAction === 'send' ? handleSendEmail() : handleRegenerate());
-                }}
-                disabled={loading}
-                className="cursor-pointer rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-              >
-                {loading ? busyLabel : 'Bestätigen'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/*
+        Rendered through the shared modal, which portals to `document.body`. An overlay
+        written inline here cannot win on z-index at any value: Payload's table sets
+        `isolation: isolate` on `.table` and `position: relative; z-index: 1` on every
+        `th`/`td`, so the overlay was confined to its own cell's stacking context and any
+        cell later in the document painted straight over it.
+      */}
+      <ConfirmationModal
+        isOpen={confirmAction !== undefined}
+        onClose={(): void => {
+          setConfirmAction(undefined);
+          setError(undefined);
+        }}
+        onConfirm={async (): Promise<void> => {
+          await (isSend ? handleSendEmail() : handleRegenerate());
+        }}
+        title={copy.title}
+        // The shared modal renders the body with `whitespace-pre-line`, so a failure is
+        // appended as its own paragraph rather than needing a second slot.
+        message={error === undefined ? copy.message : `${copy.message}\n\n⚠ ${error}`}
+        confirmLabel={copy.confirmLabel}
+        submittingText={copy.submittingText}
+        isSubmitting={loading}
+        locale={locale}
+        confirmVariant="danger"
+      />
     </>
   );
 };
