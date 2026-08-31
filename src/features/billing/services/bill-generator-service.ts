@@ -6,6 +6,7 @@ import type { ParticipantRepositoryPort } from '@/features/billing/ports/partici
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   BILLED_STATUSES,
+  formatBillingStatus,
   hasRaisedBill,
   isBillable,
   NEEDS_MANUAL_REVIEW,
@@ -375,7 +376,8 @@ export async function generateBillsUseCase(
           continue;
         }
         summary.errors.push(
-          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist "${String(document_.status)}".`,
+          `${String(document_.fullName)}: keine Rechnung erstellt – die Anmeldung steht auf ` +
+            `„${formatBillingStatus(document_.status)}“ und muss zuerst bereinigt werden.`,
         );
         summary.skippedCount++;
         continue;
@@ -396,12 +398,19 @@ export async function generateBillsUseCase(
             {
               date: new Date().toISOString(),
               action: 'manual_review_required',
-              reviewReason: `Rechnung ${String(document_.invoiceNumber)} besteht bereits, der Status war aber wieder "${String(document_.status)}".`,
+              reviewReason:
+                `Für diese Anmeldung besteht bereits die Rechnung ${String(document_.invoiceNumber)}, ` +
+                `sie stand aber wieder auf „${formatBillingStatus(document_.status)}“ und wäre erneut ` +
+                `verrechnet worden. Der Rechnungslauf hat das verhindert: eine zweite Rechnung hätte eine ` +
+                `neue Nummer und eine neue QR-Referenz erhalten, gegen die eine bereits geleistete Zahlung ` +
+                `nicht mehr zugeordnet werden kann. Bestehende Rechnung prüfen und nur bei Bedarf über ` +
+                `„Neu generieren“ bewusst ersetzen.`,
             },
           ],
         });
         summary.errors.push(
-          `${String(document_.fullName)}: Rechnung ${String(document_.invoiceNumber)} besteht bereits – zur manuellen Prüfung markiert, statt eine zweite zu erstellen.`,
+          `${String(document_.fullName)}: Rechnung ${String(document_.invoiceNumber)} besteht bereits. ` +
+            `Es wurde keine zweite erstellt; die Anmeldung ist neu auf „Manuelle Prüfung nötig“ gesetzt.`,
         );
         summary.skippedCount++;
         continue;

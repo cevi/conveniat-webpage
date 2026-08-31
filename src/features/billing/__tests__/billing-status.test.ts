@@ -1,5 +1,7 @@
 import {
   BILLABLE_STATUSES,
+  BILLING_STATUSES,
+  formatBillingStatus,
   hasRaisedBill,
   isBillable,
   NEEDS_MANUAL_REVIEW,
@@ -137,5 +139,28 @@ describe('resolveSyncStatus — a participant who has already been billed', () =
     expect(resolveSyncStatus({ ...billed, currentStatus: 'reminder_sent' }).status).toBe(
       'reminder_sent',
     );
+  });
+});
+
+describe('formatBillingStatus', () => {
+  it('names every status in German', () => {
+    // No status may fall through to its raw slug: the messages a billing run reports are
+    // read by operators, and "der Status war wieder \'updated\'" is what this replaced.
+    for (const status of BILLING_STATUSES) {
+      expect(formatBillingStatus(status)).not.toBe(status);
+      expect(formatBillingStatus(status)).not.toMatch(/_/);
+    }
+  });
+
+  it('uses the wording the admin panel shows', () => {
+    expect(formatBillingStatus('updated')).toBe('Aktualisiert');
+    expect(formatBillingStatus(NEEDS_MANUAL_REVIEW)).toBe('Manuelle Prüfung nötig');
+    expect(formatBillingStatus('bill_sent')).toBe('Rechnung gesendet');
+  });
+
+  it('falls back rather than showing nothing for an unknown value', () => {
+    expect(formatBillingStatus('something_else')).toBe('something_else');
+    const missing: string | undefined = undefined;
+    expect(formatBillingStatus(missing)).toBe('unbekannt');
   });
 });
