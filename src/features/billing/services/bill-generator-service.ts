@@ -5,6 +5,8 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
+import type { VatCalculation, VatSplitConfig } from '@/features/billing/services/vat-calculation';
+import { calculateVat, formatVatLineLabel } from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
 import { generateQrReference } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
@@ -23,78 +25,40 @@ interface SyncHistoryEntry {
  * Resolves the invoice amount for a participant based on their role type
  * and the configured role pricing rules.
  */
-function resolvePricing(
+export interface ResolvedPricing {
+  amount: number;
+  label: string;
+  vatCode?: string | undefined;
+  vatSplits: VatSplitConfig[];
+}
+
+export function resolvePricing(
   roleType: string,
   rolePricing: Array<{
     roleTypePattern: string;
     label: string;
     amount: number;
     vatCode?: string | null;
+    vatSplits?: VatSplitConfig[] | null;
   }>,
-): { amount: number; label: string; vatCode?: string | undefined } {
+): ResolvedPricing {
+  const toResolved = (pricing: (typeof rolePricing)[number] | undefined): ResolvedPricing => {
+    const amount = Number(pricing?.amount);
+    return {
+      amount: Number.isNaN(amount) ? 0 : amount,
+      label: pricing?.label ?? 'Teilnehmer:in',
+      vatCode: pricing?.vatCode ?? undefined,
+      vatSplits: pricing?.vatSplits ?? [],
+    };
+  };
+
   for (const pricing of rolePricing) {
     if (roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())) {
-      const amt = Number(pricing.amount);
-      return {
-        amount: Number.isNaN(amt) ? 0 : amt,
-        label: pricing.label,
-        vatCode: pricing.vatCode ?? undefined,
-      };
+      return toResolved(pricing);
     }
   }
   // Default to the first pricing entry if no match
-  const defaultPricing = rolePricing[0];
-  const defaultAmt = Number(defaultPricing?.amount);
-  return {
-    amount: Number.isNaN(defaultAmt) ? 0 : defaultAmt,
-    label: defaultPricing?.label ?? 'Teilnehmer:in',
-    vatCode: defaultPricing?.vatCode ?? undefined,
-  };
-}
-
-/**
- * Calculates the VAT rate, VAT amount, and total gross amount based on net amount, vat code, and birthday.
- */
-export function calculateVat(
-  netAmount: number,
-  vatCode: string | null | undefined,
-  birthday: string | null | undefined,
-  invoiceYear: number = new Date().getFullYear(),
-): {
-  isSub18: boolean;
-  vatRate: number;
-  vatAmount: number;
-  totalAmount: number;
-  formattedVatCode: string;
-} {
-  let isSub18 = false;
-  if (typeof birthday === 'string' && birthday !== '') {
-    const birthYearMatch = birthday.match(/\d{4}/);
-    if (birthYearMatch !== null) {
-      const birthYear = Number.parseInt(birthYearMatch[0], 10);
-      isSub18 = invoiceYear < 2027 ? birthYear >= invoiceYear - 17 : birthYear >= invoiceYear - 18;
-    }
-  }
-
-  const vatCodeString =
-    vatCode !== null && vatCode !== undefined && vatCode !== '' ? vatCode : '0.0%';
-  const formattedVatCode = vatCodeString.endsWith('%') ? vatCodeString : `${vatCodeString}%`;
-
-  let vatRate = 0;
-  if (isSub18 === false) {
-    vatRate = Number.parseFloat(formattedVatCode.replace('%', '').replace(',', '.'));
-  }
-
-  const vatAmount = isSub18 === false ? (netAmount * vatRate) / 100 : 0;
-  const totalAmount = netAmount + vatAmount;
-
-  return {
-    isSub18,
-    vatRate,
-    vatAmount,
-    totalAmount,
-    formattedVatCode,
-  };
+  return toResolved(rolePricing[0]);
 }
 
 /**
@@ -253,6 +217,8 @@ export async function generateBillsUseCase(
     return summary;
   }
 
+  const vatExemption = settings.vatExemption;
+
   // 2. Query participants needing bills
   const participants = await participantRepo.findPendingBilling(participantId);
 
@@ -304,12 +270,21 @@ export async function generateBillsUseCase(
       const pricing = resolvePricing(roleType, rolePricing);
       const amount = pricing.amount;
       const roleLabel = pricing.label;
-      const vatCode = pricing.vatCode ?? undefined;
 
       if (amount <= 0) {
         summary.skippedCount++;
         continue;
       }
+
+      // Computed once here and handed to the PDF, so the invoice, the stored breakdown and
+      // the finance export can never drift apart for the same bill.
+      const vat = calculateVat({
+        netAmount: amount,
+        vatSplits: pricing.vatSplits,
+        vatCode: pricing.vatCode,
+        birthday: document_.birthday,
+        exemption: vatExemption,
+      });
 
       // Fetch person address from Cevi.DB
       const personAttributes = await hitobitoService.fetchPersonDetails(userId);
@@ -406,8 +381,6 @@ export async function generateBillsUseCase(
 
       const creditorBuildingNumber = settings.creditorBuildingNumber;
 
-      const { totalAmount } = calculateVat(amount, vatCode, document_.birthday ?? undefined);
-
       const pdfBuffer = await generateQrBillPdf({
         documentTitle,
         creditor: {
@@ -437,10 +410,9 @@ export async function generateBillsUseCase(
         ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
         invoiceLetterText: settings.invoiceLetterText ?? '',
         roleLabel,
-        vatCode,
+        vat,
         paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
         firstName,
-        birthday: document_.birthday ?? undefined,
       });
 
       // Upload PDF buffer using the port
@@ -459,7 +431,16 @@ export async function generateBillsUseCase(
         billCreatedDate: new Date().toISOString(),
         referenceNumber,
         invoiceNumber,
-        invoiceAmount: totalAmount,
+        invoiceAmount: vat.totalAmount,
+        netAmount: vat.netAmount,
+        vatExempt: vat.isExempt,
+        vatBreakdown: vat.components.map((component) => ({
+          label: component.label,
+          share: component.share,
+          netAmount: component.netAmount,
+          vatCode: component.formattedVatCode,
+          vatAmount: component.vatAmount,
+        })),
         billPdfs: updatedPdfs,
         syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
       });
@@ -565,10 +546,10 @@ interface PdfGenerationParameters {
   documentTitle: string;
   invoiceLetterText: string;
   roleLabel: string;
-  vatCode?: string | undefined;
+  /** Precomputed by the caller so the invoice and the stored breakdown cannot diverge. */
+  vat: VatCalculation;
   paymentDeadlineDays: number;
   firstName: string;
-  birthday?: string | undefined;
 }
 
 /**
@@ -756,18 +737,14 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     document_.moveDown(2);
 
     // Invoice table
-    const amountNumber = Number(parameters.amount) || 0;
+    const { isExempt, netAmount: subtotal, totalAmount } = parameters.vat;
+    const amountNumber = subtotal;
 
-    const { isSub18, vatAmount, totalAmount, formattedVatCode } = calculateVat(
-      amountNumber,
-      parameters.vatCode,
-      parameters.birthday,
-    );
-    const subtotal = amountNumber;
-
-    const vatLabel = isSub18
-      ? 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)'
-      : `MWST ${formattedVatCode}`;
+    // An exempt bill has one zero-rated line whatever the split says — printing the split
+    // there would suggest a tax that is not being charged.
+    const vatComponents = isExempt
+      ? parameters.vat.components.slice(0, 1)
+      : parameters.vat.components;
 
     // Build the rows array dynamically
     const tableRows: PDFRow[] = [
@@ -843,24 +820,29 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
           },
         ],
       },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [0, 0, 0, 0],
-        columns: [
-          {
-            text: vatLabel,
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${vatAmount.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
+      ...vatComponents.map((component): PDFRow => {
+        // With a split, name the base the rate was applied to — otherwise the reader has to
+        // reverse-engineer which part of the fee each percentage belongs to.
+        const base = vatComponents.length > 1 ? ` auf CHF ${component.netAmount.toFixed(2)}` : '';
+        return {
+          borderColor: '#ECF0F1',
+          borderWidth: [0, 0, 0, 0],
+          columns: [
+            {
+              text: `${formatVatLineLabel(component, isExempt)}${base}`,
+              fontSize: 9,
+              width: mm2pt(135),
+              align: 'right',
+            },
+            {
+              text: `CHF ${component.vatAmount.toFixed(2)}`,
+              width: mm2pt(30),
+              fontSize: 9,
+              align: 'right',
+            },
+          ],
+        };
+      }),
       {
         borderColor: '#ECF0F1',
         borderWidth: [1, 0, 1, 0],

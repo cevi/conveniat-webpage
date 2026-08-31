@@ -4210,7 +4210,25 @@ export interface BillParticipant {
   reAddedDate?: string | null;
   referenceNumber?: string | null;
   invoiceNumber?: string | null;
+  /**
+   * Gross amount, i.e. the net camp fee plus VAT.
+   */
   invoiceAmount?: number | null;
+  netAmount?: number | null;
+  vatExempt?: boolean | null;
+  /**
+   * The VAT lines as they were printed on the bill.
+   */
+  vatBreakdown?:
+    | {
+        label?: string | null;
+        share?: number | null;
+        netAmount?: number | null;
+        vatCode?: string | null;
+        vatAmount?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   billPdfs?: (string | BillPdf)[] | null;
   status:
     | 'new'
@@ -6672,6 +6690,18 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   referenceNumber?: T;
   invoiceNumber?: T;
   invoiceAmount?: T;
+  netAmount?: T;
+  vatExempt?: T;
+  vatBreakdown?:
+    | T
+    | {
+        label?: T;
+        share?: T;
+        netAmount?: T;
+        vatCode?: T;
+        vatAmount?: T;
+        id?: T;
+      };
   billPdfs?: T;
   status?: T;
   missingStammdaten?: T;
@@ -8197,11 +8227,46 @@ export interface BillSetting {
     | {
         roleTypePattern: string;
         label: string;
+        /**
+         * Used only when no VAT split is defined below.
+         */
         vatCode?: string | null;
         amount: number;
+        /**
+         * Split the net amount across several VAT rates, e.g. 50% accommodation at 3.8% and 50% at 8.1%. The shares must add up to 100%. Leave empty to tax the whole amount at the VAT code above.
+         */
+        vatSplits?:
+          | {
+              /**
+               * Printed next to this VAT line on the invoice, e.g. "Beherbergung".
+               */
+              label?: string | null;
+              share: number;
+              vatCode: string;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Branchen-Info 24, Ziff. 18.4: a participant counts as under-age until the end of the calendar year in which they reach the age limit. Bills for them carry no VAT.
+   */
+  vatExemption?: {
+    /**
+     * When off, every bill is taxed regardless of the participant’s age.
+     */
+    enabled?: boolean | null;
+    /**
+     * Someone reaching this age during the reference year is still exempt for that whole year.
+     */
+    maxAge?: number | null;
+    /**
+     * The VAT debt arises when the bill is raised, so that is the default. Pick the fixed year to judge every participant against the camp year instead.
+     */
+    referenceYearMode?: ('invoiceYear' | 'fixedYear') | null;
+    fixedReferenceYear?: number | null;
+  };
   accountDebit?: string | null;
   accountCredit?: string | null;
   /**
@@ -8665,7 +8730,23 @@ export interface BillSettingsSelect<T extends boolean = true> {
         label?: T;
         vatCode?: T;
         amount?: T;
+        vatSplits?:
+          | T
+          | {
+              label?: T;
+              share?: T;
+              vatCode?: T;
+              id?: T;
+            };
         id?: T;
+      };
+  vatExemption?:
+    | T
+    | {
+        enabled?: T;
+        maxAge?: T;
+        referenceYearMode?: T;
+        fixedReferenceYear?: T;
       };
   accountDebit?: T;
   accountCredit?: T;
