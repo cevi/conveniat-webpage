@@ -152,6 +152,13 @@ export async function previewPdfUseCase(
       .replaceAll('{{people-id}}', '123456')}-0001`,
     invoiceLetterText,
     roleLabel,
+    registration: {
+      fullName: 'Maximilian Muster',
+      nickname: 'Maxi',
+      birthday: '2001-04-17',
+      eventName: 'Hauptlager conveniat27 – Hof Süd',
+      roleType: 'Event::Role::Participant',
+    },
     vat,
     paymentDeadlineDays,
     firstName: 'Maximilian',

@@ -8,7 +8,7 @@ import type { JobProgressReporter } from '@/features/billing/services/job-progre
 import type { VatCalculation, VatSplitConfig } from '@/features/billing/services/vat-calculation';
 import { calculateVat, formatVatLineLabel } from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
-import { generateQrReference } from '@/features/billing/utils';
+import { formatBirthday, formatRoleName, generateQrReference } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
@@ -410,6 +410,13 @@ export async function generateBillsUseCase(
         ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
         invoiceLetterText: settings.invoiceLetterText ?? '',
         roleLabel,
+        registration: {
+          fullName: document_.fullName,
+          nickname: document_.nickname ?? undefined,
+          birthday: document_.birthday ?? undefined,
+          eventName: document_.eventName ?? undefined,
+          roleType,
+        },
         vat,
         paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
         firstName,
@@ -546,6 +553,14 @@ interface PdfGenerationParameters {
   documentTitle: string;
   invoiceLetterText: string;
   roleLabel: string;
+  /** Registration details confirmed on page 1. */
+  registration: {
+    fullName: string;
+    nickname?: string | undefined;
+    birthday?: string | undefined;
+    eventName?: string | undefined;
+    roleType?: string | undefined;
+  };
   /** Precomputed by the caller so the invoice and the stored breakdown cannot diverge. */
   vat: VatCalculation;
   paymentDeadlineDays: number;
@@ -736,145 +751,51 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // Add margin between text and table
     document_.moveDown(2);
 
-    // Invoice table
-    const { isExempt, netAmount: subtotal, totalAmount } = parameters.vat;
-    const amountNumber = subtotal;
-
-    // An exempt bill has one zero-rated line whatever the split says — printing the split
-    // there would suggest a tax that is not being charged.
-    const vatComponents = isExempt
-      ? parameters.vat.components.slice(0, 1)
-      : parameters.vat.components;
-
-    // Build the rows array dynamically
-    const tableRows: PDFRow[] = [
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 0, 0],
-        columns: [
-          { text: 'Pos', width: mm2pt(10), fontSize: 9 },
-          { text: 'Beschreibung', width: mm2pt(75) },
-          { text: 'Menge', width: mm2pt(20), fontSize: 9, align: 'center' },
-          { text: 'Einzelpreis', width: mm2pt(30), fontSize: 9, align: 'right' },
-          { text: 'Total (CHF)', width: mm2pt(30), fontSize: 9, align: 'right' },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 0, 0],
-        columns: [
-          { text: '1', fontSize: 9, width: mm2pt(10) },
-          {
-            text: `${parameters.roleLabel} – conveniat27`,
-            fontSize: 9,
-            width: mm2pt(75),
-          },
-          { text: '1', width: mm2pt(20), fontSize: 9, align: 'center' },
-          {
-            text: `CHF ${amountNumber.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-          {
-            text: `CHF ${amountNumber.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 0, 0],
-        columns: [
-          {
-            text: 'Zwischensumme',
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${amountNumber.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [0, 0, 0, 0],
-        columns: [
-          {
-            text: 'Betrag netto',
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${subtotal.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      ...vatComponents.map((component): PDFRow => {
-        // With a split, name the base the rate was applied to — otherwise the reader has to
-        // reverse-engineer which part of the fee each percentage belongs to.
-        const base = vatComponents.length > 1 ? ` auf CHF ${component.netAmount.toFixed(2)}` : '';
-        return {
-          borderColor: '#ECF0F1',
-          borderWidth: [0, 0, 0, 0],
-          columns: [
-            {
-              text: `${formatVatLineLabel(component, isExempt)}${base}`,
-              fontSize: 9,
-              width: mm2pt(135),
-              align: 'right',
-            },
-            {
-              text: `CHF ${component.vatAmount.toFixed(2)}`,
-              width: mm2pt(30),
-              fontSize: 9,
-              align: 'right',
-            },
-          ],
-        };
-      }),
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 1, 0],
-        columns: [
-          {
-            text: 'Gesamtbetrag',
-            fontName: 'Helvetica-Bold',
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${totalAmount.toFixed(2)}`,
-            fontName: 'Helvetica-Bold',
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
+    // ── Registration details ──
+    // The bill is also the Anmeldebestätigung, so page 1 has to state what exactly was
+    // registered. Role and birthday especially: the role decides the fee, the birthday
+    // decides whether MWST is owed at all, and neither is something a participant can
+    // correct in the Cevi.DB themselves.
+    const registrationRows: Array<[string, string]> = [
+      ['Name', parameters.registration.fullName],
+      ...(parameters.registration.nickname !== undefined &&
+      parameters.registration.nickname.trim() !== ''
+        ? ([['Ceviname', parameters.registration.nickname]] satisfies Array<[string, string]>)
+        : []),
+      ['Geburtsdatum', formatBirthday(parameters.registration.birthday)],
+      ['Anlass', parameters.registration.eventName ?? '–'],
+      ['Rolle', formatRoleName(parameters.registration.roleType)],
     ];
 
-    const tableData = {
+    const registrationTable = new Table({
       width: mm2pt(165),
-      padding: [4, 0, 4, 0] as [number, number, number, number],
-      rows: tableRows,
-    };
+      padding: [5, 0, 5, 0],
+      rows: registrationRows.map(([label, value], index) => ({
+        fontSize: 9,
+        borderColor: '#E5E7E9',
+        // Rules between the rows only, so the block reads as one card rather than a grid.
+        borderWidth: index === 0 ? [0, 0, 0, 0] : [1, 0, 0, 0],
+        columns: [
+          { text: label, width: mm2pt(40), textColor: '#5D6D7E' },
+          { text: value, width: mm2pt(125), fontName: 'Helvetica-Bold' },
+        ],
+      })),
+    });
+    registrationTable.attachTo(document_, mm2pt(22));
 
-    // (Manual line removed; the Table class handles borders now)
-
-    const table = new Table(tableData);
-    table.attachTo(document_, mm2pt(22));
+    document_.moveDown(1);
+    document_.font('Helvetica-Oblique');
+    document_.fontSize(8);
+    document_.fillColor('#5D6D7E');
+    document_.text(
+      'Stimmen diese Angaben nicht? Melde dich bei der abteilungsverantwortlichen Person ' +
+        'deiner Abteilung, sie kann die Angaben in der Cevi.DB korrigieren. Die Rolle ' +
+        'bestimmt den Lagerbeitrag, das Geburtsdatum die Mehrwertsteuer.',
+      mm2pt(22),
+      document_.y,
+      { width: mm2pt(165), lineGap: 1.5 },
+    );
+    document_.font('Helvetica');
 
     // Legal Footer
     const footerLines = [];
@@ -904,9 +825,153 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       });
     }
 
-    // Attach the QR Bill on a new page
+    // ── Page 2: the bill itself, above the QR slip it is paid with ──
     document_.addPage();
     drawLogo();
+
+    document_.fontSize(15);
+    document_.fillColor('#47564C');
+    document_.font('Montserrat-ExtraBold');
+    document_.text('RECHNUNG', mm2pt(22), mm2pt(32), { width: mm2pt(165), align: 'left' });
+
+    // Page 2 travels on its own once the bill is filed, so it repeats what identifies it.
+    document_.fontSize(9);
+    document_.fillColor('#5D6D7E');
+    document_.font('Helvetica');
+    document_.text(
+      `Rechnung Nr. ${parameters.invoiceNumber}  ·  Zahlbar bis ${dueDateString}`,
+      mm2pt(22),
+      mm2pt(40),
+      { width: mm2pt(165), align: 'left' },
+    );
+    document_.fillColor('#000000');
+
+    // Invoice table
+    const { isExempt, netAmount: subtotal, totalAmount } = parameters.vat;
+
+    // An exempt bill has one zero-rated line whatever the split says — printing the split
+    // there would suggest a tax that is not being charged.
+    const vatComponents = isExempt
+      ? parameters.vat.components.slice(0, 1)
+      : parameters.vat.components;
+
+    // One line per thing being billed. A camp bill carries a single fee today, which is why
+    // the subtotal rows below are conditional: repeating the same figure three times over a
+    // one-line table tells the reader nothing.
+    const positions = [{ description: `${parameters.roleLabel} – conveniat27`, amount: subtotal }];
+
+    // The table is ruled horizontally only: a full grid fights the QR bill on the next page,
+    // and every column here is either text or money, so the alignment already separates them.
+    const columnWidth = {
+      description: mm2pt(85),
+      quantity: mm2pt(20),
+      unitPrice: mm2pt(30),
+      total: mm2pt(30),
+    };
+    const headerRule = '#B3B6B7';
+    const rowRule = '#E5E7E9';
+    const mutedText = '#5D6D7E';
+
+    // A split needs each rate's base spelled out. With a single rate the base is the net
+    // amount already sitting on the position line, so the column stays empty rather than
+    // printing the same figure a third time.
+    const showsVatBase = vatComponents.length > 1;
+
+    const tableRows: PDFRow[] = [
+      {
+        fontName: 'Helvetica-Bold',
+        fontSize: 9,
+        borderColor: headerRule,
+        borderWidth: [0, 0, 1, 0],
+        columns: [
+          { text: 'Beschreibung', width: columnWidth.description },
+          { text: 'Menge', width: columnWidth.quantity, align: 'center' },
+          { text: 'Einzelpreis', width: columnWidth.unitPrice, align: 'right' },
+          { text: 'Total (CHF)', width: columnWidth.total, align: 'right' },
+        ],
+      },
+      ...positions.map((position): PDFRow => ({
+        fontSize: 9,
+        borderColor: rowRule,
+        borderWidth: [0, 0, 1, 0],
+        columns: [
+          { text: position.description, width: columnWidth.description },
+          { text: '1', width: columnWidth.quantity, align: 'center' },
+          {
+            text: `CHF ${position.amount.toFixed(2)}`,
+            width: columnWidth.unitPrice,
+            align: 'right',
+          },
+          {
+            text: `CHF ${position.amount.toFixed(2)}`,
+            width: columnWidth.total,
+            align: 'right',
+          },
+        ],
+      })),
+      ...(positions.length > 1
+        ? ([
+            {
+              fontSize: 9,
+              borderColor: rowRule,
+              borderWidth: [0, 0, 1, 0],
+              columns: [
+                { text: 'Betrag netto', width: mm2pt(135), align: 'right' },
+                {
+                  text: `CHF ${subtotal.toFixed(2)}`,
+                  width: columnWidth.total,
+                  align: 'right',
+                },
+              ],
+            },
+          ] satisfies PDFRow[])
+        : []),
+      ...vatComponents.map((component): PDFRow => ({
+        fontSize: 9,
+        textColor: mutedText,
+        columns: [
+          {
+            text: formatVatLineLabel(component, isExempt),
+            width: columnWidth.description + columnWidth.quantity,
+          },
+          {
+            text: showsVatBase ? `CHF ${component.netAmount.toFixed(2)}` : '',
+            width: columnWidth.unitPrice,
+            align: 'right',
+          },
+          {
+            text: `CHF ${component.vatAmount.toFixed(2)}`,
+            width: columnWidth.total,
+            align: 'right',
+          },
+        ],
+      })),
+      {
+        fontName: 'Helvetica-Bold',
+        fontSize: 9,
+        borderColor: headerRule,
+        borderWidth: [1, 0, 0, 0],
+        columns: [
+          { text: 'Gesamtbetrag', width: mm2pt(135), align: 'right' },
+          {
+            text: `CHF ${totalAmount.toFixed(2)}`,
+            width: columnWidth.total,
+            align: 'right',
+          },
+        ],
+      },
+    ];
+
+    const tableData = {
+      width: mm2pt(165),
+      padding: [5, 0, 5, 0] as [number, number, number, number],
+      rows: tableRows,
+    };
+
+    // (Manual line removed; the Table class handles borders now)
+
+    const table = new Table(tableData);
+    table.attachTo(document_, mm2pt(22), mm2pt(48));
 
     // Include the generated QR reference (required for QR-IBANs)
     const qrBillData = {
@@ -936,9 +1001,10 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         city: parameters.debtor.city,
         country: parameters.debtor.country,
       },
-      ...(parameters.customReference !== undefined && parameters.customReference !== ''
-        ? { additionalInformation: `REF: ${parameters.customReference}` }
-        : {}),
+      // The unstructured message is what a payer sees in their banking app and what the
+      // finance team matches an incoming payment against, so it carries the bill number
+      // rather than the registration number.
+      additionalInformation: `Rechnung Nr. ${parameters.invoiceNumber}`,
     };
 
     const qrBill = new SwissQRBill(qrBillData, {

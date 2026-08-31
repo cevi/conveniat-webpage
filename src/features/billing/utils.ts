@@ -38,3 +38,45 @@ export function generateQrReference(
 
   return `${baseReference}${String(checkDigit)}`;
 }
+
+/**
+ * German names for the Hitobito event roles, keyed by the suffix of the role type.
+ *
+ * Hitobito namespaces the same role twice — `Event::Role::Leader` on a plain event and
+ * `Event::Camp::Role::Leader` on a camp — so only the last segment is matched.
+ */
+const ROLE_NAMES_DE: Record<string, string> = {
+  AssistantLeader: 'Hilfsleiter:in',
+  Cook: 'Küche',
+  Helper: 'Helfer:in',
+  Leader: 'Leiter:in',
+  Participant: 'Teilnehmer:in',
+  Speaker: 'Referent:in',
+  Treasurer: 'Kassier:in',
+};
+
+/**
+ * Turns a Hitobito role type into something a participant can read.
+ *
+ * `Event::Role::Leader` is an implementation detail of the Cevi.DB; on a registration
+ * confirmation it has to say "Leiter:in". An unmapped role falls back to its bare suffix,
+ * which is still far better than the full namespace.
+ */
+export function formatRoleName(roleType: string | null | undefined): string {
+  if (typeof roleType !== 'string' || roleType.trim() === '') return '–';
+  const suffix = roleType.split('::').at(-1)?.trim() ?? '';
+  return ROLE_NAMES_DE[suffix] ?? (suffix === '' ? roleType : suffix);
+}
+
+/**
+ * Formats a Cevi.DB birthday for print.
+ *
+ * Hitobito serves ISO dates, but the field is free text upstream, so anything that is not
+ * an ISO date is passed through untouched rather than mangled into a wrong date.
+ */
+export function formatBirthday(birthday: string | null | undefined): string {
+  if (typeof birthday !== 'string' || birthday.trim() === '') return '–';
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(birthday.trim());
+  if (match === null) return birthday.trim();
+  return `${match[3]}.${match[2]}.${match[1]}`;
+}

@@ -1,4 +1,8 @@
-import { calculateModule10Recursive, generateQrReference } from '@/features/billing/utils';
+import {
+  calculateModule10Recursive,
+  formatRoleName,
+  generateQrReference,
+} from '@/features/billing/utils';
 
 describe('Billing Utilities', () => {
   describe('calculateModule10Recursive', () => {
@@ -47,5 +51,29 @@ describe('Billing Utilities', () => {
       const baseExpected = '09012345612345123456700123';
       expect(reference.slice(0, 26)).toBe(baseExpected);
     });
+  });
+});
+
+describe('formatRoleName', () => {
+  it('names the plain event roles in German', () => {
+    expect(formatRoleName('Event::Role::Participant')).toBe('Teilnehmer:in');
+    expect(formatRoleName('Event::Role::Leader')).toBe('Leiter:in');
+    expect(formatRoleName('Event::Role::AssistantLeader')).toBe('Hilfsleiter:in');
+  });
+
+  it('names the camp variants the same way', () => {
+    // Hitobito namespaces the same role twice; a participant should not see the difference.
+    expect(formatRoleName('Event::Camp::Role::Leader')).toBe('Leiter:in');
+    expect(formatRoleName('Event::Camp::Role::Participant')).toBe('Teilnehmer:in');
+  });
+
+  it('falls back to the bare suffix for a role nobody has mapped yet', () => {
+    expect(formatRoleName('Event::Role::Quartermaster')).toBe('Quartermaster');
+  });
+
+  it('renders a dash when the role never made it out of Cevi.DB', () => {
+    expect(formatRoleName('')).toBe('–');
+    // eslint-disable-next-line unicorn/no-useless-undefined -- a missing role is the case under test
+    expect(formatRoleName(undefined)).toBe('–');
   });
 });
