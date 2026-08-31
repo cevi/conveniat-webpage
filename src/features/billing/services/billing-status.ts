@@ -115,7 +115,24 @@ export const resolveSyncStatus = ({
   isMissingMandatoryData,
   hasChanges,
 }: SyncStatusInput): SyncStatusDecision => {
-  if (hasBill) {
+  // A participation that comes back under the same id. `re_added` already exists for the
+  // case where Cevi.DB issues a *new* participation id, and this is the same event from
+  // the participant's point of view, so it gets the same status rather than looking like a
+  // registration that was never away.
+  if (currentStatus === 'removed') {
+    return {
+      status: 're_added',
+      reviewReason: 'Die Anmeldung ist in der Cevi.DB wieder vorhanden.',
+    };
+  }
+
+  // A row whose *status* says a bill exists carries one even if the invoice fields are
+  // missing — a data glitch must not be a way back into the billing queue. Without this,
+  // a `bill_created` row with an empty invoice number could be walked back to
+  // `pflichtangaben_missing` and from there to `new`, and billed a second time.
+  const carriesBill = hasBill || (ACCOUNTED_STATUSES as readonly string[]).includes(currentStatus);
+
+  if (carriesBill) {
     if (currentStatus === NEEDS_MANUAL_REVIEW) return { status: NEEDS_MANUAL_REVIEW };
     if (!isRoleOk)
       return { status: NEEDS_MANUAL_REVIEW, reviewReason: REVIEW_REASONS.roleUnpriced };
@@ -164,3 +181,87 @@ export const formatBillingStatus = (status: string | null | undefined = ''): str
     ? BILLING_STATUS_LABELS_DE[key as BillingStatus]
     : key;
 };
+
+/**
+ * Which status each status may move to.
+ *
+ * The states were previously only implied by whichever branch happened to write them, and
+ * the gaps showed: the per-row "Neu generieren" action set `new` on *any* row, including
+ * one already marked `removed`, which resurrected a participation that no longer exists in
+ * the Cevi.DB. The sync then found an event whose participation list was empty while the
+ * database still held an active row for it, and refused to reconcile the two — reporting
+ * the same error on every run, forever.
+ *
+ * A move to the same status is always allowed: syncs are idempotent and re-write a row
+ * without meaning to change its state.
+ *
+ * `removed` is deliberately near-terminal. A participation that comes back reaches
+ * `re_added`, never `new`, so "this person cancelled and returned" stays visible instead of
+ * looking like a fresh registration.
+ */
+export const ALLOWED_TRANSITIONS: Record<BillingStatus, readonly BillingStatus[]> = {
+  // `needs_manual_review` is reachable from every un-cancelled state: a row that carries an
+  // invoice while sitting in a billable status is precisely what has to be parked for a
+  // human, and that is the shape a row left over from before these rules arrives in.
+  new: [
+    'pflichtangaben_missing',
+    'invalid_anmeldeangaben',
+    'updated',
+    'bill_created',
+    'needs_manual_review',
+    'removed',
+  ],
+  updated: [
+    'new',
+    'pflichtangaben_missing',
+    'invalid_anmeldeangaben',
+    'bill_created',
+    'needs_manual_review',
+    'removed',
+  ],
+  re_added: [
+    'new',
+    'updated',
+    'pflichtangaben_missing',
+    'invalid_anmeldeangaben',
+    'bill_created',
+    'needs_manual_review',
+    'removed',
+  ],
+  pflichtangaben_missing: [
+    'new',
+    'updated',
+    'invalid_anmeldeangaben',
+    'needs_manual_review',
+    'removed',
+  ],
+  invalid_anmeldeangaben: [
+    'new',
+    'updated',
+    'pflichtangaben_missing',
+    'needs_manual_review',
+    'removed',
+  ],
+  // A raised bill can be sent, chased, flagged for a human, cancelled, or — only through
+  // the explicit per-row action — deliberately reissued.
+  bill_created: ['bill_sent', 'reminder_sent', 'needs_manual_review', 'new', 'removed'],
+  bill_sent: ['reminder_sent', 'needs_manual_review', 'new', 'removed'],
+  reminder_sent: ['bill_sent', 'needs_manual_review', 'new', 'removed'],
+  needs_manual_review: ['new', 'bill_created', 'bill_sent', 'reminder_sent', 'removed'],
+  // Cancelled. Only a genuine re-enrolment brings a participation back.
+  removed: ['re_added'],
+};
+
+/** Whether `to` is a legal next status for `from`. Same-to-same is always legal. */
+export const canTransition = (from: string, to: string): boolean => {
+  if (from === to) return true;
+  const allowed = ALLOWED_TRANSITIONS[from as BillingStatus] as readonly string[] | undefined;
+  // An unknown current status is not something to refuse on: it can only come from data
+  // written before this table existed, and refusing would strand the row for good.
+  if (allowed === undefined) return true;
+  return allowed.includes(to);
+};
+
+/** Why a transition was refused, in the words the admin panel shows. */
+export const describeRefusedTransition = (from: string, to: string): string =>
+  `Statuswechsel von „${formatBillingStatus(from)}“ zu „${formatBillingStatus(to)}“ ist nicht zulässig.`;

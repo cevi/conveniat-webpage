@@ -1,6 +1,8 @@
 import {
+  ALLOWED_TRANSITIONS,
   BILLABLE_STATUSES,
   BILLING_STATUSES,
+  canTransition,
   formatBillingStatus,
   hasRaisedBill,
   isBillable,
@@ -162,5 +164,109 @@ describe('formatBillingStatus', () => {
     expect(formatBillingStatus('something_else')).toBe('something_else');
     const missing: string | undefined = undefined;
     expect(formatBillingStatus(missing)).toBe('unbekannt');
+  });
+});
+
+describe('canTransition', () => {
+  it('never refuses a status re-write of the same value', () => {
+    // Syncs are idempotent and touch rows without meaning to move them.
+    for (const status of BILLING_STATUSES) expect(canTransition(status, status)).toBe(true);
+  });
+
+  it('refuses to resurrect a cancelled registration', () => {
+    // The bug this table exists for: "Neu generieren" set `new` on a `removed` row, which
+    // brought back a registration the Cevi.DB no longer had. The sync then found an event
+    // whose list was empty while the database still held an active row, and reported the
+    // same irreconcilable error on every run.
+    expect(canTransition('removed', 'new')).toBe(false);
+    expect(canTransition('removed', 'bill_created')).toBe(false);
+    expect(canTransition('removed', 'updated')).toBe(false);
+  });
+
+  it('lets a genuine re-enrolment back in, as re_added', () => {
+    expect(canTransition('removed', 're_added')).toBe(true);
+  });
+
+  it('allows cancelling from every state a registration can actually be in', () => {
+    for (const status of BILLING_STATUSES) {
+      if (status === 'removed') continue;
+      expect(canTransition(status, 'removed')).toBe(true);
+    }
+  });
+
+  it('allows the deliberate reissue of an existing bill', () => {
+    // The per-row action sets `new` before regenerating; that has to stay possible.
+    expect(canTransition('bill_sent', 'new')).toBe(true);
+    expect(canTransition('needs_manual_review', 'new')).toBe(true);
+  });
+
+  it('does not strand a row whose status predates the table', () => {
+    expect(canTransition('some_legacy_status', 'removed')).toBe(true);
+  });
+
+  it('only ever names statuses that exist', () => {
+    for (const [from, targets] of Object.entries(ALLOWED_TRANSITIONS)) {
+      expect(BILLING_STATUSES).toContain(from);
+      for (const to of targets) expect(BILLING_STATUSES).toContain(to);
+    }
+  });
+
+  it('is defined for every status', () => {
+    for (const status of BILLING_STATUSES) expect(ALLOWED_TRANSITIONS[status]).toBeDefined();
+  });
+});
+
+describe('resolveSyncStatus — a participation that comes back', () => {
+  it('returns as re_added rather than as a fresh registration', () => {
+    const decision = resolveSyncStatus({
+      currentStatus: 'removed',
+      hasBill: false,
+      isRoleOk: true,
+      isMissingMandatoryData: false,
+      hasChanges: true,
+    });
+    expect(decision.status).toBe('re_added');
+    expect(canTransition('removed', decision.status)).toBe(true);
+  });
+
+  it('does so even when a bill had already been raised', () => {
+    expect(
+      resolveSyncStatus({
+        currentStatus: 'removed',
+        hasBill: true,
+        isRoleOk: true,
+        isMissingMandatoryData: false,
+        hasChanges: false,
+      }).status,
+    ).toBe('re_added');
+  });
+});
+
+describe('resolveSyncStatus only produces legal transitions', () => {
+  it('holds for every combination of inputs and starting status', () => {
+    // The sync is the busiest writer of statuses, so rather than trusting it branch by
+    // branch, every reachable decision is checked against the table.
+    for (const currentStatus of BILLING_STATUSES) {
+      for (const hasBill of [true, false]) {
+        for (const isRoleOk of [true, false]) {
+          for (const isMissingMandatoryData of [true, false]) {
+            for (const hasChanges of [true, false]) {
+              const { status } = resolveSyncStatus({
+                currentStatus,
+                hasBill,
+                isRoleOk,
+                isMissingMandatoryData,
+                hasChanges,
+              });
+              expect({
+                from: currentStatus,
+                to: status,
+                legal: canTransition(currentStatus, status),
+              }).toEqual({ from: currentStatus, to: status, legal: true });
+            }
+          }
+        }
+      }
+    }
   });
 });

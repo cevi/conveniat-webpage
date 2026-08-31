@@ -1,3 +1,7 @@
+import {
+  canTransition,
+  describeRefusedTransition,
+} from '@/features/billing/services/billing-status';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import {
   canAccessBillingField,
@@ -52,6 +56,30 @@ export const BillParticipantsCollection: CollectionConfig = {
     components: {
       beforeListTable: ['@/features/billing/components/billing-list-toolbar'],
     },
+  },
+  hooks: {
+    beforeChange: [
+      ({ data, originalDoc, operation }): Record<string, unknown> => {
+        // The one place every status write passes through. The transitions used to be
+        // implied by whichever branch happened to run, so nothing stopped the per-row
+        // "Neu generieren" action from moving a `removed` participation back to `new` —
+        // which resurrected a registration the Cevi.DB no longer has and left the sync
+        // reporting the same irreconcilable event on every run.
+        const next = (data as { status?: unknown }).status;
+        const previous = (originalDoc as { status?: unknown } | undefined)?.status;
+
+        if (
+          operation === 'update' &&
+          typeof next === 'string' &&
+          typeof previous === 'string' &&
+          !canTransition(previous, next)
+        ) {
+          throw new Error(describeRefusedTransition(previous, next));
+        }
+
+        return data as Record<string, unknown>;
+      },
+    ],
   },
   access: {
     read: canAccessAdminPanel,
