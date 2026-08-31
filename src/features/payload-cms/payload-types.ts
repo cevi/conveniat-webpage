@@ -342,6 +342,8 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'richTextSection';
         }
+      | MediaTextBlock
+      | ProcessStepsBlock
       | {
           id?: string | null;
           blockName?: string | null;
@@ -753,6 +755,370 @@ export interface SectionSeparatorBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'sectionSeparator';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock".
+ */
+export interface MediaTextBlock {
+  image: string | Image;
+  /**
+   * Which side the image sits on. On mobile the image is always on top.
+   */
+  imagePosition: 'right' | 'left';
+  /**
+   * How much room the image takes next to the text. Choose "Narrow" when there is a lot of text.
+   */
+  imageWidth: 'narrow' | 'medium' | 'wide';
+  imageShape: 'rounded' | 'circle' | 'plain';
+  /**
+   * A tinted background sets the section apart from the rest of the page.
+   */
+  background: 'none' | 'tinted';
+  eyebrow?: string | null;
+  title?: string | null;
+  richTextSection: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Label of the button below the text. Leave empty for no button.
+   */
+  linkLabel?: string | null;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaText';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "generic-page".
+ */
+export interface GenericPage {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors?: (string | User)[] | null;
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    pageTitle: string;
+    permissions?: (string | null) | Permission;
+    releaseDate: string;
+    /**
+     * The main content of the page
+     */
+    mainContent: (
+      | HeroSectionBlock
+      | SectionSeparatorBlock
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richTextSection';
+        }
+      | MediaTextBlock
+      | ProcessStepsBlock
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | FormBlock
+      | ApprovedFormSubmissionsBlock
+      | {
+          images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | PhotoContestBlock
+      | {
+          image: string | Image;
+          /**
+           * Choose the aspect ratio of the image.
+           */
+          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
+      | YoutubeEmbedding
+      | InstagramEmbedding
+      | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
+      | AccordionBlocks
+      | SummaryBox
+      | TimelineEntries
+      | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
+      | {
+          /**
+           * Label for the button
+           */
+          label?: string | null;
+          linkField?: {
+            type?: ('reference' | 'custom' | 'email') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
+                } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
+            url?: string | null;
+            email?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          /**
+           * Show inverted colors
+           */
+          inverted?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callToAction';
+        }
+      | DonationCtaBlock
+      | {
+          linkField?: {
+            type?: ('reference' | 'custom' | 'email') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
+                } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
+            url?: string | null;
+            email?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          headline: string;
+          date: string;
+          image?: (string | null) | Image;
+          paragraph?: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          } | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'newsCard';
+        }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
+      | CardGridBlock
+      | ContactPersonBlock
+      | TwoColumnBlock
+      | SponsorGridBlock
+      | FeaturedSectionBlock
+      | TabsBlock
+    )[];
+  };
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+    urlSlugHistory?:
+      | {
+          slug?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  lastEditedByUser?: (string | null) | User;
+  allowsEditsByUser?: (string | User)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProcessStepsBlock".
+ */
+export interface ProcessStepsBlock {
+  title?: string | null;
+  /**
+   * Side by side suits short steps, stacked suits longer text. On mobile the steps are always stacked.
+   */
+  layout: 'horizontal' | 'vertical';
+  /**
+   * The steps are numbered in this order (2–6 steps).
+   */
+  steps: {
+    title: string;
+    description: string;
+    id?: string | null;
+  }[];
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'processSteps';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1913,11 +2279,32 @@ export interface TeamMembersBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
+ * via the `definition` "camp-map-annotations".
  */
-export interface GenericPage {
+export interface CampMapAnnotation {
   id: string;
-  publishingStatus?:
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
+  annotationType: 'marker' | 'polygon';
+  icon?:
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
+    | null;
+  /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
     | {
         [k: string]: unknown;
       }
@@ -1926,251 +2313,202 @@ export interface GenericPage {
     | number
     | boolean
     | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
   /**
-   * Name of the page for internal purposes.
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
    */
-  internalPageName: string;
+  showLabel?: boolean | null;
   /**
-   * Authors of the Page (internal use only)
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
-  authors?: (string | User)[] | null;
+  isInteractive?: boolean | null;
   /**
-   * Status of the page (internal use)
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
    */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    permissions?: (string | null) | Permission;
-    releaseDate: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | HeroSectionBlock
-      | SectionSeparatorBlock
-      | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | FormBlock
-      | ApprovedFormSubmissionsBlock
-      | {
-          images: (string | Image)[];
-          /**
-           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
-           */
-          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | PhotoContestBlock
-      | {
-          image: string | Image;
-          /**
-           * Choose the aspect ratio of the image.
-           */
-          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'singlePicture';
-        }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'whiteSpace';
-        }
-      | {
-          /**
-           * Label for the button
-           */
-          label?: string | null;
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          /**
-           * Show inverted colors
-           */
-          inverted?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'callToAction';
-        }
-      | DonationCtaBlock
-      | {
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          headline: string;
-          date: string;
-          image?: (string | null) | Image;
-          paragraph?: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          } | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'newsCard';
-        }
-      | {
-          date: string;
-          location?: (string | null) | CampMapAnnotation;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'campScheduleEntryBlock';
-        }
-      | CardGridBlock
-      | ContactPersonBlock
-      | TwoColumnBlock
-      | SponsorGridBlock
-      | FeaturedSectionBlock
-      | TabsBlock
-    )[];
+  hiddenOnDefaultMap?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
   };
-  seo: {
-    urlSlug: string;
-    /**
-     * This is the title that will be displayed in the browser tab.
-     */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-    urlSlugHistory?:
-      | {
-          slug?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-  };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
   lastEditedByUser?: (string | null) | User;
-  allowsEditsByUser?: (string | User)[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots for the schedule entry
+   */
+  timeslot: {
+    date: string;
+    /**
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
+     */
+    time: string;
+  };
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * Organiser
+   */
+  organiser?: (string | User)[] | null;
+  category?: (string | null) | CampCategory;
+  lastEditedByUser?: (string | null) | User;
+  enrolledCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AccordionTimelineElementBlock".
+ */
+export interface AccordionTimelineElementBlock {
+  dateText: string;
+  title: string;
+  contentBlocks?:
+    | (
+        | PlainTextBlock
+        | TeamMembersBlock
+        | FormBlock
+        | {
+            file: string | Document;
+            openInNewTab?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fileDownload';
+          }
+      )[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionTimelineElement';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TitleOnlyAccordionValueBlock".
+ */
+export interface TitleOnlyAccordionValueBlock {
+  title: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'titleOnlyAccordionValueBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NestedAccordionBlocks".
+ */
+export interface NestedAccordionBlocks {
+  accordionBlocks?:
+    | {
+        title: string;
+        valueBlocks: (
+          | PlainTextBlock
+          | TeamMembersBlock
+          | FormBlock
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+          | AccordionTimelineElementBlock
+          | TitleOnlyAccordionValueBlock
+        )[];
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nestedAccordion';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2362,175 +2700,6 @@ export interface Timeline {
   createdAt: string;
   deletedAt?: string | null;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-map-annotations".
- */
-export interface CampMapAnnotation {
-  id: string;
-  /**
-   * The title of the annotation.
-   */
-  title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
-  annotationType: 'marker' | 'polygon';
-  icon?:
-    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
-    | null;
-  /**
-   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
-   */
-  importance: 'high' | 'medium' | 'low';
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  geometry?: [number, number] | null;
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
-   */
-  showLabel?: boolean | null;
-  /**
-   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
-   */
-  isInteractive?: boolean | null;
-  /**
-   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
-   */
-  hiddenOnDefaultMap?: boolean | null;
-  /**
-   * If checked, users will be able to report issues and start a support chat from this location.
-   */
-  enableSupportChat?: boolean | null;
-  /**
-   * A detailed description of the annotation.
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  openingHours?:
-    | {
-        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
-        /**
-         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
-         */
-        time: string;
-        id?: string | null;
-      }[]
-    | null;
-  images?: (string | Image)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-schedule-entry".
- */
-export interface CampScheduleEntry {
-  id: string;
-  /**
-   * The title of the entry.
-   */
-  title: string;
-  /**
-   * The description of the entry
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Time slots for the schedule entry
-   */
-  timeslot: {
-    date: string;
-    /**
-     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
-     */
-    time: string;
-  };
-  target_group?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
-  /**
-   * Location of the Schedule Entry
-   */
-  location: string | CampMapAnnotation;
-  /**
-   * Organiser
-   */
-  organiser?: (string | User)[] | null;
-  category?: (string | null) | CampCategory;
-  lastEditedByUser?: (string | null) | User;
-  enrolledCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-categories".
- */
-export interface CampCategory {
-  id: string;
-  title: string;
-  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2960,6 +3129,7 @@ export interface TwoColumnBlock {
       }
     | CardGridBlock
     | ContactPersonBlock
+    | ProcessStepsBlock
   )[];
   /**
    * Content for the right column.
@@ -3148,6 +3318,7 @@ export interface TwoColumnBlock {
       }
     | CardGridBlock
     | ContactPersonBlock
+    | ProcessStepsBlock
   )[];
   id?: string | null;
   blockName?: string | null;
@@ -3496,76 +3667,13 @@ export interface TabsBlock {
         }
       | CardGridBlock
       | ContactPersonBlock
+      | ProcessStepsBlock
     )[];
     id?: string | null;
   }[];
   id?: string | null;
   blockName?: string | null;
   blockType: 'tabsBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "AccordionTimelineElementBlock".
- */
-export interface AccordionTimelineElementBlock {
-  dateText: string;
-  title: string;
-  contentBlocks?:
-    | (
-        | PlainTextBlock
-        | TeamMembersBlock
-        | FormBlock
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
-      )[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'accordionTimelineElement';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TitleOnlyAccordionValueBlock".
- */
-export interface TitleOnlyAccordionValueBlock {
-  title: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'titleOnlyAccordionValueBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "NestedAccordionBlocks".
- */
-export interface NestedAccordionBlocks {
-  accordionBlocks?:
-    | {
-        title: string;
-        valueBlocks: (
-          | PlainTextBlock
-          | TeamMembersBlock
-          | FormBlock
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
-          | AccordionTimelineElementBlock
-          | TitleOnlyAccordionValueBlock
-        )[];
-        id?: string | null;
-      }[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'nestedAccordion';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4782,6 +4890,8 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              mediaText?: T | MediaTextBlockSelect<T>;
+              processSteps?: T | ProcessStepsBlockSelect<T>;
               blogPostsOverview?:
                 | T
                 | {
@@ -4927,6 +5037,50 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
  */
 export interface SectionSeparatorBlockSelect<T extends boolean = true> {
   isFullWidth?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock_select".
+ */
+export interface MediaTextBlockSelect<T extends boolean = true> {
+  image?: T;
+  imagePosition?: T;
+  imageWidth?: T;
+  imageShape?: T;
+  background?: T;
+  eyebrow?: T;
+  title?: T;
+  richTextSection?: T;
+  linkLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProcessStepsBlock_select".
+ */
+export interface ProcessStepsBlockSelect<T extends boolean = true> {
+  title?: T;
+  layout?: T;
+  steps?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }
@@ -5410,6 +5564,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
             };
         cardGrid?: T | CardGridBlockSelect<T>;
         contactPerson?: T | ContactPersonBlockSelect<T>;
+        processSteps?: T | ProcessStepsBlockSelect<T>;
       };
   rightColumn?:
     | T
@@ -5516,6 +5671,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
             };
         cardGrid?: T | CardGridBlockSelect<T>;
         contactPerson?: T | ContactPersonBlockSelect<T>;
+        processSteps?: T | ProcessStepsBlockSelect<T>;
       };
   id?: T;
   blockName?: T;
@@ -5712,6 +5868,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                   };
               cardGrid?: T | CardGridBlockSelect<T>;
               contactPerson?: T | ContactPersonBlockSelect<T>;
+              processSteps?: T | ProcessStepsBlockSelect<T>;
             };
         id?: T;
       };
@@ -5748,6 +5905,8 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              mediaText?: T | MediaTextBlockSelect<T>;
+              processSteps?: T | ProcessStepsBlockSelect<T>;
               blogPostsOverview?:
                 | T
                 | {
@@ -7730,6 +7889,8 @@ export interface AppLandingPage {
             blockName?: string | null;
             blockType: 'richTextSection';
           }
+        | MediaTextBlock
+        | ProcessStepsBlock
         | {
             id?: string | null;
             blockName?: string | null;
@@ -8318,6 +8479,8 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        mediaText?: T | MediaTextBlockSelect<T>;
+        processSteps?: T | ProcessStepsBlockSelect<T>;
         blogPostsOverview?:
           | T
           | {
