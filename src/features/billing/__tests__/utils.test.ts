@@ -1,5 +1,7 @@
 import {
   calculateModule10Recursive,
+  describeQrReference,
+  formatQrReference,
   formatRoleName,
   generateQrReference,
 } from '@/features/billing/utils';
@@ -75,5 +77,46 @@ describe('formatRoleName', () => {
     expect(formatRoleName('')).toBe('–');
     // eslint-disable-next-line unicorn/no-useless-undefined -- a missing role is the case under test
     expect(formatRoleName(undefined)).toBe('–');
+  });
+});
+
+describe('describeQrReference', () => {
+  it('assembles the fields in order and totals 27 digits', () => {
+    const { reference, segments } = describeQrReference('123456', '1234', '9012', 1);
+
+    expect(segments.map((segment) => segment.digits)).toEqual([
+      '090',
+      '123456',
+      '01234',
+      '0009012',
+      '00001',
+      '0',
+    ]);
+    expect(segments.map((segment) => segment.digits).join('')).toBe(reference);
+    expect(reference).toHaveLength(27);
+  });
+
+  it('describes exactly what generateQrReference builds', () => {
+    // The explanation in the admin panel is only worth showing if it cannot drift.
+    const { reference } = describeQrReference('987654', '55', '7', 42);
+    expect(reference).toBe(generateQrReference('987654', '55', '7', 42));
+  });
+
+  it('keeps the varying end of an id that is too long for its field', () => {
+    const { segments } = describeQrReference('1234567890', '1234', '9012', 1);
+    expect(segments[1]?.digits).toBe('567890');
+  });
+});
+
+describe('formatQrReference', () => {
+  it('groups from the right, leaving the first block short', () => {
+    expect(formatQrReference('090123456012340009012000010')).toBe(
+      '09 01234 56012 34000 90120 00010',
+    );
+  });
+
+  it('round-trips the reference it was given', () => {
+    const reference = generateQrReference('123456', '1234', '9012', 1);
+    expect(formatQrReference(reference).replaceAll(' ', '')).toBe(reference);
   });
 });

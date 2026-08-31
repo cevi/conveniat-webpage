@@ -10,8 +10,98 @@ export function calculateModule10Recursive(reference: string): number {
   return (10 - carry) % 10;
 }
 
+/** The fixed leading digits that mark a reference as a conveniat27 registration bill. */
+const QR_REFERENCE_PREFIX = '090';
+
+/** One field of the QR reference, in the order the digits appear. */
+export interface QrReferenceSegment {
+  key: 'prefix' | 'personId' | 'eventId' | 'participationId' | 'counter' | 'checkDigit';
+  /** What the field is called. */
+  label: string;
+  /** The digits it contributes, zero-padded to its fixed length. */
+  digits: string;
+  /** Where the digits come from, in the terms an operator would use. */
+  source: string;
+}
+
+/**
+ * Takes the last `length` digits of an id and pads it back out.
+ *
+ * Every field has a fixed width, so the reference stays 27 digits whatever Cevi.DB hands
+ * over. Truncating from the left keeps the part of an id that actually varies.
+ */
+const toFixedWidthDigits = (value: string | number, length: number): string =>
+  String(value).replaceAll(/\D/g, '').slice(-length).padStart(length, '0');
+
+/**
+ * Breaks a QR reference into the fields it is assembled from.
+ *
+ * This is the definition `generateQrReference` builds from, so the explanation shown in the
+ * admin panel and the number printed on the bill can never disagree.
+ */
+export function describeQrReference(
+  personId: string | number,
+  eventId: string | number,
+  participationId: string | number,
+  counter: number,
+): { reference: string; segments: QrReferenceSegment[] } {
+  const personDigits = toFixedWidthDigits(personId, 6);
+  const eventDigits = toFixedWidthDigits(eventId, 5);
+  const participationDigits = toFixedWidthDigits(participationId, 7);
+  const counterDigits = toFixedWidthDigits(counter, 5);
+
+  // 3 + 6 + 5 + 7 + 5 = 26 digits, plus the check digit below = the 27 a QR-IBAN requires.
+  const baseReference = `${QR_REFERENCE_PREFIX}${personDigits}${eventDigits}${participationDigits}${counterDigits}`;
+  const checkDigit = String(calculateModule10Recursive(baseReference));
+
+  return {
+    reference: `${baseReference}${checkDigit}`,
+    segments: [
+      {
+        key: 'prefix',
+        label: 'Präfix',
+        digits: QR_REFERENCE_PREFIX,
+        source: 'Fest. Kennzeichnet eine conveniat27-Anmelderechnung.',
+      },
+      {
+        key: 'personId',
+        label: 'Personen-ID',
+        digits: personDigits,
+        source: `Cevi.DB-ID der Person (${String(personId)}), auf 6 Stellen aufgefüllt.`,
+      },
+      {
+        key: 'eventId',
+        label: 'Anlass-ID',
+        digits: eventDigits,
+        source: `Cevi.DB-ID des Anlasses (${String(eventId)}), auf 5 Stellen aufgefüllt.`,
+      },
+      {
+        key: 'participationId',
+        label: 'Teilnahme-ID',
+        digits: participationDigits,
+        source: `Cevi.DB-ID der Anmeldung (${String(participationId)}), auf 7 Stellen aufgefüllt.`,
+      },
+      {
+        key: 'counter',
+        label: 'Rechnungszähler',
+        digits: counterDigits,
+        source: `Fortlaufende Rechnungsnummer (${String(counter)}), auf 5 Stellen aufgefüllt.`,
+      },
+      {
+        key: 'checkDigit',
+        label: 'Prüfziffer',
+        digits: checkDigit,
+        source: 'Mod-10 rekursiv über die 26 Stellen davor. Erkennt Tippfehler.',
+      },
+    ],
+  };
+}
+
 /**
  * Generates a QR reference number from the prefix and sequential counter.
+ *
+ * Format: 090 UUUUUU EEEEE PPPPPPP CCCCC X (27 digits). See {@link describeQrReference}
+ * for what each field is.
  */
 export function generateQrReference(
   personId: string | number,
@@ -19,24 +109,21 @@ export function generateQrReference(
   participationId: string | number,
   counter: number,
 ): string {
-  // Format: 09 0UUUU UUEEE EEPPP PPPPC CCCCX (27 digits total)
-  // 090       = fixer Präfix (Referenznummer-Bereich für Anmelde-Rechnungen)
-  // UUUUUU    = Personen-ID (max. 6-stellig)
-  // EEEEE     = Event-ID (max. 5-stellig)
-  // PPPPPPP   = Teilnahme-ID (max. 7-stellig)
-  // CCCCC     = Rechnungszähler (5-stellig)
-  // X         = Mod-10 Prüfziffer (Swiss QR standard, always last digit)
-  const personString = String(personId).replaceAll(/\D/g, '').slice(-6).padStart(6, '0');
-  const eventString = String(eventId).replaceAll(/\D/g, '').slice(-5).padStart(5, '0');
-  const partString = String(participationId).replaceAll(/\D/g, '').slice(-7).padStart(7, '0');
-  const counterString = String(counter).replaceAll(/\D/g, '').slice(-5).padStart(5, '0');
+  return describeQrReference(personId, eventId, participationId, counter).reference;
+}
 
-  // 090 (3) + u (6) + e (5) + p (7) + c (5) = 26 base digits
-  const baseReference = `090${personString}${eventString}${partString}${counterString}`;
-
-  const checkDigit = calculateModule10Recursive(baseReference);
-
-  return `${baseReference}${String(checkDigit)}`;
+/**
+ * Groups a reference the way it is printed on a QR bill: blocks of five from the right,
+ * which leaves the first block two digits short. The grouping is presentation only and
+ * deliberately cuts across the fields above.
+ */
+export function formatQrReference(reference: string): string {
+  const digits = reference.replaceAll(/\s/g, '');
+  const groups: string[] = [];
+  for (let end = digits.length; end > 0; end -= 5) {
+    groups.unshift(digits.slice(Math.max(0, end - 5), end));
+  }
+  return groups.join(' ');
 }
 
 /**

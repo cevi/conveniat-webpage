@@ -783,6 +783,16 @@ export const BillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
+              name: 'referenceNumberExplainer',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer',
+                },
+              },
+            },
+            {
               name: 'pdfPreview',
               type: 'ui',
               admin: {
