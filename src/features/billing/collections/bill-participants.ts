@@ -419,7 +419,88 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
       admin: {
         disableGroupBy: true,
+        description: {
+          en: 'Gross amount, i.e. the net camp fee plus VAT.',
+          de: 'Bruttobetrag, also der Netto-Lagerbeitrag zuzüglich MWST.',
+          fr: 'Montant brut, soit la contribution nette plus la TVA.',
+        },
       },
+    },
+    {
+      name: 'netAmount',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'number',
+      label: {
+        en: 'Net Amount (CHF)',
+        de: 'Netto-Betrag (CHF)',
+        fr: 'Montant net (CHF)',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        disableListColumn: true,
+      },
+    },
+    {
+      name: 'vatExempt',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'checkbox',
+      label: {
+        en: 'VAT Exempt (youth)',
+        de: 'MWST-befreit (Jugendliche)',
+        fr: 'Exonéré de TVA (jeunes)',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        disableListColumn: true,
+      },
+    },
+    {
+      // Frozen at generation time on purpose: the settings can change after a bill has gone
+      // out, and the finance export has to reproduce the invoice, not the current config.
+      name: 'vatBreakdown',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'array',
+      label: {
+        en: 'VAT Breakdown',
+        de: 'MWST-Aufstellung',
+        fr: 'Détail de la TVA',
+      },
+      admin: {
+        readOnly: true,
+        disableListColumn: true,
+        disableListFilter: true,
+        disableGroupBy: true,
+        description: {
+          en: 'The VAT lines as they were printed on the bill.',
+          de: 'Die MWST-Zeilen, wie sie auf der Rechnung gedruckt wurden.',
+          fr: 'Les lignes de TVA telles quelles ont été imprimées sur la facture.',
+        },
+      },
+      fields: [
+        { name: 'label', type: 'text', label: { en: 'Label', de: 'Bezeichnung', fr: 'Libellé' } },
+        {
+          name: 'share',
+          type: 'number',
+          label: { en: 'Share (%)', de: 'Anteil (%)', fr: 'Part (%)' },
+        },
+        {
+          name: 'netAmount',
+          type: 'number',
+          label: { en: 'Net (CHF)', de: 'Netto (CHF)', fr: 'Net (CHF)' },
+        },
+        {
+          name: 'vatCode',
+          type: 'text',
+          label: { en: 'VAT Rate', de: 'MWST-Satz', fr: 'Taux TVA' },
+        },
+        {
+          name: 'vatAmount',
+          type: 'number',
+          label: { en: 'VAT (CHF)', de: 'MWST (CHF)', fr: 'TVA (CHF)' },
+        },
+      ],
     },
     {
       name: 'billPdfs',
