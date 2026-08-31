@@ -5,8 +5,20 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
+import type { VatCalculation, VatSplitConfig } from '@/features/billing/services/vat-calculation';
+import {
+  calculateVat,
+  describeVatExemptionRule,
+  formatVatLineLabel,
+} from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
-import { generateQrReference } from '@/features/billing/utils';
+import type { RoleOption } from '@/features/billing/utils';
+import {
+  formatBirthday,
+  formatRoleName,
+  generateQrReference,
+  resolveRoleOptions,
+} from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
@@ -23,78 +35,40 @@ interface SyncHistoryEntry {
  * Resolves the invoice amount for a participant based on their role type
  * and the configured role pricing rules.
  */
-function resolvePricing(
+export interface ResolvedPricing {
+  amount: number;
+  label: string;
+  vatCode?: string | undefined;
+  vatSplits: VatSplitConfig[];
+}
+
+export function resolvePricing(
   roleType: string,
   rolePricing: Array<{
     roleTypePattern: string;
     label: string;
     amount: number;
     vatCode?: string | null;
+    vatSplits?: VatSplitConfig[] | null;
   }>,
-): { amount: number; label: string; vatCode?: string | undefined } {
+): ResolvedPricing {
+  const toResolved = (pricing: (typeof rolePricing)[number] | undefined): ResolvedPricing => {
+    const amount = Number(pricing?.amount);
+    return {
+      amount: Number.isNaN(amount) ? 0 : amount,
+      label: pricing?.label ?? 'Teilnehmer:in',
+      vatCode: pricing?.vatCode ?? undefined,
+      vatSplits: pricing?.vatSplits ?? [],
+    };
+  };
+
   for (const pricing of rolePricing) {
     if (roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())) {
-      const amt = Number(pricing.amount);
-      return {
-        amount: Number.isNaN(amt) ? 0 : amt,
-        label: pricing.label,
-        vatCode: pricing.vatCode ?? undefined,
-      };
+      return toResolved(pricing);
     }
   }
   // Default to the first pricing entry if no match
-  const defaultPricing = rolePricing[0];
-  const defaultAmt = Number(defaultPricing?.amount);
-  return {
-    amount: Number.isNaN(defaultAmt) ? 0 : defaultAmt,
-    label: defaultPricing?.label ?? 'Teilnehmer:in',
-    vatCode: defaultPricing?.vatCode ?? undefined,
-  };
-}
-
-/**
- * Calculates the VAT rate, VAT amount, and total gross amount based on net amount, vat code, and birthday.
- */
-export function calculateVat(
-  netAmount: number,
-  vatCode: string | null | undefined,
-  birthday: string | null | undefined,
-  invoiceYear: number = new Date().getFullYear(),
-): {
-  isSub18: boolean;
-  vatRate: number;
-  vatAmount: number;
-  totalAmount: number;
-  formattedVatCode: string;
-} {
-  let isSub18 = false;
-  if (typeof birthday === 'string' && birthday !== '') {
-    const birthYearMatch = birthday.match(/\d{4}/);
-    if (birthYearMatch !== null) {
-      const birthYear = Number.parseInt(birthYearMatch[0], 10);
-      isSub18 = invoiceYear < 2027 ? birthYear >= invoiceYear - 17 : birthYear >= invoiceYear - 18;
-    }
-  }
-
-  const vatCodeString =
-    vatCode !== null && vatCode !== undefined && vatCode !== '' ? vatCode : '0.0%';
-  const formattedVatCode = vatCodeString.endsWith('%') ? vatCodeString : `${vatCodeString}%`;
-
-  let vatRate = 0;
-  if (isSub18 === false) {
-    vatRate = Number.parseFloat(formattedVatCode.replace('%', '').replace(',', '.'));
-  }
-
-  const vatAmount = isSub18 === false ? (netAmount * vatRate) / 100 : 0;
-  const totalAmount = netAmount + vatAmount;
-
-  return {
-    isSub18,
-    vatRate,
-    vatAmount,
-    totalAmount,
-    formattedVatCode,
-  };
+  return toResolved(rolePricing[0]);
 }
 
 /**
@@ -253,6 +227,8 @@ export async function generateBillsUseCase(
     return summary;
   }
 
+  const vatExemption = settings.vatExemption;
+
   // 2. Query participants needing bills
   const participants = await participantRepo.findPendingBilling(participantId);
 
@@ -304,12 +280,21 @@ export async function generateBillsUseCase(
       const pricing = resolvePricing(roleType, rolePricing);
       const amount = pricing.amount;
       const roleLabel = pricing.label;
-      const vatCode = pricing.vatCode ?? undefined;
 
       if (amount <= 0) {
         summary.skippedCount++;
         continue;
       }
+
+      // Computed once here and handed to the PDF, so the invoice, the stored breakdown and
+      // the finance export can never drift apart for the same bill.
+      const vat = calculateVat({
+        netAmount: amount,
+        vatSplits: pricing.vatSplits,
+        vatCode: pricing.vatCode,
+        birthday: document_.birthday,
+        exemption: vatExemption,
+      });
 
       // Fetch person address from Cevi.DB
       const personAttributes = await hitobitoService.fetchPersonDetails(userId);
@@ -406,8 +391,6 @@ export async function generateBillsUseCase(
 
       const creditorBuildingNumber = settings.creditorBuildingNumber;
 
-      const { totalAmount } = calculateVat(amount, vatCode, document_.birthday ?? undefined);
-
       const pdfBuffer = await generateQrBillPdf({
         documentTitle,
         creditor: {
@@ -437,10 +420,18 @@ export async function generateBillsUseCase(
         ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
         invoiceLetterText: settings.invoiceLetterText ?? '',
         roleLabel,
-        vatCode,
+        registration: {
+          fullName: document_.fullName,
+          nickname: document_.nickname ?? undefined,
+          birthday: document_.birthday ?? undefined,
+          eventName: document_.eventName ?? undefined,
+          roleType,
+          roleOptions: resolveRoleOptions(roleType, rolePricing),
+        },
+        vatExemptionNote: describeVatExemptionRule(vatExemption),
+        vat,
         paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
         firstName,
-        birthday: document_.birthday ?? undefined,
       });
 
       // Upload PDF buffer using the port
@@ -459,7 +450,16 @@ export async function generateBillsUseCase(
         billCreatedDate: new Date().toISOString(),
         referenceNumber,
         invoiceNumber,
-        invoiceAmount: totalAmount,
+        invoiceAmount: vat.totalAmount,
+        netAmount: vat.netAmount,
+        vatExempt: vat.isExempt,
+        vatBreakdown: vat.components.map((component) => ({
+          label: component.label,
+          share: component.share,
+          netAmount: component.netAmount,
+          vatCode: component.formattedVatCode,
+          vatAmount: component.vatAmount,
+        })),
         billPdfs: updatedPdfs,
         syncHistory: [...history, { date: new Date().toISOString(), action: 'bill_generated' }],
       });
@@ -565,10 +565,22 @@ interface PdfGenerationParameters {
   documentTitle: string;
   invoiceLetterText: string;
   roleLabel: string;
-  vatCode?: string | undefined;
+  /** Registration details confirmed on page 1. */
+  registration: {
+    fullName: string;
+    nickname?: string | undefined;
+    birthday?: string | undefined;
+    eventName?: string | undefined;
+    roleType?: string | undefined;
+    /** Every configured role, with the one that set this fee ticked. */
+    roleOptions: RoleOption[];
+  };
+  /** How the youth exemption is configured, in prose. Omitted when it is switched off. */
+  vatExemptionNote?: string | undefined;
+  /** Precomputed by the caller so the invoice and the stored breakdown cannot diverge. */
+  vat: VatCalculation;
   paymentDeadlineDays: number;
   firstName: string;
-  birthday?: string | undefined;
 }
 
 /**
@@ -755,144 +767,157 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
     // Add margin between text and table
     document_.moveDown(2);
 
-    // Invoice table
-    const amountNumber = Number(parameters.amount) || 0;
+    // ── Registration details ──
+    // The bill is also the Anmeldebestätigung, so page 1 has to state what exactly was
+    // registered. Role and birthday especially: the role decides the fee, the birthday
+    // decides whether MWST is owed at all, and neither is something a participant can
+    // correct in the Cevi.DB themselves.
+    //
+    // Drawn by hand rather than through the Table class because the role row needs real
+    // checkboxes, and the standard PDF fonts have no ballot-box glyph to fake them with.
+    const blockLeft = mm2pt(22);
+    const blockRight = mm2pt(187);
+    const valueLeft = mm2pt(62);
+    const labelWidth = valueLeft - blockLeft - 6;
+    const valueWidth = blockRight - valueLeft;
 
-    const { isSub18, vatAmount, totalAmount, formattedVatCode } = calculateVat(
-      amountNumber,
-      parameters.vatCode,
-      parameters.birthday,
-    );
-    const subtotal = amountNumber;
+    const rowFontSize = 9;
+    // `text(s, x, y)` puts the top of the capital letters at y, so the cap band is what has
+    // to be centred between the rules — centring the line box instead leaves every row
+    // sitting high by the depth of a descender the values do not have.
+    const capHeight = rowFontSize * 0.718;
+    const rowPadding = 6;
+    const wrappedLineStep = 12;
 
-    const vatLabel = isSub18
-      ? 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)'
-      : `MWST ${formattedVatCode}`;
+    let rowY = document_.y;
 
-    // Build the rows array dynamically
-    const tableRows: PDFRow[] = [
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 0, 0],
-        columns: [
-          { text: 'Pos', width: mm2pt(10), fontSize: 9 },
-          { text: 'Beschreibung', width: mm2pt(75) },
-          { text: 'Menge', width: mm2pt(20), fontSize: 9, align: 'center' },
-          { text: 'Einzelpreis', width: mm2pt(30), fontSize: 9, align: 'right' },
-          { text: 'Total (CHF)', width: mm2pt(30), fontSize: 9, align: 'right' },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 0, 0],
-        columns: [
-          { text: '1', fontSize: 9, width: mm2pt(10) },
-          {
-            text: `${parameters.roleLabel} – conveniat27`,
-            fontSize: 9,
-            width: mm2pt(75),
-          },
-          { text: '1', width: mm2pt(20), fontSize: 9, align: 'center' },
-          {
-            text: `CHF ${amountNumber.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-          {
-            text: `CHF ${amountNumber.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 0, 0],
-        columns: [
-          {
-            text: 'Zwischensumme',
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${amountNumber.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [0, 0, 0, 0],
-        columns: [
-          {
-            text: 'Betrag netto',
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${subtotal.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [0, 0, 0, 0],
-        columns: [
-          {
-            text: vatLabel,
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${vatAmount.toFixed(2)}`,
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-      {
-        borderColor: '#ECF0F1',
-        borderWidth: [1, 0, 1, 0],
-        columns: [
-          {
-            text: 'Gesamtbetrag',
-            fontName: 'Helvetica-Bold',
-            fontSize: 9,
-            width: mm2pt(135),
-            align: 'right',
-          },
-          {
-            text: `CHF ${totalAmount.toFixed(2)}`,
-            fontName: 'Helvetica-Bold',
-            width: mm2pt(30),
-            fontSize: 9,
-            align: 'right',
-          },
-        ],
-      },
-    ];
-
-    const tableData = {
-      width: mm2pt(165),
-      padding: [4, 0, 4, 0] as [number, number, number, number],
-      rows: tableRows,
+    const drawRowRule = (y: number): void => {
+      document_.moveTo(blockLeft, y).lineTo(blockRight, y).lineWidth(0.5);
+      document_.strokeColor('#E5E7E9').stroke();
     };
 
-    // (Manual line removed; the Table class handles borders now)
+    const drawRowLabel = (label: string, y: number): void => {
+      document_.font('Helvetica').fontSize(rowFontSize).fillColor('#5D6D7E');
+      document_.text(label, blockLeft, y, { width: labelWidth, lineBreak: false });
+    };
 
-    const table = new Table(tableData);
-    table.attachTo(document_, mm2pt(22));
+    /** Closes a row: advances past its content band and rules it off. */
+    const endRow = (contentHeight: number): void => {
+      rowY += contentHeight + rowPadding * 2;
+      drawRowRule(rowY);
+    };
+
+    const drawTextRow = (label: string, value: string): void => {
+      document_.font('Helvetica-Bold').fontSize(rowFontSize);
+      const lineCount = Math.max(
+        1,
+        Math.round(
+          document_.heightOfString(value, { width: valueWidth }) / document_.currentLineHeight(),
+        ),
+      );
+      const top = rowY + rowPadding;
+
+      drawRowLabel(label, top);
+      document_.font('Helvetica-Bold').fontSize(rowFontSize).fillColor('#000000');
+      document_.text(value, valueLeft, top, { width: valueWidth });
+
+      endRow(capHeight + (lineCount - 1) * wrappedLineStep);
+    };
+
+    /**
+     * Lists every configured role and ticks the one that set this participant's fee, so a
+     * wrong role reads as a wrong tick rather than as a line of text to skim past.
+     */
+    const drawRoleRow = (label: string, options: RoleOption[]): void => {
+      const boxSize = 8;
+      const boxTextGap = 5;
+      const itemGap = 16;
+      const lineStep = 14;
+
+      // The box is taller than the cap band, so the band is the box and the text is nudged
+      // down into the middle of it. Aligning their tops instead is what looked broken.
+      const bandHeight = Math.max(capHeight, boxSize);
+      const bandTop = rowY + rowPadding;
+      const boxOffset = (bandHeight - boxSize) / 2;
+      const textOffset = (bandHeight - capHeight) / 2;
+
+      drawRowLabel(label, bandTop + textOffset);
+
+      let x = valueLeft;
+      let lineTop = bandTop;
+
+      for (const option of options) {
+        document_.font(option.checked ? 'Helvetica-Bold' : 'Helvetica').fontSize(rowFontSize);
+        const textWidth = document_.widthOfString(option.name);
+        const itemWidth = boxSize + boxTextGap + textWidth;
+
+        if (x > valueLeft && x + itemWidth > blockRight) {
+          x = valueLeft;
+          lineTop += lineStep;
+        }
+
+        const boxTop = lineTop + boxOffset;
+        document_.rect(x, boxTop, boxSize, boxSize).lineWidth(0.8);
+        if (option.checked) {
+          document_.fillColor('#47564C').strokeColor('#47564C').fillAndStroke();
+          // The tick is described as fractions of the box so it keeps its shape if the box
+          // is ever resized.
+          document_
+            .moveTo(x + boxSize * 0.24, boxTop + boxSize * 0.52)
+            .lineTo(x + boxSize * 0.41, boxTop + boxSize * 0.72)
+            .lineTo(x + boxSize * 0.78, boxTop + boxSize * 0.27)
+            .lineWidth(1.3)
+            .strokeColor('#FFFFFF')
+            .stroke();
+        } else {
+          document_.strokeColor('#B3B6B7').stroke();
+        }
+
+        document_.fillColor(option.checked ? '#000000' : '#8A8F94');
+        document_.text(option.name, x + boxSize + boxTextGap, lineTop + textOffset, {
+          width: textWidth + 2,
+          lineBreak: false,
+        });
+
+        x += itemWidth + itemGap;
+      }
+
+      endRow(bandHeight + (lineTop - bandTop));
+    };
+
+    drawTextRow('Name', parameters.registration.fullName);
+    if (
+      parameters.registration.nickname !== undefined &&
+      parameters.registration.nickname.trim() !== ''
+    ) {
+      drawTextRow('Ceviname', parameters.registration.nickname);
+    }
+    drawTextRow('Geburtsdatum', formatBirthday(parameters.registration.birthday));
+    drawTextRow('Anlass', parameters.registration.eventName ?? '–');
+
+    const roleOptions = parameters.registration.roleOptions;
+    if (roleOptions.length > 0) {
+      drawRoleRow('Rolle', roleOptions);
+    } else {
+      // No role pricing configured — fall back to naming the role rather than printing
+      // an empty checklist.
+      drawTextRow('Rolle', formatRoleName(parameters.registration.roleType));
+    }
+
+    document_.font('Helvetica-Oblique');
+    document_.fontSize(8);
+    document_.fillColor('#5D6D7E');
+    document_.text(
+      'Stimmen diese Angaben nicht? Melde dich bei der abteilungsverantwortlichen Person ' +
+        'deiner Abteilung, sie kann die Angaben in der Cevi.DB korrigieren. ' +
+        (parameters.vatExemptionNote === undefined
+          ? 'Deine Rolle bestimmt den Lagerbeitrag.'
+          : `Deine Rolle bestimmt den Lagerbeitrag, ${parameters.vatExemptionNote}.`),
+      blockLeft,
+      rowY + 8,
+      { width: mm2pt(165), lineGap: 1.5 },
+    );
+    document_.font('Helvetica');
 
     // Legal Footer
     const footerLines = [];
@@ -922,9 +947,153 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       });
     }
 
-    // Attach the QR Bill on a new page
+    // ── Page 2: the bill itself, above the QR slip it is paid with ──
     document_.addPage();
     drawLogo();
+
+    document_.fontSize(15);
+    document_.fillColor('#47564C');
+    document_.font('Montserrat-ExtraBold');
+    document_.text('RECHNUNG', mm2pt(22), mm2pt(32), { width: mm2pt(165), align: 'left' });
+
+    // Page 2 travels on its own once the bill is filed, so it repeats what identifies it.
+    document_.fontSize(9);
+    document_.fillColor('#5D6D7E');
+    document_.font('Helvetica');
+    document_.text(
+      `Rechnung Nr. ${parameters.invoiceNumber}  ·  Zahlbar bis ${dueDateString}`,
+      mm2pt(22),
+      mm2pt(40),
+      { width: mm2pt(165), align: 'left' },
+    );
+    document_.fillColor('#000000');
+
+    // Invoice table
+    const { isExempt, netAmount: subtotal, totalAmount } = parameters.vat;
+
+    // An exempt bill has one zero-rated line whatever the split says — printing the split
+    // there would suggest a tax that is not being charged.
+    const vatComponents = isExempt
+      ? parameters.vat.components.slice(0, 1)
+      : parameters.vat.components;
+
+    // One line per thing being billed. A camp bill carries a single fee today, which is why
+    // the subtotal rows below are conditional: repeating the same figure three times over a
+    // one-line table tells the reader nothing.
+    const positions = [{ description: `${parameters.roleLabel} – conveniat27`, amount: subtotal }];
+
+    // The table is ruled horizontally only: a full grid fights the QR bill on the next page,
+    // and every column here is either text or money, so the alignment already separates them.
+    const columnWidth = {
+      description: mm2pt(85),
+      quantity: mm2pt(20),
+      unitPrice: mm2pt(30),
+      total: mm2pt(30),
+    };
+    const headerRule = '#B3B6B7';
+    const rowRule = '#E5E7E9';
+    const mutedText = '#5D6D7E';
+
+    // A split needs each rate's base spelled out. With a single rate the base is the net
+    // amount already sitting on the position line, so the column stays empty rather than
+    // printing the same figure a third time.
+    const showsVatBase = vatComponents.length > 1;
+
+    const tableRows: PDFRow[] = [
+      {
+        fontName: 'Helvetica-Bold',
+        fontSize: 9,
+        borderColor: headerRule,
+        borderWidth: [0, 0, 1, 0],
+        columns: [
+          { text: 'Beschreibung', width: columnWidth.description },
+          { text: 'Menge', width: columnWidth.quantity, align: 'center' },
+          { text: 'Einzelpreis', width: columnWidth.unitPrice, align: 'right' },
+          { text: 'Total (CHF)', width: columnWidth.total, align: 'right' },
+        ],
+      },
+      ...positions.map((position): PDFRow => ({
+        fontSize: 9,
+        borderColor: rowRule,
+        borderWidth: [0, 0, 1, 0],
+        columns: [
+          { text: position.description, width: columnWidth.description },
+          { text: '1', width: columnWidth.quantity, align: 'center' },
+          {
+            text: `CHF ${position.amount.toFixed(2)}`,
+            width: columnWidth.unitPrice,
+            align: 'right',
+          },
+          {
+            text: `CHF ${position.amount.toFixed(2)}`,
+            width: columnWidth.total,
+            align: 'right',
+          },
+        ],
+      })),
+      ...(positions.length > 1
+        ? ([
+            {
+              fontSize: 9,
+              borderColor: rowRule,
+              borderWidth: [0, 0, 1, 0],
+              columns: [
+                { text: 'Betrag netto', width: mm2pt(135), align: 'right' },
+                {
+                  text: `CHF ${subtotal.toFixed(2)}`,
+                  width: columnWidth.total,
+                  align: 'right',
+                },
+              ],
+            },
+          ] satisfies PDFRow[])
+        : []),
+      ...vatComponents.map((component): PDFRow => ({
+        fontSize: 9,
+        textColor: mutedText,
+        columns: [
+          {
+            text: formatVatLineLabel(component, isExempt),
+            width: columnWidth.description + columnWidth.quantity,
+          },
+          {
+            text: showsVatBase ? `CHF ${component.netAmount.toFixed(2)}` : '',
+            width: columnWidth.unitPrice,
+            align: 'right',
+          },
+          {
+            text: `CHF ${component.vatAmount.toFixed(2)}`,
+            width: columnWidth.total,
+            align: 'right',
+          },
+        ],
+      })),
+      {
+        fontName: 'Helvetica-Bold',
+        fontSize: 9,
+        borderColor: headerRule,
+        borderWidth: [1, 0, 0, 0],
+        columns: [
+          { text: 'Gesamtbetrag', width: mm2pt(135), align: 'right' },
+          {
+            text: `CHF ${totalAmount.toFixed(2)}`,
+            width: columnWidth.total,
+            align: 'right',
+          },
+        ],
+      },
+    ];
+
+    const tableData = {
+      width: mm2pt(165),
+      padding: [5, 0, 5, 0] as [number, number, number, number],
+      rows: tableRows,
+    };
+
+    // (Manual line removed; the Table class handles borders now)
+
+    const table = new Table(tableData);
+    table.attachTo(document_, mm2pt(22), mm2pt(48));
 
     // Include the generated QR reference (required for QR-IBANs)
     const qrBillData = {
@@ -954,9 +1123,10 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         city: parameters.debtor.city,
         country: parameters.debtor.country,
       },
-      ...(parameters.customReference !== undefined && parameters.customReference !== ''
-        ? { additionalInformation: `REF: ${parameters.customReference}` }
-        : {}),
+      // The unstructured message is what a payer sees in their banking app and what the
+      // finance team matches an incoming payment against, so it carries the bill number
+      // rather than the registration number.
+      additionalInformation: `Rechnung Nr. ${parameters.invoiceNumber}`,
     };
 
     const qrBill = new SwissQRBill(qrBillData, {

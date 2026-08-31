@@ -13,6 +13,24 @@ const IdValidationSchema = z.union([
 ]);
 
 /**
+ * A VAT split has to account for the whole net amount, or the invoice silently taxes only
+ * part of the camp fee. An empty list is fine — it means "use the single VAT code".
+ */
+const VatSplitsValidationSchema = z
+  .array(z.object({ share: z.number().nullable().optional() }).passthrough())
+  .nullable()
+  .optional()
+  .refine(
+    (splits) => {
+      if (!splits || splits.length === 0) return true;
+      const total = splits.reduce((sum, split) => sum + (split.share ?? 0), 0);
+      // Tolerate the third of a percent that thirds-style splits cannot express exactly.
+      return Math.abs(total - 100) < 0.011;
+    },
+    { message: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
+  );
+
+/**
  * Payload Global for QR Bill configuration.
  *
  * Stores creditor information, event IDs to sync, invoice defaults,
@@ -457,9 +475,33 @@ export const BillSettingsGlobal: GlobalConfig = {
                   type: 'text',
                   required: true,
                   label: {
-                    en: 'Display Label',
-                    de: 'Anzeigebezeichnung',
-                    fr: "Libellé d'affichage",
+                    en: 'Fee Label',
+                    de: 'Bezeichnung des Beitrags',
+                    fr: 'Libellé de la contribution',
+                  },
+                  admin: {
+                    description: {
+                      en: 'The position line on the invoice, e.g. "Teilnehmendenbeitrag". This is what is being charged, not what the person is.',
+                      de: 'Die Positionszeile auf der Rechnung, z.B. "Teilnehmendenbeitrag". Das ist, was verrechnet wird – nicht, was die Person ist.',
+                      fr: 'La ligne de position sur la facture, par ex. « Teilnehmendenbeitrag ».',
+                    },
+                  },
+                },
+                {
+                  name: 'roleName',
+                  type: 'text',
+                  required: false,
+                  label: {
+                    en: 'Role Name',
+                    de: 'Bezeichnung der Rolle',
+                    fr: 'Nom du rôle',
+                  },
+                  admin: {
+                    description: {
+                      en: 'What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.',
+                      de: 'Was die Person ist, z.B. "Teilnehmer:in". Wird auf der Anmeldebestätigung aufgeführt, damit Teilnehmende ihre Rolle prüfen können. Leer lassen, um die eingebaute deutsche Bezeichnung der Hitobito-Rolle zu verwenden.',
+                      fr: "Ce que la personne est, par ex. « Teilnehmer:in ». Affiché sur la confirmation d'inscription.",
+                    },
                   },
                 },
                 {
@@ -471,6 +513,13 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'MWST-Code / Satz (z.B. 8.1%)',
                     fr: 'Code / Taux TVA',
                   },
+                  admin: {
+                    description: {
+                      en: 'Used only when no VAT split is defined below.',
+                      de: 'Wird nur verwendet, wenn unten keine MWST-Aufteilung definiert ist.',
+                      fr: "Utilisé uniquement si aucune répartition de TVA n'est définie ci-dessous.",
+                    },
+                  },
                 },
                 {
                   name: 'amount',
@@ -481,6 +530,175 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'Betrag (CHF)',
                     fr: 'Montant (CHF)',
                   },
+                },
+                {
+                  name: 'vatSplits',
+                  type: 'array',
+                  label: {
+                    en: 'VAT Split',
+                    de: 'MWST-Aufteilung',
+                    fr: 'Répartition de la TVA',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Split the net amount across several VAT rates, e.g. 50% accommodation at 3.8% and 50% at 8.1%. The shares must add up to 100%. Leave empty to tax the whole amount at the VAT code above.',
+                      de: 'Teile den Netto-Betrag auf mehrere MWST-Sätze auf, z.B. 50% Beherbergung zu 3.8% und 50% zu 8.1%. Die Anteile müssen zusammen 100% ergeben. Leer lassen, um den ganzen Betrag mit dem MWST-Satz oben zu besteuern.',
+                      fr: "Répartissez le montant net entre plusieurs taux de TVA, par ex. 50% d'hébergement à 3.8% et 50% à 8.1%. Les parts doivent totaliser 100%. Laissez vide pour taxer le montant entier au taux ci-dessus.",
+                    },
+                  },
+                  validate: (value: unknown): string | true => {
+                    const result = VatSplitsValidationSchema.safeParse(value);
+                    if (!result.success) {
+                      return result.error.issues[0]?.message ?? 'Die MWST-Aufteilung ist ungültig.';
+                    }
+                    return true;
+                  },
+                  fields: [
+                    {
+                      name: 'label',
+                      type: 'text',
+                      required: false,
+                      label: {
+                        en: 'Label',
+                        de: 'Bezeichnung',
+                        fr: 'Libellé',
+                      },
+                      admin: {
+                        description: {
+                          en: 'Printed next to this VAT line on the invoice, e.g. "Beherbergung".',
+                          de: 'Wird auf der Rechnung neben dieser MWST-Zeile gedruckt, z.B. "Beherbergung".',
+                          fr: 'Imprimé à côté de cette ligne de TVA sur la facture.',
+                        },
+                      },
+                    },
+                    {
+                      name: 'share',
+                      type: 'number',
+                      required: true,
+                      label: {
+                        en: 'Share (%)',
+                        de: 'Anteil (%)',
+                        fr: 'Part (%)',
+                      },
+                    },
+                    {
+                      name: 'vatCode',
+                      type: 'text',
+                      required: true,
+                      label: {
+                        en: 'VAT Rate',
+                        de: 'MWST-Satz (z.B. 3.8%)',
+                        fr: 'Taux TVA',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'vatExemption',
+              type: 'group',
+              label: {
+                en: 'Youth VAT Exemption',
+                de: 'MWST-Befreiung für Jugendliche',
+                fr: 'Exonération de TVA pour les jeunes',
+              },
+              admin: {
+                description: {
+                  en: 'Branchen-Info 24, Ziff. 18.4: a participant counts as under-age until the end of the calendar year in which they reach the age limit. Bills for them carry no VAT.',
+                  de: 'Branchen-Info 24, Ziff. 18.4: Teilnehmende gelten bis zum Ende des Kalenderjahres, in dem sie die Altersgrenze erreichen, als jugendlich. Ihre Rechnungen sind MWST-befreit.',
+                  fr: "Branchen-Info 24, ch. 18.4 : un participant est considéré comme mineur jusqu'à la fin de l'année civile durant laquelle il atteint la limite d'âge.",
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: true,
+                  label: {
+                    en: 'Apply the youth exemption',
+                    de: 'MWST-Befreiung für Jugendliche anwenden',
+                    fr: "Appliquer l'exonération pour les jeunes",
+                  },
+                  admin: {
+                    description: {
+                      en: 'When off, every bill is taxed regardless of the participant’s age.',
+                      de: 'Wenn deaktiviert, wird jede Rechnung unabhängig vom Alter besteuert.',
+                      fr: "Si désactivé, chaque facture est taxée indépendamment de l'âge.",
+                    },
+                  },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'maxAge',
+                      type: 'number',
+                      defaultValue: 18,
+                      label: {
+                        en: 'Age Limit',
+                        de: 'Altersgrenze',
+                        fr: "Limite d'âge",
+                      },
+                      admin: {
+                        description: {
+                          en: 'Someone reaching this age during the reference year is still exempt for that whole year.',
+                          de: 'Wer im Referenzjahr dieses Alter erreicht, gilt für das ganze Jahr noch als jugendlich.',
+                          fr: "Une personne atteignant cet âge pendant l'année de référence reste exonérée toute l'année.",
+                        },
+                      },
+                    },
+                    {
+                      name: 'referenceYearMode',
+                      type: 'select',
+                      defaultValue: 'invoiceYear',
+                      label: {
+                        en: 'Reference Year',
+                        de: 'Referenzjahr',
+                        fr: 'Année de référence',
+                      },
+                      options: [
+                        {
+                          value: 'invoiceYear',
+                          label: {
+                            en: 'Year the bill is raised',
+                            de: 'Jahr der Rechnungsstellung',
+                            fr: "Année d'émission de la facture",
+                          },
+                        },
+                        {
+                          value: 'fixedYear',
+                          label: {
+                            en: 'Fixed year (e.g. the camp year)',
+                            de: 'Festes Jahr (z.B. Lagerjahr)',
+                            fr: 'Année fixe (par ex. année du camp)',
+                          },
+                        },
+                      ],
+                      admin: {
+                        description: {
+                          en: 'The VAT debt arises when the bill is raised, so that is the default. Pick the fixed year to judge every participant against the camp year instead.',
+                          de: 'Die MWST-Schuld entsteht im Zeitpunkt der Rechnungsstellung – daher der Standard. Wähle das feste Jahr, um alle Teilnehmenden am Lagerjahr zu messen.',
+                          fr: "La dette de TVA naît lors de l'émission de la facture, d'où le défaut.",
+                        },
+                      },
+                    },
+                    {
+                      name: 'fixedReferenceYear',
+                      type: 'number',
+                      defaultValue: 2027,
+                      label: {
+                        en: 'Fixed Reference Year',
+                        de: 'Festes Referenzjahr',
+                        fr: 'Année de référence fixe',
+                      },
+                      admin: {
+                        condition: (_, siblingData): boolean =>
+                          (siblingData as { referenceYearMode?: string } | undefined)
+                            ?.referenceYearMode === 'fixedYear',
+                      },
+                    },
+                  ],
                 },
               ],
             },
@@ -588,6 +806,16 @@ export const BillSettingsGlobal: GlobalConfig = {
             fr: 'Aperçu PDF',
           },
           fields: [
+            {
+              name: 'referenceNumberExplainer',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer',
+                },
+              },
+            },
             {
               name: 'pdfPreview',
               type: 'ui',
