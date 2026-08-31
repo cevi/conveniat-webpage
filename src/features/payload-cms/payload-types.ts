@@ -8217,9 +8217,13 @@ export interface BillSetting {
   eventNumberTemplate?: string | null;
   paymentDeadlineDays?: number | null;
   /**
-   * Text for the PDF letter page before the QR bill.
+   * Text on page 1, above the registration details.
    */
   invoiceLetterText?: string | null;
+  /**
+   * Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}.
+   */
+  invoiceLetterTextAfter?: string | null;
   /**
    * Define the camp fee per Hitobito event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").
    */
@@ -8730,6 +8734,7 @@ export interface BillSettingsSelect<T extends boolean = true> {
   eventNumberTemplate?: T;
   paymentDeadlineDays?: T;
   invoiceLetterText?: T;
+  invoiceLetterTextAfter?: T;
   rolePricing?:
     | T
     | {

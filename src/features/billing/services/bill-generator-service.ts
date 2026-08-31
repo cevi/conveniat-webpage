@@ -419,6 +419,7 @@ export async function generateBillsUseCase(
         ...(customReference !== undefined && customReference !== '' ? { customReference } : {}),
         ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
         invoiceLetterText: settings.invoiceLetterText ?? '',
+        invoiceLetterTextAfter: settings.invoiceLetterTextAfter ?? undefined,
         roleLabel,
         registration: {
           fullName: document_.fullName,
@@ -564,6 +565,8 @@ interface PdfGenerationParameters {
   eventNumber?: string;
   documentTitle: string;
   invoiceLetterText: string;
+  /** Optional second block, printed below the registration details. */
+  invoiceLetterTextAfter?: string | undefined;
   roleLabel: string;
   /** Registration details confirmed on page 1. */
   registration: {
@@ -748,11 +751,15 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       align: 'left',
     });
 
-    // Letter body
-    const letterText = parameters.invoiceLetterText
-      .replaceAll('{{firstName}}', parameters.firstName)
-      .replaceAll('{{amount}}', String(parameters.amount))
-      .replaceAll('{{reference}}', parameters.reference);
+    // Letter body. Shared with the block below the registration details so both understand
+    // the same placeholders.
+    const applyLetterPlaceholders = (text: string): string =>
+      text
+        .replaceAll('{{firstName}}', parameters.firstName)
+        .replaceAll('{{amount}}', String(parameters.amount))
+        .replaceAll('{{reference}}', parameters.reference);
+
+    const letterText = applyLetterPlaceholders(parameters.invoiceLetterText);
 
     const letterY = titleY + 15;
     document_.fontSize(10);
@@ -918,6 +925,21 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       { width: mm2pt(165), lineGap: 1.5 },
     );
     document_.font('Helvetica');
+
+    // A second free-text block, for whatever has to be said after the participant has been
+    // shown what was registered rather than before it.
+    const letterTextAfter = parameters.invoiceLetterTextAfter;
+    if (letterTextAfter !== undefined && letterTextAfter.trim() !== '') {
+      document_.fontSize(10);
+      document_.fillColor('#000000');
+      renderMarkdownText(
+        document_,
+        applyLetterPlaceholders(letterTextAfter),
+        blockLeft,
+        document_.y + 12,
+        { width: mm2pt(165), lineGap: 2 },
+      );
+    }
 
     // Legal Footer
     const footerLines = [];

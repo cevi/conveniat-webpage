@@ -154,6 +154,7 @@ export async function previewPdfUseCase(
       .replaceAll('{{participation-id}}', '9012')
       .replaceAll('{{people-id}}', '123456')}-0001`,
     invoiceLetterText,
+    invoiceLetterTextAfter: (settings.invoiceLetterTextAfter as string | undefined) ?? undefined,
     roleLabel,
     registration: {
       fullName: 'Maximilian Muster',
