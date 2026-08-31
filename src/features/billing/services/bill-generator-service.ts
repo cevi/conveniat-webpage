@@ -4,6 +4,12 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import {
+  BILLED_STATUSES,
+  hasRaisedBill,
+  isBillable,
+  NEEDS_MANUAL_REVIEW,
+} from '@/features/billing/services/billing-status';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { VatCalculation, VatSplitConfig } from '@/features/billing/services/vat-calculation';
 import {
@@ -12,6 +18,7 @@ import {
   formatVatLineLabel,
 } from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
+import { BillingTaskSlug } from '@/features/billing/types';
 import type { RoleOption } from '@/features/billing/utils';
 import {
   formatBirthday,
@@ -19,16 +26,23 @@ import {
   generateQrReference,
   resolveRoleOptions,
 } from '@/features/billing/utils';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Payload } from 'payload';
 import type { PDFRow } from 'swissqrbill/pdf';
 
+/**
+ * How long a run may hold its lock before it is assumed dead. Generous: a full run over a
+ * few thousand participants fetches a Cevi.DB person and renders a PDF for each.
+ */
+const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
+
 interface SyncHistoryEntry {
   date: string;
   action: string;
+  /** Why an already-billed row was parked for manual inspection. */
+  reviewReason?: string;
 }
 
 /**
@@ -243,8 +257,23 @@ export async function generateBillsUseCase(
     return summary;
   }
 
-  // 3. Track current reference number
-  let currentReferenceNumber = settings.nextReferenceNumber ?? 1;
+  // 3. Reserve the reference numbers this run may use, before any of them reaches a bill.
+  //
+  // The counter used to be written back once, after the loop. A run that died halfway —
+  // a deploy, an OOM kill — left every bill it had already written holding a number the
+  // counter had never advanced past. The next run then reissued those numbers, and since
+  // `invoiceNumber` is unique the write threw for the first participant, which meant
+  // `currentReferenceNumber` never advanced, which meant every following participant
+  // collided on that same number. Generation was wedged for everyone until somebody
+  // edited a `readOnly` field straight in the database.
+  //
+  // Reserving the block up front trades that for gaps in the numbering whenever a run is
+  // cancelled or skips people, which is the harmless half of the trade.
+  const firstReferenceNumber = settings.nextReferenceNumber ?? 1;
+  await settingsRepo.updateNextReferenceNumber(firstReferenceNumber + participants.length);
+  let currentReferenceNumber = firstReferenceNumber;
+
+  const isExplicitRebill = typeof participantId === 'string' && participantId !== '';
 
   const runningSummary = (): Record<string, number> => ({
     generatedCount: summary.generatedCount,
@@ -269,13 +298,39 @@ export async function generateBillsUseCase(
     }
 
     try {
-      if (document_.status !== 'new') {
-        if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
+      if (!isBillable(document_.status)) {
+        if ((BILLED_STATUSES as readonly string[]).includes(document_.status)) {
           summary.skippedAlreadyExistingCount++;
           continue;
         }
         summary.errors.push(
-          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist nicht "Vollständig erfasst".`,
+          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist "${String(document_.status)}".`,
+        );
+        summary.skippedCount++;
+        continue;
+      }
+
+      // Defence in depth behind the sync rule. A row that already carries an invoice can
+      // only be reached here if something put it back into a billable status behind the
+      // sync's back — a hand-edited record, or a row left over from before that rule
+      // existed. Billing it again would mint a second invoice number and a second QR
+      // reference against a bill the participant may already have paid, so it is parked
+      // for an operator instead. The per-row "Neu generieren" action still gets through:
+      // it names the participant explicitly, which is the operator saying they mean it.
+      if (!isExplicitRebill && hasRaisedBill(document_)) {
+        await participantRepo.update(document_.id, {
+          status: NEEDS_MANUAL_REVIEW,
+          syncHistory: [
+            ...((document_.syncHistory as SyncHistoryEntry[] | undefined) ?? []),
+            {
+              date: new Date().toISOString(),
+              action: 'manual_review_required',
+              reviewReason: `Rechnung ${String(document_.invoiceNumber)} besteht bereits, der Status war aber wieder "${String(document_.status)}".`,
+            },
+          ],
+        });
+        summary.errors.push(
+          `${String(document_.fullName)}: Rechnung ${String(document_.invoiceNumber)} besteht bereits – zur manuellen Prüfung markiert, statt eine zweite zu erstellen.`,
         );
         summary.skippedCount++;
         continue;
@@ -505,9 +560,6 @@ export async function generateBillsUseCase(
     }
   }
 
-  // Update the next reference number in settings via the port
-  await settingsRepo.updateNextReferenceNumber(currentReferenceNumber);
-
   logger.info(
     `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped, ${String(summary.skippedAlreadyExistingCount)} skipped (already existing)`,
   );
@@ -524,6 +576,41 @@ export async function generateBills(
   participantId?: string,
   dependencies?: { hitobitoClient?: HitobitoClient },
   reporter?: JobProgressReporter,
+): Promise<GenerationSummary> {
+  // Every route into generation goes through here — the queued task, "Alle neu
+  // generieren", and the per-row "Neu generieren" — so this is where two of them are kept
+  // from running at once and handing the same reserved reference numbers to different
+  // participants.
+  // Imported lazily: the adapter reaches Redis, which reads the validated environment at
+  // module load, and that would make this whole module unimportable from a unit test of
+  // the pure use case below.
+  const { RedisRunLockAdapter } =
+    await import('@/features/billing/adapters/redis-run-lock.adapter');
+  const lock = await new RedisRunLockAdapter().acquire(
+    BillingTaskSlug.GenerateBills,
+    RUN_LOCK_TTL_SECONDS,
+  );
+  if (lock === undefined) {
+    return {
+      generatedCount: 0,
+      skippedCount: 0,
+      skippedAlreadyExistingCount: 0,
+      errors: ['Es läuft bereits ein Rechnungslauf. Bitte warte, bis dieser abgeschlossen ist.'],
+    };
+  }
+
+  try {
+    return await generateBillsLocked(payload, participantId, dependencies, reporter);
+  } finally {
+    await lock.release();
+  }
+}
+
+async function generateBillsLocked(
+  payload: Payload,
+  participantId: string | undefined,
+  dependencies: { hitobitoClient?: HitobitoClient } | undefined,
+  reporter: JobProgressReporter | undefined,
 ): Promise<GenerationSummary> {
   const settingsRepo = new PayloadSettingsAdapter(payload);
   const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
@@ -544,6 +631,12 @@ export async function generateBills(
   const cookieValue = regManagement.browserCookie;
   const browserCookie =
     typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
+  // Lazily imported for the same reason as the run lock: the Hitobito config reads the
+  // validated environment at module load, which used to make this module impossible to
+  // import from a unit test of the pure use case below — `bill-generator-unpriced-role`
+  // had been failing to load, and running zero tests, since it was written.
+  const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api');
 
   const hitobitoService = new HitobitoServiceAdapter(
     dependencies?.hitobitoClient ?? {

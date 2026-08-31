@@ -212,7 +212,12 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'creditorStreet',
                   type: 'text',
                   required: true,
-                  defaultValue: 'Musterstrasse',
+                  // The real address, not a placeholder. These fields are readOnly, so a
+                  // deployment whose `bill-settings` global has never been saved — a fresh
+                  // database, a new environment — prints whatever stands here on every QR
+                  // bill with no way for an operator to correct it. It used to say
+                  // "Musterstrasse".
+                  defaultValue: 'Sihlstrasse',
                   label: {
                     en: 'Creditor Street',
                     de: 'Strasse des Zahlungsempfängers',

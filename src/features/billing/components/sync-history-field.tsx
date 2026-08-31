@@ -7,6 +7,8 @@ interface SyncHistoryEntry {
   date: string;
   action: string;
   diff?: Record<string, { from: string; to: string }>;
+  /** Why an already-billed row was parked for manual inspection. */
+  reviewReason?: string;
 }
 
 export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
@@ -52,6 +54,11 @@ export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
                   {entry.action}
                 </span>
               </div>
+              {entry.reviewReason !== undefined && entry.reviewReason !== '' && (
+                <p className="mt-2 rounded border border-fuchsia-200 bg-fuchsia-50 p-2 text-xs text-fuchsia-900 dark:border-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-100">
+                  {entry.reviewReason}
+                </p>
+              )}
               {entry.diff && Object.keys(entry.diff).length > 0 && (
                 <div className="mt-2 rounded bg-gray-50 p-2 text-xs text-gray-600 dark:bg-gray-800/50 dark:text-gray-400">
                   <ul className="list-inside list-disc">

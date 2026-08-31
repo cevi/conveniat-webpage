@@ -8,6 +8,7 @@ type BillingStatus =
   | 'new'
   | 'pflichtangaben_missing'
   | 'invalid_anmeldeangaben'
+  | 'needs_manual_review'
   | 'bill_created'
   | 'bill_sent'
   | 'removed'
@@ -30,6 +31,11 @@ const statusConfig: Record<BillingStatus, { label: string; colorClasses: string 
     label: 'Anmeldeangaben ungültig',
     colorClasses:
       'border-red-200 bg-red-100 text-red-800 dark:border-red-800 dark:bg-red-900/40 dark:text-red-200',
+  },
+  needs_manual_review: {
+    label: 'Manuelle Prüfung nötig',
+    colorClasses:
+      'border-fuchsia-200 bg-fuchsia-100 text-fuchsia-800 dark:border-fuchsia-800 dark:bg-fuchsia-900/40 dark:text-fuchsia-200',
   },
   bill_created: {
     label: 'Rechnung erstellt',

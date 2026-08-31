@@ -1,12 +1,14 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { RedisRunLockAdapter } from '@/features/billing/adapters/redis-run-lock.adapter';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
+import { BillingTaskSlug } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Payload } from 'payload';
+
+/** How long a send run may hold its lock before it is assumed dead. */
+const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
 
 interface SyncHistoryEntry {
   date: string;
@@ -22,8 +24,36 @@ interface SyncHistoryEntry {
 export async function sendBills(
   payload: Payload,
   participantId?: string,
-  dependencies?: { hitobitoClient?: HitobitoClient; s3Client?: S3Client },
+  dependencies?: { s3Client?: S3Client },
   reporter?: JobProgressReporter,
+): Promise<SendSummary> {
+  // Both routes into sending — the queued task and the per-row "Email senden" — come
+  // through here. Two overlapping runs would each pick up the same `bill_created` rows
+  // and mail the same invoice twice before either had written `bill_sent` back.
+  const lock = await new RedisRunLockAdapter().acquire(
+    BillingTaskSlug.SendBills,
+    RUN_LOCK_TTL_SECONDS,
+  );
+  if (lock === undefined) {
+    return {
+      sentCount: 0,
+      failedCount: 0,
+      errors: ['Es läuft bereits ein Versand. Bitte warte, bis dieser abgeschlossen ist.'],
+    };
+  }
+
+  try {
+    return await sendBillsLocked(payload, participantId, dependencies, reporter);
+  } finally {
+    await lock.release();
+  }
+}
+
+async function sendBillsLocked(
+  payload: Payload,
+  participantId: string | undefined,
+  dependencies: { s3Client?: S3Client } | undefined,
+  reporter: JobProgressReporter | undefined,
 ): Promise<SendSummary> {
   const summary: SendSummary = {
     sentCount: 0,
@@ -44,32 +74,7 @@ export async function sendBills(
     (settings.invoiceEmailBody as string | undefined) ??
     'Bitte finden Sie Ihre Rechnung im Anhang.';
 
-  // 2. Create Hitobito client for fetching person email addresses
-  const logger = {
-    info: (message: string): void => {
-      payload.logger.info(message);
-    },
-    warn: (message: string): void => {
-      payload.logger.warn(message);
-    },
-    error: (message: string): void => {
-      payload.logger.error(message);
-    },
-  };
-
-  const client =
-    dependencies?.hitobitoClient ??
-    new HitobitoClient(
-      {
-        baseUrl: HITOBITO_CONFIG.baseUrl,
-        apiToken: HITOBITO_CONFIG.apiToken,
-        browserCookie: '',
-      },
-      logger,
-    );
-  const personService = new PersonService(client, logger);
-
-  // 3. Query participants needing email
+  // 2. Query participants needing email
   // Note: When participantId is provided (e.g., admin clicking "Email senden" in the UI),
   // we intentionally bypass the 'bill_created' status check to allow force-resending bills.
   const whereClause = participantId
@@ -88,7 +93,7 @@ export async function sendBills(
     return summary;
   }
 
-  // 4. Create S3 client once for all PDF fetches
+  // 3. Create S3 client once for all PDF fetches
   const s3 =
     dependencies?.s3Client ??
     new S3Client({
@@ -118,7 +123,6 @@ export async function sendBills(
     }
 
     try {
-      const userId = document_.userId;
       const fullName = document_.fullName;
       const firstName = fullName.split(' ')[0] ?? fullName;
       const lastName = fullName.split(' ').slice(1).join(' ');
@@ -162,12 +166,24 @@ export async function sendBills(
 
       const pdfBuffer = Buffer.from(await response.Body.transformToByteArray());
 
-      // Fetch email from Cevi.DB
-      const personResult = await personService.getDetails({ personId: userId });
-      const email = personResult.success ? personResult.attributes?.email : undefined;
+      // The bill goes to the address the participant gave *for the bill* — the
+      // "Mailadresse für Rechnung" answer on the camp registration, which the sync stores
+      // on `email`. It is deliberately not the Cevi.DB account address: for a minor that
+      // is the child's own mailbox, while the registration answer is the one the parents
+      // filled in precisely so the invoice would reach them.
+      //
+      // The answer is matched by question text upstream rather than by its id, because
+      // Hitobito numbers the questions per event.
+      const rawEmail = document_.email;
+      const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
 
-      if (!email) {
-        summary.errors.push(`No email for participant ${String(document_.id)} (${fullName})`);
+      if (email === '') {
+        // Never silently fall back to the account address: that is the bug this replaced.
+        // A registration without an invoice address is a Pflichtangabe gap, and the sync
+        // already blocks such a row from being billed at all.
+        summary.errors.push(
+          `${fullName}: keine "Mailadresse für Rechnung" hinterlegt – Rechnung nicht versendet.`,
+        );
         summary.failedCount++;
         continue;
       }

@@ -549,6 +549,14 @@ export const BillParticipantsCollection: CollectionConfig = {
           value: 'invalid_anmeldeangaben',
         },
         {
+          label: {
+            en: 'Needs manual review',
+            de: 'Manuelle Prüfung nötig',
+            fr: 'Vérification manuelle requise',
+          },
+          value: 'needs_manual_review',
+        },
+        {
           label: { en: 'Bill Created', de: 'Rechnung erstellt', fr: 'Facture créée' },
           value: 'bill_created',
         },

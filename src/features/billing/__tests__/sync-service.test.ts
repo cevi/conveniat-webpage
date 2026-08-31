@@ -13,6 +13,7 @@ import type {
 } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import { isBillable } from '@/features/billing/services/billing-status';
 import type {
   JobProgressReporter,
   JobProgressUpdate,
@@ -42,6 +43,74 @@ const collectingReporter = (
     },
   };
 };
+
+/** A synced participation whose Cevi.DB record differs from what is on file. */
+const externalParticipant = (
+  overrides: Partial<SyncedExternalParticipant> = {},
+): SyncedExternalParticipant => ({
+  participationId: 'part-1',
+  participantId: 'user-1',
+  eventId: 'event-1',
+  firstName: 'Max',
+  lastName: 'Mustermann',
+  nickname: 'Muster',
+  fullName: 'Max Mustermann',
+  roleType: 'Event::Role::Participant',
+  enrollmentDate: '2026-06-22T00:00:00Z',
+  street: 'Musterstrasse',
+  housenumber: '42',
+  zip: '8000',
+  zipCode: '8000',
+  town: 'Zürich',
+  country: 'CH',
+  gender: 'male',
+  birthday: '1990-01-01',
+  active: true,
+  ...overrides,
+});
+
+/** A registration that passes validation, so the tests below isolate the billing rule. */
+const completeAnswers = {
+  'AHV-Nummer?': '756.1234.5678.90',
+  'T-Shirt Grösse (unisex)': 'L',
+  'Mailadresse für Rechnung': 'max@example.com',
+  'Name der Krankenkasse': 'Assura',
+  'Versichertennummer (Nummer auf der Krankenkassenkarte)': '123456789',
+  'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
+  'Notfallkontakt Telefonnummer': '079 123 45 67',
+  Essgewohnheit: 'vegetarisch',
+};
+
+const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
+  ({
+    id: 'doc-1',
+    participationUuid: 'part-1',
+    userId: 'user-1',
+    eventId: 'event-1',
+    groupId: 'group-1',
+    eventName: 'Test Event',
+    status: 'bill_sent',
+    roleType: 'Event::Role::Participant',
+    firstName: 'Max',
+    lastName: 'Mustermann',
+    nickname: 'Muster',
+    fullName: 'Max Mustermann',
+    street: 'Musterstrasse',
+    zip: '8000',
+    zipCode: '8000',
+    town: 'Zürich',
+    gender: 'male',
+    birthday: '1990-01-01',
+    email: 'max@example.com',
+    missingStammdaten: [],
+    missingAnmeldeangaben: [],
+    active: true,
+    // The row carries a raised bill.
+    invoiceNumber: '2027-0001',
+    billCreatedDate: '2027-01-05T10:00:00Z',
+    syncHistory: [],
+    ...overrides,
+  }) as unknown as BillParticipant;
 
 describe('Sync Service', () => {
   let mockParticipantRepo: jest.Mocked<ParticipantRepositoryPort>;
@@ -337,5 +406,88 @@ describe('Sync Service', () => {
     // it has to reach the admin UI as a link rather than as prose.
     expect(summary.errors).toEqual(['No events configured in Bill Settings.']);
     expect(summary.relatedDocuments).toEqual(['billSettings']);
+  });
+  describe('a participation that has already been billed', () => {
+    it('parks a billed participant for review instead of queueing a second bill', async () => {
+      // The role stops being priced — the settings row was renamed. Before, this wrote
+      // `invalid_anmeldeangaben`, and the next sync after the row came back wrote `new`,
+      // which is what earned the participant a second invoice.
+      mockSettingsRepo.getBillSettings.mockResolvedValue({
+        events: [mockEvent],
+        rolePricing: [{ roleTypePattern: 'Event::Role::Leader', label: 'Leitend', amount: 1 }],
+      } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.status).toBe('needs_manual_review');
+      // Whatever else changed, the row must not be billable again.
+      expect(isBillable(String(update?.status))).toBe(false);
+    });
+
+    it('records why it needs a human, in the sync history', async () => {
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
+      mockHitobitoService.fetchParticipations.mockResolvedValue([
+        externalParticipant({ town: 'Bern' }),
+      ]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.status).toBe('needs_manual_review');
+      const history = update?.syncHistory as { action: string; reviewReason?: string }[];
+      expect(history.at(-1)?.action).toBe('manual_review_required');
+      expect(history.at(-1)?.reviewReason).toContain('geändert');
+    });
+
+    it('counts the parked participations so the toolbar can report them', async () => {
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
+      mockHitobitoService.fetchParticipations.mockResolvedValue([
+        externalParticipant({ town: 'Bern' }),
+      ]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(summary.needsReviewCount).toBe(1);
+    });
+
+    it('leaves a billed participant alone when nothing about them changed', async () => {
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      // Only the sync timestamp is touched; the status is not in the payload at all.
+      expect(update?.status).toBeUndefined();
+      expect(summary.needsReviewCount).toBe(0);
+      expect(summary.unchangedCount).toBe(1);
+    });
   });
 });

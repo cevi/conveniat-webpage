@@ -44,6 +44,8 @@ interface StatusResponse {
   sync?: BillingJobView;
   generate?: BillingJobView;
   send?: BillingJobView;
+  /** How many bills a send run would mail right now. */
+  pendingSendCount?: number;
   capabilities?: { regenerateAll?: boolean; availableDocuments?: string[] };
 }
 
@@ -83,6 +85,8 @@ export const useBillingJobs = (): {
   canRegenerateAll: boolean;
   /** Settings pages that exist in this admin panel and can therefore be linked to. */
   availableDocuments: BillingAdminDocumentKey[];
+  /** How many bills a send run would mail right now — stated in the confirmation. */
+  pendingSendCount: number;
 } => {
   const { query, refineListData } = useListQuery();
 
@@ -102,6 +106,7 @@ export const useBillingJobs = (): {
   // never offered on a deployment that would refuse it.
   const [canRegenerateAll, setCanRegenerateAll] = useState(false);
   const [availableDocuments, setAvailableDocuments] = useState<BillingAdminDocumentKey[]>([]);
+  const [pendingSendCount, setPendingSendCount] = useState(0);
 
   useEffect((): void => {
     // eslint-disable-next-line unicorn/prefer-global-this
@@ -120,6 +125,7 @@ export const useBillingJobs = (): {
       setAvailableDocuments(
         (data.capabilities?.availableDocuments ?? []) as BillingAdminDocumentKey[],
       );
+      setPendingSendCount(data.pendingSendCount ?? 0);
 
       // Adopt jobs started elsewhere (another tab, or before a reload wiped the entry).
       const pendingJobs: ActiveJobs = {};
@@ -290,5 +296,6 @@ export const useBillingJobs = (): {
     isRegenerating,
     canRegenerateAll,
     availableDocuments,
+    pendingSendCount,
   };
 };

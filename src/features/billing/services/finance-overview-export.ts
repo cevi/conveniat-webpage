@@ -1,14 +1,13 @@
+import { ACCOUNTED_STATUSES } from '@/features/billing/services/billing-status';
 import type { BillParticipant, BillSetting } from '@/features/payload-cms/payload-types';
 import ExcelJS from 'exceljs';
 import type { Payload } from 'payload';
-
-/** Statuses that mean a bill exists — the only rows the finance overview is about. */
-const BILLED_STATUSES = ['bill_created', 'bill_sent', 'reminder_sent'] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   bill_created: 'Rechnung erstellt',
   bill_sent: 'Rechnung gesendet',
   reminder_sent: 'Mahnung gesendet',
+  needs_manual_review: 'Manuelle Prüfung nötig',
 };
 
 interface RolePricingEntry {
@@ -158,7 +157,7 @@ export async function generateFinanceOverviewWorkbook(payload: Payload): Promise
 
   const participants = await payload.find({
     collection: 'bill-participants',
-    where: { status: { in: [...BILLED_STATUSES] } },
+    where: { status: { in: [...ACCOUNTED_STATUSES] } },
     limit: 10_000,
     sort: 'invoiceNumber',
     context: { internal: true },

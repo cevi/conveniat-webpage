@@ -1753,7 +1753,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'brevoContactWorkflow';
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;
@@ -4234,6 +4234,7 @@ export interface BillParticipant {
     | 'new'
     | 'pflichtangaben_missing'
     | 'invalid_anmeldeangaben'
+    | 'needs_manual_review'
     | 'bill_created'
     | 'bill_sent'
     | 'removed'

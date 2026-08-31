@@ -1,3 +1,4 @@
+import { ACCOUNTED_STATUSES } from '@/features/billing/services/billing-status';
 import type { VatSplitConfig } from '@/features/billing/services/vat-calculation';
 import { calculateVat } from '@/features/billing/services/vat-calculation';
 import type { FinanceCsvRow } from '@/features/billing/types';
@@ -87,17 +88,15 @@ export async function generateFinanceCsv(payload: Payload): Promise<string> {
   const paymentDeadlineDays = (settings.paymentDeadlineDays as number | undefined) ?? 30;
 
   // 2. Query all generated/sent bills
+  // Every raised bill, including one the sync has since parked for manual review: it was
+  // still booked, and an accounting export that quietly drops a line it emitted last week
+  // is worse than one that shows a line somebody has to look at.
   const participants = await payload.find({
     collection: 'bill-participants',
-    where: {
-      or: [
-        { status: { equals: 'bill_created' } },
-        { status: { equals: 'bill_sent' } },
-        { status: { equals: 'reminder_sent' } },
-      ],
-    },
+    where: { status: { in: [...ACCOUNTED_STATUSES] } },
     limit: 10_000,
     sort: 'invoiceNumber',
+    context: { internal: true },
   });
 
   const csvHeaders = [
