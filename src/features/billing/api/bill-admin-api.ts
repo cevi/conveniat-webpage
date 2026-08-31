@@ -521,10 +521,18 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
       return jobData;
     };
 
-    const [syncJob, generateJob, sendJob] = await Promise.all([
+    const [syncJob, generateJob, sendJob, pendingSend] = await Promise.all([
       getLatestJob(BillingTaskSlug.SyncParticipants),
       getLatestJob(BillingTaskSlug.GenerateBills),
       getLatestJob(BillingTaskSlug.SendBills),
+      // How many invoices a "Mails versenden" click would actually put in the post right
+      // now. The confirmation dialog states the number, because "send the bills" and
+      // "email 1'274 people" are not the same decision.
+      request.payload.count({
+        collection: 'bill-participants',
+        where: { status: { equals: 'bill_created' } },
+        context: { internal: true },
+      }),
     ]);
 
     return Response.json({
@@ -532,6 +540,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
       sync: syncJob,
       generate: generateJob,
       send: sendJob,
+      pendingSendCount: pendingSend.totalDocs,
       // Lets the toolbar disable what the server would refuse anyway, instead of
       // offering an action that fails only once it has been confirmed.
       capabilities: {

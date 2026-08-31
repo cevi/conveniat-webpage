@@ -4,6 +4,12 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import {
+  BILLED_STATUSES,
+  hasRaisedBill,
+  isBillable,
+  NEEDS_MANUAL_REVIEW,
+} from '@/features/billing/services/billing-status';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { VatCalculation, VatSplitConfig } from '@/features/billing/services/vat-calculation';
 import {
@@ -12,6 +18,7 @@ import {
   formatVatLineLabel,
 } from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
+import { BillingTaskSlug } from '@/features/billing/types';
 import type { RoleOption } from '@/features/billing/utils';
 import {
   formatBirthday,
@@ -19,16 +26,23 @@ import {
   generateQrReference,
   resolveRoleOptions,
 } from '@/features/billing/utils';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Payload } from 'payload';
 import type { PDFRow } from 'swissqrbill/pdf';
 
+/**
+ * How long a run may hold its lock before it is assumed dead. Generous: a full run over a
+ * few thousand participants fetches a Cevi.DB person and renders a PDF for each.
+ */
+const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
+
 interface SyncHistoryEntry {
   date: string;
   action: string;
+  /** Why an already-billed row was parked for manual inspection. */
+  reviewReason?: string;
 }
 
 /**
@@ -42,6 +56,14 @@ export interface ResolvedPricing {
   vatSplits: VatSplitConfig[];
 }
 
+/**
+ * Finds the pricing row that governs a role, or undefined when none does.
+ *
+ * It used to fall back to the first row, which meant an unpriced role was quietly billed at
+ * somebody else's rate — and, once the confirmation started printing a role checklist, told
+ * the participant they were somebody else. An unpriced role is a configuration gap, and the
+ * only safe answer is to refuse and say so.
+ */
 export function resolvePricing(
   roleType: string,
   rolePricing: Array<{
@@ -51,24 +73,22 @@ export function resolvePricing(
     vatCode?: string | null;
     vatSplits?: VatSplitConfig[] | null;
   }>,
-): ResolvedPricing {
-  const toResolved = (pricing: (typeof rolePricing)[number] | undefined): ResolvedPricing => {
-    const amount = Number(pricing?.amount);
-    return {
-      amount: Number.isNaN(amount) ? 0 : amount,
-      label: pricing?.label ?? 'Teilnehmer:in',
-      vatCode: pricing?.vatCode ?? undefined,
-      vatSplits: pricing?.vatSplits ?? [],
-    };
-  };
-
+): ResolvedPricing | undefined {
   for (const pricing of rolePricing) {
-    if (roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())) {
-      return toResolved(pricing);
+    if (
+      pricing.roleTypePattern !== '' &&
+      roleType.toLowerCase().includes(pricing.roleTypePattern.toLowerCase())
+    ) {
+      const amount = Number(pricing.amount);
+      return {
+        amount: Number.isNaN(amount) ? 0 : amount,
+        label: pricing.label,
+        vatCode: pricing.vatCode ?? undefined,
+        vatSplits: pricing.vatSplits ?? [],
+      };
     }
   }
-  // Default to the first pricing entry if no match
-  return toResolved(rolePricing[0]);
+  return undefined;
 }
 
 /**
@@ -237,8 +257,23 @@ export async function generateBillsUseCase(
     return summary;
   }
 
-  // 3. Track current reference number
-  let currentReferenceNumber = settings.nextReferenceNumber ?? 1;
+  // 3. Reserve the reference numbers this run may use, before any of them reaches a bill.
+  //
+  // The counter used to be written back once, after the loop. A run that died halfway —
+  // a deploy, an OOM kill — left every bill it had already written holding a number the
+  // counter had never advanced past. The next run then reissued those numbers, and since
+  // `invoiceNumber` is unique the write threw for the first participant, which meant
+  // `currentReferenceNumber` never advanced, which meant every following participant
+  // collided on that same number. Generation was wedged for everyone until somebody
+  // edited a `readOnly` field straight in the database.
+  //
+  // Reserving the block up front trades that for gaps in the numbering whenever a run is
+  // cancelled or skips people, which is the harmless half of the trade.
+  const firstReferenceNumber = settings.nextReferenceNumber ?? 1;
+  await settingsRepo.updateNextReferenceNumber(firstReferenceNumber + participants.length);
+  let currentReferenceNumber = firstReferenceNumber;
+
+  const isExplicitRebill = typeof participantId === 'string' && participantId !== '';
 
   const runningSummary = (): Record<string, number> => ({
     generatedCount: summary.generatedCount,
@@ -263,13 +298,39 @@ export async function generateBillsUseCase(
     }
 
     try {
-      if (document_.status !== 'new') {
-        if (document_.status === 'bill_created' || document_.status === 'bill_sent') {
+      if (!isBillable(document_.status)) {
+        if ((BILLED_STATUSES as readonly string[]).includes(document_.status)) {
           summary.skippedAlreadyExistingCount++;
           continue;
         }
         summary.errors.push(
-          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist nicht "Vollständig erfasst".`,
+          `Teilnehmer ${String(document_.id)} (${String(document_.fullName)}) kann nicht verrechnet werden: Status ist "${String(document_.status)}".`,
+        );
+        summary.skippedCount++;
+        continue;
+      }
+
+      // Defence in depth behind the sync rule. A row that already carries an invoice can
+      // only be reached here if something put it back into a billable status behind the
+      // sync's back — a hand-edited record, or a row left over from before that rule
+      // existed. Billing it again would mint a second invoice number and a second QR
+      // reference against a bill the participant may already have paid, so it is parked
+      // for an operator instead. The per-row "Neu generieren" action still gets through:
+      // it names the participant explicitly, which is the operator saying they mean it.
+      if (!isExplicitRebill && hasRaisedBill(document_)) {
+        await participantRepo.update(document_.id, {
+          status: NEEDS_MANUAL_REVIEW,
+          syncHistory: [
+            ...((document_.syncHistory as SyncHistoryEntry[] | undefined) ?? []),
+            {
+              date: new Date().toISOString(),
+              action: 'manual_review_required',
+              reviewReason: `Rechnung ${String(document_.invoiceNumber)} besteht bereits, der Status war aber wieder "${String(document_.status)}".`,
+            },
+          ],
+        });
+        summary.errors.push(
+          `${String(document_.fullName)}: Rechnung ${String(document_.invoiceNumber)} besteht bereits – zur manuellen Prüfung markiert, statt eine zweite zu erstellen.`,
         );
         summary.skippedCount++;
         continue;
@@ -278,6 +339,30 @@ export async function generateBillsUseCase(
       const userId = document_.userId;
       const roleType = document_.roleType as string;
       const pricing = resolvePricing(roleType, rolePricing);
+
+      if (pricing === undefined) {
+        // Nothing prices this role. Flagged rather than billed at a neighbouring rate, and
+        // handled like any other unusable registration: no bill, visible in the admin, and
+        // named precisely enough that an operator knows the fix is in the settings.
+        const reason = `Rollentyp "${roleType}" ist in den Rechnungs-Einstellungen nicht konfiguriert.`;
+        // The field is stored as JSON, so it has to be narrowed before it can be appended to.
+        const existingReasons = Array.isArray(document_.missingAnmeldeangaben)
+          ? document_.missingAnmeldeangaben.filter(
+              (entry): entry is string => typeof entry === 'string',
+            )
+          : [];
+        await participantRepo.update(document_.id, {
+          status: 'invalid_anmeldeangaben',
+          missingAnmeldeangaben: existingReasons.includes(reason)
+            ? existingReasons
+            : [...existingReasons, reason],
+        });
+        summary.errors.push(`${String(document_.fullName)}: ${reason}`);
+        summary.relatedDocuments = ['billSettings'];
+        summary.skippedCount++;
+        continue;
+      }
+
       const amount = pricing.amount;
       const roleLabel = pricing.label;
 
@@ -419,6 +504,7 @@ export async function generateBillsUseCase(
         ...(customReference !== undefined && customReference !== '' ? { customReference } : {}),
         ...(eventNumber !== undefined && eventNumber !== '' ? { eventNumber } : {}),
         invoiceLetterText: settings.invoiceLetterText ?? '',
+        invoiceLetterTextAfter: settings.invoiceLetterTextAfter ?? undefined,
         roleLabel,
         registration: {
           fullName: document_.fullName,
@@ -474,9 +560,6 @@ export async function generateBillsUseCase(
     }
   }
 
-  // Update the next reference number in settings via the port
-  await settingsRepo.updateNextReferenceNumber(currentReferenceNumber);
-
   logger.info(
     `Bill generation complete: ${String(summary.generatedCount)} generated, ${String(summary.skippedCount)} skipped, ${String(summary.skippedAlreadyExistingCount)} skipped (already existing)`,
   );
@@ -493,6 +576,41 @@ export async function generateBills(
   participantId?: string,
   dependencies?: { hitobitoClient?: HitobitoClient },
   reporter?: JobProgressReporter,
+): Promise<GenerationSummary> {
+  // Every route into generation goes through here — the queued task, "Alle neu
+  // generieren", and the per-row "Neu generieren" — so this is where two of them are kept
+  // from running at once and handing the same reserved reference numbers to different
+  // participants.
+  // Imported lazily: the adapter reaches Redis, which reads the validated environment at
+  // module load, and that would make this whole module unimportable from a unit test of
+  // the pure use case below.
+  const { RedisRunLockAdapter } =
+    await import('@/features/billing/adapters/redis-run-lock.adapter');
+  const lock = await new RedisRunLockAdapter().acquire(
+    BillingTaskSlug.GenerateBills,
+    RUN_LOCK_TTL_SECONDS,
+  );
+  if (lock === undefined) {
+    return {
+      generatedCount: 0,
+      skippedCount: 0,
+      skippedAlreadyExistingCount: 0,
+      errors: ['Es läuft bereits ein Rechnungslauf. Bitte warte, bis dieser abgeschlossen ist.'],
+    };
+  }
+
+  try {
+    return await generateBillsLocked(payload, participantId, dependencies, reporter);
+  } finally {
+    await lock.release();
+  }
+}
+
+async function generateBillsLocked(
+  payload: Payload,
+  participantId: string | undefined,
+  dependencies: { hitobitoClient?: HitobitoClient } | undefined,
+  reporter: JobProgressReporter | undefined,
 ): Promise<GenerationSummary> {
   const settingsRepo = new PayloadSettingsAdapter(payload);
   const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
@@ -513,6 +631,12 @@ export async function generateBills(
   const cookieValue = regManagement.browserCookie;
   const browserCookie =
     typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
+
+  // Lazily imported for the same reason as the run lock: the Hitobito config reads the
+  // validated environment at module load, which used to make this module impossible to
+  // import from a unit test of the pure use case below — `bill-generator-unpriced-role`
+  // had been failing to load, and running zero tests, since it was written.
+  const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api');
 
   const hitobitoService = new HitobitoServiceAdapter(
     dependencies?.hitobitoClient ?? {
@@ -564,6 +688,8 @@ interface PdfGenerationParameters {
   eventNumber?: string;
   documentTitle: string;
   invoiceLetterText: string;
+  /** Optional second block, printed below the registration details. */
+  invoiceLetterTextAfter?: string | undefined;
   roleLabel: string;
   /** Registration details confirmed on page 1. */
   registration: {
@@ -748,11 +874,15 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       align: 'left',
     });
 
-    // Letter body
-    const letterText = parameters.invoiceLetterText
-      .replaceAll('{{firstName}}', parameters.firstName)
-      .replaceAll('{{amount}}', String(parameters.amount))
-      .replaceAll('{{reference}}', parameters.reference);
+    // Letter body. Shared with the block below the registration details so both understand
+    // the same placeholders.
+    const applyLetterPlaceholders = (text: string): string =>
+      text
+        .replaceAll('{{firstName}}', parameters.firstName)
+        .replaceAll('{{amount}}', String(parameters.amount))
+        .replaceAll('{{reference}}', parameters.reference);
+
+    const letterText = applyLetterPlaceholders(parameters.invoiceLetterText);
 
     const letterY = titleY + 15;
     document_.fontSize(10);
@@ -897,11 +1027,11 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
 
     const roleOptions = parameters.registration.roleOptions;
     if (roleOptions.length > 0) {
-      drawRoleRow('Rolle', roleOptions);
+      drawRoleRow('Rolle im Lager', roleOptions);
     } else {
       // No role pricing configured — fall back to naming the role rather than printing
       // an empty checklist.
-      drawTextRow('Rolle', formatRoleName(parameters.registration.roleType));
+      drawTextRow('Rolle im Lager', formatRoleName(parameters.registration.roleType));
     }
 
     document_.font('Helvetica-Oblique');
@@ -918,6 +1048,21 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
       { width: mm2pt(165), lineGap: 1.5 },
     );
     document_.font('Helvetica');
+
+    // A second free-text block, for whatever has to be said after the participant has been
+    // shown what was registered rather than before it.
+    const letterTextAfter = parameters.invoiceLetterTextAfter;
+    if (letterTextAfter !== undefined && letterTextAfter.trim() !== '') {
+      document_.fontSize(10);
+      document_.fillColor('#000000');
+      renderMarkdownText(
+        document_,
+        applyLetterPlaceholders(letterTextAfter),
+        blockLeft,
+        document_.y + 12,
+        { width: mm2pt(165), lineGap: 2 },
+      );
+    }
 
     // Legal Footer
     const footerLines = [];

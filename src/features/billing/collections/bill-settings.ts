@@ -212,7 +212,12 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'creditorStreet',
                   type: 'text',
                   required: true,
-                  defaultValue: 'Musterstrasse',
+                  // The real address, not a placeholder. These fields are readOnly, so a
+                  // deployment whose `bill-settings` global has never been saved — a fresh
+                  // database, a new environment — prints whatever stands here on every QR
+                  // bill with no way for an operator to correct it. It used to say
+                  // "Musterstrasse".
+                  defaultValue: 'Sihlstrasse',
                   label: {
                     en: 'Creditor Street',
                     de: 'Strasse des Zahlungsempfängers',
@@ -417,9 +422,25 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Text for the PDF letter page before the QR bill.',
-                  de: 'Text für die Brief-Seite im PDF vor dem QR-Einzahlungsschein.',
-                  fr: 'Texte pour la page de lettre du PDF avant le bulletin de versement QR.',
+                  en: 'Text on page 1, above the registration details.',
+                  de: 'Text auf Seite 1, oberhalb der Anmeldedaten.',
+                  fr: 'Texte en page 1, au-dessus des données d’inscription.',
+                },
+              },
+            },
+            {
+              name: 'invoiceLetterTextAfter',
+              type: 'textarea',
+              label: {
+                en: 'Letter Text after the Registration Details',
+                de: 'Text nach den Anmeldedaten',
+                fr: 'Texte après les données d’inscription',
+              },
+              admin: {
+                description: {
+                  en: 'Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}.',
+                  de: 'Text auf Seite 1, unterhalb der Anmeldedaten und des Hinweises zu deren Korrektur. Leer lassen, um nichts zu drucken. Gleiche Platzhalter wie oben: {{firstName}}, {{amount}}, {{reference}}.',
+                  fr: 'Texte en page 1, sous les données d’inscription. Laissez vide pour ne rien imprimer.',
                 },
               },
             },

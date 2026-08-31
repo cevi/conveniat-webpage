@@ -129,6 +129,31 @@ const regenerateAllDisabledHint: StaticTranslationString = {
   fr: 'Désactivé sur cet environnement (BILLING_ALLOW_REGENERATE_ALL)',
 };
 
+const sendConfirmTitle: StaticTranslationString = {
+  de: 'Rechnungen wirklich versenden?',
+  en: 'Really send the bills?',
+  fr: 'Envoyer vraiment les factures ?',
+};
+
+/** `{{count}}` is filled in with the number of bills waiting to go out. */
+const sendConfirmMessage: StaticTranslationString = {
+  de: 'Es werden {{count}} Rechnungen per E-Mail an die Teilnehmenden versendet.\n\nDas lässt sich nicht rückgängig machen.',
+  en: '{{count}} bills will be emailed to the participants.\n\nThis cannot be undone.',
+  fr: '{{count}} factures seront envoyées par e-mail aux participants.\n\nCette action est irréversible.',
+};
+
+const sendConfirmLabel: StaticTranslationString = {
+  de: 'Versenden',
+  en: 'Send',
+  fr: 'Envoyer',
+};
+
+const sendingLabel: StaticTranslationString = {
+  de: 'Wird versendet...',
+  en: 'Sending...',
+  fr: 'Envoi...',
+};
+
 const moreActionsLabel: StaticTranslationString = {
   de: 'Weitere Aktionen',
   en: 'More actions',
@@ -239,6 +264,9 @@ export const BillingListToolbar: React.FC = () => {
   const { code } = useLocale();
   const locale = resolveAdminLocale(code);
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+  // Sending is the one step that reaches people outside the admin panel and cannot be
+  // taken back, so it asks — and says how many mails that means — before it starts.
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   const {
     jobs,
@@ -252,6 +280,7 @@ export const BillingListToolbar: React.FC = () => {
     isRegenerating,
     canRegenerateAll,
     availableDocuments,
+    pendingSendCount,
   } = useBillingJobs();
 
   const steps: Array<{
@@ -409,7 +438,13 @@ export const BillingListToolbar: React.FC = () => {
             job={jobs[step.key]}
             locale={locale}
             onCancel={() => void cancelJob(step.key)}
-            onStart={() => void startJob(step.key)}
+            onStart={() => {
+              if (step.key === 'send') {
+                setIsSendModalOpen(true);
+                return;
+              }
+              void startJob(step.key);
+            }}
             retryLabel={step.retry}
             stepNumber={index + 1}
             title={step.title}
@@ -422,6 +457,22 @@ export const BillingListToolbar: React.FC = () => {
           {actionError}
         </Banner>
       )}
+
+      <ConfirmationModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onConfirm={async () => {
+          setIsSendModalOpen(false);
+          await startJob('send');
+        }}
+        message={sendConfirmMessage[locale].replace('{{count}}', String(pendingSendCount))}
+        title={sendConfirmTitle[locale]}
+        confirmLabel={sendConfirmLabel[locale]}
+        submittingText={sendingLabel[locale]}
+        isSubmitting={isPending.send}
+        locale={locale}
+        confirmVariant="danger"
+      />
 
       <ConfirmationModal
         isOpen={isRegenerateModalOpen}

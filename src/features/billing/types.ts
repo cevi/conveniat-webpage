@@ -47,6 +47,8 @@ export interface SyncSummary {
   reAddedCount: number;
   changedCount: number;
   unchangedCount: number;
+  /** Already-billed participations the sync parked for an operator to judge. */
+  needsReviewCount: number;
   syncDate: string;
   errors: string[];
 }

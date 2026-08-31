@@ -5,6 +5,11 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
+import {
+  hasRaisedBill,
+  NEEDS_MANUAL_REVIEW,
+  resolveSyncStatus,
+} from '@/features/billing/services/billing-status';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncSummary } from '@/features/billing/types';
@@ -22,6 +27,8 @@ interface SyncHistoryEntry {
   date: string;
   action: string;
   diff?: Record<string, { from: string; to: string }>;
+  /** Why an already-billed row was parked for manual inspection. */
+  reviewReason?: string;
 }
 
 function findInvoiceEmail(answers: Record<string, string>): string | null {
@@ -43,6 +50,7 @@ async function syncSingleEvent(
   participantRepo: ParticipantRepositoryPort,
   now: string,
   summary: SyncSummary,
+  rolePricingPatterns: string[],
 ): Promise<void> {
   const participations = await hitobitoService.fetchParticipations(event.groupId, event.eventId);
   const fetchedParticipationIds = new Set<string>();
@@ -147,7 +155,7 @@ async function syncSingleEvent(
         active: participation.active,
       };
 
-      const isRoleOk = isRoleAllowed(participation.roleType);
+      const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
       const isMissing = !validationResult.isValid;
       let finalStatus = isReAdded ? 're_added' : 'new';
       if (!isRoleOk) {
@@ -205,20 +213,10 @@ async function syncSingleEvent(
         JSON.stringify(document_.missingAnmeldeangaben ?? []) !==
         JSON.stringify(validationResult.missingAnmeldeangaben);
 
-      const isRoleOk = isRoleAllowed(participation.roleType);
+      const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
       const isMissing = !validationResult.isValid;
-      const wasInvalidOrMissing =
-        (document_.status as string) === 'pflichtangaben_missing' ||
-        (document_.status as string) === 'invalid_anmeldeangaben';
 
-      let newStatus = document_.status as string;
-      if (!isRoleOk) {
-        newStatus = 'invalid_anmeldeangaben';
-      } else if (isMissing) {
-        newStatus = 'pflichtangaben_missing';
-      } else if (wasInvalidOrMissing) {
-        newStatus = 'new';
-      } else if (
+      const hasChanges =
         hasRoleChanged ||
         hasNameChanged ||
         hasFirstNameChanged ||
@@ -233,30 +231,23 @@ async function syncSingleEvent(
         hasEmailChanged ||
         hasBirthdayChanged ||
         hasGenderChanged ||
-        hasActiveChanged
-      ) {
-        newStatus = 'updated';
-      }
+        hasActiveChanged;
+
+      // A participation that has already been invoiced is never moved back into the
+      // billing queue by a sync — see `resolveSyncStatus` for why.
+      const { status: newStatus, reviewReason } = resolveSyncStatus({
+        currentStatus: document_.status,
+        hasBill: hasRaisedBill(document_),
+        isRoleOk,
+        isMissingMandatoryData: isMissing,
+        hasChanges,
+      });
 
       const statusChanged = (document_.status as string) !== newStatus;
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
 
       if (
-        hasRoleChanged ||
-        hasNameChanged ||
-        hasFirstNameChanged ||
-        hasLastNameChanged ||
-        hasNicknameChanged ||
-        hasGroupIdChanged ||
-        hasEventNameChanged ||
-        hasStreetChanged ||
-        hasZipChanged ||
-        hasZipCodeChanged ||
-        hasTownChanged ||
-        hasEmailChanged ||
-        hasBirthdayChanged ||
-        hasGenderChanged ||
-        hasActiveChanged ||
+        hasChanges ||
         statusChanged ||
         hasMissingStammdatenChanged ||
         hasMissingAnmeldeangabenChanged
@@ -335,7 +326,7 @@ async function syncSingleEvent(
           nickname: participation.nickname,
           fullName: participation.fullName,
           roleType: participation.roleType,
-          status: newStatus as never,
+          status: newStatus,
           street: participation.street ?? null,
           zip: participation.zip ?? null,
           zipCode: participation.zipCode ?? null,
@@ -346,8 +337,20 @@ async function syncSingleEvent(
           active: participation.active,
           missingStammdaten: validationResult.missingStammdaten,
           missingAnmeldeangaben: validationResult.missingAnmeldeangaben,
-          syncHistory: [...history, { date: now, action: 'participant_updated', diff }],
+          syncHistory: [
+            ...history,
+            {
+              date: now,
+              action:
+                newStatus === NEEDS_MANUAL_REVIEW
+                  ? 'manual_review_required'
+                  : 'participant_updated',
+              diff,
+              ...(reviewReason === undefined ? {} : { reviewReason }),
+            },
+          ],
         });
+        if (newStatus === NEEDS_MANUAL_REVIEW && statusChanged) summary.needsReviewCount++;
         summary.changedCount++;
       } else {
         await participantRepo.update(document_.id, {
@@ -421,6 +424,7 @@ export async function syncParticipantsUseCase(
     reAddedCount: 0,
     changedCount: 0,
     unchangedCount: 0,
+    needsReviewCount: 0,
     syncDate: now,
     errors: [],
   };
@@ -428,6 +432,11 @@ export async function syncParticipantsUseCase(
   // 1. Load bill settings
   const settings = await settingsRepo.getBillSettings();
   const events = (settings.events as BillSettingsEvent[] | undefined) ?? [];
+  // A role nobody has priced cannot be billed, so the sync flags it rather than letting
+  // bill generation fall back to somebody else's price later.
+  const rolePricingPatterns = (settings.rolePricing ?? []).map(
+    (pricing) => pricing.roleTypePattern,
+  );
   if (events.length === 0) {
     summary.errors.push('No events configured in Bill Settings.');
     summary.relatedDocuments = ['billSettings'];
@@ -441,6 +450,7 @@ export async function syncParticipantsUseCase(
     reAddedCount: summary.reAddedCount,
     changedCount: summary.changedCount,
     unchangedCount: summary.unchangedCount,
+    needsReviewCount: summary.needsReviewCount,
   });
 
   for (const [index, event] of events.entries()) {
@@ -462,7 +472,14 @@ export async function syncParticipantsUseCase(
     }
 
     try {
-      await syncSingleEventTraced(event, hitobitoService, participantRepo, now, summary);
+      await syncSingleEventTraced(
+        event,
+        hitobitoService,
+        participantRepo,
+        now,
+        summary,
+        rolePricingPatterns,
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${errorMessage}`);
@@ -479,7 +496,7 @@ export async function syncParticipantsUseCase(
   }
 
   logger.info(
-    `Sync complete: ${String(summary.newCount)} new, ${String(summary.removedCount)} removed, ${String(summary.reAddedCount)} re-added, ${String(summary.changedCount)} changed, ${String(summary.unchangedCount)} unchanged`,
+    `Sync complete: ${String(summary.newCount)} new, ${String(summary.removedCount)} removed, ${String(summary.reAddedCount)} re-added, ${String(summary.changedCount)} changed, ${String(summary.unchangedCount)} unchanged, ${String(summary.needsReviewCount)} need manual review`,
   );
 
   return summary;
@@ -516,6 +533,7 @@ async function syncParticipantsImpl(
       reAddedCount: 0,
       changedCount: 0,
       unchangedCount: 0,
+      needsReviewCount: 0,
       syncDate: new Date().toISOString(),
       errors: [errorMessage],
       relatedDocuments: ['registrationManagement'],
