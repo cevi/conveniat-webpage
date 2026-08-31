@@ -49,6 +49,13 @@ ARG POSTHOG_PROJECT_ID
 ARG NEXT_PUBLIC_ENABLED_LOCALES
 ENV NEXT_PUBLIC_ENABLED_LOCALES=${NEXT_PUBLIC_ENABLED_LOCALES}
 
+# Base URL of the Cevi.DB web UI, used to link a bill-participant row back to its
+# participation. Like every NEXT_PUBLIC_ value it is inlined into the client bundle at
+# build time, so setting it only in the deployment environment has no effect: the admin
+# reads it from the bundle, where it would be `undefined`.
+ARG NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
+ENV NEXT_PUBLIC_HITOBITO_API_URL=${NEXT_PUBLIC_HITOBITO_API_URL}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
