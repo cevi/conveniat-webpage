@@ -6,6 +6,7 @@ import type { VatSplitConfig } from '@/features/billing/services/vat-calculation
 import {
   calculateVat,
   describeVatExemptionRule,
+  resolveVatExemptionLabel,
 } from '@/features/billing/services/vat-calculation';
 import { generateQrReference, resolveRoleOptions } from '@/features/billing/utils';
 
@@ -165,6 +166,7 @@ export async function previewPdfUseCase(
       roleOptions: resolveRoleOptions('Event::Role::Participant', rolePricing),
     },
     vatExemptionNote: describeVatExemptionRule(settings.vatExemption),
+    vatExemptionLabel: resolveVatExemptionLabel(settings.vatExemption),
     vat,
     paymentDeadlineDays,
     firstName: 'Maximilian',

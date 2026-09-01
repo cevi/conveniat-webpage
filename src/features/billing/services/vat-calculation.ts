@@ -39,6 +39,8 @@ export interface VatExemptionConfig {
   referenceYearMode?: VatReferenceYearMode | null;
   /** Used when `referenceYearMode` is `fixedYear` — typically the camp year. */
   fixedReferenceYear?: number | null;
+  /** Reason printed beside the zero rate on an exempt bill. */
+  exemptLabel?: string | null;
 }
 
 /** One line of the VAT breakdown, as printed on the invoice and booked in the export. */
@@ -70,6 +72,7 @@ interface ResolvedVatExemption {
   maxAge: number;
   referenceYearMode: VatReferenceYearMode;
   fixedReferenceYear: number;
+  exemptLabel: string;
 }
 
 export const DEFAULT_VAT_EXEMPTION: ResolvedVatExemption = {
@@ -77,6 +80,7 @@ export const DEFAULT_VAT_EXEMPTION: ResolvedVatExemption = {
   maxAge: 18,
   referenceYearMode: 'invoiceYear',
   fixedReferenceYear: 2027,
+  exemptLabel: 'von der Steuer ausgenommene Leistung an Jugendliche',
 };
 
 /** Rounds to whole cents, half away from zero, without the usual binary-float surprises. */
@@ -252,13 +256,32 @@ export const calculateVat = ({
 };
 
 /**
+ * The configured reason for a zero rate, falling back to the default wording.
+ *
+ * An operator who clears the field wants the standard sentence back, not an empty pair of
+ * brackets on the invoice, so blank input resolves to the default too.
+ */
+export const resolveVatExemptionLabel = (
+  exemption: VatExemptionConfig | null | undefined,
+): string => {
+  const raw = exemption?.exemptLabel;
+  return typeof raw === 'string' && raw.trim() !== ''
+    ? raw.trim()
+    : DEFAULT_VAT_EXEMPTION.exemptLabel;
+};
+
+/**
  * The label printed next to a VAT line on the invoice.
  *
  * Exempt bills carry the reason rather than a bare `MWST 0.0%`, because the participant
  * (and their parents) invariably ask why the rate is zero.
  */
-export const formatVatLineLabel = (component: VatComponent, isExempt: boolean): string => {
-  if (isExempt) return 'MWST 0.0% (steuerbefreite Leistung an Jugendliche)';
+export const formatVatLineLabel = (
+  component: VatComponent,
+  isExempt: boolean,
+  exemptLabel: string = DEFAULT_VAT_EXEMPTION.exemptLabel,
+): string => {
+  if (isExempt) return `MWST 0.0% (${exemptLabel})`;
   const suffix = component.label === '' ? '' : ` (${component.label})`;
   return `MWST ${component.formattedVatCode}${suffix}`;
 };

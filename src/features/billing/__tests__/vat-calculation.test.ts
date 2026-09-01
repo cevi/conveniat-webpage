@@ -8,6 +8,7 @@ import {
   parseBirthYear,
   parseVatRate,
   resolveReferenceYear,
+  resolveVatExemptionLabel,
   resolveVatSplits,
 } from '@/features/billing/services/vat-calculation';
 
@@ -236,7 +237,33 @@ describe('formatVatLineLabel', () => {
 
   it('explains the zero rate on an exempt bill', () => {
     expect(formatVatLineLabel(component, true)).toBe(
-      'MWST 0.0% (steuerbefreite Leistung an Jugendliche)',
+      'MWST 0.0% (von der Steuer ausgenommene Leistung an Jugendliche)',
+    );
+  });
+
+  it('prints the wording an operator configured', () => {
+    expect(formatVatLineLabel(component, true, 'Leistung an Jugendliche, MWST-befreit')).toBe(
+      'MWST 0.0% (Leistung an Jugendliche, MWST-befreit)',
+    );
+  });
+});
+
+describe('resolveVatExemptionLabel', () => {
+  it('falls back to the default wording when nothing is configured', () => {
+    expect(resolveVatExemptionLabel(undefined)).toBe(
+      'von der Steuer ausgenommene Leistung an Jugendliche',
+    );
+  });
+
+  it('falls back when the operator cleared the field', () => {
+    expect(resolveVatExemptionLabel({ exemptLabel: '   ' })).toBe(
+      'von der Steuer ausgenommene Leistung an Jugendliche',
+    );
+  });
+
+  it('uses the configured wording, trimmed', () => {
+    expect(resolveVatExemptionLabel({ exemptLabel: '  Befreite Leistung  ' })).toBe(
+      'Befreite Leistung',
     );
   });
 });
