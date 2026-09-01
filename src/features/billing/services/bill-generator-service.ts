@@ -17,6 +17,7 @@ import {
   calculateVat,
   describeVatExemptionRule,
   formatVatLineLabel,
+  resolveVatExemptionLabel,
 } from '@/features/billing/services/vat-calculation';
 import type { GenerationSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
@@ -596,6 +597,7 @@ export async function generateBillsUseCase(
           roleOptions: resolveRoleOptions(roleType, rolePricing),
         },
         vatExemptionNote: describeVatExemptionRule(vatExemption),
+        vatExemptionLabel: resolveVatExemptionLabel(vatExemption),
         vat,
         paymentDeadlineDays: settings.paymentDeadlineDays ?? 30,
         firstName,
@@ -807,6 +809,8 @@ interface PdfGenerationParameters {
   };
   /** How the youth exemption is configured, in prose. Omitted when it is switched off. */
   vatExemptionNote?: string | undefined;
+  /** Reason printed beside the zero rate on an exempt bill. */
+  vatExemptionLabel: string;
   /** Precomputed by the caller so the invoice and the stored breakdown cannot diverge. */
   vat: VatCalculation;
   paymentDeadlineDays: number;
@@ -1307,7 +1311,7 @@ export async function generateQrBillPdf(parameters: PdfGenerationParameters): Pr
         textColor: mutedText,
         columns: [
           {
-            text: formatVatLineLabel(component, isExempt),
+            text: formatVatLineLabel(component, isExempt, parameters.vatExemptionLabel),
             width: columnWidth.description + columnWidth.quantity,
           },
           {

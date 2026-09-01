@@ -721,6 +721,23 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   ],
                 },
+                {
+                  name: 'exemptLabel',
+                  type: 'text',
+                  defaultValue: 'von der Steuer ausgenommene Leistung an Jugendliche',
+                  label: {
+                    en: 'Exemption Reason on the Invoice',
+                    de: 'Befreiungsgrund auf der Rechnung',
+                    fr: "Motif d'exonération sur la facture",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Printed in brackets after “MWST 0.0%” on an exempt bill. Left empty, the default wording is used.',
+                      de: 'Wird auf einer befreiten Rechnung in Klammern hinter «MWST 0.0%» gedruckt. Leer gelassen, gilt der Standardtext.',
+                      fr: "Imprimé entre parenthèses après « MWST 0.0% » sur une facture exonérée. Laissé vide, le texte par défaut s'applique.",
+                    },
+                  },
+                },
               ],
             },
           ],

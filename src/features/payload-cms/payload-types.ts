@@ -8281,6 +8281,10 @@ export interface BillSetting {
      */
     referenceYearMode?: ('invoiceYear' | 'fixedYear') | null;
     fixedReferenceYear?: number | null;
+    /**
+     * Printed in brackets after “MWST 0.0%” on an exempt bill. Left empty, the default wording is used.
+     */
+    exemptLabel?: string | null;
   };
   accountDebit?: string | null;
   accountCredit?: string | null;
@@ -8790,6 +8794,7 @@ export interface BillSettingsSelect<T extends boolean = true> {
         maxAge?: T;
         referenceYearMode?: T;
         fixedReferenceYear?: T;
+        exemptLabel?: T;
       };
   accountDebit?: T;
   accountCredit?: T;
