@@ -92,6 +92,16 @@ export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1087
   'TypeError: Invalid URL',
   'Invalid URL',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1560
+  // Next.js treats every `multipart/form-data` POST to a page route as a possible MPA server
+  // action. If the body carries no valid `$ACTION_` field — bots and scanners posting multipart
+  // bodies at page URLs, or a no-JS form submit against a page rendered by an older deployment —
+  // the action handler throws this error instead of letting the request fall through, so the
+  // message names a deployment skew that usually did not happen. The fetch-action path, which is
+  // how every server action in this app is actually invoked, never lands here: Next answers an
+  // unknown action id with a 404 plus the `x-nextjs-action-not-found` header and only warns.
+  'Failed to find Server Action',
 ];
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
