@@ -361,8 +361,8 @@ importers:
         specifier: ^9.39.5
         version: 9.39.5
       '@faker-js/faker':
-        specifier: ^9.9.0
-        version: 9.9.0
+        specifier: ^10.5.0
+        version: 10.5.0
       '@next/eslint-plugin-next':
         specifier: 16.3.0
         version: 16.3.0(eslint@9.39.5(jiti@2.7.0))
@@ -538,8 +538,8 @@ importers:
         specifier: ^8.66.0
         version: 8.66.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.7.2)
       undici:
-        specifier: ^8.10.0
-        version: 8.10.0
+        specifier: ^8.10.1
+        version: 8.10.1
       unrs-resolver:
         specifier: ^1.12.2
         version: 1.12.2
@@ -1260,9 +1260,9 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  '@faker-js/faker@9.9.0':
-    resolution: {integrity: sha512-OEl393iCOoo/z8bMezRlJu+GlRGlsKbUAN7jKB6LhnKoqKve5DXRpalbItIIcwnCjs1k/FOPjFzcA6Qn+H+YbA==}
-    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
+  '@faker-js/faker@10.5.0':
+    resolution: {integrity: sha512-bsxD8WLS5lIj7aaoCx1YJkktqYj5vlBUE6HWzu2Q51ksrGJ0H737ECCKlFU7Yf8Br45z9t99frBp/J7kzbMPAg==}
+    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
 
   '@fast-csv/format@4.3.5':
     resolution: {integrity: sha512-8iRn6QF3I8Ak78lNAa+Gdl5MJJBM5vRHivFtMRUWINdevNo00K7OXxS2PshawLKTejVwieIlPmK5YlLu6w4u8A==}
@@ -6073,6 +6073,9 @@ packages:
   es-module-lexer@2.3.1:
     resolution: {integrity: sha512-shc1dbU90Yl/xq1QrC7QRtfcwURZuVRfPhZbDoldJ1cn1gzDvBaBWlv0eFolj5+0znnPJz5TXLxsN77X/12KTA==}
 
+  es-module-lexer@2.3.2:
+    resolution: {integrity: sha512-poHGpORABojJJucnV9KbOavETW8lBVnphkW77ER5/BQ5Fz7oXSoCNek7IH3vR5nRjdsEz926ibFYX8KtLQmdyw==}
+
   es-object-atoms@1.1.2:
     resolution: {integrity: sha512-HWcBoN6NileqtSydK2FqHbS/LoDd2pqrnQHLyJzBj4kOp/ky2MWMN694xOfkK8/SnUsW2DH7EfyVlydKCsm1Zw==}
     engines: {node: '>= 0.4'}
@@ -8725,8 +8728,8 @@ packages:
   pdfkit@0.18.0:
     resolution: {integrity: sha512-NvUwSDZ0eYEzqAiWwVQkRkjYUkZ48kcsHuCO31ykqPPIVkwoSDjDGiwIgHHNtsiwls3z3P/zy4q00hl2chg2Ug==}
 
-  pdfkit@0.20.1:
-    resolution: {integrity: sha512-1rRXK6x5o8I/3dBrBzXfxibpHpkfCnIA7EBAES7pEpGFc/65inMLlA8SalGWpJfal7BGekxeLf6A30IOpQpc5Q==}
+  pdfkit@0.20.2:
+    resolution: {integrity: sha512-Q/w03ICAQyXfHNfTsg1udp0ADerdBN0s7a6XSPL7J7Ro6ABnafoBOCDBstIO9U02mvzHEV8HrvFIw5iV5ejIRA==}
 
   peberminta@0.10.0:
     resolution: {integrity: sha512-80B2AsU+I4Qdb0ZAPSfe9UwvGzwkM37IKIFEvdS3D/3Ndgv2bsuJ0bfG1+iEYO+l7Gfd4EUJmuRyq7efLgRMzQ==}
@@ -10082,8 +10085,8 @@ packages:
       uglify-js:
         optional: true
 
-  terser@5.49.2:
-    resolution: {integrity: sha512-rGbJiKeQ4WDe3EXlDAIaQcwftVfv2Q8o1awFNfvXolJYKkb1AuZY1RTOmqx4LJXZENbWZA7eIsYGHuEzHsi1nQ==}
+  terser@5.51.2:
+    resolution: {integrity: sha512-bWnjSNscmuI+GJze6ZupnHP8G/cTcsJF+bXCeQknk2SHQsgbNJnLrqiH9jZ2W4STPVXH2mDKKRX3iwPhc9Cn/Q==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -10323,8 +10326,8 @@ packages:
     resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
     engines: {node: '>=20.18.1'}
 
-  undici@8.10.0:
-    resolution: {integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==}
+  undici@8.10.1:
+    resolution: {integrity: sha512-YQ3WlbqjYMmNpdvDH64jAgLjxuAR9+649calDWhbshYaeQGO2bR4nI94ORJmwI3J9YhoKQnpyGOK+0zlWS5N5Q==}
     engines: {node: '>=22.19.0'}
 
   unicode-properties@1.4.1:
@@ -11587,7 +11590,7 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  '@faker-js/faker@9.9.0': {}
+  '@faker-js/faker@10.5.0': {}
 
   '@fast-csv/format@4.3.5':
     dependencies:
@@ -17914,6 +17917,8 @@ snapshots:
 
   es-module-lexer@2.3.1: {}
 
+  es-module-lexer@2.3.2: {}
+
   es-object-atoms@1.1.2:
     dependencies:
       es-errors: 1.3.0
@@ -21147,7 +21152,7 @@ snapshots:
 
   pdfkit-table@0.1.99:
     dependencies:
-      pdfkit: 0.20.1
+      pdfkit: 0.20.2
 
   pdfkit@0.18.0:
     dependencies:
@@ -21158,7 +21163,7 @@ snapshots:
       linebreak: 1.1.0
       png-js: 1.1.0
 
-  pdfkit@0.20.1:
+  pdfkit@0.20.2:
     dependencies:
       '@noble/ciphers': 1.3.0
       '@noble/hashes': 1.8.0
@@ -22584,14 +22589,14 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
-      terser: 5.49.2
+      terser: 5.51.2
       webpack: 5.106.2(@swc/core@1.15.33(@swc/helpers@0.5.23))(esbuild@0.28.1)(postcss@8.5.26)
     optionalDependencies:
       '@swc/core': 1.15.33(@swc/helpers@0.5.23)
       esbuild: 0.28.1
       postcss: 8.5.26
 
-  terser@5.49.2:
+  terser@5.51.2:
     dependencies:
       '@jridgewell/source-map': 0.3.11
       acorn: 8.18.0
@@ -22831,7 +22836,7 @@ snapshots:
 
   undici@7.29.0: {}
 
-  undici@8.10.0: {}
+  undici@8.10.1: {}
 
   unicode-properties@1.4.1:
     dependencies:
@@ -23081,7 +23086,7 @@ snapshots:
       browserslist: 4.28.8
       chrome-trace-event: 1.0.4
       enhanced-resolve: 5.24.5
-      es-module-lexer: 2.3.1
+      es-module-lexer: 2.3.2
       eslint-scope: 5.1.1
       events: 3.3.0
       glob-to-regexp: 0.4.1
