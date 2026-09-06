@@ -61,6 +61,16 @@ describe('filterPostHogNoise', () => {
       expect(filterPostHogNoise(event)).toBeNull();
     });
 
+    it('drops the WebExtension cookies.set() permission error, which has no source url', () => {
+      // The extension reports a single frame with no filename, so only the message identifies it.
+      // See https://github.com/cevi/conveniat-webpage/issues/1671
+      const event = exceptionEvent({
+        value: 'Invalid call to cookies.set(). Host permissions are missing or not granted.',
+      });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
     it('drops the Zotero Connector message, which arrives without a source url', () => {
       // Safari gives this one no stack, so only the message identifies it.
       const event = exceptionEvent({
@@ -294,6 +304,42 @@ describe('filterPostHogNoise', () => {
         ],
       });
       expect(filterPostHogNoise(event)).toBeNull();
+    });
+  });
+
+  describe('a fetch the browser never completed', () => {
+    // Each browser words a cancelled or failed request differently and gives the TypeError an
+    // empty stack, so the event names neither the request nor its caller.
+    it("drops Firefox's NetworkError wording", () => {
+      // See https://github.com/cevi/conveniat-webpage/issues/1655
+      const event = exceptionEvent({
+        type: 'TypeError',
+        value: 'NetworkError when attempting to fetch resource.',
+      });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it("drops WebKit's 'Internal error' wording", () => {
+      // See https://github.com/cevi/conveniat-webpage/issues/1609
+      const event = exceptionEvent({ type: 'TypeError', value: 'Internal error' });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it("keeps a message of ours that merely contains 'Internal error'", () => {
+      const event = exceptionEvent({
+        type: 'Error',
+        value: 'Internal error while saving the shift enrollment',
+      });
+
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it("keeps another type thrown with exactly 'Internal error'", () => {
+      const event = exceptionEvent({ type: 'RangeError', value: 'Internal error' });
+
+      expect(filterPostHogNoise(event)).toBe(event);
     });
   });
 

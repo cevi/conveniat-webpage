@@ -112,6 +112,23 @@ export const noiseMessages = [
   // sees changes. Match the field name rather than one engine's wording, since Safari and Chrome
   // phrase the same null access differently; `noiseMessages` is matched as a substring.
   '_retryCache',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1671
+  // A browser extension calling the WebExtension `cookies.set()` API on a page it was never
+  // granted host permissions for. We call nothing named `cookies.set`, and the single frame the
+  // extension reports carries no source url, so `hasBrowserExtensionFrame` below cannot catch it.
+  'Invalid call to cookies.set(). Host permissions are missing or not granted.',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1655
+  // Firefox's wording for a `fetch()` that never completed: offline, blocked, or - what every
+  // recorded occurrence was - cancelled because the page navigated away while the request was
+  // still in flight. Firefox builds these TypeErrors with an empty stack, so the event names
+  // neither the request nor its caller. All 72 events so far were on `/admin`, where the Payload
+  // admin panel fires its own `/api/...` requests on mount and then follows the login redirect a
+  // few hundred milliseconds later; every admin fetch of ours already runs inside TanStack Query
+  // or a `try`/`catch`. Chrome ('Failed to fetch') and Safari ('Load failed') report the same
+  // condition, and both of those wordings are already dropped.
+  'NetworkError when attempting to fetch resource.',
 ];
 
 /**
@@ -267,6 +284,25 @@ const isNativeOnlyStack = (exception: PostHogException | null | undefined): bool
 const MASKED_CROSS_ORIGIN_ERROR = 'Script error.';
 
 /**
+ * True for WebKit's own `TypeError: Internal error`, the wording it uses when a `fetch()` fails
+ * inside its network process or its service worker plumbing - the same failure Safari otherwise
+ * words as 'Load failed', which `noiseMessages` already drops.
+ *
+ * Both the type and the whole value are compared for equality, not as a substring like
+ * `noiseMessages`, because 'Internal error' is short enough to appear inside a message of ours.
+ *
+ * The event carries no stack and `mechanism.synthetic`, so it names neither the request nor its
+ * caller. Every recorded occurrence was iOS (mostly 18.7.0) inside the konekta PWA, spread over
+ * eight different `/app/*` routes rather than one page, and fired one to two seconds before the
+ * next navigation committed - a request cancelled by the user tapping a link. Our own client
+ * fetches on those routes all go through tRPC/TanStack Query or a `try`/`catch`.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1609
+ */
+const isWebKitInternalFetchError = (exception: PostHogException | null | undefined): boolean =>
+  exception?.type === 'TypeError' && exception.value === 'Internal error';
+
+/**
  * `before_send` hook for posthog-js: drops exceptions that did not originate in our code.
  *
  * Returns the event unchanged when it should be reported, and `null` to discard it.
@@ -298,6 +334,7 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
           (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
           (typeof value === 'string' && noiseMessages.some((m) => value.includes(m))) ||
           value === MASKED_CROSS_ORIGIN_ERROR ||
+          isWebKitInternalFetchError(exc) ||
           isInjectedDocumentScript(exc) ||
           isNativeOnlyStack(exc)
         ) {
