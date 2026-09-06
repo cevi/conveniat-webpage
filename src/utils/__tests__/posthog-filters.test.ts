@@ -65,6 +65,26 @@ describe('filterPostHogNoise', () => {
     });
   });
 
+  describe('the masked cross-origin error', () => {
+    // The browser replaces message, source and stack with 'Script error.' when a script from
+    // another origin throws. See https://github.com/cevi/conveniat-webpage/issues/1553
+    it('drops a frameless "Script error."', () => {
+      const event = exceptionEvent({ type: 'Error', value: 'Script error.' });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it('keeps an error of ours that only mentions a script error', () => {
+      const event = exceptionEvent({
+        type: 'Error',
+        value: 'Failed to initialize: Script error.',
+        frames: [{ filename: 'https://conveniat27.ch/_next/static/chunks/main.js' }],
+      });
+
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+  });
+
   describe('exceptions we still want to hear about', () => {
     it('keeps an exception thrown by our own bundle', () => {
       const event = exceptionEvent({
