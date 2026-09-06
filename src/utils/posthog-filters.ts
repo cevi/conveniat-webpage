@@ -99,6 +99,16 @@ export const noiseMessages = [
   // happens whenever the background page is suspended) and reports the failure into the page.
   // The stack has no source url, so the frame check below cannot catch it.
   'Zotero Connector:',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1553
+  // What a browser reports through `window.onerror` when a script from another origin throws:
+  // the message, the source url and the stack are all replaced by the literal 'Script error.'.
+  // The event therefore carries nothing we could act on, and we serve no cross-origin scripts
+  // ourselves (PostHog is proxied through `/ingest` on our own origin), so every one of these
+  // comes from an extension, an in-app browser or another injected script.
+  // The trailing period is part of the browser's wording; keeping it here avoids swallowing a
+  // real error of ours that merely mentions a script error.
+  'Script error.',
 ];
 
 /**
