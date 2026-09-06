@@ -135,7 +135,7 @@
     "node-addon-api": "^8.9.1",
     "node-gyp": "^11.5.0",
     "node-pop3": "^0.11.0",
-    "payload": "^3.87.1",
+    "payload": "^3.88.0",
     "pdfkit": "^0.18.0",
     "pdfkit-table": "^0.1.99",
     "pg": "^8.22.0",
@@ -163,7 +163,7 @@
     "@eslint/compat": "^1.4.1",
     "@eslint/eslintrc": "^3.3.6",
     "@eslint/js": "^9.39.5",
-    "@faker-js/faker": "^10.5.0",
+    "@faker-js/faker": "^10.6.0",
     "@next/eslint-plugin-next": "16.3.0",
     "@playwright/test": "^1.62.1",
     "@prisma/client-runtime-utils": "^7.9.1",
@@ -222,7 +222,7 @@
     "tsx": "^4.23.11",
     "typescript": "5.7.2",
     "typescript-eslint": "^8.66.0",
-    "undici": "^8.10.1",
+    "undici": "^8.10.2",
     "unrs-resolver": "^1.12.2"
   },
   "optionalDependencies": {
