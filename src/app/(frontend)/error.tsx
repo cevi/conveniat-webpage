@@ -4,6 +4,7 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
 import { isDraftOrPreviewMode } from '@/utils/draft-mode';
 import {
   errorMessageTranslation,
@@ -98,9 +99,17 @@ const ErrorPage: React.FC<{
       console.error(error);
       console.error(error.stack);
       if (!isPreviewMode) {
-        void import('posthog-js').then(({ default: ph }) => {
-          ph.captureException(error);
-        });
+        void import('posthog-js')
+          .then(({ default: ph }) => {
+            ph.captureException(error);
+          })
+          // A chunk this bundle needs but the current deployment no longer serves makes this
+          // boundary a dead end. Reload onto the current build instead - after the report
+          // above, so the skew stays visible in PostHog. Preview is excluded: the live-preview
+          // iframe has its own reload handling in `global-error.tsx`.
+          .finally(() => {
+            attemptStaleBundleRecovery(error);
+          });
       }
     }
   }, [error, isPreviewMode]);

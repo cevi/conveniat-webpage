@@ -3,6 +3,7 @@ import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -154,7 +155,14 @@ const ErrorPage: React.FC<{
             digest: error.digest ?? 'N/A',
           });
         })
-        .catch((error_: unknown) => console.error('Failed to capture error with PostHog', error_));
+        .catch((error_: unknown) => console.error('Failed to capture error with PostHog', error_))
+        // A chunk this bundle needs but the current deployment no longer serves makes this
+        // boundary a dead end: `reset()` re-renders the same missing module and the retry
+        // button gets the user nowhere. Reload onto the current build instead - after the
+        // report above, so the skew stays visible in PostHog.
+        .finally(() => {
+          attemptStaleBundleRecovery(error);
+        });
     }
 
     const handleOnlineStatus = (): void => {
