@@ -4,6 +4,7 @@ import type { CaptureResult } from 'posthog-js';
 interface Frame {
   filename?: string;
   abs_path?: string;
+  function?: string;
   lineno?: number;
   colno?: number;
 }
@@ -149,7 +150,61 @@ describe('filterPostHogNoise', () => {
     });
   });
 
+  describe('exceptions whose whole stack is native code', () => {
+    // See https://github.com/cevi/conveniat-webpage/issues/1667. Nothing we ship can throw
+    // without leaving a script frame behind, so a stack of nothing but browser built-ins belongs
+    // to an injected script the browser will not name.
+    it('drops the Google Translate throw from Chrome for iOS (issue #1667)', () => {
+      const event = exceptionEvent({
+        type: 'TypeError',
+        value: "undefined is not an object (evaluating 'a.K')",
+        frames: [{ filename: '[native code]', function: 'Promise' }],
+      });
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it('drops a multi-frame stack of only built-ins', () => {
+      const event = exceptionEvent({
+        value: "undefined is not an object (evaluating 'b.j')",
+        frames: [
+          { filename: '[native code]', function: 'forEach' },
+          { filename: '[native code]', function: 'Promise' },
+        ],
+      });
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+  });
+
   describe('exceptions thrown by code we ship', () => {
+    it('keeps a native frame that sits on top of one of our bundle frames', () => {
+      // The real IndexedDB failure this rule must not swallow: our tRPC persister calls
+      // `IDBDatabase.transaction`, which throws from native code. The bundle frame underneath it
+      // is what makes the exception ours.
+      const event = exceptionEvent({
+        type: 'DOMException',
+        value:
+          "InvalidStateError: Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.",
+        frames: [
+          {
+            filename: 'https://konekta.ch/_next/static/chunks/19f6kysfqmkzf.js',
+            function: '?',
+            lineno: 1,
+            colno: 79_542,
+          },
+          { filename: '[native code]', function: 'transaction' },
+        ],
+      });
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it('keeps a stack whose frames carry no filename at all', () => {
+      const event = exceptionEvent({
+        value: 'boom',
+        frames: [{ function: 'handleSubmit' }],
+      });
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
     it('keeps a throw from a bundle chunk', () => {
       const event = exceptionEvent({
         value: "Cannot read properties of undefined (reading 'length')",

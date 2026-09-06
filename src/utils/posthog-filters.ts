@@ -206,10 +206,41 @@ const isInjectedDocumentScript = (exception: PostHogException | null | undefined
 };
 
 /**
- * `before_send` hook for posthog-js: drops exceptions that did not originate in our code.
- *
- * Returns the event unchanged when it should be reported, and `null` to discard it.
+ * The filename a browser reports for a frame that is executing a built-in rather than a script:
+ * `Promise`, `transaction`, `forEach`. posthog-js recognises this exact literal while parsing a
+ * WebKit or Gecko stack — it is one alternative of the filename group in the `WEBKIT_STACK_REGEX`
+ * of `posthog-js/src/extensions/exception-autocapture/stack-trace.ts` — and copies it into the
+ * frame verbatim. No other spelling of a native frame occurs in our data.
  */
+const NATIVE_CODE_FILENAME = '[native code]';
+
+/**
+ * True when an exception has at least one frame and the `filename` of every one of them is exactly
+ * `[native code]`, so no script appears anywhere in the stack.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1667
+ *
+ * Code we ship always leaves at least one frame under `/_next/static`, `/sw.js` or
+ * `/ingest/static`, even when the throw happens inside a callback the browser invoked: the
+ * callback itself is a frame. A stack made only of native frames therefore means the failing
+ * function belonged to a script the browser refuses to attribute — the Google Translate bundle
+ * Chrome for iOS injects, in the reported case, which throws with a Closure-Compiler-mangled
+ * message (`undefined is not an object (evaluating 'a.K')`) that changes with every Google build
+ * and so cannot be matched against `noiseMessages`.
+ *
+ * This fails open in every direction: an exception with no frames at all, a frame whose `filename`
+ * is missing or not a string, and any single non-native frame all keep the exception. A real
+ * failure of ours that merely passes through a built-in — `IDBDatabase.transaction` throwing
+ * underneath our tRPC persister, for instance — still carries its bundle frame and is reported.
+ */
+const isNativeOnlyStack = (exception: PostHogException | null | undefined): boolean => {
+  const frames = exception?.stacktrace?.frames;
+  if (!Array.isArray(frames) || frames.length === 0) return false;
+  return (frames as (PostHogStackFrame | null | undefined)[]).every(
+    (frame) => frame?.filename === NATIVE_CODE_FILENAME,
+  );
+};
+
 /**
  * What a browser reports through `window.onerror` when a script from another origin throws: the
  * message, the source url and the stack are all replaced by this literal, so the event carries
@@ -222,6 +253,11 @@ const isInjectedDocumentScript = (exception: PostHogException | null | undefined
  */
 const MASKED_CROSS_ORIGIN_ERROR = 'Script error.';
 
+/**
+ * `before_send` hook for posthog-js: drops exceptions that did not originate in our code.
+ *
+ * Returns the event unchanged when it should be reported, and `null` to discard it.
+ */
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
   if (event?.event === '$exception') {
     const props = event.properties;
@@ -249,7 +285,8 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
           (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
           (typeof value === 'string' && noiseMessages.some((m) => value.includes(m))) ||
           value === MASKED_CROSS_ORIGIN_ERROR ||
-          isInjectedDocumentScript(exc)
+          isInjectedDocumentScript(exc) ||
+          isNativeOnlyStack(exc)
         ) {
           // eslint-disable-next-line unicorn/no-null
           return null; // drop the event
