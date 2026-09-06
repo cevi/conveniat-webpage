@@ -327,7 +327,8 @@ We follow a standard Git workflow for managing changes:
    - Dependabot security updates always target `main`. Merge them as they come. They wait in the release pull request
      until the next release.
    - After every release, we merge `main` back into `dev`, so `dev` carries the new version and the changelog.
-   - We may squash merge features into `dev` to keep the history clean.
+   - Squash merge pull requests into `dev`. A regular merge lands the branch commits and a merge commit with the same
+     title, and release-please then lists the change twice in the changelog.
 4. **Hotfixes:** For urgent fixes, create a hotfix branch from `main`, apply the fix, and merge it into `main` through a
    pull request. Merging the release pull request afterwards ships it, then merge `main` back into `dev`. Hotfix
    branches should be named like `hotfix/fix-issue`.
