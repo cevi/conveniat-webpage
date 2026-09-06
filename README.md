@@ -125,7 +125,7 @@ src/
 - **Import Restrictions:** ESLint rules (`import/no-restricted-paths` in `eslint.config.mjs`) enforce unidirectional
   dependencies:
   - `app` can import from `features` and shared directories (`components`, `hooks`, etc.).
-  - `features` _cannot_ import from `app` or shared directories.
+  - `features` can import from shared directories but _cannot_ import from `app`.
   - Features generally should _not_ import directly from other features, promoting loose coupling. Exceptions are
     explicitly defined (e.g., `payload-cms` and `next-auth` can be imported more broadly).
   - Shared directories (`components`, `hooks`, `lib`, `types`, `utils`) should not import from `app` or `features`.
