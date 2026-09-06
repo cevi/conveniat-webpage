@@ -16,6 +16,7 @@ const exceptionEvent = (exception: {
   type?: string;
   value?: string;
   frames?: Frame[];
+  synthetic?: boolean;
 }): CaptureResult =>
   ({
     event: '$exception',
@@ -25,7 +26,11 @@ const exceptionEvent = (exception: {
         {
           type: exception.type ?? 'Error',
           value: exception.value,
-          mechanism: { handled: false, synthetic: false, type: 'generic' },
+          mechanism: {
+            handled: false,
+            synthetic: exception.synthetic ?? false,
+            type: 'generic',
+          },
           ...(exception.frames === undefined
             ? {}
             : { stacktrace: { type: 'raw', frames: exception.frames } }),
@@ -56,6 +61,16 @@ describe('filterPostHogNoise', () => {
       const event = exceptionEvent({
         value: 'Something an extension did',
         frames: [{ abs_path: 'moz-extension://abcdef/content.js' }],
+      });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it('drops the WebExtension cookies.set() permission error, which has no source url', () => {
+      // The extension reports a single frame with no filename, so only the message identifies it.
+      // See https://github.com/cevi/conveniat-webpage/issues/1671
+      const event = exceptionEvent({
+        value: 'Invalid call to cookies.set(). Host permissions are missing or not granted.',
       });
 
       expect(filterPostHogNoise(event)).toBeNull();
@@ -294,6 +309,59 @@ describe('filterPostHogNoise', () => {
         ],
       });
       expect(filterPostHogNoise(event)).toBeNull();
+    });
+  });
+
+  describe('a fetch the browser never completed', () => {
+    // Each browser words a cancelled or failed request differently and gives the TypeError an
+    // empty stack, so the event names neither the request nor its caller.
+    it("drops Firefox's NetworkError wording", () => {
+      // See https://github.com/cevi/conveniat-webpage/issues/1655
+      const event = exceptionEvent({
+        type: 'TypeError',
+        value: 'NetworkError when attempting to fetch resource.',
+      });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it("drops WebKit's synthetic, stackless 'Internal error'", () => {
+      // See https://github.com/cevi/conveniat-webpage/issues/1609
+      const event = exceptionEvent({ type: 'TypeError', value: 'Internal error', synthetic: true });
+
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it("keeps an 'Internal error' that was thrown rather than reported by the browser", () => {
+      const event = exceptionEvent({ type: 'TypeError', value: 'Internal error' });
+
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it("keeps an 'Internal error' that arrives with a stack", () => {
+      const event = exceptionEvent({
+        type: 'TypeError',
+        value: 'Internal error',
+        synthetic: true,
+        frames: [{ filename: 'https://conveniat27.ch/_next/static/chunks/main.js' }],
+      });
+
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it("keeps a message of ours that merely contains 'Internal error'", () => {
+      const event = exceptionEvent({
+        type: 'Error',
+        value: 'Internal error while saving the shift enrollment',
+      });
+
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it("keeps another type thrown with exactly 'Internal error'", () => {
+      const event = exceptionEvent({ type: 'RangeError', value: 'Internal error' });
+
+      expect(filterPostHogNoise(event)).toBe(event);
     });
   });
 
