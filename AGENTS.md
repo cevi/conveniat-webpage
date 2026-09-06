@@ -202,10 +202,8 @@ and `deleteThing`, and anything else after what it does, like `archiveChat`.
 
 ## Git and pull requests
 
-Branch from `dev`. Small changes may land on `dev` directly. Pull requests into `dev` are squash
-merged, so each change is one conventional commit and the changelog lists it once. `main` is
-protected, so anything reaching it goes through a pull request, and releases merge `dev` into
-`main` without squashing.
+Branch from `dev`. Small changes may land on `dev` directly. `main` is protected, so anything
+reaching it goes through a pull request, and releases merge `dev` into `main` without squashing.
 Do not bump the version in `package.json` yourself. Every merge into `main` accumulates in one
 open release pull request that release-please keeps up to date. Its version comes from the commit
 titles since the last tag: `feat:` a minor, `fix:`, `perf:` and `chore(deps):` a patch, a `!` or a
