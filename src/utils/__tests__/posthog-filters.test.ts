@@ -273,6 +273,28 @@ describe('filterPostHogNoise', () => {
       });
       expect(filterPostHogNoise(event)).toBeNull();
     });
+
+    // React throws this from `resolveRetryWakeable` when a promise resolves for an `<Activity>`
+    // boundary that has already been unmounted. The only frame is React's own, and browsers word
+    // the null access differently. See https://github.com/cevi/conveniat-webpage/issues/1595
+    it.each([
+      "Cannot read properties of null (reading '_retryCache')",
+      "null is not an object (evaluating 'e.stateNode._retryCache')",
+    ])("drops React's retry of an unmounted boundary: %s", (value) => {
+      const event = exceptionEvent({
+        type: 'TypeError',
+        value,
+        frames: [
+          {
+            filename:
+              'https://conveniat27.ch/_next/static/chunks/node_modules_next_dist_compiled_react-dom_cjs_react-dom-client_production_js.js',
+            lineno: 13_304,
+            colno: 43,
+          },
+        ],
+      });
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
   });
 
   it('passes non-exception events straight through', () => {

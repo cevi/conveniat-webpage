@@ -99,6 +99,19 @@ export const noiseMessages = [
   // happens whenever the background page is suspended) and reports the failure into the page.
   // The stack has no source url, so the frame check below cannot catch it.
   'Zotero Connector:',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1595
+  // `_retryCache` is a private field React keeps on the fiber of an `<Activity>` boundary.
+  // React reads it in `resolveRetryWakeable` when a promise a suspended boundary was waiting on
+  // resolves, and throws when the boundary was already unmounted, so that `stateNode` is null.
+  // The reported stacks are a single frame inside
+  // `next/dist/compiled/react-dom/cjs/react-dom-client.production.js`, marked `in_app: false`,
+  // with no frame of ours anywhere: the `<Activity>` boundaries belong to the App Router, we
+  // neither render one nor touch the field. React throws it from a resolved promise's callback
+  // rather than from a render, and the boundary it wanted to retry is gone, so nothing the user
+  // sees changes. Match the field name rather than one engine's wording, since Safari and Chrome
+  // phrase the same null access differently; `noiseMessages` is matched as a substring.
+  '_retryCache',
 ];
 
 /**
