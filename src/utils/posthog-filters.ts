@@ -142,6 +142,74 @@ const hasBrowserExtensionFrame = (exceptionList: unknown): boolean => {
   });
 };
 
+/** Matches the path of a URL that names a JavaScript file, whatever the query string. */
+const javaScriptFileExtension = /\.[cm]?js$/;
+
+interface PostHogStackFrame {
+  filename?: unknown;
+}
+
+interface PostHogException {
+  type?: unknown;
+  value?: unknown;
+  stacktrace?: { frames?: unknown } | null;
+}
+
+/**
+ * True when a stack frame is attributed to an HTML document instead of to a script file.
+ *
+ * Everything we ship runs from a script URL: the bundle chunks under `/_next/static`, `/sw.js`,
+ * and the PostHog recorder under `/ingest/static`. A frame whose http(s) filename does not name a
+ * `.js` file therefore points at the HTML document itself. Anything that is not an http(s) URL
+ * (`<anonymous>`, `blob:`, an extension scheme, an empty filename) is not a document frame, so an
+ * unfamiliar stack is kept rather than dropped.
+ */
+const isDocumentFrame = (frame: PostHogStackFrame | null | undefined): boolean => {
+  const filename = frame?.filename;
+  if (typeof filename !== 'string') return false;
+
+  let url: URL;
+  try {
+    url = new URL(filename);
+  } catch {
+    return false;
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  return !javaScriptFileExtension.test(url.pathname);
+};
+
+/**
+ * True when every frame of an exception points at the HTML document rather than at a script.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1666
+ *
+ * Chrome and Firefox for iOS inject their own WebKit user scripts into every page they render.
+ * WebKit attributes those scripts to the containing document, so when one of them throws, the
+ * browser reports our page URL as the source with line numbers that belong to the injected script
+ * — line 415 of a document that is five lines long. PostHog marks such frames `in_app`, files them
+ * under our project and then fails to symbolicate them ("Invalid source map: bad json", because it
+ * fetched our HTML). The exceptions arrive minified past recognition (`Error: ga`, `Error: Ca`,
+ * frames named `Ii`), so the `noiseMessages` list above cannot tell them apart from real errors.
+ *
+ * The two inline `<script>` blocks we do ship — the native push capture and the boot watchdog in
+ * `src/app/(onboarding)/layout.tsx` — only register listeners and guard every throwing call with
+ * `try`/`catch`, so they cannot produce an uncaught exception. Keep it that way, or a genuine
+ * failure in them will be dropped here.
+ */
+const isInjectedDocumentScript = (exception: PostHogException | null | undefined): boolean => {
+  const frames = exception?.stacktrace?.frames;
+  if (!Array.isArray(frames) || frames.length === 0) return false;
+  return (frames as (PostHogStackFrame | null | undefined)[]).every((frame) =>
+    isDocumentFrame(frame),
+  );
+};
+
+/**
+ * `before_send` hook for posthog-js: drops exceptions that did not originate in our code.
+ *
+ * Returns the event unchanged when it should be reported, and `null` to discard it.
+ */
 /**
  * What a browser reports through `window.onerror` when a script from another origin throws: the
  * message, the source url and the stack are all replaced by this literal, so the event carries
@@ -174,15 +242,14 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
     }
 
     if (Array.isArray(exceptionList)) {
-      for (const exc of exceptionList as Array<
-        { type?: unknown; value?: unknown } | null | undefined
-      >) {
+      for (const exc of exceptionList as Array<PostHogException | null | undefined>) {
         const type = exc?.type;
         const value = exc?.value;
         if (
           (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
           (typeof value === 'string' && noiseMessages.some((m) => value.includes(m))) ||
-          value === MASKED_CROSS_ORIGIN_ERROR
+          value === MASKED_CROSS_ORIGIN_ERROR ||
+          isInjectedDocumentScript(exc)
         ) {
           // eslint-disable-next-line unicorn/no-null
           return null; // drop the event
