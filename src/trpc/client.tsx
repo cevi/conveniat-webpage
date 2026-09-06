@@ -2,6 +2,7 @@
 
 import { environmentVariables } from '@/config/environment-variables';
 import { flushPersonalData } from '@/lib/flush-personal-data';
+import { withKeyvalStore } from '@/lib/idb-keyval-store';
 import { makeQueryClient } from '@/trpc/query-client';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
@@ -106,101 +107,30 @@ const createHttpBatchLink = (): ReturnType<typeof httpBatchLink> => {
  * Setup static persister which falls back to no-op on Server Side Rendering.
  * This guarantees consistent component mounting during hydration and prevents warnings.
  */
-/* eslint-disable unicorn/prevent-abbreviations, unicorn/prefer-add-event-listener, unicorn/no-null */
+/* eslint-disable unicorn/no-null */
 const indexedDBStorage = {
   getItem: async (key: string): Promise<string | null> => {
-    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return null;
-    return new Promise((resolve) => {
-      try {
-        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
-        openRequest.onupgradeneeded = (): void => {
-          if (!openRequest.result.objectStoreNames.contains('keyval')) {
-            openRequest.result.createObjectStore('keyval');
-          }
-        };
-        openRequest.onsuccess = (): void => {
-          const db = openRequest.result;
-          const tx = db.transaction('keyval', 'readonly');
-          const store = tx.objectStore('keyval');
-          const getReq = store.get(key);
-          getReq.onsuccess = (): void => {
-            resolve((getReq.result as string | undefined) ?? null);
-            db.close();
-          };
-          getReq.onerror = (): void => {
-            resolve(null);
-            db.close();
-          };
-        };
-        openRequest.onerror = (): void => resolve(null);
-      } catch {
-        resolve(null);
-      }
+    let value: string | undefined;
+    await withKeyvalStore('readonly', (store) => {
+      const request = store.get(key);
+      request.onsuccess = (): void => {
+        value = request.result as string | undefined;
+      };
     });
+    return value ?? null;
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return;
-    return new Promise((resolve) => {
-      try {
-        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
-        openRequest.onupgradeneeded = (): void => {
-          if (!openRequest.result.objectStoreNames.contains('keyval')) {
-            openRequest.result.createObjectStore('keyval');
-          }
-        };
-        openRequest.onsuccess = (): void => {
-          const db = openRequest.result;
-          const tx = db.transaction('keyval', 'readwrite');
-          const store = tx.objectStore('keyval');
-          store.put(value, key);
-          tx.oncomplete = (): void => {
-            resolve();
-            db.close();
-          };
-          tx.onerror = (): void => {
-            console.warn('[IndexedDBStorage] Failed to write to store:', tx.error);
-            db.close();
-            resolve();
-          };
-        };
-        openRequest.onerror = (): void => resolve();
-      } catch {
-        resolve();
-      }
+    await withKeyvalStore('readwrite', (store) => {
+      store.put(value, key);
     });
   },
   removeItem: async (key: string): Promise<void> => {
-    if (typeof globalThis === 'undefined' || !('indexedDB' in globalThis)) return;
-    return new Promise((resolve) => {
-      try {
-        const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
-        openRequest.onupgradeneeded = (): void => {
-          if (!openRequest.result.objectStoreNames.contains('keyval')) {
-            openRequest.result.createObjectStore('keyval');
-          }
-        };
-        openRequest.onsuccess = (): void => {
-          const db = openRequest.result;
-          const tx = db.transaction('keyval', 'readwrite');
-          const store = tx.objectStore('keyval');
-          store.delete(key);
-          tx.oncomplete = (): void => {
-            resolve();
-            db.close();
-          };
-          tx.onerror = (): void => {
-            resolve();
-            db.close();
-          };
-        };
-        openRequest.onerror = (): void => resolve();
-      } catch {
-        resolve();
-      }
+    await withKeyvalStore('readwrite', (store) => {
+      store.delete(key);
     });
   },
 };
-/* eslint-enable unicorn/prevent-abbreviations, unicorn/prefer-add-event-listener, unicorn/no-null */
+/* eslint-enable unicorn/no-null */
 
 const persister: Persister =
   // eslint-disable-next-line unicorn/prefer-global-this
