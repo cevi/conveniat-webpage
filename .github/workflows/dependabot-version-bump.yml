@@ -1,0 +1,65 @@
+# Dependabot security updates always target main (GitHub ignores `target-branch` for them), and
+# a merge into main only becomes a release when package.json carries a new version: the
+# "Create Release" workflow tags main from that field, and the prod image is built from main
+# either way. Without a bump, a security update would ship to production as the old version.
+#
+# So every Dependabot pull request against main gets one commit that raises the patch version.
+# The push has to come from a personal access token: a push made with GITHUB_TOKEN does not
+# start workflows, and main requires the eslint check on the final commit before merging.
+name: Bump version on Dependabot updates
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    # Only Dependabot's own pushes. Our bump commit is pushed by the token's owner, so the
+    # `synchronize` event it causes is skipped here and cannot loop. When Dependabot rebases, its
+    # force-push drops our commit and this job adds it again.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the pull request branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.DEPENDABOT_VERSION_BUMP_TOKEN }}
+          fetch-depth: 0
+
+      - name: Skip when the branch already carries a bump
+        id: check
+        run: |
+          if git log --format=%s origin/main..HEAD | grep -q '^chore: bump version to '; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump the patch version
+        if: steps.check.outputs.skip != 'true'
+        id: bump
+        # Plain file edit instead of `pnpm version`, so no lifecycle script from the checked-out
+        # branch runs under this job's write token.
+        run: |
+          next=$(node -e '
+            const fs = require("node:fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            const [major, minor, patch] = pkg.version.split(".").map(Number);
+            pkg.version = `${major}.${minor}.${patch + 1}`;
+            fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+            process.stdout.write(pkg.version);
+          ')
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump version to ${{ steps.bump.outputs.version }}"
+          git push origin "HEAD:${{ github.head_ref }}"
