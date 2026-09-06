@@ -1,7 +1,9 @@
+# Runs when release-please publishes a release, i.e. when the release pull request on main is
+# merged. A plain merge into main builds nothing; see .github/workflows/release-please.yml.
 on:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - published
 
 name: Build Konekta Deployment Image
 jobs:

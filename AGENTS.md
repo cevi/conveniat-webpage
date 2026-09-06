@@ -204,6 +204,10 @@ and `deleteThing`, and anything else after what it does, like `archiveChat`.
 
 Branch from `dev`. Small changes may land on `dev` directly. `main` is protected, so anything
 reaching it goes through a pull request, and releases merge `dev` into `main` without squashing.
+Do not bump the version in `package.json` yourself. Every merge into `main` lands in the open
+release pull request that release-please maintains, which raises the version from the
+conventional commit titles since the last tag. Merging that pull request tags the release and
+builds the production image. A merge into `main` on its own builds nothing.
 
 Write conventional commit titles in plain language, like `fix(chat): unread badge clears on
 reopen`.
