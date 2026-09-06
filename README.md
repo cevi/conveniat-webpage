@@ -318,13 +318,19 @@ We follow a standard Git workflow for managing changes:
    - Ensure the PR description is clear about the changes made.
    - Request reviews from team members.
    - Once approved, we merge the PR into `dev`.
-3. **Releases:** When ready to deploy, merge `dev` into `main`.
+3. **Releases:** When ready to deploy, merge `dev` into `main` through a pull request.
    - We do not use squash merging for releases, instead, we use regular merging to preserve commit history.
-   - After every release, we rebase the `dev` branch from `main` to keep it up to date without introducing merge
-     commits.
+   - release-please then opens or updates the release pull request, titled `chore(main): release x.y.z`. Merging it
+     writes the changelog, creates the tag and the GitHub release, and the release is what builds the production images.
+   - `feat:` titles make a minor release, `fix:`, `perf:` and `chore(deps):` a patch, and a `!` or a `BREAKING CHANGE:`
+     footer a major, while other types such as `docs:`, `refactor:`, `ci:` and plain `chore:` release nothing.
+   - Dependabot security updates always target `main`. Merge them as they come. They wait in the release pull request
+     until the next release.
+   - After every release, we merge `main` back into `dev`, so `dev` carries the new version and the changelog.
    - We may squash merge features into `dev` to keep the history clean.
-4. **Hotfixes:** For urgent fixes, create a hotfix branch from `main`, apply the fix, and merge it back into both `main`
-   and `dev`. Hotfix branches should be named like `hotfix/fix-issue`.
+4. **Hotfixes:** For urgent fixes, create a hotfix branch from `main`, apply the fix, and merge it into `main` through a
+   pull request. Merging the release pull request afterwards ships it, then merge `main` back into `dev`. Hotfix
+   branches should be named like `hotfix/fix-issue`.
 
 ### Pre-Commit Hook
 

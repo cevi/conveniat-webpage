@@ -204,10 +204,12 @@ and `deleteThing`, and anything else after what it does, like `archiveChat`.
 
 Branch from `dev`. Small changes may land on `dev` directly. `main` is protected, so anything
 reaching it goes through a pull request, and releases merge `dev` into `main` without squashing.
-Do not bump the version in `package.json` yourself. Every merge into `main` lands in the open
-release pull request that release-please maintains, which raises the version from the
-conventional commit titles since the last tag. Merging that pull request tags the release and
-builds the production image. A merge into `main` on its own builds nothing.
+Do not bump the version in `package.json` yourself. Every merge into `main` accumulates in one
+open release pull request that release-please keeps up to date. Its version comes from the commit
+titles since the last tag: `feat:` a minor, `fix:`, `perf:` and `chore(deps):` a patch, a `!` or a
+`BREAKING CHANGE:` footer a major. Other types release nothing and stay out of the changelog.
+Merging that pull request tags the release and builds production. A merge into `main` on its own
+builds nothing. Afterwards merge `main` back into `dev`, so `dev` carries the new version.
 
 Write conventional commit titles in plain language, like `fix(chat): unread badge clears on
 reopen`.
