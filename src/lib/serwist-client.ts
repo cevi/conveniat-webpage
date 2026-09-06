@@ -1,2 +1,2 @@
 'use client';
-export { SerwistProvider } from '@serwist/next/react';
+export { SerwistProvider, useSerwist } from '@serwist/next/react';

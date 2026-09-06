@@ -1,5 +1,6 @@
 'use client';
 
+import { withKeyvalStore } from '@/lib/idb-keyval-store';
 import { starsCollection, userPreferencesCollection } from '@/lib/tanstack-db';
 
 /**
@@ -38,25 +39,11 @@ export function flushPersonalData(): void {
     // localStorage may be unavailable (e.g. private browsing quota exceeded)
   }
 
-  // Clear IndexedDB query cache
-  if (typeof globalThis !== 'undefined' && 'indexedDB' in globalThis) {
-    try {
-      const openRequest = globalThis.indexedDB.open('conveniat-db', 1);
-      openRequest.onupgradeneeded = (): void => {
-        if (!openRequest.result.objectStoreNames.contains('keyval')) {
-          openRequest.result.createObjectStore('keyval');
-        }
-      };
-      openRequest.onsuccess = (): void => {
-        const db = openRequest.result;
-        const tx = db.transaction('keyval', 'readwrite');
-        const store = tx.objectStore('keyval');
-        store.delete(PERSISTED_QUERY_CACHE_IDB_KEY);
-      };
-    } catch {
-      // IndexedDB may be blocked or unavailable
-    }
-  }
+  // Clear IndexedDB query cache. Not awaited: this runs while the page is on its way to
+  // `/entrypoint`, and a store we cannot reach has nothing left to wipe anyway.
+  void withKeyvalStore('readwrite', (store) => {
+    store.delete(PERSISTED_QUERY_CACHE_IDB_KEY);
+  });
 
   // Clear Service Worker NextAuth session cache
   if (typeof globalThis !== 'undefined' && 'caches' in globalThis) {

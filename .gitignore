@@ -76,6 +76,9 @@ seeding.lock
 # claude cli settings
 /.claude/
 
+# agent tooling drops (posthog wizard skills, antigravity rules)
+/.agents/
+
 # openapi spec
 openapi.yaml
 

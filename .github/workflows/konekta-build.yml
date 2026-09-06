@@ -1,13 +1,32 @@
+# Runs when release-please publishes a release, i.e. when the release pull request on main is
+# merged. A plain merge into main builds nothing; see .github/workflows/release-please.yml.
+# The first step refuses a release that was not made that way: a hand-published release, a
+# pre-release, or a tag on a commit that is not on main would otherwise overwrite the `latest`
+# image that production redeploys from.
 on:
-  push:
-    branches:
-      - main
+  release:
+    types:
+      - published
 
 name: Build Konekta Deployment Image
 jobs:
   call-konekta-build:
     runs-on: ubuntu-latest
+    if: ${{ !github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v') }}
     steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🔎 Refuse a release whose commit is not on main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::release ${{ github.event.release.tag_name }} points at $GITHUB_SHA, which is not on main"
+            exit 1
+          fi
+
       - name: Trigger Workflow in Konekta Repository
         uses: peter-evans/repository-dispatch@v4
         with:

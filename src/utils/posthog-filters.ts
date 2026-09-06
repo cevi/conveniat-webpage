@@ -92,8 +92,229 @@ export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1087
   'TypeError: Invalid URL',
   'Invalid URL',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1677
+  // The Zotero Connector extension prefixes every message it throws with its own name. Its
+  // content script loses the connection to the extension's background page (on Safari that
+  // happens whenever the background page is suspended) and reports the failure into the page.
+  // The stack has no source url, so the frame check below cannot catch it.
+  'Zotero Connector:',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1595
+  // `_retryCache` is a private field React keeps on the fiber of an `<Activity>` boundary.
+  // React reads it in `resolveRetryWakeable` when a promise a suspended boundary was waiting on
+  // resolves, and throws when the boundary was already unmounted, so that `stateNode` is null.
+  // The reported stacks are a single frame inside
+  // `next/dist/compiled/react-dom/cjs/react-dom-client.production.js`, marked `in_app: false`,
+  // with no frame of ours anywhere: the `<Activity>` boundaries belong to the App Router, we
+  // neither render one nor touch the field. React throws it from a resolved promise's callback
+  // rather than from a render, and the boundary it wanted to retry is gone, so nothing the user
+  // sees changes. Match the field name rather than one engine's wording, since Safari and Chrome
+  // phrase the same null access differently; `noiseMessages` is matched as a substring.
+  '_retryCache',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1671
+  // A browser extension calling the WebExtension `cookies.set()` API on a page it was never
+  // granted host permissions for. We call nothing named `cookies.set`, and the single frame the
+  // extension reports carries no source url, so `hasBrowserExtensionFrame` below cannot catch it.
+  'Invalid call to cookies.set(). Host permissions are missing or not granted.',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1655
+  // Firefox's wording for a `fetch()` that never completed: offline, blocked, or - what every
+  // recorded occurrence was - cancelled because the page navigated away while the request was
+  // still in flight. Firefox builds these TypeErrors with an empty stack, so the event names
+  // neither the request nor its caller. All 72 events so far were on `/admin`, where the Payload
+  // admin panel fires its own `/api/...` requests on mount and then follows the login redirect a
+  // few hundred milliseconds later; every admin fetch of ours already runs inside TanStack Query
+  // or a `try`/`catch`. Chrome ('Failed to fetch') and Safari ('Load failed') report the same
+  // condition, and both of those wordings are already dropped.
+  'NetworkError when attempting to fetch resource.',
 ];
 
+/**
+ * URL schemes a browser uses for scripts owned by an installed extension. A stack frame with such
+ * a source was executed by an extension inside the page, never by our bundle, so the exception is
+ * not ours to fix and only dilutes the error rate.
+ *
+ * posthog-js drops these itself (`error_tracking.captureExtensionExceptions` is false by default),
+ * but its own check matches `chrome-extension://` alone, so Firefox and Safari extensions still
+ * reach us. See `_isExtensionException` in posthog-js/lib/src/posthog-exceptions.js.
+ */
+const extensionUrlSchemes = [
+  'chrome-extension://',
+  'moz-extension://',
+  'safari-extension://',
+  'safari-web-extension://',
+];
+
+const isExtensionSource = (source: unknown): boolean =>
+  typeof source === 'string' && extensionUrlSchemes.some((scheme) => source.startsWith(scheme));
+
+/**
+ * True when any stack frame of the exception was loaded from a browser extension. Exceptions
+ * without frames, or with frames we cannot read, are kept: dropping those would hide real errors.
+ */
+const hasBrowserExtensionFrame = (exceptionList: unknown): boolean => {
+  if (!Array.isArray(exceptionList)) {
+    return false;
+  }
+
+  return (exceptionList as (Record<string, unknown> | null | undefined)[]).some((exception) => {
+    const stacktrace = exception?.['stacktrace'] as { frames?: unknown } | null | undefined;
+    const frames = stacktrace?.frames;
+    if (!Array.isArray(frames)) {
+      return false;
+    }
+
+    return (frames as (Record<string, unknown> | null | undefined)[]).some(
+      (frame) => isExtensionSource(frame?.['filename']) || isExtensionSource(frame?.['abs_path']),
+    );
+  });
+};
+
+/** Matches the path of a URL that names a JavaScript file, whatever the query string. */
+const javaScriptFileExtension = /\.[cm]?js$/;
+
+interface PostHogStackFrame {
+  filename?: unknown;
+}
+
+interface PostHogException {
+  type?: unknown;
+  value?: unknown;
+  mechanism?: { synthetic?: unknown } | null;
+  stacktrace?: { frames?: unknown } | null;
+}
+
+/**
+ * True when a stack frame is attributed to an HTML document instead of to a script file.
+ *
+ * Everything we ship runs from a script URL: the bundle chunks under `/_next/static`, `/sw.js`,
+ * and the PostHog recorder under `/ingest/static`. A frame whose http(s) filename does not name a
+ * `.js` file therefore points at the HTML document itself. Anything that is not an http(s) URL
+ * (`<anonymous>`, `blob:`, an extension scheme, an empty filename) is not a document frame, so an
+ * unfamiliar stack is kept rather than dropped.
+ */
+const isDocumentFrame = (frame: PostHogStackFrame | null | undefined): boolean => {
+  const filename = frame?.filename;
+  if (typeof filename !== 'string') return false;
+
+  let url: URL;
+  try {
+    url = new URL(filename);
+  } catch {
+    return false;
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  return !javaScriptFileExtension.test(url.pathname);
+};
+
+/**
+ * True when every frame of an exception points at the HTML document rather than at a script.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1666
+ *
+ * Chrome and Firefox for iOS inject their own WebKit user scripts into every page they render.
+ * WebKit attributes those scripts to the containing document, so when one of them throws, the
+ * browser reports our page URL as the source with line numbers that belong to the injected script
+ * — line 415 of a document that is five lines long. PostHog marks such frames `in_app`, files them
+ * under our project and then fails to symbolicate them ("Invalid source map: bad json", because it
+ * fetched our HTML). The exceptions arrive minified past recognition (`Error: ga`, `Error: Ca`,
+ * frames named `Ii`), so the `noiseMessages` list above cannot tell them apart from real errors.
+ *
+ * The two inline `<script>` blocks we do ship — the native push capture and the boot watchdog in
+ * `src/app/(onboarding)/layout.tsx` — only register listeners and guard every throwing call with
+ * `try`/`catch`, so they cannot produce an uncaught exception. Keep it that way, or a genuine
+ * failure in them will be dropped here.
+ */
+const isInjectedDocumentScript = (exception: PostHogException | null | undefined): boolean => {
+  const frames = exception?.stacktrace?.frames;
+  if (!Array.isArray(frames) || frames.length === 0) return false;
+  return (frames as (PostHogStackFrame | null | undefined)[]).every((frame) =>
+    isDocumentFrame(frame),
+  );
+};
+
+/**
+ * The filename a browser reports for a frame that is executing a built-in rather than a script:
+ * `Promise`, `transaction`, `forEach`. posthog-js recognises this exact literal while parsing a
+ * WebKit or Gecko stack — it is one alternative of the filename group in the `WEBKIT_STACK_REGEX`
+ * of `posthog-js/src/extensions/exception-autocapture/stack-trace.ts` — and copies it into the
+ * frame verbatim. No other spelling of a native frame occurs in our data.
+ */
+const NATIVE_CODE_FILENAME = '[native code]';
+
+/**
+ * True when an exception has at least one frame and the `filename` of every one of them is exactly
+ * `[native code]`, so no script appears anywhere in the stack.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1667
+ *
+ * Code we ship always leaves at least one frame under `/_next/static`, `/sw.js` or
+ * `/ingest/static`, even when the throw happens inside a callback the browser invoked: the
+ * callback itself is a frame. A stack made only of native frames therefore means the failing
+ * function belonged to a script the browser refuses to attribute — the Google Translate bundle
+ * Chrome for iOS injects, in the reported case, which throws with a Closure-Compiler-mangled
+ * message (`undefined is not an object (evaluating 'a.K')`) that changes with every Google build
+ * and so cannot be matched against `noiseMessages`.
+ *
+ * This fails open in every direction: an exception with no frames at all, a frame whose `filename`
+ * is missing or not a string, and any single non-native frame all keep the exception. A real
+ * failure of ours that merely passes through a built-in — `IDBDatabase.transaction` throwing
+ * underneath our tRPC persister, for instance — still carries its bundle frame and is reported.
+ */
+const isNativeOnlyStack = (exception: PostHogException | null | undefined): boolean => {
+  const frames = exception?.stacktrace?.frames;
+  if (!Array.isArray(frames) || frames.length === 0) return false;
+  return (frames as (PostHogStackFrame | null | undefined)[]).every(
+    (frame) => frame?.filename === NATIVE_CODE_FILENAME,
+  );
+};
+
+/**
+ * What a browser reports through `window.onerror` when a script from another origin throws: the
+ * message, the source url and the stack are all replaced by this literal, so the event carries
+ * nothing we could act on. We serve no cross-origin scripts ourselves (PostHog is proxied through
+ * `/ingest` on our own origin), so every one of these comes from an extension, an in-app browser
+ * or another injected script. It is compared for equality, not as a substring like
+ * `noiseMessages`, so an error of ours that merely mentions a script error is still reported.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1553
+ */
+const MASKED_CROSS_ORIGIN_ERROR = 'Script error.';
+
+/**
+ * True for WebKit's own `TypeError: Internal error`, the wording it uses when a `fetch()` fails
+ * inside its network process or its service worker plumbing - the same failure Safari otherwise
+ * words as 'Load failed', which `noiseMessages` already drops.
+ *
+ * The match is the whole recorded shape, not just the text: the type and the whole value are
+ * compared for equality (not as a substring like `noiseMessages`, because 'Internal error' is
+ * short enough to appear inside a message of ours), the event must be `mechanism.synthetic`
+ * (captured through `window.onerror` rather than thrown through posthog-js), and it must carry no
+ * stack frames. An `Internal error` that was thrown from a script, or that arrives with frames,
+ * could be ours or a dependency's and is kept.
+ *
+ * Every recorded occurrence was iOS (mostly 18.7.0) inside the konekta PWA, spread over eight
+ * different `/app/*` routes rather than one page, and fired one to two seconds before the next
+ * navigation committed - a request cancelled by the user tapping a link. Our own client fetches
+ * on those routes all go through tRPC/TanStack Query or a `try`/`catch`.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1609
+ */
+const isWebKitInternalFetchError = (exception: PostHogException | null | undefined): boolean => {
+  if (exception?.type !== 'TypeError' || exception.value !== 'Internal error') return false;
+  if (exception.mechanism?.synthetic !== true) return false;
+  const frames = exception.stacktrace?.frames;
+  return !Array.isArray(frames) || frames.length === 0;
+};
+
+/**
+ * `before_send` hook for posthog-js: drops exceptions that did not originate in our code.
+ *
+ * Returns the event unchanged when it should be reported, and `null` to discard it.
+ */
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
   if (event?.event === '$exception') {
     const props = event.properties;
@@ -107,15 +328,23 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
     }
 
     const exceptionList = props['$exception_list'] as unknown;
+
+    if (hasBrowserExtensionFrame(exceptionList)) {
+      // eslint-disable-next-line unicorn/no-null
+      return null; // drop the event
+    }
+
     if (Array.isArray(exceptionList)) {
-      for (const exc of exceptionList as Array<
-        { type?: unknown; value?: unknown } | null | undefined
-      >) {
+      for (const exc of exceptionList as Array<PostHogException | null | undefined>) {
         const type = exc?.type;
         const value = exc?.value;
         if (
           (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
-          (typeof value === 'string' && noiseMessages.some((m) => value.includes(m)))
+          (typeof value === 'string' && noiseMessages.some((m) => value.includes(m))) ||
+          value === MASKED_CROSS_ORIGIN_ERROR ||
+          isWebKitInternalFetchError(exc) ||
+          isInjectedDocumentScript(exc) ||
+          isNativeOnlyStack(exc)
         ) {
           // eslint-disable-next-line unicorn/no-null
           return null; // drop the event

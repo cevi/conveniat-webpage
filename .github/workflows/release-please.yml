@@ -1,0 +1,32 @@
+# Versions are decided at release time, not per merge.
+#
+# Every merge into main lands in one open release pull request that release-please keeps up to
+# date: it raises the version in package.json from the conventional commit titles since the last
+# tag (fix: patch, feat: minor) and writes the changelog. Merging that pull request creates the
+# tag and the GitHub release, and the release is what builds the production image. A merge into
+# main on its own, a Dependabot security update for instance, no longer reaches production
+# unversioned; it waits in the release pull request.
+#
+# The pull request is opened with a personal access token: one opened with GITHUB_TOKEN starts
+# no workflows, and main requires the eslint check before merging.
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to the commit behind v4.4.1: this step holds a token that can write to main.
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

@@ -66,6 +66,9 @@ RUN \
   cp /app/public/dev-icons/* /app/public/; \
   fi
 
+# Build identity for src/build.ts. The workflows pass these; a local build falls back to .git.
+ARG BUILD_GIT_HASH
+ARG BUILD_GIT_REF
 RUN sh create_build_info.sh
 
 # generate prisma client
@@ -122,10 +125,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/fs-fallback ./.next/c
 # copy prisma client
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
 
+COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD ["node", "server.js"]
+# The entrypoint copies this build's static assets into the mounted cumulative directory first.
+CMD ["./entrypoint.sh"]

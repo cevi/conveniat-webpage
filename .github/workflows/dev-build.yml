@@ -38,5 +38,7 @@ jobs:
             NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
             POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
             POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
+            BUILD_GIT_HASH=${{ github.sha }}
+            BUILD_GIT_REF=${{ github.ref_name }}
           cache-from: type=gha
           cache-to: type=gha
