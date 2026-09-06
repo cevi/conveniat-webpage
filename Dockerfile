@@ -66,6 +66,9 @@ RUN \
   cp /app/public/dev-icons/* /app/public/; \
   fi
 
+# Build identity for src/build.ts. The workflows pass these; a local build falls back to .git.
+ARG BUILD_GIT_HASH
+ARG BUILD_GIT_REF
 RUN sh create_build_info.sh
 
 # generate prisma client
