@@ -92,7 +92,55 @@ export const noiseMessages = [
   // see: https://github.com/cevi/conveniat-webpage/issues/1087
   'TypeError: Invalid URL',
   'Invalid URL',
+
+  // see: https://github.com/cevi/conveniat-webpage/issues/1677
+  // The Zotero Connector extension prefixes every message it throws with its own name. Its
+  // content script loses the connection to the extension's background page (on Safari that
+  // happens whenever the background page is suspended) and reports the failure into the page.
+  // The stack has no source url, so the frame check below cannot catch it.
+  'Zotero Connector:',
 ];
+
+/**
+ * URL schemes a browser uses for scripts owned by an installed extension. A stack frame with such
+ * a source was executed by an extension inside the page, never by our bundle, so the exception is
+ * not ours to fix and only dilutes the error rate.
+ *
+ * posthog-js drops these itself (`error_tracking.captureExtensionExceptions` is false by default),
+ * but its own check matches `chrome-extension://` alone, so Firefox and Safari extensions still
+ * reach us. See `_isExtensionException` in posthog-js/lib/src/posthog-exceptions.js.
+ */
+const extensionUrlSchemes = [
+  'chrome-extension://',
+  'moz-extension://',
+  'safari-extension://',
+  'safari-web-extension://',
+];
+
+const isExtensionSource = (source: unknown): boolean =>
+  typeof source === 'string' && extensionUrlSchemes.some((scheme) => source.startsWith(scheme));
+
+/**
+ * True when any stack frame of the exception was loaded from a browser extension. Exceptions
+ * without frames, or with frames we cannot read, are kept: dropping those would hide real errors.
+ */
+const hasBrowserExtensionFrame = (exceptionList: unknown): boolean => {
+  if (!Array.isArray(exceptionList)) {
+    return false;
+  }
+
+  return (exceptionList as (Record<string, unknown> | null | undefined)[]).some((exception) => {
+    const stacktrace = exception?.['stacktrace'] as { frames?: unknown } | null | undefined;
+    const frames = stacktrace?.frames;
+    if (!Array.isArray(frames)) {
+      return false;
+    }
+
+    return (frames as (Record<string, unknown> | null | undefined)[]).some(
+      (frame) => isExtensionSource(frame?.['filename']) || isExtensionSource(frame?.['abs_path']),
+    );
+  });
+};
 
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
   if (event?.event === '$exception') {
@@ -107,6 +155,12 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
     }
 
     const exceptionList = props['$exception_list'] as unknown;
+
+    if (hasBrowserExtensionFrame(exceptionList)) {
+      // eslint-disable-next-line unicorn/no-null
+      return null; // drop the event
+    }
+
     if (Array.isArray(exceptionList)) {
       for (const exc of exceptionList as Array<
         { type?: unknown; value?: unknown } | null | undefined
