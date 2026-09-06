@@ -4,7 +4,25 @@ import { proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
+import { isUnhandledMultipartPost } from '@/proxy/utils/is-unhandled-multipart-post';
 import { rotateSessionToken } from '@/proxy/utils/rotate-session-token';
+import { NextResponse } from 'next/server';
+
+/**
+ * Answers multipart form posts to page routes that cannot be Server Function calls.
+ *
+ * Next.js parses such a body itself, so a malformed one thrown at a page URL by a scanner
+ * crashes inside the parser before any route code runs. Runs first so nothing else in the
+ * chain, in particular the session token rotation, does work for such a request.
+ */
+const rejectUnhandledFormPosts: ProxyModule = (next) => {
+  return async (request, event, response) => {
+    if (isUnhandledMultipartPost(request)) {
+      return new NextResponse('Bad Request', { status: 400 });
+    }
+    return next(request, event, response);
+  };
+};
 
 const authSessionProxy: ProxyModule = (next) => {
   return async (request, event, response) => {
@@ -45,6 +63,7 @@ const pathnameProxy: ProxyModule = (next) => {
 };
 
 export const proxy = proxyChain([
+  { proxy: rejectUnhandledFormPosts, name: 'rejectUnhandledFormPosts' },
   { proxy: authSessionProxy, name: 'authSession' },
   { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
   { proxy: pathnameProxy, name: 'pathname' },
