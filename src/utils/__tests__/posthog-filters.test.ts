@@ -4,8 +4,13 @@ import type { CaptureResult } from 'posthog-js';
 interface Frame {
   filename?: string;
   abs_path?: string;
+  lineno?: number;
+  colno?: number;
 }
 
+/**
+ * Builds the shape posthog-js hands to `before_send` for an autocaptured exception.
+ */
 const exceptionEvent = (exception: {
   type?: string;
   value?: string;
@@ -19,6 +24,7 @@ const exceptionEvent = (exception: {
         {
           type: exception.type ?? 'Error',
           value: exception.value,
+          mechanism: { handled: false, synthetic: false, type: 'generic' },
           ...(exception.frames === undefined
             ? {}
             : { stacktrace: { type: 'raw', frames: exception.frames } }),
@@ -113,12 +119,109 @@ describe('filterPostHogNoise', () => {
     });
   });
 
+  describe('exceptions thrown by scripts the browser injected into the page', () => {
+    // See https://github.com/cevi/conveniat-webpage/issues/1666. Chrome and Firefox for iOS
+    // inject WebKit user scripts that WebKit attributes to the containing document, so the
+    // reported source is our own page URL. The messages arrive minified past recognition, which
+    // is why these cannot be matched by text.
+    it.each([
+      [
+        'a single-frame throw on the homepage (issue #1666)',
+        'ga',
+        [{ filename: 'https://conveniat27.ch/', lineno: 415, colno: 45 }],
+      ],
+      [
+        'a multi-frame throw on a content page',
+        'Ca',
+        [
+          { filename: 'https://konekta.ch/place', lineno: 192, colno: 191 },
+          { filename: 'https://konekta.ch/place', lineno: 191, colno: 41 },
+          { filename: 'https://konekta.ch/place', lineno: 444, colno: 350 },
+        ],
+      ],
+      [
+        'a document URL carrying a query string',
+        'Ii',
+        [{ filename: 'https://conveniat27.ch/app/schedule?id=abc', lineno: 12, colno: 3 }],
+      ],
+    ])('drops %s', (_description, value, frames) => {
+      expect(filterPostHogNoise(exceptionEvent({ value, frames }))).toBeNull();
+    });
+  });
+
+  describe('exceptions thrown by code we ship', () => {
+    it('keeps a throw from a bundle chunk', () => {
+      const event = exceptionEvent({
+        value: "Cannot read properties of undefined (reading 'length')",
+        frames: [
+          {
+            filename: 'https://conveniat27.ch/_next/static/chunks/0tgo0hgqvxwew.js',
+            lineno: 1,
+            colno: 9,
+          },
+        ],
+      });
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it('keeps a throw from the service worker', () => {
+      const event = exceptionEvent({
+        value: 'precache install failed',
+        frames: [{ filename: 'https://conveniat27.ch/sw.js', lineno: 2, colno: 4 }],
+      });
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it('keeps a stack that only partly points at the document', () => {
+      // A real failure can still be entered from an inline script, so one document frame is
+      // not enough to call the whole stack foreign.
+      const event = exceptionEvent({
+        value: 'boom',
+        frames: [
+          { filename: 'https://conveniat27.ch/', lineno: 3, colno: 1 },
+          {
+            filename: 'https://conveniat27.ch/_next/static/chunks/31f8kdaod98dn.js',
+            lineno: 1,
+            colno: 2,
+          },
+        ],
+      });
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it('keeps an exception with no stack at all', () => {
+      const event = exceptionEvent({ value: 'Checkout failed', frames: [] });
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+  });
+
   it('passes a non-exception event through untouched', () => {
     const event = {
       event: '$pageview',
       properties: { $current_url: 'chrome-extension://abcdef/page.html' },
     } as unknown as CaptureResult;
 
+    expect(filterPostHogNoise(event)).toBe(event);
+  });
+
+  describe('the message-based noise list', () => {
+    it('still drops a known third-party message', () => {
+      const event = exceptionEvent({
+        value: "Can't find variable: __firefox__",
+        frames: [
+          {
+            filename: 'https://conveniat27.ch/_next/static/chunks/31f8kdaod98dn.js',
+            lineno: 1,
+            colno: 2,
+          },
+        ],
+      });
+      expect(filterPostHogNoise(event)).toBeNull();
+    });
+  });
+
+  it('passes non-exception events straight through', () => {
+    const event = { event: '$pageview', properties: {} } as unknown as CaptureResult;
     expect(filterPostHogNoise(event)).toBe(event);
   });
 });
