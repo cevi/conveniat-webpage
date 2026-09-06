@@ -16,6 +16,7 @@ const exceptionEvent = (exception: {
   type?: string;
   value?: string;
   frames?: Frame[];
+  synthetic?: boolean;
 }): CaptureResult =>
   ({
     event: '$exception',
@@ -25,7 +26,11 @@ const exceptionEvent = (exception: {
         {
           type: exception.type ?? 'Error',
           value: exception.value,
-          mechanism: { handled: false, synthetic: false, type: 'generic' },
+          mechanism: {
+            handled: false,
+            synthetic: exception.synthetic ?? false,
+            type: 'generic',
+          },
           ...(exception.frames === undefined
             ? {}
             : { stacktrace: { type: 'raw', frames: exception.frames } }),
@@ -320,11 +325,28 @@ describe('filterPostHogNoise', () => {
       expect(filterPostHogNoise(event)).toBeNull();
     });
 
-    it("drops WebKit's 'Internal error' wording", () => {
+    it("drops WebKit's synthetic, stackless 'Internal error'", () => {
       // See https://github.com/cevi/conveniat-webpage/issues/1609
-      const event = exceptionEvent({ type: 'TypeError', value: 'Internal error' });
+      const event = exceptionEvent({ type: 'TypeError', value: 'Internal error', synthetic: true });
 
       expect(filterPostHogNoise(event)).toBeNull();
+    });
+
+    it("keeps an 'Internal error' that was thrown rather than reported by the browser", () => {
+      const event = exceptionEvent({ type: 'TypeError', value: 'Internal error' });
+
+      expect(filterPostHogNoise(event)).toBe(event);
+    });
+
+    it("keeps an 'Internal error' that arrives with a stack", () => {
+      const event = exceptionEvent({
+        type: 'TypeError',
+        value: 'Internal error',
+        synthetic: true,
+        frames: [{ filename: 'https://conveniat27.ch/_next/static/chunks/main.js' }],
+      });
+
+      expect(filterPostHogNoise(event)).toBe(event);
     });
 
     it("keeps a message of ours that merely contains 'Internal error'", () => {

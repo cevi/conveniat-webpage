@@ -182,6 +182,7 @@ interface PostHogStackFrame {
 interface PostHogException {
   type?: unknown;
   value?: unknown;
+  mechanism?: { synthetic?: unknown } | null;
   stacktrace?: { frames?: unknown } | null;
 }
 
@@ -288,19 +289,26 @@ const MASKED_CROSS_ORIGIN_ERROR = 'Script error.';
  * inside its network process or its service worker plumbing - the same failure Safari otherwise
  * words as 'Load failed', which `noiseMessages` already drops.
  *
- * Both the type and the whole value are compared for equality, not as a substring like
- * `noiseMessages`, because 'Internal error' is short enough to appear inside a message of ours.
+ * The match is the whole recorded shape, not just the text: the type and the whole value are
+ * compared for equality (not as a substring like `noiseMessages`, because 'Internal error' is
+ * short enough to appear inside a message of ours), the event must be `mechanism.synthetic`
+ * (captured through `window.onerror` rather than thrown through posthog-js), and it must carry no
+ * stack frames. An `Internal error` that was thrown from a script, or that arrives with frames,
+ * could be ours or a dependency's and is kept.
  *
- * The event carries no stack and `mechanism.synthetic`, so it names neither the request nor its
- * caller. Every recorded occurrence was iOS (mostly 18.7.0) inside the konekta PWA, spread over
- * eight different `/app/*` routes rather than one page, and fired one to two seconds before the
- * next navigation committed - a request cancelled by the user tapping a link. Our own client
- * fetches on those routes all go through tRPC/TanStack Query or a `try`/`catch`.
+ * Every recorded occurrence was iOS (mostly 18.7.0) inside the konekta PWA, spread over eight
+ * different `/app/*` routes rather than one page, and fired one to two seconds before the next
+ * navigation committed - a request cancelled by the user tapping a link. Our own client fetches
+ * on those routes all go through tRPC/TanStack Query or a `try`/`catch`.
  *
  * see: https://github.com/cevi/conveniat-webpage/issues/1609
  */
-const isWebKitInternalFetchError = (exception: PostHogException | null | undefined): boolean =>
-  exception?.type === 'TypeError' && exception.value === 'Internal error';
+const isWebKitInternalFetchError = (exception: PostHogException | null | undefined): boolean => {
+  if (exception?.type !== 'TypeError' || exception.value !== 'Internal error') return false;
+  if (exception.mechanism?.synthetic !== true) return false;
+  const frames = exception.stacktrace?.frames;
+  return !Array.isArray(frames) || frames.length === 0;
+};
 
 /**
  * `before_send` hook for posthog-js: drops exceptions that did not originate in our code.
