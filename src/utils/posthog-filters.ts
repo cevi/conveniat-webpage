@@ -99,16 +99,6 @@ export const noiseMessages = [
   // happens whenever the background page is suspended) and reports the failure into the page.
   // The stack has no source url, so the frame check below cannot catch it.
   'Zotero Connector:',
-
-  // see: https://github.com/cevi/conveniat-webpage/issues/1553
-  // What a browser reports through `window.onerror` when a script from another origin throws:
-  // the message, the source url and the stack are all replaced by the literal 'Script error.'.
-  // The event therefore carries nothing we could act on, and we serve no cross-origin scripts
-  // ourselves (PostHog is proxied through `/ingest` on our own origin), so every one of these
-  // comes from an extension, an in-app browser or another injected script.
-  // The trailing period is part of the browser's wording; keeping it here avoids swallowing a
-  // real error of ours that merely mentions a script error.
-  'Script error.',
 ];
 
 /**
@@ -152,6 +142,18 @@ const hasBrowserExtensionFrame = (exceptionList: unknown): boolean => {
   });
 };
 
+/**
+ * What a browser reports through `window.onerror` when a script from another origin throws: the
+ * message, the source url and the stack are all replaced by this literal, so the event carries
+ * nothing we could act on. We serve no cross-origin scripts ourselves (PostHog is proxied through
+ * `/ingest` on our own origin), so every one of these comes from an extension, an in-app browser
+ * or another injected script. It is compared for equality, not as a substring like
+ * `noiseMessages`, so an error of ours that merely mentions a script error is still reported.
+ *
+ * see: https://github.com/cevi/conveniat-webpage/issues/1553
+ */
+const MASKED_CROSS_ORIGIN_ERROR = 'Script error.';
+
 export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult | null => {
   if (event?.event === '$exception') {
     const props = event.properties;
@@ -179,7 +181,8 @@ export const filterPostHogNoise = (event: CaptureResult | null): CaptureResult |
         const value = exc?.value;
         if (
           (typeof type === 'string' && noiseMessages.some((m) => type.includes(m))) ||
-          (typeof value === 'string' && noiseMessages.some((m) => value.includes(m)))
+          (typeof value === 'string' && noiseMessages.some((m) => value.includes(m))) ||
+          value === MASKED_CROSS_ORIGIN_ERROR
         ) {
           // eslint-disable-next-line unicorn/no-null
           return null; // drop the event
