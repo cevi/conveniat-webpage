@@ -55,9 +55,12 @@ Usable logs. Server code logs through a logger at a level that matches how often
 
 ## Ways to break things
 
-**Running pnpm on the host while the stack is up.** `node_modules` is a named Docker volume shared
-with the `payload` container. A host-side install fights the container for the same tree. While the
-stack runs, use `docker exec conveniat-webpage-payload-1 pnpm ...`.
+**Confusing the host and container dependency trees.** A named Docker volume mounts over
+`node_modules` inside the `payload` container, so the host tree and the container tree are separate
+installs. Installing on the host changes nothing the container runs, and every worktree using the
+default Compose project name shares that one volume. When the container is up, run package manager
+commands in it with `docker compose exec payload pnpm ...`, which does not depend on the generated
+container name.
 
 **Regenerating Payload artifacts in the wrong environment.** CI hashes
 `src/features/payload-cms/payload-types.ts` and `src/app/(payload)/admin/importMap.js`, regenerates
@@ -126,10 +129,12 @@ applied.
 **Both deployments.** konekta serves German and French with its own flags. A change gated on
 nothing ships to both.
 
-**The CMS round trip.** A new or changed block field needs `pnpm generate:types`, `pnpm
-generate:importmap`, and a restart of the running Payload process. Until it restarts, Payload strips
-the new field from the data the renderer receives, which looks exactly like a rendering bug and
-wastes an hour.
+**The CMS round trip.** Two artifacts with two different triggers. Any schema change to a
+collection, global, block or field needs `pnpm generate:types`. Any change to a referenced admin
+component needs `pnpm generate:importmap`, or the admin panel cannot resolve it. Run both when you
+are unsure, and commit the result. A changed block field also needs a restart of the running Payload
+process. Until it restarts, Payload strips the new field from the data the renderer receives, which
+looks exactly like a rendering bug and wastes an hour.
 
 **Draft and preview.** Preview bypasses `'use cache'` through the `?preview=true` and
 `?preview-token=...` parameters. We do not use `draftMode()`, because its cookie would disable
@@ -188,9 +193,11 @@ class names. Icons come from `lucide-react` and nowhere else.
 Components are Server Components until they need state, effects or browser APIs. Keep effect logic
 in a named hook instead of inlining `useEffect` in a component.
 
-Fetch and mutate through tRPC. Do not add new Server Actions. The eight files that already use
-`'use server'` stay as they are, and Payload admin components are a standing exception where tRPC is
-not reachable. Name queries `getThing` and `getThingList`, mutations `createThing`, `updateThing`
+Client components fetch and mutate through tRPC. Do not add new Server Actions. This is about
+data flowing to and from the client: server components still read Payload directly, which is what
+keeps preview, drafts and content resolution working. The eight files that already use `'use server'`
+stay as they are, and Payload admin components are a standing exception where tRPC is not
+reachable. Name queries `getThing` and `getThingList`, mutations `createThing`, `updateThing`
 and `deleteThing`, and anything else after what it does, like `archiveChat`.
 
 ## Git and pull requests
