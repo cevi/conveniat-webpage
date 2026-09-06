@@ -6,6 +6,12 @@
 # So every Dependabot pull request against main gets one commit that raises the patch version.
 # The push has to come from a personal access token: a push made with GITHUB_TOKEN does not
 # start workflows, and main requires the eslint check on the final commit before merging.
+#
+# Several Dependabot pull requests open at once all bump to the same version. Once one of them
+# merges, main requires the others to be up to date anyway, and their lockfile changes overlap,
+# so each needs a Dependabot rebase. That rebase force-pushes the branch without our commit, and
+# the bump job then adds a fresh one from the new base. The second job asks Dependabot for that
+# rebase on every push to main, so the remaining pull requests catch up on their own.
 name: Bump version on Dependabot updates
 
 on:
@@ -13,16 +19,20 @@ on:
     branches:
       - main
     types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   bump:
     # Only Dependabot's own pushes. Our bump commit is pushed by the token's owner, so the
     # `synchronize` event it causes is skipped here and cannot loop. When Dependabot rebases, its
     # force-push drops our commit and this job adds it again.
-    if: github.actor == 'dependabot[bot]'
+    if: github.event_name == 'pull_request_target' && github.actor == 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
@@ -63,3 +73,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "chore: bump version to ${{ steps.bump.outputs.version }}"
           git push origin "HEAD:${{ github.head_ref }}"
+
+  rebase-open-pull-requests:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ask Dependabot to rebase its open pull requests against main
+        # Dependabot only honours commands from an account with write access, so the comment is
+        # posted with the same token that pushes the bump commits, not with GITHUB_TOKEN.
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_VERSION_BUMP_TOKEN }}
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --base main --author 'app/dependabot' --state open \
+            --json number --jq '.[].number' |
+          while read -r number; do
+            gh pr comment "$number" --repo "$GITHUB_REPOSITORY" --body '@dependabot rebase'
+          done
