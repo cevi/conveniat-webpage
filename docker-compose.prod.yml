@@ -30,7 +30,9 @@ services:
         window: 60s
 
       labels:
-        - swarmpit.service.deployment.autoredeploy=true
+        # Shepherd rolls the service when the image tag's digest changes. The stacks actually
+        # deployed live in cevi-tools-infrastructure; this file mirrors them for local use.
+        - shepherd.enable=true
 
         - traefik.enable=true
 
