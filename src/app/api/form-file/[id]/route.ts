@@ -1,4 +1,4 @@
-import { MINIO_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import { NextResponse } from 'next/server';
@@ -76,7 +76,7 @@ export async function GET(
     }
 
     const getCommand = new GetObjectCommand({
-      Bucket: MINIO_BUCKET_NAME,
+      Bucket: S3_BUCKET_NAME,
       Key: fileDocument.filename,
     });
 

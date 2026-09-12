@@ -4,17 +4,17 @@ import { S3Client } from '@aws-sdk/client-s3';
 
 export const s3Client = new S3Client({
   credentials: {
-    accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-    secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+    accessKeyId: environmentVariables.S3_ACCESS_KEY_ID,
+    secretAccessKey: environmentVariables.S3_SECRET_ACCESS_KEY,
   },
   region: 'us-east-1',
   forcePathStyle: true,
-  endpoint: environmentVariables.MINIO_HOST,
+  endpoint: environmentVariables.S3_HOST,
 });
 
 /**
  * S3 Client for generating pre-signed URLs that are accessible from the browser.
- * Uses MINIO_PUBLIC_HOST instead of internal MINIO_HOST.
+ * Uses S3_PUBLIC_HOST instead of internal S3_HOST.
  *
  * Presigning a PutObject has no body, so with the SDK's default checksum mode the URL carries
  * the CRC32 of an empty body. AWS S3 and SeaweedFS check it against what the browser sends and
@@ -23,22 +23,22 @@ export const s3Client = new S3Client({
  */
 export const s3ClientPublic = new S3Client({
   credentials: {
-    accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-    secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+    accessKeyId: environmentVariables.S3_ACCESS_KEY_ID,
+    secretAccessKey: environmentVariables.S3_SECRET_ACCESS_KEY,
   },
   region: 'us-east-1',
   forcePathStyle: true,
-  endpoint: environmentVariables.MINIO_PUBLIC_HOST,
+  endpoint: environmentVariables.S3_PUBLIC_HOST,
   requestChecksumCalculation: 'WHEN_REQUIRED',
 });
 
-export const MINIO_BUCKET_NAME = environmentVariables.MINIO_BUCKET_NAME;
+export const S3_BUCKET_NAME = environmentVariables.S3_BUCKET_NAME;
 
 /**
  * Bucket for bill PDFs — its own when configured, otherwise the shared one. Every reader
  * and writer of a bill PDF has to agree on this, so it is resolved once here.
  */
 export const BILL_PDF_BUCKET_NAME = resolveBillPdfBucket(
-  environmentVariables.MINIO_BILL_PDF_BUCKET_NAME,
-  environmentVariables.MINIO_BUCKET_NAME,
+  environmentVariables.S3_BILL_PDF_BUCKET_NAME,
+  environmentVariables.S3_BUCKET_NAME,
 );

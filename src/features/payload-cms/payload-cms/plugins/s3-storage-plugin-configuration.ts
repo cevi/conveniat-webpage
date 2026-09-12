@@ -3,10 +3,10 @@ import { resolveBillPdfBucket } from '@/lib/storage-buckets';
 import { s3Storage } from '@payloadcms/storage-s3';
 import type { Plugin } from 'payload';
 
-const MINIO_HOST = environmentVariables.MINIO_HOST;
-const MINIO_BUCKET_NAME = environmentVariables.MINIO_BUCKET_NAME;
-const MINIO_ACCESS_KEY_ID = environmentVariables.MINIO_ACCESS_KEY_ID;
-const MINIO_SECRET_ACCESS_KEY = environmentVariables.MINIO_SECRET_ACCESS_KEY;
+const S3_HOST = environmentVariables.S3_HOST;
+const S3_BUCKET_NAME = environmentVariables.S3_BUCKET_NAME;
+const S3_ACCESS_KEY_ID = environmentVariables.S3_ACCESS_KEY_ID;
+const S3_SECRET_ACCESS_KEY = environmentVariables.S3_SECRET_ACCESS_KEY;
 
 /**
  * S3 Storage Plugin Configuration
@@ -16,17 +16,17 @@ const MINIO_SECRET_ACCESS_KEY = environmentVariables.MINIO_SECRET_ACCESS_KEY;
  */
 const connection = {
   credentials: {
-    accessKeyId: MINIO_ACCESS_KEY_ID,
-    secretAccessKey: MINIO_SECRET_ACCESS_KEY,
+    accessKeyId: S3_ACCESS_KEY_ID,
+    secretAccessKey: S3_SECRET_ACCESS_KEY,
   },
   region: 'us-east-1',
   forcePathStyle: true,
-  endpoint: MINIO_HOST,
+  endpoint: S3_HOST,
 };
 
 const BILL_PDF_BUCKET = resolveBillPdfBucket(
-  environmentVariables.MINIO_BILL_PDF_BUCKET_NAME,
-  MINIO_BUCKET_NAME,
+  environmentVariables.S3_BILL_PDF_BUCKET_NAME,
+  S3_BUCKET_NAME,
 );
 
 /**
@@ -56,13 +56,13 @@ export const s3StorageConfiguration = s3Storage({
     imports: true,
     exports: true,
   },
-  bucket: MINIO_BUCKET_NAME,
+  bucket: S3_BUCKET_NAME,
   config: connection,
 });
 
 /**
  * Both storage instances, in the order they should be registered. Everything except the
  * bill PDFs goes to the shared bucket; the bills go wherever
- * `MINIO_BILL_PDF_BUCKET_NAME` points, or the shared bucket when it is unset.
+ * `S3_BILL_PDF_BUCKET_NAME` points, or the shared bucket when it is unset.
  */
 export const s3StoragePlugins: Plugin[] = [s3StorageConfiguration, billPdfStorageConfiguration];

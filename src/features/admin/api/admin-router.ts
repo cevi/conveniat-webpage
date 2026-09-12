@@ -27,7 +27,7 @@ import {
   MessageEventType,
   MessageType,
 } from '@/lib/prisma/client';
-import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
@@ -625,7 +625,7 @@ export const adminRouter = createTRPCRouter({
 
       // Generate pre-signed PUT URL
       const command = new PutObjectCommand({
-        Bucket: MINIO_BUCKET_NAME,
+        Bucket: S3_BUCKET_NAME,
         Key: key,
         ContentType: contentType,
       });
