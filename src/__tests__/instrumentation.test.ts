@@ -15,7 +15,7 @@ jest.mock('@/lib/http-client', () => ({ initHttpClient: jest.fn() }));
 
 jest.mock('@/tracing', () => ({
   sdk: { start: jest.fn() },
-  hostMetrics: { start: jest.fn() },
+  startRuntimeMetrics: jest.fn(),
 }));
 
 jest.mock('@/utils/otel-console-bridge', () => ({ installConsoleOtelBridge: jest.fn() }));
