@@ -1,4 +1,4 @@
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import React, { createContext, useContext } from 'react';
 
 export const MapContext = createContext<maplibregl.Map | undefined>(undefined);

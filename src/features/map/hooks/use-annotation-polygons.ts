@@ -220,7 +220,8 @@ export const useAnnotationPolygons = (
     if (!source) return;
     const sourceTyped = source as GeoJSONSource;
 
-    sourceTyped.setData({
+    // setData's promise never rejects: failures surface as `error` events on the map
+    void sourceTyped.setData({
       type: 'FeatureCollection',
       features: annotations
         .filter((a) => a.geometry.coordinates.length > 0)
@@ -260,7 +261,7 @@ export const useAnnotationPolygons = (
         [...selectedPolygon.geometry.coordinates, selectedPolygon.geometry.coordinates[0]],
       ] as unknown as [number, number][][];
 
-      sourceTyped.setData({
+      void sourceTyped.setData({
         type: 'Feature',
         properties: {},
         geometry: {
@@ -270,7 +271,7 @@ export const useAnnotationPolygons = (
       });
     } else {
       // No polygon is selected: clear the source data
-      sourceTyped.setData({
+      void sourceTyped.setData({
         type: 'FeatureCollection',
         features: [],
       });
