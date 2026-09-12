@@ -13,7 +13,7 @@ import type { CollectionConfig, Field, GenerateImageName } from 'payload';
  * This function inserts a random suffix to ensure that the image name is updated on
  * every change, effectively preventing any caching issues.
  *
- * In minio, we only store the latest version of the image.
+ * In S3 storage, we only store the latest version of the image.
  *
  * @param height
  * @param sizeName
@@ -147,7 +147,7 @@ export const ImageCollection: CollectionConfig = {
     adminThumbnail: 'tiny',
     cacheTags: true,
 
-    // disable local storage for images, we use minio for storage
+    // disable local storage for images, uploads go to S3 storage
     disableLocalStorage: true,
 
     // we store the original image as well as three pre-optimized versions

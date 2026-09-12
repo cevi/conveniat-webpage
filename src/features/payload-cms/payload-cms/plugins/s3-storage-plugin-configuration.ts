@@ -10,7 +10,7 @@ const MINIO_SECRET_ACCESS_KEY = environmentVariables.MINIO_SECRET_ACCESS_KEY;
 
 /**
  * S3 Storage Plugin Configuration
- * We use a MinIO instance for storing files and images.
+ * Files and images live in an S3-compatible store (SeaweedFS in the deployments).
  *
  * @see https://www.npmjs.com/package/@payloadcms/storage-s3
  */
@@ -52,7 +52,7 @@ export const s3StorageConfiguration = s3Storage({
     // Payload defaults it to the collection slug - a *relative* path resolved against the process
     // CWD. In the container that is /app, which the app user cannot write to, so every CSV import
     // failed with `EACCES: permission denied, mkdir 'imports'` (a 500 on POST /api/imports).
-    // Routing them through MinIO like every other upload collection removes the local write.
+    // Routing them through S3 like every other upload collection removes the local write.
     imports: true,
     exports: true,
   },
