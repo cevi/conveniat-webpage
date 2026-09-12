@@ -19,6 +19,12 @@ export interface JobProgressReporter {
   report(update: JobProgressUpdate): Promise<void>;
   /** True once an operator pressed cancel; jobs stop at the next item boundary. */
   shouldCancel(): Promise<boolean>;
+  /**
+   * Drops the live record once the run ends. Called by the execution holding the run
+   * lock and by nobody else — the keys are scoped by task slug, so a worker that never
+   * started would otherwise erase the state of the run that did.
+   */
+  finish(): Promise<void>;
 }
 
 /**
@@ -55,6 +61,17 @@ export const createJobProgressReporter = (
         return await progressStore.isCancelRequested(taskSlug);
       } catch {
         return false;
+      }
+    },
+
+    async finish(): Promise<void> {
+      try {
+        // The final counters live on the job document from here on; leaving the live
+        // record behind would make the toolbar show a run that already ended.
+        await progressStore.clear(taskSlug);
+        await progressStore.clearCancel(taskSlug);
+      } catch {
+        // Ignored on purpose: see the doc comment above.
       }
     },
   };

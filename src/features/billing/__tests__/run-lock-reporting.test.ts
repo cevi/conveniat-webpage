@@ -57,4 +57,23 @@ describe('selectTaskLogOutput', () => {
   it('returns nothing when the job has no log entries', () => {
     expect(selectTaskLogOutput([], 'generateBills')).toBeUndefined();
   });
+
+  it('reports the sync run that did the work, not the worker that stood down', () => {
+    // A sync executed twice at once had both workers write a real summary, and the one
+    // that lost the `participationUuid` unique index wrote the later of the two — so the
+    // operator was shown an event as failed that the other worker had synced fine.
+    const syncedEverything = {
+      taskSlug: 'syncParticipants',
+      output: { newCount: 5, errors: [] },
+    };
+    const stoodDown = {
+      taskSlug: 'syncParticipants',
+      output: { newCount: 0, errors: [], duplicate: true },
+    };
+
+    expect(selectTaskLogOutput([stoodDown, syncedEverything], 'syncParticipants')).toEqual({
+      newCount: 5,
+      errors: [],
+    });
+  });
 });

@@ -708,6 +708,9 @@ export async function generateBills(
   try {
     return await generateBillsLocked(payload, participantId, dependencies, reporter);
   } finally {
+    // Inside the lock on purpose: only the execution that acquired it owns the progress
+    // record, and the keys are scoped by task slug rather than by job.
+    await reporter?.finish();
     await result.lock.release();
   }
 }

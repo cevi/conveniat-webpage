@@ -134,23 +134,36 @@ services:
     logging:
       driver: none
 
-  minio:
-    image: minio/minio
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
 
-    entrypoint: sh
-    command: >
-      -c "mkdir -p /data/${MINIO_BUCKET_NAME:-conveniat-files} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-admin} ${MINIO_ROOT_PASSWORD:-password} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID:-example-access-key}' --secret-key '${MINIO_SECRET_ACCESS_KEY:-secret-access-key}' myminio ${MINIO_ROOT_USER:-admin} || true && echo 'minio is ready' && mc ilm import myminio/${MINIO_BUCKET_NAME:-conveniat-files} < /lifecycle.json || true && sleep infinity"
+    entrypoint: ['/docker-entrypoint.sh']
 
     env_file:
       - .env
 
+    environment:
+      # Space separated list of buckets created on start.
+      SEAWEEDFS_BUCKETS: ${MINIO_BUCKET_NAME:-conveniat-files}
+
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '9000:9000' # S3 API, also the MINIO_PUBLIC_HOST the browser uploads to
+      - '9333:9333' # master UI, handy to inspect volumes
 
     volumes:
-      - minio-data:/data
-      - ./src/scripts/s3-lifecycle-policy.json:/lifecycle.json
+      - seaweedfs-data:/data
+      - ./docker/seaweedfs-entrypoint.sh:/docker-entrypoint.sh:ro
+
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf http://127.0.0.1:9333/cluster/status >/dev/null && curl -s -o /dev/null http://127.0.0.1:9000/',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
 
   fake-oauth:
     build: dev-oauth
@@ -304,7 +317,7 @@ volumes:
   data:
   node_modules:
   next-cache:
-  minio-data:
+  seaweedfs-data:
   node-cache:
   postgress-data:
 
