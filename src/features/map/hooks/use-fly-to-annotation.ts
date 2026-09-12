@@ -12,7 +12,7 @@ import {
   getUnobstructedRegion,
   isAnnotationComfortablyVisible,
 } from '@/features/map/utils/annotation-focus';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { useEffect } from 'react';
 
 const FLY_TO_DURATION_IN_MS = 1000;

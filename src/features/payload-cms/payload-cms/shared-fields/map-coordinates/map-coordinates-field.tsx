@@ -2,7 +2,7 @@
 
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { useDocumentInfo, useField } from '@payloadcms/ui';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PointFieldClientComponent } from 'payload';
 import { useCallback, useEffect, useRef, useState } from 'react';
