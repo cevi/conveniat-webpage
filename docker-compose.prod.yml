@@ -166,46 +166,59 @@ services:
         done
       '
 
-  minio:
-    image: quay.io/minio/minio
+  # S3 storage for Payload uploads. All components run in one process; the entrypoint config
+  # builds the S3 identities from the S3_* variables, so the app configuration is the same as
+  # it was with MinIO.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.46
 
-    deploy:
-      labels:
-        - swarmpit.service.deployment.autoredeploy=true
-        - traefik.enable=true
-
-        - traefik.http.routers.conveniat-minio-router-http.rule=Host(`minio.conveniat27.ch`)
-        - traefik.http.routers.conveniat-minio-router-http.entrypoints=web
-        - traefik.http.routers.conveniat-minio-router-http.middlewares=redirect-to-https@file
-
-        - traefik.http.routers.conveniat-minio-router-console-http.rule=Host(`console-minio.conveniat27.ch`)
-        - traefik.http.routers.conveniat-minio-router-console-http.entrypoints=web
-        - traefik.http.routers.conveniat-minio-router-console-http.middlewares=redirect-to-https@file
-
-        - traefik.http.routers.conveniat-minio-router.rule=Host(`minio.conveniat27.ch`)
-        - traefik.http.routers.conveniat-minio-router.entrypoints=websecure
-        - traefik.http.routers.conveniat-minio-router.service=conveniat-minio
-
-        - traefik.http.routers.conveniat-console-minio-router.rule=Host(`console-minio.conveniat27.ch`)
-        - traefik.http.routers.conveniat-console-minio-router.entrypoints=websecure
-        - traefik.http.routers.conveniat-console-minio-router.service=conveniat-console-minio
-
-        - traefik.http.services.conveniat-minio.loadbalancer.server.port=9000
-        - traefik.http.services.conveniat-console-minio.loadbalancer.server.port=9001
-
-    entrypoint: sh
-    command: >
-      -c "mkdir -p /data/${MINIO_BUCKET_NAME:-conveniat-files} && /usr/bin/minio server --console-address ':9001' /data &  sleep 10 && mc alias set myminio http://localhost:9000 ${MINIO_ROOT_USER:-admin} ${MINIO_ROOT_PASSWORD:-password} && mc admin user svcacct add --access-key '${MINIO_ACCESS_KEY_ID:-example-access-key}' --secret-key '${MINIO_SECRET_ACCESS_KEY:-secret-access-key}' myminio ${MINIO_ROOT_USER:-admin} || true && echo 'minio is ready' && echo '{\"Rules\":[{\"ID\":\"DeleteTempFilesAfter24Hours\",\"Status\":\"Enabled\",\"Filter\":{\"Prefix\":\"temp/\"},\"Expiration\":{\"Days\":1}}]}' > /lifecycle.json && mc ilm import myminio/${MINIO_BUCKET_NAME:-conveniat-files} < /lifecycle.json || true && sleep infinity"
+    entrypoint: ['/docker-entrypoint.sh']
 
     env_file:
       - .env
 
+    environment:
+      # Space separated list of buckets created on start.
+      SEAWEEDFS_BUCKETS: conveniat-files conveniat-bill-pdfs
+
+    configs:
+      - source: seaweedfs-entrypoint
+        target: /docker-entrypoint.sh
+        mode: 0755
+
     volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/minio-data:/data
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/seaweedfs-data:/data
+
+    deploy:
+      labels:
+        - traefik.enable=true
+        # The service sits on three networks, so traefik has to be told which one to dial.
+        - traefik.docker.network=traefik-net-1400
+
+        - traefik.http.routers.conveniat-seaweedfs-router-http.rule=Host(`s3.conveniat27.ch`)
+        - traefik.http.routers.conveniat-seaweedfs-router-http.entrypoints=web
+        - traefik.http.routers.conveniat-seaweedfs-router-http.middlewares=redirect-to-https@file
+
+        - traefik.http.routers.conveniat-seaweedfs-router.rule=Host(`s3.conveniat27.ch`)
+        - traefik.http.routers.conveniat-seaweedfs-router.entrypoints=websecure
+        - traefik.http.routers.conveniat-seaweedfs-router.service=conveniat-seaweedfs
+
+        - traefik.http.services.conveniat-seaweedfs.loadbalancer.server.port=9000
 
     networks:
       - traefik-net-1400
       - backend-net
+
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf http://127.0.0.1:9333/cluster/status >/dev/null && curl -s -o /dev/null http://127.0.0.1:9000/',
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
   postgres:
     image: postgres:17
@@ -254,6 +267,12 @@ services:
       driver: none
     deploy:
       replicas: 1
+
+configs:
+  seaweedfs-entrypoint:
+    # A copy of docker/seaweedfs-entrypoint.sh from this repository.
+    name: seaweedfs_entrypoint_conveniat_prod-${STAMP}
+    file: /cluster/dist_storage_insane/config/conveniat27/seaweedfs-entrypoint.sh
 
 networks:
   traefik-net-1400:

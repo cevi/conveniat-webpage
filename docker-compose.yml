@@ -144,10 +144,10 @@ services:
 
     environment:
       # Space separated list of buckets created on start.
-      SEAWEEDFS_BUCKETS: ${MINIO_BUCKET_NAME:-conveniat-files}
+      SEAWEEDFS_BUCKETS: ${S3_BUCKET_NAME:-conveniat-files}
 
     ports:
-      - '9000:9000' # S3 API, also the MINIO_PUBLIC_HOST the browser uploads to
+      - '9000:9000' # S3 API, also the S3_PUBLIC_HOST the browser uploads to
       - '9333:9333' # master UI, handy to inspect volumes
 
     volumes:

@@ -2,13 +2,13 @@
 # Entrypoint of the SeaweedFS service, shared by the local stack and the deployments (the swarm
 # stacks mount it as a config from /cluster/dist_storage_insane/config/<deployment>/).
 #
-# The app reads its S3 settings from the MINIO_* variables, named after the store SeaweedFS
+# The app reads its S3 settings from the S3_* variables, named after the store SeaweedFS
 # replaced. This script turns them into the S3 identity file, makes sure the buckets exist once
 # the gateway answers, then hands the process to weed.
 set -eu
 
-: "${MINIO_ROOT_USER:?}" "${MINIO_ROOT_PASSWORD:?}" "${MINIO_ACCESS_KEY_ID:?}" "${MINIO_SECRET_ACCESS_KEY:?}" "${MINIO_BUCKET_NAME:?}"
-: "${SEAWEEDFS_BUCKETS:=$MINIO_BUCKET_NAME}"
+: "${S3_ROOT_USER:?}" "${S3_ROOT_PASSWORD:?}" "${S3_ACCESS_KEY_ID:?}" "${S3_SECRET_ACCESS_KEY:?}" "${S3_BUCKET_NAME:?}"
+: "${SEAWEEDFS_BUCKETS:=$S3_BUCKET_NAME}"
 
 mkdir -p /etc/seaweedfs /data
 cat > /etc/seaweedfs/s3.json <<JSON
@@ -16,12 +16,12 @@ cat > /etc/seaweedfs/s3.json <<JSON
   "identities": [
     {
       "name": "admin",
-      "credentials": [{ "accessKey": "${MINIO_ROOT_USER}", "secretKey": "${MINIO_ROOT_PASSWORD}" }],
+      "credentials": [{ "accessKey": "${S3_ROOT_USER}", "secretKey": "${S3_ROOT_PASSWORD}" }],
       "actions": ["Admin", "Read", "Write", "List", "Tagging"]
     },
     {
       "name": "payload",
-      "credentials": [{ "accessKey": "${MINIO_ACCESS_KEY_ID}", "secretKey": "${MINIO_SECRET_ACCESS_KEY}" }],
+      "credentials": [{ "accessKey": "${S3_ACCESS_KEY_ID}", "secretKey": "${S3_SECRET_ACCESS_KEY}" }],
       "actions": ["Admin", "Read", "Write", "List", "Tagging"]
     }
   ]
@@ -42,7 +42,7 @@ JSON
     echo "s3.bucket.create -name ${bucket}" | weed shell -master=127.0.0.1:9333 2>&1 | grep -iv "already exists" || true
   done
   # Presigned browser uploads land under temp/ until the app claims them, so they expire on their own.
-  echo "fs.configure -locationPrefix=/buckets/${MINIO_BUCKET_NAME}/temp/ -ttl=1d -apply" | weed shell -master=127.0.0.1:9333 >/dev/null
+  echo "fs.configure -locationPrefix=/buckets/${S3_BUCKET_NAME}/temp/ -ttl=1d -apply" | weed shell -master=127.0.0.1:9333 >/dev/null
   echo "seaweedfs: buckets ready (${SEAWEEDFS_BUCKETS})"
 ) &
 

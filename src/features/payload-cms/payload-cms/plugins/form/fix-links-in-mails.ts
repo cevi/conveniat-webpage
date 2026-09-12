@@ -5,7 +5,7 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
 import { phoneLinkHTMLConverters } from '@/features/payload-cms/payload-cms/utils/phone-link-html-converter';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
-import { MINIO_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import type { BeforeEmail, FormattedEmail } from '@payloadcms/plugin-form-builder/types';
@@ -184,7 +184,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
         if (typeof fileDocument.filename === 'string' && fileDocument.filename.length > 0) {
           try {
             const getCommand = new GetObjectCommand({
-              Bucket: MINIO_BUCKET_NAME,
+              Bucket: S3_BUCKET_NAME,
               Key: fileDocument.filename,
             });
             const s3Response = await s3Client.send(getCommand);
