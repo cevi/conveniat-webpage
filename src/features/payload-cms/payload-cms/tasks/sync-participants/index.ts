@@ -28,7 +28,7 @@ export const syncParticipantsTask: TaskConfig = {
     );
 
     try {
-      const result = await syncParticipants(payload, reporter);
+      const result = await syncParticipants(payload, reporter, String(job.id));
 
       return {
         output: {

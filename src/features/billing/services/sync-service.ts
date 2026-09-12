@@ -13,8 +13,10 @@ import {
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncSummary } from '@/features/billing/types';
+import { BillingTaskSlug } from '@/features/billing/types';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { traceFunction, withSpan } from '@/utils/tracing-helpers';
+import { randomUUID } from 'node:crypto';
 import type { Payload } from 'payload';
 
 interface BillSettingsEvent {
@@ -39,6 +41,9 @@ const MIN_PARTICIPANTS_FOR_DROP_GUARD = 5;
 
 /** A single sync removing more of an event than this is treated as a bad read. */
 const MAX_REMOVED_FRACTION_PER_SYNC = 0.5;
+
+/** How long a sync run may hold its lock before it is assumed dead. */
+const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
 
 function findInvoiceEmail(answers: Record<string, string>): string | null {
   const findAnswer = (questionKeywords: string[]): string | undefined => {
@@ -539,6 +544,69 @@ export async function syncParticipantsUseCase(
 async function syncParticipantsImpl(
   payload: Payload,
   reporter?: JobProgressReporter,
+  /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
+  runOwner?: string,
+): Promise<SyncSummary> {
+  // Both replicas poll the job queue, so both used to execute the same queued sync at
+  // once. They walk the same events and reach `create` for a participation neither has
+  // seen yet within milliseconds of each other, so the loser lost to the
+  // `participationUuid` unique index and reported the whole event as failed — a run that
+  // had in fact synced correctly on the other worker. A second sync then "fixed" it,
+  // because by then the row existed and the update path took over.
+  //
+  // Imported lazily: the adapter reaches Redis, which reads the validated environment at
+  // module load, and that would make this module unimportable from a unit test of the
+  // pure use case above.
+  const { RedisRunLockAdapter } =
+    await import('@/features/billing/adapters/redis-run-lock.adapter');
+  const { classifyLockConflict } = await import('@/features/billing/ports/run-lock.port');
+
+  const owner = runOwner ?? `request:${randomUUID()}`;
+  const lockResult = await new RedisRunLockAdapter().acquire(
+    BillingTaskSlug.SyncParticipants,
+    RUN_LOCK_TTL_SECONDS,
+    owner,
+  );
+
+  if (!lockResult.acquired) {
+    const empty = {
+      newCount: 0,
+      removedCount: 0,
+      reAddedCount: 0,
+      changedCount: 0,
+      unchangedCount: 0,
+      needsReviewCount: 0,
+      syncDate: new Date().toISOString(),
+    };
+
+    if (classifyLockConflict(lockResult.heldBy, owner) === 'duplicate-worker') {
+      // The same queued job, picked up by both replicas. The worker holding the lock is
+      // doing exactly the work that was asked for; this one has nothing to report.
+      payload.logger.info(
+        `Participant sync for job ${owner} is already running on another worker; skipping this duplicate execution.`,
+      );
+      return { ...empty, duplicate: true, errors: [] };
+    }
+
+    payload.logger.warn(
+      `Refused to start participant sync for ${owner}: run ${lockResult.heldBy ?? 'unknown'} holds the lock.`,
+    );
+    return {
+      ...empty,
+      errors: ['Es läuft bereits ein Abgleich. Bitte warte, bis dieser abgeschlossen ist.'],
+    };
+  }
+
+  try {
+    return await syncParticipantsLocked(payload, reporter);
+  } finally {
+    await lockResult.lock.release();
+  }
+}
+
+async function syncParticipantsLocked(
+  payload: Payload,
+  reporter: JobProgressReporter | undefined,
 ): Promise<SyncSummary> {
   const settingsRepo = new PayloadSettingsAdapter(payload);
   const participantRepo = new PayloadParticipantRepositoryAdapter(payload);
