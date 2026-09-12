@@ -202,8 +202,9 @@ and `deleteThing`, and anything else after what it does, like `archiveChat`.
 
 ## Git and pull requests
 
-Branch from `dev`. Small changes may land on `dev` directly. `main` is protected, so anything
-reaching it goes through a pull request, and releases merge `dev` into `main` without squashing.
+Branch from `dev`. `dev` is protected too, so everything reaching it goes through a pull request
+with lint and the test suite green — no size of change is small enough to push straight to it.
+`main` is protected the same way, and releases merge `dev` into `main` without squashing.
 Do not bump the version in `package.json` yourself. Every merge into `main` accumulates in one
 open release pull request that release-please keeps up to date. Its version comes from the commit
 titles since the last tag: `feat:` a minor, `fix:`, `perf:` and `chore(deps):` a patch, a `!` or a
@@ -217,8 +218,8 @@ reopen`.
 Never open a pull request unless I asked for one. One concern per pull request. If the description
 says "also", split it.
 
-A pull request based on another feature branch never runs the test workflow, which only triggers for
-`main` and `dev`. After retargeting one, close and reopen it so the suite runs.
+The test workflow runs on every pull request, whatever it is based on, because a required check
+that never reports would leave a stacked pull request pending forever.
 
 ## Taste
 

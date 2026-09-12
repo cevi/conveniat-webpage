@@ -135,7 +135,9 @@ services:
       driver: none
 
   minio:
-    image: minio/minio
+    # quay.io, not Docker Hub: minio/minio was withdrawn from Hub and an anonymous
+    # pull now answers "repository does not exist". quay.io is MinIO's own registry.
+    image: quay.io/minio/minio
 
     entrypoint: sh
     command: >
