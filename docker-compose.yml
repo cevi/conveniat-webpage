@@ -135,7 +135,7 @@ services:
       driver: none
 
   minio:
-    image: minio/minio
+    image: quay.io/minio/minio
 
     entrypoint: sh
     command: >
