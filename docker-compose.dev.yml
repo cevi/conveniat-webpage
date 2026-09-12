@@ -178,7 +178,6 @@ services:
     networks:
       - traefik-net-1400
       - backend-net
-      - observability-net
 
     healthcheck:
       test:
