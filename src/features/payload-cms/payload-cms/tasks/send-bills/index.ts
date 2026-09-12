@@ -27,20 +27,15 @@ export const sendBillsTask: TaskConfig = {
       String(job.id),
     );
 
-    try {
-      const result = await sendBills(payload, undefined, undefined, reporter, String(job.id));
+    // Clearing the live record is the job of whoever holds the run lock, not of
+    // every worker that reaches this handler — see `JobProgressReporter.finish`.
+    const result = await sendBills(payload, undefined, undefined, reporter, String(job.id));
 
-      return {
-        output: {
-          success: true,
-          ...result,
-        },
-      };
-    } finally {
-      // The final counters live on the job document from here on; leaving the live
-      // record behind would make the toolbar show a run that already ended.
-      await progressStore.clear(BillingTaskSlug.SendBills);
-      await progressStore.clearCancel(BillingTaskSlug.SendBills);
-    }
+    return {
+      output: {
+        success: true,
+        ...result,
+      },
+    };
   },
 };

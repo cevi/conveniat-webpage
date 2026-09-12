@@ -600,6 +600,9 @@ async function syncParticipantsImpl(
   try {
     return await syncParticipantsLocked(payload, reporter);
   } finally {
+    // Inside the lock on purpose: only the execution that acquired it owns the progress
+    // record, and the keys are scoped by task slug rather than by job.
+    await reporter?.finish();
     await lockResult.lock.release();
   }
 }

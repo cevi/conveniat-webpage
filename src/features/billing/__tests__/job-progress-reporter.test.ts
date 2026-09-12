@@ -75,6 +75,27 @@ describe('createJobProgressReporter', () => {
 
     // A store that cannot answer must not be read as "the operator pressed cancel".
     await expect(reporter.shouldCancel()).resolves.toBe(false);
+
+    // Nor may a store that cannot be cleaned up fail a run that has already finished
+    // its actual work.
+    mockProgressStore.clear.mockRejectedValue(new Error('redis is down'));
+    await expect(reporter.finish()).resolves.toBeUndefined();
+  });
+
+  it('drops both the live record and the cancel flag when the run ends', async () => {
+    // The operator's toolbar reads the progress key and would otherwise keep showing a
+    // run that already ended, and a cancel flag left behind would stop the next run at
+    // its first item.
+    const reporter = createJobProgressReporter(
+      mockProgressStore,
+      BillingTaskSlug.SendBills,
+      'job-3',
+    );
+
+    await reporter.finish();
+
+    expect(mockProgressStore.clear).toHaveBeenCalledWith(BillingTaskSlug.SendBills);
+    expect(mockProgressStore.clearCancel).toHaveBeenCalledWith(BillingTaskSlug.SendBills);
   });
 
   it('reports a cancellation once the store carries the flag', async () => {

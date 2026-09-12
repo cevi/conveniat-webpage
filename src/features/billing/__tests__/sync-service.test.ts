@@ -40,6 +40,9 @@ const collectingReporter = (
         await Promise.resolve();
         return shouldCancel();
       },
+      finish: async (): Promise<void> => {
+        await Promise.resolve();
+      },
     },
   };
 };
