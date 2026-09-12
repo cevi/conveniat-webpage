@@ -27,20 +27,15 @@ export const syncParticipantsTask: TaskConfig = {
       String(job.id),
     );
 
-    try {
-      const result = await syncParticipants(payload, reporter, String(job.id));
+    // Clearing the live record is the job of whoever holds the run lock, not of
+    // every worker that reaches this handler — see `JobProgressReporter.finish`.
+    const result = await syncParticipants(payload, reporter, String(job.id));
 
-      return {
-        output: {
-          success: true,
-          ...result,
-        },
-      };
-    } finally {
-      // The final counters live on the job document from here on; leaving the live
-      // record behind would make the toolbar show a run that already ended.
-      await progressStore.clear(BillingTaskSlug.SyncParticipants);
-      await progressStore.clearCancel(BillingTaskSlug.SyncParticipants);
-    }
+    return {
+      output: {
+        success: true,
+        ...result,
+      },
+    };
   },
 };
