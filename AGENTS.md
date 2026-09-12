@@ -33,7 +33,7 @@ Loki because someone logged at the wrong level.
 - **feature** is a module under `src/features/`.
 - **block** is a Payload block, a content unit an editor places on a page, paired with a React
   converter.
-- **the stack** is the local Docker Compose environment. Mongo, Postgres, Redis, MinIO, a fake OAuth
+- **the stack** is the local Docker Compose environment. Mongo, Postgres, Redis, SeaweedFS, a fake OAuth
   server, and Grafana with Loki, Tempo and Prometheus.
 
 ## What has to keep working

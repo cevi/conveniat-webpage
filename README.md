@@ -26,7 +26,7 @@ Next.js and Payload CMS.
   [Tailwind CSS](https://tailwindcss.com/), [Headless UI](https://headlessui.com/)
 - **Icons:** [Lucide React](https://lucide.dev/)
 - **Database:** [MongoDB](https://www.mongodb.com/) (self-hosted),
-  [MinIO](https://min.io/) (S3-compatible object storage, self-hosted),
+  [SeaweedFS](https://seaweedfs.com/) (S3-compatible object storage, self-hosted),
   [PostgreSQL](https://www.postgresql.org/) (self-hosted)
 - **PWA:** [Serwist](https://serwist.pages.dev/) (for Service Worker management)
 - **Code Quality:** [ESLint](https://eslint.org/), [Prettier](https://prettier.io/)
