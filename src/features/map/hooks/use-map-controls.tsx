@@ -1,6 +1,6 @@
 import { useMap } from '@/features/map/components/maplibre-renderer/map-context-provider';
 import type { MapControlOptions } from '@/features/map/types/types';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { GeolocateControl, NavigationControl, ScaleControl } from 'maplibre-gl';
 import { useEffect } from 'react';
 

@@ -8,6 +8,9 @@ const config: Config = {
 
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // maplibre-gl 6 ships ESM only and its `exports` map has no `require` condition, which
+    // Jest's CommonJS resolver needs. Point it at the ESM entry directly.
+    '^maplibre-gl$': '<rootDir>/node_modules/maplibre-gl/dist/maplibre-gl.mjs',
   },
 
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
