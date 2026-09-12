@@ -120,11 +120,11 @@ async function sendBillsLocked(
   const s3 =
     dependencies?.s3Client ??
     new S3Client({
-      endpoint: environmentVariables.MINIO_HOST,
+      endpoint: environmentVariables.S3_HOST,
       region: 'us-east-1',
       credentials: {
-        accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-        secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+        accessKeyId: environmentVariables.S3_ACCESS_KEY_ID,
+        secretAccessKey: environmentVariables.S3_SECRET_ACCESS_KEY,
       },
       forcePathStyle: true,
     });

@@ -67,19 +67,17 @@ export const environmentVariables = createEnv({
 
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
-    MINIO_ROOT_USER: z.string().min(5),
-    MINIO_ROOT_PASSWORD: z.string().min(5),
-    MINIO_ACCESS_KEY_ID: z.string().min(5),
-    MINIO_SECRET_ACCESS_KEY: z.string().min(5),
-    MINIO_BUCKET_NAME: z.string().min(5),
+    S3_ACCESS_KEY_ID: z.string().min(5),
+    S3_SECRET_ACCESS_KEY: z.string().min(5),
+    S3_BUCKET_NAME: z.string().min(5),
     /**
-     * Bucket for bill PDFs. Optional: unset means they stay in `MINIO_BUCKET_NAME`
+     * Bucket for bill PDFs. Optional: unset means they stay in `S3_BUCKET_NAME`
      * alongside every other upload, which is where they are today. The bucket has to
      * exist before this is set — nothing creates it.
      */
-    MINIO_BILL_PDF_BUCKET_NAME: z.string().min(3).optional(),
-    MINIO_HOST: z.string().url(),
-    MINIO_PUBLIC_HOST: z.string().url(),
+    S3_BILL_PDF_BUCKET_NAME: z.string().min(3).optional(),
+    S3_HOST: z.string().url(),
+    S3_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),

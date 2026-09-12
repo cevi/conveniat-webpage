@@ -137,7 +137,7 @@ services:
       - backend-net
 
   # S3 storage for Payload uploads. All components run in one process; the entrypoint config
-  # builds the S3 identities from the MINIO_* variables, so the app configuration is the same as
+  # builds the S3 identities from the S3_* variables, so the app configuration is the same as
   # it was with MinIO.
   seaweedfs:
     image: chrislusf/seaweedfs:4.46
@@ -165,15 +165,15 @@ services:
         # The service sits on three networks, so traefik has to be told which one to dial.
         - traefik.docker.network=traefik-net-1400
 
-        - traefik.http.routers.conveniat27-dev-minio-router-http.rule=Host(`minio.conveniat27.cevi.tools`)
-        - traefik.http.routers.conveniat27-dev-minio-router-http.entrypoints=web
-        - traefik.http.routers.conveniat27-dev-minio-router-http.middlewares=redirect-to-https@file
+        - traefik.http.routers.conveniat27-dev-s3-router-http.rule=Host(`s3.conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-s3-router-http.entrypoints=web
+        - traefik.http.routers.conveniat27-dev-s3-router-http.middlewares=redirect-to-https@file
 
-        - traefik.http.routers.conveniat27-dev-minio-router.rule=Host(`minio.conveniat27.cevi.tools`)
-        - traefik.http.routers.conveniat27-dev-minio-router.entrypoints=websecure
-        - traefik.http.routers.conveniat27-dev-minio-router.service=conveniat27-dev-minio
+        - traefik.http.routers.conveniat27-dev-s3-router.rule=Host(`s3.conveniat27.cevi.tools`)
+        - traefik.http.routers.conveniat27-dev-s3-router.entrypoints=websecure
+        - traefik.http.routers.conveniat27-dev-s3-router.service=conveniat27-dev-s3
 
-        - traefik.http.services.conveniat27-dev-minio.loadbalancer.server.port=9000
+        - traefik.http.services.conveniat27-dev-s3.loadbalancer.server.port=9000
 
     networks:
       - traefik-net-1400
