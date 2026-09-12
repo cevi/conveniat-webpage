@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.7.6](https://github.com/cevi/conveniat-webpage/compare/v1.7.5...v1.7.6) (2026-09-12)
+
+
+### Bug Fixes
+
+* **map:** adapt to the ESM-only maplibre-gl 6 ([211e3ec](https://github.com/cevi/conveniat-webpage/commit/211e3ece56ca607a21f45664fb21a2cb64e0246b))
+* **map:** adapt to the ESM-only maplibre-gl 6 ([1658623](https://github.com/cevi/conveniat-webpage/commit/1658623062d0c819293a8c7f9c5806e993c44d0e))
+
+
+### Dependencies
+
+* **deps:** bump maplibre-gl ([4a48687](https://github.com/cevi/conveniat-webpage/commit/4a48687d74ee37d49eafb2727537f99b4e263fbb))
+* **deps:** bump maplibre-gl from 5.24.0 to 6.4.1 in the npm_and_yarn group across 1 directory ([00e334a](https://github.com/cevi/conveniat-webpage/commit/00e334a373c4f8bb37283b3bcb49652675da5c73))
+
 ## [1.7.5](https://github.com/cevi/conveniat-webpage/compare/v1.7.4...v1.7.5) (2026-09-12)
 
 
