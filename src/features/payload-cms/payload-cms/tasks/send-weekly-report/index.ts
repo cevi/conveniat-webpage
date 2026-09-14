@@ -77,12 +77,15 @@ export const sendWeeklyReportTask: TaskConfig = {
               onlyScheduled: true,
             });
           } catch (error) {
-            req.payload.logger.error({
+            req.payload.logger.warn({
               err: error instanceof Error ? error : new Error(String(error)),
-              msg: 'Failed to count active sendWeeklyReport jobs. Skipping schedule to be safe.',
+              msg: 'Failed to count active sendWeeklyReport jobs. Proceeding with schedule since Redis slot lock was acquired.',
             });
+            // We already hold the 1-hour Redis slot lock for this window, and sendWeeklyReport
+            // enforces an execution-level run lock. Suppressing scheduling on a transient DB error
+            // would cause the entire weekly report to be skipped for the week.
             return {
-              shouldSchedule: false,
+              shouldSchedule: true,
               input: {},
             };
           }
