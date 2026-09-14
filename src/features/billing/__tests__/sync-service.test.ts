@@ -319,6 +319,31 @@ describe('Sync Service', () => {
     );
   });
 
+  it('ignores Aufbau- and Abbaulager events configured in settings', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue({
+      events: [
+        { eventId: 'haupt-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
+        { eventId: 'aufbau-1', eventName: 'Aufbaulager conveniat27 - Test', groupId: '1' },
+        { eventId: 'abbau-1', eventName: 'Abbaulager conveniat27 - Test', groupId: '1' },
+      ],
+      rolePricing: [],
+    } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+
+    mockHitobitoService.fetchParticipations.mockResolvedValue([]);
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    // Only Hauptlager event should be queried, Aufbau and Abbau must be skipped
+    expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(1);
+    expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledWith('1', 'haupt-1');
+    expect(summary.errors).toHaveLength(0);
+  });
+
   describe('progress reporting', () => {
     const threeEvents = [
       { eventId: 'event-1', eventName: 'Lager Bern', groupId: 'group-1' },

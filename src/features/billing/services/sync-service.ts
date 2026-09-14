@@ -467,7 +467,13 @@ export async function syncParticipantsUseCase(
 
   // 1. Load bill settings
   const settings = await settingsRepo.getBillSettings();
-  const events = (settings.events as BillSettingsEvent[] | undefined) ?? [];
+  const rawEvents = (settings.events as BillSettingsEvent[] | undefined) ?? [];
+  // For bill-participants, only Hauptlager should be synced; ignore Aufbau- and Abbaulager
+  const events = rawEvents.filter(
+    (event) =>
+      !event.eventName.toLowerCase().includes('aufbaulager') &&
+      !event.eventName.toLowerCase().includes('abbaulager'),
+  );
   // A role nobody has priced cannot be billed, so the sync flags it rather than letting
   // bill generation fall back to somebody else's price later.
   const rolePricingPatterns = (settings.rolePricing ?? []).map(
