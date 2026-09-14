@@ -19,6 +19,9 @@ import type {
 import { Controller } from 'react-hook-form';
 import ReactSelect from 'react-select';
 
+/** Longest option label, in characters, that still reads well inside a grid card. */
+const LONG_OPTION_LABEL_LENGTH = 20;
+
 export const Select: React.FC<
   {
     control: Control;
@@ -259,6 +262,12 @@ export const Select: React.FC<
     );
   }
 
+  // Sentence-length options do not fit a card grid, especially in the narrow sidebar column,
+  // so they stack as full-width rows instead. Short answers like "Ja" or "XL" keep the grid.
+  const hasLongLabels = options.some(
+    (option) => typeof option.label === 'string' && option.label.length > LONG_OPTION_LABEL_LENGTH,
+  );
+
   return (
     <div className="@container mb-4">
       <div>
@@ -274,7 +283,12 @@ export const Select: React.FC<
             required: requiredFromProperties ? fieldIsRequiredText[locale as Locale] : false,
           }}
           render={({ field: { onChange, value } }) => (
-            <div className="grid grid-cols-2 gap-3 @md:grid-cols-4 @lg:grid-cols-5">
+            <div
+              className={cn(
+                'grid gap-3',
+                hasLongLabels ? 'grid-cols-1' : 'grid-cols-2 @md:grid-cols-4 @lg:grid-cols-5',
+              )}
+            >
               {options.map((option) => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const isSelected: boolean = allowMultiple
@@ -302,7 +316,8 @@ export const Select: React.FC<
                       }
                     }}
                     className={cn(
-                      'font-body relative flex cursor-pointer items-center justify-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+                      'font-body relative flex min-w-0 cursor-pointer items-center rounded-lg border-2 px-4 py-3 text-sm font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
+                      hasLongLabels ? 'justify-start' : 'justify-center',
                       {
                         'border-green-600 bg-green-50 text-green-700 ring-green-600':
                           isSelected && !hasError,
@@ -315,7 +330,12 @@ export const Select: React.FC<
                       },
                     )}
                   >
-                    <span className="font-body text-center text-sm font-medium text-gray-500">
+                    <span
+                      className={cn(
+                        'font-body text-sm font-medium wrap-break-word hyphens-auto text-gray-500',
+                        hasLongLabels ? 'text-left' : 'text-center',
+                      )}
+                    >
                       {option.label}
                     </span>
                     {isSelected && (

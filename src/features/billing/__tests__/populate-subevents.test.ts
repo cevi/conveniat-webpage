@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/unbound-method, unicorn/no-null */
 jest.mock('@/features/registration_process/hitobito-api', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
@@ -132,5 +132,71 @@ describe('populateSubeventsUseCase', () => {
 
     expect(progress).toEqual([{ processedGroups: 0, totalGroups: 0, foundEvents: [] }]);
     expect(result.count).toBe(0);
+  });
+  it('ignores Aufbau- and Abbaulager events and cleans them from existing settings', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+        { eventId: 'e-old-aufbau', eventName: 'Aufbaulager conveniat27 - Basel', groupId: '1' },
+        { eventId: 'e-old-abbau', eventName: 'Abbaulager conveniat27 - Basel', groupId: '1' },
+      ]),
+    );
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['2']);
+    mockHitobitoService.fetchEventsForGroup.mockImplementation((groupId: string) =>
+      Promise.resolve(
+        groupId === '2'
+          ? [
+              { id: 'e-new-haupt', name: 'Hauptlager conveniat27 Bern' },
+              { id: 'e-new-aufbau', name: 'Aufbaulager conveniat27 - Bern' },
+              { id: 'e-new-abbau', name: 'Abbaulager conveniat27 - Bern' },
+            ]
+          : [],
+      ),
+    );
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(result.count).toBe(1);
+    expect(result.newEvents).toEqual([
+      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
+    ]);
+    expect(result.allEvents).toEqual([
+      { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
+    ]);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
+      { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
+    ]);
+  });
+
+  it('safely handles legacy settings rows with missing or non-string eventName without throwing', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        { eventId: 'e-1', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+        { eventId: 'e-2', eventName: undefined as unknown as string, groupId: '1' },
+        { eventId: 'e-3', eventName: null as unknown as string, groupId: '1' },
+      ]),
+    );
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(result.count).toBe(0);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
+      { eventId: 'e-2', eventName: undefined, groupId: '1' },
+      { eventId: 'e-3', eventName: null, groupId: '1' },
+      { eventId: 'e-1', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+    ]);
   });
 });

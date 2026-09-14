@@ -1147,6 +1147,13 @@ export interface Form {
     formSection: {
       sectionTitle: string;
       layout?: ('standard' | 'split') | null;
+      /**
+       * Skips this whole step unless the named field of an earlier step holds the given value. Leave the field name empty to always show the step.
+       */
+      displayCondition?: {
+        field?: string | null;
+        value?: string | null;
+      };
       fields?:
         | (
             | {
@@ -1374,6 +1381,37 @@ export interface Form {
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'jobSelection';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * First day a helper can mark.
+                 */
+                startDate: string;
+                /**
+                 * Last day a helper can mark.
+                 */
+                endDate: string;
+                minDays?: number | null;
+                /**
+                 * Leave empty to allow any length up to the last day.
+                 */
+                maxDays?: number | null;
+                /**
+                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                 */
+                ressortName?: string | null;
+                ressortLabel?: string | null;
+                ressortRequired?: boolean | null;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'dateSlotSelection';
               }
             | {
                 name: string;
@@ -1623,6 +1661,37 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'jobSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * First day a helper can mark.
+                           */
+                          startDate: string;
+                          /**
+                           * Last day a helper can mark.
+                           */
+                          endDate: string;
+                          minDays?: number | null;
+                          /**
+                           * Leave empty to allow any length up to the last day.
+                           */
+                          maxDays?: number | null;
+                          /**
+                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                           */
+                          ressortName?: string | null;
+                          ressortLabel?: string | null;
+                          ressortRequired?: boolean | null;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'dateSlotSelection';
                         }
                       | {
                           name: string;
@@ -6791,6 +6860,12 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               sectionTitle?: T;
               layout?: T;
+              displayCondition?:
+                | T
+                | {
+                    field?: T;
+                    value?: T;
+                  };
               fields?:
                 | T
                 | {
@@ -6930,6 +7005,23 @@ export interface FormsSelect<T extends boolean = true> {
                           dateRangeCategory?: T;
                           category?: T;
                           required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    dateSlotSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          startDate?: T;
+                          endDate?: T;
+                          minDays?: T;
+                          maxDays?: T;
+                          ressortName?: T;
+                          ressortLabel?: T;
+                          ressortRequired?: T;
+                          required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -7094,6 +7186,23 @@ export interface FormsSelect<T extends boolean = true> {
                                       dateRangeCategory?: T;
                                       category?: T;
                                       required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                dateSlotSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      startDate?: T;
+                                      endDate?: T;
+                                      minDays?: T;
+                                      maxDays?: T;
+                                      ressortName?: T;
+                                      ressortLabel?: T;
+                                      ressortRequired?: T;
+                                      required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };

@@ -114,9 +114,9 @@ export const RESSORT_OPTIONS: { label: StaticTranslationString; value: RessortCa
   },
   {
     label: {
-      de: 'Other',
-      en: 'Other',
-      fr: 'Autre',
+      de: 'Anderes Ressort',
+      en: 'Other Department',
+      fr: 'Autre département',
     },
     value: 'other',
   },
