@@ -5,18 +5,26 @@ jest.mock('@/features/registration_process/hitobito-api', () => ({
 jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => ({
   sendTrackedEmail: jest.fn(),
 }));
+// The real adapter reaches Redis, which reads the validated environment at module load.
+jest.mock('@/features/billing/adapters/redis-run-lock.adapter', () => ({
+  RedisRunLockAdapter: jest.fn().mockImplementation(() => ({ acquire: mockAcquire })),
+}));
 
 import {
   applyReminderPlaceholders,
   groupRemindersByEvent,
   isReminderDue,
   renderReminderText,
+  selectNotRecentlyReminded,
   selectOverdueParticipants,
   sendPflichtangabenReminders,
 } from '@/features/billing/services/pflichtangaben-reminder';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
+
+const mockRelease = jest.fn();
+const mockAcquire = jest.fn();
 
 const NOW = new Date('2026-08-31T09:00:00');
 
@@ -172,28 +180,88 @@ interface MockedPayload {
   payload: Payload;
   update: jest.Mock;
   updateGlobal: jest.Mock;
+  findByID: jest.Mock;
+  warn: jest.Mock;
+  info: jest.Mock;
 }
 
 const mockPayload = (
   settings: Record<string, unknown>,
   participants: BillParticipant[],
+  /** What a re-read of a participant returns, when the test cares. */
+  fresh?: Record<string, unknown>,
 ): MockedPayload => {
   const update = jest.fn().mockResolvedValue({});
   const updateGlobal = jest.fn().mockResolvedValue({});
+  const findByID = jest
+    .fn()
+    .mockImplementation(({ id }: { id: string }) =>
+      Promise.resolve(fresh ?? participants.find((row) => row.id === id) ?? {}),
+    );
+  const warn = jest.fn();
+  const info = jest.fn();
   const payload = {
     findGlobal: jest.fn().mockResolvedValue(settings),
     find: jest.fn().mockResolvedValue({ docs: participants }),
+    findByID,
     update,
     updateGlobal,
-    logger: { info: jest.fn(), debug: jest.fn(), error: jest.fn() },
+    logger: { info, debug: jest.fn(), error: jest.fn(), warn },
   } as unknown as Payload;
-  return { payload, update, updateGlobal };
+  return { payload, update, updateGlobal, findByID, warn, info };
 };
+
+/** A registration whose audit trail says it was reminded `days` ago. */
+const reminded = (days: number, id = 'p1'): BillParticipant =>
+  participant({
+    id,
+    syncHistory: [{ date: daysAgo(days), action: 'pflichtangaben_reminder_sent' }],
+  });
+
+describe('selectNotRecentlyReminded', () => {
+  it('keeps out a registration reminded within the last six days', () => {
+    // A failed mail leaves `lastSentAt` untouched, so the next hourly tick retries the
+    // whole run — the Höfe that were reached must not be chased again.
+    expect(selectNotRecentlyReminded([reminded(2)], NOW)).toEqual([]);
+  });
+
+  it('chases again once the reminder is older than the window', () => {
+    expect(selectNotRecentlyReminded([reminded(7)], NOW)).toHaveLength(1);
+  });
+
+  it('ignores history it cannot read and other actions', () => {
+    const rows = [
+      participant({ id: 'none', syncHistory: null }),
+      participant({
+        id: 'other',
+        syncHistory: [{ date: daysAgo(1), action: 'synced' }],
+      }),
+      participant({
+        id: 'undated',
+        syncHistory: [{ action: 'pflichtangaben_reminder_sent' }],
+      }),
+    ];
+    expect(selectNotRecentlyReminded(rows, NOW).map((row) => row.id)).toEqual([
+      'none',
+      'other',
+      'undated',
+    ]);
+  });
+});
 
 describe('sendPflichtangabenReminders', () => {
   beforeEach(() => {
     (sendTrackedEmail as jest.Mock).mockReset();
-    (sendTrackedEmail as jest.Mock).mockResolvedValue({});
+    (sendTrackedEmail as jest.Mock).mockResolvedValue({ success: true, outgoingEmailId: 'e1' });
+    mockRelease.mockReset();
+    mockAcquire.mockReset();
+    mockAcquire.mockResolvedValue({ acquired: true, lock: { release: mockRelease } });
+    // The service reads the clock itself, so the fixture dates have to mean what they say.
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] }).setSystemTime(NOW);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   const settings = {
@@ -279,5 +347,126 @@ describe('sendPflichtangabenReminders', () => {
     expect(summary.sent).toBe(false);
     expect(summary.reason).toContain('keine Pflichtangaben');
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+  });
+
+  it('appends to the history the participant has now, not the one the run started with', async () => {
+    // A sync finishing while the mails go out writes its own entries; appending to the
+    // snapshot this run loaded would drop them.
+    const { payload, update } = mockPayload(
+      settings,
+      [participant({ id: 'a', eventId: '11', syncHistory: [] })],
+      { syncHistory: [{ date: daysAgo(0), action: 'synced' }] },
+    );
+
+    await sendPflichtangabenReminders(payload, { force: true });
+
+    const [[updated]] = update.mock.calls as [[{ data: { syncHistory: { action: string }[] } }]];
+    expect(updated.data.syncHistory.map((entry) => entry.action)).toEqual([
+      'synced',
+      'pflichtangaben_reminder_sent',
+    ]);
+  });
+
+  it('does not count a mail that the SMTP server refused', async () => {
+    (sendTrackedEmail as jest.Mock).mockResolvedValue({
+      success: false,
+      outgoingEmailId: 'e1',
+      error: 'Connection refused',
+    });
+    const { payload, update, updateGlobal, warn } = mockPayload(settings, [
+      participant({ id: 'a', eventId: '11' }),
+    ]);
+
+    const summary = await sendPflichtangabenReminders(payload, { force: true });
+
+    expect(summary).toMatchObject({ sent: false, mailCount: 0, participantCount: 0 });
+    expect(summary.errors[0]).toContain('Hof Züri 11');
+    expect(summary.errors[0]).toContain('Connection refused');
+    expect(update).not.toHaveBeenCalled();
+    // Left where it was, so the next hourly tick retries this week.
+    expect(updateGlobal).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('advances the weekly guard when every Hof was reached', async () => {
+    const { payload, updateGlobal } = mockPayload(settings, [
+      participant({ id: 'a', eventId: '11' }),
+    ]);
+
+    await sendPflichtangabenReminders(payload, { force: true });
+
+    const [[written]] = updateGlobal.mock.calls as [
+      [{ data: { pflichtangabenReminder: { lastSentAt: string } } }],
+    ];
+    expect(typeof written.data.pflichtangabenReminder.lastSentAt).toBe('string');
+  });
+
+  it('leaves out a Hof that was already reminded this week on a retry', async () => {
+    const { payload } = mockPayload(settings, [
+      participant({
+        id: 'a',
+        eventId: '11',
+        syncHistory: [{ date: daysAgo(1), action: 'pflichtangaben_reminder_sent' }],
+      }),
+    ]);
+
+    const summary = await sendPflichtangabenReminders(payload, { force: true });
+
+    expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(summary.mailCount).toBe(0);
+  });
+
+  it('still sends a manual reminder for a registration reminded yesterday', async () => {
+    const { payload } = mockPayload(settings, [
+      participant({
+        id: 'a',
+        eventId: '11',
+        syncHistory: [{ date: daysAgo(1), action: 'pflichtangaben_reminder_sent' }],
+      }),
+    ]);
+
+    const summary = await sendPflichtangabenReminders(payload, { force: true, participantId: 'a' });
+
+    expect(summary).toMatchObject({ sent: true, mailCount: 1 });
+  });
+
+  it('reports the same job running on the other worker as a duplicate, not a conflict', async () => {
+    mockAcquire.mockResolvedValue({ acquired: false, heldBy: 'job:4711' });
+    const { payload, info } = mockPayload(settings, [participant({ id: 'a', eventId: '11' })]);
+
+    const summary = await sendPflichtangabenReminders(payload, {
+      force: true,
+      runOwner: 'job:4711',
+    });
+
+    expect(summary).toMatchObject({ sent: false, duplicate: true, mailCount: 0, errors: [] });
+    expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalled();
+  });
+
+  it('refuses to start while another run holds the lock', async () => {
+    mockAcquire.mockResolvedValue({ acquired: false, heldBy: 'job:4712' });
+    const { payload, warn } = mockPayload(settings, [participant({ id: 'a', eventId: '11' })]);
+
+    const summary = await sendPflichtangabenReminders(payload, {
+      force: true,
+      runOwner: 'job:4711',
+    });
+
+    expect(summary.sent).toBe(false);
+    expect(summary.duplicate).toBeUndefined();
+    expect(summary.errors).toEqual(['Es läuft bereits ein Erinnerungsversand.']);
+    expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('releases the lock even when the run throws', async () => {
+    const { payload } = mockPayload(settings, [participant({ id: 'a', eventId: '11' })]);
+    (payload.find as jest.Mock).mockRejectedValue(new Error('Datenbank weg'));
+
+    await expect(sendPflichtangabenReminders(payload, { force: true })).rejects.toThrow(
+      'Datenbank weg',
+    );
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 });

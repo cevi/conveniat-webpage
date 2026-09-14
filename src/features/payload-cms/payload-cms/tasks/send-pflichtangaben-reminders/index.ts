@@ -15,13 +15,17 @@ export const sendPflichtangabenRemindersTask: TaskConfig = {
   inputSchema: [],
   schedule: [{ cron: '0 10 * * * *', queue: DEFAULT_QUEUE }],
   handler: async ({
+    job,
     req,
   }: {
+    job: { id: number | string };
     req: PayloadRequest;
   }): Promise<{ output: Record<string, unknown> }> => {
     const { sendPflichtangabenReminders } =
       await import('@/features/billing/services/pflichtangaben-reminder');
-    const result = await sendPflichtangabenReminders(req.payload);
+    // The job id, not the worker: both replicas execute this same job, and only the run
+    // lock's owner tells those two apart from a genuinely competing run.
+    const result = await sendPflichtangabenReminders(req.payload, { runOwner: String(job.id) });
     return { output: { success: true, ...result } };
   },
 };
