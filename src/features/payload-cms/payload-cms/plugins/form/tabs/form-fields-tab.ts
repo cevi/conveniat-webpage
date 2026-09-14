@@ -1,3 +1,4 @@
+import { DEFAULT_SLOT_LENGTH_IN_DAYS } from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
@@ -33,6 +34,10 @@ const formNameValidation: TextFieldSingleValidation = (value, options) => {
   }
   return true;
 };
+
+/** Same rules as {@link formNameValidation}, but an empty value is allowed. */
+const optionalFormNameValidation: TextFieldSingleValidation = (value, options) =>
+  value === null || value === undefined || value === '' ? true : formNameValidation(value, options);
 
 const validateRegex: TextFieldSingleValidation = (value, options) => {
   const localeString = options.req.i18n.language;
@@ -774,6 +779,172 @@ const formJobSelectionBlock: Block = {
   labels: { plural: 'Job Selection Blocks', singular: 'Job Selection' },
 };
 
+const formDateSlotSelectionBlock: Block = {
+  slug: 'dateSlotSelection',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Date Slot Selection',
+            de: 'Zeitfenster-Auswahl',
+            fr: 'Sélection de créneau',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'startDate',
+          type: 'date',
+          required: true,
+          label: {
+            en: 'First Day',
+            de: 'Erster Tag',
+            fr: 'Premier jour',
+          },
+          admin: {
+            width: '50%',
+            date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
+            description: {
+              en: 'First day a slot may start on.',
+              de: 'Erster Tag, an dem ein Zeitfenster beginnen darf.',
+              fr: 'Premier jour où un créneau peut commencer.',
+            },
+          },
+        },
+        {
+          name: 'endDate',
+          type: 'date',
+          required: true,
+          label: {
+            en: 'Last Day',
+            de: 'Letzter Tag',
+            fr: 'Dernier jour',
+          },
+          admin: {
+            width: '50%',
+            date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
+            description: {
+              en: 'Last day a slot may end on.',
+              de: 'Letzter Tag, an dem ein Zeitfenster enden darf.',
+              fr: 'Dernier jour où un créneau peut se terminer.',
+            },
+          },
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'slotLength',
+          type: 'number',
+          min: 1,
+          defaultValue: DEFAULT_SLOT_LENGTH_IN_DAYS,
+          label: {
+            en: 'Slot Length (days)',
+            de: 'Länge eines Zeitfensters (Tage)',
+            fr: 'Durée du créneau (jours)',
+          },
+          admin: { width: '50%' },
+        },
+        {
+          name: 'stepDays',
+          type: 'number',
+          min: 1,
+          defaultValue: 1,
+          label: {
+            en: 'Offset Between Slots (days)',
+            de: 'Abstand zwischen Zeitfenstern (Tage)',
+            fr: 'Décalage entre les créneaux (jours)',
+          },
+          admin: {
+            width: '50%',
+            description: {
+              en: '1 offers a slot starting on every day, 3 offers back-to-back three-day slots.',
+              de: '1 bietet an jedem Tag ein Zeitfenster an, 3 bietet lückenlos aufeinanderfolgende Dreitagesfenster an.',
+              fr: "1 propose un créneau chaque jour, 3 propose des créneaux de trois jours qui s'enchaînent.",
+            },
+          },
+        },
+      ],
+    },
+    {
+      name: 'ressortName',
+      type: 'text',
+      validate: optionalFormNameValidation,
+      label: {
+        en: 'Ressort Wish — Field Name (leave empty to not ask)',
+        de: 'Ressortwunsch — Feldname (leer lassen, um nicht zu fragen)',
+        fr: 'Souhait de département — nom du champ (laisser vide pour ne pas demander)',
+      },
+      admin: {
+        description: {
+          en: 'Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.',
+          de: 'Fragt zusätzlich zum Zeitfenster, in welchem Ressort die helfende Person mithelfen möchte. Zur Auswahl steht die projektweite Ressortliste.',
+          fr: 'Demande, en plus du créneau, dans quel département la personne souhaite aider. Les choix sont la liste des départements du projet.',
+        },
+      },
+    },
+    {
+      name: 'ressortLabel',
+      type: 'text',
+      localized: true,
+      label: {
+        en: 'Ressort Wish — Label',
+        de: 'Ressortwunsch — Beschriftung',
+        fr: 'Souhait de département — libellé',
+      },
+      admin: {
+        condition: (_, siblingData) =>
+          typeof siblingData['ressortName'] === 'string' && siblingData['ressortName'] !== '',
+      },
+    },
+    {
+      name: 'ressortRequired',
+      type: 'checkbox',
+      label: {
+        en: 'Ressort Wish — Required',
+        de: 'Ressortwunsch — Pflichtfeld',
+        fr: 'Souhait de département — obligatoire',
+      },
+      admin: {
+        condition: (_, siblingData) =>
+          typeof siblingData['ressortName'] === 'string' && siblingData['ressortName'] !== '',
+      },
+    },
+    { name: 'required', type: 'checkbox', label: 'Required' },
+  ],
+  labels: { plural: 'Date Slot Selection Blocks', singular: 'Date Slot Selection' },
+};
+
 const formFileUploadBlock: Block = {
   slug: 'fileUpload',
   admin: {
@@ -875,6 +1046,7 @@ const formBlocks: Block[] = [
   formDateBlock,
   formCeviDatabaseLoginBlock,
   formJobSelectionBlock,
+  formDateSlotSelectionBlock,
   formFileUploadBlock,
 ];
 
@@ -944,6 +1116,49 @@ const formSection: Field = {
         de: 'Abschnitts-Layout',
         fr: 'Disposition de la section',
       },
+    },
+    {
+      name: 'displayCondition',
+      type: 'group',
+      label: {
+        en: 'Display Condition',
+        de: 'Anzeigebedingung',
+        fr: "Condition d'affichage",
+      },
+      admin: {
+        description: {
+          en: 'Skips this whole step unless the named field of an earlier step holds the given value. Leave the field name empty to always show the step.',
+          de: 'Überspringt diesen ganzen Schritt, ausser das genannte Feld aus einem früheren Schritt hat den angegebenen Wert. Feldname leer lassen, um den Schritt immer zu zeigen.',
+          fr: "Saute entièrement cette étape sauf si le champ nommé d'une étape précédente a la valeur indiquée. Laisser le nom du champ vide pour toujours afficher l'étape.",
+        },
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'field',
+              type: 'text',
+              label: {
+                en: 'Field to check',
+                de: 'Zu prüfendes Feld',
+                fr: 'Champ à vérifier',
+              },
+              admin: { width: '50%', placeholder: 'e.g. anmeldeart' },
+            },
+            {
+              name: 'value',
+              type: 'text',
+              label: {
+                en: 'Value to match',
+                de: 'Erwarteter Wert',
+                fr: 'Valeur attendue',
+              },
+              admin: { width: '50%', placeholder: 'e.g. zeitfenster' },
+            },
+          ],
+        },
+      ],
     },
     {
       type: 'blocks',

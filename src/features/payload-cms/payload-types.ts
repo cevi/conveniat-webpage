@@ -1147,6 +1147,13 @@ export interface Form {
     formSection: {
       sectionTitle: string;
       layout?: ('standard' | 'split') | null;
+      /**
+       * Skips this whole step unless the named field of an earlier step holds the given value. Leave the field name empty to always show the step.
+       */
+      displayCondition?: {
+        field?: string | null;
+        value?: string | null;
+      };
       fields?:
         | (
             | {
@@ -1374,6 +1381,33 @@ export interface Form {
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'jobSelection';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * First day a slot may start on.
+                 */
+                startDate: string;
+                /**
+                 * Last day a slot may end on.
+                 */
+                endDate: string;
+                slotLength?: number | null;
+                /**
+                 * 1 offers a slot starting on every day, 3 offers back-to-back three-day slots.
+                 */
+                stepDays?: number | null;
+                /**
+                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                 */
+                ressortName?: string | null;
+                ressortLabel?: string | null;
+                ressortRequired?: boolean | null;
+                required?: boolean | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'dateSlotSelection';
               }
             | {
                 name: string;
@@ -1627,6 +1661,33 @@ export interface Form {
                       | {
                           name: string;
                           label: string;
+                          /**
+                           * First day a slot may start on.
+                           */
+                          startDate: string;
+                          /**
+                           * Last day a slot may end on.
+                           */
+                          endDate: string;
+                          slotLength?: number | null;
+                          /**
+                           * 1 offers a slot starting on every day, 3 offers back-to-back three-day slots.
+                           */
+                          stepDays?: number | null;
+                          /**
+                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                           */
+                          ressortName?: string | null;
+                          ressortLabel?: string | null;
+                          ressortRequired?: boolean | null;
+                          required?: boolean | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'dateSlotSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
                           allowedFileTypes?: ('all' | 'pdf' | 'images' | 'documents' | 'custom') | null;
                           customAllowedFileTypes?: string | null;
                           allowMultiple?: boolean | null;
@@ -1754,7 +1815,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'brevoContactWorkflow';
+        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;
@@ -6791,6 +6852,12 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               sectionTitle?: T;
               layout?: T;
+              displayCondition?:
+                | T
+                | {
+                    field?: T;
+                    value?: T;
+                  };
               fields?:
                 | T
                 | {
@@ -6929,6 +6996,22 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           dateRangeCategory?: T;
                           category?: T;
+                          required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    dateSlotSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          startDate?: T;
+                          endDate?: T;
+                          slotLength?: T;
+                          stepDays?: T;
+                          ressortName?: T;
+                          ressortLabel?: T;
+                          ressortRequired?: T;
                           required?: T;
                           id?: T;
                           blockName?: T;
@@ -7093,6 +7176,22 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       dateRangeCategory?: T;
                                       category?: T;
+                                      required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                dateSlotSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      startDate?: T;
+                                      endDate?: T;
+                                      slotLength?: T;
+                                      stepDays?: T;
+                                      ressortName?: T;
+                                      ressortLabel?: T;
+                                      ressortRequired?: T;
                                       required?: T;
                                       id?: T;
                                       blockName?: T;

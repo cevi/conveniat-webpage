@@ -2,6 +2,7 @@ import { CeviDatabaseLogin } from '@/features/payload-cms/components/form/cevi-d
 import { Checkbox } from '@/features/payload-cms/components/form/checkbox';
 import { Country } from '@/features/payload-cms/components/form/country';
 import { Date } from '@/features/payload-cms/components/form/date';
+import { DateSlotSelection } from '@/features/payload-cms/components/form/date-slot-selection';
 import { Email } from '@/features/payload-cms/components/form/email';
 import { FileUpload } from '@/features/payload-cms/components/form/file-upload';
 import { JobSelection } from '@/features/payload-cms/components/form/job-selection';
@@ -25,5 +26,6 @@ export const fields: Record<string, React.FC<any>> = {
   date: Date,
   ceviDbLogin: CeviDatabaseLogin,
   jobSelection: JobSelection,
+  dateSlotSelection: DateSlotSelection,
   fileUpload: FileUpload,
 };
