@@ -1,6 +1,7 @@
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { PopulatedSubevent } from '@/features/billing/types';
+import { isAufbauOrAbbaulager } from '@/features/billing/utils';
 
 /**
  * Progress emitted while the subgroups of the parent group are walked.
@@ -70,11 +71,9 @@ export async function populateSubeventsUseCase(
             const events = await hitobitoService.fetchEventsForGroup(groupId);
             for (const event of events) {
               const name = event.name;
-              const isAufbauOrAbbau =
-                name.toLowerCase().includes('aufbaulager') ||
-                name.toLowerCase().includes('abbaulager');
               if (
-                !isAufbauOrAbbau &&
+                !isAufbauOrAbbaulager(name) &&
+                typeof name === 'string' &&
                 (name.includes('Hauptlager conveniat27') || name.includes('conveniat27'))
               ) {
                 batchResults.push({
@@ -132,9 +131,7 @@ export async function populateSubeventsUseCase(
 
   // Filter out any Aufbau- or Abbaulager events from pre-existing settings
   const filteredExistingEvents = existingEvents.filter(
-    (event) =>
-      !event.eventName.toLowerCase().includes('aufbaulager') &&
-      !event.eventName.toLowerCase().includes('abbaulager'),
+    (event) => !isAufbauOrAbbaulager(event.eventName),
   );
 
   // Merge new results into filteredExistingEvents, using eventId as the key

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/unbound-method, unicorn/no-null */
 jest.mock('@/features/registration_process/hitobito-api', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
@@ -172,6 +172,31 @@ describe('populateSubeventsUseCase', () => {
     expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
       { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
       { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
+    ]);
+  });
+
+  it('safely handles legacy settings rows with missing or non-string eventName without throwing', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        { eventId: 'e-1', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+        { eventId: 'e-2', eventName: undefined as unknown as string, groupId: '1' },
+        { eventId: 'e-3', eventName: null as unknown as string, groupId: '1' },
+      ]),
+    );
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(result.count).toBe(0);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
+      { eventId: 'e-2', eventName: undefined, groupId: '1' },
+      { eventId: 'e-3', eventName: null, groupId: '1' },
+      { eventId: 'e-1', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
     ]);
   });
 });

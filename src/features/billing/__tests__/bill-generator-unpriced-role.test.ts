@@ -356,3 +356,25 @@ describe('layoutFooterLines', () => {
     expect(layoutFooterLines([], measure, 100)).toEqual([]);
   });
 });
+
+describe('generateBillsUseCase with Aufbau- or Abbaulager participant', () => {
+  it('skips billing and reports an error message without generating a PDF', async () => {
+    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+      participant({ eventName: 'Aufbaulager conveniat27 - Hof 1' }),
+    ]);
+
+    const summary = await generateBillsUseCase(
+      participantRepo,
+      settingsRepo,
+      hitobitoService,
+      logger,
+    );
+
+    expect(participantRepo.uploadPdf).not.toHaveBeenCalled();
+    expect(summary.generatedCount).toBe(0);
+    expect(summary.skippedCount).toBe(1);
+    expect(summary.errors[0]).toContain(
+      'ist ein Aufbau- oder Abbaulager und für die Abrechnung ausgeschlossen',
+    );
+  });
+});

@@ -14,6 +14,7 @@ import type { JobProgressReporter } from '@/features/billing/services/job-progre
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
+import { isAufbauOrAbbaulager } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { traceFunction, withSpan } from '@/utils/tracing-helpers';
 import { randomUUID } from 'node:crypto';
@@ -21,7 +22,7 @@ import type { Payload } from 'payload';
 
 interface BillSettingsEvent {
   eventId: string;
-  eventName: string;
+  eventName?: string | null;
   groupId: string;
 }
 
@@ -149,7 +150,7 @@ async function syncSingleEvent(
         userId: participation.participantId,
         eventId: event.eventId,
         groupId: event.groupId,
-        eventName: event.eventName,
+        eventName: event.eventName ?? '',
         firstName: participation.firstName,
         lastName: participation.lastName,
         nickname: participation.nickname,
@@ -292,7 +293,7 @@ async function syncSingleEvent(
         if (hasGroupIdChanged)
           diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
         if (hasEventNameChanged)
-          diff['eventName'] = { from: String(document_.eventName), to: event.eventName };
+          diff['eventName'] = { from: String(document_.eventName), to: event.eventName ?? '' };
         if (hasStreetChanged)
           diff['street'] = { from: String(document_.street), to: participation.street ?? '' };
         if (hasZipChanged)
@@ -331,7 +332,7 @@ async function syncSingleEvent(
         await participantRepo.update(document_.id, {
           lastSyncDate: now,
           groupId: event.groupId,
-          eventName: event.eventName,
+          eventName: event.eventName ?? '',
           firstName: participation.firstName,
           lastName: participation.lastName,
           nickname: participation.nickname,
@@ -433,7 +434,7 @@ const syncSingleEventTraced = traceFunction(
   {
     getAttributes: (event) => ({
       'event.id': event.eventId,
-      'event.name': event.eventName,
+      'event.name': event.eventName ?? '',
       'group.id': event.groupId,
     }),
   },
@@ -468,12 +469,51 @@ export async function syncParticipantsUseCase(
   // 1. Load bill settings
   const settings = await settingsRepo.getBillSettings();
   const rawEvents = (settings.events as BillSettingsEvent[] | undefined) ?? [];
-  // For bill-participants, only Hauptlager should be synced; ignore Aufbau- and Abbaulager
-  const events = rawEvents.filter(
-    (event) =>
-      !event.eventName.toLowerCase().includes('aufbaulager') &&
-      !event.eventName.toLowerCase().includes('abbaulager'),
-  );
+  const events: BillSettingsEvent[] = [];
+  const excludedEvents: BillSettingsEvent[] = [];
+
+  for (const event of rawEvents) {
+    if (isAufbauOrAbbaulager(event.eventName)) {
+      excludedEvents.push(event);
+    } else {
+      events.push(event);
+    }
+  }
+
+  // Deactivate or reconcile existing participants for excluded events (Aufbau- and Abbaulager)
+  for (const event of excludedEvents) {
+    if (typeof event.eventId !== 'string' || event.eventId.trim() === '') continue;
+    const existingForExcluded = await participantRepo.findActiveForEvent(event.eventId);
+    for (const document_ of existingForExcluded) {
+      const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+      const hasBill = hasRaisedBill(document_);
+      const newStatus = hasBill ? NEEDS_MANUAL_REVIEW : 'removed';
+      const action = hasBill ? 'manual_review_required' : 'removed_detected';
+      const reviewReason = hasBill
+        ? 'Anlass ist ein Aufbau- oder Abbaulager und für die Abrechnung ausgeschlossen, es wurde jedoch bereits eine Rechnung erstellt.'
+        : 'Anlass ist ein Aufbau- oder Abbaulager und für die Abrechnung ausgeschlossen.';
+
+      await participantRepo.update(document_.id, {
+        status: newStatus,
+        ...(hasBill ? {} : { removedDate: now }),
+        lastSyncDate: now,
+        syncHistory: [
+          ...history,
+          {
+            date: now,
+            action,
+            reviewReason,
+          },
+        ],
+      });
+
+      if (hasBill) {
+        summary.needsReviewCount++;
+      } else {
+        summary.removedCount++;
+      }
+    }
+  }
   // A role nobody has priced cannot be billed, so the sync flags it rather than letting
   // bill generation fall back to somebody else's price later.
   const rolePricingPatterns = (settings.rolePricing ?? []).map(
@@ -501,7 +541,7 @@ export async function syncParticipantsUseCase(
     await reporter?.report({
       processedItems: index,
       totalItems: events.length,
-      currentItemName: event.eventName,
+      currentItemName: event.eventName ?? '',
       runningSummary: runningSummary(),
     });
 
@@ -524,7 +564,7 @@ export async function syncParticipantsUseCase(
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      summary.errors.push(`Event ${event.eventId} (${event.eventName}): ${errorMessage}`);
+      summary.errors.push(`Event ${event.eventId} (${event.eventName ?? '–'}): ${errorMessage}`);
     }
   }
 
