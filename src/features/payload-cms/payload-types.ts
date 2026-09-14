@@ -1399,6 +1399,10 @@ export interface Form {
                  */
                 maxDays?: number | null;
                 /**
+                 * How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.
+                 */
+                maxRanges?: number | null;
+                /**
                  * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
                  */
                 ressortName?: string | null;
@@ -1678,6 +1682,10 @@ export interface Form {
                            * Leave empty to allow any length up to the last day.
                            */
                           maxDays?: number | null;
+                          /**
+                           * How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.
+                           */
+                          maxRanges?: number | null;
                           /**
                            * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
                            */
@@ -7017,6 +7025,7 @@ export interface FormsSelect<T extends boolean = true> {
                           endDate?: T;
                           minDays?: T;
                           maxDays?: T;
+                          maxRanges?: T;
                           ressortName?: T;
                           ressortLabel?: T;
                           ressortRequired?: T;
@@ -7198,6 +7207,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       endDate?: T;
                                       minDays?: T;
                                       maxDays?: T;
+                                      maxRanges?: T;
                                       ressortName?: T;
                                       ressortLabel?: T;
                                       ressortRequired?: T;

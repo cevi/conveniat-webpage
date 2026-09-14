@@ -1,4 +1,7 @@
-import { DEFAULT_MINIMUM_DAYS } from '@/features/payload-cms/components/form/utils/date-slots';
+import {
+  DEFAULT_MAXIMUM_RANGES,
+  DEFAULT_MINIMUM_DAYS,
+} from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
@@ -894,6 +897,24 @@ const formDateSlotSelectionBlock: Block = {
           },
         },
       ],
+    },
+    {
+      name: 'maxRanges',
+      type: 'number',
+      min: 1,
+      defaultValue: DEFAULT_MAXIMUM_RANGES,
+      label: {
+        en: 'Maximum Number of Slots',
+        de: 'Höchstanzahl Zeitfenster',
+        fr: 'Nombre maximum de créneaux',
+      },
+      admin: {
+        description: {
+          en: 'How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.',
+          de: 'Wie viele getrennte Zeitfenster eine helfende Person markieren kann. Jedes hält die Mindest- und Höchstanzahl Tage ein, und Zeitfenster dürfen nicht aneinandergrenzen.',
+          fr: 'Combien de créneaux distincts une personne bénévole peut marquer. Chacun respecte le nombre minimum et maximum de jours, et les créneaux ne peuvent pas se toucher.',
+        },
+      },
     },
     {
       name: 'ressortName',

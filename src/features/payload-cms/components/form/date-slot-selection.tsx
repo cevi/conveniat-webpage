@@ -2,21 +2,24 @@
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { DateSlotSelectionBlock } from '@/features/payload-cms/components/form/types';
-import type { SelectableDays } from '@/features/payload-cms/components/form/utils/date-slots';
+import type {
+  DateRange,
+  SelectableDays,
+} from '@/features/payload-cms/components/form/utils/date-slots';
 import {
   addDays,
+  areRangesAllowed,
   countDays,
   getSelectableDays,
-  isRangeAllowed,
-  parseDateRangeValue,
-  toDateRangeValue,
+  parseDateRangesValue,
+  toDateRangesValue,
   toIsoDay,
 } from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CalendarX } from 'lucide-react';
+import { CalendarX, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
@@ -79,6 +82,18 @@ const pickAgainText: StaticTranslationString = {
   de: 'Tippe auf einen Tag, um neu zu wählen.',
   en: 'Tap a day to choose again.',
   fr: 'Touche un jour pour recommencer.',
+};
+
+const addAnotherRangeText: StaticTranslationString = {
+  de: 'Optional: Tippe auf den ersten Tag eines weiteren Zeitfensters.',
+  en: 'Optional: tap the first day of another slot.',
+  fr: "Facultatif : touche le premier jour d'un autre créneau.",
+};
+
+const removeRangeText: StaticTranslationString = {
+  de: 'Zeitfenster entfernen',
+  en: 'Remove slot',
+  fr: 'Retirer le créneau',
 };
 
 const ressortPlaceholder: StaticTranslationString = {
@@ -189,10 +204,12 @@ interface DayRangeCalendarProperties {
 }
 
 /**
- * Month grids on which the helper taps a first and a last day.
+ * Month grids on which the helper taps a first and a last day, once per range.
  *
- * The form value only holds a complete range; the first tap lives in local state until the
- * second one, so a half-picked range still fails the required check.
+ * The form value only holds complete ranges; a first tap lives in local state until the
+ * second one, so a half-picked range still fails the required check. While the helper may
+ * add another range, a tap starts it next to the ones already marked. Once the limit is
+ * reached, a tap starts over from scratch, which for a single range is plain "choose again".
  */
 const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
   selectable,
@@ -202,7 +219,19 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
   locale,
 }) => {
   const [pendingStart, setPendingStart] = useState<string | undefined>();
-  const selectedRange = pendingStart === undefined ? parseDateRangeValue(value) : undefined;
+  const selectedRanges = parseDateRangesValue(value) ?? [];
+  const isAtLimit = selectedRanges.length >= selectable.maxRanges;
+  // The ranges a new one has to fit around: none when the next tap starts over.
+  const keptRanges = pendingStart === undefined && isAtLimit ? [] : selectedRanges;
+
+  const fitsBeside = (range: DateRange): boolean =>
+    areRangesAllowed(
+      [...keptRanges, range].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+      selectable,
+    );
+
+  const findRange = (day: string): DateRange | undefined =>
+    selectedRanges.find((range) => day >= range.startDate && day <= range.endDate);
 
   const months = useMemo(
     () => buildMonths(selectable.firstDay, selectable.lastDay),
@@ -217,38 +246,39 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
     [locale],
   );
 
+  /** A day can start a range when the shortest range from it still fits. */
   const canStartOn = (day: string): boolean =>
-    day >= selectable.firstDay && addDays(day, selectable.minDays - 1) <= selectable.lastDay;
+    fitsBeside({ startDate: day, endDate: addDays(day, selectable.minDays - 1) });
 
   const isSelectable = (day: string): boolean => {
     if (pendingStart === undefined || day < pendingStart) return canStartOn(day);
     if (day === pendingStart) return true;
-    return isRangeAllowed({ startDate: pendingStart, endDate: day }, selectable);
+    return fitsBeside({ startDate: pendingStart, endDate: day });
   };
 
   const handleDayClick = (day: string): void => {
     if (pendingStart === undefined || day < pendingStart) {
+      if (pendingStart === undefined && isAtLimit) onChange('');
       setPendingStart(day);
-      onChange('');
     } else if (day === pendingStart) {
       setPendingStart(undefined);
     } else {
       setPendingStart(undefined);
-      onChange(toDateRangeValue({ startDate: pendingStart, endDate: day }));
+      onChange(toDateRangesValue([...selectedRanges, { startDate: pendingStart, endDate: day }]));
     }
   };
 
-  /** What a day is within the range, for its accessible name; undefined when outside it. */
+  const removeRange = (removed: DateRange): void => {
+    setPendingStart(undefined);
+    onChange(toDateRangesValue(selectedRanges.filter((range) => range !== removed)));
+  };
+
+  /** What a day is within a range, for its accessible name; undefined when outside all. */
   const getDayMarker = (day: string): string | undefined => {
-    if (day === pendingStart || day === selectedRange?.startDate) return firstDayMarker[locale];
-    if (day === selectedRange?.endDate) return lastDayMarker[locale];
-    if (
-      selectedRange !== undefined &&
-      day > selectedRange.startDate &&
-      day < selectedRange.endDate
-    ) {
-      return inRangeMarker[locale];
-    }
+    const range = findRange(day);
+    if (day === pendingStart || day === range?.startDate) return firstDayMarker[locale];
+    if (day === range?.endDate) return lastDayMarker[locale];
+    if (range !== undefined) return inRangeMarker[locale];
     return undefined;
   };
 
@@ -291,14 +321,10 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
                 <span key={`blank-${blankIndex}`} aria-hidden="true" />
               ))}
               {calendarMonth.days.map((day) => {
+                const range = findRange(day);
                 const isEndpoint =
-                  day === pendingStart ||
-                  day === selectedRange?.startDate ||
-                  day === selectedRange?.endDate;
-                const isInRange =
-                  selectedRange !== undefined &&
-                  day >= selectedRange.startDate &&
-                  day <= selectedRange.endDate;
+                  day === pendingStart || day === range?.startDate || day === range?.endDate;
+                const isInRange = range !== undefined;
                 const isEnabled = isSelectable(day);
                 const marker = getDayMarker(day);
                 const dayName = formatIsoDay(day, locale, {
@@ -341,17 +367,30 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
             {pickLastDayText[locale]} ({lengthLimits}).
           </p>
         )}
-        {selectedRange !== undefined && (
-          <>
-            <p className="font-bold text-gray-900">
-              {formatIsoDay(selectedRange.startDate, locale, shortDate)} –{' '}
-              {formatIsoDay(selectedRange.endDate, locale, shortDate)} ·{' '}
-              {formatDayCount(countDays(selectedRange.startDate, selectedRange.endDate), locale)}
-            </p>
-            <p className="mt-1 text-xs text-gray-500">{pickAgainText[locale]}</p>
-          </>
+        {selectedRanges.map((range) => {
+          const rangeText = `${formatIsoDay(range.startDate, locale, shortDate)} – ${formatIsoDay(range.endDate, locale, shortDate)}`;
+          return (
+            <div key={range.startDate} className="flex items-center justify-between gap-2">
+              <p className="font-bold text-gray-900">
+                {rangeText} · {formatDayCount(countDays(range.startDate, range.endDate), locale)}
+              </p>
+              <button
+                type="button"
+                aria-label={`${removeRangeText[locale]}: ${rangeText}`}
+                onClick={() => removeRange(range)}
+                className="cursor-pointer rounded-md p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          );
+        })}
+        {pendingStart === undefined && selectedRanges.length > 0 && (
+          <p className="mt-1 text-xs text-gray-500">
+            {isAtLimit ? pickAgainText[locale] : addAnotherRangeText[locale]}
+          </p>
         )}
-        {pendingStart === undefined && selectedRange === undefined && (
+        {pendingStart === undefined && selectedRanges.length === 0 && (
           <p>
             {pickFirstDayText[locale]} ({lengthLimits})
           </p>
@@ -380,6 +419,7 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
   endDate,
   minDays,
   maxDays,
+  maxRanges,
   ressortName,
   ressortLabel,
   ressortRequired,
@@ -387,8 +427,8 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
   const locale = (useCurrentLocale(i18nConfig) ?? 'de') as Locale;
 
   const selectable = useMemo(
-    () => getSelectableDays({ startDate, endDate, minDays, maxDays }),
-    [startDate, endDate, minDays, maxDays],
+    () => getSelectableDays({ startDate, endDate, minDays, maxDays, maxRanges }),
+    [startDate, endDate, minDays, maxDays, maxRanges],
   );
 
   const ressortOptions = useMemo(
