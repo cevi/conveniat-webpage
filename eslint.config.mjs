@@ -171,7 +171,7 @@ const config = defineConfig([
       'src/features/payload-cms/utils/preview/preview-utils.tsx',
       'src/features/settings/profile-details.tsx',
       'src/hooks/use-native-push.ts',
-      'src/instrumentation.ts',
+      'src/instrumentation-node.ts',
       'src/lib/chat-sync.ts',
       'src/lib/toast.ts',
       'src/providers/post-hog-provider.tsx',
