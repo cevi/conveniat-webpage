@@ -82,6 +82,7 @@ const completeAnswers = {
   'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
   'Notfallkontakt Telefonnummer': '079 123 45 67',
   Essgewohnheit: 'vegetarisch',
+  'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
 };
 
 const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
@@ -105,6 +106,7 @@ const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
     gender: 'male',
     birthday: '1990-01-01',
     email: 'max@example.com',
+    anmeldestatus: 'erfasst durch AVP',
     missingStammdaten: [],
     missingAnmeldeangaben: [],
     active: true,
@@ -151,6 +153,7 @@ describe('Sync Service', () => {
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
       fetchPersonDetails: jest.fn(),
+      fetchAddressManagerEmails: jest.fn(),
     };
 
     mockSettingsRepo = {
@@ -224,6 +227,7 @@ describe('Sync Service', () => {
       'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
       'Notfallkontakt Telefonnummer': '079 123 45 67',
       Essgewohnheit: 'vegetarisch',
+      'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
     };
     mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(mockAnswers);
 
@@ -295,6 +299,7 @@ describe('Sync Service', () => {
       'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
       'Notfallkontakt Telefonnummer': '079 123 45 67',
       Essgewohnheit: 'vegetarisch',
+      'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
     };
     mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(mockAnswers);
 
@@ -317,6 +322,39 @@ describe('Sync Service', () => {
         missingAnmeldeangaben: ['AHV-Nummer'],
       }),
     );
+  });
+
+  it('blocks billing when the Anmeldestatus answer is missing', async () => {
+    // The Hof confirms a registration via "Administrationsangaben » Anmeldestatus". Without
+    // it we do not know what we would be invoicing, so the row is not billable.
+    const withoutAnmeldestatus = Object.fromEntries(
+      Object.entries(completeAnswers).filter(([question]) => !question.includes('Anmeldestatus')),
+    );
+
+    mockParticipantRepo.findByParticipationUuid.mockResolvedValue({
+      id: 'doc-1',
+      participationUuid: 'part-1',
+      userId: 'user-1',
+      eventId: 'event-1',
+      status: 'new',
+      roleType: 'Event::Role::Participant',
+      active: true,
+      syncHistory: [],
+    } as unknown as BillParticipant);
+    mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+    mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(withoutAnmeldestatus);
+
+    await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+    expect(update?.status).toBe('pflichtangaben_missing');
+    expect(update?.missingAnmeldeangaben).toEqual(['Anmeldestatus']);
+    expect(isBillable(String(update?.status))).toBe(false);
   });
 
   it('ignores Aufbau- and Abbaulager events configured in settings and deactivates active participants', async () => {

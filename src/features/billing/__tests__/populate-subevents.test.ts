@@ -27,6 +27,7 @@ describe('populateSubeventsUseCase', () => {
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
       fetchPersonDetails: jest.fn(),
+      fetchAddressManagerEmails: jest.fn().mockResolvedValue([]),
     };
 
     mockSettingsRepo = {
@@ -77,14 +78,36 @@ describe('populateSubeventsUseCase', () => {
 
     expect(result.count).toBe(2);
     expect(result.newEvents).toEqual([
-      { eventId: 'e-2', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
-      { eventId: 'e-4', eventName: 'conveniat27 Zürich', groupId: '4' },
+      {
+        eventId: 'e-2',
+        eventName: 'Hauptlager conveniat27 Bern',
+        groupId: '2',
+        addressManagerEmails: '',
+      },
+      {
+        eventId: 'e-4',
+        eventName: 'conveniat27 Zürich',
+        groupId: '4',
+        addressManagerEmails: '',
+      },
     ]);
+
+    // Only the groups that actually run a matching event are asked for their managers,
+    // and each of them exactly once.
+    expect(mockHitobitoService.fetchAddressManagerEmails.mock.calls.flat()).toEqual(['2', '4']);
   });
 
   it('keeps existing events and only counts genuinely new ones', async () => {
     mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([{ eventId: 'e-1', eventName: 'conveniat27 Basel', groupId: '1' }]),
+      billSettingsWith([
+        {
+          eventId: 'e-1',
+          eventName: 'conveniat27 Basel',
+          groupId: '1',
+          addressManagerEmails: 'alt@example.com',
+          reminderRecipientsOverride: 'chef@example.com',
+        },
+      ]),
     );
 
     mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1', '2']);
@@ -95,6 +118,9 @@ describe('populateSubeventsUseCase', () => {
           : [{ id: 'e-2', name: 'conveniat27 Chur' }],
       ),
     );
+    mockHitobitoService.fetchAddressManagerEmails.mockImplementation((groupId: string) =>
+      Promise.resolve(groupId === '1' ? ['neu@example.com', 'zweite@example.com'] : []),
+    );
 
     const result = await populateSubeventsUseCase(
       mockHitobitoService,
@@ -104,17 +130,59 @@ describe('populateSubeventsUseCase', () => {
 
     expect(result.count).toBe(1);
     expect(result.newEvents).toEqual([
-      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2' },
+      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2', addressManagerEmails: '' },
     ]);
-    // The form adopts this list without a reload, so it must carry the pre-existing rows too.
+    // The form adopts this list without a reload, so it must carry the pre-existing rows
+    // together with the override an editor set by hand.
+    const expectedEvents = [
+      {
+        eventId: 'e-1',
+        eventName: 'conveniat27 Basel',
+        groupId: '1',
+        addressManagerEmails: 'neu@example.com, zweite@example.com',
+        reminderRecipientsOverride: 'chef@example.com',
+      },
+      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2', addressManagerEmails: '' },
+    ];
+    expect(result.allEvents).toEqual(expectedEvents);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
+  });
+
+  it('leaves the stored address managers alone when the Cevi.DB lookup fails', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        {
+          eventId: 'e-1',
+          eventName: 'conveniat27 Basel',
+          groupId: '1',
+          addressManagerEmails: 'bekannt@example.com',
+        },
+      ]),
+    );
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagerEmails.mockRejectedValue(new Error('status 500'));
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    // A failed lookup says nothing about who the managers are — emptying the list would
+    // silently stop the reminders for this Hof.
     expect(result.allEvents).toEqual([
-      { eventId: 'e-1', eventName: 'conveniat27 Basel', groupId: '1' },
-      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2' },
+      {
+        eventId: 'e-1',
+        eventName: 'conveniat27 Basel',
+        groupId: '1',
+        addressManagerEmails: 'bekannt@example.com',
+      },
     ]);
-    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
-      { eventId: 'e-1', eventName: 'conveniat27 Basel', groupId: '1' },
-      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2' },
-    ]);
+    expect(mockLogger.warn).toHaveBeenCalled();
   });
 
   it('still reports a total of zero subgroups without dividing by zero downstream', async () => {
@@ -163,16 +231,24 @@ describe('populateSubeventsUseCase', () => {
 
     expect(result.count).toBe(1);
     expect(result.newEvents).toEqual([
-      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
+      {
+        eventId: 'e-new-haupt',
+        eventName: 'Hauptlager conveniat27 Bern',
+        groupId: '2',
+        addressManagerEmails: '',
+      },
     ]);
-    expect(result.allEvents).toEqual([
+    const expectedEvents = [
       { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
-      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
-    ]);
-    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
-      { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
-      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
-    ]);
+      {
+        eventId: 'e-new-haupt',
+        eventName: 'Hauptlager conveniat27 Bern',
+        groupId: '2',
+        addressManagerEmails: '',
+      },
+    ];
+    expect(result.allEvents).toEqual(expectedEvents);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
   });
 
   it('safely handles legacy settings rows with missing or non-string eventName without throwing', async () => {

@@ -46,14 +46,28 @@ const MAX_REMOVED_FRACTION_PER_SYNC = 0.5;
 /** How long a sync run may hold its lock before it is assumed dead. */
 const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
 
+/** Cevi.DB keys the answers by the question text, which editors reword, so we match loosely. */
+function findAnswer(
+  answers: Record<string, string>,
+  questionKeywords: string[],
+): string | undefined {
+  const entry = Object.entries(answers).find(([qText]) =>
+    questionKeywords.every((kw) => qText.toLowerCase().includes(kw.toLowerCase())),
+  );
+  return entry?.[1];
+}
+
 function findInvoiceEmail(answers: Record<string, string>): string | null {
-  const findAnswer = (questionKeywords: string[]): string | undefined => {
-    const entry = Object.entries(answers).find(([qText]) =>
-      questionKeywords.every((kw) => qText.toLowerCase().includes(kw.toLowerCase())),
-    );
-    return entry?.[1];
-  };
-  return findAnswer(['mailadresse', 'rechnung']) ?? findAnswer(['e-mail', 'rechnung']) ?? null;
+  return (
+    findAnswer(answers, ['mailadresse', 'rechnung']) ??
+    findAnswer(answers, ['e-mail', 'rechnung']) ??
+    null
+  );
+}
+
+/** The "Administrationsangaben » Anmeldestatus" answer, e.g. "erfasst durch AVP". */
+function findAnmeldestatus(answers: Record<string, string>): string | null {
+  return findAnswer(answers, ['anmeldestatus']) ?? null;
 }
 
 /**
@@ -133,6 +147,7 @@ async function syncSingleEvent(
     );
 
     const invoiceEmail = findInvoiceEmail(answers);
+    const anmeldestatus = findAnmeldestatus(answers);
 
     // Check if this participation already exists
     const existing = await participantRepo.findByParticipationUuid(participation.participationId);
@@ -162,6 +177,7 @@ async function syncSingleEvent(
         zipCode: participation.zipCode ?? null,
         town: participation.town ?? null,
         email: invoiceEmail,
+        anmeldestatus,
         birthday: participation.birthday ?? null,
         gender: participation.gender ?? null,
         active: participation.active,
@@ -213,6 +229,8 @@ async function syncSingleEvent(
       const hasZipCodeChanged = normalize(document_.zipCode) !== normalize(participation.zipCode);
       const hasTownChanged = normalize(document_.town) !== normalize(participation.town);
       const hasEmailChanged = normalize(document_.email) !== normalize(invoiceEmail);
+      const hasAnmeldestatusChanged =
+        normalize(document_.anmeldestatus) !== normalize(anmeldestatus);
       const hasBirthdayChanged =
         normalize(document_.birthday) !== normalize(participation.birthday);
       const hasGenderChanged = normalize(document_.gender) !== normalize(participation.gender);
@@ -241,6 +259,7 @@ async function syncSingleEvent(
         hasZipCodeChanged ||
         hasTownChanged ||
         hasEmailChanged ||
+        hasAnmeldestatusChanged ||
         hasBirthdayChanged ||
         hasGenderChanged ||
         hasActiveChanged;
@@ -304,6 +323,11 @@ async function syncSingleEvent(
           diff['town'] = { from: String(document_.town), to: participation.town ?? '' };
         if (hasEmailChanged)
           diff['email'] = { from: String(document_.email), to: invoiceEmail ?? '' };
+        if (hasAnmeldestatusChanged)
+          diff['anmeldestatus'] = {
+            from: String(document_.anmeldestatus),
+            to: anmeldestatus ?? '',
+          };
         if (hasBirthdayChanged)
           diff['birthday'] = { from: String(document_.birthday), to: participation.birthday ?? '' };
         if (hasGenderChanged)
@@ -344,6 +368,7 @@ async function syncSingleEvent(
           zipCode: participation.zipCode ?? null,
           town: participation.town ?? null,
           email: invoiceEmail,
+          anmeldestatus,
           birthday: participation.birthday ?? null,
           gender: participation.gender ?? null,
           active: participation.active,

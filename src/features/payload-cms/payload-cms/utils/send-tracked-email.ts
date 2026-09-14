@@ -7,7 +7,8 @@ export const sendTrackedEmail = async (
   payload: Payload,
   emailOptions: SendEmailOptions,
   formSubmissionId?: string,
-  billParticipantId?: string,
+  /** One participation, or the several a reminder to a Hof's Adressverwalter covers. */
+  billParticipantId?: string | string[],
   existingOutgoingEmailId?: string,
 ): Promise<void> => {
   const options = emailOptions as unknown as {
@@ -35,6 +36,7 @@ export const sendTrackedEmail = async (
       html?: string;
       formSubmission?: string;
       billParticipant?: string;
+      billParticipants?: string[];
       deliveryStatus: 'pending' | 'success' | 'error';
     } = {
       to,
@@ -48,6 +50,8 @@ export const sendTrackedEmail = async (
     }
     if (typeof billParticipantId === 'string' && billParticipantId.length > 0) {
       data.billParticipant = billParticipantId;
+    } else if (Array.isArray(billParticipantId) && billParticipantId.length > 0) {
+      data.billParticipants = billParticipantId;
     }
 
     try {

@@ -39,4 +39,9 @@ export interface HitobitoServicePort {
   fetchSubgroupLinks(parentGroupId: string): Promise<string[]>;
   fetchEventsForGroup(groupId: string): Promise<Array<{ id: string; name: string }>>;
   fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null>;
+  /**
+   * The e-mail addresses of everyone holding the Adressverwalter role in a group. They
+   * are who a Pflichtangaben reminder for that Hof goes to.
+   */
+  fetchAddressManagerEmails(groupId: string): Promise<string[]>;
 }

@@ -8,6 +8,7 @@ import { HitobitoClient } from '@/features/registration_process/hitobito-api/cli
 import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
 import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
 import { trace } from '@opentelemetry/api';
+import { z } from 'zod';
 
 interface GroupResource {
   id: string;
@@ -46,6 +47,47 @@ interface LegacyParticipationsResponse {
     } | null>;
   };
 }
+
+/**
+ * The role class Cevi.DB gives the people who maintain a Hof's addresses. They are the
+ * recipients of a Pflichtangaben reminder for that Hof.
+ */
+const ADDRESS_MANAGER_ROLE_CLASS = 'Group::MitgliederorganisationExterne::Adressverwalter';
+
+/**
+ * The legacy `people.json` payload, read defensively: it is a frontend endpoint, so a
+ * person without an e-mail, without roles or with an unexpected extra key is normal and
+ * must not lose us the rest of the list.
+ */
+const PeopleJsonSchema = z.object({
+  people: z
+    .array(
+      z
+        .object({
+          email: z.string().nullish(),
+          links: z
+            .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
+            .nullish(),
+        })
+        .passthrough(),
+    )
+    .nullish(),
+  linked: z
+    .object({
+      roles: z
+        .array(
+          z
+            .object({
+              id: z.union([z.string(), z.number()]),
+              role_class: z.string().nullish(),
+            })
+            .passthrough()
+            .nullable(),
+        )
+        .nullish(),
+    })
+    .nullish(),
+});
 
 export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
@@ -264,6 +306,43 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       id: event.id,
       name: event.attributes?.name ?? '',
     }));
+  }
+
+  async fetchAddressManagerEmails(groupId: string): Promise<string[]> {
+    const path = `/groups/${groupId}/people.json`;
+    const { response, body } = await this.client.frontendRequest('GET', path, {
+      headers: {
+        ...this.client.getFrontendHeaders(),
+        'X-Token': this.client.config.apiToken,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch address managers for group ${groupId}: status ${String(response.status)}`,
+      );
+    }
+
+    const parsed = PeopleJsonSchema.safeParse(JSON.parse(body));
+    if (!parsed.success) return [];
+
+    const addressManagerRoleIds = new Set(
+      (parsed.data.linked?.roles ?? [])
+        .filter((role) => role !== null && role.role_class === ADDRESS_MANAGER_ROLE_CLASS)
+        .map((role) => String(role?.id)),
+    );
+
+    const emails = new Set<string>();
+    for (const person of parsed.data.people ?? []) {
+      const hasRole = (person.links?.roles ?? []).some((roleId) =>
+        addressManagerRoleIds.has(String(roleId)),
+      );
+      if (!hasRole) continue;
+      const email = (person.email ?? '').trim().toLowerCase();
+      if (email !== '') emails.add(email);
+    }
+
+    return [...emails];
   }
 
   async fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null> {
