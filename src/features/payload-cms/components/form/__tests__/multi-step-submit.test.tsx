@@ -167,3 +167,49 @@ describe('multi-step form navigation', () => {
     expect(nextButton).not.toHaveAttribute('type', 'submit');
   });
 });
+
+/** Places the form's box at `top`/`bottom` in viewport coordinates (jsdom is 768px tall). */
+const placeForm = (top: number, bottom: number): void => {
+  jest
+    .spyOn(HTMLFormElement.prototype, 'getBoundingClientRect')
+    .mockReturnValue({ top, bottom } as DOMRect);
+};
+
+const goToNextStep = async (): Promise<void> => {
+  render(<FormBlock form={config} />);
+  type(/Feld 1/, 'a');
+  fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+  await screen.findByRole('button', { name: 'Absenden' });
+};
+
+describe('scrolling between steps', () => {
+  const scrollTo = jest.fn();
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    scrollTo.mockClear();
+    window.scrollTo = scrollTo;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('leaves the page alone when the whole form is on screen', async () => {
+    placeForm(200, 700);
+    await goToNextStep();
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('leaves the page alone when only the bottom of the form is cut off', async () => {
+    placeForm(200, 1400);
+    await goToNextStep();
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('brings the top of the form back when the helper scrolled past it', async () => {
+    placeForm(-300, 400);
+    await goToNextStep();
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
+});

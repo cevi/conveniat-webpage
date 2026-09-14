@@ -2,10 +2,12 @@ import { SubheadingH3 } from '@/components/ui/typography/subheading-h3';
 import { fields as fieldComponents } from '@/features/payload-cms/components/form/fields';
 import type {
   ConditionedBlock,
+  DateSlotSelectionBlock,
   FormFieldBlock,
   FormSection,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
+import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
 import React, { useEffect } from 'react';
 import { useFormContext, useFormState, useWatch } from 'react-hook-form';
 
@@ -39,6 +41,14 @@ const ConditionedField: React.FC<{
         if ('name' in f && typeof f.name === 'string' && f.name !== '') {
           resetField(f.name, { defaultValue: undefined });
         }
+        // A dateSlotSelection owns a second field for the Ressort wish.
+        if (
+          f.blockType === 'dateSlotSelection' &&
+          typeof f.ressortName === 'string' &&
+          f.ressortName !== ''
+        ) {
+          resetField(f.ressortName, { defaultValue: undefined });
+        }
       }
     }
   }, [isVisible, block.fields, resetField]);
@@ -65,7 +75,7 @@ const ConditionedField: React.FC<{
 };
 
 const SingleField: React.FC<{
-  field: (FormFieldBlock | JobSelectionBlock) & { required?: boolean };
+  field: (FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock) & { required?: boolean };
   currentStepIndex: number;
   formId: string | undefined;
   renderMode: 'all' | 'sidebar' | 'main';
@@ -87,8 +97,7 @@ const SingleField: React.FC<{
   }
 
   // Placement logic
-  const effectivePlacement =
-    field.placement ?? (field.blockType === 'jobSelection' ? 'main' : 'sidebar');
+  const effectivePlacement = getEffectivePlacement(field);
 
   if (renderMode !== 'all' && renderMode !== effectivePlacement) {
     return null; // eslint-disable-line unicorn/no-null

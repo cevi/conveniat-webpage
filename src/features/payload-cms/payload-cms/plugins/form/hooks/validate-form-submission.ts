@@ -1,3 +1,9 @@
+import {
+  getSelectableDays,
+  isRangeAllowed,
+  parseDateRangeValue,
+} from '@/features/payload-cms/components/form/utils/date-slots';
+import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
@@ -9,6 +15,23 @@ type SectionField = NonNullable<SectionFields>[number];
 
 /** A leaf field — everything except conditionedBlock and message */
 type ValidatableField = Exclude<SectionField, { blockType: 'conditionedBlock' | 'message' }>;
+
+/**
+ * Whether a whole section was shown to the helper.
+ *
+ * A section gated on an answer the helper did not give is never rendered, so its fields
+ * arrive as empty strings from the form's default state. Validating them would reject a
+ * perfectly complete submission that simply took the other branch.
+ */
+function isSectionVisible(
+  section: NonNullable<Form['sections']>[number]['formSection'],
+  submissionDataMap: Map<string, string>,
+): boolean {
+  const conditionField = section.displayCondition?.field;
+  if (typeof conditionField !== 'string' || conditionField === '') return true;
+  const expected = section.displayCondition?.value ?? '';
+  return String(submissionDataMap.get(conditionField) ?? '') === expected;
+}
 
 /**
  * Collect the fields that should actually be validated, respecting
@@ -102,6 +125,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
   // Collect validatable fields from all sections, respecting conditions
   const allFields: ValidatableField[] = [];
   for (const section of form.sections) {
+    if (!isSectionVisible(section.formSection, submissionDataMap)) continue;
     if (section.formSection.fields) {
       allFields.push(...collectValidatableFields(section.formSection.fields, submissionDataMap));
     }
@@ -272,8 +296,45 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         }
         break;
       }
+      case 'dateSlotSelection': {
+        // Re-check the range against the window and length limits the editor configured,
+        // so a hand-crafted request cannot book days outside the camp.
+        const selectable = getSelectableDays({
+          startDate: fieldConfig.startDate,
+          endDate: fieldConfig.endDate,
+          minDays: fieldConfig.minDays,
+          maxDays: fieldConfig.maxDays,
+        });
+        const range = parseDateRangeValue(value);
+        if (selectable === undefined || range === undefined || !isRangeAllowed(range, selectable)) {
+          fieldErrors.push({ field: fieldName, message: 'invalid_selection' });
+        }
+        break;
+      }
       // jobSelection, checkbox, country, textarea:
       // no extra type-specific validation needed beyond the required check above
+    }
+  }
+
+  /*
+   * The Ressort wish of a dateSlotSelection is a second field under a name of its own,
+   * so the field-config-keyed loop above never sees it.
+   */
+  const allowedRessorts = new Set(RESSORT_OPTIONS.map((option) => option.value as string));
+  for (const fieldConfig of allFields) {
+    if (fieldConfig.blockType !== 'dateSlotSelection') continue;
+    const ressortName = fieldConfig.ressortName;
+    if (typeof ressortName !== 'string' || ressortName === '') continue;
+
+    const ressortValue = submissionDataMap.get(ressortName);
+    if (ressortValue === undefined || ressortValue === '') {
+      if (fieldConfig.ressortRequired === true) {
+        fieldErrors.push({ field: ressortName, message: 'required' });
+      }
+      continue;
+    }
+    if (!allowedRessorts.has(ressortValue)) {
+      fieldErrors.push({ field: ressortName, message: 'invalid_selection' });
     }
   }
 

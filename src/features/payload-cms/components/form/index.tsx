@@ -24,6 +24,7 @@ import { useFormSteps } from '@/features/payload-cms/components/form/hooks/use-f
 import { useFormSubmission } from '@/features/payload-cms/components/form/hooks/use-form-submission';
 import { JobSelectionProvider } from '@/features/payload-cms/components/form/job-selection';
 import type { ConditionedBlock, FormBlockType } from '@/features/payload-cms/components/form/types';
+import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 export type { FormBlockType } from '@/features/payload-cms/components/form/types';
 
@@ -72,7 +73,7 @@ export const FormBlock: React.FC<
 
   // 2. Initialize Hooks
   // Map config.sections (wrappers) to FormSection[]
-  const formSections = config.sections.map((s) => s.formSection);
+  const formSections = useMemo(() => config.sections.map((s) => s.formSection), [config.sections]);
   const {
     currentStepIndex,
     setCurrentStepIndex,
@@ -96,7 +97,9 @@ export const FormBlock: React.FC<
     isPreviewMode: isPreviewMode ?? false,
     locale,
     setError: formMethods.setError,
-    formSections,
+    // The steps actually shown, so a server-side field error scrolls to the right one
+    // even when a section was skipped by its display condition.
+    formSections: steps,
     setCurrentStepIndex,
   });
 
@@ -117,15 +120,10 @@ export const FormBlock: React.FC<
     if (!currentActualStep) return [];
     return currentActualStep.fields.filter((f) => {
       if (f.blockType === 'conditionedBlock') {
-        const hasMainSub = f.fields.some(
-          (sub) =>
-            (sub.placement ?? (sub.blockType === 'jobSelection' ? 'main' : 'sidebar')) === 'main',
-        );
+        const hasMainSub = f.fields.some((sub) => getEffectivePlacement(sub) === 'main');
         return f.placement === 'main' || hasMainSub;
       }
-      const effectivePlacement =
-        f.placement ?? (f.blockType === 'jobSelection' ? 'main' : 'sidebar');
-      return effectivePlacement === 'main';
+      return getEffectivePlacement(f) === 'main';
     });
   }, [currentActualStep]);
 
