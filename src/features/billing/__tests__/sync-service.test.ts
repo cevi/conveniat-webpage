@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/unbound-method, unicorn/no-null */
 jest.mock('@/features/registration_process/hitobito-api', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
@@ -317,6 +317,90 @@ describe('Sync Service', () => {
         missingAnmeldeangaben: ['AHV-Nummer'],
       }),
     );
+  });
+
+  it('ignores Aufbau- and Abbaulager events configured in settings and deactivates active participants', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue({
+      events: [
+        { eventId: 'haupt-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
+        { eventId: 'aufbau-1', eventName: 'Aufbaulager conveniat27 - Test', groupId: '1' },
+        { eventId: 'abbau-1', eventName: 'Abbaulager conveniat27 - Test', groupId: '1' },
+      ],
+      rolePricing: [],
+    } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+
+    const unbilledAufbauParticipant = {
+      id: 'part-aufbau-1',
+      status: 'new',
+      eventId: 'aufbau-1',
+      participationUuid: 'uuid-1',
+    };
+    const billedAbbauParticipant = {
+      id: 'part-abbau-1',
+      status: 'bill_sent',
+      invoiceNumber: '2027-0042',
+      eventId: 'abbau-1',
+      participationUuid: 'uuid-2',
+    };
+
+    mockParticipantRepo.findActiveForEvent.mockImplementation((eventId: string) => {
+      if (eventId === 'aufbau-1') return Promise.resolve([unbilledAufbauParticipant as never]);
+      if (eventId === 'abbau-1') return Promise.resolve([billedAbbauParticipant as never]);
+      return Promise.resolve([]);
+    });
+
+    mockHitobitoService.fetchParticipations.mockResolvedValue([]);
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    // Only Hauptlager event should be queried, Aufbau and Abbau must be skipped
+    expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(1);
+    expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledWith('1', 'haupt-1');
+    expect(summary.errors).toHaveLength(0);
+
+    const [call1, call2] = mockParticipantRepo.update.mock.calls;
+    expect(call1?.[0]).toBe('part-aufbau-1');
+    expect(call1?.[1]?.status).toBe('removed');
+    const aufbauHistory = call1?.[1]?.syncHistory as { action: string; reviewReason?: string }[];
+    expect(aufbauHistory.at(-1)?.action).toBe('removed_detected');
+    expect(aufbauHistory.at(-1)?.reviewReason).toContain('ausgeschlossen');
+
+    expect(call2?.[0]).toBe('part-abbau-1');
+    expect(call2?.[1]?.status).toBe('needs_manual_review');
+    const abbauHistory = call2?.[1]?.syncHistory as { action: string; reviewReason?: string }[];
+    expect(abbauHistory.at(-1)?.action).toBe('manual_review_required');
+    expect(abbauHistory.at(-1)?.reviewReason).toContain('ausgeschlossen');
+
+    expect(summary.removedCount).toBe(1);
+    expect(summary.needsReviewCount).toBe(1);
+  });
+
+  it('safely handles malformed settings rows with missing or non-string eventName without throwing', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue({
+      events: [
+        { eventId: 'h-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
+        { eventId: 'malformed-1', eventName: undefined as unknown as string, groupId: '1' },
+        { eventId: 'malformed-2', eventName: null as unknown as string, groupId: '1' },
+      ],
+      rolePricing: [],
+    } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+
+    mockHitobitoService.fetchParticipations.mockResolvedValue([]);
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(3);
+    expect(summary.errors).toHaveLength(0);
   });
 
   describe('progress reporting', () => {

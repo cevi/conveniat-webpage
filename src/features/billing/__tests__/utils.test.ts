@@ -4,6 +4,7 @@ import {
   formatQrReference,
   formatRoleName,
   generateQrReference,
+  isAufbauOrAbbaulager,
   resolveRoleDisplayName,
   resolveRoleOptions,
 } from '@/features/billing/utils';
@@ -254,5 +255,30 @@ describe('resolveRoleOptions', () => {
       const ticked = resolveRoleOptions(role, shared).filter((option) => option.checked);
       expect(ticked).toHaveLength(1);
     }
+  });
+
+  describe('isAufbauOrAbbaulager', () => {
+    it('detects Aufbau- and Abbaulager event names', () => {
+      expect(isAufbauOrAbbaulager('Aufbaulager conveniat27 - Aarburg')).toBe(true);
+      expect(isAufbauOrAbbaulager('Abbaulager conveniat27 - Aarburg')).toBe(true);
+      expect(isAufbauOrAbbaulager('AUFBAULAGER CONVENIAT27')).toBe(true);
+      expect(isAufbauOrAbbaulager('abbaulager')).toBe(true);
+    });
+
+    it('returns false for Hauptlager and other regular events', () => {
+      expect(isAufbauOrAbbaulager('Hauptlager conveniat27 - Aarburg')).toBe(false);
+      expect(isAufbauOrAbbaulager('conveniat27 Sommerlager')).toBe(false);
+      expect(isAufbauOrAbbaulager('')).toBe(false);
+    });
+
+    it('safely handles non-string and missing values without throwing', () => {
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      expect(isAufbauOrAbbaulager(undefined)).toBe(false);
+      // eslint-disable-next-line unicorn/no-null
+      expect(isAufbauOrAbbaulager(null)).toBe(false);
+      expect(isAufbauOrAbbaulager(12_345)).toBe(false);
+      expect(isAufbauOrAbbaulager({})).toBe(false);
+      expect(isAufbauOrAbbaulager(true)).toBe(false);
+    });
   });
 });

@@ -26,6 +26,7 @@ import {
   formatBirthday,
   formatRoleName,
   generateQrReference,
+  isAufbauOrAbbaulager,
   resolveRoleOptions,
 } from '@/features/billing/utils';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
@@ -379,6 +380,14 @@ export async function generateBillsUseCase(
         summary.errors.push(
           `${String(document_.fullName)}: keine Rechnung erstellt – die Anmeldung steht auf ` +
             `„${formatBillingStatus(document_.status)}“ und muss zuerst bereinigt werden.`,
+        );
+        summary.skippedCount++;
+        continue;
+      }
+
+      if (isAufbauOrAbbaulager(document_.eventName)) {
+        summary.errors.push(
+          `${String(document_.fullName)}: keine Rechnung erstellt – der Anlass „${String(document_.eventName)}“ ist ein Aufbau- oder Abbaulager und für die Abrechnung ausgeschlossen.`,
         );
         summary.skippedCount++;
         continue;

@@ -244,3 +244,12 @@ export function resolveRoleOptions(
 
   return options;
 }
+/**
+ * Checks whether an event name indicates an Aufbau- or Abbaulager.
+ * Safely handles undefined, null, non-string, or malformed inputs without throwing.
+ */
+export function isAufbauOrAbbaulager(name: unknown): boolean {
+  if (typeof name !== 'string') return false;
+  const lower = name.toLowerCase();
+  return lower.includes('aufbaulager') || lower.includes('abbaulager');
+}
