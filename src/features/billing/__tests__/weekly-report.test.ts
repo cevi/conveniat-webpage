@@ -284,6 +284,21 @@ describe('sendWeeklyReport', () => {
     expect(mockPayload.sendEmail).not.toHaveBeenCalled();
   });
 
+  it('skips execution and does not send email when acquiring run lock throws', async () => {
+    const mockPayload = createMockPayload();
+    mockAcquire.mockRejectedValue(new Error('Redis connection lost'));
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(false);
+    expect(result.reason).toContain('Redis-Sperre');
+    expect(mockPayload.sendEmail).not.toHaveBeenCalled();
+    expect(mockPayload.logger.error).toHaveBeenCalled();
+  });
+
   it('sends email and releases run lock when acquired', async () => {
     const mockPayload = createMockPayload();
     const mockRelease = jest.fn().mockResolvedValue(true);

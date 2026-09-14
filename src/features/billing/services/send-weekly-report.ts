@@ -132,7 +132,7 @@ export async function sendWeeklyReport(
   const { randomUUID } = await import('node:crypto');
 
   const owner = options.runOwner ?? `request:${randomUUID()}`;
-  let lockRelease: (() => Promise<void>) | undefined;
+  let lockRelease: () => Promise<void>;
 
   try {
     const lockResult = await new RedisRunLockAdapter().acquire(
@@ -164,8 +164,12 @@ export async function sendWeeklyReport(
   } catch (error) {
     payload.logger.error({
       err: error instanceof Error ? error : new Error(String(error)),
-      msg: 'Failed to acquire Redis run lock for weekly report. Continuing without lock.',
+      msg: 'Failed to acquire Redis run lock for weekly report. Skipping execution.',
     });
+    return {
+      sent: false,
+      reason: 'Redis-Sperre für den wöchentlichen Bericht konnte nicht gesetzt werden.',
+    };
   }
 
   try {
@@ -231,15 +235,13 @@ export async function sendWeeklyReport(
       attachments: attachments.map((attachment) => attachment.filename),
     };
   } finally {
-    if (lockRelease) {
-      try {
-        await lockRelease();
-      } catch (error) {
-        payload.logger.error({
-          err: error instanceof Error ? error : new Error(String(error)),
-          msg: 'Failed to release Redis run lock for weekly report.',
-        });
-      }
+    try {
+      await lockRelease();
+    } catch (error) {
+      payload.logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: 'Failed to release Redis run lock for weekly report.',
+      });
     }
   }
 }
