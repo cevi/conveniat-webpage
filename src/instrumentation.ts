@@ -1,31 +1,17 @@
-import build from '@/build';
-import { initHttpClient } from '@/lib/http-client';
-import { sdk, startRuntimeMetrics } from '@/tracing';
-import { installConsoleOtelBridge } from '@/utils/otel-console-bridge';
-
-export function register(): void {
+/**
+ * Runs once per server instance, in every runtime Next.js compiles this file for.
+ *
+ * The Node-only work is behind a dynamic import so it never reaches the Edge instrumentation
+ * bundle. Nothing in `@/tracing` — the `NodeSDK`, the Prometheus HTTP server, the `node:v8`
+ * heap statistics — can run on Edge anyway, so there is nothing to register there.
+ */
+export const register = async (): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
-  if (process.env['NEXT_RUNTIME'] === 'nodejs') {
-    // initialize the global HTTP client
-    initHttpClient();
-  }
+  if (process.env['NEXT_RUNTIME'] !== 'nodejs') return;
 
-  // start the SDK
-  console.log(
-    `Starting OpenTelemetry SDK for ${build.version} (${build.git.hash}) on branch ${build.git.branch}`,
-  );
-
-  sdk.start();
-
-  // Must come after sdk.start(): the instruments bind to the global MeterProvider at the
-  // moment they are created, and the metrics API has no proxy for one that is not registered
-  // yet, so anything built earlier stays a no-op.
-  startRuntimeMetrics();
-
-  // Must come after sdk.start(): before the SDK registers a LoggerProvider the
-  // logs API hands back a no-op logger, so anything captured earlier is dropped.
-  installConsoleOtelBridge();
-}
+  const { registerNodeInstrumentation } = await import('./instrumentation-node');
+  registerNodeInstrumentation();
+};
 
 /**
  * Names an error whose `message` is empty.
