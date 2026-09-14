@@ -941,6 +941,7 @@ const formDateSlotSelectionBlock: Block = {
       },
     },
     { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField('main'),
   ],
   labels: { plural: 'Date Slot Selection Blocks', singular: 'Date Slot Selection' },
 };

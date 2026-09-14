@@ -5,7 +5,7 @@
 import { FormBlock } from '@/features/payload-cms/components/form';
 import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 jest.mock('next-i18n-router/client', () => ({
@@ -20,12 +20,14 @@ jest.mock('@/config/environment-variables', () => ({
   environmentVariables: { NEXT_PUBLIC_APP_HOST_URL: 'http://localhost:3000' },
 }));
 
+const submitSpy = jest.fn();
+
 jest.mock('@/features/payload-cms/components/form/hooks/use-form-submission', () => ({
   useFormSubmission: (): Record<string, unknown> => ({
     status: 'idle',
     errorMessage: '',
     previewData: undefined,
-    submit: jest.fn(),
+    submit: submitSpy,
     reset: jest.fn(),
   }),
 }));
@@ -105,6 +107,7 @@ const choose = (value: string): void => {
 
 describe('section display conditions', () => {
   beforeEach(() => {
+    submitSpy.mockClear();
     sessionStorage.clear();
   });
 
@@ -136,6 +139,32 @@ describe('section display conditions', () => {
 
     expect(await screen.findByLabelText('jobhauptlager')).toBeInTheDocument();
     expect(screen.queryByLabelText('zeitfenster')).not.toBeInTheDocument();
+  });
+
+  it('drops the answers of a branch the helper left', async () => {
+    render(<FormBlock form={config} />);
+
+    // Start down the role branch and answer its question …
+    choose('rolle');
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.change(await screen.findByLabelText('jobhauptlager'), {
+      target: { value: 'Kuechenhilfe' },
+    });
+
+    // … then switch to the slot branch and finish there.
+    fireEvent.click(screen.getByRole('button', { name: 'Zurück' }));
+    choose('zeitfenster');
+    fireEvent.click(await screen.findByRole('button', { name: 'Weiter' }));
+    fireEvent.change(await screen.findByLabelText('zeitfenster'), {
+      target: { value: '2027-07-28 – 2027-07-30' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Weiter' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Absenden' }));
+
+    await waitFor(() => expect(submitSpy).toHaveBeenCalledTimes(1));
+    const [submitted] = submitSpy.mock.calls.at(0) as [Record<string, unknown>];
+    expect(submitted['zeitfenster']).toBe('2027-07-28 – 2027-07-30');
+    expect(submitted['jobhauptlager']).toBeUndefined();
   });
 
   /*

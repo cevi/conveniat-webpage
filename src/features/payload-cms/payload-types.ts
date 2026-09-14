@@ -1405,6 +1405,10 @@ export interface Form {
                 ressortLabel?: string | null;
                 ressortRequired?: boolean | null;
                 required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'dateSlotSelection';
@@ -1681,6 +1685,10 @@ export interface Form {
                           ressortLabel?: string | null;
                           ressortRequired?: boolean | null;
                           required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'dateSlotSelection';
@@ -1815,7 +1823,7 @@ export interface Form {
    */
   configuredWorkflows?:
     | {
-        workflow: 'registrationWorkflow' | 'brevoContactWorkflow';
+        workflow: 'brevoContactWorkflow';
         condition?: {
           enabled?: boolean | null;
           field?: string | null;
@@ -7013,6 +7021,7 @@ export interface FormsSelect<T extends boolean = true> {
                           ressortLabel?: T;
                           ressortRequired?: T;
                           required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -7193,6 +7202,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       ressortLabel?: T;
                                       ressortRequired?: T;
                                       required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };

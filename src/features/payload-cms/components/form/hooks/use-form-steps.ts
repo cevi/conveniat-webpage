@@ -32,6 +32,8 @@ const scrollToTop = (formId?: string): void => {
   }
 };
 
+type SectionField = FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock;
+
 /** Names of the fields a `dateSlotSelection` block registers — it owns up to two. */
 const getFieldNames = (
   field: FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock,
@@ -49,6 +51,12 @@ const getFieldNames = (
   }
   return names;
 };
+
+/** Every field name under a list of blocks, conditioned ones included. */
+const collectFieldNames = (fields: SectionField[]): string[] =>
+  fields.flatMap((field) =>
+    field.blockType === 'conditionedBlock' ? collectFieldNames(field.fields) : getFieldNames(field),
+  );
 
 export const useFormSteps = (
   sections: FormSection[],
@@ -75,15 +83,46 @@ export const useFormSteps = (
     name: conditionFieldNames,
   }) as (string | number | boolean | undefined)[];
 
+  /*
+   * A value-based key rather than the filtered array itself: `useWatch` hands back a fresh
+   * array every render, so memoizing on it would give `steps` a new identity each time and
+   * re-run everything downstream — including the reset below.
+   */
+  const visibilityKey = sections
+    .map((section, index) => {
+      if (conditionFieldNames[index] === '') return '1';
+      const expected = section.displayCondition?.value ?? '';
+      return String(conditionValues[index] ?? '') === expected ? '1' : '0';
+    })
+    .join('');
+
   const steps = useMemo(
-    () =>
-      sections.filter((section, index) => {
-        if (conditionFieldNames[index] === '') return true;
-        const expected = section.displayCondition?.value ?? '';
-        return String(conditionValues[index] ?? '') === expected;
-      }),
-    [sections, conditionFieldNames, conditionValues],
+    () => sections.filter((_, index) => visibilityKey[index] === '1'),
+    [sections, visibilityKey],
   );
+
+  /*
+   * Answers given on a branch the helper then left would otherwise stay in the form state
+   * and be submitted: hiding a section only unmounts it, react-hook-form keeps the values.
+   * `unregister` rather than `resetField`, because resetting restores the empty-string
+   * default and the field would still travel with the payload — a slot registration would
+   * carry phantom job answers into the submission and the export.
+   *
+   * A field another section is gated on is never dropped: unregistering it would flip that
+   * section's visibility, which would recompute this list, which would flip it back.
+   */
+  const hiddenFieldNames = useMemo(() => {
+    const gateFields = new Set(conditionFieldNames.filter((name) => name !== ''));
+    return sections
+      .filter((_, index) => visibilityKey[index] !== '1')
+      .flatMap((section) => collectFieldNames(section.fields))
+      .filter((name) => !gateFields.has(name));
+  }, [sections, visibilityKey, conditionFieldNames]);
+
+  const { unregister } = formMethods;
+  useEffect(() => {
+    if (hiddenFieldNames.length > 0) unregister(hiddenFieldNames);
+  }, [hiddenFieldNames, unregister]);
 
   /*
    * Initialize state from sessionStorage if available to avoid layout shift

@@ -129,7 +129,12 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
                 <p className="max-w-[280px] text-sm text-gray-500">{noSlotsText[locale]}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 @md:grid-cols-2 @xl:grid-cols-3">
+              <div
+                role="radiogroup"
+                aria-label={label}
+                aria-required={required === true}
+                className="grid grid-cols-1 gap-4 @md:grid-cols-2 @xl:grid-cols-3"
+              >
                 {slots.map((slot) => {
                   const isSelected = value === slot.value;
                   const hasError = !!error;
@@ -138,6 +143,8 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
                     <button
                       key={slot.value}
                       type="button"
+                      role="radio"
+                      aria-checked={isSelected}
                       onClick={() => {
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         (onChange as (v: any) => void)(slot.value);
@@ -170,7 +177,12 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
                             { 'bg-green-600': !hasError, 'bg-red-600': hasError },
                           )}
                         >
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                          <svg
+                            aria-hidden="true"
+                            className="h-4 w-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
                             <path
                               fillRule="evenodd"
                               d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
