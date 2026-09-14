@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.8.0](https://github.com/cevi/conveniat-webpage/compare/v1.7.6...v1.8.0) (2026-09-14)
+
+
+### Features
+
+* **forms:** let helpers enrol for a multi-day slot instead of a role ([70bd229](https://github.com/cevi/conveniat-webpage/commit/70bd2299a400bdf6bbea552ee0a972ea5f6d3346))
+* **forms:** let helpers enrol for a multi-day slot instead of a role ([1fb7645](https://github.com/cevi/conveniat-webpage/commit/1fb764552691ac3f42bd2b97bceccefa2375e46e))
+* **forms:** pick a helper's availability on a calendar instead of fixed slots ([e3fe775](https://github.com/cevi/conveniat-webpage/commit/e3fe775600851629bf4f9389f159ebac981f757c))
+
+
+### Bug Fixes
+
+* **billing:** ignore Aufbau- and Abbaulager events in sync and subevents ([69259b4](https://github.com/cevi/conveniat-webpage/commit/69259b4da8d6ff4d2c405f907743f56d7c69ff06))
+* **billing:** ignore Aufbau- and Abbaulager events in sync and subevents ([2eb560a](https://github.com/cevi/conveniat-webpage/commit/2eb560a19128ec72e9968bcf07efa2a780992e93))
+* **billing:** reconcile participants for excluded events and handle non-string event names safely ([2f1ec8e](https://github.com/cevi/conveniat-webpage/commit/2f1ec8ed06421eeec99f91108852ca270f7c1543))
+* **forms:** calendar names range endpoints and caps the date window ([132d8d0](https://github.com/cevi/conveniat-webpage/commit/132d8d00f25db76435a4ff53f803de0dd3a0b7f0))
+* **forms:** drop the answers of a branch the helper left ([57482a9](https://github.com/cevi/conveniat-webpage/commit/57482a968966eac5f0cd0f60e06c1820ee54fe47))
+* **offline:** darken offline-page text so it is readable on the light background ([bad6c1f](https://github.com/cevi/conveniat-webpage/commit/bad6c1fcbcc67c91ffbc5973453c8b1eaae7df9a))
+* **offline:** darken offline-page text so it is readable on the light background ([3d2954b](https://github.com/cevi/conveniat-webpage/commit/3d2954bef5eddd96f3e626bf10a876f6face5d9a))
+* **tracing:** keep Node-only instrumentation out of the Edge bundle ([4ecf17a](https://github.com/cevi/conveniat-webpage/commit/4ecf17ab110290b1179b4664cd7546737e130c85))
+* **tracing:** keep Node-only instrumentation out of the Edge bundle ([699b711](https://github.com/cevi/conveniat-webpage/commit/699b711a45f195854db2b1afba402b19eabb6ff8))
+
 ## [1.7.6](https://github.com/cevi/conveniat-webpage/compare/v1.7.5...v1.7.6) (2026-09-12)
 
 
