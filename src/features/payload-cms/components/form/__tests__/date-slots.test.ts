@@ -80,6 +80,18 @@ describe('date range rules', () => {
     ).toEqual({ firstDay: '2027-07-12', lastDay: '2027-08-06', minDays: 3, maxDays: undefined });
   });
 
+  it('offers nothing for a window longer than a year, which can only be a mistyped date', () => {
+    expect(
+      getSelectableDays({ startDate: camp.startDate, endDate: '2028-07-12T00:00:00.000Z' }),
+    ).toBeUndefined();
+    expect(
+      accepts(`2028-01-10${DATE_SLOT_VALUE_SEPARATOR}2028-01-20`, {
+        startDate: camp.startDate,
+        endDate: '2028-07-11T00:00:00.000Z',
+      }),
+    ).toBe(true);
+  });
+
   it('offers nothing for a window shorter than the minimum or a half-filled block', () => {
     expect(
       getSelectableDays({

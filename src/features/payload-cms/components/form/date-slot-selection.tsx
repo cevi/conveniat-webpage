@@ -87,8 +87,27 @@ const ressortPlaceholder: StaticTranslationString = {
   fr: 'Veuillez choisir',
 };
 
-/** Upper bound on rendered months, so a mistyped year cannot render decades of calendars. */
-const MAXIMUM_MONTHS = 24;
+/*
+ * Appended to a day's accessible name, so a screen reader hears where the range starts and
+ * ends instead of a row of independent "pressed" toggles.
+ */
+const firstDayMarker: StaticTranslationString = {
+  de: 'erster Tag',
+  en: 'first day',
+  fr: 'premier jour',
+};
+
+const lastDayMarker: StaticTranslationString = {
+  de: 'letzter Tag',
+  en: 'last day',
+  fr: 'dernier jour',
+};
+
+const inRangeMarker: StaticTranslationString = {
+  de: 'ausgewählt',
+  en: 'selected',
+  fr: 'sélectionné',
+};
 
 /** A Monday, used to print the weekday column headers in the reader's locale. */
 const FIRST_MONDAY = Date.UTC(2024, 0, 1);
@@ -123,7 +142,10 @@ const formatIsoDay = (
 const formatDayCount = (days: number, locale: Locale): string =>
   `${days} ${days === 1 ? dayCountSuffixSingular[locale] : dayCountSuffix[locale]}`;
 
-/** Every calendar month touched by the selectable window, oldest first. */
+/**
+ * Every calendar month touched by the selectable window, oldest first. The window itself is
+ * capped in `getSelectableDays`, so this never has to cut months off.
+ */
 const buildMonths = (firstDay: string, lastDay: string): CalendarMonth[] => {
   const [firstYear, firstMonth] = firstDay.split('-').map(Number);
   const [lastYear, lastMonth] = lastDay.split('-').map(Number);
@@ -139,10 +161,7 @@ const buildMonths = (firstDay: string, lastDay: string): CalendarMonth[] => {
   const months: CalendarMonth[] = [];
   let year = firstYear;
   let month = firstMonth;
-  while (
-    (year < lastYear || (year === lastYear && month <= lastMonth)) &&
-    months.length < MAXIMUM_MONTHS
-  ) {
+  while (year < lastYear || (year === lastYear && month <= lastMonth)) {
     const monthStart = Date.UTC(year, month - 1, 1);
     const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
     months.push({
@@ -219,6 +238,20 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
     }
   };
 
+  /** What a day is within the range, for its accessible name; undefined when outside it. */
+  const getDayMarker = (day: string): string | undefined => {
+    if (day === pendingStart || day === selectedRange?.startDate) return firstDayMarker[locale];
+    if (day === selectedRange?.endDate) return lastDayMarker[locale];
+    if (
+      selectedRange !== undefined &&
+      day > selectedRange.startDate &&
+      day < selectedRange.endDate
+    ) {
+      return inRangeMarker[locale];
+    }
+    return undefined;
+  };
+
   const lengthLimits = [
     `${atLeastText[locale]} ${formatDayCount(selectable.minDays, locale)}`,
     ...(selectable.maxDays === undefined
@@ -267,19 +300,20 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
                   day >= selectedRange.startDate &&
                   day <= selectedRange.endDate;
                 const isEnabled = isSelectable(day);
+                const marker = getDayMarker(day);
+                const dayName = formatIsoDay(day, locale, {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                });
 
                 return (
                   <button
                     key={day}
                     type="button"
                     disabled={!isEnabled}
-                    aria-pressed={isEndpoint || isInRange}
-                    aria-label={formatIsoDay(day, locale, {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                    aria-label={marker === undefined ? dayName : `${dayName}, ${marker}`}
                     onClick={() => handleDayClick(day)}
                     className={cn(
                       'flex h-10 items-center justify-center text-sm tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1',

@@ -19,6 +19,13 @@ export const DATE_SLOT_VALUE_SEPARATOR = ' – ';
 /** Fallback minimum range length, in days, when an editor leaves the field empty. */
 export const DEFAULT_MINIMUM_DAYS = 3;
 
+/**
+ * Longest window an editor can open, in days. A camp lasts weeks, so anything longer is a
+ * mistyped year; treating it as unusable keeps the calendar and the server check agreeing,
+ * instead of the calendar rendering only part of a window the server would accept.
+ */
+export const MAXIMUM_WINDOW_DAYS = 366;
+
 const ISO_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface DateRangeConfiguration {
@@ -96,8 +103,8 @@ const toOptionalPositiveInteger = (value: number | null | undefined): number | u
  * Resolves the window and length limits an editor configured.
  *
  * Returns undefined for an unusable configuration (missing or malformed dates, a window
- * shorter than the minimum) rather than throwing: drafts skip field validation, so the
- * renderer has to cope with a half-filled block.
+ * shorter than the minimum or longer than `MAXIMUM_WINDOW_DAYS`) rather than throwing:
+ * drafts skip field validation, so the renderer has to cope with a half-filled block.
  */
 export const getSelectableDays = (
   configuration: DateRangeConfiguration,
@@ -114,7 +121,8 @@ export const getSelectableDays = (
 
   const firstDay = toIsoDay(first);
   const lastDay = toIsoDay(last);
-  if (countDays(firstDay, lastDay) < minDays) return undefined;
+  const windowDays = countDays(firstDay, lastDay);
+  if (windowDays < minDays || windowDays > MAXIMUM_WINDOW_DAYS) return undefined;
 
   return { firstDay, lastDay, minDays, maxDays };
 };
