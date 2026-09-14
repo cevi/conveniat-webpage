@@ -20,18 +20,223 @@ export function extractCsrfMetaToken(html: string): string {
 }
 
 /**
- * Extract all input fields from a form to preserve state
+ * Reads one attribute off a single tag. Rails emits the attributes of a field in an order
+ * that differs between helpers and versions, so nothing may assume `name` comes before
+ * `value`.
+ */
+function attribute(tag: string, name: string): string | undefined {
+  const match = tag.match(new RegExp(`\\s${name}="([^"]*)"`, 'i'));
+  return match?.[1];
+}
+
+/** Whether a radio or checkbox tag carries `checked`, in any of the spellings Rails uses. */
+function isChecked(tag: string): boolean {
+  return /\schecked(?:="[^"]*")?[\s/>]/i.test(tag);
+}
+
+/**
+ * A form value arrives HTML-escaped. Posting it back verbatim would turn an `&` into
+ * `&amp;` on every round trip, so the few entities Rails escapes are undone here.
+ */
+function decodeEntities(value: string): string {
+  return value
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&nbsp;', ' ')
+    .replaceAll('&amp;', '&');
+}
+
+/** The value a browser would submit for a `<select>`, given its inner HTML. */
+function selectedOptionValue(optionsHtml: string): string {
+  const selected = optionsHtml.match(/<option[^>]*\sselected(?:="[^"]*")?[^>]*>/i);
+  if (selected !== null) return attribute(selected[0], 'value') ?? '';
+  // With nothing marked selected a browser submits the first option.
+  const first = optionsHtml.match(/<option[^>]*>/i);
+  return first === null ? '' : (attribute(first[0], 'value') ?? '');
+}
+
+/**
+ * Extract the current state of a form, so it can be posted back unchanged.
+ *
+ * Everything a browser would submit is included: text and hidden inputs, the selected
+ * option of a select, the content of a textarea, and only those radios and checkboxes
+ * that are checked. An unchecked checkbox used to be picked up and overwrote the hidden
+ * `0` Rails renders in front of it, which silently ticked every box on a re-submitted
+ * form.
  */
 export function extractFormFields(html: string): Record<string, string> {
   const fields: Record<string, string> = {};
 
-  const inputs = html.matchAll(/<input[^>]*name="([^"]+)"[^>]*value="([^"]*)"[^>]*>/g);
-  for (const match of inputs) {
-    if (match[1] !== undefined && match[2] !== undefined) {
-      fields[match[1]] = match[2];
+  for (const match of html.matchAll(/<input[^>]*>/g)) {
+    const tag = match[0];
+    const name = attribute(tag, 'name');
+    const value = attribute(tag, 'value');
+    if (name === undefined || value === undefined) continue;
+
+    const type = (attribute(tag, 'type') ?? 'text').toLowerCase();
+    // A file input has nothing to re-send and a button is not form state.
+    if (type === 'file' || type === 'submit' || type === 'button' || type === 'image') continue;
+    if ((type === 'radio' || type === 'checkbox') && !isChecked(tag)) continue;
+
+    fields[name] = decodeEntities(value);
+  }
+
+  for (const match of html.matchAll(/<select([^>]*)>([\s\S]*?)<\/select>/gi)) {
+    const name = attribute(match[1] ?? '', 'name');
+    if (name === undefined) continue;
+    fields[name] = decodeEntities(selectedOptionValue(match[2] ?? ''));
+  }
+
+  for (const match of html.matchAll(/<textarea([^>]*)>([\s\S]*?)<\/textarea>/gi)) {
+    const name = attribute(match[1] ?? '', 'name');
+    if (name === undefined) continue;
+    fields[name] = decodeEntities(match[2] ?? '');
+  }
+
+  return fields;
+}
+
+/** A single custom-question answer control on a Hitobito participation edit form. */
+export interface ParticipationAnswerField {
+  /** The Cevi.DB question id. */
+  questionId: string;
+  /** The `name` of the control carrying the answer, ready to be posted back. */
+  fieldName: string;
+  /** The question text as an editor sees it, `''` when the form carries no label for it. */
+  label: string;
+  /** The answer on the form, `undefined` when no control could be read. */
+  value: string | undefined;
+}
+
+function escapeForRegex(value: string): string {
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
+/** The `id` Rails derives from a field name, which its `<label for=...>` points at. */
+function railsFieldId(fieldName: string): string {
+  return fieldName.replaceAll(/[[\]]+/g, '_').replace(/_$/, '');
+}
+
+/**
+ * Every answer control on the form, under both namings Hitobito has used: the flat
+ * `participation[answer_<questionId>]` of the older markup and the nested
+ * `event_participation[answers_attributes][<i>][answer]` the Turbo-based edit page posts,
+ * where the question id sits in a hidden field beside the answer instead of in its name.
+ */
+function collectAnswerControls(html: string): { questionId: string; fieldName: string }[] {
+  const controls = new Map<string, string>();
+
+  for (const match of html.matchAll(/name="participation\[answer_(\d+)\]/g)) {
+    const questionId = match[1];
+    if (questionId !== undefined) controls.set(`participation[answer_${questionId}]`, questionId);
+  }
+
+  for (const match of html.matchAll(/<input[^>]*>/g)) {
+    const tag = match[0];
+    const index = (attribute(tag, 'name') ?? '').match(
+      /^event_participation\[answers_attributes]\[(\d+)]\[question_id]$/,
+    )?.[1];
+    const questionId = attribute(tag, 'value');
+    if (index === undefined || questionId === undefined || questionId === '') continue;
+    controls.set(`event_participation[answers_attributes][${index}][answer]`, questionId);
+  }
+
+  return [...controls].map(([fieldName, questionId]) => ({ fieldName, questionId }));
+}
+
+/** The question text belonging to an answer control, searched backwards from the control. */
+function findFieldLabel(html: string, fieldName: string): string {
+  let questionText = '';
+
+  const inputPos = html.indexOf(fieldName);
+  if (inputPos !== -1) {
+    const precedingHtml = html.slice(Math.max(0, inputPos - 1000), inputPos);
+    const labels = [...precedingHtml.matchAll(/<label[^>]*>([\s\S]*?)<\/label>/gi)];
+
+    if (labels.length > 0) {
+      const controlLabel = labels
+        .reverse()
+        .find((l) => l[0].includes('control-label') || !l[0].includes('for='));
+      if (controlLabel?.[1] === undefined) {
+        const firstLabel = labels[0];
+        if (firstLabel?.[1] !== undefined) {
+          questionText = firstLabel[1].replaceAll(/<[^>]*>/g, '').trim();
+        }
+      } else {
+        questionText = controlLabel[1].replaceAll(/<[^>]*>/g, '').trim();
+      }
     }
   }
-  return fields;
+
+  // Fall back to the label that points at the control by id. The optional suffix catches
+  // the per-option ids Rails gives radio buttons.
+  if (questionText === '') {
+    const labelMatch = html.match(
+      new RegExp(
+        `<label[^>]*for="${escapeForRegex(railsFieldId(fieldName))}(?:_[^"]*)?"[^>]*>([\\s\\S]*?)<\\/label>`,
+        'i',
+      ),
+    );
+    if (labelMatch?.[1] !== undefined) {
+      questionText = labelMatch[1].replaceAll(/<[^>]*>/g, '').trim();
+    }
+  }
+
+  // Trailing colons and the asterisk marking a required question are decoration.
+  return questionText === '' ? '' : questionText.replace(/[:*]$/, '').trim();
+}
+
+/** The answer a browser would submit for one named control. */
+function readFieldValue(html: string, fieldName: string): string | undefined {
+  const name = escapeForRegex(fieldName);
+
+  const selectMatch = html.match(
+    new RegExp(`<select[^>]*name="${name}"[^>]*>([\\s\\S]*?)<\\/select>`, 'i'),
+  );
+  if (selectMatch?.[1] !== undefined) {
+    const selectedMatch =
+      selectMatch[1].match(/<option[^>]*selected="selected"[^>]*value="([^"]*)"/i) ??
+      selectMatch[1].match(/<option[^>]*value="([^"]*)"[^>]*selected/i);
+    return selectedMatch?.[1] ?? '';
+  }
+
+  const textareaMatch = html.match(
+    new RegExp(`<textarea[^>]*name="${name}"[^>]*>([\\s\\S]*?)<\\/textarea>`, 'i'),
+  );
+  if (textareaMatch?.[1] !== undefined) return textareaMatch[1].trim();
+
+  // Read the inputs off their tags rather than through one regex over the whole tag: Rails
+  // renders `value` before `name` for some helpers and after it for others.
+  const inputs = [...html.matchAll(/<input[^>]*>/g)]
+    .map((match) => match[0])
+    .filter((tag) => attribute(tag, 'name') === fieldName);
+
+  const chosen =
+    inputs.find((tag) => {
+      const type = (attribute(tag, 'type') ?? 'text').toLowerCase();
+      return (type === 'radio' || type === 'checkbox') && isChecked(tag);
+    }) ??
+    inputs.find((tag) => {
+      const type = (attribute(tag, 'type') ?? 'text').toLowerCase();
+      return type !== 'radio' && type !== 'checkbox';
+    });
+
+  return chosen === undefined ? undefined : attribute(chosen, 'value');
+}
+
+/**
+ * Every custom-question answer on a participation edit page, with the question text and
+ * the name to post an update under.
+ */
+export function parseParticipationAnswerFields(html: string): ParticipationAnswerField[] {
+  return collectAnswerControls(html).map(({ questionId, fieldName }) => ({
+    questionId,
+    fieldName,
+    label: findFieldLabel(html, fieldName),
+    value: readFieldValue(html, fieldName),
+  }));
 }
 
 /**

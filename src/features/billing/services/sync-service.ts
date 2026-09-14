@@ -6,6 +6,11 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
+  ANMELDESTATUS_WRITTEN_ACTION,
+  needsAnmeldestatusWriteBack,
+  writeBackAnmeldestatus,
+} from '@/features/billing/services/anmeldestatus-writeback';
+import {
   hasRaisedBill,
   NEEDS_MANUAL_REVIEW,
   resolveSyncStatus,
@@ -30,9 +35,22 @@ interface SyncHistoryEntry {
   date: string;
   action: string;
   diff?: Record<string, { from: string; to: string }>;
+  /** The value written back to the Cevi.DB. */
+  value?: string;
   /** Why an already-billed row was parked for manual inspection. */
   reviewReason?: string;
 }
+
+/** What the sync needs of a logger; `debug` is absent in the unit tests. */
+interface SyncLogger {
+  info: (message: string) => void;
+  warn: (message: string) => void;
+  error: (message: string) => void;
+  debug?: (message: string) => void;
+}
+
+/** Statuses whose bill has left the house, so the Cevi.DB must read "Rechnung gestellt". */
+const BILL_IS_OUT_STATUSES = new Set(['bill_sent', 'reminder_sent']);
 
 /**
  * Below this many active registrations, a large proportional drop says nothing — losing
@@ -80,6 +98,7 @@ async function syncSingleEvent(
   now: string,
   summary: SyncSummary,
   rolePricingPatterns: string[],
+  logger: SyncLogger,
 ): Promise<void> {
   const participations = await hitobitoService.fetchParticipations(event.groupId, event.eventId);
   const fetchedParticipationIds = new Set<string>();
@@ -212,6 +231,38 @@ async function syncSingleEvent(
       // Already known → check if properties changed
       const document_ = existing;
 
+      // Reverse state for a write-back that never landed: once a bill has been mailed the
+      // Cevi.DB must read "Rechnung gestellt". If it does not, the write-back at send time
+      // failed (or somebody set the answer back), so it is retried once here. The retried
+      // value is what the comparison below sees, so a successful retry is not also
+      // reported as an incoming change.
+      let effectiveAnmeldestatus: string | null = anmeldestatus;
+      let wroteAnmeldestatus = false;
+      const writeBackEntries: SyncHistoryEntry[] = [];
+      if (
+        BILL_IS_OUT_STATUSES.has(String(document_.status)) &&
+        needsAnmeldestatusWriteBack(anmeldestatus)
+      ) {
+        const writeBack = await writeBackAnmeldestatus(
+          hitobitoService,
+          {
+            groupId: event.groupId,
+            eventId: event.eventId,
+            participationUuid: participation.participationId,
+            fullName: participation.fullName,
+            anmeldestatus,
+          },
+          now,
+          logger,
+        );
+        effectiveAnmeldestatus = writeBack.anmeldestatus ?? null;
+        wroteAnmeldestatus = writeBack.historyEntries.some(
+          (entry) => entry.action === ANMELDESTATUS_WRITTEN_ACTION,
+        );
+        writeBackEntries.push(...writeBack.historyEntries);
+        if (writeBack.error !== undefined) summary.errors.push(writeBack.error);
+      }
+
       const normalize = (val: unknown): string => (typeof val === 'string' ? val : '');
       const hasRoleChanged = normalize(document_.roleType) !== normalize(participation.roleType);
       const hasNameChanged = normalize(document_.fullName) !== normalize(participation.fullName);
@@ -229,8 +280,12 @@ async function syncSingleEvent(
       const hasZipCodeChanged = normalize(document_.zipCode) !== normalize(participation.zipCode);
       const hasTownChanged = normalize(document_.town) !== normalize(participation.town);
       const hasEmailChanged = normalize(document_.email) !== normalize(invoiceEmail);
+      // A value this run wrote itself is not an incoming change: counting it would park
+      // every billed row for manual review and log a diff of our own making. The
+      // `anmeldestatus_written_to_cevidb` entry already records it.
       const hasAnmeldestatusChanged =
-        normalize(document_.anmeldestatus) !== normalize(anmeldestatus);
+        !wroteAnmeldestatus &&
+        normalize(document_.anmeldestatus) !== normalize(effectiveAnmeldestatus);
       const hasBirthdayChanged =
         normalize(document_.birthday) !== normalize(participation.birthday);
       const hasGenderChanged = normalize(document_.gender) !== normalize(participation.gender);
@@ -281,7 +336,8 @@ async function syncSingleEvent(
         hasChanges ||
         statusChanged ||
         hasMissingStammdatenChanged ||
-        hasMissingAnmeldeangabenChanged
+        hasMissingAnmeldeangabenChanged ||
+        writeBackEntries.length > 0
       ) {
         const diff: Record<string, { from: string; to: string }> = {};
         if (hasRoleChanged)
@@ -326,7 +382,7 @@ async function syncSingleEvent(
         if (hasAnmeldestatusChanged)
           diff['anmeldestatus'] = {
             from: String(document_.anmeldestatus),
-            to: anmeldestatus ?? '',
+            to: effectiveAnmeldestatus ?? '',
           };
         if (hasBirthdayChanged)
           diff['birthday'] = { from: String(document_.birthday), to: participation.birthday ?? '' };
@@ -368,7 +424,7 @@ async function syncSingleEvent(
           zipCode: participation.zipCode ?? null,
           town: participation.town ?? null,
           email: invoiceEmail,
-          anmeldestatus,
+          anmeldestatus: effectiveAnmeldestatus,
           birthday: participation.birthday ?? null,
           gender: participation.gender ?? null,
           active: participation.active,
@@ -376,6 +432,7 @@ async function syncSingleEvent(
           missingAnmeldeangaben: validationResult.missingAnmeldeangaben,
           syncHistory: [
             ...history,
+            ...writeBackEntries,
             {
               date: now,
               action:
@@ -472,11 +529,7 @@ export async function syncParticipantsUseCase(
   participantRepo: ParticipantRepositoryPort,
   hitobitoService: HitobitoServicePort,
   settingsRepo: SettingsPort,
-  logger: {
-    info: (message: string) => void;
-    warn: (message: string) => void;
-    error: (message: string) => void;
-  },
+  logger: SyncLogger,
   reporter?: JobProgressReporter,
 ): Promise<SyncSummary> {
   const now = new Date().toISOString();
@@ -586,6 +639,7 @@ export async function syncParticipantsUseCase(
         now,
         summary,
         rolePricingPatterns,
+        logger,
       );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -690,10 +744,11 @@ async function syncParticipantsLocked(
   const browserCookie =
     typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
 
-  const logger = {
+  const logger: SyncLogger = {
     info: (m: string): void => payload.logger.info(m),
     warn: (m: string): void => payload.logger.warn(m),
     error: (m: string): void => payload.logger.error(m),
+    debug: (m: string): void => payload.logger.debug(m),
   };
 
   if (browserCookie.trim() === '') {

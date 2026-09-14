@@ -2,9 +2,14 @@
 import type {
   HitobitoPersonDetails,
   HitobitoServicePort,
+  ParticipationAnswerUpdate,
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import {
+  type ParticipationAnswerField,
+  parseParticipationAnswerFields,
+} from '@/features/registration_process/hitobito-api/html-parser';
 import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
 import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
 import { trace } from '@opentelemetry/api';
@@ -88,6 +93,16 @@ const PeopleJsonSchema = z.object({
     })
     .nullish(),
 });
+
+/** The answer control whose question text contains every keyword, case-insensitively. */
+function findAnswerField(
+  html: string,
+  questionKeywords: string[],
+): ParticipationAnswerField | undefined {
+  return parseParticipationAnswerFields(html).find((field) =>
+    questionKeywords.every((keyword) => field.label.toLowerCase().includes(keyword.toLowerCase())),
+  );
+}
 
 export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
@@ -343,6 +358,78 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     }
 
     return [...emails];
+  }
+
+  /**
+   * Writes one answer of a participation back to the Cevi.DB. See the port for the
+   * contract; the mechanics below are Hitobito's.
+   */
+  async updateParticipationAnswer(
+    groupId: string,
+    eventId: string,
+    participationId: string,
+    questionKeywords: string[],
+    value: string,
+    keepValues: string[] = [],
+  ): Promise<ParticipationAnswerUpdate> {
+    const editPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}/edit`;
+
+    // Always read the form fresh, never a cached answers map: the PATCH re-sends every
+    // other answer, so it must carry what the Cevi.DB holds at this moment.
+    const before = findAnswerField(await this.fetchEditForm(editPath), questionKeywords);
+    if (before === undefined) {
+      throw new Error(
+        `Keine Frage mit «${questionKeywords.join(' ')}» auf dem Anmeldeformular ${editPath} gefunden.`,
+      );
+    }
+
+    const previous = (before.value ?? '').trim();
+    const isKept = keepValues.some((kept) => kept.toLowerCase() === previous.toLowerCase());
+    if (previous === value.trim() || isKept) {
+      return { changed: false, previous };
+    }
+
+    const { response } = await this.client.submitRailsForm({
+      getFormUrl: editPath,
+      postUrl: `/groups/${groupId}/events/${eventId}/participations/${participationId}`,
+      method: 'PATCH',
+      // Every other answer is re-sent unchanged; only this one field is overridden.
+      extractExtraFields: true,
+      formData: { [before.fieldName]: value, button: '' },
+      extraHeaders: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        Accept: 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
+        Origin: this.client.config.baseUrl,
+      },
+    });
+
+    // Turbo answers a successful update with a redirect, so a 3xx is not a failure.
+    if (response.status < 200 || response.status >= 400) {
+      throw new Error(
+        `Anmeldestatus-Rückschreibung für Teilnahme ${participationId} fehlgeschlagen: Status ${String(response.status)}.`,
+      );
+    }
+
+    const after = findAnswerField(await this.fetchEditForm(editPath), questionKeywords);
+    const confirmed = (after?.value ?? '').trim();
+    if (confirmed !== value.trim()) {
+      throw new Error(
+        `Rückschreibung für Teilnahme ${participationId} nicht bestätigt: vorher «${previous}», erwartet «${value}», Formular zeigt «${confirmed}».`,
+      );
+    }
+
+    return { changed: true, previous };
+  }
+
+  /** Fetches the participation edit page, failing loudly rather than parsing an error page. */
+  private async fetchEditForm(editPath: string): Promise<string> {
+    const { response, body } = await this.client.frontendRequest('GET', editPath);
+    if (!response.ok) {
+      throw new Error(
+        `Anmeldeformular ${editPath} konnte nicht geladen werden: Status ${String(response.status)}.`,
+      );
+    }
+    return body;
   }
 
   async fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null> {
