@@ -36,9 +36,11 @@ export interface DateSlotSelectionBlock {
   required?: boolean;
   startDate?: string | null | undefined;
   endDate?: string | null | undefined;
-  slotLength?: number | null | undefined;
-  stepDays?: number | null | undefined;
-  /** When set, a Ressort preference is asked alongside the slot, under this field name. */
+  /** Shortest range a helper may mark, in days. */
+  minDays?: number | null | undefined;
+  /** Longest range a helper may mark, in days; unset means up to the last day. */
+  maxDays?: number | null | undefined;
+  /** When set, a Ressort preference is asked alongside the range, under this field name. */
   ressortName?: string | null | undefined;
   ressortLabel?: string | null | undefined;
   ressortRequired?: boolean | null | undefined;

@@ -2,15 +2,23 @@
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { DateSlotSelectionBlock } from '@/features/payload-cms/components/form/types';
-import type { DateSlot } from '@/features/payload-cms/components/form/utils/date-slots';
-import { generateDateSlots } from '@/features/payload-cms/components/form/utils/date-slots';
+import type { SelectableDays } from '@/features/payload-cms/components/form/utils/date-slots';
+import {
+  addDays,
+  countDays,
+  getSelectableDays,
+  isRangeAllowed,
+  parseDateRangeValue,
+  toDateRangeValue,
+  toIsoDay,
+} from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CalendarX } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 
@@ -25,22 +33,52 @@ const requiredFieldMessage: StaticTranslationString = {
   fr: 'Ce champ est obligatoire',
 };
 
-const noSlotsText: StaticTranslationString = {
-  de: 'Zurzeit sind keine Zeitfenster verfügbar.',
-  en: 'No time slots are available at the moment.',
-  fr: "Aucun créneau n'est disponible pour le moment.",
+const noDaysText: StaticTranslationString = {
+  de: 'Zurzeit können keine Tage ausgewählt werden.',
+  en: 'No days can be selected at the moment.',
+  fr: 'Aucun jour ne peut être sélectionné pour le moment.',
 };
 
-const slotLengthSuffix: StaticTranslationString = {
+const dayCountSuffix: StaticTranslationString = {
   de: 'Tage',
   en: 'days',
   fr: 'jours',
 };
 
-const slotLengthSuffixSingular: StaticTranslationString = {
+const dayCountSuffixSingular: StaticTranslationString = {
   de: 'Tag',
   en: 'day',
   fr: 'jour',
+};
+
+const pickFirstDayText: StaticTranslationString = {
+  de: 'Tippe auf deinen ersten Tag.',
+  en: 'Tap your first day.',
+  fr: 'Touche ton premier jour.',
+};
+
+const pickLastDayText: StaticTranslationString = {
+  de: 'Tippe jetzt auf deinen letzten Tag',
+  en: 'Now tap your last day',
+  fr: 'Touche maintenant ton dernier jour',
+};
+
+const atLeastText: StaticTranslationString = {
+  de: 'mindestens',
+  en: 'at least',
+  fr: 'au moins',
+};
+
+const atMostText: StaticTranslationString = {
+  de: 'höchstens',
+  en: 'at most',
+  fr: 'au plus',
+};
+
+const pickAgainText: StaticTranslationString = {
+  de: 'Tippe auf einen Tag, um neu zu wählen.',
+  en: 'Tap a day to choose again.',
+  fr: 'Touche un jour pour recommencer.',
 };
 
 const ressortPlaceholder: StaticTranslationString = {
@@ -49,32 +87,252 @@ const ressortPlaceholder: StaticTranslationString = {
   fr: 'Veuillez choisir',
 };
 
+/** Upper bound on rendered months, so a mistyped year cannot render decades of calendars. */
+const MAXIMUM_MONTHS = 24;
+
+/** A Monday, used to print the weekday column headers in the reader's locale. */
+const FIRST_MONDAY = Date.UTC(2024, 0, 1);
+
+interface CalendarMonth {
+  key: string;
+  /** Empty cells before the first day, for a week that starts on Monday. */
+  leadingBlanks: number;
+  /** Every day of the month as `YYYY-MM-DD`. */
+  days: string[];
+}
+
 /**
- * Formats the inclusive day range of a slot for display, in the reader's locale.
+ * Formats an ISO day in the reader's locale.
  *
- * The ISO days are parsed back through `Date.UTC` rather than `new Date(iso)` so the
- * rendered day never slips by one for readers west of UTC.
+ * The day is parsed back through `Date.UTC` rather than `new Date(iso)` so the rendered day
+ * never slips by one for readers west of UTC.
  */
-const formatSlotRange = (slot: DateSlot, locale: Locale): string => {
-  const format = (isoDay: string): string => {
-    const [year, month, day] = isoDay.split('-').map(Number);
-    if (year === undefined || month === undefined || day === undefined) return isoDay;
-    return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(locale, {
-      timeZone: 'UTC',
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+const formatIsoDay = (
+  isoDay: string,
+  locale: Locale,
+  options: Intl.DateTimeFormatOptions,
+): string => {
+  const [year, month, day] = isoDay.split('-').map(Number);
+  if (year === undefined || month === undefined || day === undefined) return isoDay;
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(locale, {
+    ...options,
+    timeZone: 'UTC',
+  });
+};
+
+const formatDayCount = (days: number, locale: Locale): string =>
+  `${days} ${days === 1 ? dayCountSuffixSingular[locale] : dayCountSuffix[locale]}`;
+
+/** Every calendar month touched by the selectable window, oldest first. */
+const buildMonths = (firstDay: string, lastDay: string): CalendarMonth[] => {
+  const [firstYear, firstMonth] = firstDay.split('-').map(Number);
+  const [lastYear, lastMonth] = lastDay.split('-').map(Number);
+  if (
+    firstYear === undefined ||
+    firstMonth === undefined ||
+    lastYear === undefined ||
+    lastMonth === undefined
+  ) {
+    return [];
+  }
+
+  const months: CalendarMonth[] = [];
+  let year = firstYear;
+  let month = firstMonth;
+  while (
+    (year < lastYear || (year === lastYear && month <= lastMonth)) &&
+    months.length < MAXIMUM_MONTHS
+  ) {
+    const monthStart = Date.UTC(year, month - 1, 1);
+    const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    months.push({
+      key: `${year}-${month}`,
+      leadingBlanks: (new Date(monthStart).getUTCDay() + 6) % 7,
+      days: Array.from({ length: daysInMonth }, (_, dayIndex) =>
+        toIsoDay(monthStart + dayIndex * 86_400_000),
+      ),
     });
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months;
+};
+
+interface DayRangeCalendarProperties {
+  selectable: SelectableDays;
+  value: unknown;
+  onChange: (value: string) => void;
+  label: string | undefined;
+  locale: Locale;
+}
+
+/**
+ * Month grids on which the helper taps a first and a last day.
+ *
+ * The form value only holds a complete range; the first tap lives in local state until the
+ * second one, so a half-picked range still fails the required check.
+ */
+const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
+  selectable,
+  value,
+  onChange,
+  label,
+  locale,
+}) => {
+  const [pendingStart, setPendingStart] = useState<string | undefined>();
+  const selectedRange = pendingStart === undefined ? parseDateRangeValue(value) : undefined;
+
+  const months = useMemo(
+    () => buildMonths(selectable.firstDay, selectable.lastDay),
+    [selectable.firstDay, selectable.lastDay],
+  );
+
+  const weekdays = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, dayIndex) =>
+        formatIsoDay(toIsoDay(FIRST_MONDAY + dayIndex * 86_400_000), locale, { weekday: 'short' }),
+      ),
+    [locale],
+  );
+
+  const canStartOn = (day: string): boolean =>
+    day >= selectable.firstDay && addDays(day, selectable.minDays - 1) <= selectable.lastDay;
+
+  const isSelectable = (day: string): boolean => {
+    if (pendingStart === undefined || day < pendingStart) return canStartOn(day);
+    if (day === pendingStart) return true;
+    return isRangeAllowed({ startDate: pendingStart, endDate: day }, selectable);
   };
-  return `${format(slot.startDate)} – ${format(slot.endDate)}`;
+
+  const handleDayClick = (day: string): void => {
+    if (pendingStart === undefined || day < pendingStart) {
+      setPendingStart(day);
+      onChange('');
+    } else if (day === pendingStart) {
+      setPendingStart(undefined);
+    } else {
+      setPendingStart(undefined);
+      onChange(toDateRangeValue({ startDate: pendingStart, endDate: day }));
+    }
+  };
+
+  const lengthLimits = [
+    `${atLeastText[locale]} ${formatDayCount(selectable.minDays, locale)}`,
+    ...(selectable.maxDays === undefined
+      ? []
+      : [`${atMostText[locale]} ${formatDayCount(selectable.maxDays, locale)}`]),
+  ].join(', ');
+
+  const shortDate: Intl.DateTimeFormatOptions = {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div role="group" aria-label={label} className="grid grid-cols-1 gap-6 @xl:grid-cols-2">
+        {months.map((calendarMonth) => (
+          <div key={calendarMonth.key}>
+            <p className="font-heading mb-2 text-sm font-bold text-gray-900">
+              {formatIsoDay(calendarMonth.days[0] ?? '', locale, {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+            <div className="grid grid-cols-7 gap-y-1">
+              {weekdays.map((weekday) => (
+                <span
+                  key={weekday}
+                  aria-hidden="true"
+                  className="pb-1 text-center text-xs font-medium text-gray-400"
+                >
+                  {weekday}
+                </span>
+              ))}
+              {Array.from({ length: calendarMonth.leadingBlanks }, (_, blankIndex) => (
+                <span key={`blank-${blankIndex}`} aria-hidden="true" />
+              ))}
+              {calendarMonth.days.map((day) => {
+                const isEndpoint =
+                  day === pendingStart ||
+                  day === selectedRange?.startDate ||
+                  day === selectedRange?.endDate;
+                const isInRange =
+                  selectedRange !== undefined &&
+                  day >= selectedRange.startDate &&
+                  day <= selectedRange.endDate;
+                const isEnabled = isSelectable(day);
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    disabled={!isEnabled}
+                    aria-pressed={isEndpoint || isInRange}
+                    aria-label={formatIsoDay(day, locale, {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                    onClick={() => handleDayClick(day)}
+                    className={cn(
+                      'flex h-10 items-center justify-center text-sm tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1',
+                      {
+                        'rounded-md bg-green-600 font-bold text-white': isEndpoint,
+                        'bg-green-100 text-green-900': isInRange && !isEndpoint,
+                        'cursor-pointer rounded-md text-gray-900 hover:bg-gray-100':
+                          isEnabled && !isEndpoint && !isInRange,
+                        'cursor-not-allowed text-gray-300': !isEnabled && !isEndpoint && !isInRange,
+                      },
+                    )}
+                  >
+                    {Number(day.slice(8))}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div aria-live="polite" className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        {pendingStart !== undefined && (
+          <p>
+            {pickLastDayText[locale]} ({lengthLimits}).
+          </p>
+        )}
+        {selectedRange !== undefined && (
+          <>
+            <p className="font-bold text-gray-900">
+              {formatIsoDay(selectedRange.startDate, locale, shortDate)} –{' '}
+              {formatIsoDay(selectedRange.endDate, locale, shortDate)} ·{' '}
+              {formatDayCount(countDays(selectedRange.startDate, selectedRange.endDate), locale)}
+            </p>
+            <p className="mt-1 text-xs text-gray-500">{pickAgainText[locale]}</p>
+          </>
+        )}
+        {pendingStart === undefined && selectedRange === undefined && (
+          <p>
+            {pickFirstDayText[locale]} ({lengthLimits})
+          </p>
+        )}
+      </div>
+    </div>
+  );
 };
 
 /**
- * Lets a helper who cannot commit to a whole camp phase pick a fixed-length window of
- * consecutive days instead of a concrete job, optionally together with the Ressort they
- * would like to help in.
+ * Lets a helper who cannot commit to a whole camp phase mark the consecutive days they can
+ * help on instead of a concrete job, optionally together with the Ressort they would like to
+ * help in.
  *
- * The block renders two form fields: the slot under `name`, and — when the editor filled
+ * The block renders two form fields: the day range under `name`, and — when the editor filled
  * in `ressortName` — the Ressort wish under that second name. Anything reading a form
  * definition field by field (step validation, initial state, server-side validation) has
  * to account for that second name explicitly.
@@ -86,20 +344,18 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
   required,
   startDate,
   endDate,
-  slotLength,
-  stepDays,
+  minDays,
+  maxDays,
   ressortName,
   ressortLabel,
   ressortRequired,
 }) => {
   const locale = (useCurrentLocale(i18nConfig) ?? 'de') as Locale;
 
-  const slots = useMemo(
-    () => generateDateSlots({ startDate, endDate, slotLength, stepDays }),
-    [startDate, endDate, slotLength, stepDays],
+  const selectable = useMemo(
+    () => getSelectableDays({ startDate, endDate, minDays, maxDays }),
+    [startDate, endDate, minDays, maxDays],
   );
-
-  const slotLengthInDays = slots[0] === undefined ? 0 : countDays(slots[0]);
 
   const ressortOptions = useMemo(
     () => RESSORT_OPTIONS.map((option) => ({ value: option.value, label: option.label[locale] })),
@@ -121,80 +377,21 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
         rules={{ required: required === true ? requiredFieldMessage[locale] : false }}
         render={({ field: { onChange, value }, fieldState: { error } }) => (
           <div className="flex flex-col gap-4">
-            {slots.length === 0 ? (
+            {selectable === undefined ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="mb-4 rounded-full bg-gray-50 p-6">
                   <CalendarX className="h-12 w-12 text-gray-400" />
                 </div>
-                <p className="max-w-[280px] text-sm text-gray-500">{noSlotsText[locale]}</p>
+                <p className="max-w-[280px] text-sm text-gray-500">{noDaysText[locale]}</p>
               </div>
             ) : (
-              <div
-                role="radiogroup"
-                aria-label={label}
-                aria-required={required === true}
-                className="grid grid-cols-1 gap-4 @md:grid-cols-2 @xl:grid-cols-3"
-              >
-                {slots.map((slot) => {
-                  const isSelected = value === slot.value;
-                  const hasError = !!error;
-
-                  return (
-                    <button
-                      key={slot.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      onClick={() => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        (onChange as (v: any) => void)(slot.value);
-                      }}
-                      className={cn(
-                        'relative flex cursor-pointer flex-col rounded-lg border-2 p-4 text-left transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none',
-                        {
-                          'border-green-600 bg-green-50 ring-green-600': isSelected && !hasError,
-                          'border-red-500 bg-red-50 ring-red-600': isSelected && hasError,
-                          'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 focus:ring-green-600':
-                            !isSelected && !hasError,
-                          'border-red-200 bg-white hover:border-red-300 focus:ring-red-500':
-                            !isSelected && hasError,
-                        },
-                      )}
-                    >
-                      <span className="font-heading text-sm leading-tight font-bold text-gray-900">
-                        {formatSlotRange(slot, locale)}
-                      </span>
-                      <span className="mt-2 text-[10px] font-medium tracking-tight text-gray-400 uppercase">
-                        {slotLengthInDays}{' '}
-                        {slotLengthInDays === 1
-                          ? slotLengthSuffixSingular[locale]
-                          : slotLengthSuffix[locale]}
-                      </span>
-                      {isSelected && (
-                        <div
-                          className={cn(
-                            'absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full text-white shadow-sm',
-                            { 'bg-green-600': !hasError, 'bg-red-600': hasError },
-                          )}
-                        >
-                          <svg
-                            aria-hidden="true"
-                            className="h-4 w-4"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+              <DayRangeCalendar
+                selectable={selectable}
+                value={value as unknown}
+                onChange={(nextValue) => (onChange as (value: string) => void)(nextValue)}
+                label={label}
+                locale={locale}
+              />
             )}
             {error && <p className="mt-1 text-xs text-red-600">{error.message}</p>}
           </div>
@@ -231,7 +428,10 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
                       : 'bg-green-100 ring-transparent hover:ring-green-600 focus:ring-2 focus:ring-green-600',
                   )}
                 >
-                  <option value="">{ressortPlaceholder[locale]}</option>
+                  {/* A prompt, not an answer: shown until the helper picks, never pickable. */}
+                  <option value="" disabled>
+                    {ressortPlaceholder[locale]}
+                  </option>
                   {ressortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -247,11 +447,3 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
     </div>
   );
 };
-
-/** Inclusive day count of a slot, derived from the slot itself so it survives a bad config. */
-function countDays(slot: DateSlot): number {
-  const start = Date.parse(`${slot.startDate}T00:00:00.000Z`);
-  const end = Date.parse(`${slot.endDate}T00:00:00.000Z`);
-  if (Number.isNaN(start) || Number.isNaN(end)) return 0;
-  return Math.round((end - start) / 86_400_000) + 1;
-}

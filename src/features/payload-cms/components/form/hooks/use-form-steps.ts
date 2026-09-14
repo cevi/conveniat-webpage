@@ -21,15 +21,26 @@ export interface UseFormStepsReturn {
   prev: (event?: React.MouseEvent) => void;
 }
 
-const scrollToTop = (formId?: string): void => {
-  if (typeof globalThis !== 'undefined') {
-    const element = formId ? document.querySelector(`#${CSS.escape(formId)}`) : undefined;
-    if (element) {
-      // scroll to element - 100px to account for sticky nav
-      const topPos = element.getBoundingClientRect().top + window.pageYOffset - 100;
-      window.scrollTo({ top: topPos, behavior: 'smooth' });
-    }
-  }
+/** Height of the sticky navigation covering the top of the viewport. */
+const STICKY_NAV_OFFSET = 100;
+
+/**
+ * Brings the top of the form back into view after a step change, and only then.
+ *
+ * Moving the page while the helper can already see where the step starts is jarring, and a
+ * cut-off bottom does not call for it either: the next step reads from the top. Measuring
+ * before the new step renders is fine, since a step change only moves the bottom edge.
+ */
+const scrollFormTopIntoView = (formId?: string): void => {
+  if (typeof formId !== 'string' || formId === '') return;
+  const element = document.querySelector(`#${CSS.escape(formId)}`);
+  if (element === null) return;
+
+  const { top } = element.getBoundingClientRect();
+  const isTopVisible = top >= STICKY_NAV_OFFSET && top < window.innerHeight;
+  if (isTopVisible) return;
+
+  window.scrollTo({ top: top + window.scrollY - STICKY_NAV_OFFSET, behavior: 'smooth' });
 };
 
 type SectionField = FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock;
@@ -204,7 +215,7 @@ export const useFormSteps = (
 
     if (isValid && !isLastStep) {
       setCurrentStepIndex(clampedStepIndex + 1);
-      scrollToTop(formId);
+      scrollFormTopIntoView(formId);
     }
     return isValid;
   };
@@ -214,7 +225,7 @@ export const useFormSteps = (
     if (!isFirstStep) {
       setCurrentStepIndex(clampedStepIndex - 1);
     }
-    scrollToTop(formId);
+    scrollFormTopIntoView(formId);
   };
 
   return {

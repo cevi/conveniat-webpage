@@ -1,10 +1,10 @@
 /**
- * Generation of the selectable multi-day availability slots of a `dateSlotSelection`
- * form block.
+ * Rules for the range of consecutive days a helper marks in a `dateSlotSelection` form
+ * block.
  *
- * Lives outside the React component because the server re-generates the very same list
- * in `validateFormSubmission` to check that a submitted slot is one the editor actually
- * offered. Both sides must agree on the value format, so keep them reading from here.
+ * Lives outside the React component because the server checks a submitted range against
+ * the very same rules in `validateFormSubmission`. Both sides must agree on the value
+ * format, so keep them reading from here.
  */
 
 const MILLISECONDS_PER_DAY = 86_400_000;
@@ -16,30 +16,33 @@ const MILLISECONDS_PER_DAY = 86_400_000;
  */
 export const DATE_SLOT_VALUE_SEPARATOR = ' – ';
 
-/** Fallback slot length, in days, when an editor leaves the field empty. */
-export const DEFAULT_SLOT_LENGTH_IN_DAYS = 3;
+/** Fallback minimum range length, in days, when an editor leaves the field empty. */
+export const DEFAULT_MINIMUM_DAYS = 3;
 
-/**
- * Upper bound on the number of generated slots. A camp lasts weeks, so a block producing
- * more than this means the editor mistyped a date — rendering ten thousand cards would
- * take the page down instead of showing them their typo.
- */
-const MAXIMUM_SLOTS = 200;
+const ISO_DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-export interface DateSlot {
-  /** Inclusive first day of the slot, as `YYYY-MM-DD`. */
-  startDate: string;
-  /** Inclusive last day of the slot, as `YYYY-MM-DD`. */
-  endDate: string;
-  /** Stable, locale-independent value stored in the submission. */
-  value: string;
-}
-
-export interface DateSlotConfiguration {
+export interface DateRangeConfiguration {
   startDate?: string | null | undefined;
   endDate?: string | null | undefined;
-  slotLength?: number | null | undefined;
-  stepDays?: number | null | undefined;
+  minDays?: number | null | undefined;
+  maxDays?: number | null | undefined;
+}
+
+export interface SelectableDays {
+  /** First day a range may start on, as `YYYY-MM-DD`. */
+  firstDay: string;
+  /** Last day a range may end on, as `YYYY-MM-DD`. */
+  lastDay: string;
+  minDays: number;
+  /** Undefined when any length up to the last day is fine. */
+  maxDays: number | undefined;
+}
+
+export interface DateRange {
+  /** Inclusive first day, as `YYYY-MM-DD`. */
+  startDate: string;
+  /** Inclusive last day, as `YYYY-MM-DD`. */
+  endDate: string;
 }
 
 /**
@@ -57,45 +60,87 @@ const toUtcDayStart = (value: string | null | undefined): number | undefined => 
   return Math.round(parsed / MILLISECONDS_PER_DAY) * MILLISECONDS_PER_DAY;
 };
 
-const toIsoDay = (timestamp: number): string => new Date(timestamp).toISOString().slice(0, 10);
+/** Formats a UTC timestamp as `YYYY-MM-DD`. */
+export const toIsoDay = (timestamp: number): string =>
+  new Date(timestamp).toISOString().slice(0, 10);
 
-const toPositiveInteger = (value: number | null | undefined, fallback: number): number => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+/** Parses a strict `YYYY-MM-DD`, rejecting impossible days like `2027-02-30`. */
+const isoDayToTimestamp = (isoDay: string): number | undefined => {
+  if (!ISO_DAY_PATTERN.test(isoDay)) return undefined;
+  const parsed = Date.parse(`${isoDay}T00:00:00.000Z`);
+  if (Number.isNaN(parsed) || toIsoDay(parsed) !== isoDay) return undefined;
+  return parsed;
+};
+
+/** Moves an ISO day by whole days; malformed input comes back unchanged. */
+export const addDays = (isoDay: string, days: number): string => {
+  const timestamp = isoDayToTimestamp(isoDay);
+  return timestamp === undefined ? isoDay : toIsoDay(timestamp + days * MILLISECONDS_PER_DAY);
+};
+
+/** Inclusive number of days from `startDate` to `endDate`, or 0 for malformed input. */
+export const countDays = (startDate: string, endDate: string): number => {
+  const start = isoDayToTimestamp(startDate);
+  const end = isoDayToTimestamp(endDate);
+  if (start === undefined || end === undefined) return 0;
+  return Math.round((end - start) / MILLISECONDS_PER_DAY) + 1;
+};
+
+const toOptionalPositiveInteger = (value: number | null | undefined): number | undefined => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
   const rounded = Math.floor(value);
-  return rounded > 0 ? rounded : fallback;
+  return rounded > 0 ? rounded : undefined;
 };
 
 /**
- * Builds every slot of `slotLength` consecutive days that fits between the configured
- * start and end day, moving forward by `stepDays` between slots.
+ * Resolves the window and length limits an editor configured.
  *
- * Returns an empty list for an unusable configuration (missing or malformed dates, a range
- * shorter than one slot) rather than throwing: drafts skip field validation, so the
+ * Returns undefined for an unusable configuration (missing or malformed dates, a window
+ * shorter than the minimum) rather than throwing: drafts skip field validation, so the
  * renderer has to cope with a half-filled block.
  */
-export const generateDateSlots = (configuration: DateSlotConfiguration): DateSlot[] => {
-  const firstDay = toUtcDayStart(configuration.startDate);
-  const lastDay = toUtcDayStart(configuration.endDate);
-  if (firstDay === undefined || lastDay === undefined || lastDay < firstDay) return [];
+export const getSelectableDays = (
+  configuration: DateRangeConfiguration,
+): SelectableDays | undefined => {
+  const first = toUtcDayStart(configuration.startDate);
+  const last = toUtcDayStart(configuration.endDate);
+  if (first === undefined || last === undefined || last < first) return undefined;
 
-  const slotLength = toPositiveInteger(configuration.slotLength, DEFAULT_SLOT_LENGTH_IN_DAYS);
-  const stepDays = toPositiveInteger(configuration.stepDays, 1);
-  const slotSpan = (slotLength - 1) * MILLISECONDS_PER_DAY;
+  const minDays = toOptionalPositiveInteger(configuration.minDays) ?? DEFAULT_MINIMUM_DAYS;
+  const maxDaysSetting = toOptionalPositiveInteger(configuration.maxDays);
+  // A maximum below the minimum would reject every range; a draft can hold one, so drop it.
+  const maxDays =
+    maxDaysSetting !== undefined && maxDaysSetting >= minDays ? maxDaysSetting : undefined;
 
-  const slots: DateSlot[] = [];
-  for (
-    let slotStart = firstDay;
-    slotStart + slotSpan <= lastDay && slots.length < MAXIMUM_SLOTS;
-    slotStart += stepDays * MILLISECONDS_PER_DAY
-  ) {
-    const startDate = toIsoDay(slotStart);
-    const endDate = toIsoDay(slotStart + slotSpan);
-    slots.push({
-      startDate,
-      endDate,
-      value: `${startDate}${DATE_SLOT_VALUE_SEPARATOR}${endDate}`,
-    });
+  const firstDay = toIsoDay(first);
+  const lastDay = toIsoDay(last);
+  if (countDays(firstDay, lastDay) < minDays) return undefined;
+
+  return { firstDay, lastDay, minDays, maxDays };
+};
+
+/** Builds the stable, locale-independent value stored in the submission. */
+export const toDateRangeValue = (range: DateRange): string =>
+  `${range.startDate}${DATE_SLOT_VALUE_SEPARATOR}${range.endDate}`;
+
+/** Reads a stored value back, or undefined when it is not a well-formed range value. */
+export const parseDateRangeValue = (value: unknown): DateRange | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const [startDate, endDate, ...rest] = value.split(DATE_SLOT_VALUE_SEPARATOR);
+  if (startDate === undefined || endDate === undefined || rest.length > 0) return undefined;
+  if (isoDayToTimestamp(startDate) === undefined || isoDayToTimestamp(endDate) === undefined) {
+    return undefined;
   }
+  return { startDate, endDate };
+};
 
-  return slots;
+/** Whether `range` lies inside the window and respects the configured length limits. */
+export const isRangeAllowed = (range: DateRange, selectable: SelectableDays): boolean => {
+  const length = countDays(range.startDate, range.endDate);
+  return (
+    range.startDate >= selectable.firstDay &&
+    range.endDate <= selectable.lastDay &&
+    length >= selectable.minDays &&
+    (selectable.maxDays === undefined || length <= selectable.maxDays)
+  );
 };

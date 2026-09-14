@@ -1,95 +1,97 @@
 import {
   DATE_SLOT_VALUE_SEPARATOR,
-  generateDateSlots,
+  getSelectableDays,
+  isRangeAllowed,
+  parseDateRangeValue,
 } from '@/features/payload-cms/components/form/utils/date-slots';
 
-describe('generateDateSlots', () => {
-  it('offers every three-day window that fits in the range', () => {
-    const slots = generateDateSlots({
-      startDate: '2027-07-24T00:00:00.000Z',
-      endDate: '2027-07-28T00:00:00.000Z',
-      slotLength: 3,
-      stepDays: 1,
-    });
+const camp = {
+  startDate: '2027-07-12T00:00:00.000Z',
+  endDate: '2027-08-06T00:00:00.000Z',
+};
 
-    expect(slots.map((slot) => slot.value)).toEqual([
-      `2027-07-24${DATE_SLOT_VALUE_SEPARATOR}2027-07-26`,
-      `2027-07-25${DATE_SLOT_VALUE_SEPARATOR}2027-07-27`,
-      `2027-07-26${DATE_SLOT_VALUE_SEPARATOR}2027-07-28`,
-    ]);
+/** Validates a submitted value the way the server does. */
+const accepts = (
+  value: unknown,
+  configuration: Parameters<typeof getSelectableDays>[0],
+): boolean => {
+  const selectable = getSelectableDays(configuration);
+  const range = parseDateRangeValue(value);
+  return selectable !== undefined && range !== undefined && isRangeAllowed(range, selectable);
+};
+
+describe('date range rules', () => {
+  it('accepts a range of exactly the minimum length and anything longer', () => {
+    expect(
+      accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-14`, { ...camp, minDays: 3 }),
+    ).toBe(true);
+    expect(
+      accepts(`2027-07-20${DATE_SLOT_VALUE_SEPARATOR}2027-07-31`, { ...camp, minDays: 3 }),
+    ).toBe(true);
   });
 
-  it('offers back-to-back windows when the offset equals the slot length', () => {
-    const slots = generateDateSlots({
-      startDate: '2027-07-24T00:00:00.000Z',
-      endDate: '2027-07-29T00:00:00.000Z',
-      slotLength: 3,
-      stepDays: 3,
-    });
+  it('rejects a range shorter than the minimum', () => {
+    expect(
+      accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-13`, { ...camp, minDays: 3 }),
+    ).toBe(false);
+  });
 
-    expect(slots.map((slot) => slot.value)).toEqual([
-      `2027-07-24${DATE_SLOT_VALUE_SEPARATOR}2027-07-26`,
-      `2027-07-27${DATE_SLOT_VALUE_SEPARATOR}2027-07-29`,
-    ]);
+  it('defaults the minimum to three days', () => {
+    expect(accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-13`, camp)).toBe(false);
+    expect(accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-14`, camp)).toBe(true);
+  });
+
+  it('rejects a range longer than the maximum when one is set', () => {
+    const configuration = { ...camp, minDays: 3, maxDays: 5 };
+    expect(accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-16`, configuration)).toBe(true);
+    expect(accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-17`, configuration)).toBe(false);
+  });
+
+  it('ignores a maximum below the minimum, which a draft can hold', () => {
+    expect(
+      accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-07-20`, {
+        ...camp,
+        minDays: 3,
+        maxDays: 2,
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects days outside the window the editor configured', () => {
+    expect(accepts(`2027-07-10${DATE_SLOT_VALUE_SEPARATOR}2027-07-14`, camp)).toBe(false);
+    expect(accepts(`2027-08-04${DATE_SLOT_VALUE_SEPARATOR}2027-08-08`, camp)).toBe(false);
+  });
+
+  it('rejects reversed, malformed and impossible values', () => {
+    expect(accepts(`2027-07-20${DATE_SLOT_VALUE_SEPARATOR}2027-07-14`, camp)).toBe(false);
+    expect(accepts('2027-07-12 - 2027-07-14', camp)).toBe(false);
+    expect(accepts(`2027-07-12${DATE_SLOT_VALUE_SEPARATOR}2027-02-30`, camp)).toBe(false);
+    expect(accepts('', camp)).toBe(false);
+    expect(accepts(42, camp)).toBe(false);
   });
 
   it('keeps the day the editor picked when the admin panel stored a local-midnight instant', () => {
     // 12.07.2027 picked in CEST (UTC+2) is stored as the previous day in UTC.
-    const slots = generateDateSlots({
-      startDate: '2027-07-11T22:00:00.000Z',
-      endDate: '2027-07-13T22:00:00.000Z',
-      slotLength: 3,
-      stepDays: 1,
-    });
-
-    expect(slots).toHaveLength(1);
-    expect(slots[0]?.startDate).toBe('2027-07-12');
-    expect(slots[0]?.endDate).toBe('2027-07-14');
-  });
-
-  it('defaults to three-day windows one day apart', () => {
-    const slots = generateDateSlots({
-      startDate: '2027-07-24T00:00:00.000Z',
-      endDate: '2027-07-27T00:00:00.000Z',
-    });
-
-    expect(slots.map((slot) => slot.value)).toEqual([
-      `2027-07-24${DATE_SLOT_VALUE_SEPARATOR}2027-07-26`,
-      `2027-07-25${DATE_SLOT_VALUE_SEPARATOR}2027-07-27`,
-    ]);
-  });
-
-  it('offers nothing when the range is shorter than one slot', () => {
     expect(
-      generateDateSlots({
+      getSelectableDays({
+        startDate: '2027-07-11T22:00:00.000Z',
+        endDate: '2027-08-05T22:00:00.000Z',
+      }),
+    ).toEqual({ firstDay: '2027-07-12', lastDay: '2027-08-06', minDays: 3, maxDays: undefined });
+  });
+
+  it('offers nothing for a window shorter than the minimum or a half-filled block', () => {
+    expect(
+      getSelectableDays({
         startDate: '2027-07-24T00:00:00.000Z',
         endDate: '2027-07-25T00:00:00.000Z',
-        slotLength: 3,
+        minDays: 3,
       }),
-    ).toEqual([]);
-  });
-
-  it('offers nothing for a half-filled block, as drafts skip field validation', () => {
-    expect(generateDateSlots({})).toEqual([]);
+    ).toBeUndefined();
+    expect(getSelectableDays({})).toBeUndefined();
     // eslint-disable-next-line unicorn/no-null
-    expect(generateDateSlots({ startDate: '2027-07-24T00:00:00.000Z', endDate: null })).toEqual([]);
-    expect(generateDateSlots({ startDate: 'not a date', endDate: 'neither' })).toEqual([]);
-    expect(
-      generateDateSlots({
-        startDate: '2027-08-01T00:00:00.000Z',
-        endDate: '2027-07-01T00:00:00.000Z',
-      }),
-    ).toEqual([]);
-  });
-
-  it('caps the list so a mistyped year cannot render a page full of cards', () => {
-    const slots = generateDateSlots({
-      startDate: '2027-07-24T00:00:00.000Z',
-      endDate: '2999-07-24T00:00:00.000Z',
-      slotLength: 3,
-      stepDays: 1,
-    });
-
-    expect(slots.length).toBeLessThanOrEqual(200);
+    expect(getSelectableDays({ startDate: camp.startDate, endDate: null })).toBeUndefined();
+    expect(getSelectableDays({ startDate: 'not a date', endDate: 'neither' })).toBeUndefined();
+    expect(getSelectableDays({ startDate: camp.endDate, endDate: camp.startDate })).toBeUndefined();
   });
 });

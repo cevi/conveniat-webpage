@@ -1,4 +1,4 @@
-import { DEFAULT_SLOT_LENGTH_IN_DAYS } from '@/features/payload-cms/components/form/utils/date-slots';
+import { DEFAULT_MINIMUM_DAYS } from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
@@ -833,9 +833,9 @@ const formDateSlotSelectionBlock: Block = {
             width: '50%',
             date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
             description: {
-              en: 'First day a slot may start on.',
-              de: 'Erster Tag, an dem ein Zeitfenster beginnen darf.',
-              fr: 'Premier jour où un créneau peut commencer.',
+              en: 'First day a helper can mark.',
+              de: 'Erster Tag, den eine helfende Person markieren kann.',
+              fr: "Premier jour qu'une personne bénévole peut marquer.",
             },
           },
         },
@@ -852,9 +852,9 @@ const formDateSlotSelectionBlock: Block = {
             width: '50%',
             date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
             description: {
-              en: 'Last day a slot may end on.',
-              de: 'Letzter Tag, an dem ein Zeitfenster enden darf.',
-              fr: 'Dernier jour où un créneau peut se terminer.',
+              en: 'Last day a helper can mark.',
+              de: 'Letzter Tag, den eine helfende Person markieren kann.',
+              fr: "Dernier jour qu'une personne bénévole peut marquer.",
             },
           },
         },
@@ -864,33 +864,32 @@ const formDateSlotSelectionBlock: Block = {
       type: 'row',
       fields: [
         {
-          name: 'slotLength',
+          name: 'minDays',
           type: 'number',
           min: 1,
-          defaultValue: DEFAULT_SLOT_LENGTH_IN_DAYS,
+          defaultValue: DEFAULT_MINIMUM_DAYS,
           label: {
-            en: 'Slot Length (days)',
-            de: 'Länge eines Zeitfensters (Tage)',
-            fr: 'Durée du créneau (jours)',
+            en: 'Minimum Days',
+            de: 'Mindestanzahl Tage',
+            fr: 'Nombre minimum de jours',
           },
           admin: { width: '50%' },
         },
         {
-          name: 'stepDays',
+          name: 'maxDays',
           type: 'number',
           min: 1,
-          defaultValue: 1,
           label: {
-            en: 'Offset Between Slots (days)',
-            de: 'Abstand zwischen Zeitfenstern (Tage)',
-            fr: 'Décalage entre les créneaux (jours)',
+            en: 'Maximum Days',
+            de: 'Höchstanzahl Tage',
+            fr: 'Nombre maximum de jours',
           },
           admin: {
             width: '50%',
             description: {
-              en: '1 offers a slot starting on every day, 3 offers back-to-back three-day slots.',
-              de: '1 bietet an jedem Tag ein Zeitfenster an, 3 bietet lückenlos aufeinanderfolgende Dreitagesfenster an.',
-              fr: "1 propose un créneau chaque jour, 3 propose des créneaux de trois jours qui s'enchaînent.",
+              en: 'Leave empty to allow any length up to the last day.',
+              de: 'Leer lassen, um jede Länge bis zum letzten Tag zu erlauben.',
+              fr: "Laisser vide pour autoriser toute durée jusqu'au dernier jour.",
             },
           },
         },

@@ -1386,18 +1386,18 @@ export interface Form {
                 name: string;
                 label: string;
                 /**
-                 * First day a slot may start on.
+                 * First day a helper can mark.
                  */
                 startDate: string;
                 /**
-                 * Last day a slot may end on.
+                 * Last day a helper can mark.
                  */
                 endDate: string;
-                slotLength?: number | null;
+                minDays?: number | null;
                 /**
-                 * 1 offers a slot starting on every day, 3 offers back-to-back three-day slots.
+                 * Leave empty to allow any length up to the last day.
                  */
-                stepDays?: number | null;
+                maxDays?: number | null;
                 /**
                  * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
                  */
@@ -1666,18 +1666,18 @@ export interface Form {
                           name: string;
                           label: string;
                           /**
-                           * First day a slot may start on.
+                           * First day a helper can mark.
                            */
                           startDate: string;
                           /**
-                           * Last day a slot may end on.
+                           * Last day a helper can mark.
                            */
                           endDate: string;
-                          slotLength?: number | null;
+                          minDays?: number | null;
                           /**
-                           * 1 offers a slot starting on every day, 3 offers back-to-back three-day slots.
+                           * Leave empty to allow any length up to the last day.
                            */
-                          stepDays?: number | null;
+                          maxDays?: number | null;
                           /**
                            * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
                            */
@@ -7015,8 +7015,8 @@ export interface FormsSelect<T extends boolean = true> {
                           label?: T;
                           startDate?: T;
                           endDate?: T;
-                          slotLength?: T;
-                          stepDays?: T;
+                          minDays?: T;
+                          maxDays?: T;
                           ressortName?: T;
                           ressortLabel?: T;
                           ressortRequired?: T;
@@ -7196,8 +7196,8 @@ export interface FormsSelect<T extends boolean = true> {
                                       label?: T;
                                       startDate?: T;
                                       endDate?: T;
-                                      slotLength?: T;
-                                      stepDays?: T;
+                                      minDays?: T;
+                                      maxDays?: T;
                                       ressortName?: T;
                                       ressortLabel?: T;
                                       ressortRequired?: T;
