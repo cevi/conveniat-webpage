@@ -1,7 +1,7 @@
 import {
+  areRangesAllowed,
   getSelectableDays,
-  isRangeAllowed,
-  parseDateRangeValue,
+  parseDateRangesValue,
 } from '@/features/payload-cms/components/form/utils/date-slots';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
@@ -297,16 +297,21 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         break;
       }
       case 'dateSlotSelection': {
-        // Re-check the range against the window and length limits the editor configured,
-        // so a hand-crafted request cannot book days outside the camp.
+        // Re-check the ranges against the window, length and count limits the editor
+        // configured, so a hand-crafted request cannot book days outside the camp.
         const selectable = getSelectableDays({
           startDate: fieldConfig.startDate,
           endDate: fieldConfig.endDate,
           minDays: fieldConfig.minDays,
           maxDays: fieldConfig.maxDays,
+          maxRanges: fieldConfig.maxRanges,
         });
-        const range = parseDateRangeValue(value);
-        if (selectable === undefined || range === undefined || !isRangeAllowed(range, selectable)) {
+        const ranges = parseDateRangesValue(value);
+        if (
+          selectable === undefined ||
+          ranges === undefined ||
+          !areRangesAllowed(ranges, selectable)
+        ) {
           fieldErrors.push({ field: fieldName, message: 'invalid_selection' });
         }
         break;

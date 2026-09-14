@@ -16,8 +16,17 @@ const MILLISECONDS_PER_DAY = 86_400_000;
  */
 export const DATE_SLOT_VALUE_SEPARATOR = ' – ';
 
+/**
+ * Separates the ranges when a helper marks more than one. The same `, ` that joins the
+ * answers of a multi-select, so a submission with one range reads exactly as before.
+ */
+export const DATE_SLOT_RANGE_SEPARATOR = ', ';
+
 /** Fallback minimum range length, in days, when an editor leaves the field empty. */
 export const DEFAULT_MINIMUM_DAYS = 3;
+
+/** Fallback number of ranges a helper may mark, when an editor leaves the field empty. */
+export const DEFAULT_MAXIMUM_RANGES = 1;
 
 /**
  * Longest window an editor can open, in days. A camp lasts weeks, so anything longer is a
@@ -33,6 +42,7 @@ export interface DateRangeConfiguration {
   endDate?: string | null | undefined;
   minDays?: number | null | undefined;
   maxDays?: number | null | undefined;
+  maxRanges?: number | null | undefined;
 }
 
 export interface SelectableDays {
@@ -43,6 +53,8 @@ export interface SelectableDays {
   minDays: number;
   /** Undefined when any length up to the last day is fine. */
   maxDays: number | undefined;
+  /** How many separate ranges a helper may mark; each one respects the length limits. */
+  maxRanges: number;
 }
 
 export interface DateRange {
@@ -124,22 +136,36 @@ export const getSelectableDays = (
   const windowDays = countDays(firstDay, lastDay);
   if (windowDays < minDays || windowDays > MAXIMUM_WINDOW_DAYS) return undefined;
 
-  return { firstDay, lastDay, minDays, maxDays };
+  const maxRanges = toOptionalPositiveInteger(configuration.maxRanges) ?? DEFAULT_MAXIMUM_RANGES;
+
+  return { firstDay, lastDay, minDays, maxDays, maxRanges };
 };
 
-/** Builds the stable, locale-independent value stored in the submission. */
-export const toDateRangeValue = (range: DateRange): string =>
-  `${range.startDate}${DATE_SLOT_VALUE_SEPARATOR}${range.endDate}`;
+/** Builds the stable, locale-independent value stored in the submission, earliest range first. */
+export const toDateRangesValue = (ranges: DateRange[]): string =>
+  // Copied before sorting rather than `toSorted`, which older phone browsers lack.
+  [...ranges]
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .map((range) => `${range.startDate}${DATE_SLOT_VALUE_SEPARATOR}${range.endDate}`)
+    .join(DATE_SLOT_RANGE_SEPARATOR);
 
-/** Reads a stored value back, or undefined when it is not a well-formed range value. */
-export const parseDateRangeValue = (value: unknown): DateRange | undefined => {
-  if (typeof value !== 'string') return undefined;
+const parseDateRange = (value: string): DateRange | undefined => {
   const [startDate, endDate, ...rest] = value.split(DATE_SLOT_VALUE_SEPARATOR);
   if (startDate === undefined || endDate === undefined || rest.length > 0) return undefined;
   if (isoDayToTimestamp(startDate) === undefined || isoDayToTimestamp(endDate) === undefined) {
     return undefined;
   }
   return { startDate, endDate };
+};
+
+/**
+ * Reads a stored value back, or undefined when it is empty or any part of it is not a
+ * well-formed range.
+ */
+export const parseDateRangesValue = (value: unknown): DateRange[] | undefined => {
+  if (typeof value !== 'string' || value === '') return undefined;
+  const ranges = value.split(DATE_SLOT_RANGE_SEPARATOR).map((part) => parseDateRange(part));
+  return ranges.every((range) => range !== undefined) ? ranges : undefined;
 };
 
 /** Whether `range` lies inside the window and respects the configured length limits. */
@@ -152,3 +178,17 @@ export const isRangeAllowed = (range: DateRange, selectable: SelectableDays): bo
     (selectable.maxDays === undefined || length <= selectable.maxDays)
   );
 };
+
+/**
+ * Whether a helper's ranges are acceptable together: at least one, no more than the editor
+ * allows, each within the limits, in order, and at least one free day apart. Touching ranges
+ * would be one longer range under two names, and would slip past the maximum length.
+ */
+export const areRangesAllowed = (ranges: DateRange[], selectable: SelectableDays): boolean =>
+  ranges.length > 0 &&
+  ranges.length <= selectable.maxRanges &&
+  ranges.every(
+    (range, index) =>
+      isRangeAllowed(range, selectable) &&
+      (index === 0 || range.startDate > addDays(ranges[index - 1]?.endDate ?? '', 1)),
+  );

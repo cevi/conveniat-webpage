@@ -40,6 +40,8 @@ export interface DateSlotSelectionBlock {
   minDays?: number | null | undefined;
   /** Longest range a helper may mark, in days; unset means up to the last day. */
   maxDays?: number | null | undefined;
+  /** How many separate ranges a helper may mark; unset means one. */
+  maxRanges?: number | null | undefined;
   /** When set, a Ressort preference is asked alongside the range, under this field name. */
   ressortName?: string | null | undefined;
   ressortLabel?: string | null | undefined;
