@@ -39,7 +39,10 @@ const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
     ...overrides,
   }) as unknown as BillParticipant;
 
-function createMockPayload(configOverrides: Record<string, unknown> = {}): {
+function createMockPayload(
+  configOverrides: Record<string, unknown> = {},
+  financeRecipients = 'finance@example.ch',
+): {
   findGlobal: jest.Mock;
   find: jest.Mock;
   sendEmail: jest.Mock;
@@ -59,7 +62,7 @@ function createMockPayload(configOverrides: Record<string, unknown> = {}): {
         recipients: 'lead@example.ch',
         ...configOverrides,
       },
-      financeEmailRecipients: 'finance@example.ch',
+      financeEmailRecipients: financeRecipients,
     }),
     find: jest.fn().mockResolvedValue({ docs: [] }),
     sendEmail: jest.fn().mockResolvedValue({}),
@@ -284,7 +287,7 @@ describe('sendWeeklyReport', () => {
     expect(mockPayload.sendEmail).not.toHaveBeenCalled();
   });
 
-  it('sends email and releases run lock when acquired', async () => {
+  it('sends separate emails for general report and finance overview when both are configured', async () => {
     const mockPayload = createMockPayload();
     const mockRelease = jest.fn().mockResolvedValue(true);
     mockAcquire.mockResolvedValue({
@@ -298,7 +301,33 @@ describe('sendWeeklyReport', () => {
     });
 
     expect(result.sent).toBe(true);
-    expect(mockPayload.sendEmail).toHaveBeenCalledTimes(1);
+    expect(mockPayload.sendEmail).toHaveBeenCalledTimes(2);
+
+    interface SendEmailCall {
+      to: string;
+      subject: string;
+      text: string;
+      attachments: { filename: string; content: Buffer }[];
+    }
+    const emailCalls = mockPayload.sendEmail.mock.calls as unknown as [SendEmailCall][];
+    const generalMail = emailCalls[0]?.[0];
+    const financeMail = emailCalls[1]?.[0];
+
+    // General mail: sent to lead, contains PDF only, NEVER contains Excel
+    expect(generalMail?.to).toBe('lead@example.ch');
+    expect(generalMail?.subject).toContain('Anmeldestand');
+    expect(generalMail?.attachments.map((a) => a.filename)).toEqual([
+      'anmeldestand-2026-08-31.pdf',
+    ]);
+
+    // Finance mail: sent to finance, contains both PDF and Excel
+    expect(financeMail?.to).toBe('finance@example.ch');
+    expect(financeMail?.subject).toContain('Rechnungsübersicht');
+    expect(financeMail?.attachments.map((a) => a.filename)).toEqual([
+      'anmeldestand-2026-08-31.pdf',
+      'rechnungsuebersicht-2026-08-31.xlsx',
+    ]);
+
     interface UpdateGlobalCall {
       slug: string;
       data: {
@@ -311,5 +340,95 @@ describe('sendWeeklyReport', () => {
     expect(updateCalls[0]?.[0].slug).toBe('bill-settings');
     expect(updateCalls[0]?.[0].data.scheduledReport.lastSentAt).toBe(NOW.toISOString());
     expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends only general email without Excel when finance recipients are not configured', async () => {
+    const mockPayload = createMockPayload({}, '');
+    const mockRelease = jest.fn().mockResolvedValue(true);
+    mockAcquire.mockResolvedValue({
+      acquired: true,
+      lock: { release: mockRelease },
+    });
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(true);
+    expect(mockPayload.sendEmail).toHaveBeenCalledTimes(1);
+    interface SendEmailCall {
+      to: string;
+      attachments: { filename: string }[];
+    }
+    const emailCalls = mockPayload.sendEmail.mock.calls as unknown as [SendEmailCall][];
+    expect(emailCalls[0]?.[0].to).toBe('lead@example.ch');
+    expect(emailCalls[0]?.[0].attachments.map((a) => a.filename)).toEqual([
+      'anmeldestand-2026-08-31.pdf',
+    ]);
+  });
+
+  it('sends only finance email when general recipients are not configured', async () => {
+    const mockPayload = createMockPayload({ recipients: '' }, 'finance@example.ch');
+    const mockRelease = jest.fn().mockResolvedValue(true);
+    mockAcquire.mockResolvedValue({
+      acquired: true,
+      lock: { release: mockRelease },
+    });
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(true);
+    expect(mockPayload.sendEmail).toHaveBeenCalledTimes(1);
+    interface SendEmailCall {
+      to: string;
+      attachments: { filename: string }[];
+    }
+    const emailCalls = mockPayload.sendEmail.mock.calls as unknown as [SendEmailCall][];
+    expect(emailCalls[0]?.[0].to).toBe('finance@example.ch');
+    expect(emailCalls[0]?.[0].attachments.map((a) => a.filename)).toEqual([
+      'anmeldestand-2026-08-31.pdf',
+      'rechnungsuebersicht-2026-08-31.xlsx',
+    ]);
+  });
+
+  it('returns sent false if no recipients are configured at all', async () => {
+    const mockPayload = createMockPayload({ recipients: '' }, '');
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+    });
+
+    expect(result.sent).toBe(false);
+    expect(result.reason).toContain('Keine Empfänger konfiguriert');
+    expect(mockPayload.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('does not send finance email when attachExcel is false', async () => {
+    const mockPayload = createMockPayload({ attachExcel: false });
+    const mockRelease = jest.fn().mockResolvedValue(true);
+    mockAcquire.mockResolvedValue({
+      acquired: true,
+      lock: { release: mockRelease },
+    });
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(true);
+    expect(mockPayload.sendEmail).toHaveBeenCalledTimes(1);
+    interface SendEmailCall {
+      to: string;
+      attachments: { filename: string }[];
+    }
+    const emailCalls = mockPayload.sendEmail.mock.calls as unknown as [SendEmailCall][];
+    expect(emailCalls[0]?.[0].to).toBe('lead@example.ch');
+    expect(emailCalls[0]?.[0].attachments.map((a) => a.filename)).toEqual([
+      'anmeldestand-2026-08-31.pdf',
+    ]);
   });
 });

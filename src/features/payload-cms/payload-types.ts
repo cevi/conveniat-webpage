@@ -8428,6 +8428,8 @@ export interface BillSetting {
      * Same placeholders as the subject.
      */
     body?: string | null;
+    financeSubject?: string | null;
+    financeBody?: string | null;
     /**
      * Written by the scheduler. Also what stops a second send in the same week.
      */
@@ -8928,6 +8930,8 @@ export interface BillSettingsSelect<T extends boolean = true> {
         recipients?: T;
         subject?: T;
         body?: T;
+        financeSubject?: T;
+        financeBody?: T;
         lastSentAt?: T;
       };
   financeEmailRecipients?: T;
