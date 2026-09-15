@@ -165,6 +165,23 @@ export const OutgoingEmails: CollectionConfig = {
       },
     },
     {
+      // A reminder to a Hof's Adressverwalter covers every registration that is missing
+      // something, so one mail links to many participants.
+      name: 'billParticipants',
+      type: 'relationship',
+      relationTo: 'bill-participants',
+      hasMany: true,
+      label: {
+        en: 'Affected registrations',
+        de: 'Betroffene Anmeldungen',
+        fr: 'Inscriptions concernées',
+      },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'type',
       label: {
         en: 'Type',
@@ -208,10 +225,14 @@ export const OutgoingEmails: CollectionConfig = {
             const safeData = (data ?? {}) as Record<string, unknown>;
             const formSubmission = safeData['formSubmission'];
             const billParticipant = safeData['billParticipant'];
+            const billParticipants = safeData['billParticipants'];
             if (formSubmission !== undefined && formSubmission !== null) {
               return 'formSubmission';
             }
             if (billParticipant !== undefined && billParticipant !== null) {
+              return 'billParticipant';
+            }
+            if (Array.isArray(billParticipants) && billParticipants.length > 0) {
               return 'billParticipant';
             }
             return 'other';

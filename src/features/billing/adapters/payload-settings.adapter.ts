@@ -22,7 +22,13 @@ export class PayloadSettingsAdapter implements SettingsPort {
   }
 
   async updateBillSettingsEvents(
-    events: Array<{ eventId: string; eventName: string; groupId: string }>,
+    events: Array<{
+      eventId: string;
+      eventName: string;
+      groupId: string;
+      addressManagerEmails?: string | null;
+      reminderRecipientsOverride?: string | null;
+    }>,
   ): Promise<void> {
     await this.payload.updateGlobal({
       slug: 'bill-settings',

@@ -1,9 +1,13 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { RedisRunLockAdapter } from '@/features/billing/adapters/redis-run-lock.adapter';
+import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import { writeBackAnmeldestatus } from '@/features/billing/services/anmeldestatus-writeback';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
+import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { BILL_PDF_BUCKET_NAME } from '@/lib/s3';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';
@@ -15,6 +19,16 @@ const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
 interface SyncHistoryEntry {
   date: string;
   action: string;
+  /** The value written back to the Cevi.DB. */
+  value?: string;
+  /** Why a step after the send failed, for the operator reading the row. */
+  reviewReason?: string;
+}
+
+/** What `sendBills` lets a test replace. */
+interface SendBillsDependencies {
+  s3Client?: S3Client;
+  hitobitoService?: HitobitoServicePort;
 }
 
 /**
@@ -26,7 +40,7 @@ interface SyncHistoryEntry {
 export async function sendBills(
   payload: Payload,
   participantId?: string,
-  dependencies?: { s3Client?: S3Client },
+  dependencies?: SendBillsDependencies,
   reporter?: JobProgressReporter,
   /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
   runOwner?: string,
@@ -75,7 +89,7 @@ export async function sendBills(
 async function sendBillsLocked(
   payload: Payload,
   participantId: string | undefined,
-  dependencies: { s3Client?: S3Client } | undefined,
+  dependencies: SendBillsDependencies | undefined,
   reporter: JobProgressReporter | undefined,
 ): Promise<SendSummary> {
   const summary: SendSummary = {
@@ -128,6 +142,15 @@ async function sendBillsLocked(
       },
       forcePathStyle: true,
     });
+
+  // 4. The Cevi.DB write-back needs the same browser cookie the sync uses. Built once per
+  // run; when it is missing the bills still go out and every row records why its
+  // Anmeldestatus stayed behind.
+  const hitobitoService = dependencies?.hitobitoService ?? (await createHitobitoService(payload));
+  const writeBackLogger = {
+    warn: (message: string): void => payload.logger.warn(message),
+    debug: (message: string): void => payload.logger.debug(message),
+  };
 
   for (const [index, document_] of participants.docs.entries()) {
     await reporter?.report({
@@ -244,6 +267,10 @@ async function sendBillsLocked(
       const newStatus = isReminderSent ? 'reminder_sent' : 'bill_sent';
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+      const historyAfterSend: SyncHistoryEntry[] = [
+        ...history,
+        { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
+      ];
       await payload.update({
         collection: 'bill-participants',
         context: { internal: true },
@@ -251,14 +278,52 @@ async function sendBillsLocked(
         data: {
           status: newStatus,
           billSentDate: new Date().toISOString(),
-          syncHistory: [
-            ...history,
-            { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
-          ],
+          syncHistory: historyAfterSend,
         },
       });
 
       summary.sentCount++;
+
+      // The bill is out, so the Cevi.DB has to read "Rechnung gestellt". A row that is
+      // already there, or that the Anmeldeverantwortliche has closed as "definitiv", is
+      // left alone — a write-back must never move a registration backwards.
+      const writeBack = await writeBackAnmeldestatus(
+        hitobitoService,
+        {
+          groupId: document_.groupId ?? '',
+          eventId: document_.eventId,
+          participationUuid: document_.participationUuid,
+          fullName,
+          anmeldestatus: document_.anmeldestatus,
+        },
+        new Date().toISOString(),
+        writeBackLogger,
+      );
+
+      if (writeBack.error !== undefined) {
+        summary.errors.push(writeBack.error);
+        // The operator can only fix a missing cookie in one place, so link them to it.
+        if (hitobitoService === undefined) summary.relatedDocuments = ['registrationManagement'];
+      }
+
+      if (
+        writeBack.historyEntries.length > 0 ||
+        writeBack.anmeldestatus !== document_.anmeldestatus
+      ) {
+        await payload.update({
+          collection: 'bill-participants',
+          context: { internal: true },
+          id: document_.id,
+          data: {
+            // Left out entirely when there is nothing to store, so the column keeps
+            // whatever it held.
+            ...(writeBack.anmeldestatus === undefined
+              ? {}
+              : { anmeldestatus: writeBack.anmeldestatus }),
+            syncHistory: [...historyAfterSend, ...writeBack.historyEntries],
+          },
+        });
+      }
     } catch (error) {
       summary.errors.push(
         `Participant ${String(document_.id)} (${String(document_.fullName)}): ${String(error)}`,
@@ -271,4 +336,30 @@ async function sendBillsLocked(
     `Email send complete: ${String(summary.sentCount)} sent, ${String(summary.failedCount)} failed`,
   );
   return summary;
+}
+
+/**
+ * The Cevi.DB client for a send run, or `undefined` when no browser cookie is configured.
+ * Built exactly like the sync builds it.
+ */
+async function createHitobitoService(payload: Payload): Promise<HitobitoServicePort | undefined> {
+  const regManagement = await payload.findGlobal({
+    slug: 'registration-management',
+    context: { internal: true },
+  });
+  const browserCookie = (regManagement.browserCookie ?? '').trim();
+  if (browserCookie === '') return undefined;
+
+  return new HitobitoServiceAdapter(
+    {
+      baseUrl: HITOBITO_CONFIG.baseUrl,
+      apiToken: HITOBITO_CONFIG.apiToken,
+      browserCookie,
+    },
+    {
+      info: (message: string): void => payload.logger.info(message),
+      warn: (message: string): void => payload.logger.warn(message),
+      error: (message: string): void => payload.logger.error(message),
+    },
+  );
 }

@@ -9,6 +9,7 @@ import {
   billingRegenerateSingleHandler,
   billingRemoveParticipantHandler,
   billingSendHandler,
+  billingSendPflichtangabenReminderHandler,
   billingSendSingleHandler,
   billingSyncHandler,
   billingSyncStatusHandler,
@@ -55,6 +56,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/send-single',
     method: 'post',
     handler: billingSendSingleHandler,
+  },
+  {
+    path: '/confidential/billing/send-pflichtangaben-reminder',
+    method: 'post',
+    handler: billingSendPflichtangabenReminderHandler,
   },
   {
     path: '/confidential/billing/export-csv',

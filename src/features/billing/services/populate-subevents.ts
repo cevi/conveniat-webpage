@@ -60,49 +60,76 @@ export async function populateSubeventsUseCase(
     foundEvents: [],
   });
 
+  /**
+   * Runs `attempt` until it succeeds or the retries are used up. Cevi.DB answers 503 and
+   * 429 under load, so a single failed call says nothing about the group.
+   *
+   * @returns the value, or `undefined` once the attempts are exhausted or the failure was
+   * not transient. The caller decides what an unknown answer means.
+   */
+  const withRetry = async <T>(what: string, attempt: () => Promise<T>): Promise<T | undefined> => {
+    let attempts = 0;
+    while (attempts < MAX_ATTEMPTS) {
+      try {
+        return await attempt();
+      } catch (error: unknown) {
+        attempts++;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isTransient =
+          errorMessage.includes('503') ||
+          errorMessage.includes('429') ||
+          errorMessage.toLowerCase().includes('timeout');
+
+        if (attempts >= MAX_ATTEMPTS || !isTransient) {
+          logger.warn(`Failed to fetch ${what}: ${errorMessage}`);
+          return undefined;
+        }
+
+        const backoffMs = attempts * 500;
+        logger.info(
+          `Rate limited/Error 503 for ${what}. Retrying (attempt ${attempts}/${MAX_ATTEMPTS}) in ${backoffMs}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+    return undefined;
+  };
+
   const executeBatch = async (ids: string[]): Promise<PopulatedSubevent[]> => {
     const batchResults: PopulatedSubevent[] = [];
 
     await Promise.all(
       ids.map(async (groupId) => {
-        let attempts = 0;
-        while (attempts < MAX_ATTEMPTS) {
-          try {
-            const events = await hitobitoService.fetchEventsForGroup(groupId);
-            for (const event of events) {
-              const name = event.name;
-              if (
-                !isAufbauOrAbbaulager(name) &&
-                typeof name === 'string' &&
-                (name.includes('Hauptlager conveniat27') || name.includes('conveniat27'))
-              ) {
-                batchResults.push({
-                  eventId: event.id,
-                  eventName: name,
-                  groupId: groupId,
-                });
-              }
-            }
-            break;
-          } catch (error: unknown) {
-            attempts++;
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            const isTransient =
-              errorMessage.includes('503') ||
-              errorMessage.includes('429') ||
-              errorMessage.toLowerCase().includes('timeout');
+        const events = await withRetry(`events for group ${groupId}`, () =>
+          hitobitoService.fetchEventsForGroup(groupId),
+        );
+        if (events === undefined) return;
 
-            if (attempts >= MAX_ATTEMPTS || !isTransient) {
-              logger.warn(`Failed to fetch events for group ${groupId}: ${errorMessage}`);
-              break;
-            }
+        const matching = events.filter(
+          (event) =>
+            !isAufbauOrAbbaulager(event.name) &&
+            typeof event.name === 'string' &&
+            (event.name.includes('Hauptlager conveniat27') || event.name.includes('conveniat27')),
+        );
+        if (matching.length === 0) return;
 
-            const backoffMs = attempts * 500;
-            logger.info(
-              `Rate limited/Error 503 for group ${groupId}. Retrying (attempt ${attempts}/${MAX_ATTEMPTS}) in ${backoffMs}ms...`,
-            );
-            await new Promise((resolve) => setTimeout(resolve, backoffMs));
-          }
+        // Once per group, not once per event: a Hof usually runs several events and the
+        // Adressverwalter are a property of its group.
+        const addressManagers = await withRetry(`address managers for group ${groupId}`, () =>
+          hitobitoService.fetchAddressManagerEmails(groupId),
+        );
+
+        for (const event of matching) {
+          batchResults.push({
+            eventId: event.id,
+            eventName: event.name,
+            groupId: groupId,
+            // Left undefined when the fetch failed, which is what keeps the merge below
+            // from replacing a good stored list with an empty one.
+            ...(addressManagers === undefined
+              ? {}
+              : { addressManagerEmails: addressManagers.join(', ') }),
+          });
         }
       }),
     );
@@ -134,14 +161,24 @@ export async function populateSubeventsUseCase(
     (event) => !isAufbauOrAbbaulager(event.eventName),
   );
 
-  // Merge new results into filteredExistingEvents, using eventId as the key
+  // Merge new results into filteredExistingEvents, using eventId as the key. A known event
+  // keeps its row — most of all its `reminderRecipientsOverride`, which an editor set by
+  // hand and which a sync must never wipe — and only has its synced Adressverwalter
+  // refreshed.
   const mergedEvents = [...filteredExistingEvents];
   const newEvents: PopulatedSubevent[] = [];
   for (const newEvent of results) {
-    const exists = mergedEvents.some((existingEvent) => existingEvent.eventId === newEvent.eventId);
-    if (!exists) {
+    const existingIndex = mergedEvents.findIndex(
+      (existingEvent) => existingEvent.eventId === newEvent.eventId,
+    );
+    if (existingIndex === -1) {
       mergedEvents.push(newEvent);
       newEvents.push(newEvent);
+    } else if (newEvent.addressManagerEmails !== undefined) {
+      mergedEvents[existingIndex] = {
+        ...mergedEvents[existingIndex],
+        addressManagerEmails: newEvent.addressManagerEmails,
+      } as (typeof mergedEvents)[number];
     }
   }
 
@@ -160,10 +197,18 @@ export async function populateSubeventsUseCase(
     count: newEvents.length,
     newEvents,
     // Stripped of the Payload row `id`, which the settings form re-creates anyway.
-    allEvents: mergedEvents.map(({ eventId, eventName, groupId }) => ({
-      eventId,
-      eventName,
-      groupId,
-    })),
+    allEvents: mergedEvents.map(
+      ({ eventId, eventName, groupId, addressManagerEmails, reminderRecipientsOverride }) => ({
+        eventId,
+        eventName,
+        groupId,
+        ...(addressManagerEmails === undefined || addressManagerEmails === null
+          ? {}
+          : { addressManagerEmails }),
+        ...(reminderRecipientsOverride === undefined || reminderRecipientsOverride === null
+          ? {}
+          : { reminderRecipientsOverride }),
+      }),
+    ),
   };
 }
