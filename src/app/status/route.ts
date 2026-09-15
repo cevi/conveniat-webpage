@@ -1,3 +1,7 @@
+import { createLogger } from '@/utils/server-logger';
+
+const logger = createLogger('status');
+
 /**
  * Handles GET requests to the /api/health endpoint.
  * @returns {Response} A response object.
@@ -15,7 +19,7 @@ export function GET(): Response {
       },
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed', { error });
     const errorPayload = {
       status: 'error',
       message: 'The service is experiencing issues.',
