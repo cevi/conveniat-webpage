@@ -28,6 +28,16 @@ jest.mock('sonner', () => ({
 
 const mockPush = jest.fn();
 const mockNotification = jest.fn();
+const mockCapture = jest.fn();
+
+jest.mock('posthog-js', () => ({
+  __esModule: true,
+  default: {
+    capture: (...args: unknown[]): void => {
+      mockCapture(...args);
+    },
+  },
+}));
 
 beforeAll(() => {
   // @ts-expect-error Mocking global Notification constructor
@@ -82,6 +92,24 @@ const dispatchToken = async (token: string): Promise<void> => {
         detail: { type: 'native-push-token', payload: { token, platform: 'android' } },
       }),
     );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
+
+const dispatchStatus = async (payload: Record<string, unknown>): Promise<void> => {
+  await act(async () => {
+    globalThis.dispatchEvent(
+      new CustomEvent('app-webview-native-push-event', {
+        detail: { type: 'native-push-status', payload },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
+
+const goOnline = async (): Promise<void> => {
+  await act(async () => {
+    globalThis.dispatchEvent(new Event('online'));
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 };
@@ -605,6 +633,113 @@ describe('useNativePush', () => {
       });
 
       expect(reloadPage).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * The shell emits `native-push-token` on launch and on permission changes only. A
+   * registration that failed on a dead connection therefore stayed failed until the
+   * user killed the app: during the konekta weekend a third of chat recipients had no
+   * subscription, and 52 devices reported nothing but network errors. The status
+   * report the app requests on every resume, and the browser coming back online, are
+   * the moments to try again.
+   */
+  describe('re-registration after a failed attempt', () => {
+    const mockRegisterDevice = jest.fn();
+
+    beforeEach(() => {
+      mockRegisterDevice.mockReset();
+      mockCapture.mockClear();
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const trpcMock = jest.requireMock('@/trpc/client');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
+        mutateAsync: mockRegisterDevice,
+      });
+    });
+
+    it('retries the token from the status report once the first attempt failed', async () => {
+      mockRegisterDevice
+        .mockRejectedValueOnce(new Error('Failed to fetch'))
+        .mockResolvedValue({ success: true });
+      const { result } = renderHook(() => useNativePush());
+
+      await dispatchToken('token-flaky');
+      expect(result.current.isRegisteredOnBackend).toBe(false);
+
+      await dispatchStatus({ status: 'authorized', token: 'token-flaky', platform: 'android' });
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+      expect(result.current.isRegisteredOnBackend).toBe(true);
+    });
+
+    it('retries the remembered token when the status report only says a token exists', async () => {
+      mockRegisterDevice
+        .mockRejectedValueOnce(new Error('Load failed'))
+        .mockResolvedValue({ success: true });
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-remembered');
+      await dispatchStatus({ status: 'granted', hasToken: true });
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+      expect(mockRegisterDevice).toHaveBeenLastCalledWith(
+        expect.objectContaining({ token: 'token-remembered', platform: 'android' }),
+      );
+    });
+
+    it('retries when the connection comes back', async () => {
+      mockRegisterDevice
+        .mockRejectedValueOnce(new Error('Failed to fetch'))
+        .mockResolvedValue({ success: true });
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-offline');
+      await goOnline();
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not register again on resume once the token is registered', async () => {
+      mockRegisterDevice.mockResolvedValue({ success: true });
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-fine');
+      await dispatchStatus({ status: 'authorized', token: 'token-fine', platform: 'android' });
+      await goOnline();
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(1);
+    });
+
+    it('does nothing on resume when the bridge never handed over a token', async () => {
+      renderHook(() => useNativePush());
+
+      await dispatchStatus({ status: 'authorized', hasToken: true });
+      await goOnline();
+
+      expect(mockRegisterDevice).not.toHaveBeenCalled();
+    });
+
+    it('reports a successful registration and a network failure, but not a missing session', async () => {
+      mockRegisterDevice
+        .mockRejectedValueOnce(new Error('User not authenticated. User: undefined'))
+        .mockRejectedValueOnce(new Error('Failed to fetch'))
+        .mockResolvedValue({ success: true });
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-telemetry');
+      await goOnline();
+      await goOnline();
+
+      expect(mockCapture.mock.calls).toEqual([
+        [
+          'native_push_register_error',
+          { error: 'Failed to fetch', errorName: 'Error', platform: 'android' },
+        ],
+        ['native_push_register_success', { platform: 'android' }],
+      ]);
     });
   });
 });

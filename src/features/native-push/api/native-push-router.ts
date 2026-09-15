@@ -1,9 +1,12 @@
 import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
+
+const logger = createLogger('native-push');
 
 export const nativePushRouter = createTRPCRouter({
   registerDevice: trpcBaseProcedure
@@ -15,21 +18,15 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log('[NativePush:API] registerDevice: platform =', input.platform);
+      logger.debug('registerDevice called', { 'push.platform': input.platform });
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
-        console.warn('[NativePush:API] registerDevice: user not found');
+        logger.warn('registerDevice: user not found', { 'push.platform': input.platform });
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
-
-      console.log(
-        '[NativePush:API] registerDevice: user =',
-        payloadUser.id,
-        '| deduplicating existing token/device',
-      );
 
       /**
        * Stores the subscription for this device and reports whether it was newly
@@ -116,12 +113,6 @@ export const nativePushRouter = createTRPCRouter({
 
       try {
         isNewSubscription = await persistSubscription();
-        console.log(
-          '[NativePush:API] registerDevice: success — token registered for user',
-          payloadUser.id,
-          'isNew =',
-          isNewSubscription,
-        );
       } catch (firstAttemptError: unknown) {
         const firstMessage =
           firstAttemptError instanceof Error
@@ -134,10 +125,10 @@ export const nativePushRouter = createTRPCRouter({
         // exists, so this attempt claims it instead of creating a second one.
         try {
           isNewSubscription = await persistSubscription();
-          console.warn(
-            '[NativePush:API] registerDevice: first write attempt lost a race, retry stored it:',
-            firstMessage,
-          );
+          logger.warn('registerDevice: first write attempt lost a race, retry stored it', {
+            'user.id': payloadUser.id,
+            'error.message': firstMessage,
+          });
         } catch (error: unknown) {
           const message = error instanceof Error ? error.message : String(error);
 
@@ -162,29 +153,39 @@ export const nativePushRouter = createTRPCRouter({
             });
             isPersisted = persisted.totalDocs > 0;
           } catch (verificationError: unknown) {
-            console.error(
-              '[NativePush:API] registerDevice: could not verify subscription after write failure:',
-              verificationError,
-            );
+            logger.error('registerDevice: could not verify subscription after write failure', {
+              'user.id': payloadUser.id,
+              error: verificationError,
+            });
           }
 
           if (!isPersisted) {
-            console.error(
-              '[NativePush:API] registerDevice: failed to store subscription:',
-              message,
-            );
+            logger.error('registerDevice: failed to store subscription', {
+              'user.id': payloadUser.id,
+              'push.platform': input.platform,
+              'error.message': message,
+            });
             throw new TRPCError({
               code: 'INTERNAL_SERVER_ERROR',
               message: 'Failed to store push subscription',
             });
           }
 
-          console.warn(
-            '[NativePush:API] registerDevice: write lost a race but the subscription exists:',
-            message,
-          );
+          logger.warn('registerDevice: write lost a race but the subscription exists', {
+            'user.id': payloadUser.id,
+            'error.message': message,
+          });
         }
       }
+
+      // The one line per registration that says push coverage is growing. Info, not
+      // debug: how many devices register during an event is the number to read back
+      // from Loki when a chat reaches fewer people than it should.
+      logger.info('registerDevice: subscription stored', {
+        'user.id': payloadUser.id,
+        'push.platform': input.platform,
+        'push.new_subscription': isNewSubscription,
+      });
 
       // Send welcome confirmation push notification ONLY when creating a brand new subscription
       if (isNewSubscription) {
@@ -206,15 +207,15 @@ export const nativePushRouter = createTRPCRouter({
               url: '/app/settings',
             },
           });
-          console.log(
-            '[NativePush:API] registerDevice: welcome notification sent, result =',
-            result,
-          );
+          logger.debug('registerDevice: welcome notification sent', {
+            'user.id': payloadUser.id,
+            'push.success': result.success,
+          });
         } catch (pushError) {
-          console.warn(
-            '[NativePush:API] registerDevice: failed to send welcome notification:',
-            pushError,
-          );
+          logger.warn('registerDevice: failed to send welcome notification', {
+            'user.id': payloadUser.id,
+            error: pushError,
+          });
         }
       }
 
@@ -229,13 +230,13 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      console.log('[NativePush:API] unregisterDevice: platform =', input.platform);
+      logger.debug('unregisterDevice called', { 'push.platform': input.platform });
 
       const payload = await getPayload({ config });
       const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
 
       if (!payloadUser) {
-        console.warn('[NativePush:API] unregisterDevice: user not found');
+        logger.warn('unregisterDevice: user not found', { 'push.platform': input.platform });
         throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
       }
 
@@ -250,12 +251,11 @@ export const nativePushRouter = createTRPCRouter({
         },
       });
 
-      console.log(
-        '[NativePush:API] unregisterDevice: removed',
-        deleted.docs.length,
-        'record(s) for user',
-        payloadUser.id,
-      );
+      logger.info('unregisterDevice: subscription removed', {
+        'user.id': payloadUser.id,
+        'push.platform': input.platform,
+        'push.removed': deleted.docs.length,
+      });
       return { success: true };
     }),
 
