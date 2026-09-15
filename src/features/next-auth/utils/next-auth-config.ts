@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
+import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
 import type { User } from '@/features/payload-cms/payload-types';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
@@ -488,6 +489,7 @@ export const authOptions: NextAuthConfig = {
     },
   ],
   debug: false,
+  logger: createAuthJsLogger(logger),
   session: {
     strategy: 'jwt',
   },
