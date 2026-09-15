@@ -50,6 +50,7 @@ import { fileURLToPath } from 'node:url';
 
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
 import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
   setQueriedJobSlugs,
@@ -361,7 +362,8 @@ const jobsConfig: JobsConfig = {
       fields,
     };
   },
-  tasks: [
+  // Every task runs inside a span and reports its duration; see `instrumentTasks`.
+  tasks: instrumentTasks([
     resolveUserStep,
     createUserStep,
     blockJobStep,
@@ -382,7 +384,7 @@ const jobsConfig: JobsConfig = {
     sendPflichtangabenRemindersTask,
     cleanupTemporaryFormFilesTask,
     autoCheckoutPresenceTask,
-  ],
+  ]),
   workflows: [registrationWorkflow, brevoContactWorkflow],
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
     ? [
