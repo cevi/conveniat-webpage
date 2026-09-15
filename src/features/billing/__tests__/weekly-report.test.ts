@@ -245,7 +245,7 @@ describe('sendWeeklyReport', () => {
     const result = await sendWeeklyReport(mockPayload as unknown as Payload, { now: NOW });
 
     expect(result.sent).toBe(false);
-    expect(result.reason).toContain('deaktiviert');
+    expect(result.reason).toContain('disabled');
     expect(mockPayload.sendEmail).not.toHaveBeenCalled();
     expect(mockAcquire).not.toHaveBeenCalled();
   });
@@ -263,7 +263,7 @@ describe('sendWeeklyReport', () => {
     });
 
     expect(result.sent).toBe(false);
-    expect(result.reason).toContain('anderen Worker');
+    expect(result.reason).toContain('another worker');
     expect(mockPayload.sendEmail).not.toHaveBeenCalled();
   });
 
@@ -280,7 +280,7 @@ describe('sendWeeklyReport', () => {
     });
 
     expect(result.sent).toBe(false);
-    expect(result.reason).toContain('läuft bereits');
+    expect(result.reason).toContain('already running');
     expect(mockPayload.sendEmail).not.toHaveBeenCalled();
   });
 
@@ -294,7 +294,7 @@ describe('sendWeeklyReport', () => {
     });
 
     expect(result.sent).toBe(false);
-    expect(result.reason).toContain('Redis-Sperre');
+    expect(result.reason).toContain('Redis run lock');
     expect(mockPayload.sendEmail).not.toHaveBeenCalled();
     expect(mockPayload.logger.error).toHaveBeenCalled();
   });

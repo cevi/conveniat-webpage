@@ -56,15 +56,15 @@ export function isReportDue(
   config: ScheduledReportConfig | null | undefined,
   now: Date,
 ): { due: boolean; reason?: string | undefined } {
-  if (config?.enabled !== true) return { due: false, reason: 'Wochenbericht ist deaktiviert.' };
+  if (config?.enabled !== true) return { due: false, reason: 'Weekly report is disabled.' };
 
   const weekday = Number.parseInt(config.weekday ?? '1', 10);
   const hour = typeof config.hour === 'number' ? Math.trunc(config.hour) : 7;
 
   if (Number.isFinite(weekday) && now.getDay() !== weekday)
-    return { due: false, reason: 'Heute ist nicht der konfigurierte Wochentag.' };
+    return { due: false, reason: 'Today is not the configured weekday.' };
   if (now.getHours() !== hour)
-    return { due: false, reason: 'Jetzt ist nicht die konfigurierte Stunde.' };
+    return { due: false, reason: 'Current hour is not the configured hour.' };
 
   const lastSentAt = config.lastSentAt;
   if (typeof lastSentAt === 'string' && lastSentAt !== '') {
@@ -73,8 +73,7 @@ export function isReportDue(
       const daysSince = (now.getTime() - last.getTime()) / 86_400_000;
       // Six rather than seven: a report sent an hour late last week must not push this
       // week's out of its window.
-      if (daysSince < 6)
-        return { due: false, reason: 'In dieser Woche wurde bereits ein Bericht versendet.' };
+      if (daysSince < 6) return { due: false, reason: 'A report has already been sent this week.' };
     }
   }
 
@@ -122,7 +121,7 @@ export async function sendWeeklyReport(
   }
 
   const recipients = parseRecipients(config?.recipients, settings.financeEmailRecipients);
-  if (recipients.length === 0) return { sent: false, reason: 'Keine Empfänger konfiguriert.' };
+  if (recipients.length === 0) return { sent: false, reason: 'No recipients configured.' };
 
   // Acquire run lock across replicas
   const { RedisRunLockAdapter } =
@@ -148,7 +147,7 @@ export async function sendWeeklyReport(
         );
         return {
           sent: false,
-          reason: 'Wöchentlicher Bericht läuft bereits auf einem anderen Worker.',
+          reason: 'Weekly report is already running on another worker.',
         };
       }
 
@@ -157,7 +156,7 @@ export async function sendWeeklyReport(
       );
       return {
         sent: false,
-        reason: `Wöchentlicher Bericht läuft bereits (gehalten von ${lockResult.heldBy ?? 'unbekannt'}).`,
+        reason: `Weekly report is already running (held by ${lockResult.heldBy ?? 'unknown'}).`,
       };
     }
     lockRelease = lockResult.lock.release;
@@ -168,7 +167,7 @@ export async function sendWeeklyReport(
     });
     return {
       sent: false,
-      reason: 'Redis-Sperre für den wöchentlichen Bericht konnte nicht gesetzt werden.',
+      reason: 'Failed to acquire Redis run lock for weekly report.',
     };
   }
 
