@@ -1,7 +1,10 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { createLogger } from '@/utils/server-logger';
 import { revalidateTag } from 'next/cache';
+
+const logger = createLogger('api:flush-cache');
 
 /**
  * Flushes all cached data from Next.js flush-cache.
@@ -28,7 +31,7 @@ const GET = async (): Promise<Response> => {
   try {
     revalidateTag('payload', 'max');
   } catch (error) {
-    console.log(error);
+    logger.error('Failed to flush the cache', { error });
     return new Response('Failed to flush flush-cache', { status: 500 });
   }
 
