@@ -38,6 +38,18 @@ export interface WeeklyReportSendSummary {
   attachments?: string[] | undefined;
 }
 
+export interface SendWeeklyReportOptions {
+  /** Skips the schedule check so an operator can trigger a test send. */
+  force?: boolean | undefined;
+  /**
+   * Identifies the run across workers. Passed to the run lock so duplicate worker
+   * executions of the same job can be recognised and silently skipped.
+   */
+  runOwner?: string | undefined;
+  /** Overrides current timestamp (useful for testing or simulation). */
+  now?: Date | undefined;
+}
+
 /**
  * The tasks run hourly; this decides whether *this* hour is the configured one.
  *
@@ -53,15 +65,15 @@ export function isWeeklySlotDue(
   config: WeeklySlotConfig | null | undefined,
   now: Date,
 ): { due: boolean; reason?: string | undefined } {
-  if (config?.enabled !== true) return { due: false, reason: 'Der Versand ist deaktiviert.' };
+  if (config?.enabled !== true) return { due: false, reason: 'Sending is disabled.' };
 
   const weekday = Number.parseInt(config.weekday ?? '1', 10);
   const hour = typeof config.hour === 'number' ? Math.trunc(config.hour) : 7;
 
   if (Number.isFinite(weekday) && now.getDay() !== weekday)
-    return { due: false, reason: 'Heute ist nicht der konfigurierte Wochentag.' };
+    return { due: false, reason: 'Today is not the configured weekday.' };
   if (now.getHours() !== hour)
-    return { due: false, reason: 'Jetzt ist nicht die konfigurierte Stunde.' };
+    return { due: false, reason: 'Current hour is not the configured hour.' };
 
   const lastSentAt = config.lastSentAt;
   if (typeof lastSentAt === 'string' && lastSentAt !== '') {
@@ -70,7 +82,7 @@ export function isWeeklySlotDue(
       const daysSince = (now.getTime() - last.getTime()) / 86_400_000;
       // Six rather than seven: a report sent an hour late last week must not push this
       // week's out of its window.
-      if (daysSince < 6) return { due: false, reason: 'In dieser Woche wurde bereits versendet.' };
+      if (daysSince < 6) return { due: false, reason: 'Already sent this week.' };
     }
   }
 
@@ -109,16 +121,16 @@ export function applyReportPlaceholders(template: string, report: WeeklyReport):
 /**
  * Builds the weekly report and emails it.
  *
- * `force` skips the schedule check so an operator can trigger a send to check the wording
- * without waiting for the configured weekday.
+ * Uses a Redis run lock (`BillingTaskSlug.SendWeeklyReport`) to guarantee that only one
+ * worker across all replicas can build and send the report simultaneously.
  */
 export async function sendWeeklyReport(
   payload: Payload,
-  options: { force?: boolean } = {},
+  options: SendWeeklyReportOptions = {},
 ): Promise<WeeklyReportSendSummary> {
   const settings = await payload.findGlobal({ slug: 'bill-settings', context: { internal: true } });
   const config = (settings as { scheduledReport?: ScheduledReportConfig }).scheduledReport;
-  const now = new Date();
+  const now = options.now ?? new Date();
 
   if (options.force !== true) {
     const due = isReportDue(config, now);
@@ -126,67 +138,126 @@ export async function sendWeeklyReport(
   }
 
   const recipients = parseRecipients(config?.recipients, settings.financeEmailRecipients);
-  if (recipients.length === 0) return { sent: false, reason: 'Keine Empfänger konfiguriert.' };
+  if (recipients.length === 0) return { sent: false, reason: 'No recipients configured.' };
 
-  const participants = await payload.find({
-    collection: 'bill-participants',
-    where: {},
-    limit: 10_000,
-    context: { internal: true },
-  });
+  // Acquire run lock across replicas
+  const { RedisRunLockAdapter } =
+    await import('@/features/billing/adapters/redis-run-lock.adapter');
+  const { classifyLockConflict } = await import('@/features/billing/ports/run-lock.port');
+  const { BillingTaskSlug } = await import('@/features/billing/types');
+  const { randomUUID } = await import('node:crypto');
 
-  const report = buildWeeklyReport(participants.docs, now);
-  const stamp = now.toISOString().slice(0, 10);
-  const attachments: { filename: string; content: Buffer }[] = [];
+  const owner = options.runOwner ?? `request:${randomUUID()}`;
+  let lockRelease: () => Promise<void>;
 
-  if (config?.attachPdf !== false) {
-    attachments.push({
-      filename: `anmeldestand-${stamp}.pdf`,
-      content: await renderWeeklyReportPdf(report),
-    });
-  }
-
-  if (config?.attachExcel !== false) {
-    // The same workbook the toolbar's manual export produces, so the weekly mail and the
-    // download can never drift apart.
-    const billed = participants.docs.filter((participant) =>
-      (ACCOUNTED_STATUSES as readonly string[]).includes(participant.status),
+  try {
+    const lockResult = await new RedisRunLockAdapter().acquire(
+      BillingTaskSlug.SendWeeklyReport,
+      15 * 60, // 15 minutes TTL
+      owner,
     );
-    const rows = buildFinanceOverviewRows(billed, settings);
-    attachments.push({
-      filename: `rechnungsuebersicht-${stamp}.xlsx`,
-      content: await buildFinanceOverviewWorkbook(rows, settings.currency ?? 'CHF'),
+
+    if (!lockResult.acquired) {
+      if (classifyLockConflict(lockResult.heldBy, owner) === 'duplicate-worker') {
+        payload.logger.info(
+          `Weekly report for job ${owner} is already running on another worker; skipping duplicate execution.`,
+        );
+        return {
+          sent: false,
+          reason: 'Weekly report is already running on another worker.',
+        };
+      }
+
+      payload.logger.warn(
+        `Refused to start weekly report for ${owner}: run ${lockResult.heldBy ?? 'unknown'} holds the lock.`,
+      );
+      return {
+        sent: false,
+        reason: `Weekly report is already running (held by ${lockResult.heldBy ?? 'unknown'}).`,
+      };
+    }
+    lockRelease = lockResult.lock.release;
+  } catch (error) {
+    payload.logger.error({
+      err: error instanceof Error ? error : new Error(String(error)),
+      msg: 'Failed to acquire Redis run lock for weekly report. Skipping execution.',
     });
+    return {
+      sent: false,
+      reason: 'Failed to acquire Redis run lock for weekly report.',
+    };
   }
 
-  const subject = applyReportPlaceholders(
-    config?.subject ?? 'conveniat27 – Anmeldestand vom {{date}}',
-    report,
-  );
-  const text = applyReportPlaceholders(config?.body ?? '', report);
+  try {
+    const participants = await payload.find({
+      collection: 'bill-participants',
+      where: {},
+      limit: 10_000,
+      context: { internal: true },
+    });
 
-  await payload.sendEmail({
-    to: recipients.join(', '),
-    subject,
-    text,
-    attachments,
-  });
+    const report = buildWeeklyReport(participants.docs, now);
+    const stamp = now.toISOString().slice(0, 10);
+    const attachments: { filename: string; content: Buffer }[] = [];
 
-  await payload.updateGlobal({
-    slug: 'bill-settings',
-    context: { internal: true },
-    data: {
-      scheduledReport: { ...config, lastSentAt: now.toISOString() },
-    } as never,
-  });
+    if (config?.attachPdf !== false) {
+      attachments.push({
+        filename: `anmeldestand-${stamp}.pdf`,
+        content: await renderWeeklyReportPdf(report),
+      });
+    }
 
-  payload.logger.info(
-    `Weekly billing report sent to ${String(recipients.length)} recipient(s) with ${String(attachments.length)} attachment(s).`,
-  );
+    if (config?.attachExcel !== false) {
+      // The same workbook the toolbar's manual export produces, so the weekly mail and the
+      // download can never drift apart.
+      const billed = participants.docs.filter((participant) =>
+        (ACCOUNTED_STATUSES as readonly string[]).includes(participant.status),
+      );
+      const rows = buildFinanceOverviewRows(billed, settings);
+      attachments.push({
+        filename: `rechnungsuebersicht-${stamp}.xlsx`,
+        content: await buildFinanceOverviewWorkbook(rows, settings.currency ?? 'CHF'),
+      });
+    }
 
-  return {
-    sent: true,
-    recipients,
-    attachments: attachments.map((attachment) => attachment.filename),
-  };
+    const subject = applyReportPlaceholders(
+      config?.subject ?? 'conveniat27 – Anmeldestand vom {{date}}',
+      report,
+    );
+    const text = applyReportPlaceholders(config?.body ?? '', report);
+
+    await payload.sendEmail({
+      to: recipients.join(', '),
+      subject,
+      text,
+      attachments,
+    });
+
+    await payload.updateGlobal({
+      slug: 'bill-settings',
+      context: { internal: true },
+      data: {
+        scheduledReport: { ...config, lastSentAt: now.toISOString() },
+      } as never,
+    });
+
+    payload.logger.info(
+      `Weekly billing report sent to ${String(recipients.length)} recipient(s) with ${String(attachments.length)} attachment(s).`,
+    );
+
+    return {
+      sent: true,
+      recipients,
+      attachments: attachments.map((attachment) => attachment.filename),
+    };
+  } finally {
+    try {
+      await lockRelease();
+    } catch (error) {
+      payload.logger.error({
+        err: error instanceof Error ? error : new Error(String(error)),
+        msg: 'Failed to release Redis run lock for weekly report.',
+      });
+    }
+  }
 }

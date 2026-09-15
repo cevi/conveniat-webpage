@@ -2,9 +2,27 @@ import {
   applyReportPlaceholders,
   isReportDue,
   parseRecipients,
+  sendWeeklyReport,
 } from '@/features/billing/services/send-weekly-report';
 import { buildWeeklyReport, shortenEventName } from '@/features/billing/services/weekly-report';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
+import type { Payload } from 'payload';
+
+const mockAcquire = jest.fn();
+jest.mock('@/features/billing/adapters/redis-run-lock.adapter', () => ({
+  RedisRunLockAdapter: jest.fn().mockImplementation(() => ({
+    acquire: mockAcquire,
+  })),
+}));
+
+jest.mock('@/features/billing/services/render-weekly-report', () => ({
+  renderWeeklyReportPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+}));
+
+jest.mock('@/features/billing/services/finance-overview-export', () => ({
+  buildFinanceOverviewRows: jest.fn().mockReturnValue([]),
+  buildFinanceOverviewWorkbook: jest.fn().mockResolvedValue(Buffer.from('xlsx')),
+}));
 
 const NOW = new Date('2026-08-31T09:00:00');
 
@@ -20,6 +38,39 @@ const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
     lastSyncDate: NOW.toISOString(),
     ...overrides,
   }) as unknown as BillParticipant;
+
+function createMockPayload(configOverrides: Record<string, unknown> = {}): {
+  findGlobal: jest.Mock;
+  find: jest.Mock;
+  sendEmail: jest.Mock;
+  updateGlobal: jest.Mock;
+  logger: {
+    info: jest.Mock;
+    warn: jest.Mock;
+    error: jest.Mock;
+  };
+} {
+  return {
+    findGlobal: jest.fn().mockResolvedValue({
+      scheduledReport: {
+        enabled: true,
+        weekday: '1',
+        hour: 9,
+        recipients: 'lead@example.ch',
+        ...configOverrides,
+      },
+      financeEmailRecipients: 'finance@example.ch',
+    }),
+    find: jest.fn().mockResolvedValue({ docs: [] }),
+    sendEmail: jest.fn().mockResolvedValue({}),
+    updateGlobal: jest.fn().mockResolvedValue({}),
+    logger: {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    },
+  };
+}
 
 describe('shortenEventName', () => {
   it('drops the prefix every event shares', () => {
@@ -181,5 +232,99 @@ describe('applyReportPlaceholders', () => {
       NOW,
     );
     expect(applyReportPlaceholders('{{total}} / {{blocked}}', report)).toBe('2 / 1');
+  });
+});
+
+describe('sendWeeklyReport', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('skips when report is not due', async () => {
+    const mockPayload = createMockPayload({ enabled: false });
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, { now: NOW });
+
+    expect(result.sent).toBe(false);
+    expect(result.reason).toContain('disabled');
+    expect(mockPayload.sendEmail).not.toHaveBeenCalled();
+    expect(mockAcquire).not.toHaveBeenCalled();
+  });
+
+  it('skips duplicate execution when run lock is held by another worker on same job', async () => {
+    const mockPayload = createMockPayload();
+    mockAcquire.mockResolvedValue({
+      acquired: false,
+      heldBy: 'job:123',
+    });
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(false);
+    expect(result.reason).toContain('another worker');
+    expect(mockPayload.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('skips execution when run lock is held by another run', async () => {
+    const mockPayload = createMockPayload();
+    mockAcquire.mockResolvedValue({
+      acquired: false,
+      heldBy: 'job:other',
+    });
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:current',
+    });
+
+    expect(result.sent).toBe(false);
+    expect(result.reason).toContain('already running');
+    expect(mockPayload.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it('skips execution and does not send email when acquiring run lock throws', async () => {
+    const mockPayload = createMockPayload();
+    mockAcquire.mockRejectedValue(new Error('Redis connection lost'));
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(false);
+    expect(result.reason).toContain('Redis run lock');
+    expect(mockPayload.sendEmail).not.toHaveBeenCalled();
+    expect(mockPayload.logger.error).toHaveBeenCalled();
+  });
+
+  it('sends email and releases run lock when acquired', async () => {
+    const mockPayload = createMockPayload();
+    const mockRelease = jest.fn().mockResolvedValue(true);
+    mockAcquire.mockResolvedValue({
+      acquired: true,
+      lock: { release: mockRelease },
+    });
+
+    const result = await sendWeeklyReport(mockPayload as unknown as Payload, {
+      now: NOW,
+      runOwner: 'job:123',
+    });
+
+    expect(result.sent).toBe(true);
+    expect(mockPayload.sendEmail).toHaveBeenCalledTimes(1);
+    interface UpdateGlobalCall {
+      slug: string;
+      data: {
+        scheduledReport: {
+          lastSentAt: string;
+        };
+      };
+    }
+    const updateCalls = mockPayload.updateGlobal.mock.calls as unknown as [UpdateGlobalCall][];
+    expect(updateCalls[0]?.[0].slug).toBe('bill-settings');
+    expect(updateCalls[0]?.[0].data.scheduledReport.lastSentAt).toBe(NOW.toISOString());
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 });
