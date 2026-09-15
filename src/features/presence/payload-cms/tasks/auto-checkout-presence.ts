@@ -40,7 +40,11 @@ export const autoCheckoutPresenceTask: TaskConfig<{
         beforeSchedule: async ({
           queueable,
           req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        }): Promise<{
+          shouldSchedule: boolean;
+          input: Record<string, never>;
+          waitUntil?: Date;
+        }> => {
           await cleanupCompletedScheduledJobs(req, 'autoCheckoutPresence');
           await cleanupStaleScheduledJobs(req, 'autoCheckoutPresence', 30);
 
@@ -51,9 +55,17 @@ export const autoCheckoutPresenceTask: TaskConfig<{
             onlyScheduled: true,
           });
 
+          /**
+           * The cron expression does not hold the job back by itself: the scheduler asks this
+           * hook on every runner tick and the queued job is picked up as soon as it exists.
+           * `queueable.waitUntil` is the next slot of the cron above, and passing it on is what
+           * turns the five minutes into the actual cadence — without it the task ran once per
+           * ten-second tick.
+           */
           return {
             shouldSchedule: runnableOrActiveJobsForQueue < 1,
             input: {},
+            ...(queueable.waitUntil === undefined ? {} : { waitUntil: queueable.waitUntil }),
           };
         },
       },
@@ -183,7 +195,13 @@ export const autoCheckoutPresenceTask: TaskConfig<{
       data: { presentAtCamp: false },
     });
 
-    logger.info(`Checked out ${checkedOut} user(s) at the end of the campsite presence period.`);
+    // A run that closed nothing is the normal case once the camp is over, so it stays out of the
+    // error and info volume.
+    if (checkedOut > 0) {
+      logger.info({ checkedOut }, 'Checked out users at the end of the campsite presence period.');
+    } else {
+      logger.debug('No users left to check out at the end of the campsite presence period.');
+    }
 
     return { output: { checkedOut } };
   },
