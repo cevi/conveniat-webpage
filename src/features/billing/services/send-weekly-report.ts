@@ -28,6 +28,9 @@ export interface ScheduledReportConfig extends WeeklySlotConfig {
   attachExcel?: boolean | null;
   subject?: string | null;
   body?: string | null;
+  financeSubject?: string | null;
+  financeBody?: string | null;
+  lastSentAt?: string | null;
 }
 
 export interface WeeklyReportSendSummary {
@@ -36,6 +39,8 @@ export interface WeeklyReportSendSummary {
   reason?: string | undefined;
   recipients?: string[] | undefined;
   attachments?: string[] | undefined;
+  generalRecipients?: string[] | undefined;
+  financeRecipients?: string[] | undefined;
 }
 
 export interface SendWeeklyReportOptions {
@@ -101,7 +106,7 @@ export function isReportDue(
 export function parseRecipients(...lists: (string | null | undefined)[]): string[] {
   for (const list of lists) {
     const addresses = (list ?? '')
-      .split(',')
+      .split(/[,;]/)
       .map((address) => address.trim())
       .filter((address) => address !== '');
     if (addresses.length > 0) return addresses;
@@ -121,6 +126,12 @@ export function applyReportPlaceholders(template: string, report: WeeklyReport):
 /**
  * Builds the weekly report and emails it.
  *
+ * Clean separation between General Report and Finance Mail:
+ * - `config.recipients` receives the general registration report (PDF).
+ *   Crucially, this email NEVER contains the confidential billing Excel sheet.
+ * - `settings.financeEmailRecipients` receives the finance overview with the Excel sheet
+ *   (and the overview PDF).
+ *
  * Uses a Redis run lock (`BillingTaskSlug.SendWeeklyReport`) to guarantee that only one
  * worker across all replicas can build and send the report simultaneously.
  */
@@ -137,8 +148,12 @@ export async function sendWeeklyReport(
     if (!due.due) return { sent: false, reason: due.reason };
   }
 
-  const recipients = parseRecipients(config?.recipients, settings.financeEmailRecipients);
-  if (recipients.length === 0) return { sent: false, reason: 'No recipients configured.' };
+  const generalRecipients = parseRecipients(config?.recipients);
+  const financeRecipients = parseRecipients(settings.financeEmailRecipients);
+
+  if (generalRecipients.length === 0 && financeRecipients.length === 0) {
+    return { sent: false, reason: 'No recipients configured.' };
+  }
 
   // Acquire run lock across replicas
   const { RedisRunLockAdapter } =
@@ -198,40 +213,90 @@ export async function sendWeeklyReport(
 
     const report = buildWeeklyReport(participants.docs, now);
     const stamp = now.toISOString().slice(0, 10);
-    const attachments: { filename: string; content: Buffer }[] = [];
 
+    // 1. Prepare PDF attachment if enabled
+    let pdfAttachment: { filename: string; content: Buffer } | undefined;
     if (config?.attachPdf !== false) {
-      attachments.push({
+      pdfAttachment = {
         filename: `anmeldestand-${stamp}.pdf`,
         content: await renderWeeklyReportPdf(report),
-      });
+      };
     }
 
-    if (config?.attachExcel !== false) {
-      // The same workbook the toolbar's manual export produces, so the weekly mail and the
-      // download can never drift apart.
+    // 2. Prepare Excel attachment if enabled and finance recipients exist
+    let excelAttachment: { filename: string; content: Buffer } | undefined;
+    if (config?.attachExcel !== false && financeRecipients.length > 0) {
       const billed = participants.docs.filter((participant) =>
         (ACCOUNTED_STATUSES as readonly string[]).includes(participant.status),
       );
       const rows = buildFinanceOverviewRows(billed, settings);
-      attachments.push({
+      excelAttachment = {
         filename: `rechnungsuebersicht-${stamp}.xlsx`,
         content: await buildFinanceOverviewWorkbook(rows, settings.currency ?? 'CHF'),
-      });
+      };
     }
 
-    const subject = applyReportPlaceholders(
-      config?.subject ?? 'conveniat27 – Anmeldestand vom {{date}}',
-      report,
-    );
-    const text = applyReportPlaceholders(config?.body ?? '', report);
+    const sentAttachments: string[] = [];
 
-    await payload.sendEmail({
-      to: recipients.join(', '),
-      subject,
-      text,
-      attachments,
-    });
+    // 3. Send General Registration Report (ONLY PDF, NEVER EXCEL)
+    if (generalRecipients.length > 0) {
+      const generalAttachments = pdfAttachment ? [pdfAttachment] : [];
+      const subject = applyReportPlaceholders(
+        config?.subject ?? 'conveniat27 – Anmeldestand vom {{date}}',
+        report,
+      );
+      const text = applyReportPlaceholders(config?.body ?? '', report);
+
+      await payload.sendEmail({
+        to: generalRecipients.join(', '),
+        subject,
+        text,
+        attachments: generalAttachments,
+      });
+
+      for (const attachment of generalAttachments) {
+        if (!sentAttachments.includes(attachment.filename)) {
+          sentAttachments.push(attachment.filename);
+        }
+      }
+
+      payload.logger.info(
+        `General weekly report sent to ${String(generalRecipients.length)} recipient(s) with ${String(generalAttachments.length)} attachment(s).`,
+      );
+    }
+
+    // 4. Send Finance Overview Mail (WITH EXCEL and PDF)
+    if (financeRecipients.length > 0 && config?.attachExcel !== false) {
+      const financeAttachments: { filename: string; content: Buffer }[] = [];
+      if (pdfAttachment) financeAttachments.push(pdfAttachment);
+      if (excelAttachment) financeAttachments.push(excelAttachment);
+
+      const defaultFinanceBody =
+        'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen';
+
+      const subject = applyReportPlaceholders(
+        config?.financeSubject ?? 'conveniat27 – Rechnungsübersicht vom {{date}}',
+        report,
+      );
+      const text = applyReportPlaceholders(config?.financeBody ?? defaultFinanceBody, report);
+
+      await payload.sendEmail({
+        to: financeRecipients.join(', '),
+        subject,
+        text,
+        attachments: financeAttachments,
+      });
+
+      for (const attachment of financeAttachments) {
+        if (!sentAttachments.includes(attachment.filename)) {
+          sentAttachments.push(attachment.filename);
+        }
+      }
+
+      payload.logger.info(
+        `Finance weekly report sent to ${String(financeRecipients.length)} recipient(s) with ${String(financeAttachments.length)} attachment(s).`,
+      );
+    }
 
     await payload.updateGlobal({
       slug: 'bill-settings',
@@ -241,14 +306,14 @@ export async function sendWeeklyReport(
       } as never,
     });
 
-    payload.logger.info(
-      `Weekly billing report sent to ${String(recipients.length)} recipient(s) with ${String(attachments.length)} attachment(s).`,
-    );
+    const allRecipients = [...new Set([...generalRecipients, ...financeRecipients])];
 
     return {
       sent: true,
-      recipients,
-      attachments: attachments.map((attachment) => attachment.filename),
+      recipients: allRecipients,
+      attachments: sentAttachments,
+      generalRecipients,
+      financeRecipients,
     };
   } finally {
     try {

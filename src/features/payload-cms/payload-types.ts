@@ -8464,9 +8464,12 @@ export interface BillSetting {
     weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
     hour?: number | null;
     attachPdf?: boolean | null;
+    /**
+     * Sends the detailed bill overview (Excel) to the finance recipients.
+     */
     attachExcel?: boolean | null;
     /**
-     * Comma-separated. Leave empty to use the finance recipients below.
+     * Comma-separated list of email addresses. Receives the general registration report (PDF). Does not receive confidential financial figures.
      */
     recipients?: string | null;
     /**
@@ -8478,12 +8481,20 @@ export interface BillSetting {
      */
     body?: string | null;
     /**
+     * Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.
+     */
+    financeSubject?: string | null;
+    /**
+     * Same placeholders as the subject.
+     */
+    financeBody?: string | null;
+    /**
      * Written by the scheduler. Also what stops a second send in the same week.
      */
     lastSentAt?: string | null;
   };
   /**
-   * Comma-separated list of email addresses to receive the CSV export.
+   * Comma-separated list of email addresses for the weekly bill overview (Excel).
    */
   financeEmailRecipients?: string | null;
   invoiceEmailSubject?: string | null;
@@ -8990,6 +9001,8 @@ export interface BillSettingsSelect<T extends boolean = true> {
         recipients?: T;
         subject?: T;
         body?: T;
+        financeSubject?: T;
+        financeBody?: T;
         lastSentAt?: T;
       };
   financeEmailRecipients?: T;

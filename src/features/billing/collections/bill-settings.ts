@@ -1007,6 +1007,13 @@ export const BillSettingsGlobal: GlobalConfig = {
                         de: 'Rechnungsübersicht anhängen (Excel)',
                         fr: 'Joindre la synthèse des factures (Excel)',
                       },
+                      admin: {
+                        description: {
+                          en: 'Sends the detailed bill overview (Excel) to the finance recipients.',
+                          de: 'Verschickt die detaillierte Rechnungsübersicht (Excel) an die Finanz-Empfänger.',
+                          fr: 'Envoie la synthèse des factures (Excel) aux destinataires finances.',
+                        },
+                      },
                     },
                   ],
                 },
@@ -1014,15 +1021,15 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'recipients',
                   type: 'text',
                   label: {
-                    en: 'Recipients',
-                    de: 'Empfänger',
-                    fr: 'Destinataires',
+                    en: 'Registration Report Recipients',
+                    de: 'Empfänger Anmeldestand-Bericht',
+                    fr: "Destinataires rapport d'inscriptions",
                   },
                   admin: {
                     description: {
-                      en: 'Comma-separated. Leave empty to use the finance recipients below.',
-                      de: 'Kommagetrennt. Leer lassen, um die Finanz-Empfänger unten zu verwenden.',
-                      fr: 'Séparés par des virgules. Vide = destinataires finances ci-dessous.',
+                      en: 'Comma-separated list of email addresses. Receives the general registration report (PDF). Does not receive confidential financial figures.',
+                      de: 'Kommagetrennte Liste von E-Mail-Adressen. Erhält den allgemeinen Anmeldestand-Bericht (PDF). Erhält keine vertraulichen Finanz-Zahlen.',
+                      fr: "Liste d'adresses e-mail séparées par des virgules. Reçoit le rapport d'inscriptions (PDF). Ne reçoit pas les données financières confidentielles.",
                     },
                   },
                 },
@@ -1045,6 +1052,41 @@ export const BillSettingsGlobal: GlobalConfig = {
                   defaultValue:
                     'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
                   label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
+                  admin: {
+                    description: {
+                      en: 'Same placeholders as the subject.',
+                      de: 'Gleiche Platzhalter wie beim Betreff.',
+                      fr: 'Mêmes espaces réservés que le sujet.',
+                    },
+                  },
+                },
+                {
+                  name: 'financeSubject',
+                  type: 'text',
+                  defaultValue: 'conveniat27 – Rechnungsübersicht vom {{date}}',
+                  label: {
+                    en: 'Finance Email Subject',
+                    de: 'Finanz-E-Mail Betreff',
+                    fr: "Sujet de l'e-mail finances",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      de: 'Platzhalter: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      fr: 'Espaces réservés : {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                    },
+                  },
+                },
+                {
+                  name: 'financeBody',
+                  type: 'textarea',
+                  defaultValue:
+                    'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                  label: {
+                    en: 'Finance Email Text',
+                    de: 'Finanz-E-Mail Text',
+                    fr: "Texte de l'e-mail finances",
+                  },
                   admin: {
                     description: {
                       en: 'Same placeholders as the subject.',
@@ -1079,9 +1121,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Comma-separated list of email addresses to receive the CSV export.',
-                  de: 'Kommagetrennte Liste von E-Mail-Adressen für den CSV-Export.',
-                  fr: "Liste d'adresses e-mail séparées par des virgules pour l'export CSV.",
+                  en: 'Comma-separated list of email addresses for the weekly bill overview (Excel).',
+                  de: 'Kommagetrennte Liste von E-Mail-Adressen für die wöchentliche Rechnungsübersicht (Excel).',
+                  fr: "Liste d'adresses e-mail séparées par des virgules pour la synthèse hebdomadaire des factures (Excel).",
                 },
               },
             },
