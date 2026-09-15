@@ -163,6 +163,156 @@ export const BillSettingsGlobal: GlobalConfig = {
                     return true;
                   },
                 },
+                {
+                  name: 'addressManagerEmails',
+                  type: 'text',
+                  label: {
+                    en: 'Address managers (from Cevi.DB)',
+                    de: 'Adressverwalter/-innen (aus Cevi.DB)',
+                    fr: "Gestionnaires d'adresses (Cevi.DB)",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.',
+                      de: 'Kommagetrennt. Wird vom Subgruppen-Abgleich geschrieben; an diese Adressen geht die Erinnerung zu den Pflichtangaben.',
+                      fr: 'Séparées par des virgules. Écrites par la synchronisation des sous-groupes ; ce sont les destinataires du rappel sur les données obligatoires.',
+                    },
+                  },
+                },
+                {
+                  name: 'reminderRecipientsOverride',
+                  type: 'text',
+                  label: {
+                    en: 'Override reminder recipients',
+                    de: 'Empfänger der Erinnerung überschreiben',
+                    fr: 'Remplacer les destinataires du rappel',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.',
+                      de: 'Kommagetrennt. Wenn ausgefüllt, gehen die Erinnerungen für diesen Hof an diese Adressen statt an die abgeglichenen Adressverwalter/-innen.',
+                      fr: "Séparées par des virgules. Si rempli, ces adresses sont utilisées à la place des gestionnaires d'adresses synchronisés pour ce Hof.",
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              name: 'pflichtangabenReminder',
+              type: 'group',
+              label: {
+                en: 'Reminder for missing mandatory fields',
+                de: 'Erinnerung bei fehlenden Pflichtangaben',
+                fr: 'Rappel pour données obligatoires manquantes',
+              },
+              admin: {
+                description: {
+                  en: 'Emails each Hof its registrations that cannot be billed yet.',
+                  de: 'Meldet jedem Hof per E-Mail die noch nicht verrechenbaren Anmeldungen.',
+                  fr: 'Envoie à chaque Hof ses inscriptions pas encore facturables.',
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: true,
+                  label: {
+                    en: 'Send the reminder',
+                    de: 'Erinnerung versenden',
+                    fr: 'Envoyer le rappel',
+                  },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'weekday',
+                      type: 'select',
+                      defaultValue: '1',
+                      label: { en: 'Weekday', de: 'Wochentag', fr: 'Jour' },
+                      options: [
+                        { value: '1', label: { en: 'Monday', de: 'Montag', fr: 'Lundi' } },
+                        { value: '2', label: { en: 'Tuesday', de: 'Dienstag', fr: 'Mardi' } },
+                        { value: '3', label: { en: 'Wednesday', de: 'Mittwoch', fr: 'Mercredi' } },
+                        { value: '4', label: { en: 'Thursday', de: 'Donnerstag', fr: 'Jeudi' } },
+                        { value: '5', label: { en: 'Friday', de: 'Freitag', fr: 'Vendredi' } },
+                        { value: '6', label: { en: 'Saturday', de: 'Samstag', fr: 'Samedi' } },
+                        { value: '0', label: { en: 'Sunday', de: 'Sonntag', fr: 'Dimanche' } },
+                      ],
+                    },
+                    {
+                      name: 'hour',
+                      type: 'number',
+                      defaultValue: 7,
+                      min: 0,
+                      max: 23,
+                      label: {
+                        en: 'Hour (0–23, Europe/Zurich)',
+                        de: 'Stunde (0–23, Europe/Zürich)',
+                        fr: 'Heure (0–23, Europe/Zurich)',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'minDaysMissing',
+                  type: 'number',
+                  defaultValue: 7,
+                  min: 0,
+                  label: {
+                    en: 'At least this many days after the first sync',
+                    de: 'Mindestens so viele Tage nach dem ersten Abgleich',
+                    fr: 'Au moins autant de jours après la première synchronisation',
+                  },
+                  admin: {
+                    description: {
+                      en: 'A fresh registration gets this grace period before it is reported.',
+                      de: 'So lange bleibt eine frische Anmeldung von der Erinnerung verschont.',
+                      fr: "Une inscription récente bénéficie de ce délai avant d'être signalée.",
+                    },
+                  },
+                },
+                {
+                  name: 'subject',
+                  type: 'text',
+                  defaultValue: 'conveniat27 – fehlende Pflichtangaben in {{eventName}}',
+                  label: { en: 'Subject', de: 'Betreff', fr: 'Sujet' },
+                  admin: {
+                    description: {
+                      en: 'Placeholders: {{eventName}}, {{count}}.',
+                      de: 'Platzhalter: {{eventName}}, {{count}}.',
+                      fr: 'Espaces réservés : {{eventName}}, {{count}}.',
+                    },
+                  },
+                },
+                {
+                  name: 'body',
+                  type: 'textarea',
+                  defaultValue:
+                    'Hallo\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:',
+                  label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
+                  admin: {
+                    description: {
+                      en: 'Intro above the list of registrations. Same placeholders as the subject.',
+                      de: 'Einleitung über der Liste der Anmeldungen. Gleiche Platzhalter wie beim Betreff.',
+                      fr: 'Introduction au-dessus de la liste. Mêmes espaces réservés que le sujet.',
+                    },
+                  },
+                },
+                {
+                  name: 'lastSentAt',
+                  type: 'date',
+                  label: { en: 'Last sent', de: 'Zuletzt versendet', fr: 'Dernier envoi' },
+                  admin: {
+                    readOnly: true,
+                    description: {
+                      en: 'Written by the scheduler. Also what stops a second send in the same week.',
+                      de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Versand in derselben Woche.',
+                      fr: 'Écrit par le planificateur; empêche un second envoi la même semaine.',
+                    },
+                  },
+                },
               ],
             },
           ],

@@ -127,6 +127,7 @@ export enum BillingTaskSlug {
   GenerateBills = 'generateBills',
   SendBills = 'sendBills',
   SendWeeklyReport = 'sendWeeklyReport',
+  SendPflichtangabenReminders = 'sendPflichtangabenReminders',
 }
 
 /**
@@ -145,6 +146,10 @@ export interface PopulatedSubevent {
   eventId: string;
   eventName: string;
   groupId: string;
+  /** Comma-separated Adressverwalter addresses of the Hof, as synced from the Cevi.DB. */
+  addressManagerEmails?: string;
+  /** Comma-separated addresses an editor set instead; a sync never overwrites this. */
+  reminderRecipientsOverride?: string;
 }
 
 /**

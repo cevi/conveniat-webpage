@@ -7,9 +7,35 @@ interface SyncHistoryEntry {
   date: string;
   action: string;
   diff?: Record<string, { from: string; to: string }>;
+  /** The value written back to the Cevi.DB. */
+  value?: string;
   /** Why an already-billed row was parked for manual inspection. */
   reviewReason?: string;
 }
+
+/**
+ * German labels for the actions the billing services write. An action without an entry —
+ * `bill_sent_to_<address>` carries the address, and older rows carry actions we have since
+ * renamed — is shown as it was stored.
+ */
+const ACTION_LABELS: Record<string, string> = {
+  first_sync: 'Erstmals abgeglichen',
+  re_added_detected: 'Wieder angemeldet',
+  participant_updated: 'Angaben aktualisiert',
+  sync_confirmed: 'Abgleich bestätigt',
+  manual_review_required: 'Manuelle Prüfung nötig',
+  removed_detected: 'In der Cevi.DB entfernt',
+  anmeldestatus_written_to_cevidb: 'Anmeldestatus in der Cevi.DB gesetzt',
+  anmeldestatus_writeback_failed: 'Anmeldestatus konnte in der Cevi.DB nicht gesetzt werden',
+};
+
+const actionLabel = (action: string): string => {
+  const known = ACTION_LABELS[action];
+  if (known !== undefined) return known;
+  return action.startsWith('bill_sent_to_')
+    ? `Rechnung versendet an ${action.slice('bill_sent_to_'.length)}`
+    : action;
+};
 
 export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
   const { value } = useField<SyncHistoryEntry[]>({ path });
@@ -50,8 +76,9 @@ export const SyncHistoryField: React.FC<{ path: string }> = ({ path }) => {
                 <span className="min-w-[140px] text-sm font-medium text-gray-900 dark:text-gray-100">
                   {formattedDate}
                 </span>
-                <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                  {entry.action}
+                <span className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                  {actionLabel(entry.action)}
+                  {entry.value !== undefined && entry.value !== '' && <>: «{entry.value}»</>}
                 </span>
               </div>
               {entry.reviewReason !== undefined && entry.reviewReason !== '' && (

@@ -12,11 +12,12 @@ export const RelatedEmailsCell: React.FC<{
 }> = async ({ rowData }) => {
   const payload = await getPayload({ config: configPromise });
 
-  // Fetch the count of outgoing emails for this participant
+  // A mail links to this participant either alone (`billParticipant`) or as one of the
+  // several a reminder to a Hof covers (`billParticipants`), and both belong in the count.
   const relatedEmails = await payload.find({
     collection: 'outgoing-emails',
     where: {
-      billParticipant: { equals: rowData.id },
+      or: [{ billParticipant: { equals: rowData.id } }, { billParticipants: { in: [rowData.id] } }],
     },
     limit: 1, // We only need the totalDocs count
     context: { internal: true },
@@ -30,9 +31,13 @@ export const RelatedEmailsCell: React.FC<{
 
   const label = count === 1 ? '1 Email' : `${String(count)} Emails`;
 
-  // Construct the URL to the outgoing-emails collection filtered by this participant
-  // The filter uses standard Payload CMS URL structure for `where` queries
-  const href = `/admin/collections/outgoing-emails?where[or][0][and][0][billParticipant][equals]=${encodeURIComponent(rowData.id)}`;
+  // Construct the URL to the outgoing-emails collection filtered by this participant.
+  // The filter uses standard Payload CMS URL structure for `where` queries and has to
+  // mirror the query above, or the link opens a list that contradicts the count.
+  const id = encodeURIComponent(rowData.id);
+  const href =
+    `/admin/collections/outgoing-emails?where[or][0][and][0][billParticipant][equals]=${id}` +
+    `&where[or][1][and][0][billParticipants][in]=${id}`;
 
   return (
     <a

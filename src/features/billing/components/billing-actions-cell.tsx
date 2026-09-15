@@ -85,10 +85,41 @@ const removingLabel: StaticTranslationString = {
   fr: 'Annulation...',
 };
 
+const reminderTitle: StaticTranslationString = {
+  de: 'Erinnerung an Adressverwalter senden?',
+  en: 'Send a reminder to the address managers?',
+  fr: "Envoyer un rappel aux gestionnaires d'adresses ?",
+};
+
+const reminderMessage: StaticTranslationString = {
+  de: 'Die Adressverwalter/-innen dieses Hofs erhalten eine E-Mail mit dieser Anmeldung und den fehlenden Pflichtangaben. Sind für den Hof keine Empfänger hinterlegt, wird nichts versendet.',
+  en: 'The address managers of this Hof receive an email listing this registration and its missing mandatory fields. Nothing is sent if the Hof has no recipients configured.',
+  fr: "Les gestionnaires d'adresses de ce Hof reçoivent un e-mail avec cette inscription et les données obligatoires manquantes. Rien n'est envoyé si aucun destinataire n'est configuré.",
+};
+
+const reminderConfirm: StaticTranslationString = {
+  de: 'Erinnerung senden',
+  en: 'Send reminder',
+  fr: 'Envoyer le rappel',
+};
+
+const reminderLabel: StaticTranslationString = {
+  de: 'Erinnerung an Adressverwalter senden',
+  en: 'Send reminder to address managers',
+  fr: "Envoyer un rappel aux gestionnaires d'adresses",
+};
+
+const reminderBusyLabel: StaticTranslationString = {
+  de: 'Wird versendet...',
+  en: 'Sending...',
+  fr: 'Envoi...',
+};
+
 interface RowData {
   id: string;
   billPdfs?: (string | { id: string })[];
   invoiceNumber?: string;
+  status?: string;
 }
 
 /**
@@ -101,12 +132,14 @@ export const BillingActionsCell: React.FC<{
   const { code } = useLocale();
   const locale = resolveAdminLocale(code);
   const [confirmAction, setConfirmAction] = React.useState<
-    'regenerate' | 'send' | 'remove' | undefined
+    'regenerate' | 'send' | 'remove' | 'reminder' | undefined
   >();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
 
   const hasPdf = Array.isArray(rowData.billPdfs) && rowData.billPdfs.length > 0;
+  // Only a registration the sync parked as incomplete has anything to remind about.
+  const isMissingPflichtangaben = rowData.status === 'pflichtangaben_missing';
 
   const handlePreview = (): void => {
     window.open(
@@ -187,6 +220,12 @@ export const BillingActionsCell: React.FC<{
       confirm: removeConfirm,
       busy: removingLabel,
     },
+    reminder: {
+      title: reminderTitle,
+      message: reminderMessage,
+      confirm: reminderConfirm,
+      busy: reminderBusyLabel,
+    },
   } as const;
 
   const active = copyByAction[confirmAction ?? 'regenerate'];
@@ -201,6 +240,13 @@ export const BillingActionsCell: React.FC<{
     await runAction(
       '/api/confidential/billing/regenerate-single',
       'Die Rechnung konnte nicht neu generiert werden.',
+    );
+  };
+
+  const handleReminder = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/send-pflichtangaben-reminder',
+      'Die Erinnerung konnte nicht versendet werden.',
     );
   };
 
@@ -256,6 +302,15 @@ export const BillingActionsCell: React.FC<{
           >
             Email senden
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => {
+              setConfirmAction('reminder');
+            }}
+            disabled={!isMissingPflichtangaben}
+            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {reminderLabel[locale]}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(): void => {
@@ -290,9 +345,23 @@ export const BillingActionsCell: React.FC<{
           setError(undefined);
         }}
         onConfirm={async (): Promise<void> => {
-          if (confirmAction === 'send') await handleSendEmail();
-          else if (confirmAction === 'remove') await handleRemove();
-          else await handleRegenerate();
+          switch (confirmAction) {
+            case 'send': {
+              await handleSendEmail();
+              break;
+            }
+            case 'reminder': {
+              await handleReminder();
+              break;
+            }
+            case 'remove': {
+              await handleRemove();
+              break;
+            }
+            default: {
+              await handleRegenerate();
+            }
+          }
         }}
         title={copy.title}
         // The shared modal renders the body with `whitespace-pre-line`, so a failure is

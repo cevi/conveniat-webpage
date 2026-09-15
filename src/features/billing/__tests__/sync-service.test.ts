@@ -82,6 +82,7 @@ const completeAnswers = {
   'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
   'Notfallkontakt Telefonnummer': '079 123 45 67',
   Essgewohnheit: 'vegetarisch',
+  'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
 };
 
 const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
@@ -105,6 +106,7 @@ const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
     gender: 'male',
     birthday: '1990-01-01',
     email: 'max@example.com',
+    anmeldestatus: 'erfasst durch AVP',
     missingStammdaten: [],
     missingAnmeldeangaben: [],
     active: true,
@@ -151,6 +153,10 @@ describe('Sync Service', () => {
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
       fetchPersonDetails: jest.fn(),
+      fetchAddressManagerEmails: jest.fn(),
+      updateParticipationAnswer: jest
+        .fn()
+        .mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' }),
     };
 
     mockSettingsRepo = {
@@ -224,6 +230,7 @@ describe('Sync Service', () => {
       'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
       'Notfallkontakt Telefonnummer': '079 123 45 67',
       Essgewohnheit: 'vegetarisch',
+      'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
     };
     mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(mockAnswers);
 
@@ -295,6 +302,7 @@ describe('Sync Service', () => {
       'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
       'Notfallkontakt Telefonnummer': '079 123 45 67',
       Essgewohnheit: 'vegetarisch',
+      'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
     };
     mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(mockAnswers);
 
@@ -317,6 +325,39 @@ describe('Sync Service', () => {
         missingAnmeldeangaben: ['AHV-Nummer'],
       }),
     );
+  });
+
+  it('blocks billing when the Anmeldestatus answer is missing', async () => {
+    // The Hof confirms a registration via "Administrationsangaben » Anmeldestatus". Without
+    // it we do not know what we would be invoicing, so the row is not billable.
+    const withoutAnmeldestatus = Object.fromEntries(
+      Object.entries(completeAnswers).filter(([question]) => !question.includes('Anmeldestatus')),
+    );
+
+    mockParticipantRepo.findByParticipationUuid.mockResolvedValue({
+      id: 'doc-1',
+      participationUuid: 'part-1',
+      userId: 'user-1',
+      eventId: 'event-1',
+      status: 'new',
+      roleType: 'Event::Role::Participant',
+      active: true,
+      syncHistory: [],
+    } as unknown as BillParticipant);
+    mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+    mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(withoutAnmeldestatus);
+
+    await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+    expect(update?.status).toBe('pflichtangaben_missing');
+    expect(update?.missingAnmeldeangaben).toEqual(['Anmeldestatus']);
+    expect(isBillable(String(update?.status))).toBe(false);
   });
 
   it('ignores Aufbau- and Abbaulager events configured in settings and deactivates active participants', async () => {
@@ -558,10 +599,99 @@ describe('Sync Service', () => {
       expect(summary.needsReviewCount).toBe(1);
     });
 
-    it('leaves a billed participant alone when nothing about them changed', async () => {
+    it('retries the Anmeldestatus write-back when the Cevi.DB never took it', async () => {
+      // The bill is out, but the Cevi.DB still says "erfasst durch AVP" — the write-back
+      // at send time failed. The sync is the only thing that comes back to it.
       mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
       mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
       mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(mockHitobitoService.updateParticipationAnswer).toHaveBeenCalledWith(
+        'group-1',
+        'event-1',
+        'part-1',
+        ['anmeldestatus'],
+        'Rechnung gestellt',
+        ['definitiv'],
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.anmeldestatus).toBe('Rechnung gestellt');
+      // The value this run wrote itself must not park the row for a human.
+      expect(update?.status).toBe('bill_sent');
+      const history = update?.syncHistory as { action: string; value?: string }[];
+      expect(history[0]).toEqual(
+        expect.objectContaining({
+          action: 'anmeldestatus_written_to_cevidb',
+          value: 'Rechnung gestellt',
+        }),
+      );
+      expect(summary.errors).toHaveLength(0);
+    });
+
+    it('does not report the value it just wrote as an incoming change', async () => {
+      // The row already reads "Rechnung gestellt"; the Cevi.DB lost it. Writing it back
+      // and then recording "Rechnung gestellt → erfasst durch AVP" would be a diff of our
+      // own making.
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+        billedRow({ anmeldestatus: 'Rechnung gestellt' }),
+      );
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+
+      await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      const history = update?.syncHistory as { action: string; diff?: Record<string, unknown> }[];
+      expect(history.at(-1)?.diff?.['anmeldestatus']).toBeUndefined();
+      expect(update?.anmeldestatus).toBe('Rechnung gestellt');
+    });
+
+    it('keeps the row and names the person when the retry fails', async () => {
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+      mockHitobitoService.updateParticipationAnswer.mockRejectedValue(new Error('Status 500'));
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.anmeldestatus).toBe('erfasst durch AVP');
+      const history = update?.syncHistory as { action: string; reviewReason?: string }[];
+      expect(history[0]?.action).toBe('anmeldestatus_writeback_failed');
+      expect(summary.errors[0]).toContain('Max Mustermann');
+      // A failed write-back is not a reason to stop syncing the event.
+      expect(summary.errors).toHaveLength(1);
+    });
+
+    it('leaves a billed participant alone when nothing about them changed', async () => {
+      // A settled row: the bill is out and the Cevi.DB already says so, so there is
+      // nothing left for this sync to do or to write back.
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+        billedRow({ anmeldestatus: 'Rechnung gestellt' }),
+      );
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue({
+        ...completeAnswers,
+        'Administrationsangaben Anmeldestatus': 'Rechnung gestellt',
+      });
 
       const summary = await syncParticipantsUseCase(
         mockParticipantRepo,

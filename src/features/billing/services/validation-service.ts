@@ -151,6 +151,11 @@ const ParticipantValidationSchema = z
     }
 
     checkAnswer(data.answers, ['essgewohnheit'], 'Essgewohnheit', ctx);
+
+    // The Hof decides here whether a registration is confirmed; without it we do not know
+    // what we would be billing, so an empty answer blocks the bill like any other
+    // Pflichtangabe.
+    checkAnswer(data.answers, ['anmeldestatus'], 'Anmeldestatus', ctx);
   });
 
 /**

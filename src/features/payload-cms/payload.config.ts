@@ -28,6 +28,7 @@ import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/gene
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
+import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
 import { sendWeeklyReportTask } from '@/features/payload-cms/payload-cms/tasks/send-weekly-report';
 import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/tasks/sync-active-piket-members';
 import { syncNewUserAnnouncementChatsTask } from '@/features/payload-cms/payload-cms/tasks/sync-new-user-announcement-chats';
@@ -378,6 +379,7 @@ const jobsConfig: JobsConfig = {
     generateBillsTask,
     sendBillsTask,
     sendWeeklyReportTask,
+    sendPflichtangabenRemindersTask,
     cleanupTemporaryFormFilesTask,
     autoCheckoutPresenceTask,
   ],
