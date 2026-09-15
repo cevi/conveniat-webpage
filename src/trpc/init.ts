@@ -1,5 +1,6 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
+import { traceProcedure } from '@/trpc/middleware/tracing';
 import {
   type HitobitoNextAuthUser,
   HitobitoNextAuthUserSchema,
@@ -42,7 +43,18 @@ const t = initTRPC.context<Context>().create({
 export const middleware = t.middleware;
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
-export const publicProcedure = t.procedure;
+
+/**
+ * Applied to the base procedure so that every query and mutation is traced and timed,
+ * including the ones that fail in an auth middleware below — a burst of 403s is worth
+ * seeing, and a procedure that is only slow because the session lookup is slow would
+ * otherwise measure as fast.
+ */
+const tracing = t.middleware(
+  async ({ path, type, next }) => await traceProcedure({ path, type, next }),
+);
+
+export const publicProcedure = t.procedure.use(tracing);
 
 /**
  * `UNAUTHORIZED` (401), not `FORBIDDEN` (403): the request carries no valid
@@ -66,7 +78,7 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   });
 });
 
-export const trpcBaseProcedure = t.procedure.use(isAuthed);
+export const trpcBaseProcedure = publicProcedure.use(isAuthed);
 
 const isAdmin = t.middleware(({ ctx, next }) => {
   // not signed in at all -> 401, see `isAuthed`
@@ -94,4 +106,4 @@ const isAdmin = t.middleware(({ ctx, next }) => {
   });
 });
 
-export const trpcAdminProcedure = t.procedure.use(isAdmin);
+export const trpcAdminProcedure = publicProcedure.use(isAdmin);
