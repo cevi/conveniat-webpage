@@ -120,7 +120,7 @@
     "exceljs": "^4.4.0",
     "firebase-admin": "^13.10.0",
     "framer-motion": "^12.43.0",
-    "image-size": "^2.0.2",
+    "image-size": "^2.0.3",
     "ioredis": "^5.11.1",
     "js-cookie": "^3.0.8",
     "json-schema": "^0.4.0",
