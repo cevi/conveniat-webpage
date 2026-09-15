@@ -55,6 +55,7 @@ import { fileURLToPath } from 'node:url';
 
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
 import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
   setQueriedJobSlugs,
@@ -342,28 +343,32 @@ const jobsConfig: JobsConfig = {
       fields,
     };
   },
-  tasks: [
-    resolveUserStep,
-    createUserStep,
-    blockJobStep,
-    cleanupTemporaryRolesStep,
-    ensureGroupMembershipStep,
-    ensureEventMembershipStep,
-    confirmationMessageStep,
-    fetchSmtpBouncesTask,
-    checkHitobitoApprovalsTask,
-    generatePdfThumbnailTask,
-    publishScheduledAnnouncementsTask,
-    syncActivePiketMembersTask,
-    syncNewUserAnnouncementChatsTask,
-    syncParticipantsTask,
-    generateBillsTask,
-    sendBillsTask,
-    sendWeeklyReportTask,
-    sendPflichtangabenRemindersTask,
-    cleanupTemporaryFormFilesTask,
-    autoCheckoutPresenceTask,
-  ].map((task) => withActiveJobTracking(task)),
+  // `withActiveJobTracking` sits inside the span so the worker publishes the id of a job it
+  // is running; `instrumentTasks` wraps the whole run, so the span covers both.
+  tasks: instrumentTasks(
+    [
+      resolveUserStep,
+      createUserStep,
+      blockJobStep,
+      cleanupTemporaryRolesStep,
+      ensureGroupMembershipStep,
+      ensureEventMembershipStep,
+      confirmationMessageStep,
+      fetchSmtpBouncesTask,
+      checkHitobitoApprovalsTask,
+      generatePdfThumbnailTask,
+      publishScheduledAnnouncementsTask,
+      syncActivePiketMembersTask,
+      syncNewUserAnnouncementChatsTask,
+      syncParticipantsTask,
+      generateBillsTask,
+      sendBillsTask,
+      sendWeeklyReportTask,
+      sendPflichtangabenRemindersTask,
+      cleanupTemporaryFormFilesTask,
+      autoCheckoutPresenceTask,
+    ].map((task) => withActiveJobTracking(task)),
+  ),
   workflows: [registrationWorkflow, brevoContactWorkflow].map((workflow) =>
     withActiveWorkflowTracking(workflow),
   ),
