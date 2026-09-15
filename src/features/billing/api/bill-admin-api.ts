@@ -5,7 +5,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
-import { selectTaskLogOutput } from '@/features/billing/services/job-log';
+import { buildLatestJobWhere, selectTaskLogOutput } from '@/features/billing/services/job-log';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
@@ -288,6 +288,52 @@ export const billingSendSingleHandler: PayloadHandler = async (request) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Single bill sending failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
+ * POST /api/confidential/billing/send-pflichtangaben-reminder – Chase one registration
+ *
+ * The scheduled run covers a whole Hof at once; this is the operator asking for a single
+ * row now, which is why it forces the schedule and skips the age check the weekly run
+ * applies.
+ */
+export const billingSendPflichtangabenReminderHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+    const { participantId } = parseResult.data;
+
+    const { NOT_MISSING_REASON, sendPflichtangabenReminders } =
+      await import('@/features/billing/services/pflichtangaben-reminder');
+    const result = await sendPflichtangabenReminders(request.payload, {
+      force: true,
+      participantId,
+    });
+
+    if (result.reason === NOT_MISSING_REASON) {
+      return Response.json({ error: NOT_MISSING_REASON }, { status: 409 });
+    }
+
+    return Response.json({ success: true, ...result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error(
+      { err: error },
+      `Pflichtangaben reminder for a single registration failed: ${message}`,
+    );
     return Response.json({ error: message }, { status: 500 });
   }
 };
@@ -576,9 +622,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
     const getLatestJob = async (taskSlug: BillingTaskSlug): Promise<SyncJobStatus | undefined> => {
       const result = await request.payload.find({
         collection: 'payload-jobs',
-        where: {
-          taskSlug: { equals: taskSlug },
-        },
+        where: buildLatestJobWhere(taskSlug, new Date()),
         sort: '-createdAt',
         limit: 1,
         context: { internal: true },

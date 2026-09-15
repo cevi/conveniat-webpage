@@ -30,9 +30,9 @@ const parentGroupLinkLabel: StaticTranslationString = {
 };
 
 const cardDescriptionAfter: StaticTranslationString = {
-  de: ' abzufragen. Es werden alle Anlässe mit dem Namen «Hauptlager conveniat27» oder «conveniat27» ermittelt und die Liste unten automatisch aktualisiert. Dieser Vorgang dauert ca. 45 Sekunden.',
-  en: '. All events named “Hauptlager conveniat27” or “conveniat27” are collected and the list below is updated automatically. This takes about 45 seconds.',
-  fr: '. Tous les événements nommés « Hauptlager conveniat27 » ou « conveniat27 » sont collectés et la liste ci-dessous est mise à jour automatiquement. Cette opération dure environ 45 secondes.',
+  de: ' abzufragen. Es werden alle Anlässe mit dem Namen «Hauptlager conveniat27» oder «conveniat27» gesammelt; Aufbau- und Abbaulager werden übersprungen. Zusätzlich werden die Adressverwalter/-innen jedes Hofs als Empfänger der Erinnerung abgeglichen — bereits eingetragene abweichende Empfänger bleiben erhalten. Dieser Vorgang dauert ca. 45 Sekunden.',
+  en: '. All events named “Hauptlager conveniat27” or “conveniat27” are collected; Aufbau- and Abbaulager events are skipped. The address managers of every Hof are also synced as the reminder recipients — recipient overrides you already entered are kept. This takes about 45 seconds.',
+  fr: ". Tous les événements nommés « Hauptlager conveniat27 » ou « conveniat27 » sont collectés ; les événements Aufbaulager et Abbaulager sont ignorés. Les gestionnaires d'adresses de chaque Hof sont également synchronisés comme destinataires du rappel — les destinataires déjà remplacés manuellement sont conservés. Cette opération dure environ 45 secondes.",
 };
 
 const startButtonLabel: StaticTranslationString = {

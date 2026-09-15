@@ -24,6 +24,7 @@ describe('Validation Service', () => {
     'Notfallkontakt Vollständiger Name': 'Erika Mustermann',
     'Notfallkontakt Telefonnummer': '079 123 45 67',
     Essgewohnheit: 'vegetarisch',
+    'Administrationsangaben Anmeldestatus': 'erfasst durch AVP',
   };
 
   describe('validateParticipant', () => {
@@ -79,6 +80,20 @@ describe('Validation Service', () => {
       expect(result.isValid).toBe(false);
       expect(result.missingFields).toContain('Mailadresse für Rechnung');
       expect(result.missingAnmeldeangaben).toContain('Mailadresse für Rechnung');
+    });
+
+    it('should block billing when the Anmeldestatus answer is missing', () => {
+      const withoutAnmeldestatus = Object.fromEntries(
+        Object.entries(validAnswers).filter(([question]) => !question.includes('Anmeldestatus')),
+      );
+
+      const result = validateParticipant({
+        person: validPerson,
+        answers: withoutAnmeldestatus,
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingAnmeldeangaben).toContain('Anmeldestatus');
     });
 
     it('should correctly separate missingStammdaten and missingAnmeldeangaben', () => {

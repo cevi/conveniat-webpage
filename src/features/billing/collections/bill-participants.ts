@@ -275,6 +275,24 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: { disableGroupBy: true },
     },
     {
+      name: 'anmeldestatus',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: {
+        en: 'Registration status (Cevi.DB)',
+        de: 'Anmeldestatus',
+        fr: "Statut d'inscription (Cevi.DB)",
+      },
+      admin: {
+        disableGroupBy: true,
+        description: {
+          en: 'The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.',
+          de: 'Die Antwort auf «Administrationsangaben » Anmeldestatus» aus der Cevi.DB.',
+          fr: 'La réponse « Administrationsangaben » Anmeldestatus » de la Cevi.DB.',
+        },
+      },
+    },
+    {
       name: 'birthday',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
@@ -690,6 +708,24 @@ export const BillParticipantsCollection: CollectionConfig = {
         components: {
           Cell: '@/features/billing/components/related-emails-cell',
         },
+      },
+      access: { read: canAccessBillingField },
+    },
+
+    // Reminders sent to the Adressverwalter of a Hof list every affected registration,
+    // so they hang off the `billParticipants` side of `outgoing-emails`.
+    {
+      name: 'reminderEmails',
+      type: 'join',
+      collection: 'outgoing-emails',
+      on: 'billParticipants',
+      label: {
+        en: 'Reminder emails',
+        de: 'Erinnerungen an Adressverwalter',
+        fr: 'Rappels envoyés',
+      },
+      admin: {
+        disableListColumn: true,
       },
       access: { read: canAccessBillingField },
     },

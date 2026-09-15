@@ -1,5 +1,5 @@
 import { classifyLockConflict } from '@/features/billing/ports/run-lock.port';
-import { selectTaskLogOutput } from '@/features/billing/services/job-log';
+import { buildLatestJobWhere, selectTaskLogOutput } from '@/features/billing/services/job-log';
 
 describe('classifyLockConflict', () => {
   it('treats the same run holding the lock as a duplicate worker', () => {
@@ -74,6 +74,27 @@ describe('selectTaskLogOutput', () => {
     expect(selectTaskLogOutput([stoodDown, syncedEverything], 'syncParticipants')).toEqual({
       newCount: 5,
       errors: [],
+    });
+  });
+});
+
+describe('buildLatestJobWhere', () => {
+  const now = new Date('2027-01-05T10:00:00.000Z');
+
+  it('still matches the task it was asked for', () => {
+    expect(buildLatestJobWhere('syncParticipants', now).and[0]).toEqual({
+      taskSlug: { equals: 'syncParticipants' },
+    });
+  });
+
+  it('accepts a job without a waitUntil or one that is already due', () => {
+    // The nightly schedule writes tomorrow's job document today. Letting it through
+    // would leave the toolbar reporting a sync that never finishes.
+    expect(buildLatestJobWhere('syncParticipants', now).and[1]).toEqual({
+      or: [
+        { waitUntil: { exists: false } },
+        { waitUntil: { less_than_equal: '2027-01-05T10:00:00.000Z' } },
+      ],
     });
   });
 });

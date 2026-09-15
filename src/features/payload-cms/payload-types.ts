@@ -106,6 +106,7 @@ export interface Config {
     };
     'bill-participants': {
       relatedEmails: 'outgoing-emails';
+      reminderEmails: 'outgoing-emails';
     };
     forms: {
       submissions: 'form-submissions';
@@ -222,6 +223,7 @@ export interface Config {
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
       sendWeeklyReport: TaskSendWeeklyReport;
+      sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
@@ -1399,6 +1401,10 @@ export interface Form {
                  */
                 maxDays?: number | null;
                 /**
+                 * How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.
+                 */
+                maxRanges?: number | null;
+                /**
                  * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
                  */
                 ressortName?: string | null;
@@ -1678,6 +1684,10 @@ export interface Form {
                            * Leave empty to allow any length up to the last day.
                            */
                           maxDays?: number | null;
+                          /**
+                           * How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.
+                           */
+                          maxRanges?: number | null;
                           /**
                            * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
                            */
@@ -4206,6 +4216,7 @@ export interface OutgoingEmail {
   subject: string;
   formSubmission?: (string | null) | FormSubmission;
   billParticipant?: (string | null) | BillParticipant;
+  billParticipants?: (string | BillParticipant)[] | null;
   type?: ('formSubmission' | 'billParticipant' | 'other') | null;
   form?: (string | null) | Form;
   html?: string | null;
@@ -4264,6 +4275,10 @@ export interface BillParticipant {
   zipCode?: string | null;
   town?: string | null;
   email?: string | null;
+  /**
+   * The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.
+   */
+  anmeldestatus?: string | null;
   birthday?: string | null;
   gender?: string | null;
   active?: boolean | null;
@@ -4342,6 +4357,11 @@ export interface BillParticipant {
     | boolean
     | null;
   relatedEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  reminderEmails?: {
     docs?: (string | OutgoingEmail)[];
     hasNextPage?: boolean;
     totalDocs?: number;
@@ -4672,6 +4692,7 @@ export interface PayloadJob {
           | 'generateBills'
           | 'sendBills'
           | 'sendWeeklyReport'
+          | 'sendPflichtangabenReminders'
           | 'cleanupTemporaryFormFiles'
           | 'autoCheckoutPresence'
           | 'createCollectionExport'
@@ -4729,6 +4750,7 @@ export interface PayloadJob {
         | 'generateBills'
         | 'sendBills'
         | 'sendWeeklyReport'
+        | 'sendPflichtangabenReminders'
         | 'cleanupTemporaryFormFiles'
         | 'autoCheckoutPresence'
         | 'createCollectionExport'
@@ -6719,6 +6741,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   subject?: T;
   formSubmission?: T;
   billParticipant?: T;
+  billParticipants?: T;
   type?: T;
   form?: T;
   html?: T;
@@ -6749,6 +6772,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   zipCode?: T;
   town?: T;
   email?: T;
+  anmeldestatus?: T;
   birthday?: T;
   gender?: T;
   active?: T;
@@ -6781,6 +6805,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   missingAnmeldeangaben?: T;
   syncHistory?: T;
   relatedEmails?: T;
+  reminderEmails?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7017,6 +7042,7 @@ export interface FormsSelect<T extends boolean = true> {
                           endDate?: T;
                           minDays?: T;
                           maxDays?: T;
+                          maxRanges?: T;
                           ressortName?: T;
                           ressortLabel?: T;
                           ressortRequired?: T;
@@ -7198,6 +7224,7 @@ export interface FormsSelect<T extends boolean = true> {
                                       endDate?: T;
                                       minDays?: T;
                                       maxDays?: T;
+                                      maxRanges?: T;
                                       ressortName?: T;
                                       ressortLabel?: T;
                                       ressortRequired?: T;
@@ -8295,9 +8322,41 @@ export interface BillSetting {
          * Hitobito group ID this event belongs to (up to 6 digits)
          */
         groupId: string;
+        /**
+         * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
+         */
+        addressManagerEmails?: string | null;
+        /**
+         * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+         */
+        reminderRecipientsOverride?: string | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Emails each Hof its registrations that cannot be billed yet.
+   */
+  pflichtangabenReminder?: {
+    enabled?: boolean | null;
+    weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
+    hour?: number | null;
+    /**
+     * A fresh registration gets this grace period before it is reported.
+     */
+    minDaysMissing?: number | null;
+    /**
+     * Placeholders: {{eventName}}, {{count}}.
+     */
+    subject?: string | null;
+    /**
+     * Intro above the list of registrations. Same placeholders as the subject.
+     */
+    body?: string | null;
+    /**
+     * Written by the scheduler. Also what stops a second send in the same week.
+     */
+    lastSentAt?: string | null;
+  };
   creditorName: string;
   creditorIban: string;
   creditorStreet: string;
@@ -8405,9 +8464,12 @@ export interface BillSetting {
     weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
     hour?: number | null;
     attachPdf?: boolean | null;
+    /**
+     * Sends the detailed bill overview (Excel) to the finance recipients.
+     */
     attachExcel?: boolean | null;
     /**
-     * Comma-separated. Leave empty to use the finance recipients below.
+     * Comma-separated list of email addresses. Receives the general registration report (PDF). Does not receive confidential financial figures.
      */
     recipients?: string | null;
     /**
@@ -8419,12 +8481,20 @@ export interface BillSetting {
      */
     body?: string | null;
     /**
+     * Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.
+     */
+    financeSubject?: string | null;
+    /**
+     * Same placeholders as the subject.
+     */
+    financeBody?: string | null;
+    /**
      * Written by the scheduler. Also what stops a second send in the same week.
      */
     lastSentAt?: string | null;
   };
   /**
-   * Comma-separated list of email addresses to receive the CSV export.
+   * Comma-separated list of email addresses for the weekly bill overview (Excel).
    */
   financeEmailRecipients?: string | null;
   invoiceEmailSubject?: string | null;
@@ -8858,7 +8928,20 @@ export interface BillSettingsSelect<T extends boolean = true> {
         eventId?: T;
         eventName?: T;
         groupId?: T;
+        addressManagerEmails?: T;
+        reminderRecipientsOverride?: T;
         id?: T;
+      };
+  pflichtangabenReminder?:
+    | T
+    | {
+        enabled?: T;
+        weekday?: T;
+        hour?: T;
+        minDaysMissing?: T;
+        subject?: T;
+        body?: T;
+        lastSentAt?: T;
       };
   creditorName?: T;
   creditorIban?: T;
@@ -8918,6 +9001,8 @@ export interface BillSettingsSelect<T extends boolean = true> {
         recipients?: T;
         subject?: T;
         body?: T;
+        financeSubject?: T;
+        financeBody?: T;
         lastSentAt?: T;
       };
   financeEmailRecipients?: T;
@@ -9230,6 +9315,14 @@ export interface TaskSendBills {
  * via the `definition` "TaskSendWeeklyReport".
  */
 export interface TaskSendWeeklyReport {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendPflichtangabenReminders".
+ */
+export interface TaskSendPflichtangabenReminders {
   input?: unknown;
   output?: unknown;
 }
