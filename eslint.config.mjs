@@ -158,7 +158,6 @@ const config = defineConfig([
       'src/features/emergency/api/emergency-router.ts',
       'src/features/emergency/components/emergency-component.tsx',
       'src/features/map/components/map-annotations/drawer-header.tsx',
-      'src/features/native-push/api/native-push-router.ts',
       'src/features/next-auth/utils/next-auth-config.ts',
       'src/features/onboarding/hooks/use-onboarding.ts',
       'src/features/payload-cms/page-layouts/generic-page.tsx',
