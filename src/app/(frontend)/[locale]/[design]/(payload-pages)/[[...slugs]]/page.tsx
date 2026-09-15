@@ -9,12 +9,15 @@ import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
+import { createLogger } from '@/utils/server-logger';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import type React from 'react';
 import { cache } from 'react';
+
+const logger = createLogger('pages:render');
 
 /**
  * Dynamic Payload CMS catch-all route handles dynamic slug resolution, locale switching,
@@ -191,7 +194,7 @@ export const generateMetadata = async ({
     // During prerendering, searchParams rejects — preview is never active.
     // The check below is only reached for non-Next.js errors.
     if (!(error instanceof Error && error.message.includes('searchParams'))) {
-      console.error('Unexpected error while resolving preview state:', error);
+      logger.error('Unexpected error while resolving the preview state', { error });
     }
   }
 
@@ -291,7 +294,9 @@ const CMSPage: React.FC<{
       );
     } else {
       // redirect to the alternative locale
-      console.log('Redirecting to alternative locale for special page');
+      logger.debug('Redirecting a special page to the alternative locale', {
+        locale: validatedLocale,
+      });
       const normalizedAlternativePath = normalizeAlternativePath(
         specialPage.alternatives[validatedLocale],
       );
@@ -335,7 +340,9 @@ const CMSPage: React.FC<{
       // redirect to alternative collectionPage if available
       const alternative = collectionPage.alternatives[validatedLocale];
       const normalizedAlternativePath = normalizeAlternativePath(alternative);
-      console.log('Redirecting to alternative locale for collection page');
+      logger.debug('Redirecting a collection page to the alternative locale', {
+        locale: validatedLocale,
+      });
       redirect(`/${validatedLocale}/${normalizedAlternativePath}`);
     }
   }

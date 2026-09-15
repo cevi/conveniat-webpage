@@ -1,7 +1,10 @@
 import { ChatCapability } from '@/lib/chat-shared';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, PrismaClientOrTransaction, StaticTranslationString } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
+
+const logger = createLogger('chat:mutations');
 
 const newChatText: StaticTranslationString = {
   de: 'Neuer Chat erstellt',
@@ -107,12 +110,19 @@ export const createNewChat = async (
               senderId: user.uuid,
             })
             .catch((error: unknown) => {
-              console.error(`Failed to publish new_chat event to user ${participantId}:`, error);
+              logger.error('Failed to publish the new_chat event to a participant', {
+                error,
+                'chat.id': chat.uuid,
+                'user.id': participantId,
+              });
             });
         }
       })
       .catch((error: unknown) => {
-        console.error('Failed to import chatPubSub for new_chat event:', error);
+        logger.error('Failed to import chatPubSub for the new_chat event', {
+          error,
+          'chat.id': chat.uuid,
+        });
       });
   });
 

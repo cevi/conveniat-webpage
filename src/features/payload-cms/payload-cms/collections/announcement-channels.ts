@@ -226,7 +226,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
   return doc;
 };
 
-const afterChannelDelete: CollectionAfterDeleteHook<AnnouncementChannel> = async ({ doc }) => {
+const afterChannelDelete: CollectionAfterDeleteHook<AnnouncementChannel> = async ({ doc, req }) => {
   const chatUuid = doc.chatUuid;
   if (chatUuid !== undefined && chatUuid !== null && chatUuid !== '') {
     // Delete PostgreSQL chat structure cascade-deletes memberships & messages
@@ -235,9 +235,9 @@ const afterChannelDelete: CollectionAfterDeleteHook<AnnouncementChannel> = async
         where: { uuid: chatUuid },
       })
       .catch((error: unknown) => {
-        console.error(
-          `Failed to cascade delete PostgreSQL chat ${chatUuid} on CMS channel deletion:`,
-          error,
+        req.payload.logger.error(
+          { error, 'chat.id': chatUuid },
+          'Failed to cascade-delete the postgres chat on CMS channel deletion',
         );
       });
   }

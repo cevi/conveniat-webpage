@@ -1,8 +1,11 @@
 import { environmentVariables as env } from '@/config/environment-variables';
 import { FEATURE_FLAG_DEFAULTS } from '@/lib/feature-flags';
+import { createLogger } from '@/utils/server-logger';
 import Redis from 'ioredis';
 import { revalidateTag, unstable_cache } from 'next/cache';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
+
+const logger = createLogger('redis');
 
 const globalForRedis = globalThis as unknown as { redis: Redis | undefined };
 
@@ -45,7 +48,7 @@ if (env.NODE_ENV !== 'production') globalForRedis.redis = redis;
 
 redis.on('error', (error: { code: string }) => {
   if (error.code !== 'EAI_AGAIN') {
-    console.error('[Redis] Connection Error', error);
+    logger.error('Redis connection error', { error });
   }
 });
 
@@ -68,10 +71,10 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
   try {
     return await fetchCachedFeatureFlag(key);
   } catch (error) {
-    console.warn(
-      `[Redis] Feature flag fetch failed for ${key}, returning un-cached default fallback:`,
-      (error as Error).message,
-    );
+    logger.warn('Feature flag fetch failed, returning the un-cached default', {
+      error,
+      'feature_flag.key': key,
+    });
     return FEATURE_FLAG_DEFAULTS[key] ?? false;
   }
 };

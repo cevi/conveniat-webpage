@@ -1,8 +1,11 @@
 import { trpcBaseProcedure } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
+
+const logger = createLogger('presence');
 
 export const updatePresence = trpcBaseProcedure
   .input(
@@ -110,7 +113,10 @@ export const updatePresence = trpcBaseProcedure
             id: payloadLogId,
           });
         } catch (revertError: unknown) {
-          console.error('Failed to revert Payload presence log:', revertError);
+          logger.error('Failed to revert the Payload presence log', {
+            error: revertError,
+            'user.id': user.uuid,
+          });
         }
       }
 
@@ -119,7 +125,10 @@ export const updatePresence = trpcBaseProcedure
           where: { uuid: prismaLog.uuid },
         });
       } catch (revertError: unknown) {
-        console.error('Failed to revert Prisma presence log:', revertError);
+        logger.error('Failed to revert the prisma presence log', {
+          error: revertError,
+          'user.id': user.uuid,
+        });
       }
 
       try {
@@ -128,7 +137,10 @@ export const updatePresence = trpcBaseProcedure
           data: { presentAtCamp: previousPresentAtCamp },
         });
       } catch (revertError: unknown) {
-        console.error('Failed to revert Prisma user presence state:', revertError);
+        logger.error('Failed to revert the prisma user presence state', {
+          error: revertError,
+          'user.id': user.uuid,
+        });
       }
 
       throw new TRPCError({

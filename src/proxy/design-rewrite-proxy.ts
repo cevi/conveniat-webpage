@@ -2,8 +2,11 @@ import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
 import type { ProxyModule } from '@/proxy/types';
 import { Cookie, Header } from '@/types/types';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
+import { createLogger } from '@/utils/server-logger';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+
+const logger = createLogger('proxy:design-rewrite');
 
 /**
  * Adds a prefix to the rewrite URL in the response.
@@ -108,7 +111,7 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
   }
 
   if (forceAppMode) {
-    console.log('[DesignProxy] Force Mode: Detected in URL');
+    logger.debug('Force app mode detected in the URL');
   }
 
   return next(request, event, nextResponse);

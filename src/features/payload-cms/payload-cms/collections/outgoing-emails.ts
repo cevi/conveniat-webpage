@@ -290,7 +290,10 @@ export const OutgoingEmails: CollectionConfig = {
                   : (formValue as string);
               }
             } catch (error) {
-              console.error('Error fetching form submission inside form afterRead hook:', error);
+              req.payload.logger.error(
+                { error, 'form.submission.id': formSubmissionId },
+                'Failed to read the form submission inside the form afterRead hook',
+              );
             }
             return undefined;
           }) as FieldHook,

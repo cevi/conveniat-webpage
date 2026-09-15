@@ -1,7 +1,10 @@
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { trpcBaseProcedure } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:mutations');
 
 const markChatAsReadInputSchema = z.object({
   chatId: z.string().uuid(),
@@ -104,7 +107,11 @@ export const markChatAsRead = trpcBaseProcedure
         })
         .catch((error: unknown) => {
           // Ignore if already exists, log other issues
-          console.warn('Could not create READ message event (might already exist):', error);
+          logger.debug('Could not create the READ message event, it may already exist', {
+            error,
+            'chat.id': chatId,
+            'message.id': lastMessageId,
+          });
         });
     }
   });

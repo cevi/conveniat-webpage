@@ -17,10 +17,13 @@ import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/ini
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
+
+const logger = createLogger('schedule:router');
 
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
@@ -921,7 +924,7 @@ export const scheduleRouter = createTRPCRouter({
           });
           return { starred: true };
         } catch (error) {
-          console.warn('[toggleStar] Could not toggle star:', error);
+          logger.warn('Could not toggle the star', { error, 'course.id': courseId });
           return { starred: false };
         }
       }),
@@ -940,7 +943,7 @@ export const scheduleRouter = createTRPCRouter({
         });
         return stars.map((s: { courseId: string }) => s.courseId);
       } catch (error) {
-        console.warn('[getMyStars] Could not query stars:', error);
+        logger.warn('Could not query the stars', { error, 'user.id': user.uuid });
         return [];
       }
     }),
@@ -974,7 +977,10 @@ export const scheduleRouter = createTRPCRouter({
           });
           return allStars.map((s: { courseId: string }) => s.courseId);
         } catch (error) {
-          console.warn('[syncStars] Could not sync stars with database:', error);
+          logger.warn('Could not sync the stars with the database', {
+            error,
+            'user.id': user.uuid,
+          });
           return courseIds;
         }
       }),
@@ -992,7 +998,7 @@ export const scheduleRouter = createTRPCRouter({
             },
           });
         } catch (error) {
-          console.warn('[getStarCount] Could not count stars:', error);
+          logger.warn('Could not count the stars', { error, 'course.id': input.courseId });
           return 0;
         }
       }),

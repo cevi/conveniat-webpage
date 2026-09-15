@@ -3,8 +3,11 @@ import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { createLogger } from '@/utils/server-logger';
 import { MessageType } from '@prisma/client';
 import { z } from 'zod';
+
+const logger = createLogger('chat:mutations');
 
 const updateMessageContentSchema = z.object({
   messageId: z.string(),
@@ -204,7 +207,11 @@ export const updateMessageContent = trpcBaseProcedure
             },
           })
           .catch((error: unknown) => {
-            console.error('Failed to publish new alert message event:', error);
+            logger.error('Failed to publish the new alert message event', {
+              error,
+              'chat.id': message.chatId,
+              'message.id': createdNextMessage.uuid,
+            });
           });
       }
     }
@@ -226,7 +233,11 @@ export const updateMessageContent = trpcBaseProcedure
         },
       })
       .catch((error: unknown) => {
-        console.error('Failed to publish message_updated event:', error);
+        logger.error('Failed to publish the message_updated event', {
+          error,
+          'chat.id': message.chatId,
+          'message.id': message.uuid,
+        });
       });
 
     return { success: true };
