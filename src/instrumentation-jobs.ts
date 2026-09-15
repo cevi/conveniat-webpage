@@ -31,9 +31,7 @@ export const startJobsRunner = async (): Promise<void> => {
       await getPayload({ config, cron: true });
       logger.info('Payload job runner started');
     } catch (error: unknown) {
-      logger.error(
-        `Could not start the Payload job runner: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      logger.error('Could not start the Payload job runner', { error });
     }
   });
 };
