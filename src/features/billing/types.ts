@@ -126,6 +126,7 @@ export enum BillingTaskSlug {
   SyncParticipants = 'syncParticipants',
   GenerateBills = 'generateBills',
   SendBills = 'sendBills',
+  SendWeeklyReport = 'sendWeeklyReport',
 }
 
 /**
