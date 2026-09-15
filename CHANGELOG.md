@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/cevi/conveniat-webpage/compare/v1.8.0...v1.8.1) (2026-09-14)
+
+
+### Dependencies
+
+* **deps:** bump the npm_and_yarn group across 1 directory with 3 updates ([b9f34c3](https://github.com/cevi/conveniat-webpage/commit/b9f34c3b6efb12e0bfb97e4454a387cd3ae7a2d1))
+* **deps:** bump the npm_and_yarn group across 1 directory with 3 updates ([4c2e235](https://github.com/cevi/conveniat-webpage/commit/4c2e235233b8181aab31b6819bccedffcbd3e81c))
+
 ## [1.8.0](https://github.com/cevi/conveniat-webpage/compare/v1.7.6...v1.8.0) (2026-09-14)
 
 
