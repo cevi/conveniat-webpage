@@ -7,8 +7,9 @@ import type {
 } from '@/features/billing/ports/hitobito-service.port';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import {
-  type ParticipationAnswerField,
+  decodeDisplayText,
   parseParticipationAnswerFields,
+  type ParticipationAnswerField,
 } from '@/features/registration_process/hitobito-api/html-parser';
 import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
 import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
@@ -319,7 +320,10 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     if (!response.data) return [];
     return response.data.map((event) => ({
       id: event.id,
-      name: event.attributes?.name ?? '',
+      // The name is stored and shown as text everywhere downstream — on the bill, in the
+      // exports and in the reminder mails — so the entities Cevi.DB wraps it in come off
+      // here, at the only door they enter through.
+      name: decodeDisplayText(event.attributes?.name ?? ''),
     }));
   }
 
