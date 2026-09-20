@@ -19,7 +19,7 @@ export const AppLandingPageGlobal: GlobalConfig = {
     update: isFullAdmin,
   },
   admin: {
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppContent.label,
     hidden: shouldHideInAdminPanelIfNotAdmin,
     description: {
       en: 'Configure the app dashboard landing page: title, welcome content, and action card visibility.',

@@ -25,7 +25,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'subject',
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
     groupBy: true,
     defaultColumns: [
       'subject',

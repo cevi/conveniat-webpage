@@ -1,4 +1,5 @@
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 import { z } from 'zod';
 
@@ -45,11 +46,7 @@ export const BillSettingsGlobal: GlobalConfig = {
   },
   admin: {
     hideAPIURL: true,
-    group: {
-      en: 'Billing',
-      de: 'Rechnungen',
-      fr: 'Facturation',
-    },
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
   },
   access: {
     read: canAccessBilling,

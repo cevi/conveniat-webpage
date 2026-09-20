@@ -34,41 +34,47 @@ import type { CollectionConfig } from 'payload';
 
 // TODO: add slug validation enforcing uniqueness of slugs
 
+/**
+ * The order of this list is the order of the admin sidebar, see
+ * `admin-panel-dashboard-groups.ts`. Keep the collections of one area together.
+ */
 const rawCollectionsConfig: CollectionConfig[] = [
-  // routable collections
-  BlogArticleCollection,
+  // Webseite
   GenericPageCollection,
+  BlogArticleCollection,
   TimelineCollection,
+  TimelineEntryCategory,
+  ImageCollection,
+  UserSubmittedImagesCollection,
+  DocumentsCollection,
+  PermissionsCollection,
+  FormCollection,
+  JobCollection,
+  BlockedJobs,
 
-  // app content collections
+  // App
+  AnnouncementChannelsCollection,
+  AnnouncementsCollection,
+  EmergencyCardsCollection,
   PhotoContestCollection,
   CampMapAnnotationsCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
   HelperShiftsCollection,
-  JobCollection,
-  AnnouncementChannelsCollection,
-  AnnouncementsCollection,
-  EmergencyCardsCollection,
-
-  // general purpose collections, not routable
-  ImageCollection,
-  UserSubmittedImagesCollection,
-  DocumentsCollection,
-  FormCollection,
-  UserCollection,
-  PermissionsCollection,
+  PiketScheduleCollection,
   PushNotificationSubscriptions,
-  TimelineEntryCategory,
-  ChatImagesCollection,
-  BlockedJobs,
-  SmtpBounceMailTracking,
-  OutgoingEmails,
+
+  // Backoffice
+  UserCollection,
+  PresenceLogCollection,
   BillParticipantsCollection,
   BillPdfsCollection,
-  PiketScheduleCollection,
+  OutgoingEmails,
   PayloadWorkersCollection,
-  PresenceLogCollection,
+
+  // internal, never shown in the admin panel
+  ChatImagesCollection,
+  SmtpBounceMailTracking,
 ];
 
 /**

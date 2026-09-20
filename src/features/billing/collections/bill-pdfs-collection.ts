@@ -21,7 +21,7 @@ export const BillPdfsCollection: CollectionConfig = {
     },
   },
   admin: {
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'filename',
   },
   access: {

@@ -152,7 +152,7 @@ export const mcpPluginConfiguration = mcpPlugin({
     admin: {
       ...collection.admin,
       description: apiKeyCollectionDescription,
-      group: AdminPanelDashboardGroups.InternalCollections,
+      group: AdminPanelDashboardGroups.BackofficePeople.label,
       hidden: shouldHideInAdminPanelIfNotAdmin,
       defaultColumns: ['label', 'user', 'description', 'updatedAt'],
     },

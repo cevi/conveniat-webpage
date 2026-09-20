@@ -6,7 +6,7 @@ export const PayloadWorkersCollection: CollectionConfig = {
   slug: 'payload-workers',
   admin: {
     useAsTitle: 'workerId',
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
     defaultColumns: ['workerId', 'hostname', 'queues', 'lastHeartbeat', 'activeJobIds'],
     description: {
       en: 'Registered background worker instances and their activity heartbeats.',

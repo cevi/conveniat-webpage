@@ -147,7 +147,7 @@ export const UserCollection: CollectionConfig = {
     description:
       'Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.',
     useAsTitle: 'displayName',
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.BackofficePeople.label,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,

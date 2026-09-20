@@ -42,7 +42,7 @@ export const importExportConfiguration = importExportPlugin({
     ...collection,
     admin: {
       ...collection.admin,
-      group: AdminPanelDashboardGroups.InternalCollections,
+      group: AdminPanelDashboardGroups.BackofficeSystem.label,
     },
     access: {
       ...collection.access,
@@ -60,7 +60,7 @@ export const importExportConfiguration = importExportPlugin({
     ...collection,
     admin: {
       ...collection.admin,
-      group: AdminPanelDashboardGroups.InternalCollections,
+      group: AdminPanelDashboardGroups.BackofficeSystem.label,
     },
     access: {
       ...collection.access,

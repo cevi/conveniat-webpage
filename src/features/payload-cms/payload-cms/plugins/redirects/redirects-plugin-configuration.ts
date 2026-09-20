@@ -14,7 +14,7 @@ export const redirectsPluginConfiguration = redirectsPlugin({
     admin: {
       useAsTitle: 'urlSlug',
       defaultColumns: ['urlSlug'],
-      group: AdminPanelDashboardGroups.InternalCollections,
+      group: AdminPanelDashboardGroups.WebpageContent.label,
       components: {
         edit: {
           beforeDocumentControls: [
