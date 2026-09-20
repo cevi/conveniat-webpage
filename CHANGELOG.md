@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.9.3](https://github.com/cevi/conveniat-webpage/compare/v1.9.2...v1.9.3) (2026-09-20)
+
+
+### Bug Fixes
+
+* **jobs:** keep a worker's claim readable across a rolling deploy ([d38e3ba](https://github.com/cevi/conveniat-webpage/commit/d38e3baab695d9b6475a0c769146e45868a28a6f))
+* **jobs:** let a task record its own log entry ([b3558ed](https://github.com/cevi/conveniat-webpage/commit/b3558edaffcaa6f07c8b8b01e9c08edc2c2d4495))
+* **jobs:** let a task record its own log entry ([fa5c74f](https://github.com/cevi/conveniat-webpage/commit/fa5c74feeca4ec08a7bb423d6a1d01c7e906a2d0))
+* **jobs:** publish every job a worker is running, as it starts ([d0e32c9](https://github.com/cevi/conveniat-webpage/commit/d0e32c926c4bdb3f2b4bc358b53b3c9842aa337b))
+* **logging:** route per-request server logs through the logger ([c6b286d](https://github.com/cevi/conveniat-webpage/commit/c6b286d348e8a588ce52e566b98693b4a7ff195d))
+* **mail:** read past mail the bounce check cannot place ([fac85ea](https://github.com/cevi/conveniat-webpage/commit/fac85ea019434c0d6bb2a490a8e18e6b7d98f151))
+* **mail:** read past mail the bounce check cannot place ([25e18b8](https://github.com/cevi/conveniat-webpage/commit/25e18b85e6d2493345154c500f396d9bb4f3a8b1))
+* **mail:** tell a missing record apart from a failed lookup ([a6196ad](https://github.com/cevi/conveniat-webpage/commit/a6196ad844c57befaba404b681b4e7fd6aff199d))
+* **payload-cms:** strip control characters from saved content ([d71d110](https://github.com/cevi/conveniat-webpage/commit/d71d1108587eb4336cc45a0dd5492a2afa2d3f79))
+* **payload-cms:** strip control characters on plugin collections too ([f2faf9f](https://github.com/cevi/conveniat-webpage/commit/f2faf9f1eef9a9f03f75be5ed4738a8f79e2cd59))
+
+
+### Performance
+
+* **jobs:** make a worker heartbeat a single write ([c3d8ac5](https://github.com/cevi/conveniat-webpage/commit/c3d8ac592c408720d9c1cf5dadf976d1aa9d4e0f))
+
 ## [1.9.2](https://github.com/cevi/conveniat-webpage/compare/v1.9.1...v1.9.2) (2026-09-20)
 
 
