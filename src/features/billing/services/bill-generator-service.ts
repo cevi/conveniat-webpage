@@ -165,20 +165,40 @@ export function layoutFooterLines(
   return lines;
 }
 
+/** Accent green, the colour links are printed in so they read as links on paper too. */
+const LINK_COLOR = '#47564C';
+
 /**
- * Renders text with basic markdown support (**bold**, *italic*, ***bold italic***).
- * Splits the input into segments and switches PDFKit fonts inline.
+ * The PDFKit font a segment is drawn in. A link is set in bold on top of whatever style
+ * it inherits from the run around it, so it still reads as a link on a printed bill,
+ * where nothing can be clicked.
+ */
+export function resolveSegmentFont(segment: LetterSegment): string {
+  const isItalic = segment.style === 'italic' || segment.style === 'boldItalic';
+  const isBold =
+    segment.href !== undefined || segment.style === 'bold' || segment.style === 'boldItalic';
+
+  if (isBold && isItalic) return 'Helvetica-BoldOblique';
+  if (isBold) return 'Helvetica-Bold';
+  if (isItalic) return 'Helvetica-Oblique';
+  return 'Helvetica';
+}
+
+/**
+ * Renders text with basic markdown support (**bold**, *italic*, ***bold italic***) and
+ * clickable links. Splits the input into segments and switches PDFKit fonts inline.
  */
 function renderMarkdownText(
   document_: PDFKit.PDFDocument,
   text: string,
   x: number,
   y: number,
-  options: { width: number; lineGap?: number },
+  options: { width: number; lineGap?: number; color?: string },
 ): void {
   // Split text into paragraphs (double newline)
   const paragraphs = text.split(/\n\n/);
 
+  const baseColor = options.color ?? '#000000';
   document_.font('Helvetica');
   let isFirstSegment = true;
 
@@ -187,47 +207,107 @@ function renderMarkdownText(
       document_.moveDown(0.5);
     }
 
-    // Parse markdown segments: ***bold italic***, **bold**, *italic*, plain
-    const segments = parseMarkdownSegments(paragraph);
+    const segments = parseLetterSegments(paragraph);
 
     for (const segment of segments) {
-      switch (segment.style) {
-        case 'boldItalic': {
-          document_.font('Helvetica-BoldOblique');
-          break;
-        }
-        case 'bold': {
-          document_.font('Helvetica-Bold');
-          break;
-        }
-        case 'italic': {
-          document_.font('Helvetica-Oblique');
-          break;
-        }
-        default: {
-          document_.font('Helvetica');
-        }
-      }
+      const isLink = segment.href !== undefined;
+      document_.font(resolveSegmentFont(segment));
+      document_.fillColor(isLink ? LINK_COLOR : baseColor);
 
       const isLastInParagraph = segment === segments.at(-1);
 
+      // PDFKit carries the options of a continued run into the calls that follow it, so
+      // `link` is spelled out on every segment — left undefined, the text after a link
+      // would inherit its annotation. `null` is how PDFKit spells "no annotation"; the
+      // colour and the weight are the only other marking, since an underline under three
+      // addresses in one paragraph is more ink than the letter can carry.
+      const segmentOptions = {
+        width: options.width,
+        lineGap: options.lineGap,
+        continued: !isLastInParagraph,
+        // eslint-disable-next-line unicorn/no-null -- PDFKit clears an inherited link with null
+        link: segment.href ?? null,
+      };
+
       if (isFirstSegment) {
         // Position the very first segment at x, y
-        document_.text(segment.text, x, y, {
-          width: options.width,
-          lineGap: options.lineGap,
-          continued: !isLastInParagraph,
-        });
+        document_.text(segment.text, x, y, segmentOptions);
         isFirstSegment = false;
       } else {
-        document_.text(segment.text, {
-          width: options.width,
-          lineGap: options.lineGap,
-          continued: !isLastInParagraph,
-        });
+        document_.text(segment.text, segmentOptions);
       }
     }
   }
+
+  document_.fillColor(baseColor);
+}
+
+/** A run of letter text that is drawn with one font, one colour and one annotation. */
+export interface LetterSegment {
+  text: string;
+  style: 'plain' | 'bold' | 'italic' | 'boldItalic';
+  /** Set when the run is a link, and then the address it points at. */
+  href?: string;
+}
+
+/**
+ * Matches an address an editor wrote into the letter text.
+ *
+ * Editors write them bare — `con27.ch/agbs`, not `[AGB](https://con27.ch/agbs)` — so bare
+ * hosts have to be recognised as well as full URLs. The bare form only matches a
+ * lowercase top level domain preceded by a label of its own, which is what keeps a
+ * German abbreviation (`z.B.`) and a missing space after a full stop (`usw.Das`) out.
+ * The lookbehind keeps it off the domain part of an email address.
+ */
+const LETTER_LINK_PATTERN =
+  /(?<![\w@./-])(?:https?:\/\/[^\s<>()]+|(?:www\.)?[a-z\d](?:[a-z\d-]*[a-z\d])?(?:\.[a-z\d-]+)*\.[a-z]{2,10}(?:\/[^\s<>()]*)?)/g;
+
+/** Punctuation that ends the sentence rather than the address. */
+const LINK_TRAILING_PUNCTUATION = /[.,;:!?'")\]}]+$/;
+
+/** A scheme the address already carries. A bare `httpbin.org` has none. */
+const LINK_SCHEME = /^https?:\/\//;
+
+/**
+ * Splits a styled run at the addresses inside it, keeping the run's style and annotating
+ * each address with the URL it should open.
+ */
+function linkifySegment(segment: { text: string; style: LetterSegment['style'] }): LetterSegment[] {
+  const segments: LetterSegment[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  LETTER_LINK_PATTERN.lastIndex = 0;
+  while ((match = LETTER_LINK_PATTERN.exec(segment.text)) !== null) {
+    const address = match[0].replace(LINK_TRAILING_PUNCTUATION, '');
+    if (address === '') continue;
+
+    if (match.index > lastIndex) {
+      segments.push({ text: segment.text.slice(lastIndex, match.index), style: segment.style });
+    }
+    segments.push({
+      text: address,
+      style: segment.style,
+      href: LINK_SCHEME.test(address) ? address : `https://${address}`,
+    });
+
+    lastIndex = match.index + address.length;
+    LETTER_LINK_PATTERN.lastIndex = lastIndex;
+  }
+
+  if (lastIndex < segment.text.length) {
+    segments.push({ text: segment.text.slice(lastIndex), style: segment.style });
+  }
+
+  return segments.length > 0 ? segments : [{ text: segment.text, style: segment.style }];
+}
+
+/**
+ * Parses a paragraph of editor-written letter text into the runs the PDF is drawn from:
+ * markdown bold/italic first, then the addresses inside each of those runs.
+ */
+export function parseLetterSegments(text: string): LetterSegment[] {
+  return parseMarkdownSegments(text).flatMap((segment) => linkifySegment(segment));
 }
 
 /**

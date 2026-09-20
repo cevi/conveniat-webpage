@@ -33,8 +33,8 @@ async function getActiveWorkerJobIds(payload: Payload): Promise<Set<string>> {
  *
  * @param request The Payload request object
  * @param taskSlug The slug of the task to clean up
- * @param maxAgeMinutes The maximum allowed age of an incomplete job in minutes before it is considered stale.
- *                      Default is 10080 (7 days). This should be set per-task based on its expected maximum runtime.
+ * @param maxAgeMinutes How long an incomplete job may sit past its start time before it counts as
+ *                      stale. Default is 10080 (7 days). Set per-task based on its expected maximum runtime.
  */
 export async function cleanupStaleScheduledJobs(
   request: PayloadRequest,
@@ -52,6 +52,17 @@ export async function cleanupStaleScheduledJobs(
         { completedAt: { exists: false } },
         { 'meta.scheduled': { equals: true } },
         { createdAt: { less_than: cutoffDate.toISOString() } },
+        // A scheduled job is created as soon as the scheduler decides the occurrence,
+        // and then waits for its `waitUntil`. Age alone would therefore declare the
+        // next nightly run stale hours before it is due and delete it, so a job that
+        // has not reached its start time yet is never stale. Jobs from before the
+        // scheduler passed `waitUntil` on carry none and are judged by age as before.
+        {
+          or: [
+            { waitUntil: { exists: false } },
+            { waitUntil: { less_than: cutoffDate.toISOString() } },
+          ],
+        },
       ],
     },
     limit: 100,

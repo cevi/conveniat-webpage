@@ -26,6 +26,7 @@ import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cm
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
+import { makeJobLogErrorOptional } from '@/features/payload-cms/payload-cms/tasks/jobs-collection-fields';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
@@ -177,7 +178,7 @@ const jobsConfig: JobsConfig = {
   deleteJobOnComplete: false,
   runHooks: true,
   jobsCollectionOverrides: ({ defaultJobsCollection }) => {
-    const fields = defaultJobsCollection.fields.map((field) => {
+    const fields = makeJobLogErrorOptional(defaultJobsCollection.fields).map((field) => {
       if (
         'name' in field &&
         field.type === 'json' &&

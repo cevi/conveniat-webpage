@@ -8403,11 +8403,11 @@ export interface BillSetting {
   eventNumberTemplate?: string | null;
   paymentDeadlineDays?: number | null;
   /**
-   * Text on page 1, above the registration details.
+   * Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.
    */
   invoiceLetterText?: string | null;
   /**
-   * Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}.
+   * Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}. Web addresses such as con27.ch/agbs are printed as clickable links.
    */
   invoiceLetterTextAfter?: string | null;
   /**
