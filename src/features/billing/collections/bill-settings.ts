@@ -572,9 +572,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Text on page 1, above the registration details.',
-                  de: 'Text auf Seite 1, oberhalb der Anmeldedaten.',
-                  fr: 'Texte en page 1, au-dessus des données d’inscription.',
+                  en: 'Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.',
+                  de: 'Text auf Seite 1, oberhalb der Anmeldedaten. Webadressen wie con27.ch/agbs werden als anklickbare Links gedruckt.',
+                  fr: 'Texte en page 1, au-dessus des données d’inscription. Les adresses web telles que con27.ch/agbs sont imprimées comme des liens cliquables.',
                 },
               },
             },
@@ -588,9 +588,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}.',
-                  de: 'Text auf Seite 1, unterhalb der Anmeldedaten und des Hinweises zu deren Korrektur. Leer lassen, um nichts zu drucken. Gleiche Platzhalter wie oben: {{firstName}}, {{amount}}, {{reference}}.',
-                  fr: 'Texte en page 1, sous les données d’inscription. Laissez vide pour ne rien imprimer.',
+                  en: 'Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}. Web addresses such as con27.ch/agbs are printed as clickable links.',
+                  de: 'Text auf Seite 1, unterhalb der Anmeldedaten und des Hinweises zu deren Korrektur. Leer lassen, um nichts zu drucken. Gleiche Platzhalter wie oben: {{firstName}}, {{amount}}, {{reference}}. Webadressen wie con27.ch/agbs werden als anklickbare Links gedruckt.',
+                  fr: 'Texte en page 1, sous les données d’inscription. Laissez vide pour ne rien imprimer. Les adresses web telles que con27.ch/agbs sont imprimées comme des liens cliquables.',
                 },
               },
             },
