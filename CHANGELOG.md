@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.11.0](https://github.com/cevi/conveniat-webpage/compare/v1.10.0...v1.11.0) (2026-09-20)
+
+
+### Features
+
+* **billing:** download the weekly report on demand ([bddc516](https://github.com/cevi/conveniat-webpage/commit/bddc516a1d4828e759150d1f30e24f63ee638cfa))
+* **billing:** download the weekly report on demand ([66ebbc2](https://github.com/cevi/conveniat-webpage/commit/66ebbc228b97befbb6ecc7c24a67785db0a43ee6))
+
+
+### Bug Fixes
+
+* **admin:** lend an add-on column a login when none is free ([ce34bf4](https://github.com/cevi/conveniat-webpage/commit/ce34bf4d79c73efee0b25857e8a9343efe7dfbde))
+* **admin:** show what an add-on group grants in the access overview ([c526689](https://github.com/cevi/conveniat-webpage/commit/c52668970730d7e52d3bab454f0478f10276828e))
+* **admin:** show what an add-on group grants in the access overview ([dfc12ab](https://github.com/cevi/conveniat-webpage/commit/dfc12abd6848b56f5bb9f5acd007be960df8c45a))
+* **billing:** decode HTML entities in Hof names from Cevi.DB ([d0f61b7](https://github.com/cevi/conveniat-webpage/commit/d0f61b7dd5f022c6d095978925699565aef9ed1c))
+* **billing:** decode HTML entities in Hof names from Cevi.DB ([97890cd](https://github.com/cevi/conveniat-webpage/commit/97890cdf1c710115ead21f68611451497756c3b6))
+* **billing:** let an expired session through the restricted-person fallback ([68678ad](https://github.com/cevi/conveniat-webpage/commit/68678ad48e50c7d3e35e263f91356115834c3ab9))
+* **billing:** report an expired Cevi.DB session instead of a missing question ([08791f9](https://github.com/cevi/conveniat-webpage/commit/08791f92a06560dbba8bf55749e0d25b8181b462))
+* **billing:** report an expired Cevi.DB session instead of a missing question ([5a5ecb9](https://github.com/cevi/conveniat-webpage/commit/5a5ecb9dd5c35601d1381dcbb7a225a17db499ec))
+* **billing:** stop the sync when the Cevi.DB session is gone ([6aa381a](https://github.com/cevi/conveniat-webpage/commit/6aa381ae65e67673635bc9cb9d05d878fd531244))
+* **forms:** drop Finanzen and Relations from the Ressort wish ([41ee0c0](https://github.com/cevi/conveniat-webpage/commit/41ee0c0e5d55de167556248c69bc8cca4f50fe16))
+* **forms:** drop Finanzen and Relations from the Ressort wish ([950688b](https://github.com/cevi/conveniat-webpage/commit/950688bdb94dee0d6a908aa98281a43198831412))
+* **go:** answer a short link with an HTTP redirect ([a306c5c](https://github.com/cevi/conveniat-webpage/commit/a306c5c218a76865367da46a6ee22885e32c87da))
+* **go:** answer a short link with an HTTP redirect ([163bce9](https://github.com/cevi/conveniat-webpage/commit/163bce9fc5f79a01a8ad4bd56b73f82dfd6123e7))
+* **payload:** declare access on every collection and global ([1dbecc8](https://github.com/cevi/conveniat-webpage/commit/1dbecc8b8d14b9036824835ab12fc3bc12901156))
+* **payload:** declare access on every collection and global ([bf763c6](https://github.com/cevi/conveniat-webpage/commit/bf763c6c8cd522be5d8669d3fb1a687b84a441a0))
+
+
+### Performance
+
+* **mail:** delete DMARC aggregate reports from the bounce mailbox ([36847e9](https://github.com/cevi/conveniat-webpage/commit/36847e9be89156d64cdb5cc38dbd2013d9c4d55e))
+* **mail:** delete DMARC aggregate reports from the bounce mailbox ([0f941a2](https://github.com/cevi/conveniat-webpage/commit/0f941a2ce9a8cb682ace210df4b3e992aa114ca9))
+
 ## [1.10.0](https://github.com/cevi/conveniat-webpage/compare/v1.9.3...v1.10.0) (2026-09-20)
 
 
