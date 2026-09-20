@@ -15,12 +15,14 @@ import {
   NEEDS_MANUAL_REVIEW,
   resolveSyncStatus,
 } from '@/features/billing/services/billing-status';
+import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import { isRoleAllowed, validateParticipant } from '@/features/billing/services/validation-service';
 import type { SyncSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 import { traceFunction, withSpan } from '@/utils/tracing-helpers';
 import { randomUUID } from 'node:crypto';
 import type { Payload } from 'payload';
@@ -647,6 +649,16 @@ export async function syncParticipantsUseCase(
         logger,
       );
     } catch (error) {
+      if (error instanceof SessionExpiredError) {
+        // Every remaining event reads through the same dead session, and a run that
+        // cannot read must not write: an empty answers map looks exactly like a
+        // registration whose Pflichtangaben were all deleted.
+        logger.error(`Aborting participant sync: ${error.message}`);
+        summary.errors.push(CEVIDB_SESSION_EXPIRED_MESSAGE);
+        summary.relatedDocuments = ['registrationManagement'];
+        break;
+      }
+
       const errorMessage = error instanceof Error ? error.message : String(error);
       summary.errors.push(`Event ${event.eventId} (${event.eventName ?? '–'}): ${errorMessage}`);
     }

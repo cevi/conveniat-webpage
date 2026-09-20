@@ -1,4 +1,5 @@
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
 import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 
 /** The answer the Cevi.DB expects once the invoice has gone out. */
@@ -19,8 +20,6 @@ export const ANMELDESTATUS_FAILED_ACTION = 'anmeldestatus_writeback_failed';
 /** Both cookie failures read the same to an operator: go to the settings and paste a new one. */
 const MISSING_COOKIE_REASON =
   'Es ist kein gültiger Browser-Cookie hinterlegt. Bitte trage ihn in den Registrierungs-Einstellungen ein.';
-const SESSION_EXPIRED_REASON =
-  'Die Cevi.DB-Sitzung ist abgelaufen, die Anfrage landete auf der Anmeldeseite. Bitte hinterlege einen neuen Browser-Cookie in den Registrierungs-Einstellungen.';
 
 export interface AnmeldestatusHistoryEntry {
   date: string;
@@ -131,7 +130,7 @@ export async function writeBackAnmeldestatus(
   } catch (error) {
     // A dead session reaches here as a login page every scraper fails to read, so it is
     // named for what it is instead of as whatever the form did not contain.
-    if (error instanceof SessionExpiredError) return fail(SESSION_EXPIRED_REASON, true);
+    if (error instanceof SessionExpiredError) return fail(CEVIDB_SESSION_EXPIRED_MESSAGE, true);
     return fail(error instanceof Error ? error.message : String(error));
   }
 }

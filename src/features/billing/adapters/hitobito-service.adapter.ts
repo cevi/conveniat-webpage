@@ -6,6 +6,7 @@ import type {
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 import {
   decodeDisplayText,
   parseParticipationAnswerFields,
@@ -264,6 +265,9 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
         recordAttempt(
           `Fail Legacy API (${error instanceof Error ? error.message : String(error)})`,
         );
+        // The scraper below shares the session this one just lost, so there is nothing
+        // left to fall back to. Falling through would return an empty answers map.
+        if (error instanceof SessionExpiredError) throw error;
       }
     } else {
       recordAttempt('Skip Legacy API (groupId is undefined)');
