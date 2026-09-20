@@ -4205,6 +4205,7 @@ export interface SmtpBounceMailTracking {
   uid: string;
   failureCount: number;
   lastAttempt: string;
+  ignoredAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4426,6 +4427,12 @@ export interface PayloadWorker {
     | null;
   lastHeartbeat: string;
   activeJobId?: string | null;
+  activeJobIds?:
+    | {
+        jobId: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6738,6 +6745,7 @@ export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
   uid?: T;
   failureCount?: T;
   lastAttempt?: T;
+  ignoredAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6868,6 +6876,12 @@ export interface PayloadWorkersSelect<T extends boolean = true> {
       };
   lastHeartbeat?: T;
   activeJobId?: T;
+  activeJobIds?:
+    | T
+    | {
+        jobId?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

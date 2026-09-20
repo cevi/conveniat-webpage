@@ -3,6 +3,7 @@ import {
   hasAdminOrWebAccess,
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { stripControlCharactersPlugin } from '@/features/payload-cms/payload-cms/plugins/strip-control-characters-plugin';
 import type { Config, SanitizedConfig } from 'payload';
 import { buildConfig } from 'payload';
 
@@ -13,6 +14,9 @@ import { buildConfig } from 'payload';
  * to the page, but they should not be able to access the admin panel or the API.
  *
  * See https://payloadcms.com/docs/access-control/overview
+ *
+ * It also registers `stripControlCharactersPlugin`, which strips unrenderable control
+ * characters from everything that is saved.
  *
  * This function will also apply the default buildConfig function to the config.
  *
@@ -47,6 +51,10 @@ export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
         ...collection.access,
       };
     }
+
+  // the plugin has to see the collections the other plugins add, so it is registered here
+  // instead of walking `config.collections` directly
+  config.plugins = [...(config.plugins ?? []), stripControlCharactersPlugin];
 
   return buildConfig(config);
 };

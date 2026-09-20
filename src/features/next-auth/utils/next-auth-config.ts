@@ -362,7 +362,7 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
     try {
       refreshedTokens = JSON.parse(responseText) as TokenResponse;
     } catch {
-      console.error('Failed to parse refresh token response as JSON:', responseText);
+      logger.error('The token refresh endpoint did not answer with JSON');
       throw new Error(
         `Invalid JSON response from token refresh endpoint: ${responseText.slice(0, 100)}...`,
       );

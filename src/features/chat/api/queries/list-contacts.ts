@@ -1,6 +1,9 @@
 import { trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { createLogger } from '@/utils/server-logger';
 import { z } from 'zod';
+
+const logger = createLogger('chat:queries');
 
 export interface Contact {
   userId: string;
@@ -56,8 +59,9 @@ export const listContacts = trpcBaseProcedure
           nickname: u.nickname,
         });
       }
-    } catch {
+    } catch (error) {
       // Fall back to prisma user names if payload query fails
+      logger.warn('Falling back to prisma user names, the Payload user query failed', { error });
     }
 
     return _contacts.map((contact) => {

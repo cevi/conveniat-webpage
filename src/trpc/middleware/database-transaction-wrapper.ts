@@ -1,4 +1,7 @@
 import { middleware } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
+
+const logger = createLogger('trpc:transaction');
 
 /**
  * Wraps the procedure in a database transaction.
@@ -29,7 +32,7 @@ export const databaseTransactionWrapper = middleware(async ({ ctx, next }) => {
       try {
         callback();
       } catch (error) {
-        console.error('[databaseTransactionWrapper] after-commit callback failed:', error);
+        logger.error('An after-commit callback failed', { error });
       }
     }
   }

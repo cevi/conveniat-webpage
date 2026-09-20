@@ -101,7 +101,10 @@ export const publishAnnouncementToPostgres = async (
       },
     })
     .catch((error: unknown) => {
-      console.error('Failed to publish announcement socket event:', error);
+      request.payload.logger.error(
+        { error, 'chat.id': chatUuid, 'message.id': createdMessage.uuid },
+        'Failed to publish the announcement real-time event',
+      );
     });
 
   // 7. Trigger Native & Web Push Notifications
@@ -113,7 +116,10 @@ export const publishAnnouncementToPostgres = async (
   if (recipientUserIds.length > 0 && defaultText !== '') {
     sendNotification(defaultText, recipientUserIds, chatUuid, createdMessage.uuid).catch(
       (error: unknown) => {
-        console.error('Failed to send push notifications for announcement:', error);
+        request.payload.logger.error(
+          { error, 'chat.id': chatUuid, 'message.id': createdMessage.uuid },
+          'Failed to send the push notifications for an announcement',
+        );
       },
     );
   }
@@ -264,7 +270,10 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
                 },
               })
               .catch((error: unknown) => {
-                console.error('Failed to publish real-time message_updated event:', error);
+                request.payload.logger.error(
+                  { error, 'message.id': chatMessageUuid },
+                  'Failed to publish the message_updated event for an announcement',
+                );
               });
           }
         }
@@ -281,7 +290,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
         data.publishedAt = publishedAt.toISOString();
       }
     } catch (error: unknown) {
-      console.error('Error publishing announcement:', error);
+      request.payload.logger.error({ error }, 'Failed to publish an announcement');
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Publish failed: ${errorMessage}`);
     }
@@ -307,7 +316,10 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             }
           }
         } catch (error: unknown) {
-          console.error('Error fetching document status on unpublish:', error);
+          request.payload.logger.error(
+            { error, 'document.id': originalDoc.id },
+            'Failed to read the document status on unpublish',
+          );
         }
       }
 
@@ -317,7 +329,10 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             where: { uuid: chatMessageUuid },
           });
         } catch (error: unknown) {
-          console.error('Failed to delete postgres message on unpublish:', error);
+          request.payload.logger.error(
+            { error, 'message.id': chatMessageUuid },
+            'Failed to delete the postgres message on unpublish',
+          );
         }
         // eslint-disable-next-line unicorn/no-null
         data.chatMessageUuid = null;
