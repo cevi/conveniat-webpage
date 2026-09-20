@@ -5,6 +5,11 @@ import {
   DEFAULT_QUEUE,
   recoverStaleJobs,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  skipSchedule,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import { getHitobito, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED } from '@/lib/feature-flags';
@@ -19,20 +24,14 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
       cron: '*/5 * * * *', // Every 5 minutes
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           await cleanupCompletedScheduledJobs(req, 'checkHitobitoApprovals');
           await cleanupStaleScheduledJobs(req, 'checkHitobitoApprovals', 15);
           await recoverStaleJobs(req, 60);
 
           const isEnabled = await getFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED);
           if (!isEnabled || !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT) {
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
@@ -46,10 +45,7 @@ export const checkHitobitoApprovalsTask: TaskConfig<'checkHitobitoApprovals'> = 
             `Scheduler evaluated checkHitobitoApprovals. Active/Runnable jobs: ${runnableOrActiveJobsForQueue}`,
           );
 
-          return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
-            input: {},
-          };
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },

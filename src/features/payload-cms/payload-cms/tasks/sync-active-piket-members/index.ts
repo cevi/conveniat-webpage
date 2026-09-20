@@ -4,6 +4,10 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
@@ -15,10 +19,7 @@ export const syncActivePiketMembersTask: TaskConfig = {
       cron: '* * * * *', // Every minute to catch shift changes promptly
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           await cleanupCompletedScheduledJobs(req, 'syncActivePiketMembers');
           await cleanupStaleScheduledJobs(req, 'syncActivePiketMembers', 15);
 
@@ -29,10 +30,7 @@ export const syncActivePiketMembersTask: TaskConfig = {
             onlyScheduled: true,
           });
 
-          return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
-            input: {},
-          };
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },

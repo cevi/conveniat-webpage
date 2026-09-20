@@ -11,6 +11,11 @@ import {
   getOriginalEnvelopeId,
   parsePop3Messages,
 } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
+import {
+  scheduleAt,
+  skipSchedule,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import { redis } from '@/lib/db/redis';
 import { simpleParser } from 'mailparser';
 import POP3Command from 'node-pop3';
@@ -34,10 +39,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
       cron: FETCH_SMTP_BOUNCES_CRON,
       queue: MAIL_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           // 1. Calculate the 15-minute slot lock to ensure only one instance schedules the job per slot in a cluster
           const periodMs = 15 * 60 * 1000;
           const currentSlot = Math.floor(Date.now() / periodMs) * periodMs;
@@ -60,10 +62,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             req.payload.logger.debug(
               `fetchSmtpBounces: slot ${currentSlot} already locked/scheduled for this 15m window. Skipping.`,
             );
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           await cleanupCompletedScheduledJobs(req, 'fetchSmtpBounces');
@@ -84,20 +83,14 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
               err: error instanceof Error ? error : new Error(String(error)),
               msg: 'Failed to count active fetchSmtpBounces jobs. Skipping schedule to be safe.',
             });
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           if (runnableOrActiveJobs > 0) {
             req.payload.logger.info(
               `fetchSmtpBounces: ${runnableOrActiveJobs} active or runnable jobs already exist. Skipping scheduling.`,
             );
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           // 3. Only run POP3 check if we have outgoing emails sent in the last 7 days that are still missing dsnReceivedAt
@@ -121,30 +114,21 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
               err: error instanceof Error ? error : new Error(String(error)),
               msg: 'Failed to query pending DSN email count. Skipping schedule.',
             });
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           if (pendingDsnCount === 0) {
             req.payload.logger.info(
               'fetchSmtpBounces: No outgoing emails in the last 7 days are waiting for DSN. Skipping.',
             );
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           req.payload.logger.info(
             `fetchSmtpBounces: Slot lock acquired, ${pendingDsnCount} pending DSN emails found. Scheduling job.`,
           );
 
-          return {
-            shouldSchedule: true,
-            input: {},
-          };
+          return scheduleAt(queueable.waitUntil);
         },
       },
     },
