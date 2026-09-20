@@ -122,6 +122,7 @@ describe('resolveLoginBaseline', () => {
       groupIds: [541],
       isAddOn: false,
       baselineGroupIds: [],
+      borrowedFrom: undefined,
     });
   });
 
@@ -132,16 +133,24 @@ describe('resolveLoginBaseline', () => {
       groupIds: [900],
       isAddOn: true,
       baselineGroupIds: [700],
+      borrowedFrom: undefined,
     });
   });
 
-  it('leaves an add-on without a baseline when every login group is a column', () => {
+  it('borrows the least privileged login when no login group is free to lend', () => {
     const resolved = resolveLoginBaseline(columns, [541, 105]);
     expect(resolved[2]).toEqual({
       key: 'billing',
       groupIds: [900],
       isAddOn: true,
-      baselineGroupIds: [],
+      baselineGroupIds: [105],
+      borrowedFrom: { key: 'web', groupIds: [105] },
     });
+  });
+
+  it('leaves an add-on alone when no column can log in at all', () => {
+    const resolved = resolveLoginBaseline(columns, []);
+    expect(resolved[2]?.baselineGroupIds).toEqual([]);
+    expect(resolved[2]?.borrowedFrom).toBeUndefined();
   });
 });

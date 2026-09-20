@@ -91,6 +91,12 @@ const addOnLabel: StaticTranslationString = {
   fr: 'groupe complémentaire, pas de connexion seul',
 };
 
+const shownWithLabel: StaticTranslationString = {
+  de: 'gezeigt mit',
+  en: 'shown with',
+  fr: 'affiché avec',
+};
+
 const addOnExplanation: StaticTranslationString = {
   de: 'Eine Zusatzgruppe steht nicht in der Liste der Anmeldegruppen. Ihre Spalte zeigt deshalb, was sie zusätzlich zu einer Anmeldung am Adminpanel erlaubt.',
   en: 'An add-on group is not one of the login groups. Its column therefore shows what it allows on top of an admin panel login.',
@@ -116,7 +122,7 @@ interface ConfiguredColumn {
   groupIds: number[];
 }
 
-type RoleColumn = ConfiguredColumn & LoginBaseline;
+type RoleColumn = ConfiguredColumn & LoginBaseline<ConfiguredColumn>;
 
 /**
  * One column per role, in the order of `roles.ts`, followed by the add-on groups. Roles without
@@ -124,8 +130,8 @@ type RoleColumn = ConfiguredColumn & LoginBaseline;
  *
  * A column whose groups are all missing from `GROUPS_WITH_API_ACCESS` cannot log in, and rules
  * that require a login on top of the group — `canAccessBilling` is the one we have — would deny
- * every operation for it. Such a column is an add-on and carries the baseline login groups, so
- * its cells show what the group adds rather than a column of dashes.
+ * every operation for it. Such a column is an add-on and carries a login baseline, so its cells
+ * show what the group adds rather than a column of dashes. See `resolveLoginBaseline`.
  */
 const listRoleColumns = (): RoleColumn[] => {
   const billingGroupId = environmentVariables.BILLING_ADMIN_GROUP_ID;
@@ -353,6 +359,8 @@ export default async function AccessOverviewView({
                           title={addOnExplanation[locale]}
                         >
                           {addOnLabel[locale]}
+                          {role.borrowedFrom !== undefined &&
+                            `, ${shownWithLabel[locale]} ${roleLabels[role.borrowedFrom.key][locale]}`}
                         </div>
                       )}
                     </th>
