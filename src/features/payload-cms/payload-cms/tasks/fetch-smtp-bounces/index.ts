@@ -6,6 +6,7 @@ import {
   recoverStaleJobs,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
+import { isDmarcAggregateReport } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/dmarc-report';
 import {
   determineDeliveryStatus,
   getOriginalEnvelopeId,
@@ -310,6 +311,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
         let ignoredCount = 0;
         let matchedCount = 0;
+        let dmarcCount = 0;
         let poisonPillCount = 0;
         let errorCount = 0;
 
@@ -343,6 +345,22 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             const rawEmail = await pop3.RETR(messageId);
             const rawEmailString = String(rawEmail);
             const parsedEmail = await simpleParser(rawEmailString);
+
+            if (isDmarcAggregateReport(parsedEmail)) {
+              // The `rua=` for cevi.tools points at this mailbox, so most of it is these. They
+              // report on a domain rather than on a message, so no deployment will ever match
+              // one, and marking them read only stops us re-reading a mailbox that keeps
+              // growing. Nothing here consumes them, so drop them.
+              await pop3.DELE(messageId);
+              if (trackingRecord?.id !== undefined) {
+                await payload.delete({
+                  collection: 'smtp-bounce-mail-tracking',
+                  id: trackingRecord.id,
+                });
+              }
+              dmarcCount++;
+              continue;
+            }
 
             const { isSuccess, dsnString, recipientBounces } = determineDeliveryStatus(parsedEmail);
             const envId = getOriginalEnvelopeId(parsedEmail);
@@ -523,7 +541,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
         // Log a single summary line instead of per-message noise
         logger.info(
-          `Bounce check complete: ${messagesToProcess.length} of ${messages.length} messages read, ${matchedCount} matched, ${ignoredCount} newly ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
+          `Bounce check complete: ${messagesToProcess.length} of ${messages.length} messages read, ${matchedCount} matched, ${dmarcCount} DMARC reports deleted, ${ignoredCount} newly ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
         );
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
