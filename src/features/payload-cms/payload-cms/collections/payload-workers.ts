@@ -72,6 +72,17 @@ export const PayloadWorkersCollection: CollectionConfig = {
       },
     },
     {
+      // Superseded by `activeJobIds`, and only still written so that a replica of the previous
+      // release can read a claim during a rolling deploy. Drop it once every replica runs a
+      // release that has `activeJobIds`.
+      name: 'activeJobId',
+      type: 'text',
+      admin: {
+        readOnly: true,
+        hidden: true,
+      },
+    },
+    {
       name: 'activeJobIds',
       type: 'array',
       admin: {

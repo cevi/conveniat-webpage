@@ -51,7 +51,14 @@ const startWorkerHeartbeat = (payload: Payload): void => {
       // The jobs this worker is on, so the stale-job cleanup leaves them alone. A job that
       // finishes between two heartbeats drops out of the list on the next one, which is soon
       // enough: nothing cleans up a job that is no longer processing.
-      const activeJobIds = getRunningJobIds().map((jobId) => ({ jobId }));
+      const runningJobIds = getRunningJobIds();
+      const activeJobIds = runningJobIds.map((jobId) => ({ jobId }));
+      // A replica of the previous release reads `activeJobId` and knows nothing of the list.
+      // Production starts the new container before it stops the old one, so for the length of
+      // that overlap the old replica's cleanup would see this worker as idle and delete a job
+      // it is running. Writing the oldest id here as well keeps it readable on both sides.
+      // eslint-disable-next-line unicorn/no-null
+      const activeJobId = runningJobIds[0] ?? null;
 
       await (workerDocument
         ? payload.update({
@@ -61,6 +68,7 @@ const startWorkerHeartbeat = (payload: Payload): void => {
               lastHeartbeat: now,
               queues,
               activeJobIds,
+              activeJobId,
             },
             context: { internal: true },
           })
@@ -72,6 +80,7 @@ const startWorkerHeartbeat = (payload: Payload): void => {
               queues,
               lastHeartbeat: now,
               activeJobIds,
+              activeJobId,
             },
             context: { internal: true },
           }));
@@ -81,6 +90,16 @@ const startWorkerHeartbeat = (payload: Payload): void => {
         `[Worker Heartbeat] Failed to send heartbeat for worker ${workerId}: ${errorMessage}`,
       );
     }
+  };
+
+  // Every heartbeat replaces the whole list of claims, and the interval, the start-up beat and
+  // a job start can all fire at once. Two of them in flight together would let the older write
+  // land last and erase the claim the newer one just published, so they go one after another
+  // and each reads the running jobs when its turn comes. `sendHeartbeat` handles its own
+  // errors, so the chain cannot end up rejected.
+  let heartbeats: Promise<void> = Promise.resolve();
+  const queueHeartbeat = (): void => {
+    heartbeats = heartbeats.then(sendHeartbeat);
   };
 
   // A worker has to claim a job before the next cleanup pass runs, which is every ten seconds,
@@ -94,16 +113,16 @@ const startWorkerHeartbeat = (payload: Payload): void => {
     extraHeartbeatScheduled = true;
     setTimeout(() => {
       extraHeartbeatScheduled = false;
-      void sendHeartbeat();
+      queueHeartbeat();
     }, 0);
   });
 
   // Send immediate heartbeat
-  void sendHeartbeat();
+  queueHeartbeat();
 
   // Update heartbeat every 30 seconds
   const interval = setInterval(() => {
-    void sendHeartbeat();
+    queueHeartbeat();
   }, 30_000);
 
   // Unref interval so it does not block process exit (especially in tests)
