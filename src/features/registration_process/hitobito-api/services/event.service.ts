@@ -489,6 +489,10 @@ export class EventService {
         );
         return legacyPerson;
       } catch (error) {
+        // The HTML scrape below reads through the same session this one just lost, so
+        // there is nothing left to fall back to. Swallowing it would put an empty name
+        // and address on the participation, which the sync writes to the row.
+        if (error instanceof SessionExpiredError) throw error;
         this.logger?.warn(
           `First level fallback (legacy JSON) failed after 3 attempts for participation ${participationId}: ${error instanceof Error ? error.message : String(error)}`,
         );
@@ -590,6 +594,7 @@ export class EventService {
           },
         );
       } catch (error) {
+        if (error instanceof SessionExpiredError) throw error;
         this.logger?.error(
           `Second level fallback failed for participation ${participationId}: ${String(error)}`,
         );
