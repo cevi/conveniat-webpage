@@ -2,9 +2,12 @@ import 'server-only';
 
 import { environmentVariables } from '@/config/environment-variables';
 import type { NotificationType } from '@/lib/notification-type';
+import { createLogger } from '@/utils/server-logger';
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
+
+const logger = createLogger('firebase-admin');
 
 /**
  * Android notification channels a push can be addressed to.
@@ -83,7 +86,7 @@ export function getFirebaseAdmin(): typeof admin | undefined {
     firebaseAdminInitialized = true;
     return admin;
   } catch (error) {
-    console.warn('Failed to initialize Firebase Admin SDK:', error);
+    logger.warn('Failed to initialize the Firebase Admin SDK', { error });
     return undefined;
   }
 }
@@ -112,7 +115,7 @@ export async function sendFcmNotification(
   const adminInstance = getFirebaseAdmin();
 
   if (!adminInstance) {
-    console.warn('Firebase Admin not initialized, skipping FCM send');
+    logger.debug('Firebase Admin is not initialized, skipping the FCM send');
     return { success: false, error: 'Firebase Admin not configured' };
   }
 
@@ -235,7 +238,7 @@ export async function sendFcmNotification(
     // to be returned, which left the caller string-matching on text like `NotRegistered` and
     // unable to tell a permanently dead token from a transient failure.
     const errorCode = (error as { errorInfo?: { code?: unknown } } | undefined)?.errorInfo?.code;
-    console.error('Failed to send FCM notification:', error);
+    logger.error('Failed to send the FCM notification', { error, 'error.code': errorCode });
     return {
       success: false,
       error: errorMessage,

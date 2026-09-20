@@ -7,8 +7,11 @@ import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAdminSession } from '@/utils/is-admin-session';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
 import { isPreviewTokenValid } from '@/utils/preview-token';
+import { createLogger } from '@/utils/server-logger';
 import { cookies } from 'next/headers';
 import type React from 'react';
+
+const logger = createLogger('pages:preview');
 
 /**
  * Checks if the preview token is valid.
@@ -31,7 +34,7 @@ const isValidPreviewToken = async (
 
   const isValid = await isPreviewTokenValid(previewId, previewToken);
 
-  console.log(`Preview token validation for ID '${previewId}': ${isValid}`);
+  logger.debug('Validated a preview token', { 'preview.id': previewId, 'preview.valid': isValid });
   return isValid;
 };
 

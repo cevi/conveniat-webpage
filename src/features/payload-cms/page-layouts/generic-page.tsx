@@ -4,6 +4,7 @@ import { buildMetadata } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
@@ -19,6 +20,8 @@ import {
   getGenericPageMetadataBySlugCached,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
+
+const logger = createLogger('pages:render');
 
 const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
@@ -36,7 +39,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
   }
 
   if (renderInPreviewMode) {
-    console.log('Preview mode enabled');
+    logger.debug('Rendering in preview mode', { locale, 'page.slug': slug });
   }
 
   // Depending on whether we are in preview mode, we use the cached
@@ -89,7 +92,7 @@ const GenericPage: LocalizedCollectionComponent = async ({
         />
       );
     } else {
-      console.log('Access denied: Redirecting to 401 or 403');
+      logger.debug('Access denied, redirecting to 401 or 403', { locale, 'page.slug': slug });
       const { auth } = await import('@/utils/auth');
       const session = await auth();
       if (session) {
@@ -154,9 +157,11 @@ const GenericPage: LocalizedCollectionComponent = async ({
         }
 
         const currentPath = slug === '' ? `/${locale}` : `/${locale}/${slug}`;
-        console.log(
-          `Redirecting from historic slug ${currentPath} to ${redirectPath}${queryString}`,
-        );
+        logger.debug('Redirecting from a historic slug', {
+          locale,
+          'page.path': currentPath,
+          'page.redirect_path': redirectPath,
+        });
         redirect(`${redirectPath}${queryString}`, 'replace');
       }
     }
@@ -192,7 +197,10 @@ const GenericPage: LocalizedCollectionComponent = async ({
   }
 
   // rewrite URL to the correct locale
-  console.log(`Redirecting to locale /${locale}/${article.seo.urlSlug}`);
+  logger.debug('Redirecting to the requested locale', {
+    locale,
+    'page.slug': article.seo.urlSlug,
+  });
   redirect(`/${locale}/${article.seo.urlSlug}`);
 };
 

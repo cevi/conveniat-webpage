@@ -1,5 +1,8 @@
 import { middleware } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
+
+const logger = createLogger('trpc:ensure-user');
 
 /**
  * Middleware that ensures the current user exists in the Prisma database.
@@ -31,7 +34,7 @@ export const ensureUserExistsMiddleware = middleware(async ({ ctx, next }) => {
       },
     });
   } catch (error) {
-    console.warn('[ensureUserExistsMiddleware] Could not upsert user to Prisma:', error);
+    logger.warn('Could not upsert the user into prisma', { error, 'user.id': user.uuid });
   }
 
   return next({ ctx: { ...ctx, user } });

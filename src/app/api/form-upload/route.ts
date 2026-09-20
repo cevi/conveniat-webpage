@@ -1,6 +1,9 @@
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { NextResponse } from 'next/server';
 import { getPayload } from 'payload';
+
+const logger = createLogger('api:form-upload');
 
 const PRESET_MIME_TYPES: Record<string, string[]> = {
   pdf: ['application/pdf', '.pdf'],
@@ -136,7 +139,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ docs: documents });
   } catch (error) {
-    console.error('Failed to fetch form upload details:', error);
+    logger.error('Failed to fetch the form upload details', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 },
@@ -246,7 +249,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       url: typeof fileDocument.url === 'string' ? fileDocument.url : undefined,
     });
   } catch (error) {
-    console.error('Failed to upload file for form:', error);
+    logger.error('Failed to upload a file for a form', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 },
