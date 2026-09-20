@@ -449,6 +449,47 @@ export const billingExportXlsxHandler: PayloadHandler = async (request) => {
 };
 
 /**
+ * GET /api/confidential/billing/weekly-report-pdf – Download the weekly report now
+ *
+ * The same document the weekly mail attaches, rendered from the registrations as they
+ * stand right now. It reads nothing but the participants, so it neither touches the
+ * schedule nor writes `lastSentAt`: downloading a report must not stop the next mail.
+ */
+export const billingWeeklyReportPdfHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { buildWeeklyReport } = await import('@/features/billing/services/weekly-report');
+    const { buildWeeklyReportAttachment, findWeeklyReportParticipants } =
+      await import('@/features/billing/services/weekly-report-document');
+
+    const participants = await findWeeklyReportParticipants(request.payload);
+    const report = buildWeeklyReport(participants, new Date());
+    const { filename, content } = await buildWeeklyReportAttachment(report);
+
+    request.payload.logger.info(
+      `Weekly report PDF generated on demand by ${describeActor(request.user)}.`,
+    );
+
+    return new Response(new Uint8Array(content), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Weekly report download failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
  * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group
  * 4337 and save them to the bill settings.
  *
