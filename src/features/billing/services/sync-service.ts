@@ -260,7 +260,12 @@ async function syncSingleEvent(
           (entry) => entry.action === ANMELDESTATUS_WRITTEN_ACTION,
         );
         writeBackEntries.push(...writeBack.historyEntries);
-        if (writeBack.error !== undefined) summary.errors.push(writeBack.error);
+        if (writeBack.error !== undefined) {
+          summary.errors.push(writeBack.error);
+          // Same reverse state as a missing cookie: only the settings can clear it.
+          if (writeBack.cookieInvalid === true)
+            summary.relatedDocuments = ['registrationManagement'];
+        }
       }
 
       const normalize = (val: unknown): string => (typeof val === 'string' ? val : '');
