@@ -252,6 +252,38 @@ describe('populateSubeventsUseCase', () => {
     expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
   });
 
+  it('repairs the escaped names of rows that were stored before the names were decoded', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        {
+          eventId: 'e-1',
+          eventName: 'Hauptlager conveniat27 - Altstetten &amp;amp; Albisrieden',
+          groupId: '1',
+          reminderRecipientsOverride: 'hof@example.org',
+        },
+      ]),
+    );
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(result.count).toBe(0);
+    const repaired = [
+      {
+        eventId: 'e-1',
+        eventName: 'Hauptlager conveniat27 - Altstetten & Albisrieden',
+        groupId: '1',
+        reminderRecipientsOverride: 'hof@example.org',
+      },
+    ];
+    expect(result.allEvents).toEqual(repaired);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(repaired);
+  });
+
   it('safely handles legacy settings rows with missing or non-string eventName without throwing', async () => {
     mockSettingsRepo.getBillSettings.mockResolvedValue(
       billSettingsWith([
