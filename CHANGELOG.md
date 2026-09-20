@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.9.2](https://github.com/cevi/conveniat-webpage/compare/v1.9.1...v1.9.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **billing:** fold repeated entries in a participant's sync history ([5aeffea](https://github.com/cevi/conveniat-webpage/commit/5aeffea2a53b94fae256e1713a2d02dea0c2d090))
+* **billing:** fold repeated entries in a participant's sync history ([44f2740](https://github.com/cevi/conveniat-webpage/commit/44f2740bb3be3df669009d63f13895e28e047858))
+* **billing:** keep a Cevi.DB write-back value out of a folded run ([f37fb40](https://github.com/cevi/conveniat-webpage/commit/f37fb40dff7c7eabbd6bb429e50d83d0c95d5a12))
+* **billing:** keep the scheme test off bare hosts starting with http ([c14799d](https://github.com/cevi/conveniat-webpage/commit/c14799d50908d90de08bc5f023667e1c9678b217))
+* **billing:** print web addresses in the bill letter as links ([f324cf2](https://github.com/cevi/conveniat-webpage/commit/f324cf2df21dc2e5c9181a152a2fd2522580bdec))
+* **billing:** print web addresses in the bill letter as links ([76b3b08](https://github.com/cevi/conveniat-webpage/commit/76b3b0831cabba4523290f5cdc6192c717f4a6ce))
+* **ci:** push an image Shepherd can actually redeploy ([1905bbd](https://github.com/cevi/conveniat-webpage/commit/1905bbdcd14e8fe07b52e505c0bed3973f0b9cde))
+* **ci:** push an image Shepherd can actually redeploy ([3c32db9](https://github.com/cevi/conveniat-webpage/commit/3c32db9e5959040ff901768a8bcf31c9948e40a6))
+* **jobs:** let a job record the task it just finished ([14eb853](https://github.com/cevi/conveniat-webpage/commit/14eb8535764e0ecad782c299600f95ea3ac816e0))
+* **jobs:** let a job record the task it just finished ([c9c27ed](https://github.com/cevi/conveniat-webpage/commit/c9c27ed5cf28878bd8f3d5468c369731a3b1e82e))
+* **jobs:** run scheduled tasks on their cron, not on every queue poll ([169f11d](https://github.com/cevi/conveniat-webpage/commit/169f11da078fd3538afa20c22251b7805c1c1af9))
+* **jobs:** run scheduled tasks on their cron, not on every queue poll ([3145a50](https://github.com/cevi/conveniat-webpage/commit/3145a503ee32b0a91f4f7bbf0f8336db29c51085))
+* **jobs:** say so when Payload moves the task log error field ([3cdf42b](https://github.com/cevi/conveniat-webpage/commit/3cdf42b44923cec5cda41c76ff917a1fc9631121))
+* **jobs:** weekly report keeps its slot, nightly sync is queued once ([3a5012b](https://github.com/cevi/conveniat-webpage/commit/3a5012bad4bc93b43d9d72a2452c6f3a043f5cba))
+
 ## [1.9.1](https://github.com/cevi/conveniat-webpage/compare/v1.9.0...v1.9.1) (2026-09-19)
 
 
