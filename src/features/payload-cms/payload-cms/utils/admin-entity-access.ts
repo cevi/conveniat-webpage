@@ -107,6 +107,48 @@ export const listAdminEntities = (
   return [...collections, ...globals];
 };
 
+/** A Cevi.DB group column of the access overview, before its login baseline is known. */
+export interface GroupColumn {
+  groupIds: number[];
+}
+
+export interface LoginBaseline {
+  /** True when none of `groupIds` is a login group, so the column grants nothing on its own. */
+  isAddOn: boolean;
+  /** Login groups to evaluate on top of `groupIds`. Empty unless `isAddOn`. */
+  baselineGroupIds: number[];
+}
+
+/**
+ * Marks the columns that do not let anyone into the admin panel and gives them a login to be
+ * evaluated with.
+ *
+ * A rule may require an admin panel login *and* a second group — `canAccessBilling` does. A
+ * stand-in user holding only the second group fails at the login check, so every operation
+ * denies and the column reads as if nobody had access, while the real holders of that group are
+ * in a login group as well. The baseline is the set of login groups that are no column of their
+ * own, which is the least a logged-in editor can have; adding it grants nothing the add-on group
+ * did not. When every login group is a column, there is no such baseline and the add-on is
+ * evaluated alone, which under-reports rather than over-reports.
+ */
+export const resolveLoginBaseline = <T extends GroupColumn>(
+  columns: T[],
+  loginGroupIds: number[],
+): (T & LoginBaseline)[] => {
+  const loginGroups = new Set(loginGroupIds);
+  const columnGroups = new Set(columns.flatMap((column) => column.groupIds));
+  const baselineGroupIds = loginGroupIds.filter((id) => !columnGroups.has(id));
+
+  return columns.map((column) => {
+    const grantsLogin = column.groupIds.some((id) => loginGroups.has(id));
+    return {
+      ...column,
+      isAddOn: !grantsLogin,
+      baselineGroupIds: grantsLogin ? [] : baselineGroupIds,
+    };
+  });
+};
+
 /**
  * Maps the return value of a Payload access function to a status.
  */
