@@ -9,18 +9,20 @@ import type {
   AccessOperation,
   AccessStatus,
   AdminEntity,
+  LoginBaseline,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
   evaluateEntityAccess,
   getAdminLocale,
   isHiddenInAdmin,
   listAdminEntities,
+  resolveLoginBaseline,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { DefaultTemplate } from '@payloadcms/next/templates';
 import { Gutter, SetStepNav } from '@payloadcms/ui';
-import { EyeIcon, EyeOffIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CodeXmlIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { AdminViewServerProps, PayloadRequest, TypedUser } from 'payload';
@@ -83,6 +85,24 @@ const apiOnlyLabel: StaticTranslationString = {
   fr: 'pas dans la barre latérale, API uniquement',
 };
 
+const addOnLabel: StaticTranslationString = {
+  de: 'Zusatzgruppe, erlaubt allein keine Anmeldung',
+  en: 'add-on group, no login on its own',
+  fr: 'groupe complémentaire, pas de connexion seul',
+};
+
+const shownWithLabel: StaticTranslationString = {
+  de: 'gezeigt mit',
+  en: 'shown with',
+  fr: 'affiché avec',
+};
+
+const addOnExplanation: StaticTranslationString = {
+  de: 'Eine Zusatzgruppe steht nicht in der Liste der Anmeldegruppen. Ihre Spalte zeigt deshalb, was sie zusätzlich zu einer Anmeldung am Adminpanel erlaubt.',
+  en: 'An add-on group is not one of the login groups. Its column therefore shows what it allows on top of an admin panel login.',
+  fr: "Un groupe complémentaire ne figure pas parmi les groupes de connexion. Sa colonne montre donc ce qu'il autorise en plus d'une connexion au panneau d'administration.",
+};
+
 const roleLabels: Record<Roles | 'billing', StaticTranslationString> = {
   [Roles.FullAdmin]: { de: 'Admin', en: 'Admin', fr: 'Admin' },
   [Roles.WebCoreTeam]: { de: 'Web-Kernteam', en: 'Web core team', fr: 'Équipe web' },
@@ -95,19 +115,27 @@ const roleLabels: Record<Roles | 'billing', StaticTranslationString> = {
   billing: { de: 'Rechnungswesen', en: 'Billing', fr: 'Facturation' },
 };
 
-interface RoleColumn {
+interface ConfiguredColumn {
   key: Roles | 'billing';
   /** The environment variable that lists the group ids, so admins know where to change it. */
   envName: string;
   groupIds: number[];
 }
 
+type RoleColumn = ConfiguredColumn & LoginBaseline<ConfiguredColumn>;
+
 /**
- * One column per role, in the order of `roles.ts`. Roles without a configured group are skipped.
+ * One column per role, in the order of `roles.ts`, followed by the add-on groups. Roles without
+ * a configured group are skipped.
+ *
+ * A column whose groups are all missing from `GROUPS_WITH_API_ACCESS` cannot log in, and rules
+ * that require a login on top of the group — `canAccessBilling` is the one we have — would deny
+ * every operation for it. Such a column is an add-on and carries a login baseline, so its cells
+ * show what the group adds rather than a column of dashes. See `resolveLoginBaseline`.
  */
 const listRoleColumns = (): RoleColumn[] => {
   const billingGroupId = environmentVariables.BILLING_ADMIN_GROUP_ID;
-  const columns: RoleColumn[] = [
+  const configured: ConfiguredColumn[] = [
     {
       key: Roles.FullAdmin,
       envName: 'CEVIDB_GROUP_FULL_ADMIN',
@@ -134,7 +162,9 @@ const listRoleColumns = (): RoleColumn[] => {
       groupIds: billingGroupId === undefined ? [] : [Number(billingGroupId)],
     },
   ];
-  return columns.filter((column) => column.groupIds.length > 0);
+  const columns = configured.filter((column) => column.groupIds.length > 0);
+
+  return resolveLoginBaseline(columns, environmentVariables.GROUPS_WITH_API_ACCESS);
 };
 
 interface RoleAccess {
@@ -148,8 +178,9 @@ interface EntityRow {
 }
 
 /**
- * Evaluates the access rules with a stand-in user that is a member of exactly one group of
- * the role. Access rules only look at `req.user.groups`, so one group represents the role.
+ * Evaluates the access rules with a stand-in user that holds the groups of one column, plus the
+ * baseline login groups for an add-on column. Access rules only look at `req.user.groups`, so
+ * that membership is the whole role.
  */
 const evaluateRole = async (
   role: RoleColumn,
@@ -159,7 +190,10 @@ const evaluateRole = async (
   const standInUser = {
     id: `role-preview-${role.key}`,
     collection: request.payload.config.admin.user,
-    groups: role.groupIds.map((id) => ({ id, name: roleLabels[role.key].de })),
+    groups: [...role.groupIds, ...role.baselineGroupIds].map((id) => ({
+      id,
+      name: roleLabels[role.key].de,
+    })),
   } as unknown as TypedUser;
 
   const roleRequest = await createLocalReq(
@@ -211,7 +245,7 @@ const AccessCell: React.FC<{ access: RoleAccess; locale: Locale }> = ({ access, 
       })}
       {access.hiddenInAdmin && (
         <span title={apiOnlyLabel[locale]} aria-label={apiOnlyLabel[locale]}>
-          <EyeOffIcon className="size-3.5 opacity-40" />
+          <CodeXmlIcon className="size-3.5 opacity-40" />
         </span>
       )}
     </span>
@@ -319,6 +353,16 @@ export default async function AccessOverviewView({
                           </span>
                         ))}
                       </div>
+                      {role.isAddOn && (
+                        <div
+                          className="text-xs font-normal opacity-70"
+                          title={addOnExplanation[locale]}
+                        >
+                          {addOnLabel[locale]}
+                          {role.borrowedFrom !== undefined &&
+                            `, ${shownWithLabel[locale]} ${roleLabels[role.borrowedFrom.key][locale]}`}
+                        </div>
+                      )}
                     </th>
                   );
                 })}
@@ -379,9 +423,12 @@ export default async function AccessOverviewView({
             <EyeIcon className="size-3.5 opacity-40" /> {conditionalLabel[locale]}
           </span>
           <span className="inline-flex items-center gap-1">
-            <EyeOffIcon className="size-3.5 opacity-40" /> {apiOnlyLabel[locale]}
+            <CodeXmlIcon className="size-3.5 opacity-40" /> {apiOnlyLabel[locale]}
           </span>
         </p>
+        {roles.some((role) => role.isAddOn) && (
+          <p className="mt-2 max-w-3xl text-xs opacity-70">{addOnExplanation[locale]}</p>
+        )}
       </Gutter>
     </DefaultTemplate>
   );

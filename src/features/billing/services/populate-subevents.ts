@@ -2,6 +2,7 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { PopulatedSubevent } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
+import { decodeDisplayText } from '@/features/registration_process/hitobito-api/html-parser';
 
 /**
  * Progress emitted while the subgroups of the parent group are walked.
@@ -156,10 +157,19 @@ export async function populateSubeventsUseCase(
   const settings = await settingsRepo.getBillSettings();
   const existingEvents = Array.isArray(settings.events) ? settings.events : [];
 
-  // Filter out any Aufbau- or Abbaulager events from pre-existing settings
-  const filteredExistingEvents = existingEvents.filter(
-    (event) => !isAufbauOrAbbaulager(event.eventName),
-  );
+  // Filter out any Aufbau- or Abbaulager events from pre-existing settings, and decode the
+  // rows that were written before the names were decoded on the way in. Without this an
+  // already known Hof keeps its `&amp;` forever, because the merge below leaves the name of
+  // an existing row alone.
+  const filteredExistingEvents = existingEvents
+    .filter((event) => !isAufbauOrAbbaulager(event.eventName))
+    .map((event) =>
+      // Legacy rows exist with no name at all; those stay exactly as they are.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      typeof event.eventName === 'string'
+        ? { ...event, eventName: decodeDisplayText(event.eventName) }
+        : event,
+    );
 
   // Merge new results into filteredExistingEvents, using eventId as the key. A known event
   // keeps its row — most of all its `reminderRecipientsOverride`, which an editor set by

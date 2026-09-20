@@ -7,6 +7,7 @@ import { cardGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/
 import { contactPersonBlock } from '@/features/payload-cms/payload-cms/shared-blocks/contact-person-block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
+import { donationBarometerBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-barometer-block';
 import { donationCtaBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-cta-block';
 import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
@@ -55,6 +56,7 @@ export const mainContentBlocks: Block[] = [
   whiteSpaceBlock,
   callToActionBlock,
   donationCtaBlock,
+  donationBarometerBlock,
   newsCardBlock,
   campScheduleEntryBlock,
   cardGridBlock,

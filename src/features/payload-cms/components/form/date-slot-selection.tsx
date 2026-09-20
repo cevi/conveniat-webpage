@@ -15,7 +15,7 @@ import {
   toDateRangesValue,
   toIsoDay,
 } from '@/features/payload-cms/components/form/utils/date-slots';
-import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
+import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -432,7 +432,8 @@ export const DateSlotSelection: React.FC<DateSlotSelectionProperties> = ({
   );
 
   const ressortOptions = useMemo(
-    () => RESSORT_OPTIONS.map((option) => ({ value: option.value, label: option.label[locale] })),
+    () =>
+      RESSORT_WISH_OPTIONS.map((option) => ({ value: option.value, label: option.label[locale] })),
     [locale],
   );
 

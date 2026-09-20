@@ -167,6 +167,7 @@ export interface Config {
     header: Header;
     footer: Footer;
     SEO: SEO;
+    'donation-barometer': DonationBarometer;
     'registration-management': RegistrationManagement;
     'app-landing-page': AppLandingPage;
     'alert-management': AlertManagement;
@@ -183,6 +184,7 @@ export interface Config {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
+    'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
@@ -438,6 +440,7 @@ export interface GenericPage {
           blockType: 'callToAction';
         }
       | DonationCtaBlock
+      | DonationBarometerBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -1003,6 +1006,7 @@ export interface Blog {
           blockType: 'callToAction';
         }
       | DonationCtaBlock
+      | DonationBarometerBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -1407,7 +1411,7 @@ export interface Form {
                  */
                 maxRanges?: number | null;
                 /**
-                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.
                  */
                 ressortName?: string | null;
                 ressortLabel?: string | null;
@@ -1691,7 +1695,7 @@ export interface Form {
                            */
                           maxRanges?: number | null;
                           /**
-                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.
                            */
                           ressortName?: string | null;
                           ressortLabel?: string | null;
@@ -2870,6 +2874,63 @@ export interface DonationCtaBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'donationCta';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationBarometerBlock".
+ */
+export interface DonationBarometerBlock {
+  /**
+   * The amount raised and the goal are maintained under "Donation Barometer" in the page settings — they apply to every page and are not set here.
+   */
+  eyebrow?: string | null;
+  /**
+   * Name the goal, not the barometer: "So every child can come along" carries further than "Donation status".
+   */
+  title: string;
+  description?: string | null;
+  /**
+   * Leave empty when the barometer sits next to a separate donation call-to-action.
+   */
+  buttonLabel?: string | null;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'donationBarometer';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5084,6 +5145,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               donationCta?: T | DonationCtaBlockSelect<T>;
+              donationBarometer?: T | DonationBarometerBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -5523,6 +5585,28 @@ export interface DonationCtaBlockSelect<T extends boolean = true> {
       };
   note?: T;
   variant?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationBarometerBlock_select".
+ */
+export interface DonationBarometerBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
   id?: T;
   blockName?: T;
 }
@@ -6102,6 +6186,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               donationCta?: T | DonationCtaBlockSelect<T>;
+              donationBarometer?: T | DonationBarometerBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -7945,6 +8030,39 @@ export interface SEO {
   createdAt?: string | null;
 }
 /**
+ * The goal and the amount raised so far, shared by every Spendenbarometer block on the site.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "donation-barometer".
+ */
+export interface DonationBarometer {
+  id: string;
+  /**
+   * The full amount the campaign is asking for. Changing it moves every barometer on the site.
+   */
+  goalAmount: number;
+  /**
+   * Maintained by hand for now. Round it — a barometer reading 162,400 invites less doubt than one reading 162,437.55.
+   */
+  raisedAmount: number;
+  /**
+   * Shown under the barometer. A donation total without a date reads as guesswork.
+   */
+  lastUpdated?: string | null;
+  /**
+   * Optional stops along the way. The next one that is not yet funded is named under the barometer, so give each a label that says what the money buys.
+   */
+  milestones?:
+    | {
+        amount: number;
+        label: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management".
  */
@@ -8113,6 +8231,7 @@ export interface AppLandingPage {
             blockType: 'callToAction';
           }
         | DonationCtaBlock
+        | DonationBarometerBlock
         | {
             linkField?: {
               type?: ('reference' | 'custom' | 'email') | null;
@@ -8724,6 +8843,25 @@ export interface SEOSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "donation-barometer_select".
+ */
+export interface DonationBarometerSelect<T extends boolean = true> {
+  goalAmount?: T;
+  raisedAmount?: T;
+  lastUpdated?: T;
+  milestones?:
+    | T
+    | {
+        amount?: T;
+        label?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "registration-management_select".
  */
 export interface RegistrationManagementSelect<T extends boolean = true> {
@@ -8819,6 +8957,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               blockName?: T;
             };
         donationCta?: T | DonationCtaBlockSelect<T>;
+        donationBarometer?: T | DonationBarometerBlockSelect<T>;
         newsCard?:
           | T
           | {

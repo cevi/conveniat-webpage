@@ -5,6 +5,7 @@ import {
   writeBackAnmeldestatus,
 } from '@/features/billing/services/anmeldestatus-writeback';
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 
 /** The participation edit form, with the Anmeldestatus option given by the test. */
 const editForm = (selected: string): string => `
@@ -235,6 +236,27 @@ describe('writeBackAnmeldestatus', () => {
     );
 
     expect(result.error).toContain('Registrierungs-Einstellungen');
+    expect(result.cookieInvalid).toBe(true);
+  });
+
+  it('names an expired session instead of the question it could not find', async () => {
+    // The login page carries no questions at all, which used to surface as "Keine Frage
+    // mit «anmeldestatus» gefunden" and sent operators looking at the Cevi.DB form.
+    const update = jest
+      .fn()
+      .mockRejectedValue(new SessionExpiredError('https://db.cevi.ch/groups/7/events/42'));
+
+    const result = await writeBackAnmeldestatus(
+      serviceWith(update),
+      participation,
+      '2027-02-01T00:00:00.000Z',
+      writeBackLogger,
+    );
+
+    expect(result.error).toContain('Sitzung ist abgelaufen');
+    expect(result.error).toContain('Registrierungs-Einstellungen');
+    expect(result.cookieInvalid).toBe(true);
+    expect(result.anmeldestatus).toBe('erfasst durch AVP');
   });
 
   it('does nothing at all for a row that is already invoiced or definitiv', async () => {

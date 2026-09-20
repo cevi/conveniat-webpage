@@ -1105,6 +1105,16 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                 },
+                {
+                  name: 'weeklyReportDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton',
+                    },
+                  },
+                },
               ],
             },
             {
