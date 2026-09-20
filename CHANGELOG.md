@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.1](https://github.com/cevi/conveniat-webpage/compare/v1.11.0...v1.11.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **go:** send short links off the host they arrived on ([7b168c0](https://github.com/cevi/conveniat-webpage/commit/7b168c01901739c2b7ccd575bb06f642d0b1e24d))
+* **go:** send short links off the host they arrived on ([7351612](https://github.com/cevi/conveniat-webpage/commit/7351612ce12a27134b008d6c2def4389586b292c))
+
 ## [1.11.0](https://github.com/cevi/conveniat-webpage/compare/v1.10.0...v1.11.0) (2026-09-20)
 
 
