@@ -1,5 +1,15 @@
-import { makeJobLogErrorOptional } from '@/features/payload-cms/payload-cms/tasks/jobs-collection-fields';
 import type { ArrayField, Field, TabsField } from 'payload';
+
+jest.mock('@/utils/server-logger', () => {
+  const logger = { error: jest.fn(), warn: jest.fn(), info: jest.fn(), debug: jest.fn() };
+  return { createLogger: (): typeof logger => logger, __logger: logger };
+});
+
+const { __logger: mockLogger } = jest.requireMock<{ __logger: { error: jest.Mock } }>(
+  '@/utils/server-logger',
+);
+
+import { makeJobLogErrorOptional } from '@/features/payload-cms/payload-cms/tasks/jobs-collection-fields';
 
 /**
  * The shape Payload builds for the jobs collection: the task log is an array inside the
@@ -39,6 +49,10 @@ const logFields = (fields: Field[]): Field[] => {
 };
 
 describe('makeJobLogErrorOptional', () => {
+  beforeEach(() => {
+    mockLogger.error.mockClear();
+  });
+
   it('lets a log entry without an error through', () => {
     const error = logFields(makeJobLogErrorOptional(defaultJobsFields())).find(
       (field) => 'name' in field && field.name === 'error',
@@ -65,5 +79,19 @@ describe('makeJobLogErrorOptional', () => {
     const originalTabs = original.find((field): field is TabsField => field.type === 'tabs');
 
     expect(tabs?.tabs[0]?.fields[1]).toEqual(originalTabs?.tabs[0]?.fields[1]);
+  });
+
+  it('says so when Payload has moved the field', () => {
+    // Silence here would put every finished job back to failing on its own bookkeeping, and
+    // the task log is the last place anyone looks.
+    makeJobLogErrorOptional([{ name: 'input', type: 'json' }]);
+
+    expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining('Status > Log'));
+  });
+
+  it('stays quiet when the field is where it is expected', () => {
+    makeJobLogErrorOptional(defaultJobsFields());
+
+    expect(mockLogger.error).not.toHaveBeenCalled();
   });
 });

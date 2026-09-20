@@ -1,4 +1,7 @@
+import { createLogger } from '@/utils/server-logger';
 import type { Field } from 'payload';
+
+const logger = createLogger('jobs-collection-fields');
 
 /**
  * Payload declares `error` inside a job's task log as `required`, and hides it behind an admin
@@ -38,11 +41,43 @@ const withOptionalLogError = (field: Field): Field => {
   return field;
 };
 
+/** The `error` of a task log entry, wherever Payload currently keeps it. */
+const findLogError = (fields: Field[]): Field | undefined => {
+  for (const field of fields) {
+    if (field.type === 'tabs') {
+      for (const tab of field.tabs) {
+        const found = findLogError(tab.fields);
+        if (found !== undefined) return found;
+      }
+    }
+    if (field.type === 'array' && field.name === 'log') {
+      return field.fields.find((subField) => 'name' in subField && subField.name === 'error');
+    }
+  }
+  return undefined;
+};
+
 /**
  * Lets a job record a task that succeeded, by dropping the `required` flag Payload puts on the
  * error of a task log entry.
  *
+ * A Payload upgrade that moves the field would leave this doing nothing, and the jobs would go
+ * back to failing on their own bookkeeping — which took a while to trace the first time. So the
+ * result is read back and the miss is logged rather than swallowed. Nothing is thrown: a config
+ * that refuses to build is worse than a queue that is loud about being broken.
+ *
  * @param fields the fields of Payload's default jobs collection
  */
-export const makeJobLogErrorOptional = (fields: Field[]): Field[] =>
-  fields.map((field) => withOptionalLogError(field));
+export const makeJobLogErrorOptional = (fields: Field[]): Field[] => {
+  const fieldsWithOptionalLogError = fields.map((field) => withOptionalLogError(field));
+
+  const logError = findLogError(fieldsWithOptionalLogError);
+  if (logError === undefined || ('required' in logError && logError.required === true)) {
+    logger.error(
+      'Could not make the error of a task log entry optional — Payload has moved or renamed it. ' +
+        'Every job that finishes will now fail to record it, with "Status > Log".',
+    );
+  }
+
+  return fieldsWithOptionalLogError;
+};
