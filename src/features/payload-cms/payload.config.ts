@@ -116,8 +116,17 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
       },
     ],
+    afterNavLinks: [
+      {
+        path: '@/features/payload-cms/payload-cms/components/access-overview-nav-link',
+      },
+    ],
     views: {
-      // Custom views can be added here
+      accessOverview: {
+        Component: '@/features/payload-cms/payload-cms/views/access-overview-view#default',
+        path: '/access-overview',
+        exact: true,
+      },
     },
   },
   user: UserCollection.slug,

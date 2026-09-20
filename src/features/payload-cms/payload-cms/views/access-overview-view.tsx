@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { isFullAdmin, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { AdminPanelArea } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import {
   AdminPanelAreas,
@@ -9,18 +9,21 @@ import type {
   AccessOperation,
   AccessStatus,
   AdminEntity,
-} from '@/features/payload-cms/payload-cms/widgets/admin-entity-access';
+} from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
   evaluateEntityAccess,
   getAdminLocale,
   isHiddenInAdmin,
   listAdminEntities,
-} from '@/features/payload-cms/payload-cms/widgets/admin-entity-access';
+} from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { DefaultTemplate } from '@payloadcms/next/templates';
+import { Gutter, SetStepNav } from '@payloadcms/ui';
 import { EyeIcon, EyeOffIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import Link from 'next/link';
-import type { PayloadRequest, TypedUser, WidgetServerProps } from 'payload';
+import { redirect } from 'next/navigation';
+import type { AdminViewServerProps, PayloadRequest, TypedUser } from 'payload';
 import { createLocalReq } from 'payload';
 import type React from 'react';
 import { Fragment } from 'react';
@@ -216,15 +219,21 @@ const AccessCell: React.FC<{ access: RoleAccess; locale: Locale }> = ({ access, 
 };
 
 /**
- * Dashboard widget that shows which Cevi.DB group grants which access to every collection and
- * global. The matrix is computed from the real access rules, so it cannot drift from them.
+ * Admin view at `/admin/access-overview` that shows which Cevi.DB group grants which access to
+ * every collection and global. The matrix is computed from the real access rules, so it cannot
+ * drift from them. Only full admins may open it; everyone else is sent back to the dashboard.
  */
-export default async function AccessOverviewWidget({
-  req,
-}: WidgetServerProps): Promise<React.ReactElement> {
+export default async function AccessOverviewView({
+  initPageResult,
+  params,
+  searchParams,
+}: AdminViewServerProps): Promise<React.ReactElement> {
+  const { req, permissions, visibleEntities, locale: adminLocale } = initPageResult;
   const { payload, i18n, user } = req;
-  const locale: Locale = getAdminLocale(i18n);
   const adminRoute = payload.config.routes.admin;
+
+  if (!isFullAdmin({ req })) redirect(adminRoute);
+  const locale: Locale = getAdminLocale(i18n);
   const hitobitoUrl = environmentVariables.HITOBITO_FORWARD_URL;
 
   const roles = listRoleColumns();
@@ -250,13 +259,21 @@ export default async function AccessOverviewWidget({
     ),
   })).filter((section) => section.rows.length > 0);
 
-  // Payload lays out `.card` children in a row, so the content needs one column container.
   return (
-    <div className="card">
-      {/* the card lays its direct children out in a row, so keep a single column child */}
-      <div className="flex w-full min-w-0 flex-col">
-        <h3 className="mb-1 text-xl font-bold">{title[locale]}</h3>
-        <p className="mb-4 text-sm opacity-70">{intro[locale]}</p>
+    <DefaultTemplate
+      i18n={i18n}
+      {...(adminLocale === undefined ? {} : { locale: adminLocale })}
+      {...(params === undefined ? {} : { params })}
+      payload={payload}
+      permissions={permissions}
+      {...(searchParams === undefined ? {} : { searchParams })}
+      {...(user ? { user } : {})}
+      visibleEntities={visibleEntities}
+    >
+      <SetStepNav nav={[{ label: title[locale] }]} />
+      <Gutter className="flex flex-col pt-8 pb-16">
+        <h1 className="mb-1 text-3xl font-bold">{title[locale]}</h1>
+        <p className="mb-6 max-w-3xl opacity-70">{intro[locale]}</p>
 
         <dl className="mb-4 grid gap-x-6 gap-y-1 text-sm md:grid-cols-[auto_1fr]">
           <dt className="font-semibold">{loginGroupsLabel[locale]}</dt>
@@ -365,7 +382,7 @@ export default async function AccessOverviewWidget({
             <EyeOffIcon className="size-3.5 opacity-40" /> {apiOnlyLabel[locale]}
           </span>
         </p>
-      </div>
-    </div>
+      </Gutter>
+    </DefaultTemplate>
   );
 }

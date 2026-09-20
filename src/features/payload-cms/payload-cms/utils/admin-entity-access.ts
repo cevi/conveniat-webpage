@@ -35,7 +35,7 @@ type I18n = PayloadRequest['i18n'];
  * The admin panel language, narrowed to one of our locales. Payload's `i18n.language` follows
  * the language switcher in the admin panel, which is what the sidebar labels use as well.
  */
-export const getAdminLocale = (i18n: I18n): Locale => {
+export const getAdminLocale = (i18n: Pick<I18n, 'language'>): Locale => {
   const language = i18n.language;
   if (language === 'en' || language === 'fr') return language;
   return 'de';

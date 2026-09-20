@@ -4,7 +4,7 @@ import {
   isHiddenInAdmin,
   resolveGroupKey,
   toAccessStatus,
-} from '@/features/payload-cms/payload-cms/widgets/admin-entity-access';
+} from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { PayloadRequest, SanitizedCollectionConfig } from 'payload';
 
 const requestWithLogger = (): PayloadRequest =>

@@ -6,14 +6,13 @@ import {
   AdminPanelAreas,
   AdminPanelDashboardGroups,
 } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { AdminEntity } from '@/features/payload-cms/payload-cms/widgets/admin-entity-access';
+import type { AdminEntity } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
   getAdminLocale,
   isHiddenInAdmin,
   listAdminEntities,
-} from '@/features/payload-cms/payload-cms/widgets/admin-entity-access';
+} from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import Link from 'next/link';
 import type { SanitizedPermissions, WidgetServerProps } from 'payload';
 import type React from 'react';
@@ -144,17 +143,14 @@ export default function AdminAreasWidget({
                         >
                           {entity.label}
                         </Link>
-                        <span
-                          className={cn('rounded px-1.5 py-0.5 text-[10px] leading-none', {
-                            'bg-green-900/15 text-green-800 dark:bg-green-900/40 dark:text-green-300':
-                              level === 'full',
-                            'bg-blue-900/15 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300':
-                              level === 'edit',
-                            'bg-gray-500/15 opacity-70': level === 'read',
-                          })}
-                        >
-                          {permissionLabels[level][locale]}
-                        </span>
+                        {level === 'read' && (
+                          <span
+                            className="rounded bg-gray-500/15 px-1.5 py-0.5 text-[10px] leading-none opacity-70"
+                            title={permissionLabels[level][locale]}
+                          >
+                            {permissionLabels[level][locale]}
+                          </span>
+                        )}
                       </li>
                     );
                   })}

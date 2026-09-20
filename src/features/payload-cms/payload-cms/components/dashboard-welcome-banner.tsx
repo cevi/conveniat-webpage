@@ -213,28 +213,32 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
         {...modalProperties}
       />
 
-      <h1 className="text-conveniat-green text-3xl font-extrabold">
-        {welcomeMessageTitle[locale]} - Version {build.version}
-      </h1>
-      <p className="mt-2 text-lg">{welcomeMessage[locale]}</p>
-      <div className="mt-4 flex flex-wrap gap-4">
-        {isLocalhost && (
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-conveniat-green text-2xl font-extrabold">
+            {welcomeMessageTitle[locale]}
+            <span className="ml-2 text-sm font-normal opacity-60">v{build.version}</span>
+          </h1>
+          <p className="mt-1 opacity-80">{welcomeMessage[locale]}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {isLocalhost && (
+            <button
+              type="button"
+              onClick={() => openModal('reset-instance')}
+              className="font-heading cursor-pointer rounded-[8px] border border-red-700 px-4 py-2 text-sm font-bold text-red-700 duration-100 hover:bg-red-700 hover:text-white"
+            >
+              {resetInstanceTitle[locale]}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() => openModal('reset-instance')}
-            className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+            onClick={() => openModal('flush-cache')}
+            className="font-heading border-conveniat-green text-conveniat-green hover:bg-conveniat-green cursor-pointer rounded-[8px] border px-4 py-2 text-sm font-bold duration-100 hover:text-white"
           >
-            {resetInstanceTitle[locale]}
+            {flushCacheTitle[locale]}
           </button>
-        )}
-
-        <button
-          type="button"
-          onClick={() => openModal('flush-cache')}
-          className="font-heading bg-conveniat-green cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white duration-100 hover:brightness-110"
-        >
-          {flushCacheTitle[locale]}
-        </button>
+        </div>
       </div>
     </div>
   );

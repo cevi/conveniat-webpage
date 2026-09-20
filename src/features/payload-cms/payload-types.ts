@@ -202,7 +202,6 @@ export interface Config {
     'user-count': UserCountWidget;
     'email-stats': EmailStatsWidget;
     'admin-areas': AdminAreasWidget;
-    'access-overview': AccessOverviewWidget;
     collections: CollectionsWidget;
   };
   user: User | PayloadMcpApiKey;
@@ -9106,16 +9105,6 @@ export interface EmailStatsWidget {
  * via the `definition` "admin-areas_widget".
  */
 export interface AdminAreasWidget {
-  data?: {
-    [k: string]: unknown;
-  };
-  width: 'medium' | 'large' | 'x-large' | 'full';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "access-overview_widget".
- */
-export interface AccessOverviewWidget {
   data?: {
     [k: string]: unknown;
   };
