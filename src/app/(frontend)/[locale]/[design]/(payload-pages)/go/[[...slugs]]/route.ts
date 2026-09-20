@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import type { Go } from '@/features/payload-cms/payload-types';
 import { findPrefixByCollectionSlugAndLocale } from '@/features/payload-cms/route-resolution-table';
 import { i18nConfig, type Locale } from '@/types/types';
@@ -16,11 +17,17 @@ import { getPayload } from 'payload';
  * with the "resolving link target" shell. A browser runs it, everything else stops there.
  *
  * A route handler never streams, so the status is the redirect itself. The `Location` is
- * relative on purpose — it keeps the reader on the host they came in on, which is the
- * short domain or the site, without this code having to work out which.
+ * absolute, resolved against the deployment's own address: the short domain con27.ch is
+ * served by this handler as well, and a relative target would send the reader back to
+ * con27.ch, whose router prefixes `/go` again and lands them here a second time. The
+ * address comes from the environment rather than the request, because the whole point is
+ * to leave the host the reader came in on.
  */
 const redirectTo = (target: string): Response =>
-  new Response(undefined, { status: 307, headers: { Location: target } });
+  new Response(undefined, {
+    status: 307,
+    headers: { Location: new URL(target, environmentVariables.APP_HOST_URL).toString() },
+  });
 
 const fetchRedirectPages = async (slug: string): Promise<Go[]> => {
   const locales: Locale[] = i18nConfig.locales as Locale[];
