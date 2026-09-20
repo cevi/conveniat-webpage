@@ -94,6 +94,24 @@ describe('summarizeSyncHistory', () => {
     expect(summarizeSyncHistory(history)[1]).toEqual({ kind: 'entry', entry: parked });
   });
 
+  it('keeps a value written back to the Cevi.DB visible', () => {
+    // Only the write-back actions carry a value today, and those are never routine. The
+    // rule belongs on the value rather than on the action list: a value is a thing we told
+    // the Cevi.DB, and hiding it behind a click would be losing it.
+    const writtenBack: SyncHistoryEntry = {
+      date: '2026-09-19T16:21:20.000Z',
+      action: 'sync_confirmed',
+      value: 'Rechnung gestellt',
+    };
+    const history = [
+      confirmed('2026-09-19T16:19:00.000Z'),
+      writtenBack,
+      confirmed('2026-09-19T16:23:20.000Z'),
+    ];
+
+    expect(summarizeSyncHistory(history)[1]).toEqual({ kind: 'entry', entry: writtenBack });
+  });
+
   it('returns nothing for an empty history', () => {
     expect(summarizeSyncHistory([])).toEqual([]);
   });

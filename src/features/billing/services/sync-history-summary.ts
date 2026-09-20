@@ -57,11 +57,12 @@ const ROUTINE_ACTIONS = new Set([
  * Decides whether an entry can disappear into a run.
  *
  * An entry survives as soon as it carries something a person wrote or decided: a reason,
- * a status change, or a change to a field that comes from the Cevi.DB rather than from our
- * own validation.
+ * a value we wrote back to the Cevi.DB, a status change, or a change to a field that comes
+ * from the Cevi.DB rather than from our own validation.
  */
 const isRoutine = (entry: SyncHistoryEntry): boolean => {
   if (!ROUTINE_ACTIONS.has(entry.action)) return false;
+  if (entry.value !== undefined && entry.value !== '') return false;
   if (entry.reviewReason !== undefined && entry.reviewReason !== '') return false;
   return Object.keys(entry.diff ?? {}).every((field) => DERIVED_FIELDS.has(field));
 };
