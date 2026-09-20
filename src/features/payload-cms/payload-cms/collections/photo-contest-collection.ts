@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, unicorn/no-null, unicorn/prefer-ternary */
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import prisma from '@/lib/db/prisma';
@@ -10,6 +13,7 @@ export const PhotoContestCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent.label,
+    hidden: shouldHideInAdminPanel,
     defaultColumns: ['title', 'slug', 'status', 'maxPointsPerUser'],
   },
   access: {

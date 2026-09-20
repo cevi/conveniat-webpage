@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
@@ -11,6 +14,7 @@ export const EmergencyCardsCollection: CollectionConfig = asLocalizedCollection(
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppContent.label,
+    hidden: shouldHideInAdminPanel,
     defaultColumns: ['title', 'publishingStatus', 'updatedAt'],
   },
   labels: {
