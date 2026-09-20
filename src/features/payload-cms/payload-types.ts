@@ -666,6 +666,7 @@ export interface Image {
    */
   internalDescription?: string | null;
   lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -2138,6 +2139,7 @@ export interface Document {
   pdfThumbnailUrl?: string | null;
   permissions?: (string | null) | Permission;
   lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
   folder?: (string | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
@@ -4037,6 +4039,7 @@ export interface UserSubmittedImage {
   user_description: string;
   content_hash?: string | null;
   lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -4081,6 +4084,7 @@ export interface FormCollection {
   form?: (string | null) | Form;
   formSubmission?: (string | null) | FormSubmission;
   originalFilename?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -4123,6 +4127,7 @@ export interface ChatImage {
   id: string;
   chatId: string;
   uploadedBy: string | User;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -4375,6 +4380,7 @@ export interface BillParticipant {
  */
 export interface BillPdf {
   id: string;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -4602,6 +4608,7 @@ export interface PayloadMcpApiKey {
   enableAPIKey?: boolean | null;
   apiKey?: string | null;
   apiKeyIndex?: string | null;
+  hasAPIKey?: boolean | null;
   collection: 'payload-mcp-api-keys';
 }
 /**
@@ -6464,6 +6471,7 @@ export interface ImagesSelect<T extends boolean = true> {
   isPdfThumbnail?: T;
   internalDescription?: T;
   lastEditedByUser?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -6510,6 +6518,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
   user_description?: T;
   content_hash?: T;
   lastEditedByUser?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -6556,6 +6565,7 @@ export interface DocumentsSelect<T extends boolean = true> {
   pdfThumbnailUrl?: T;
   permissions?: T;
   lastEditedByUser?: T;
+  _objectKey?: T;
   folder?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -6578,6 +6588,7 @@ export interface FormCollectionSelect<T extends boolean = true> {
   form?: T;
   formSubmission?: T;
   originalFilename?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -6678,6 +6689,7 @@ export interface TimelineCategorySelect<T extends boolean = true> {
 export interface ChatImagesSelect<T extends boolean = true> {
   chatId?: T;
   uploadedBy?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -6814,6 +6826,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
  * via the `definition` "bill-pdfs_select".
  */
 export interface BillPdfsSelect<T extends boolean = true> {
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -7451,6 +7464,7 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
   enableAPIKey?: T;
   apiKey?: T;
   apiKeyIndex?: T;
+  hasAPIKey?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8389,11 +8403,11 @@ export interface BillSetting {
   eventNumberTemplate?: string | null;
   paymentDeadlineDays?: number | null;
   /**
-   * Text on page 1, above the registration details.
+   * Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.
    */
   invoiceLetterText?: string | null;
   /**
-   * Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}.
+   * Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}. Web addresses such as con27.ch/agbs are printed as clickable links.
    */
   invoiceLetterTextAfter?: string | null;
   /**

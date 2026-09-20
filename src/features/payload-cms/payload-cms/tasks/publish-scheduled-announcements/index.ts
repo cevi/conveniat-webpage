@@ -4,6 +4,10 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
@@ -16,10 +20,7 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
       cron: '* * * * *', // Run every minute
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           await cleanupCompletedScheduledJobs(req, 'publishScheduledAnnouncements');
           await cleanupStaleScheduledJobs(req, 'publishScheduledAnnouncements', 5);
 
@@ -30,10 +31,7 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
             onlyScheduled: true,
           });
 
-          return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
-            input: {},
-          };
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },

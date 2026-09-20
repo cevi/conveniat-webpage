@@ -3,6 +3,10 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
@@ -14,10 +18,7 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
       cron: '0 * * * *', // Run hourly
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           await cleanupCompletedScheduledJobs(req, 'cleanupTemporaryFormFiles');
           await cleanupStaleScheduledJobs(req, 'cleanupTemporaryFormFiles', 60);
 
@@ -28,10 +29,7 @@ export const cleanupTemporaryFormFilesTask: TaskConfig<'cleanupTemporaryFormFile
             onlyScheduled: true,
           });
 
-          return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
-            input: {},
-          };
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },
