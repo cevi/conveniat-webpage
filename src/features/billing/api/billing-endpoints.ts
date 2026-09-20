@@ -13,6 +13,7 @@ import {
   billingSendSingleHandler,
   billingSyncHandler,
   billingSyncStatusHandler,
+  billingWeeklyReportPdfHandler,
 } from '@/features/billing/api/bill-admin-api';
 import type { Endpoint } from 'payload';
 
@@ -71,6 +72,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/export-xlsx',
     method: 'get',
     handler: billingExportXlsxHandler,
+  },
+  {
+    path: '/confidential/billing/weekly-report-pdf',
+    method: 'get',
+    handler: billingWeeklyReportPdfHandler,
   },
   {
     path: '/confidential/billing/preview-pdf',
