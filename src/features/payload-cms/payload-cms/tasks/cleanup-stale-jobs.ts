@@ -18,7 +18,8 @@ async function getActiveWorkerJobIds(payload: Payload): Promise<Set<string>> {
 
   return new Set(
     activeWorkersResult.docs
-      .map((w) => (w as { activeJobId?: string | null }).activeJobId)
+      .flatMap((w) => w.activeJobIds ?? [])
+      .map((entry) => entry.jobId)
       .filter((id): id is string => typeof id === 'string' && id.length > 0),
   );
 }

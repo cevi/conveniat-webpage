@@ -7,7 +7,7 @@ export const PayloadWorkersCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'workerId',
     group: AdminPanelDashboardGroups.GlobalSettings,
-    defaultColumns: ['workerId', 'hostname', 'queues', 'lastHeartbeat', 'activeJobId'],
+    defaultColumns: ['workerId', 'hostname', 'queues', 'lastHeartbeat', 'activeJobIds'],
     description: {
       en: 'Registered background worker instances and their activity heartbeats.',
       de: 'Registrierte Hintergrund-Worker-Instanzen und deren Aktivitäts-Heartbeats.',
@@ -72,11 +72,18 @@ export const PayloadWorkersCollection: CollectionConfig = {
       },
     },
     {
-      name: 'activeJobId',
-      type: 'text',
+      name: 'activeJobIds',
+      type: 'array',
       admin: {
         readOnly: true,
       },
+      fields: [
+        {
+          name: 'jobId',
+          type: 'text',
+          required: true,
+        },
+      ],
     },
   ],
 };

@@ -1,5 +1,6 @@
 import {
-  getRunningJobId,
+  announceRunningJobsWith,
+  getRunningJobIds,
   withActiveJobTracking,
   withActiveWorkflowTracking,
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
@@ -27,18 +28,18 @@ const task = (handler: () => unknown): JobTask =>
 
 describe('withActiveJobTracking', () => {
   it('names the job while its handler runs and nothing once it is done', async () => {
-    let idWhileRunning: string | undefined;
+    let idsWhileRunning: string[] = [];
     const tracked = withActiveJobTracking(
       task(() => {
-        idWhileRunning = getRunningJobId();
+        idsWhileRunning = getRunningJobIds();
         return { output: {} };
       }),
     );
 
     await runTask(tracked, 'job-1');
 
-    expect(idWhileRunning).toBe('job-1');
-    expect(getRunningJobId()).toBeUndefined();
+    expect(idsWhileRunning).toEqual(['job-1']);
+    expect(getRunningJobIds()).toEqual([]);
   });
 
   it('forgets a job whose handler threw', async () => {
@@ -50,7 +51,7 @@ describe('withActiveJobTracking', () => {
     // worker claim forever that it is busy with it, and the stale-job cleanup would then never
     // touch the one job it exists for.
     await expect(runTask(tracked, 'job-2')).rejects.toThrow('Hitobito is down');
-    expect(getRunningJobId()).toBeUndefined();
+    expect(getRunningJobIds()).toEqual([]);
   });
 
   it('passes the handler result through', async () => {
@@ -65,50 +66,70 @@ describe('withActiveJobTracking', () => {
     expect(withActiveJobTracking(fileBacked)).toBe(fileBacked);
   });
 
-  it('reports the job it has been running the longest', async () => {
+  it('names every job of an overlapping batch', async () => {
     let releaseSlowJob: (() => void) | undefined;
     const slowJobFinished = new Promise<void>((resolve) => {
       releaseSlowJob = resolve;
     });
     const slowJob = runTask(withActiveJobTracking(task(() => slowJobFinished)), 'job-slow');
 
-    let idDuringQuickJob: string | undefined;
+    let idsDuringQuickJob: string[] = [];
     await runTask(
       withActiveJobTracking(
         task(() => {
-          idDuringQuickJob = getRunningJobId();
+          idsDuringQuickJob = getRunningJobIds();
           return { output: {} };
         }),
       ),
       'job-quick',
     );
+
+    // A queue poll starts up to ten jobs at once. Publishing only the oldest would leave the
+    // stale-job cleanup free to delete the other nine while they run.
+    expect(idsDuringQuickJob).toEqual(['job-slow', 'job-quick']);
+
     releaseSlowJob?.();
     await slowJob;
+    expect(getRunningJobIds()).toEqual([]);
+  });
 
-    // The worker publishes a single job id, and a cleanup only ever looks at jobs that have been
-    // running for minutes. The oldest one is the only candidate.
-    expect(idDuringQuickJob).toBe('job-slow');
-    expect(getRunningJobId()).toBeUndefined();
+  it('announces a job that starts, and only once for a batch that starts together', async () => {
+    const announce = jest.fn();
+    announceRunningJobsWith(announce);
+    let releaseJobs: (() => void) | undefined;
+    const jobsFinished = new Promise<void>((resolve) => {
+      releaseJobs = resolve;
+    });
+    const tracked = withActiveJobTracking(task(() => jobsFinished));
+
+    const running = [runTask(tracked, 'job-a'), runTask(tracked, 'job-b')];
+
+    // The claim has to be published before the next cleanup pass, which is ten seconds away,
+    // not on the next 30-second heartbeat.
+    expect(announce).toHaveBeenCalledTimes(2);
+
+    releaseJobs?.();
+    await Promise.all(running);
   });
 });
 
 describe('withActiveWorkflowTracking', () => {
   it('keeps naming the workflow while a step of it finishes', async () => {
     const step = withActiveJobTracking(task(() => ({ output: {} })));
-    let idAfterStep: string | undefined;
+    let idAfterStep: string[] = [];
     const workflow = {
       slug: 'registrationWorkflow',
       handler: async ({ job }: { job: { id: string } }) => {
         // A step is handed the id of the workflow's job, not one of its own.
         await runTask(step, job.id);
-        idAfterStep = getRunningJobId();
+        idAfterStep = getRunningJobIds();
       },
     } as unknown as JobWorkflow;
 
     await runWorkflow(withActiveWorkflowTracking(workflow), 'job-workflow');
 
-    expect(idAfterStep).toBe('job-workflow');
-    expect(getRunningJobId()).toBeUndefined();
+    expect(idAfterStep).toEqual(['job-workflow']);
+    expect(getRunningJobIds()).toEqual([]);
   });
 
   it('leaves a workflow alone that is defined as a list of steps', () => {

@@ -15,13 +15,23 @@ type JobWorkflow = NonNullable<JobsConfig['workflows']>[number];
  */
 const runningJobIds = new Set<string>();
 
+let announceStart: (() => void) | undefined;
+
 /**
- * The job this worker has been running the longest, which is the one a cleanup would wrongly
- * consider stale. `undefined` when the worker is idle.
+ * Every job this worker is running, oldest first. A cleanup pass can meet any of them, so they
+ * all have to be published, not just the one that has been running the longest.
  */
-export const getRunningJobId = (): string | undefined => {
-  const [oldest] = runningJobIds;
-  return oldest;
+export const getRunningJobIds = (): string[] => [...runningJobIds];
+
+/**
+ * Registers what to do when this worker picks up a job. A job whose start time has passed is
+ * already old enough to be cleaned up on the tick it starts, so its claim cannot wait for the
+ * next heartbeat.
+ *
+ * @param listener publishes the ids from {@link getRunningJobIds}
+ */
+export const announceRunningJobsWith = (listener: () => void): void => {
+  announceStart = listener;
 };
 
 const trackWhileRunning = async <T>(jobId: string, run: () => MaybePromise<T>): Promise<T> => {
@@ -31,6 +41,7 @@ const trackWhileRunning = async <T>(jobId: string, run: () => MaybePromise<T>): 
   const isOutermost = !runningJobIds.has(jobId);
   if (isOutermost) {
     runningJobIds.add(jobId);
+    announceStart?.();
   }
   try {
     return await run();
