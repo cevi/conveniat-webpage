@@ -1,6 +1,7 @@
 import { environmentVariables as env } from '@/config/environment-variables';
 import { billingEndpoints } from '@/features/billing/api/billing-endpoints';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
@@ -238,6 +239,7 @@ const jobsConfig: JobsConfig = {
       admin: {
         ...defaultJobsCollection.admin,
         hidden: shouldHideInAdminPanel,
+        group: AdminPanelDashboardGroups.BackofficeSystem.label,
         groupBy: false,
         defaultColumns: ['id', 'workflowSlug', 'taskSlug', 'processing', 'createdAt', 'updatedAt'],
         components: {

@@ -9,7 +9,7 @@ export const PhotoContestCollection: CollectionConfig = {
   slug: 'photo-contests',
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppContent.label,
     defaultColumns: ['title', 'slug', 'status', 'maxPointsPerUser'],
   },
   access: {

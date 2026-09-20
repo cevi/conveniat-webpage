@@ -22,7 +22,7 @@ export const TimelineEntryCategory: CollectionConfig = {
   },
 
   admin: {
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.WebpageContent.label,
     useAsTitle: 'name',
     hidden: shouldHideInAdminPanel,
   },

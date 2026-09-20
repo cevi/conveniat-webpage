@@ -14,7 +14,7 @@ export const CampsitePresenceGlobal: GlobalConfig = {
     read: () => true,
   },
   admin: {
-    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     hideAPIURL: true,
 
     hidden: (args): boolean => {

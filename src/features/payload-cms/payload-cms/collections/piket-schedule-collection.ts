@@ -43,7 +43,7 @@ export const PiketScheduleCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'id',
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     defaultColumns: ['startTime', 'endTime', 'chatTypes'],
   },
   access: {

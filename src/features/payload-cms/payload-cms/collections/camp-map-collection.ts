@@ -51,7 +51,7 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppCampsite.label,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,

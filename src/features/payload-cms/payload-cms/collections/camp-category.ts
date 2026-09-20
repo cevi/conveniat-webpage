@@ -10,7 +10,7 @@ export const CampCategoryCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppCampsite.label,
     defaultColumns: ['title', 'colorTheme'],
   },
   labels: {

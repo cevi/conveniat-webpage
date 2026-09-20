@@ -49,7 +49,7 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.HelferAnmeldung,
+    group: AdminPanelDashboardGroups.WebpageHelpers.label,
     defaultColumns: ['title', 'category', 'dateRangeCategory', 'maxQuota'],
     components: {
       beforeListTable: ['@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'],

@@ -97,7 +97,7 @@ export const BlockedJobs: CollectionConfig = {
   admin: {
     hidden: true,
     useAsTitle: 'id',
-    group: AdminPanelDashboardGroups.HelferAnmeldung,
+    group: AdminPanelDashboardGroups.WebpageHelpers.label,
   },
   access: {
     read: () => false,

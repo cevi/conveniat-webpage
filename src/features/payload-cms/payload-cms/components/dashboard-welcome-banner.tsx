@@ -15,9 +15,9 @@ const welcomeMessageTitle: StaticTranslationString = {
 };
 
 const welcomeMessage: StaticTranslationString = {
-  de: 'Hier kannst du alle Inhalte der Webseite verwalten und bearbeiten.',
-  en: 'Here you can manage and edit all the content of the website.',
-  fr: 'Ici, vous pouvez gérer et modifier tout le contenu du site web.',
+  de: 'Webseite, App und Backoffice an einem Ort verwalten.',
+  en: 'Manage the website, the app and the back office in one place.',
+  fr: "Gérer le site web, l'app et le backoffice en un seul endroit.",
 };
 
 const flushCacheTitle: StaticTranslationString = {
@@ -224,7 +224,7 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
             onClick={() => openModal('reset-instance')}
             className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
           >
-            Reset this instance
+            {resetInstanceTitle[locale]}
           </button>
         )}
 
@@ -233,7 +233,7 @@ const DashboardWelcomeBanner: React.FC<{ locale: Locale }> = ({ locale = 'de' })
           onClick={() => openModal('flush-cache')}
           className="font-heading bg-conveniat-green cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white duration-100 hover:brightness-110"
         >
-          Flush Cache
+          {flushCacheTitle[locale]}
         </button>
       </div>
     </div>

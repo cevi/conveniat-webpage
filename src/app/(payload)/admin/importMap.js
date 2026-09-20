@@ -33,6 +33,9 @@ import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/
 import { default as default_5c23d4f2c41ff08443297cc41aafe3d1 } from '@/features/payload-cms/payload-cms/components/live-preview-restorer'
 import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/payload-cms/payload-cms/components/auto-translate/auto-translate'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
+import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
 import { default as default_5e6e3bcc43a18e826de12d19a3b1de10 } from '@/features/payload-cms/payload-cms/components/fields/icon-select-field'
 import { default as default_4c4fde438445a819805cfbe983551661 } from '@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field'
 import { ParticipantsAdminUI as ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59 } from '@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui'
@@ -40,19 +43,10 @@ import { default as default_9a47e1efa5ebe7e17cc6bea1c1b3bad9 } from '@/features/
 import { CampScheduleOrganiserExport as CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945 } from '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export'
 import { HelperShiftParticipationExport as HelperShiftParticipationExport_89d83a7906586cd6985566aeea8b4a8d } from '@/features/payload-cms/payload-cms/components/helper-shift-participation-export'
 import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3a68008c96f8846494b } from '@/features/payload-cms/payload-cms/components/helper-shift-organiser-export'
-import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
-import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
-import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
 import { default as default_7d02a833b9164544e9c8d7653b246eb7 } from '@/features/payload-cms/components/push-notification/push-notification-history.tsx'
-import { ResendEmailButton as ResendEmailButton_e62af8aa593181d6540c08021abb9c8b } from '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button'
-import { OverrideStatusButton as OverrideStatusButton_8c304667b297b7e538d558abfba16bf0 } from '@/features/payload-cms/payload-cms/components/override-status/override-status-button'
-import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
-import { default as default_5ef9787d26b4ecd448f299564fb6b977 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell'
-import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field'
-import { default as default_84e24e99aa7b2bdd4ca81a1fd23b526b } from '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
 import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
 import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
@@ -60,6 +54,12 @@ import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/
 import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
 import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
+import { ResendEmailButton as ResendEmailButton_e62af8aa593181d6540c08021abb9c8b } from '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button'
+import { OverrideStatusButton as OverrideStatusButton_8c304667b297b7e538d558abfba16bf0 } from '@/features/payload-cms/payload-cms/components/override-status/override-status-button'
+import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
+import { default as default_5ef9787d26b4ecd448f299564fb6b977 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell'
+import { default as default_a06f68e0cdad6b2fba6e2223cd5b6303 } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field'
+import { default as default_84e24e99aa7b2bdd4ca81a1fd23b526b } from '@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field'
 import { FormBlockLabel as FormBlockLabel_38d14c2698379009ac744a1a2c27c19b } from '@/features/payload-cms/payload-cms/components/form-block-label'
 import { FormSectionRowLabel as FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955 } from '@/features/payload-cms/payload-cms/components/form-section-row-label'
 import { default as default_3be47662410c932a09263aa429c0578f } from '@/features/payload-cms/payload-cms/components/fields/email-from-warning'
@@ -91,19 +91,19 @@ import { default as default_d37e91e5b9afb343d4dc268d1c9ab212 } from '@/features/
 import { default as default_b88029698d058420c6ac4a1d03de1941 } from '@/features/payload-cms/payload-cms/components/jobs-summary-banner'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
-import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
-import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
-import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
-import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
-import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/payload-cms/payload-cms/views/all-chats-management'
 import { default as default_a77c604b4ed076fec72f698268103ca5 } from '@/features/registration_process/components/management-view'
 import { default as default_8d520ff6bc17ad01077b15db1b6b9440 } from '@/features/registration_process/components/enrollment-view'
+import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
+import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
+import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
+import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/payload-cms/payload-cms/views/all-chats-management'
+import { default as default_cd35b3d8d72e9d0e9e863a18826ee991 } from '@/features/presence/payload-cms/components/density-plot-field'
+import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/presence/payload-cms/components/open-people-list-field'
+import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
-import { default as default_cd35b3d8d72e9d0e9e863a18826ee991 } from '@/features/presence/payload-cms/components/density-plot-field'
-import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/presence/payload-cms/components/open-people-list-field'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
@@ -113,6 +113,8 @@ import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/
 import { default as default_f2e2a798db2c97cbd7f7b11ab9c64d45 } from '@/features/presence/payload-cms/widgets/presence-count-widget'
 import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/payload-cms/payload-cms/widgets/user-count-widget'
 import { default as default_ff22a191d3f87d6a73e8d33d6e422fd0 } from '@/features/payload-cms/payload-cms/widgets/email-stats-widget'
+import { default as default_8068edb075d4cca20d0c3eb0ac544f07 } from '@/features/payload-cms/payload-cms/widgets/admin-areas-widget'
+import { default as default_087ca28df3cfcffde571bd9daed10275 } from '@/features/payload-cms/payload-cms/widgets/access-overview-widget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -152,6 +154,9 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/live-preview-restorer#default": default_5c23d4f2c41ff08443297cc41aafe3d1,
   "@/features/payload-cms/payload-cms/components/auto-translate/auto-translate#default": default_a13782f3ac0bcff5be1ba175a38107f2,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
+  "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
   "@/features/payload-cms/payload-cms/components/fields/icon-select-field#default": default_5e6e3bcc43a18e826de12d19a3b1de10,
   "@/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field#default": default_4c4fde438445a819805cfbe983551661,
   "@/features/payload-cms/payload-cms/components/participants-admin-ui/participants-admin-ui#ParticipantsAdminUI": ParticipantsAdminUI_6073fbd2f4ec389b3079bf8bb78b9c59,
@@ -159,19 +164,10 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport": CampScheduleOrganiserExport_2f5bf8d677cca7cfe25e44ae3a73b945,
   "@/features/payload-cms/payload-cms/components/helper-shift-participation-export#HelperShiftParticipationExport": HelperShiftParticipationExport_89d83a7906586cd6985566aeea8b4a8d,
   "@/features/payload-cms/payload-cms/components/helper-shift-organiser-export#HelperShiftOrganiserExport": HelperShiftOrganiserExport_706abe738905a3a68008c96f8846494b,
-  "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,
-  "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
-  "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
   "@/features/payload-cms/components/push-notification/push-notification-history.tsx#default": default_7d02a833b9164544e9c8d7653b246eb7,
-  "@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton": ResendEmailButton_e62af8aa593181d6540c08021abb9c8b,
-  "@/features/payload-cms/payload-cms/components/override-status/override-status-button#OverrideStatusButton": OverrideStatusButton_8c304667b297b7e538d558abfba16bf0,
-  "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
-  "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell#default": default_5ef9787d26b4ecd448f299564fb6b977,
-  "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field#default": default_a06f68e0cdad6b2fba6e2223cd5b6303,
-  "@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field#default": default_84e24e99aa7b2bdd4ca81a1fd23b526b,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
   "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
   "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
@@ -179,6 +175,12 @@ export const importMap = {
   "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
   "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
+  "@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton": ResendEmailButton_e62af8aa593181d6540c08021abb9c8b,
+  "@/features/payload-cms/payload-cms/components/override-status/override-status-button#OverrideStatusButton": OverrideStatusButton_8c304667b297b7e538d558abfba16bf0,
+  "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
+  "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell#default": default_5ef9787d26b4ecd448f299564fb6b977,
+  "@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field#default": default_a06f68e0cdad6b2fba6e2223cd5b6303,
+  "@/features/payload-cms/payload-cms/components/smtp-results/raw-smtp-results-field#default": default_84e24e99aa7b2bdd4ca81a1fd23b526b,
   "@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel": FormBlockLabel_38d14c2698379009ac744a1a2c27c19b,
   "@/features/payload-cms/payload-cms/components/form-section-row-label#FormSectionRowLabel": FormSectionRowLabel_95958b8088bc2dff497e1d7f3b2a3955,
   "@/features/payload-cms/payload-cms/components/fields/email-from-warning#default": default_3be47662410c932a09263aa429c0578f,
@@ -210,19 +212,19 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/jobs-summary-banner#default": default_b88029698d058420c6ac4a1d03de1941,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
-  "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
-  "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,
-  "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,
-  "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
-  "@/features/payload-cms/payload-cms/views/all-chats-management#default": default_b1f955abb547154f4667abb221790e2b,
   "@/features/registration_process/components/management-view#default": default_a77c604b4ed076fec72f698268103ca5,
   "@/features/registration_process/components/enrollment-view#default": default_8d520ff6bc17ad01077b15db1b6b9440,
+  "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
+  "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
+  "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,
+  "@/features/payload-cms/payload-cms/views/all-chats-management#default": default_b1f955abb547154f4667abb221790e2b,
+  "@/features/presence/payload-cms/components/density-plot-field#default": default_cd35b3d8d72e9d0e9e863a18826ee991,
+  "@/features/presence/payload-cms/components/open-people-list-field#default": default_95aac01a1d24126400a908467acf9d8a,
+  "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
-  "@/features/presence/payload-cms/components/density-plot-field#default": default_cd35b3d8d72e9d0e9e863a18826ee991,
-  "@/features/presence/payload-cms/components/open-people-list-field#default": default_95aac01a1d24126400a908467acf9d8a,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
@@ -232,5 +234,7 @@ export const importMap = {
   "@/features/presence/payload-cms/widgets/presence-count-widget#default": default_f2e2a798db2c97cbd7f7b11ab9c64d45,
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,
   "@/features/payload-cms/payload-cms/widgets/email-stats-widget#default": default_ff22a191d3f87d6a73e8d33d6e422fd0,
+  "@/features/payload-cms/payload-cms/widgets/admin-areas-widget#default": default_8068edb075d4cca20d0c3eb0ac544f07,
+  "@/features/payload-cms/payload-cms/widgets/access-overview-widget#default": default_087ca28df3cfcffde571bd9daed10275,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

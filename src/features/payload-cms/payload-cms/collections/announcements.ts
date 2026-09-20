@@ -375,7 +375,7 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
   slug: 'announcements',
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppContent.label,
     defaultColumns: ['title', 'channel', 'status', 'scheduledAt', 'publishedAt'],
   },
   labels: {

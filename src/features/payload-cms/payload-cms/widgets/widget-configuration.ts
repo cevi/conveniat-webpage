@@ -21,6 +21,18 @@ export const enabledWidgets: Widget[] = [
     slug: 'email-stats',
     Component: '@/features/payload-cms/payload-cms/widgets/email-stats-widget#default',
   },
+  {
+    slug: 'admin-areas',
+    label: { de: 'Bereiche', en: 'Areas', fr: 'Domaines' },
+    Component: '@/features/payload-cms/payload-cms/widgets/admin-areas-widget#default',
+    minWidth: 'medium',
+  },
+  {
+    slug: 'access-overview',
+    label: { de: 'Zugriff nach Gruppe', en: 'Access by group', fr: 'Accès par groupe' },
+    Component: '@/features/payload-cms/payload-cms/widgets/access-overview-widget#default',
+    minWidth: 'medium',
+  },
 ];
 
 export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
@@ -35,8 +47,11 @@ export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
   });
 
   if (!hasAccessToWidgets) {
-    // for translation and program team -> only collections
-    return [{ widgetSlug: 'collections', width: 'full' }];
+    // translation and program team get the areas and the access overview, no statistics
+    return [
+      { widgetSlug: 'admin-areas', width: 'full' },
+      { widgetSlug: 'access-overview', width: 'full' },
+    ];
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,7 +64,8 @@ export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
   layout.push(
     { widgetSlug: 'user-count', width: 'small' },
     { widgetSlug: 'email-stats', width: 'small' },
-    { widgetSlug: 'collections', width: 'full' },
+    { widgetSlug: 'admin-areas', width: 'full' },
+    { widgetSlug: 'access-overview', width: 'full' },
   );
 
   return layout;

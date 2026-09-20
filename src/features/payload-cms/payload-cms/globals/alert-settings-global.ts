@@ -15,7 +15,7 @@ export const AlertSettingsGlobal: GlobalConfig = {
     update: isFullAdmin,
   },
   admin: {
-    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     hidden: shouldHideInAdminPanelIfNotAdmin,
   },
   fields: [

@@ -23,7 +23,7 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
     },
   },
   admin: {
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
     useAsTitle: 'search_title',
     hidden: shouldHideInAdminPanelIfNotAdmin,
   },

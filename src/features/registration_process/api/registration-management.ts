@@ -22,7 +22,7 @@ export const RegistrationManagement: GlobalConfig = {
   },
   admin: {
     hidden: () => !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT,
-    group: AdminPanelDashboardGroups.HelferAnmeldung,
+    group: AdminPanelDashboardGroups.WebpageHelpers.label,
     hideAPIURL: true,
     components: {
       views: {

@@ -20,7 +20,7 @@ export const FormCollection: CollectionConfig = {
     },
   },
   admin: {
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.WebpageMedia.label,
     groupBy: true,
     disableCopyToLocale: true,
     hidden: shouldHideInAdminPanel,

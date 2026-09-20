@@ -10,7 +10,7 @@ export const EmergencyCardsCollection: CollectionConfig = asLocalizedCollection(
   slug: 'emergency-cards',
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppContent.label,
     defaultColumns: ['title', 'publishingStatus', 'updatedAt'],
   },
   labels: {

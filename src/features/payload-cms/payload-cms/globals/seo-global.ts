@@ -34,7 +34,7 @@ export const SeoGlobal: GlobalConfig = {
   hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
 
   admin: {
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.WebpageContent.label,
     description: {
       en: 'Settings for the search engine optimization',
       de: 'Einstellungen für die Suchmaschinenoptimierung',

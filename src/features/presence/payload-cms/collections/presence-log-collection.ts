@@ -32,7 +32,7 @@ export const PresenceLogCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING,
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.BackofficePeople.label,
     defaultColumns: ['user', 'isPresent', 'timestamp'],
   },
   fields: [
