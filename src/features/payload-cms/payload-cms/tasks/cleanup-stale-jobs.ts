@@ -16,9 +16,12 @@ async function getActiveWorkerJobIds(payload: Payload): Promise<Set<string>> {
     context: { internal: true },
   });
 
+  // `activeJobId` is the single claim a replica of the previous release writes. Reading both
+  // keeps a job claimed by either version safe for as long as a rolling deploy runs the two
+  // side by side.
   return new Set(
     activeWorkersResult.docs
-      .map((w) => (w as { activeJobId?: string | null }).activeJobId)
+      .flatMap((w) => [...(w.activeJobIds ?? []).map((entry) => entry.jobId), w.activeJobId])
       .filter((id): id is string => typeof id === 'string' && id.length > 0),
   );
 }

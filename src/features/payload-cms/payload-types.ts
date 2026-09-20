@@ -4426,6 +4426,12 @@ export interface PayloadWorker {
     | null;
   lastHeartbeat: string;
   activeJobId?: string | null;
+  activeJobIds?:
+    | {
+        jobId: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6868,6 +6874,12 @@ export interface PayloadWorkersSelect<T extends boolean = true> {
       };
   lastHeartbeat?: T;
   activeJobId?: T;
+  activeJobIds?:
+    | T
+    | {
+        jobId?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

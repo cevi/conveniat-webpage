@@ -7,7 +7,7 @@ import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings
 import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
-import { onPayloadInit, workerId } from '@/features/payload-cms/payload-cms/initialization';
+import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
 import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
@@ -16,6 +16,10 @@ import { mcpPluginConfiguration } from '@/features/payload-cms/payload-cms/plugi
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StoragePlugins } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
+import {
+  withActiveJobTracking,
+  withActiveWorkflowTracking,
+} from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import {
   DEFAULT_QUEUE,
@@ -26,7 +30,6 @@ import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cm
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
-import { makeJobLogErrorOptional } from '@/features/payload-cms/payload-cms/tasks/jobs-collection-fields';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
@@ -60,13 +63,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type {
-  CollectionAfterOperationHook,
-  CollectionBeforeChangeHook,
-  Endpoint,
-  JobsConfig,
-  MetaConfig,
-} from 'payload';
+import type { CollectionAfterOperationHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -176,9 +173,23 @@ const jobsConfig: JobsConfig = {
    * deletion locally within its own `onSuccess` hook instead.
    */
   deleteJobOnComplete: false,
-  runHooks: true,
+  /**
+   * IMPORTANT: Leave `jobs.runHooks` off.
+   *
+   * Payload appends a task log entry with `updateJob({ log: { $push: entry } })`. The database
+   * path understands that operator; `payload.update()` does not, and its field validation only
+   * accepts an array for an array field. With `runHooks` on, every job therefore failed its own
+   * final bookkeeping write with "Das folgende Feld ist nicht korrekt: Status > Log", around
+   * 1600 times an hour, and stayed marked as processing. Payload deprecates the setting and
+   * warns that it "drastically" slows the queue down.
+   *
+   * The read hooks below are unaffected: they run on `payload.find`, which the admin panel uses
+   * either way. Only writes from inside the queue skip the hooks, and the one write hook that
+   * depended on them now lives in `active-job-tracking.ts`.
+   */
+  runHooks: false,
   jobsCollectionOverrides: ({ defaultJobsCollection }) => {
-    const fields = makeJobLogErrorOptional(defaultJobsCollection.fields).map((field) => {
+    const fields = defaultJobsCollection.fields.map((field) => {
       if (
         'name' in field &&
         field.type === 'json' &&
@@ -316,48 +327,6 @@ const jobsConfig: JobsConfig = {
           },
           ...(defaultJobsCollection.hooks?.beforeOperation ?? []),
         ],
-        beforeChange: [
-          (async ({ data, originalDoc, req }) => {
-            const originalJobDocument = originalDoc as Record<string, unknown> | undefined;
-            if (data['processing'] === true && originalJobDocument?.['processing'] !== true) {
-              try {
-                await req.payload.update({
-                  collection: 'payload-workers',
-                  where: { workerId: { equals: workerId } },
-                  data: { activeJobId: String(data['id'] || originalJobDocument?.['id'] || '') },
-                  context: { internal: true },
-                });
-              } catch (error) {
-                req.payload.logger.error(
-                  `[Jobs Hook] Failed to set activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
-                );
-              }
-            }
-            if (
-              ((typeof data['completedAt'] === 'string' && data['completedAt'].length > 0) ||
-                data['processing'] === false) &&
-              originalJobDocument?.['processing'] === true
-            ) {
-              try {
-                await req.payload.update({
-                  collection: 'payload-workers',
-                  where: { workerId: { equals: workerId } },
-                  data: {
-                    // eslint-disable-next-line unicorn/no-null
-                    activeJobId: null,
-                  },
-                  context: { internal: true },
-                });
-              } catch (error) {
-                req.payload.logger.error(
-                  `[Jobs Hook] Failed to clear activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
-                );
-              }
-            }
-            return data;
-          }) as CollectionBeforeChangeHook,
-          ...(defaultJobsCollection.hooks?.beforeChange ?? []),
-        ],
       },
       fields,
     };
@@ -383,8 +352,10 @@ const jobsConfig: JobsConfig = {
     sendPflichtangabenRemindersTask,
     cleanupTemporaryFormFilesTask,
     autoCheckoutPresenceTask,
-  ],
-  workflows: [registrationWorkflow, brevoContactWorkflow],
+  ].map((task) => withActiveJobTracking(task)),
+  workflows: [registrationWorkflow, brevoContactWorkflow].map((workflow) =>
+    withActiveWorkflowTracking(workflow),
+  ),
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
     ? [
         {
