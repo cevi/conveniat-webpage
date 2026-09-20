@@ -14,12 +14,14 @@ import type {
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import { isBillable } from '@/features/billing/services/billing-status';
+import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
 import type {
   JobProgressReporter,
   JobProgressUpdate,
 } from '@/features/billing/services/job-progress-reporter';
 import { syncParticipantsUseCase } from '@/features/billing/services/sync-service';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 
 /**
  * A reporter that records what the use case published, so a test can assert on the frames
@@ -534,6 +536,34 @@ describe('Sync Service', () => {
     // it has to reach the admin UI as a link rather than as prose.
     expect(summary.errors).toEqual(['No events configured in Bill Settings.']);
     expect(summary.relatedDocuments).toEqual(['billSettings']);
+  });
+
+  it('stops the run when the Cevi.DB session is gone instead of emptying every row', async () => {
+    // An unreadable participation used to arrive as `{}`, which is indistinguishable from
+    // a registration whose Pflichtangaben were all deleted: the sync would have parked
+    // every row of every event as incomplete and chased their Adressverwalter.
+    mockSettingsRepo.getBillSettings.mockResolvedValue({
+      events: [mockEvent, { eventId: 'event-2', eventName: 'Second', groupId: 'group-2' }],
+      rolePricing: [{ roleTypePattern: 'Event::Role::Participant', label: 'TN', amount: 1 }],
+    } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+    mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+    mockHitobitoService.fetchParticipationAnswers.mockRejectedValue(
+      new SessionExpiredError('https://db.cevi.ch/groups/7/events/42/participations/900/edit'),
+    );
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(summary.errors).toEqual([CEVIDB_SESSION_EXPIRED_MESSAGE]);
+    expect(summary.relatedDocuments).toEqual(['registrationManagement']);
+    // The second event is never attempted, and nothing was written from a blind read.
+    expect(mockHitobitoService.fetchParticipations).toHaveBeenCalledTimes(1);
+    expect(mockParticipantRepo.update).not.toHaveBeenCalled();
+    expect(mockParticipantRepo.create).not.toHaveBeenCalled();
   });
   describe('a participation that has already been billed', () => {
     it('parks a billed participant for review instead of queueing a second bill', async () => {
