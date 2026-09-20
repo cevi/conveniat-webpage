@@ -135,6 +135,8 @@ export const DonationBarometer: React.FC<
 
   const ratio = hasGoal ? Math.min(raised / goal, 1) : 0;
 
+  const raisedText = formatNumber(raised, locale);
+
   const milestones = (figures.milestones ?? [])
     .filter(
       (milestone): milestone is DonationBarometerMilestone & { amount: number; label: string } =>
@@ -188,20 +190,46 @@ export const DonationBarometer: React.FC<
         </p>
       )}
 
-      {/* The figure is the graphic here, so it is sized like one. `globals.scss`
-          already scales the root font size per breakpoint, so these two steps
-          run from roughly 60px on a phone to 90px on a desktop. Tabular
-          numerals keep a rising amount from reflowing the line under it. */}
-      <p className="font-heading text-conveniat-green mt-6 text-6xl leading-none font-bold tabular-nums sm:text-7xl">
-        {formatNumber(raised, locale)}
+      {/* The figure is the graphic here, so it is sized like one, and it has to
+          be sized against the longest amount it can hold rather than a typical
+          one: Montserrat's bold digits are about two thirds of an em each and a
+          grouped total is almost all digits. Each ladder below is the largest
+          step at which its amount still clears the card padding on a 320px
+          phone, and a seven-digit total takes the lower one because it is two
+          grouped thousands wider than a six-digit one. `globals.scss` scales
+          the root font size again above 768px, so the desktop end reaches
+          roughly 90px. Tabular numerals keep a rising amount from reflowing the
+          line under it. */}
+      <p
+        className={cn(
+          'font-heading text-conveniat-green mt-6 leading-none font-bold tabular-nums',
+          raisedText.length > 7
+            ? 'text-[2.75rem] min-[360px]:text-5xl sm:text-6xl'
+            : 'text-5xl min-[360px]:text-6xl sm:text-7xl',
+        )}
+      >
+        {raisedText}
       </p>
       <p className="font-body mt-2 text-sm text-gray-500">
         {hasGoal ? ofGoalText(formatNumber(goal, locale), locale) : currencyText[locale]}
       </p>
 
+      {/* The one proportional element on the card. It stays a rule rather than
+          becoming a meter with a scale and a percentage, but a hairline was too
+          faint to read as progress at arm's length, so it carries a track and
+          rounded ends. */}
       {hasGoal && (
-        <div className="mt-5 h-0.5 w-full bg-gray-200" aria-hidden="true">
-          <div className="bg-conveniat-green h-full" style={{ width: `${ratio * 100}%` }} />
+        <div
+          className="mt-5 h-2 w-full overflow-hidden rounded-full bg-gray-100"
+          aria-hidden="true"
+        >
+          <div
+            className="bg-conveniat-green h-full rounded-full"
+            // A campaign in its first days is a fraction of a pixel wide here.
+            // Floor the fill at its own height so it reads as a mark that
+            // something has come in; the caption below carries the real number.
+            style={{ width: `${ratio * 100}%`, minWidth: raised > 0 ? '0.5rem' : undefined }}
+          />
         </div>
       )}
 
