@@ -7,9 +7,12 @@ import {
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { createLogger } from '@/utils/server-logger';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
 import superjson from 'superjson';
+
+const logger = createLogger('trpc:context');
 
 export const createTRPCContext = cache(async () => {
   const session = await auth();
@@ -21,10 +24,9 @@ export const createTRPCContext = cache(async () => {
     } else {
       const result = HitobitoNextAuthUserSchema.safeParse(session.user);
       if (!result.success) {
-        console.warn(
-          '[createTRPCContext] Session invalid (Schema Mismatch):',
-          JSON.stringify(result.error.format()),
-        );
+        logger.warn('Session rejected, it does not match the expected schema', {
+          'session.schema.error': JSON.stringify(result.error.format()),
+        });
       }
     }
   }

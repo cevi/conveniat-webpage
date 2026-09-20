@@ -13,8 +13,11 @@ import { ChatMembershipPermission, MessageEventType, MessageType, type Prisma } 
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import type { StaticTranslationString } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:queries');
 
 export const getChatList = trpcBaseProcedure
   .input(z.object({}))
@@ -186,8 +189,9 @@ export const getChatList = trpcBaseProcedure
           nickname: u.nickname,
         });
       }
-    } catch {
-      // Fallback if Payload query fails
+    } catch (error) {
+      // Fallback to the prisma user names if the Payload query fails.
+      logger.warn('Falling back to prisma user names, the Payload user query failed', { error });
     }
 
     // 2. Map retrieved chats synchronously to their DTO representation

@@ -65,6 +65,11 @@ export const onRequestError = async (
 ): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
   if (process.env['NEXT_RUNTIME'] === 'nodejs') {
+    // Imported lazily for the same reason the tracing setup is: this module is compiled
+    // for the Edge runtime too, and the logger reaches for `node:os` at import time.
+    const { createLogger } = await import('./utils/server-logger');
+    const logger = createLogger('instrumentation');
+
     const { getPostHogServer } = await import('./lib/posthog-server');
     const posthog = getPostHogServer();
     let distinctId: string | undefined;
@@ -86,7 +91,7 @@ export const onRequestError = async (
             }
           }
         } catch (error_) {
-          console.error('Error parsing PostHog cookie:', error_);
+          logger.warn('Could not parse the PostHog cookie', { error: error_ });
         }
       }
     }
@@ -145,7 +150,7 @@ export const onRequestError = async (
       try {
         await posthog.flush();
       } catch (flushError) {
-        console.error('Error flushing PostHog events:', flushError);
+        logger.error('Failed to flush the PostHog events', { error: flushError });
       }
     }
   }

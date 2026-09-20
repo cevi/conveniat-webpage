@@ -1,7 +1,10 @@
 import { escapeHTML } from '@/features/payload-cms/payload-cms/utils/html-utils';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { revalidateTag } from 'next/cache';
 import { getPayload } from 'payload';
+
+const logger = createLogger('api:form-submission-approval');
 
 interface RenderHtmlOptions {
   title: string;
@@ -295,7 +298,7 @@ export async function GET(request: Request): Promise<Response> {
       id: submissionId,
     });
   } catch (error) {
-    console.error('Error handling GET /api/form-submissions/approve:', error);
+    logger.error('Failed to render the form submission approval page', { error });
     return renderHtmlResponse({
       title: 'Serverfehler',
       message:
@@ -402,7 +405,7 @@ export async function POST(request: Request): Promise<Response> {
       variant: 'success',
     });
   } catch (error) {
-    console.error('Error during form submission approval POST:', error);
+    logger.error('Failed to approve a form submission', { error });
     return renderHtmlResponse({
       title: 'Serverfehler',
       message:

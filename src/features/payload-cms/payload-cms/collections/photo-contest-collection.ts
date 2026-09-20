@@ -78,7 +78,10 @@ export const PhotoContestCollection: CollectionConfig = {
                     };
                     resolvedUrl = mediaObject.url ?? mediaObject.sizes?.large?.url ?? null;
                   } catch (error) {
-                    console.error('Could not fetch image from media library:', error);
+                    req.payload.logger.error(
+                      { error, 'image.id': item.image },
+                      'Could not fetch an image from the media library',
+                    );
                     hasResolutionError = true;
                   }
                 }
@@ -105,8 +108,8 @@ export const PhotoContestCollection: CollectionConfig = {
             const validImageUrls = new Set(resolvedItems.map((img) => img.imageUrl));
 
             if (hasResolutionError) {
-              console.warn(
-                'Skipping deletion of missing photo contest images due to media library resolution errors.',
+              req.payload.logger.warn(
+                'Skipping the deletion of missing photo contest images, the media library could not be read',
               );
             } else {
               for (const img of currentImages) {
@@ -141,12 +144,12 @@ export const PhotoContestCollection: CollectionConfig = {
             }
           }
         } catch (error) {
-          console.error('Failed to sync photo contest to database:', error);
+          req.payload.logger.error({ error }, 'Failed to sync a photo contest to the database');
         }
       },
     ],
     afterDelete: [
-      async ({ doc }): Promise<void> => {
+      async ({ doc, req }): Promise<void> => {
         try {
           if (typeof doc.slug === 'string' && doc.slug.length > 0) {
             await prisma.photoContest.delete({
@@ -154,7 +157,7 @@ export const PhotoContestCollection: CollectionConfig = {
             });
           }
         } catch (error) {
-          console.error('Failed to delete photo contest from database:', error);
+          req.payload.logger.error({ error }, 'Failed to delete a photo contest from the database');
         }
       },
     ],

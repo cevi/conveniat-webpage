@@ -4,9 +4,12 @@ import prisma from '@/lib/db/prisma';
 import type { ChatType } from '@/lib/prisma/client';
 import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import type { Payload } from 'payload';
 import { getPayload } from 'payload';
+
+const logger = createLogger('chat:piket');
 
 export interface PiketMember {
   id: string;
@@ -221,10 +224,11 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
             },
           })
           .catch((error: unknown) => {
-            console.error(
-              'Failed to publish real-time member added event in background sync:',
+            logger.error('Failed to publish the member-added event during the background sync', {
               error,
-            );
+              'chat.id': chat.uuid,
+              'message.id': systemMessage.uuid,
+            });
           });
 
         // Notify the added piket member on their personal channel: their SSE
@@ -237,7 +241,11 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
             senderId: SYSTEM_SENDER_ID,
           })
           .catch((error: unknown) => {
-            console.error('Failed to publish new_chat event to synced piket member:', error);
+            logger.error('Failed to publish the new_chat event to a synced piket member', {
+              error,
+              'chat.id': chat.uuid,
+              'user.id': member.id,
+            });
           });
       }
     }

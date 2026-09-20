@@ -100,13 +100,16 @@ const syncUserToPostgres: NonNullable<
         try {
           await req.payload.delete({ collection: 'presence-logs', id: payloadLog.id });
         } catch (revertError: unknown) {
-          console.error('[syncUserToPostgres] Failed to revert Payload presence log:', revertError);
+          req.payload.logger.error(
+            { error: revertError, 'user.id': uuid },
+            'Failed to revert the Payload presence log while syncing a user to postgres',
+          );
         }
         throw error;
       }
     }
   } catch (error) {
-    console.error('[syncUserToPostgres] Non-fatal error syncing user to Postgres:', error);
+    req.payload.logger.error({ error }, 'Non-fatal error while syncing a user to postgres');
   }
 };
 
