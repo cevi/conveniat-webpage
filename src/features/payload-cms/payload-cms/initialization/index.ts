@@ -21,6 +21,11 @@ let heartbeatStarted = false;
 
 const startWorkerHeartbeat = (payload: Payload): void => {
   const hostname = os.hostname();
+  // The id of this worker's own document, kept so a heartbeat is a single write. A job start
+  // waits for whatever heartbeat is in flight before it can publish its claim, so every round
+  // trip that is not made shortens that wait. Cleared whenever a write fails, which is what a
+  // deleted document looks like from here, so the next beat looks it up again.
+  let workerDocumentId: number | string | undefined;
 
   const sendHeartbeat = async (): Promise<void> => {
     try {
@@ -36,18 +41,20 @@ const startWorkerHeartbeat = (payload: Payload): void => {
       }
       const queues = autoRunQueues.map((q) => ({ name: q.queue ?? 'default' }));
 
-      // Find if this worker already exists in database
-      const existing = await payload.find({
-        collection: 'payload-workers',
-        where: {
-          workerId: { equals: workerId },
-        },
-        limit: 1,
-        context: { internal: true },
-      });
+      if (workerDocumentId === undefined) {
+        // Find if this worker already exists in database
+        const existing = await payload.find({
+          collection: 'payload-workers',
+          where: {
+            workerId: { equals: workerId },
+          },
+          limit: 1,
+          context: { internal: true },
+        });
+        workerDocumentId = existing.docs[0]?.id;
+      }
 
       const now = new Date().toISOString();
-      const workerDocument = existing.docs[0];
       // The jobs this worker is on, so the stale-job cleanup leaves them alone. A job that
       // finishes between two heartbeats drops out of the list on the next one, which is soon
       // enough: nothing cleans up a job that is no longer processing.
@@ -60,19 +67,8 @@ const startWorkerHeartbeat = (payload: Payload): void => {
       // eslint-disable-next-line unicorn/no-null
       const activeJobId = runningJobIds[0] ?? null;
 
-      await (workerDocument
-        ? payload.update({
-            collection: 'payload-workers',
-            id: workerDocument.id,
-            data: {
-              lastHeartbeat: now,
-              queues,
-              activeJobIds,
-              activeJobId,
-            },
-            context: { internal: true },
-          })
-        : payload.create({
+      const written = await (workerDocumentId === undefined
+        ? payload.create({
             collection: 'payload-workers',
             data: {
               workerId,
@@ -83,8 +79,21 @@ const startWorkerHeartbeat = (payload: Payload): void => {
               activeJobId,
             },
             context: { internal: true },
+          })
+        : payload.update({
+            collection: 'payload-workers',
+            id: workerDocumentId,
+            data: {
+              lastHeartbeat: now,
+              queues,
+              activeJobIds,
+              activeJobId,
+            },
+            context: { internal: true },
           }));
+      workerDocumentId = written.id;
     } catch (error: unknown) {
+      workerDocumentId = undefined;
       const errorMessage = error instanceof Error ? error.message : String(error);
       payload.logger.error(
         `[Worker Heartbeat] Failed to send heartbeat for worker ${workerId}: ${errorMessage}`,
