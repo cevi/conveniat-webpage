@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.9.1](https://github.com/cevi/conveniat-webpage/compare/v1.9.0...v1.9.1) (2026-09-19)
+
+
+### Dependencies
+
+* **deps:** bump Payload CMS to 3.90.1 and refresh dependencies ([12ad7d8](https://github.com/cevi/conveniat-webpage/commit/12ad7d80613ac858181bd5210137e73d5846d7f6))
+* **deps:** bump Payload CMS to 3.90.1 and refresh dependencies ([7bc5e42](https://github.com/cevi/conveniat-webpage/commit/7bc5e42006cbe419ed613f62810ee0f5339661b6))
+
+## [1.9.0](https://github.com/cevi/conveniat-webpage/compare/v1.8.1...v1.9.0) (2026-09-15)
+
+
+### Features
+
+* **billing:** remind a Hof's Adressverwalter about missing Pflichtangaben ([4f79fa0](https://github.com/cevi/conveniat-webpage/commit/4f79fa0e7139f5de7c7cf4915ddf2922db163b1b))
+* **billing:** remind a Hof's Adressverwalter about missing Pflichtangaben ([3f755da](https://github.com/cevi/conveniat-webpage/commit/3f755da0f47fb9e299703adb7aa9f9cbfa98f33c))
+* **billing:** separate general registration report and finance mail ([49a041d](https://github.com/cevi/conveniat-webpage/commit/49a041d10f49978094a11d419263220d60888da7))
+* **billing:** separate general registration report and finance mail ([b8341ec](https://github.com/cevi/conveniat-webpage/commit/b8341ece87aedc09da7174b47707d3a9287249de))
+* **billing:** set the Anmeldestatus to "Rechnung gestellt" in the Cevi.DB ([f0598dc](https://github.com/cevi/conveniat-webpage/commit/f0598dca5b4e8ce64ad47e9ea5d8e21079596692))
+* **billing:** sync participants from the Cevi.DB every night ([99e668c](https://github.com/cevi/conveniat-webpage/commit/99e668cd8d9321f702ce5b3e84f0844497676883))
+* **forms:** helpers can mark a second availability slot ([b965eb7](https://github.com/cevi/conveniat-webpage/commit/b965eb77f6af029c75257aa8e5b44610d00e03f7))
+
+
+### Bug Fixes
+
+* **billing:** address greptile feedback on lock failure and scheduler count handling ([a043b7b](https://github.com/cevi/conveniat-webpage/commit/a043b7b26bea143921edb9ce09d87fc9d0a47b75))
+* **billing:** make weekly report reason and error messages english ([3114a17](https://github.com/cevi/conveniat-webpage/commit/3114a1774d8b87cfaa7fb131d055ddeaf37595ad))
+* **billing:** prevent duplicate weekly report emails with distributed locking ([2ee9132](https://github.com/cevi/conveniat-webpage/commit/2ee913262af1cd94366805c77f70f661104f10b5))
+* **billing:** prevent duplicate weekly report emails with redis distributed locking ([03573bb](https://github.com/cevi/conveniat-webpage/commit/03573bb9e29686e19b4460baacdef737f01e33a5))
+* **billing:** reminder run sends each Hof at most once a week ([3695cb2](https://github.com/cevi/conveniat-webpage/commit/3695cb23f31ed6dce802fac54e9d06209646753f))
+* **billing:** use english reason and error messages for weekly report ([55e56be](https://github.com/cevi/conveniat-webpage/commit/55e56be32e1fecf3b338004148f33da6a0e8bc53))
+
 ## [1.8.1](https://github.com/cevi/conveniat-webpage/compare/v1.8.0...v1.8.1) (2026-09-14)
 
 
