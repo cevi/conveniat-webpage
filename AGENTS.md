@@ -210,7 +210,9 @@ open release pull request that release-please keeps up to date. Its version come
 titles since the last tag: `feat:` a minor, `fix:`, `perf:` and `chore(deps):` a patch, a `!` or a
 `BREAKING CHANGE:` footer a major. Other types release nothing and stay out of the changelog.
 Merging that pull request tags the release and builds production. A merge into `main` on its own
-builds nothing. Afterwards merge `main` back into `dev`, so `dev` carries the new version.
+builds nothing. The release then opens a pull request that merges `main` back into `dev`, so `dev`
+carries the new version and the next release pull request is not out of date with its base. It
+auto-merges once the checks are green and only wants you when the merge conflicts.
 
 Write conventional commit titles in plain language, like `fix(chat): unread badge clears on
 reopen`.
