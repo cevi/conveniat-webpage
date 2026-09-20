@@ -19,6 +19,14 @@ describe('parseLetterSegments', () => {
     expect(segments.map((segment) => segment.text).join('')).toContain('(con27.ch/agbs),');
   });
 
+  it('adds the scheme to a bare host that starts with http', () => {
+    expect(parseLetterSegments('Siehe httpbin.org/get').at(-1)).toEqual({
+      text: 'httpbin.org/get',
+      style: 'plain',
+      href: 'https://httpbin.org/get',
+    });
+  });
+
   it('keeps a full URL as written', () => {
     const segments = parseLetterSegments('Details: https://conveniat27.ch/de/agbs');
 

@@ -265,6 +265,9 @@ const LETTER_LINK_PATTERN =
 /** Punctuation that ends the sentence rather than the address. */
 const LINK_TRAILING_PUNCTUATION = /[.,;:!?'")\]}]+$/;
 
+/** A scheme the address already carries. A bare `httpbin.org` has none. */
+const LINK_SCHEME = /^https?:\/\//;
+
 /**
  * Splits a styled run at the addresses inside it, keeping the run's style and annotating
  * each address with the URL it should open.
@@ -285,7 +288,7 @@ function linkifySegment(segment: { text: string; style: LetterSegment['style'] }
     segments.push({
       text: address,
       style: segment.style,
-      href: address.startsWith('http') ? address : `https://${address}`,
+      href: LINK_SCHEME.test(address) ? address : `https://${address}`,
     });
 
     lastIndex = match.index + address.length;
