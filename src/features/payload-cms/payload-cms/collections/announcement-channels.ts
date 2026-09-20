@@ -247,7 +247,7 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
   slug: 'announcement-channels',
   admin: {
     useAsTitle: 'name',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppContent.label,
     defaultColumns: ['name', 'targetType', 'chatUuid'],
   },
   labels: {

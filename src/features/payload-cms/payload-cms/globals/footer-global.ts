@@ -1,3 +1,4 @@
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
@@ -294,6 +295,7 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
     },
   ],
   admin: {
+    group: AdminPanelDashboardGroups.WebpageContent.label,
     description: {
       en: 'Settings for the footer',
       de: 'Einstellungen für die Fusszeile',

@@ -175,7 +175,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     },
     admin: {
-      group: AdminPanelDashboardGroups.GlobalSettings,
+      group: AdminPanelDashboardGroups.WebpageContent.label,
       groupBy: true,
       defaultColumns: [
         'id',
@@ -372,7 +372,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       versions: false,
     },
     admin: {
-      group: AdminPanelDashboardGroups.PagesAndContent,
+      group: AdminPanelDashboardGroups.WebpageContent.label,
       defaultColumns: ['id', 'publishingStatus', 'title'],
       /**
        * As we are localizing only the label fields but not the values, enabling copy

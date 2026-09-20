@@ -13,7 +13,7 @@ export const AlertManagement: GlobalConfig = {
     read: () => true,
   },
   admin: {
-    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     hideAPIURL: true,
     components: {
       views: {

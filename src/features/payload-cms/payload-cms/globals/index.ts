@@ -13,18 +13,27 @@ import { CampsitePresenceGlobal } from '@/features/presence/payload-cms/globals/
 import { RegistrationManagement } from '@/features/registration_process/api/registration-management';
 import type { GlobalConfig } from 'payload';
 
+/**
+ * Globals always follow the collections of their group in the sidebar, so this order only
+ * matters within a group. See `admin-panel-dashboard-groups.ts`.
+ */
 export const globalConfig: GlobalConfig[] = [
+  // Webseite
   HeaderGlobal,
   FooterGlobal,
   SeoGlobal,
-  PWAGlobal,
-  AlertSettingsGlobal,
-  AppFeatureFlags,
-  AppLandingPageGlobal,
-  SupportChatManagement,
-  AlertManagement,
-  AllChatsManagement,
   RegistrationManagement,
-  BillSettingsGlobal,
+
+  // App
+  AppLandingPageGlobal,
+  AlertManagement,
+  AlertSettingsGlobal,
+  SupportChatManagement,
+  AllChatsManagement,
   CampsitePresenceGlobal,
+  PWAGlobal,
+  AppFeatureFlags,
+
+  // Backoffice
+  BillSettingsGlobal,
 ];

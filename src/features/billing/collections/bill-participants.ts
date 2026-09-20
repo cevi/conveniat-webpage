@@ -7,6 +7,7 @@ import {
   canAccessBillingField,
   canUserAccessBilling,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
 /**
@@ -32,11 +33,7 @@ export const BillParticipantsCollection: CollectionConfig = {
   admin: {
     hidden: ({ user }): boolean => !canUserAccessBilling(user),
     hideAPIURL: true,
-    group: {
-      en: 'Billing',
-      de: 'Rechnungen',
-      fr: 'Facturation',
-    },
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'fullName',
     groupBy: true,
     defaultColumns: [

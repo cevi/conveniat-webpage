@@ -14,7 +14,7 @@ export const SupportChatManagement: GlobalConfig = {
   },
   admin: {
     hidden: shouldHideInAdminPanel,
-    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     hideAPIURL: true,
     components: {
       views: {

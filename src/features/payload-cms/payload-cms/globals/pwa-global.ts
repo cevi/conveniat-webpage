@@ -26,7 +26,7 @@ export const PWAGlobal: GlobalConfig = {
   },
   admin: {
     hidden: shouldHideInAdminPanelIfNotAdmin,
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     description: {
       en: 'Settings for the Progressive Web App',
       de: 'Einstellungen für die Progressive Web App',

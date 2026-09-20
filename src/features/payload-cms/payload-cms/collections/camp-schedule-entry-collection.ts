@@ -58,7 +58,7 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppCampsite.label,
     groupBy: true,
     disableCopyToLocale: true,
     defaultColumns: ['title', 'timeslot', 'location', 'participants_max', 'enrolledStatus'],

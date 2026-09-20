@@ -38,7 +38,7 @@ export const DocumentsCollection: CollectionConfig = {
     },
   },
   admin: {
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.WebpageMedia.label,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
