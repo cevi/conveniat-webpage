@@ -4205,6 +4205,7 @@ export interface SmtpBounceMailTracking {
   uid: string;
   failureCount: number;
   lastAttempt: string;
+  ignoredAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6738,6 +6739,7 @@ export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
   uid?: T;
   failureCount?: T;
   lastAttempt?: T;
+  ignoredAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

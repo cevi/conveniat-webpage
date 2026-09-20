@@ -11,6 +11,7 @@ import {
   getOriginalEnvelopeId,
   parsePop3Messages,
 } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
+import { selectMessagesToProcess } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/message-selection';
 import {
   scheduleAt,
   skipSchedule,
@@ -19,7 +20,7 @@ import {
 import { redis } from '@/lib/db/redis';
 import { simpleParser } from 'mailparser';
 import POP3Command from 'node-pop3';
-import type { PayloadRequest, TaskConfig } from 'payload';
+import type { Payload, PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
 const FETCH_SMTP_BOUNCES_CRON = '*/15 * * * *'; // Every 15 minutes
@@ -30,6 +31,36 @@ const REDIS_BACKOFF_NEXT_ATTEMPT_KEY = 'fetchSmtpBounces:backoff:nextAttempt';
 const POP3_SOCKET_TIMEOUT_MS = 30_000; // 30 seconds socket timeout
 const POP3_TASK_TIMEOUT_MS = 120_000; // 2 minutes hard task timeout
 const MAX_MESSAGES_PER_RUN = 100; // Process at most 100 messages per run
+
+/**
+ * Notes that a message was read and carried nothing for this deployment, so later runs skip
+ * it and reach the rest of the mailbox.
+ *
+ * @param payload - The Payload instance to write the marker with.
+ * @param uid - The POP3 UID of the message.
+ * @param trackingRecordId - The existing tracking record for this UID, when there is one.
+ */
+const recordIgnoredMessage = async (
+  payload: Payload,
+  uid: string,
+  trackingRecordId?: string,
+): Promise<void> => {
+  const ignoredAt = new Date().toISOString();
+
+  // eslint-disable-next-line unicorn/prefer-ternary
+  if (trackingRecordId === undefined) {
+    await payload.create({
+      collection: 'smtp-bounce-mail-tracking',
+      data: { uid, failureCount: 0, lastAttempt: ignoredAt, ignoredAt },
+    });
+  } else {
+    await payload.update({
+      collection: 'smtp-bounce-mail-tracking',
+      id: trackingRecordId,
+      data: { lastAttempt: ignoredAt, ignoredAt },
+    });
+  }
+};
 
 export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
   slug: 'fetchSmtpBounces',
@@ -235,10 +266,46 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           return { output: { status: 'empty' } };
         }
 
-        const messagesToProcess = messages.slice(0, MAX_MESSAGES_PER_RUN);
+        // One read of the per-message state for the whole run. The mailbox holds thousands of
+        // messages, so a query per message was both a round trip per message and no help in
+        // deciding which messages to read in the first place.
+        const trackingDocuments = await payload.find({
+          collection: 'smtp-bounce-mail-tracking',
+          pagination: false,
+        });
+
+        const trackingByUid = new Map(
+          trackingDocuments.docs.map((document_) => [document_.uid, document_]),
+        );
+
+        // Drop state for messages that have since left the mailbox, so the collection stays
+        // the size of the mailbox instead of growing with everything ever seen.
+        const mailboxUids = new Set(messages.map(({ uid }) => uid));
+        const departedUids = [...trackingByUid.keys()].filter((uid) => !mailboxUids.has(uid));
+        if (departedUids.length > 0) {
+          await payload.delete({
+            collection: 'smtp-bounce-mail-tracking',
+            where: { uid: { in: departedUids } },
+          });
+          for (const uid of departedUids) trackingByUid.delete(uid);
+        }
+
+        const ignoredUids = new Set(
+          [...trackingByUid.values()]
+            .filter(
+              (document_) => document_.ignoredAt !== null && document_.ignoredAt !== undefined,
+            )
+            .map((document_) => document_.uid),
+        );
+
+        const messagesToProcess = selectMessagesToProcess(
+          messages,
+          ignoredUids,
+          MAX_MESSAGES_PER_RUN,
+        );
 
         logger.info(
-          `Found ${messages.length} messages in inbox while checking for bounces. Processing first ${messagesToProcess.length}...`,
+          `Found ${messages.length} messages in inbox while checking for bounces, ${ignoredUids.size} already read and empty. Processing ${messagesToProcess.length}...`,
         );
 
         let ignoredCount = 0;
@@ -254,13 +321,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
           // Sleep 500ms to maintain max 2 requests per second POP3 rate limit
           await new Promise((resolve) => setTimeout(resolve, 500));
           // Check for previous failures
-          const trackingResults = await payload.find({
-            collection: 'smtp-bounce-mail-tracking',
-            where: { uid: { equals: uid } },
-            limit: 1,
-          });
-
-          const trackingRecord = trackingResults.docs[0];
+          const trackingRecord = trackingByUid.get(uid);
           const failureCount = trackingRecord?.failureCount ?? 0;
 
           if (failureCount >= 3) {
@@ -275,6 +336,8 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
             poisonPillCount++;
             continue;
           }
+
+          let carriedNothing = false;
 
           try {
             const rawEmail = await pop3.RETR(messageId);
@@ -410,6 +473,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
               }
               matchedCount++;
             } else {
+              carriedNothing = true;
               ignoredCount++;
             }
           } catch (error: unknown) {
@@ -444,11 +508,22 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
               });
             }
           }
+
+          // Outside the per-message catch on purpose: failing to write our own bookkeeping is
+          // not a fault of the message, and counting it as one would walk the message towards
+          // the poison-pill threshold and delete mail that belongs to another deployment.
+          if (carriedNothing) {
+            // Nothing in this message points at a record of ours, and nothing later will: the
+            // outgoing-emails row exists before the mail leaves, so a notification we cannot
+            // place belongs to another deployment or predates the collection. Leave it in the
+            // shared mailbox for whoever it belongs to, but stop reading it.
+            await recordIgnoredMessage(payload, uid, trackingRecord?.id);
+          }
         }
 
         // Log a single summary line instead of per-message noise
         logger.info(
-          `Bounce check complete: ${messages.length} messages scanned, ${matchedCount} matched, ${ignoredCount} ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
+          `Bounce check complete: ${messagesToProcess.length} of ${messages.length} messages read, ${matchedCount} matched, ${ignoredCount} newly ignored (other instance), ${poisonPillCount} poison-pill deleted, ${errorCount} errors`,
         );
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
