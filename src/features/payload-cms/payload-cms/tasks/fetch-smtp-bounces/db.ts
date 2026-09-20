@@ -3,6 +3,21 @@ import type { Payload } from 'payload';
 const MAX_RAW_EMAIL_LENGTH = 20_000;
 const MAX_TOTAL_DSN_EMAIL_LENGTH = 39_000;
 
+/**
+ * Whether a Payload error means the document does not exist, rather than that the lookup
+ * itself failed.
+ *
+ * The caller stops reading a notification for good once this module reports no match, so
+ * "the database blinked" must never be read as "this is not ours". Checked by HTTP status
+ * rather than by class or by `name`: the Next build minifies class names, and `this.name =
+ * this.constructor.name` does not survive that.
+ *
+ * @param error - The error a Payload lookup threw.
+ * @returns True when the lookup ran and found nothing.
+ */
+const isNotFound = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'status' in error && error.status === 404;
+
 export const updateTrackingRecords = async (
   payload: Payload,
   envelopeId: string,
@@ -25,8 +40,10 @@ export const updateTrackingRecords = async (
       collection: 'outgoing-emails',
       id: envelopeId,
     })) as typeof outgoingEmail;
-  } catch {
-    // Fail silently here, we will try form-submissions directly as a fallback
+  } catch (error: unknown) {
+    // No such row is the normal case: the id may be a form-submission id, which the fallback
+    // below covers. Anything else has to reach the caller so the message is read again.
+    if (!isNotFound(error)) throw error;
   }
 
   let toAddress = 'unknown';
@@ -51,22 +68,16 @@ export const updateTrackingRecords = async (
 
   if (outgoingEmail === undefined) {
     // Fallback: it might be an old email tracking ID (form submission ID directly)
+    let submission: { smtpResults?: unknown[] };
+
     try {
-      const submission = (await payload.findByID({
+      submission = (await payload.findByID({
         collection: 'form-submissions',
         id: envelopeId,
       })) as { smtpResults?: unknown[] };
+    } catch (error: unknown) {
+      if (!isNotFound(error)) throw error;
 
-      const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
-      subResults.push(newResult);
-
-      await payload.update({
-        collection: 'form-submissions',
-        id: envelopeId,
-        data: { smtpResults: subResults },
-      });
-      return true;
-    } catch {
       // Fires per scanned message on every bounce check, on every replica, and says
       // nothing actionable — the per-run summary already reports the ignored count.
       payload.logger.debug({
@@ -74,6 +85,16 @@ export const updateTrackingRecords = async (
       });
       return false;
     }
+
+    const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
+    subResults.push(newResult);
+
+    await payload.update({
+      collection: 'form-submissions',
+      id: envelopeId,
+      data: { smtpResults: subResults },
+    });
+    return true;
   } else {
     const results = Array.isArray(outgoingEmail.smtpResults) ? [...outgoingEmail.smtpResults] : [];
     results.push(newResult);

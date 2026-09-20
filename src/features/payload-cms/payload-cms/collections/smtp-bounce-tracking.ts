@@ -31,5 +31,11 @@ export const SmtpBounceMailTracking: CollectionConfig = {
       type: 'date',
       required: true,
     },
+    {
+      // A message this deployment cannot act on is never deleted from the shared mailbox,
+      // so without this marker every run would keep reading the same unusable messages.
+      name: 'ignoredAt',
+      type: 'date',
+    },
   ],
 };
