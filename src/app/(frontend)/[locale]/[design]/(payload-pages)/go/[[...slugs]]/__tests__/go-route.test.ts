@@ -1,4 +1,5 @@
 import { GET } from '@/app/(frontend)/[locale]/[design]/(payload-pages)/go/[[...slugs]]/route';
+import { findPrefixByCollectionSlugAndLocale } from '@/features/payload-cms/route-resolution-table';
 import { getPayload } from 'payload';
 
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
@@ -15,16 +16,29 @@ jest.mock('@/features/payload-cms/route-resolution-table', () => ({
   findPrefixByCollectionSlugAndLocale: jest.fn(() => 'infos'),
 }));
 
-/**
- * A short link is printed on paper and opened by whatever the reader has, which is not
- * always a browser. What has to hold is the response itself: a redirect status and a
- * Location, never a page that only a client runtime knows how to follow. The Location
- * names the site, not the host the request arrived on, because con27.ch reaches this
- * handler too and would otherwise be sent back to itself.
- */
 const callGet = async (slugs?: string[], from = 'https://conveniat27.ch'): Promise<Response> =>
   GET(new Request(`${from}/go`), { params: Promise.resolve({ slugs }) });
 
+/** A `go` entry pointing at a page of this site, written in `locale`. */
+const reference = (locale: string, urlSlug: string): unknown => ({
+  docs: [
+    {
+      urlSlug: 'agbs',
+      to: {
+        type: 'reference',
+        reference: { relationTo: 'generic-page', value: { _locale: locale, seo: { urlSlug } } },
+      },
+    },
+  ],
+});
+
+/**
+ * A short link is printed on paper and opened by whatever the reader has, which is not
+ * always a browser. What has to hold is the response itself: a redirect status and a
+ * Location, never a page that only a client runtime knows how to follow. And it has to
+ * be one redirect — the Location names the site rather than the host the request arrived
+ * on, and the canonical path rather than one the site would redirect again.
+ */
 describe('/go/[[...slugs]] route', () => {
   const mockPayload = { find: jest.fn() };
 
@@ -34,6 +48,7 @@ describe('/go/[[...slugs]] route', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (getPayload as jest.Mock).mockResolvedValue(mockPayload);
+    (findPrefixByCollectionSlugAndLocale as jest.Mock).mockReturnValue('infos');
     mockPayload.find.mockResolvedValue(noMatch);
   });
 
@@ -54,28 +69,29 @@ describe('/go/[[...slugs]] route', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('Location')).toBe('https://example.org/agbs');
+    expect(response.headers.get('Set-Cookie')).toBeNull();
   });
 
   it('resolves a reference to the page in the locale the entry was written in', async () => {
-    mockPayload.find.mockResolvedValue({
-      docs: [
-        {
-          urlSlug: 'agbs',
-          to: {
-            type: 'reference',
-            reference: {
-              relationTo: 'generic-page',
-              value: { _locale: 'fr', seo: { urlSlug: 'conditions' } },
-            },
-          },
-        },
-      ],
-    });
+    mockPayload.find.mockResolvedValue(reference('fr', 'conditions'));
 
     const response = await callGet(['agbs']);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('Location')).toBe('https://conveniat27.ch/fr/infos/conditions');
+    expect(response.headers.get('Set-Cookie')).toContain('next-locale=fr');
+  });
+
+  it('names the page the site actually serves for the prefix-less default locale', async () => {
+    (findPrefixByCollectionSlugAndLocale as jest.Mock).mockReturnValue('');
+    mockPayload.find.mockResolvedValue(reference('de', 'impressum'));
+
+    const response = await callGet(['impressum']);
+
+    // Not `/de//impressum`: the collection has no prefix, and `/de/…` would only be
+    // redirected to the same path without it, which is the hop this avoids.
+    expect(response.headers.get('Location')).toBe('https://conveniat27.ch/impressum');
+    expect(response.headers.get('Set-Cookie')).toContain('next-locale=de');
   });
 
   it('sends a slug that names nothing to the start page', async () => {
@@ -93,23 +109,10 @@ describe('/go/[[...slugs]] route', () => {
   });
 
   it('leaves the short domain instead of resolving back onto it', async () => {
-    mockPayload.find.mockResolvedValue({
-      docs: [
-        {
-          urlSlug: 'agbs',
-          to: {
-            type: 'reference',
-            reference: {
-              relationTo: 'generic-page',
-              value: { _locale: 'de', seo: { urlSlug: 'agbs' } },
-            },
-          },
-        },
-      ],
-    });
+    mockPayload.find.mockResolvedValue(reference('fr', 'conditions'));
 
     const response = await callGet(['agbs'], 'https://con27.ch');
 
-    expect(response.headers.get('Location')).toBe('https://conveniat27.ch/de/infos/agbs');
+    expect(response.headers.get('Location')).toBe('https://conveniat27.ch/fr/infos/conditions');
   });
 });
