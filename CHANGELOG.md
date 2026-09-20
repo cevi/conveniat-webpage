@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.10.0](https://github.com/cevi/conveniat-webpage/compare/v1.9.3...v1.10.0) (2026-09-20)
+
+
+### Features
+
+* **admin:** group the admin panel by website, app and back office ([fd0d4da](https://github.com/cevi/conveniat-webpage/commit/fd0d4dab1e771f5c2d31163aecb694f74daba23d))
+
+
+### Bug Fixes
+
+* **admin:** hide emergency cards and photo contests from editors without write access ([e8ec990](https://github.com/cevi/conveniat-webpage/commit/e8ec9903cfc2931d130a68c09a5a74f0f15cfce7))
+* **admin:** only admins and the web core team see the cache actions ([660e0bd](https://github.com/cevi/conveniat-webpage/commit/660e0bdcf8560f26bf95e9ce863f8a7eb3d598b1))
+
 ## [1.9.3](https://github.com/cevi/conveniat-webpage/compare/v1.9.2...v1.9.3) (2026-09-20)
 
 
