@@ -13,7 +13,10 @@ jest.mock('next-i18n-router/client', () => ({
 }));
 
 /** Renders the block in a real form and prints the field value the submission would carry. */
-const Harness: React.FC<{ maxRanges?: number }> = ({ maxRanges }) => {
+const Harness: React.FC<{ maxRanges?: number; asksForRessort?: boolean }> = ({
+  maxRanges,
+  asksForRessort,
+}) => {
   const { control } = useForm<FieldValues>({ defaultValues: { slots: '' } });
   const slots = useWatch({ control, name: 'slots' }) as string;
   return (
@@ -27,6 +30,8 @@ const Harness: React.FC<{ maxRanges?: number }> = ({ maxRanges }) => {
         endDate="2027-08-06T00:00:00.000Z"
         minDays={3}
         maxRanges={maxRanges}
+        ressortName={asksForRessort === true ? 'ressortwunsch' : undefined}
+        ressortLabel="In welchem Ressort möchtest du am liebsten mithelfen?"
       />
       <output data-testid="value">{slots}</output>
     </>
@@ -88,6 +93,18 @@ describe('DateSlotSelection', () => {
 
     tap(27);
     expect(value()).toBe('2027-07-25 – 2027-07-27');
+  });
+
+  it('does not offer a Ressort that takes helpers only for a concrete job', () => {
+    render(<Harness asksForRessort />);
+
+    const offered = screen
+      .getAllByRole('option')
+      .map((option) => (option as HTMLOptionElement).value);
+
+    expect(offered).toContain('infrastruktur');
+    expect(offered).not.toContain('finanzen');
+    expect(offered).not.toContain('relations');
   });
 
   it('removes one slot and leaves the other', () => {
