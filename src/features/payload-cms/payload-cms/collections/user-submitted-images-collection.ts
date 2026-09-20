@@ -31,6 +31,7 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
   },
   access: {
     admin: hasAdminOrWebAccess,
+    read: hasAdminOrWebAccess,
     create: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,

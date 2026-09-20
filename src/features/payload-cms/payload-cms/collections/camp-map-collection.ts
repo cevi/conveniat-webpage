@@ -67,6 +67,9 @@ export const CampMapAnnotationsCollection: CollectionConfig = {
   },
   access: {
     read: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    update: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     {

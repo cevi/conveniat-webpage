@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
@@ -87,6 +88,9 @@ export const HelperShiftsCollection: CollectionConfig = {
   },
   access: {
     read: () => true,
+    create: hasAdminOrWebAccess,
+    update: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     {

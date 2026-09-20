@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
@@ -30,6 +31,10 @@ const googleSearchConsoleVerificationValidation = (
 
 export const SeoGlobal: GlobalConfig = {
   slug: 'SEO',
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
+  },
   label: 'SEO Settings',
   hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
 

@@ -70,6 +70,9 @@ export const CampScheduleEntryCollection: CollectionConfig = {
   },
   access: {
     read: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    update: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     {

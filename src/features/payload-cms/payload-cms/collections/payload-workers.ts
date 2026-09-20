@@ -28,6 +28,10 @@ export const PayloadWorkersCollection: CollectionConfig = {
   },
   access: {
     read: hasAdminOrWebAccess,
+    // Written by the worker runtime through the local API, never by a person.
+    create: () => false,
+    update: () => false,
+    delete: () => false,
   },
   fields: [
     {

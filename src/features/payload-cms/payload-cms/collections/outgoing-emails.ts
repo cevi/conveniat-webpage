@@ -1,8 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import {
-  hasAccessToThisHelper,
-  Roles,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { overrideOutgoingEmailStatusHandler } from '@/features/payload-cms/payload-cms/endpoints/override-outgoing-email';
 import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
@@ -40,7 +37,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   access: {
     // read only for admins, only access programmatically
-    read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
+    read: isFullAdmin,
     create: () => false,
     update: () => false,
     delete: () => false,

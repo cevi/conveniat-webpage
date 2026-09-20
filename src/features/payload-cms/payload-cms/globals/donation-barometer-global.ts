@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { GlobalConfig } from 'payload';
@@ -16,6 +17,10 @@ import type { GlobalConfig } from 'payload';
  */
 export const DonationBarometerGlobal: GlobalConfig = {
   slug: 'donation-barometer',
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
+  },
   label: {
     en: 'Donation Barometer',
     de: 'Spendenbarometer',

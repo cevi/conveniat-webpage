@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  hasEditorialAccess,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
@@ -14,6 +18,12 @@ import type { CollectionConfig } from 'payload';
 export const TimelineCollection: CollectionConfig = asLocalizedCollection({
   slug: 'timeline',
   trash: true,
+  access: {
+    read: hasEditorialAccess,
+    create: hasAdminOrWebAccess,
+    update: hasEditorialAccess,
+    delete: hasAdminOrWebAccess,
+  },
   hooks: { afterChange: [flushPageCacheOnChange] },
 
   labels: {
