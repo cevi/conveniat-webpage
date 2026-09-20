@@ -4,6 +4,7 @@ import { AlertSettingsGlobal } from '@/features/payload-cms/payload-cms/globals/
 import { AllChatsManagement } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
 import { AppFeatureFlags } from '@/features/payload-cms/payload-cms/globals/app-feature-flags';
 import { AppLandingPageGlobal } from '@/features/payload-cms/payload-cms/globals/app-landing-page-global';
+import { DonationBarometerGlobal } from '@/features/payload-cms/payload-cms/globals/donation-barometer-global';
 import { FooterGlobal } from '@/features/payload-cms/payload-cms/globals/footer-global';
 import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global';
@@ -22,6 +23,7 @@ export const globalConfig: GlobalConfig[] = [
   HeaderGlobal,
   FooterGlobal,
   SeoGlobal,
+  DonationBarometerGlobal,
   RegistrationManagement,
 
   // App
