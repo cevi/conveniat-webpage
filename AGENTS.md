@@ -77,6 +77,11 @@ protected anyway.
 **Widening an import boundary to silence ESLint.** A failing `import/no-restricted-paths` means the
 code is in the wrong place. Move the shared part. Do not add an exception.
 
+**Leaving a Payload access operation undeclared.** Payload fills in whatever you omit with
+`Boolean(user)`, and a user here is every camp participant who has logged in through Cevi.DB, not
+an editor. An omitted `create` is a collection any participant can write over the REST API, and it
+reads as an intentional blank in the config. Declare all four.
+
 ## Environment
 
 Use pnpm. Never npm, yarn or bun. Node 24.
@@ -192,6 +197,26 @@ class names. Icons come from `lucide-react` and nowhere else.
 
 Components are Server Components until they need state, effects or browser APIs. Keep effect logic
 in a named hook instead of inlining `useEffect` in a component.
+
+Declare access on a collection or global for every operation — `read`, `create`, `update` and
+`delete`, or `read` and `update` on a global. There is no safe default to fall back on, see above.
+Write `() => false` where nothing but the local API should write, and `() => true` where the answer
+really is everybody.
+
+Say who with a named rule from `access-rules/`, not an inline group check: `isFullAdmin`,
+`hasAdminOrWebAccess`, `hasEditorialAccess` for admin, web core team and translation team,
+`canAccessBilling`, `canAccessAdminPanel` for any editor. `hasAccessToThisHelper({ requiredRoles })`
+is for a combination that has no name yet; the second time you write the same list, name it in
+`roles.ts` instead. A rule may return a `Where` to narrow to single documents, which is how
+`ProgramTeamAccessForGenericPage` lets the program team reach the pages it was named on.
+
+A rule that reads two things at once — `canAccessBilling` wants an admin panel login _and_ the
+billing group — is a role plus an add-on group, not a role. `/admin/access-overview` renders the
+matrix by running the real rules, so open it after you change one and check the column you meant to
+change, and no other.
+
+`admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
+the entry a real rule as well and keep the two saying the same thing.
 
 Client components fetch and mutate through tRPC. Do not add new Server Actions. This is about
 data flowing to and from the client: server components still read Payload directly, which is what

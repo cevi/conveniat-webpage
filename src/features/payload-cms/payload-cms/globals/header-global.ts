@@ -1,3 +1,4 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
@@ -95,6 +96,10 @@ const MainMenu: Field = {
 
 export const HeaderGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'header',
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
+  },
   label: 'Header Navigation',
   admin: { group: AdminPanelDashboardGroups.WebpageContent.label },
   hooks: { afterChange: [flushPageCacheOnChangeGlobal] },

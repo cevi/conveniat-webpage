@@ -27,6 +27,9 @@ export const CampCategoryCollection: CollectionConfig = {
   },
   access: {
     read: hasAdminOrWebAccess,
+    create: hasAdminOrWebAccess,
+    update: hasAdminOrWebAccess,
+    delete: hasAdminOrWebAccess,
   },
   fields: [
     {

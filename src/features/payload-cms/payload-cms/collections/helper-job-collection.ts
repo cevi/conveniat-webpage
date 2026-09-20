@@ -1,8 +1,7 @@
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import {
-  hasAccessToThisHelper,
   hasAdminOrWebAccess,
-  Roles,
+  hasEditorialAccess,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { helperJobsPdfReportHandler } from '@/features/payload-cms/payload-cms/endpoints/helper-jobs-pdf-report';
@@ -63,13 +62,9 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
     },
   ],
   access: {
-    read: hasAccessToThisHelper({
-      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
-    }),
+    read: hasEditorialAccess,
     create: hasAdminOrWebAccess,
-    update: hasAccessToThisHelper({
-      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
-    }),
+    update: hasEditorialAccess,
     delete: hasAdminOrWebAccess,
   },
   fields: [
