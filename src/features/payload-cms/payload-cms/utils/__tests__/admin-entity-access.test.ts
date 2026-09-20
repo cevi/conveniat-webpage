@@ -3,6 +3,7 @@ import {
   evaluateEntityAccess,
   isHiddenInAdmin,
   resolveGroupKey,
+  resolveLoginBaseline,
   toAccessStatus,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { PayloadRequest, SanitizedCollectionConfig } from 'payload';
@@ -104,5 +105,52 @@ describe('AdminPanelDashboardGroups', () => {
   it('keeps sidebar labels unique so Payload does not merge two groups', () => {
     const labels = Object.values(AdminPanelDashboardGroups).map((group) => group.label.de);
     expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+describe('resolveLoginBaseline', () => {
+  const columns = [
+    { key: 'admin', groupIds: [541] },
+    { key: 'web', groupIds: [105] },
+    { key: 'billing', groupIds: [900] },
+  ];
+
+  it('leaves a column that is a login group on its own', () => {
+    const resolved = resolveLoginBaseline(columns, [541, 105, 700, 900]);
+    expect(resolved[0]).toEqual({
+      key: 'admin',
+      groupIds: [541],
+      isAddOn: false,
+      baselineGroupIds: [],
+      borrowedFrom: undefined,
+    });
+  });
+
+  it('gives an add-on column the login groups that are no column of their own', () => {
+    const resolved = resolveLoginBaseline(columns, [541, 105, 700]);
+    expect(resolved[2]).toEqual({
+      key: 'billing',
+      groupIds: [900],
+      isAddOn: true,
+      baselineGroupIds: [700],
+      borrowedFrom: undefined,
+    });
+  });
+
+  it('borrows the least privileged login when no login group is free to lend', () => {
+    const resolved = resolveLoginBaseline(columns, [541, 105]);
+    expect(resolved[2]).toEqual({
+      key: 'billing',
+      groupIds: [900],
+      isAddOn: true,
+      baselineGroupIds: [105],
+      borrowedFrom: { key: 'web', groupIds: [105] },
+    });
+  });
+
+  it('leaves an add-on alone when no column can log in at all', () => {
+    const resolved = resolveLoginBaseline(columns, []);
+    expect(resolved[2]?.baselineGroupIds).toEqual([]);
+    expect(resolved[2]?.borrowedFrom).toBeUndefined();
   });
 });
