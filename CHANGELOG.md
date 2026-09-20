@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.2](https://github.com/cevi/conveniat-webpage/compare/v1.11.1...v1.11.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **go:** resolve a short link to the page's canonical address ([28e235d](https://github.com/cevi/conveniat-webpage/commit/28e235df9618c513246fe557ab58c70c25e31f18))
+* **go:** resolve a short link to the page's canonical address ([56c36b0](https://github.com/cevi/conveniat-webpage/commit/56c36b0302f410b558e7c0886d2879f6217ef745))
+
 ## [1.11.1](https://github.com/cevi/conveniat-webpage/compare/v1.11.0...v1.11.1) (2026-09-20)
 
 
