@@ -1,6 +1,7 @@
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
+import { getRunningJobId } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
 import prisma from '@/lib/db/prisma';
 import { withSpan } from '@/utils/tracing-helpers';
 import crypto from 'node:crypto';
@@ -44,6 +45,11 @@ const startWorkerHeartbeat = (payload: Payload): void => {
 
       const now = new Date().toISOString();
       const workerDocument = existing.docs[0];
+      // Which job this worker is on is only interesting to the stale-job cleanup, whose
+      // thresholds are minutes to days. A job that starts and finishes between two heartbeats
+      // is never at risk of being cleaned up, so publishing it on this interval is enough.
+      // eslint-disable-next-line unicorn/no-null
+      const activeJobId = getRunningJobId() ?? null;
 
       await (workerDocument
         ? payload.update({
@@ -52,6 +58,7 @@ const startWorkerHeartbeat = (payload: Payload): void => {
             data: {
               lastHeartbeat: now,
               queues,
+              activeJobId,
             },
             context: { internal: true },
           })
@@ -62,6 +69,7 @@ const startWorkerHeartbeat = (payload: Payload): void => {
               hostname,
               queues,
               lastHeartbeat: now,
+              activeJobId,
             },
             context: { internal: true },
           }));
