@@ -51,12 +51,18 @@ services:
         - traefik.http.routers.conveniat-redirect-http.middlewares=redirect-to-https@file
 
         # short url
+        # con27.ch is served by the app itself rather than redirected at the edge, so a
+        # printed short link costs one hop instead of two: addprefix turns /agbs into
+        # /go/agbs and the `go` route handler answers 307 straight to the target. Only the
+        # app can do this — the slug to target mapping lives in the `go` collection, which
+        # editors change without a deploy. That handler answers with an absolute Location
+        # built from APP_HOST_URL, which is what keeps the reader from landing back on
+        # con27.ch and looping through this same prefix.
         - traefik.http.routers.short-con27-router.rule=Host(`con27.ch`)
         - traefik.http.routers.short-con27-router.entrypoints=websecure
-        - traefik.http.routers.short-con27-router.middlewares=redirect-to-conveniat27
-        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.regex=^https?://con27.ch/(.*)
-        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.replacement=https://conveniat27.ch/go/$$$${1}
-        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.permanent=true
+        - traefik.http.routers.short-con27-router.service=conveniat27
+        - traefik.http.routers.short-con27-router.middlewares=con27-go-prefix,retry-middleware-prod
+        - traefik.http.middlewares.con27-go-prefix.addprefix.prefix=/go
 
         - traefik.http.routers.con27-router-http.rule=Host(`con27.ch`)
         - traefik.http.routers.con27-router-http.entrypoints=web
