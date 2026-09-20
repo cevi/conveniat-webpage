@@ -1411,7 +1411,7 @@ export interface Form {
                  */
                 maxRanges?: number | null;
                 /**
-                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.
                  */
                 ressortName?: string | null;
                 ressortLabel?: string | null;
@@ -1695,7 +1695,7 @@ export interface Form {
                            */
                           maxRanges?: number | null;
                           /**
-                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.
+                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.
                            */
                           ressortName?: string | null;
                           ressortLabel?: string | null;

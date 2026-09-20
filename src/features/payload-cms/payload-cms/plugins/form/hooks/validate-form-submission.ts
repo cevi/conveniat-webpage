@@ -3,7 +3,7 @@ import {
   getSelectableDays,
   parseDateRangesValue,
 } from '@/features/payload-cms/components/form/utils/date-slots';
-import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
+import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
@@ -325,7 +325,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
    * The Ressort wish of a dateSlotSelection is a second field under a name of its own,
    * so the field-config-keyed loop above never sees it.
    */
-  const allowedRessorts = new Set(RESSORT_OPTIONS.map((option) => option.value as string));
+  const allowedRessorts = new Set(RESSORT_WISH_OPTIONS.map((option) => option.value as string));
   for (const fieldConfig of allFields) {
     if (fieldConfig.blockType !== 'dateSlotSelection') continue;
     const ressortName = fieldConfig.ressortName;

@@ -927,9 +927,9 @@ const formDateSlotSelectionBlock: Block = {
       },
       admin: {
         description: {
-          en: 'Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list.',
-          de: 'Fragt zusätzlich zum Zeitfenster, in welchem Ressort die helfende Person mithelfen möchte. Zur Auswahl steht die projektweite Ressortliste.',
-          fr: 'Demande, en plus du créneau, dans quel département la personne souhaite aider. Les choix sont la liste des départements du projet.',
+          en: 'Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.',
+          de: 'Fragt zusätzlich zum Zeitfenster, in welchem Ressort die helfende Person mithelfen möchte. Zur Auswahl steht die projektweite Ressortliste, ohne die Ressorts, die Helfende nur für einen konkreten Job aufnehmen.',
+          fr: 'Demande, en plus du créneau, dans quel département la personne souhaite aider. Les choix sont la liste des départements du projet, sans ceux qui n’accueillent des bénévoles que pour un job concret.',
         },
       },
     },
