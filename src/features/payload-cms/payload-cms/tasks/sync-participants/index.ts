@@ -5,7 +5,12 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import type { PayloadRequest, TaskConfig } from 'payload';
+import { countRunnableOrActiveJobsForQueue } from 'payload';
 
 export const syncParticipantsTask: TaskConfig = {
   slug: 'syncParticipants',
@@ -19,9 +24,7 @@ export const syncParticipantsTask: TaskConfig = {
       cron: '0 3 * * *',
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           // A sync holds its run lock for at most two hours, so anything incomplete after
           // three is a crash-orphaned job that would block the scheduler forever.
           // Completed jobs are deliberately *not* cleaned up: the billing toolbar reads
@@ -29,9 +32,17 @@ export const syncParticipantsTask: TaskConfig = {
           // the scheduled runs would leave that panel empty.
           await cleanupStaleScheduledJobs(req, 'syncParticipants', 3 * 60);
 
-          // Concurrent runs are already serialised by the Redis run lock keyed on the job
-          // id, so no extra guard is needed here.
-          return { shouldSchedule: true, input: {} };
+          // The Redis run lock serialises two workers picking up the *same* job. It says
+          // nothing about how many jobs exist, so the scheduler still has to count: an
+          // occurrence that is already queued or in flight is this one.
+          const runnableOrActiveJobsForQueue = await countRunnableOrActiveJobsForQueue({
+            queue: queueable.scheduleConfig.queue,
+            req,
+            taskSlug: 'syncParticipants',
+            onlyScheduled: true,
+          });
+
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },

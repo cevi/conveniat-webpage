@@ -4,6 +4,10 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import prisma from '@/lib/db/prisma';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
@@ -37,10 +41,7 @@ export const autoCheckoutPresenceTask: TaskConfig<{
       cron: '*/5 * * * *', // Run every 5 minutes
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           await cleanupCompletedScheduledJobs(req, 'autoCheckoutPresence');
           await cleanupStaleScheduledJobs(req, 'autoCheckoutPresence', 30);
 
@@ -51,10 +52,7 @@ export const autoCheckoutPresenceTask: TaskConfig<{
             onlyScheduled: true,
           });
 
-          return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
-            input: {},
-          };
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },
