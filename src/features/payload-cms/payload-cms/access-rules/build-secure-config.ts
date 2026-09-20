@@ -3,7 +3,7 @@ import {
   hasAdminOrWebAccess,
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import { stripControlCharactersFromData } from '@/features/payload-cms/payload-cms/hooks/strip-control-characters';
+import { stripControlCharactersPlugin } from '@/features/payload-cms/payload-cms/plugins/strip-control-characters-plugin';
 import type { Config, SanitizedConfig } from 'payload';
 import { buildConfig } from 'payload';
 
@@ -15,8 +15,8 @@ import { buildConfig } from 'payload';
  *
  * See https://payloadcms.com/docs/access-control/overview
  *
- * It also strips unrenderable control characters from everything that is saved, see
- * `stripControlCharactersFromData`.
+ * It also registers `stripControlCharactersPlugin`, which strips unrenderable control
+ * characters from everything that is saved.
  *
  * This function will also apply the default buildConfig function to the config.
  *
@@ -31,11 +31,6 @@ export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
         update: hasAdminOrWebAccess,
         readVersions: hasAdminOrWebAccess,
         ...global.access,
-      };
-
-      global.hooks = {
-        ...global.hooks,
-        beforeChange: [stripControlCharactersFromData, ...(global.hooks?.beforeChange ?? [])],
       };
     }
 
@@ -55,12 +50,11 @@ export const buildSecureConfig = (config: Config): Promise<SanitizedConfig> => {
         unlock: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
         ...collection.access,
       };
-
-      collection.hooks = {
-        ...collection.hooks,
-        beforeChange: [stripControlCharactersFromData, ...(collection.hooks?.beforeChange ?? [])],
-      };
     }
+
+  // the plugin has to see the collections the other plugins add, so it is registered here
+  // instead of walking `config.collections` directly
+  config.plugins = [...(config.plugins ?? []), stripControlCharactersPlugin];
 
   return buildConfig(config);
 };

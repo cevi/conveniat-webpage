@@ -51,9 +51,9 @@ const stripControlCharactersInPlace = (node: unknown): void => {
 };
 
 /**
- * Strips control characters from everything an editor saves. Applied to every collection and
- * global by `buildSecureConfig`, so that content cannot reach the renderer with characters the
- * browser draws as a missing glyph box.
+ * Strips control characters from everything that is saved. Attached to every collection and
+ * global by `stripControlCharactersPlugin`, so that content cannot reach the renderer with
+ * characters the browser draws as a missing glyph box.
  */
 export const stripControlCharactersFromData: CollectionBeforeChangeHook &
   GlobalBeforeChangeHook = ({ data }) => {
