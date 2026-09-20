@@ -119,6 +119,21 @@ interface NativePushEventDetail {
   payload?: Record<string, unknown>;
 }
 
+type NativePushPlatform = 'ios' | 'android';
+
+const isNativePushPlatform = (value: unknown): value is NativePushPlatform =>
+  value === 'ios' || value === 'android';
+
+/**
+ * Platform of the native shell, for the status event that carries a token but no
+ * platform. The shell only exists as an iOS and an Android app, so the user agent is
+ * enough to tell them apart.
+ */
+const detectNativePlatform = (): NativePushPlatform =>
+  typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ? 'ios'
+    : 'android';
+
 export function extractTargetUrl(payload: Record<string, unknown>): string | undefined {
   const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
   const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
@@ -445,6 +460,18 @@ export function useNativePush(): {
    */
   const registeredTokenReference = useRef<string | undefined>(undefined);
   const registrationInFlightReference = useRef<string | undefined>(undefined);
+  /**
+   * Last token the bridge handed over, whether or not its registration went through.
+   * The shell emits `native-push-token` on launch and on permission changes only, so a
+   * registration that failed on a dead connection - camp wifi, a deploy in progress -
+   * would otherwise stay failed until the user killed the app. During the konekta
+   * weekend a third of chat recipients had no subscription for exactly that reason.
+   * Every resume and every reconnect retries this token instead; the dedupe above
+   * makes that free once it is registered.
+   */
+  const lastBridgeTokenReference = useRef<
+    { token: string; platform: NativePushPlatform } | undefined
+  >(undefined);
 
   const addLog = (message: string, data?: unknown): void => {
     const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -515,6 +542,14 @@ export function useNativePush(): {
         setIsRegisteredOnBackend(true);
         setIsUnauthenticated(false);
         setLastError(undefined);
+        // The error event alone cannot say how many devices ended up registered, which
+        // is the number that matters when a chat reaches fewer people than expected.
+        try {
+          const { default: ph } = await import('posthog-js');
+          ph.capture('native_push_register_success', { platform });
+        } catch (importError) {
+          console.error('Failed to load posthog-js', importError);
+        }
       } catch (error: unknown) {
         // Only this token's failure says anything about this token. A registration for
         // a token that has since been rotated away must not clear the record of the
@@ -540,10 +575,16 @@ export function useNativePush(): {
           setLastError(`registerDevice error: ${errorMessage}`);
         }
 
-        if (error instanceof Error) {
+        // A token that arrives before the user has signed in is expected and is retried
+        // once the session exists; reporting it made the error event unreadable.
+        if (error instanceof Error && !isAuthError) {
           try {
             const { default: ph } = await import('posthog-js');
-            ph.capture('native_push_register_error', { error: error.message });
+            ph.capture('native_push_register_error', {
+              error: error.message,
+              errorName: error.name,
+              platform,
+            });
           } catch (importError) {
             console.error('Failed to load posthog-js', importError);
           }
@@ -556,6 +597,28 @@ export function useNativePush(): {
           registrationInFlightReference.current = undefined;
         }
       }
+    };
+
+    /**
+     * Registers the last token the bridge reported, if it is not registered yet.
+     * `token` and `platform` from a status payload win over the remembered pair, so a
+     * shell that rotates the token between two status reports registers the new one.
+     */
+    const retryPendingRegistration = (payload: Record<string, unknown> = {}): void => {
+      const token = payload['token'];
+      const remembered = lastBridgeTokenReference.current;
+      const pending =
+        typeof token === 'string' && token !== ''
+          ? {
+              token,
+              platform: isNativePushPlatform(payload['platform'])
+                ? payload['platform']
+                : (remembered?.platform ?? detectNativePlatform()),
+            }
+          : remembered;
+      if (pending === undefined || registeredTokenReference.current === pending.token) return;
+      lastBridgeTokenReference.current = pending;
+      void handleRegisterDevice(pending.token, pending.platform);
     };
 
     const handleUnregisterDevice = async (
@@ -644,6 +707,12 @@ export function useNativePush(): {
             setStatus(normalizedStatus);
             setHasToken(hasTokenValue);
             setLastError(undefined);
+
+            // Status is what the app asks for on every resume, and it is the only
+            // signal a device that failed to register while offline will get again.
+            if (normalizedStatus === 'granted' && hasTokenValue) {
+              retryPendingRegistration(payload);
+            }
           }
           break;
         }
@@ -651,8 +720,9 @@ export function useNativePush(): {
           const token = payload['token'];
           const platform = payload['platform'];
           console.log('[NativePush:PWA] token received: platform =', platform);
-          if (typeof token === 'string' && typeof platform === 'string') {
-            void handleRegisterDevice(token, platform as 'ios' | 'android');
+          if (typeof token === 'string' && isNativePushPlatform(platform)) {
+            lastBridgeTokenReference.current = { token, platform };
+            void handleRegisterDevice(token, platform);
             setStatus('granted');
             setHasToken(true);
             setLastError(undefined);
@@ -667,8 +737,11 @@ export function useNativePush(): {
           const token = payload['token'];
           const platform = payload['platform'];
           console.log('[NativePush:PWA] token deleted: platform =', platform);
-          if (typeof token === 'string' && typeof platform === 'string') {
-            void handleUnregisterDevice(token, platform as 'ios' | 'android');
+          if (lastBridgeTokenReference.current?.token === token) {
+            lastBridgeTokenReference.current = undefined;
+          }
+          if (typeof token === 'string' && isNativePushPlatform(platform)) {
+            void handleUnregisterDevice(token, platform);
           }
           setHasToken(false);
           setStatus('prompt');
@@ -799,8 +872,15 @@ export function useNativePush(): {
       }
     };
 
+    // Connectivity coming back is the other moment a failed registration can succeed.
+    const handleOnline = (): void => {
+      addLog('Connection restored, retrying pending registration');
+      retryPendingRegistration();
+    };
+
     checkAndExecutePendingPushNavigation(router);
 
+    globalThis.addEventListener('online', handleOnline);
     globalThis.addEventListener('app-webview-native-push-event', handleNativeEvent);
     if (typeof document !== 'undefined') {
       document.addEventListener('app-webview-native-push-event', handleNativeEvent);
@@ -862,6 +942,7 @@ export function useNativePush(): {
       if (rollbackTimeoutReference.current) {
         clearTimeout(rollbackTimeoutReference.current);
       }
+      globalThis.removeEventListener('online', handleOnline);
       globalThis.removeEventListener('app-webview-native-push-event', handleNativeEvent);
       if (typeof document !== 'undefined') {
         document.removeEventListener('app-webview-native-push-event', handleNativeEvent);

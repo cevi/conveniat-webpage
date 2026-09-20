@@ -17,6 +17,17 @@ jest.mock('@/utils/auth', () => ({
   auth: jest.fn(),
 }));
 
+jest.mock('@/utils/server-logger', () => ({
+  createLogger: (): Record<string, jest.Mock> => ({
+    trace: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    fatal: jest.fn(),
+  }),
+}));
+
 jest.mock('@/utils/auth-helpers', () => ({
   getPayloadUserFromNextAuthUser: jest.fn().mockResolvedValue({ id: 'user-1' }),
 }));
@@ -87,9 +98,6 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
     (getPayload as unknown as jest.Mock).mockResolvedValue({
       find,
       update,
