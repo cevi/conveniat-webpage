@@ -1,0 +1,118 @@
+# Application alert rules for the local observability stack.
+#
+# These mirror the `applications` group that production Grafana runs, so a rule can be changed
+# and watched fire locally instead of being edited in the production UI where it is not
+# version-controlled. Two things are adapted for local: the datasource uid is the one
+# `provisioning/datasources/grafana-datasources.yml` pins for Prometheus, and the instance-down
+# rule matches the `payload` scrape job from `observability/prometheus/prometheus.yml` instead of
+# the per-deployment job names production uses.
+#
+# The Loki self-monitoring rules production also has are deliberately left out: they belong to
+# the shared observability stack, not to this repository.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: applications
+    folder: conveniat27
+    interval: 1m
+    rules:
+      - uid: app-instance-down
+        title: Application instance down
+        condition: threshold
+        data:
+          - refId: query
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum by (job) (up{job="payload"})
+              instant: true
+              refId: query
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+              expression: query
+              refId: threshold
+              type: threshold
+        noDataState: NoData
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: No healthy instances for {{ $labels.job }}
+          description:
+            Prometheus cannot scrape any instance of {{ $labels.job }}. The service is likely down
+            or its tasks are failing to start.
+        labels:
+          severity: critical
+
+      - uid: app-error-rate-high
+        title: Application error rate above 5%
+        condition: threshold
+        data:
+          - refId: query
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr:
+                sum by (service) (rate(traces_spanmetrics_calls_total{status_code="STATUS_CODE_ERROR",span_kind="SPAN_KIND_SERVER"}[5m]))
+                / clamp_min(sum by (service) (rate(traces_spanmetrics_calls_total{span_kind="SPAN_KIND_SERVER"}[5m])), 0.001)
+              instant: true
+              refId: query
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.05]
+                    type: gt
+              expression: query
+              refId: threshold
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 10m
+        annotations:
+          summary: '{{ $labels.service }} is failing {{ $values.query }} of requests'
+          description: More than 5% of server spans have status ERROR over the last 10 minutes.
+        labels:
+          severity: warning
+
+      - uid: app-latency-p99-high
+        title: Application p99 latency above 5s
+        condition: threshold
+        data:
+          - refId: query
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.99, sum by (le, service)
+                (rate(traces_spanmetrics_latency_bucket{span_kind="SPAN_KIND_SERVER"}[5m])))
+              instant: true
+              refId: query
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [5]
+                    type: gt
+              expression: query
+              refId: threshold
+              type: threshold
+        noDataState: OK
+        execErrState: OK
+        for: 15m
+        annotations:
+          summary: 'p99 latency for {{ $labels.service }} is {{ $values.query }}s'
+        labels:
+          severity: warning

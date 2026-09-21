@@ -4,6 +4,9 @@ datasources:
   - name: 'prometheus'
     access: proxy
     type: prometheus
+    # Pinned so dashboards and alert rules can reference it by uid. Tempo's serviceMap below
+    # already assumed this value.
+    uid: prometheus
     url: http://prometheus:9090
     isDefault: true
 
