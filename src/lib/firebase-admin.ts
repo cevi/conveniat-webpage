@@ -9,19 +9,20 @@ import * as fs from 'node:fs';
  * Android notification channel every non-emergency push is addressed to.
  *
  * It must match the channel the native shell actually creates - today
- * `MainApplication.ensureChannels()` / `LocalNotificationsModule.ensureChannel()` in
- * cevi/konekta-app, which registers `konekta-push` at `IMPORTANCE_HIGH` on every app
- * start (its `AndroidManifest.xml` also points
+ * `strings.xml` (`conveniat27_notification_channel_id`) in cevi/conveniat27-app,
+ * created by `LocalNotificationsModule` at `IMPORTANCE_HIGH` on every app start (its
+ * `AndroidManifest.xml` also points
  * `com.google.firebase.messaging.default_notification_channel_id` at the same channel).
  *
  * Addressing it explicitly matters because a channel id the app never created makes
  * FCM post to its own auto-created fallback channel at default importance instead -
- * which shows no heads-up banner. This constant previously named `konekta-default`, a
- * channel the app has never created; see cevi/conveniat-webpage#1583.
+ * which shows no heads-up banner. This constant previously named `konekta-push`,
+ * copied from cevi/konekta-app without updating for this app's real channel id; see
+ * cevi/conveniat-webpage#1583.
  *
  * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
  */
-const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-push';
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'conveniat27-push';
 
 let firebaseAdminInitialized = false;
 
