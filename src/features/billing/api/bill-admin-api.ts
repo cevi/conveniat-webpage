@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
+import { runScopedLogger } from '@/features/billing/adapters/payload-logger.adapter';
 import { PayloadParticipantRepositoryAdapter } from '@/features/billing/adapters/payload-participant-repository.adapter';
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
@@ -12,8 +13,21 @@ import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { randomUUID } from 'node:crypto';
 import type { PayloadHandler } from 'payload';
 import { z } from 'zod';
+
+/**
+ * Names why a stream was cancelled, without trusting the reason to have a useful `toString`.
+ * Undici passes an `Error` when the socket goes, and nothing at all when the reader simply
+ * releases its lock.
+ */
+const describeCancelReason = (reason: unknown): string | undefined => {
+  if (reason === undefined || reason === null) return undefined;
+  if (reason instanceof Error) return reason.message;
+  if (typeof reason === 'string') return reason;
+  return JSON.stringify(reason);
+};
 
 /** Names the operator behind a manual action, for the participant's history. */
 function describeActor(user: unknown): string {
@@ -507,11 +521,32 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
 
   const encoder = new TextEncoder();
 
+  // Every line this run writes carries the same id, so one walk can be pulled out of Loki as a
+  // whole. Several editors may press the button at once, and each replica interleaves its own,
+  // so without it the lines of two runs read as one.
+  const runId = randomUUID();
+  const logger = runScopedLogger(request.payload.logger, runId);
+  const startedAt = Date.now();
+  const elapsed = (): number => (Date.now() - startedAt) / 1000;
+
+  // How far the walk had got, for the lines that report how it ended.
+  let processedGroups = 0;
+  let totalGroups = 0;
+  // Set by `cancel` below. The walk keeps running after the reader goes away — it is most of
+  // the way through a Cevi.DB pass and the settings write is worth finishing — but nothing may
+  // be enqueued on a cancelled controller, and doing so throws.
+  let cancelled = false;
+
   const stream = new ReadableStream<Uint8Array>({
     async start(controller): Promise<void> {
       const send = (message: PopulateSubeventsStreamMessage): void => {
+        if (cancelled) return;
         controller.enqueue(encoder.encode(`${JSON.stringify(message)}\n`));
       };
+
+      // The id, not the name or the mail address: the run id already tells two overlapping
+      // runs apart, and an operator's mail address has no business sitting in Loki for it.
+      logger.info('Subevent walk started', { 'billing.actor_id': request.user?.id });
 
       try {
         const settingsRepo = new PayloadSettingsAdapter(request.payload);
@@ -519,12 +554,6 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
         const cookieValue = regManagement.browserCookie;
         const browserCookie =
           typeof cookieValue === 'string' && cookieValue.length > 0 ? cookieValue : '';
-
-        const logger = {
-          info: (m: string): void => request.payload.logger.info(m),
-          warn: (m: string): void => request.payload.logger.warn(m),
-          error: (m: string): void => request.payload.logger.error(m),
-        };
 
         const hitobitoService = new HitobitoServiceAdapter(
           {
@@ -539,17 +568,47 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
           hitobitoService,
           settingsRepo,
           logger,
-          (progress) => send({ type: 'progress', ...progress }),
+          (progress) => {
+            processedGroups = progress.processedGroups;
+            totalGroups = progress.totalGroups;
+            send({ type: 'progress', ...progress });
+          },
         );
 
         send({ type: 'done', newEvents: result.newEvents, allEvents: result.allEvents });
+        logger.info('Subevent walk finished', {
+          'billing.events_new': result.newEvents.length,
+          'billing.events_stored': result.allEvents.length,
+          'billing.total_groups': totalGroups,
+          'billing.duration_seconds': elapsed(),
+          'billing.stream_cancelled': cancelled,
+        });
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        request.payload.logger.error({ err: error }, `Populating subevents failed: ${message}`);
+        logger.error('Subevent walk failed', {
+          'billing.processed_groups': processedGroups,
+          'billing.total_groups': totalGroups,
+          'billing.duration_seconds': elapsed(),
+          error,
+        });
         send({ type: 'error', error: message });
       } finally {
-        controller.close();
+        if (!cancelled) controller.close();
       }
+    },
+
+    // Reached when the reader goes away: the editor navigated off the settings page, or the
+    // browser dropped the request. Recorded so that a run which produced no result can be told
+    // apart from one that failed on our side — the difference the admin panel cannot show,
+    // because the error it renders is whatever the browser called the truncated body.
+    cancel(reason: unknown): void {
+      cancelled = true;
+      logger.warn('Subevent walk stream cancelled by the client', {
+        'billing.processed_groups': processedGroups,
+        'billing.total_groups': totalGroups,
+        'billing.duration_seconds': elapsed(),
+        'billing.cancel_reason': describeCancelReason(reason),
+      });
     },
   });
 
