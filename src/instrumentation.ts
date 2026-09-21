@@ -111,6 +111,22 @@ export const onRequestError = async (
       if (request.headers['x-forwarded-for'] !== undefined)
         properties['x-forwarded-for'] = request.headers['x-forwarded-for'];
 
+      // Joins the PostHog issue to the Tempo trace and to the Loki lines of the same request.
+      // Next.js invokes `onRequestError` inside the request's span context (its tracer enters
+      // every span through `context.with(trace.setSpan(...))`), so these are the ids the failing
+      // render was recorded under. They are named `trace_id` / `span_id` rather than
+      // `$exception_*` so PostHog keeps them as plain, filterable event properties, and to match
+      // what the log pipeline already writes in `otel-log-destination.ts`.
+      //
+      // Both are best effort: without a registered SDK, or for an error that escapes the span,
+      // `getActiveSpan()` is undefined and the report goes out without them.
+      const { trace, INVALID_TRACEID } = await import('@opentelemetry/api');
+      const spanContext = trace.getActiveSpan()?.spanContext();
+      if (spanContext !== undefined && spanContext.traceId !== INVALID_TRACEID) {
+        properties['trace_id'] = spanContext.traceId;
+        properties['span_id'] = spanContext.spanId;
+      }
+
       let errorMessage = '';
       let digest: string | undefined;
       if (error !== null && typeof error === 'object') {
