@@ -11,6 +11,12 @@ export const register = async (): Promise<void> => {
 
   const { registerNodeInstrumentation } = await import('./instrumentation-node');
   registerNodeInstrumentation();
+
+  // Not awaited: initializing Payload reaches the database and, on an empty one, seeds it. The
+  // server must accept requests while that happens, as it did when the first admin request
+  // triggered it.
+  const { startJobsRunner } = await import('./instrumentation-jobs');
+  void startJobsRunner();
 };
 
 /**
