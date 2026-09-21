@@ -149,6 +149,44 @@ describe('populateSubeventsUseCase', () => {
     expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
   });
 
+  it('adopts the name and the group of a Hof that was renamed in Cevi.DB', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        {
+          eventId: 'e-1',
+          eventName: 'conveniat27 Seuzach',
+          groupId: '1',
+          addressManagerEmails: 'alt@example.com',
+          reminderRecipientsOverride: 'chef@example.com',
+        },
+      ]),
+    );
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['7']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'Hauptlager conveniat27 Seuzach-Welsikon' },
+    ]);
+    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['neu@example.com']);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    // The rename is not a new event, so it must not be counted as one.
+    expect(result.count).toBe(0);
+    expect(result.allEvents).toEqual([
+      {
+        eventId: 'e-1',
+        eventName: 'Hauptlager conveniat27 Seuzach-Welsikon',
+        groupId: '7',
+        addressManagerEmails: 'neu@example.com',
+        reminderRecipientsOverride: 'chef@example.com',
+      },
+    ]);
+  });
+
   it('leaves the stored address managers alone when the Cevi.DB lookup fails', async () => {
     mockSettingsRepo.getBillSettings.mockResolvedValue(
       billSettingsWith([

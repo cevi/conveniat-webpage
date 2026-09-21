@@ -173,8 +173,7 @@ export async function populateSubeventsUseCase(
 
   // Merge new results into filteredExistingEvents, using eventId as the key. A known event
   // keeps its row — most of all its `reminderRecipientsOverride`, which an editor set by
-  // hand and which a sync must never wipe — and only has its synced Adressverwalter
-  // refreshed.
+  // hand and which a sync must never wipe — and has every field Cevi.DB owns refreshed.
   const mergedEvents = [...filteredExistingEvents];
   const newEvents: PopulatedSubevent[] = [];
   for (const newEvent of results) {
@@ -184,10 +183,18 @@ export async function populateSubeventsUseCase(
     if (existingIndex === -1) {
       mergedEvents.push(newEvent);
       newEvents.push(newEvent);
-    } else if (newEvent.addressManagerEmails !== undefined) {
+    } else {
+      // The name and the group live in Cevi.DB, so a Hof renamed or moved there has to
+      // reach the stored row: it is what the bills, the exports, the reminder mails and
+      // the participation sync read. `addressManagerEmails` is the one synced field that
+      // keeps its stored value when the lookup failed, see `withRetry` above.
       mergedEvents[existingIndex] = {
         ...mergedEvents[existingIndex],
-        addressManagerEmails: newEvent.addressManagerEmails,
+        eventName: newEvent.eventName,
+        groupId: newEvent.groupId,
+        ...(newEvent.addressManagerEmails === undefined
+          ? {}
+          : { addressManagerEmails: newEvent.addressManagerEmails }),
       } as (typeof mergedEvents)[number];
     }
   }
