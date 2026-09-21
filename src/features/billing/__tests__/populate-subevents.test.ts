@@ -15,10 +15,20 @@ import type { BillSetting } from '@/features/payload-cms/payload-types';
 const billSettingsWith = (events: PopulatedSubevent[]): BillSetting =>
   ({ events }) as unknown as BillSetting;
 
+// Typed rather than bare `jest.fn()`, so that reading an attribute off a recorded call is not
+// an `any` access.
+const logLevel = (): jest.Mock<void, [string, Record<string, unknown>?]> =>
+  jest.fn<void, [string, Record<string, unknown>?]>();
+
 describe('populateSubeventsUseCase', () => {
   let mockHitobitoService: jest.Mocked<HitobitoServicePort>;
   let mockSettingsRepo: jest.Mocked<SettingsPort>;
-  const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const mockLogger = {
+    debug: logLevel(),
+    info: logLevel(),
+    warn: logLevel(),
+    error: logLevel(),
+  };
 
   beforeEach(() => {
     mockHitobitoService = {
@@ -221,7 +231,31 @@ describe('populateSubeventsUseCase', () => {
         addressManagerEmails: 'bekannt@example.com',
       },
     ]);
-    expect(mockLogger.warn).toHaveBeenCalled();
+    // The one line a human has to be able to find: which group was skipped, and why.
+    const [warning, attributes] = mockLogger.warn.mock.calls[0] ?? [];
+    expect(warning).toBe('Giving up on a Cevi.DB lookup');
+    expect(attributes).toMatchObject({
+      'billing.lookup': 'address managers',
+      'billing.group_id': '1',
+    });
+    expect(attributes?.['error']).toBeInstanceOf(Error);
+  });
+
+  it('records how far the walk got after every batch', async () => {
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1', '2', '3', '4']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    // A run cut off mid-walk — by the browser, or by the replica being replaced — leaves
+    // these behind, which is how far it got. Without them it looks like it never started.
+    const walked = mockLogger.debug.mock.calls.filter(
+      ([message]) => message === 'Walked a batch of subgroups',
+    );
+    expect(walked.map(([, attributes]) => attributes?.['billing.processed_groups'])).toEqual([
+      3, 4,
+    ]);
+    expect(walked.every(([, attributes]) => attributes?.['billing.total_groups'] === 4)).toBe(true);
   });
 
   it('still reports a total of zero subgroups without dividing by zero downstream', async () => {
