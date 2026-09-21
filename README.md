@@ -258,12 +258,16 @@ used for cleaner imports.
 
 ## Build Production Bundle
 
-The easiest way to build the page into a production ready bundle is to use the provided Docker Compose file.
-This will build the Next.js application and Payload CMS, and prepare it for deployment.
+The easiest way to build the page into a production ready bundle is to build the same image
+the deployment runs. This builds the Next.js application and Payload CMS in one step.
 
 ```bash
-docker compose -f docker-compose.prod.yml up --build
+docker build -t conveniat27-webpage .
 ```
+
+`docker-compose.prod.yml` is not this. It is a copy of the deployed stack, kept so the
+deployment can be read alongside the code, and it names host paths that only exist on the
+server.
 
 However, you can also build the application manually using the following commands.
 Please ensure that you have deleted `node_modules`, `src/lib/prisma/*`, and `.next`
