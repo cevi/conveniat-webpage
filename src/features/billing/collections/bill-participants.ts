@@ -1,3 +1,4 @@
+import { decodeCeviDatabaseText } from '@/features/billing/collections/decode-cevi-database-text';
 import {
   canTransition,
   describeRefusedTransition,
@@ -161,6 +162,7 @@ export const BillParticipantsCollection: CollectionConfig = {
       name: 'eventName',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
+      hooks: { afterRead: [decodeCeviDatabaseText] },
       label: {
         en: 'Event Name',
         de: 'Anlass-Name',

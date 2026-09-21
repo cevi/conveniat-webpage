@@ -1,3 +1,4 @@
+import { decodeCeviDatabaseText } from '@/features/billing/collections/decode-cevi-database-text';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
@@ -123,6 +124,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'eventName',
                   type: 'text',
                   required: true,
+                  hooks: { afterRead: [decodeCeviDatabaseText] },
                   label: {
                     en: 'Event Name',
                     de: 'Anlass-Name',
