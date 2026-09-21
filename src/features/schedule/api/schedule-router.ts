@@ -3,7 +3,8 @@ import {
   getJoinGroupMessagePayload,
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
-import type { User as PayloadUser } from '@/features/payload-cms/payload-types';
+import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import {
   ChatMembershipPermission,
@@ -16,11 +17,13 @@ import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/ini
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { ensureUserExistsMiddleware } from '@/trpc/middleware/ensure-user-exists';
 import { convertLexicalToMarkdown, convertMarkdownToLexical } from '@/utils/markdown-to-lexical';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
+
+const logger = createLogger('schedule:router');
 
 const enrollInCourseSchema = z.object({
   courseId: z.string(),
@@ -90,8 +93,7 @@ export const scheduleRouter = createTRPCRouter({
     const isEnrolled = user
       ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
       : false;
-    const organisers = (course.organiser ?? []) as PayloadUser[];
-    const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
+    const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
 
     // Check if a group chat exists for this course
     const courseChat = await prisma.chat.findFirst({
@@ -103,22 +105,40 @@ export const scheduleRouter = createTRPCRouter({
       enrolledCount: enrollments.length,
       maxParticipants: course.participants_max ?? undefined,
       isEnrolled,
-      isAdmin,
+      /**
+       * Organiser-ship, not a role: `isAdmin` is the long-standing name for it and stays so the
+       * existing consumers (edit rights, the admin actions card) keep working. `isOrganiser` is
+       * the honest one - an organiser needs no admin-panel access.
+       */
+      isAdmin: isOrganiser,
+      isOrganiser,
       enableEnrolment: course.enable_enrolment,
       hideList: course.hide_participant_list,
       chatId: courseChat?.uuid,
+      /**
+       * The roster is for the organisers of the course and nobody else, and they only get it
+       * while "Teilnehmerliste ausblenden" is off - with it on, the list stays exclusive to
+       * the admin panel, whose export never consults the flag.
+       *
+       * Both halves are decided here rather than in the UI: a client-side guard would still
+       * ship the names in the tRPC response, where any participant could read them straight
+       * out of the payload.
+       *
+       * The flag is compared against `true` rather than `false` because it is a checkbox
+       * added after the collection existed, so Payload only materialises it on documents
+       * saved since - older courses carry `undefined`, which has to read as its `false`
+       * default ("not hidden") rather than withhold the list.
+       */
       participants:
-        isAdmin || course.hide_participant_list === false
+        isOrganiser && course.hide_participant_list !== true
           ? enrollments.map((enrollment_) => ({
               uuid: enrollment_.user.uuid,
               name: enrollment_.user.name,
             }))
           : [],
       // Markdown versions for editing
-      descriptionMarkdown: isAdmin ? convertLexicalToMarkdown(course.description) : undefined,
-      targetGroupMarkdown: isAdmin
-        ? convertLexicalToMarkdown(course.target_group as SerializedEditorState)
-        : undefined,
+      descriptionMarkdown: isOrganiser ? convertLexicalToMarkdown(course.description) : undefined,
+      targetGroupMarkdown: isOrganiser ? convertLexicalToMarkdown(course.target_group) : undefined,
     };
   }),
 
@@ -176,6 +196,7 @@ export const scheduleRouter = createTRPCRouter({
           maxParticipants: number | undefined;
           isEnrolled: boolean;
           isAdmin: boolean;
+          isOrganiser: boolean;
           enableEnrolment: boolean | null | undefined;
           hideList: boolean | null | undefined;
           chatId: string | undefined;
@@ -190,14 +211,14 @@ export const scheduleRouter = createTRPCRouter({
         const isEnrolled = user
           ? enrollments.some((enrollment_) => enrollment_.userId === user.uuid)
           : false;
-        const organisers = (course.organiser ?? []) as PayloadUser[];
-        const isAdmin = user ? organisers.some((o) => o.id === user.uuid) : false;
+        const isOrganiser = isOrganiserOf(course.organiser, user?.uuid);
 
         result[courseId] = {
           enrolledCount: enrollments.length,
           maxParticipants: course.participants_max ?? undefined,
           isEnrolled,
-          isAdmin,
+          isAdmin: isOrganiser,
+          isOrganiser,
           enableEnrolment: course.enable_enrolment,
           hideList: course.hide_participant_list,
           chatId: chatsByCourse.get(courseId),
@@ -235,8 +256,7 @@ export const scheduleRouter = createTRPCRouter({
       });
 
       // Check if user is an organizer of this course
-      const organisers = (course.organiser ?? []) as string[];
-      const isOrganiser = organisers.includes(user.uuid);
+      const isOrganiser = isOrganiserOf(course.organiser, user.uuid);
 
       if (course.enable_enrolment === false) {
         throw new TRPCError({
@@ -904,7 +924,7 @@ export const scheduleRouter = createTRPCRouter({
           });
           return { starred: true };
         } catch (error) {
-          console.warn('[toggleStar] Could not toggle star:', error);
+          logger.warn('Could not toggle the star', { error, 'course.id': courseId });
           return { starred: false };
         }
       }),
@@ -923,7 +943,7 @@ export const scheduleRouter = createTRPCRouter({
         });
         return stars.map((s: { courseId: string }) => s.courseId);
       } catch (error) {
-        console.warn('[getMyStars] Could not query stars:', error);
+        logger.warn('Could not query the stars', { error, 'user.id': user.uuid });
         return [];
       }
     }),
@@ -948,13 +968,19 @@ export const scheduleRouter = createTRPCRouter({
             });
           }
 
+          // organisers get their own blocks starred for them, see `ensureOrganiserStars`
+          await ensureOrganiserStars(prisma, user.uuid);
+
           const allStars = await prisma.star.findMany({
             where: { userId: user.uuid },
             select: { courseId: true },
           });
           return allStars.map((s: { courseId: string }) => s.courseId);
         } catch (error) {
-          console.warn('[syncStars] Could not sync stars with database:', error);
+          logger.warn('Could not sync the stars with the database', {
+            error,
+            'user.id': user.uuid,
+          });
           return courseIds;
         }
       }),
@@ -972,7 +998,7 @@ export const scheduleRouter = createTRPCRouter({
             },
           });
         } catch (error) {
-          console.warn('[getStarCount] Could not count stars:', error);
+          logger.warn('Could not count the stars', { error, 'course.id': input.courseId });
           return 0;
         }
       }),

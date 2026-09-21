@@ -16,6 +16,30 @@ jest.mock('@/utils/push-notification-api', () => ({
   sendNotificationToSubscription: (...args: unknown[]): unknown => mockSendToSubscription(...args),
 }));
 
+// The factory has to build the logger itself: `jest.mock` is hoisted above any const
+// it would close over, and the module under test calls `createLogger` on load.
+jest.mock('@/utils/server-logger', () => {
+  const logger = {
+    trace: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    fatal: jest.fn(),
+  };
+  return { createLogger: (): typeof logger => logger, __logger: logger };
+});
+
+interface MockLogger {
+  info: jest.Mock;
+  warn: jest.Mock;
+  error: jest.Mock;
+}
+
+const { __logger: mockLogger } = jest.requireMock<{ __logger: MockLogger }>(
+  '@/utils/server-logger',
+);
+
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 
 interface FindArguments {
@@ -59,6 +83,41 @@ describe('sendNotification recipient lookup', () => {
     await sendNotification('hi', ['user-1', 'user-2'], 'chat-1');
 
     expect(mockSendToSubscription).toHaveBeenCalledTimes(3);
+  });
+
+  /**
+   * The notification type is what decides between the regular chat channel and the
+   * emergency channel with its siren, and the decision is made by the caller (only it
+   * knows the chat is an emergency). Dropping it here would silence the alert on every
+   * device without anything failing.
+   */
+  it('passes the emergency type on to every subscription', async () => {
+    mockFind.mockResolvedValue({
+      docs: [
+        { id: 's1', user: 'user-1' },
+        { id: 's2', user: 'user-2' },
+      ],
+    });
+
+    await sendNotification('Notfall!', ['user-1', 'user-2'], 'chat-1', undefined, {
+      notificationType: 'emergency',
+    });
+
+    for (const call of mockSendToSubscription.mock.calls as unknown[][]) {
+      expect(call[6]).toEqual(expect.objectContaining({ notificationType: 'emergency' }));
+    }
+  });
+
+  it('leaves the type unset for a regular chat message', async () => {
+    mockFind.mockResolvedValue({ docs: [{ id: 's1', user: 'user-1' }] });
+
+    await sendNotification('hi', ['user-1'], 'chat-1');
+
+    const options = (mockSendToSubscription.mock.calls as unknown[][])[0]?.[6] as Record<
+      string,
+      unknown
+    >;
+    expect(options['notificationType']).toBeUndefined();
   });
 
   it('reports success without querying when nobody is subscribed', async () => {
@@ -134,5 +193,38 @@ describe('sendNotification fan-out', () => {
 
     expect(mockSendToSubscription).toHaveBeenCalledTimes(3);
     expect(result.success).toBe(false);
+  });
+
+  /**
+   * The whole point of the fan-out log: "the chat notified nobody" has to be
+   * answerable from Grafana. A rejection is a completed send the push service turned
+   * away (expired device), which is not a failure of the send but is exactly what
+   * separates "reached 40 devices" from "reached none of them".
+   */
+  it('reports delivered, rejected and thrown counts on the fan-out log line', async () => {
+    mockFind.mockResolvedValue({
+      docs: [
+        { id: 's1', user: 'user-1' },
+        { id: 's2', user: 'user-1' },
+        { id: 's3', user: 'user-1' },
+      ],
+    });
+    mockSendToSubscription
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({ success: false, error: 'expired' })
+      .mockResolvedValueOnce({ success: true });
+
+    await sendNotification('hi', ['user-1'], 'chat-1');
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Push fan-out finished',
+      expect.objectContaining({
+        'push.subscriptions': 3,
+        'push.delivered': 2,
+        'push.rejected': 1,
+        'push.thrown': 0,
+        'chat.id': 'chat-1',
+      }),
+    );
   });
 });

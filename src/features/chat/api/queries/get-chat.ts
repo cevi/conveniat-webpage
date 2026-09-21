@@ -5,8 +5,11 @@ import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import { MessageEventType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:queries');
 
 export const getChat = trpcBaseProcedure
   .input(z.object({ chatId: z.string().uuid() }))
@@ -82,8 +85,12 @@ export const getChat = trpcBaseProcedure
           nickname: u.nickname,
         });
       }
-    } catch {
-      // Fallback if Payload query fails
+    } catch (error) {
+      // Fallback to the prisma user names if the Payload query fails.
+      logger.warn('Falling back to prisma user names, the Payload user query failed', {
+        error,
+        'chat.id': chatId,
+      });
     }
 
     return {

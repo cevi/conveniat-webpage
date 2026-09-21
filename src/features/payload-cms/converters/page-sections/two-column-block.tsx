@@ -49,7 +49,11 @@ export const RenderTwoColumnBlock: SectionRenderer<TwoColumnBlock> = ({
           <PageSectionsConverter
             blocks={block.leftColumn as ContentBlock[]}
             locale={locale}
-            sectionClassName="first:!mt-0 mt-8 mb-8 lg:mb-0" // first block top-aligned, subsequent blocks get mt-8 spacing
+            // The grid's own `gap-8` already separates the stacked columns on
+            // mobile. The extra `mb-8` doubled that, applied to the left column
+            // only, and its margin collapsed with the following section's -
+            // which silently disabled the heading-to-content binding here.
+            sectionClassName="first:!mt-0 mt-8" // first block top-aligned, subsequent blocks get mt-8 spacing
           />
         </div>
         <div

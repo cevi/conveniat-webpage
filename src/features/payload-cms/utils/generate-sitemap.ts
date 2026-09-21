@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Blog, GenericPage } from '@/features/payload-cms/payload-types';
 import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import { i18nConfig, type Locale } from '@/types/types';
@@ -110,7 +110,7 @@ const getPublishedLocalizedPageUrls = (
     Record<Locale, { published: boolean }> | undefined;
   const multiLangSlug = page.seo.urlSlug as unknown as Record<Locale, string>;
 
-  for (const locale of Object.values(LOCALE)) {
+  for (const locale of enabledLocales) {
     const isPublished = publishingStatus?.[locale].published ?? false;
     if (!isPublished) {
       continue;
@@ -246,16 +246,22 @@ export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> =
   // --> search
   const searchPage = specialPagesTable['search'];
   if (searchPage?.alternatives) {
-    const pageUrlsByLocale: SitemapAlternates = {
-      fr: {
-        url: combineUrlSegments([APP_HOST_URL, 'fr', searchPage.alternatives.fr.replace('/', '')]),
-        hreflang: 'fr',
-      },
-      en: {
-        url: combineUrlSegments([APP_HOST_URL, 'en', searchPage.alternatives.en.replace('/', '')]),
-        hreflang: 'en',
-      },
-    };
+    // The German URL is the entry itself, the remaining enabled locales become its alternates.
+    const pageUrlsByLocale: SitemapAlternates = Object.fromEntries(
+      enabledLocales
+        .filter((locale) => locale !== LOCALE.DE)
+        .map((locale) => [
+          locale,
+          {
+            url: combineUrlSegments([
+              APP_HOST_URL,
+              locale,
+              searchPage.alternatives[locale].replace('/', ''),
+            ]),
+            hreflang: locale,
+          },
+        ]),
+    );
     sitemap.push(
       createSitemapEntry(combineUrlSegments([APP_HOST_URL, 'suche']), {}, pageUrlsByLocale),
     );

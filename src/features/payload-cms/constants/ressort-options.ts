@@ -114,10 +114,24 @@ export const RESSORT_OPTIONS: { label: StaticTranslationString; value: RessortCa
   },
   {
     label: {
-      de: 'Other',
-      en: 'Other',
-      fr: 'Autre',
+      de: 'Anderes Ressort',
+      en: 'Other Department',
+      fr: 'Autre département',
     },
     value: 'other',
   },
 ];
+
+/**
+ * Ressorts that staff their helpers themselves and therefore only appear as a job category.
+ * A helper signing up by availability cannot wish for them.
+ */
+const RESSORTS_WITHOUT_WISH = new Set<RessortCategory>(['finanzen', 'relations']);
+
+/**
+ * The Ressorts a helper can wish for when signing up by availability instead of for a concrete
+ * job. A subset of {@link RESSORT_OPTIONS}, which stays complete for job categories.
+ */
+export const RESSORT_WISH_OPTIONS: typeof RESSORT_OPTIONS = RESSORT_OPTIONS.filter(
+  (option) => !RESSORTS_WITHOUT_WISH.has(option.value),
+);

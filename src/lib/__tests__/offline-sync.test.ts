@@ -35,6 +35,7 @@ interface TrpcUtilsMock {
   };
   shifts: {
     getMyShiftEnrollments: { ensureData: jest.Mock };
+    getMyOrganisedShifts: { ensureData: jest.Mock };
     getShiftStatus: { ensureData: jest.Mock };
   };
 }
@@ -92,6 +93,7 @@ describe('Offline Sync Helpers', () => {
       },
       shifts: {
         getMyShiftEnrollments: { ensureData: jest.fn().mockResolvedValue([]) },
+        getMyOrganisedShifts: { ensureData: jest.fn().mockResolvedValue([]) },
         getShiftStatus: { ensureData: jest.fn().mockResolvedValue({}) },
       },
     };

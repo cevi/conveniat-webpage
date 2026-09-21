@@ -1,8 +1,11 @@
 import { trpcBaseProcedure } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
+
+const logger = createLogger('presence');
 
 export const updatePresence = trpcBaseProcedure
   .input(
@@ -20,23 +23,31 @@ export const updatePresence = trpcBaseProcedure
 
     const now = new Date();
 
-    if (globalData.startDate) {
-      const startDate = new Date(globalData.startDate);
-      if (now < startDate) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Campsite presence tracking has not started yet.',
-        });
+    /**
+     * Checking *in* only makes sense inside the tracking period. Checking *out* stays possible at
+     * any time: the `autoCheckoutPresence` task closes open records at `endDate`, and a user who
+     * leaves the campsite before that job has run must still be able to close their own record
+     * instead of being reported as present until the job catches up.
+     */
+    if (input.presentAtCamp) {
+      if (globalData.startDate) {
+        const startDate = new Date(globalData.startDate);
+        if (now < startDate) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Campsite presence tracking has not started yet.',
+          });
+        }
       }
-    }
 
-    if (globalData.endDate) {
-      const endDate = new Date(globalData.endDate);
-      if (now > endDate) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Campsite presence tracking has ended.',
-        });
+      if (globalData.endDate) {
+        const endDate = new Date(globalData.endDate);
+        if (now > endDate) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message: 'Campsite presence tracking has ended.',
+          });
+        }
       }
     }
 
@@ -102,7 +113,10 @@ export const updatePresence = trpcBaseProcedure
             id: payloadLogId,
           });
         } catch (revertError: unknown) {
-          console.error('Failed to revert Payload presence log:', revertError);
+          logger.error('Failed to revert the Payload presence log', {
+            error: revertError,
+            'user.id': user.uuid,
+          });
         }
       }
 
@@ -111,7 +125,10 @@ export const updatePresence = trpcBaseProcedure
           where: { uuid: prismaLog.uuid },
         });
       } catch (revertError: unknown) {
-        console.error('Failed to revert Prisma presence log:', revertError);
+        logger.error('Failed to revert the prisma presence log', {
+          error: revertError,
+          'user.id': user.uuid,
+        });
       }
 
       try {
@@ -120,7 +137,10 @@ export const updatePresence = trpcBaseProcedure
           data: { presentAtCamp: previousPresentAtCamp },
         });
       } catch (revertError: unknown) {
-        console.error('Failed to revert Prisma user presence state:', revertError);
+        logger.error('Failed to revert the prisma user presence state', {
+          error: revertError,
+          'user.id': user.uuid,
+        });
       }
 
       throw new TRPCError({

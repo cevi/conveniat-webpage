@@ -15,19 +15,19 @@ if ! command -v aws &> /dev/null; then
 fi
 
 # Check for bucket name
-if [ -z "$MINIO_BUCKET_NAME" ]; then
-    echo "Error: MINIO_BUCKET_NAME environment variable is not set."
+if [ -z "$S3_BUCKET_NAME" ]; then
+    echo "Error: S3_BUCKET_NAME environment variable is not set."
     exit 1
 fi
 
-echo "Applying S3 lifecycle policy to bucket: $MINIO_BUCKET_NAME"
+echo "Applying S3 lifecycle policy to bucket: $S3_BUCKET_NAME"
 
 # Note: If using S3-compatible service (not AWS), endpoint-url might be needed.
 # But this script assumes AWS usage for production or configured AWS CLI default profile.
 # If using specific profile or endpoint, please adjust command below.
 
 aws s3api put-bucket-lifecycle-configuration \
-    --bucket "$MINIO_BUCKET_NAME" \
+    --bucket "$S3_BUCKET_NAME" \
     --lifecycle-configuration file://src/scripts/s3-lifecycle-policy.json
 
 if [ $? -eq 0 ]; then

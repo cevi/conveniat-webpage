@@ -2,6 +2,8 @@ import { sendNotification } from '@/features/chat/api/utils/send-push-notificati
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import type { AnnouncementLocalePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
+import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -10,60 +12,16 @@ import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
 import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest } from 'payload';
 
-export interface LexicalNode {
-  type: string;
-  text?: string;
-  format?: number;
-  children?: LexicalNode[];
-}
-
-export interface LexicalRichText {
-  root?: LexicalNode;
-}
-
-export const serializeLexicalToMarkdown = (node: LexicalNode | null | undefined): string => {
-  if (node === undefined || node === null) return '';
-  if (node.type === 'text') {
-    let text = node.text ?? '';
-    if (node.format !== undefined && (node.format & 1) !== 0) text = `*${text}*`; // Bold
-    if (node.format !== undefined && (node.format & 2) !== 0) text = `_${text}_`; // Italic
-    return text;
-  }
-  if (node.type === 'link' || node.type === 'autolink') {
-    const nodeObject = node as unknown as Record<string, unknown>;
-    const fields = (nodeObject['fields'] ?? {}) as Record<string, unknown>;
-    const url = (fields['url'] ?? nodeObject['url'] ?? '') as string;
-    const childrenText = node.children
-      ? node.children.map((child) => serializeLexicalToMarkdown(child)).join('')
-      : '';
-    if (url !== '') {
-      if (childrenText === url) return childrenText;
-      return `[${childrenText}](${url})`;
-    }
-    return childrenText;
-  }
-  if (node.children !== undefined) {
-    const childrenText = node.children.map((child) => serializeLexicalToMarkdown(child)).join('');
-    if (node.type === 'paragraph') return childrenText + '\n';
-    if (node.type === 'listitem') return `- ${childrenText}\n`;
-    return childrenText;
-  }
-  return '';
-};
-
-export const getLexicalText = (richText: unknown): string => {
-  if (richText === undefined || richText === null || richText === '') return '';
-  if (typeof richText === 'string') return richText;
-  const lexicalRichText = richText as LexicalRichText;
-  if (lexicalRichText.root !== undefined) {
-    return serializeLexicalToMarkdown(lexicalRichText.root).trim();
-  }
-  return JSON.stringify(richText);
-};
+/**
+ * Prisma's `InputJsonValue` only accepts types that carry an implicit index signature,
+ * which an interface does not have. The announcement payload is plain JSON, so writing it
+ * through this alias is safe.
+ */
+type PrismaJsonPayload = Parameters<typeof prisma.messageContent.create>[0]['data']['payload'];
 
 export const publishAnnouncementToPostgres = async (
   channelId: string,
-  localizedPayload: Record<string, { text: string; title: string; body: string }>,
+  localizedPayload: Record<string, AnnouncementLocalePayload>,
   authorUuid: string,
   request: PayloadRequest,
 ): Promise<{ messageUuid: string; publishedAt: Date }> => {
@@ -106,7 +64,7 @@ export const publishAnnouncementToPostgres = async (
       contentVersions: {
         create: [
           {
-            payload: localizedPayload,
+            payload: localizedPayload as unknown as PrismaJsonPayload,
           },
         ],
       },
@@ -143,7 +101,10 @@ export const publishAnnouncementToPostgres = async (
       },
     })
     .catch((error: unknown) => {
-      console.error('Failed to publish announcement socket event:', error);
+      request.payload.logger.error(
+        { error, 'chat.id': chatUuid, 'message.id': createdMessage.uuid },
+        'Failed to publish the announcement real-time event',
+      );
     });
 
   // 7. Trigger Native & Web Push Notifications
@@ -155,7 +116,10 @@ export const publishAnnouncementToPostgres = async (
   if (recipientUserIds.length > 0 && defaultText !== '') {
     sendNotification(defaultText, recipientUserIds, chatUuid, createdMessage.uuid).catch(
       (error: unknown) => {
-        console.error('Failed to send push notifications for announcement:', error);
+        request.payload.logger.error(
+          { error, 'chat.id': chatUuid, 'message.id': createdMessage.uuid },
+          'Failed to send the push notifications for an announcement',
+        );
       },
     );
   }
@@ -214,7 +178,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
       }
 
       // 1. Fetch the full document with all locales to get all translations
-      let documentAll: Record<string, Record<string, unknown>> | undefined;
+      let documentAll: Record<string, unknown> | undefined;
       if (originalDoc?.id !== undefined) {
         const fetchedDocument = await request.payload.findByID({
           collection: 'announcements',
@@ -222,27 +186,19 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
           locale: 'all',
           draft: true,
         });
-        documentAll = fetchedDocument as unknown as Record<string, Record<string, unknown>>;
+        documentAll = fetchedDocument as unknown as Record<string, unknown>;
       }
 
       // 2. Build the localized payload for all locales
-      const localizedPayload: Record<string, { text: string; title: string; body: string }> = {};
-      for (const lang of ['de', 'en', 'fr']) {
-        const documentTitle = documentAll?.['title'] as Record<string, string> | undefined;
-        const documentContent = documentAll?.['content'];
-
-        const title = (lang === locale ? data.title : undefined) ?? documentTitle?.[lang] ?? '';
-        const content = (lang === locale ? data.content : undefined) ?? documentContent?.[lang];
-        if (title !== '' || content !== undefined) {
-          const formattedContent = getLexicalText(content);
-          const fullTextContent = `*${title}*\n\n${formattedContent}`;
-          localizedPayload[lang] = {
-            text: fullTextContent,
-            title: title,
-            body: formattedContent,
-          };
-        }
-      }
+      const localizedPayload = await buildAnnouncementMessagePayload({
+        payload: request.payload,
+        documentAll,
+        override: { locale, title: data.title, content: data.content },
+        // `images` is not localized, so the incoming value is authoritative whenever the
+        // field is part of the request at all - including when it was emptied, which a
+        // `??` fallback would silently undo.
+        imageReferences: 'images' in dataAsRecord ? data.images : documentAll?.['images'],
+      });
 
       const chatMessageUuid = data.chatMessageUuid ?? originalDoc?.chatMessageUuid;
 
@@ -277,7 +233,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             data: {
               messageId: chatMessageUuid,
               revision: nextRevision,
-              payload: localizedPayload,
+              payload: localizedPayload as unknown as PrismaJsonPayload,
             },
           });
 
@@ -314,7 +270,10 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
                 },
               })
               .catch((error: unknown) => {
-                console.error('Failed to publish real-time message_updated event:', error);
+                request.payload.logger.error(
+                  { error, 'message.id': chatMessageUuid },
+                  'Failed to publish the message_updated event for an announcement',
+                );
               });
           }
         }
@@ -331,7 +290,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
         data.publishedAt = publishedAt.toISOString();
       }
     } catch (error: unknown) {
-      console.error('Error publishing announcement:', error);
+      request.payload.logger.error({ error }, 'Failed to publish an announcement');
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Publish failed: ${errorMessage}`);
     }
@@ -357,7 +316,10 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             }
           }
         } catch (error: unknown) {
-          console.error('Error fetching document status on unpublish:', error);
+          request.payload.logger.error(
+            { error, 'document.id': originalDoc.id },
+            'Failed to read the document status on unpublish',
+          );
         }
       }
 
@@ -367,7 +329,10 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             where: { uuid: chatMessageUuid },
           });
         } catch (error: unknown) {
-          console.error('Failed to delete postgres message on unpublish:', error);
+          request.payload.logger.error(
+            { error, 'message.id': chatMessageUuid },
+            'Failed to delete the postgres message on unpublish',
+          );
         }
         // eslint-disable-next-line unicorn/no-null
         data.chatMessageUuid = null;
@@ -395,9 +360,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
             data: {
               messageId: chatMessageUuid,
               revision: nextRevision,
-              payload: updatedPayload as unknown as Parameters<
-                typeof prisma.messageContent.create
-              >[0]['data']['payload'],
+              payload: updatedPayload as unknown as PrismaJsonPayload,
             },
           });
         }
@@ -412,7 +375,7 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
   slug: 'announcements',
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
+    group: AdminPanelDashboardGroups.AppContent.label,
     defaultColumns: ['title', 'channel', 'status', 'scheduledAt', 'publishedAt'],
   },
   labels: {
@@ -461,6 +424,27 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       editor: lexicalEditor({
         features: [...minimalEditorFeatures, UnorderedListFeature(), AlignFeature()],
       }),
+    },
+    {
+      name: 'images',
+      label: {
+        en: 'Attached Images',
+        de: 'Angehängte Bilder',
+        fr: 'Images jointes',
+      },
+      type: 'relationship',
+      relationTo: 'images',
+      hasMany: true,
+      // The images are shared by every translation of the announcement; their alt text
+      // and caption are maintained per language on the image document itself.
+      localized: false,
+      admin: {
+        description: {
+          en: 'These images are sent along with the announcement into the chat.',
+          de: 'Diese Bilder werden zusammen mit der Ankündigung in den Chat geschickt.',
+          fr: "Ces images sont envoyées dans le chat avec l'annonce.",
+        },
+      },
     },
     {
       name: 'channel',

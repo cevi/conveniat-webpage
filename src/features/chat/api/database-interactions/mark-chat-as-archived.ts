@@ -1,7 +1,10 @@
 import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { MessageEventType } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
 import { MessageType } from '@prisma/client';
+
+const logger = createLogger('chat:mutations');
 
 export const markChatAsArchived = async (
   chat: { uuid: string; archivedAt: Date | null },
@@ -12,7 +15,7 @@ export const markChatAsArchived = async (
   }
 
   if (isChatArchived(chat)) {
-    console.warn(`Chat ${chat.uuid} is already archived.`);
+    logger.debug('Chat is already archived, nothing to do', { 'chat.id': chat.uuid });
     return; // no further action needed
   }
 

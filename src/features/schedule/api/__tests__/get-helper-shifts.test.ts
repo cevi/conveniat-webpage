@@ -145,4 +145,188 @@ describe('getHelperShifts', () => {
       'shift-full-override',
     ]);
   });
+
+  /**
+   * An organiser never takes up one of the helper slots, so once the shift fills up the
+   * "hide when full" rule used to sweep it out from under the very people running it - taking
+   * the roster and the contact block, which are only reachable through the card, with it.
+   */
+  describe('a full shift and its organisers', () => {
+    const shiftsWithOrganiser = [
+      {
+        ...sampleShifts[0],
+      },
+      {
+        ...sampleShifts[1],
+        organiser: [{ id: 'org-1', fullName: 'Otto Organisator', email: 'otto@example.test' }],
+      },
+      {
+        ...sampleShifts[2],
+      },
+    ];
+
+    /** Nobody is enrolled in a shift *they* organise, so `findMany` stays empty throughout. */
+    const filledUpCounts = [
+      { courseId: 'shift-open', _count: { courseId: 1 } },
+      { courseId: 'shift-full', _count: { courseId: 2 } },
+      { courseId: 'shift-full-override', _count: { courseId: 2 } },
+    ];
+
+    beforeEach(() => {
+      (getFeatureFlag as jest.Mock).mockResolvedValue(true);
+      mockFind.mockResolvedValue({ docs: shiftsWithOrganiser });
+    });
+
+    it('stays visible to an organiser who is not enrolled in it', async () => {
+      const mockPrisma = {
+        enrollment: {
+          groupBy: jest.fn().mockResolvedValue(filledUpCounts),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      };
+
+      const result = await getHelperShifts({}, 'de', {
+        prisma: mockPrisma as unknown as PrismaClient,
+        user: { uuid: 'org-1' },
+      });
+
+      expect(result.map((shift) => shift.id)).toEqual([
+        'shift-open',
+        'shift-full',
+        'shift-full-override',
+      ]);
+    });
+
+    it('stays hidden from someone who organises a different shift', async () => {
+      const mockPrisma = {
+        enrollment: {
+          groupBy: jest.fn().mockResolvedValue(filledUpCounts),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      };
+
+      const result = await getHelperShifts({}, 'de', {
+        prisma: mockPrisma as unknown as PrismaClient,
+        user: { uuid: 'org-2' },
+      });
+
+      expect(result.map((shift) => shift.id)).toEqual(['shift-open', 'shift-full-override']);
+    });
+  });
+
+  /**
+   * The organiser relationship carries the whole user document at `depth: 1`, and this result is
+   * shared cache handed to every helper - so only the fields the contact block renders may ride
+   * along. Roles, the Hitobito payload and everything else must be dropped here.
+   */
+  describe('the organisers', () => {
+    beforeEach(() => {
+      (getFeatureFlag as jest.Mock).mockResolvedValue(false);
+    });
+
+    it('are narrowed to the fields the helper portal renders', async () => {
+      mockFind.mockResolvedValue({
+        docs: [
+          {
+            id: 'shift-1',
+            title: 'Aufbau',
+            description: 'Aufbau der Stände',
+            timeslot: { date: '2026-08-01', time: '08:00 - 12:00' },
+            organiser: [
+              {
+                id: 'org-1',
+                fullName: 'Otto Organisator',
+                email: 'otto@example.test',
+                roles: ['admin'],
+                hitobitoId: 4242,
+              },
+            ],
+          },
+        ],
+      });
+
+      const [shift] = await getHelperShifts({}, 'de');
+
+      expect(shift?.organiser).toEqual([
+        { id: 'org-1', fullName: 'Otto Organisator', email: 'otto@example.test' },
+      ]);
+    });
+
+    /**
+     * The Ceviname is how helpers actually know each other, so the contact block spells the
+     * organiser out as "Vorname Nachname v/o Ceviname" - which needs the nickname to survive
+     * the narrowing.
+     */
+    it('keep the Ceviname of an organiser who has one', async () => {
+      mockFind.mockResolvedValue({
+        docs: [
+          {
+            id: 'shift-1',
+            title: 'Aufbau',
+            description: 'Aufbau der Stände',
+            timeslot: { date: '2026-08-01', time: '08:00 - 12:00' },
+            organiser: [
+              {
+                id: 'org-1',
+                fullName: 'Otto Organisator',
+                nickname: 'Otti',
+                email: 'otto@example.test',
+              },
+            ],
+          },
+        ],
+      });
+
+      const [shift] = await getHelperShifts({}, 'de');
+
+      expect(shift?.organiser).toEqual([
+        {
+          id: 'org-1',
+          fullName: 'Otto Organisator',
+          nickname: 'Otti',
+          email: 'otto@example.test',
+        },
+      ]);
+    });
+
+    it('default to an empty list on a shift that has none', async () => {
+      mockFind.mockResolvedValue({
+        docs: [
+          {
+            id: 'shift-1',
+            title: 'Aufbau',
+            description: 'Aufbau der Stände',
+            timeslot: { date: '2026-08-01', time: '08:00 - 12:00' },
+          },
+        ],
+      });
+
+      const [shift] = await getHelperShifts({}, 'de');
+
+      expect(shift?.organiser).toEqual([]);
+    });
+
+    /**
+     * A relationship comes back as a bare ID string when it did not populate - which is also
+     * what a pointer at a since-deleted user degrades to. Rendering it would put a nameless
+     * contact row with a chat button going nowhere on the card.
+     */
+    it('drop entries that did not populate', async () => {
+      mockFind.mockResolvedValue({
+        docs: [
+          {
+            id: 'shift-1',
+            title: 'Aufbau',
+            description: 'Aufbau der Stände',
+            timeslot: { date: '2026-08-01', time: '08:00 - 12:00' },
+            organiser: ['org-unpopulated', { id: 'org-1', fullName: 'Otto', email: 'o@e.te' }],
+          },
+        ],
+      });
+
+      const [shift] = await getHelperShifts({}, 'de');
+
+      expect(shift?.organiser).toEqual([{ id: 'org-1', fullName: 'Otto', email: 'o@e.te' }]);
+    });
+  });
 });

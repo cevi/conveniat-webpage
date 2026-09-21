@@ -1,6 +1,5 @@
-'use client';
-
 import { LinkComponent } from '@/components/ui/link-component';
+import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import {
   getImageAltInLocale,
   getRelativeImageUrl,
@@ -8,6 +7,8 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/images-meta-fields';
 import type { Image as PayloadImageType } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { ArrowRight, Clock } from 'lucide-react';
 import Image from 'next/image';
 import React from 'react';
 
@@ -24,6 +25,20 @@ export interface HeroSectionType {
   locale?: Locale;
 }
 
+const chipBase =
+  'group font-body inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold no-underline transition-colors';
+
+/**
+ * The opening block of a page: the page's H1, an optional eyebrow, a lead
+ * paragraph, up to two links and an optional image.
+ *
+ * The type scale and the link treatment are deliberately restrained and match
+ * the rest of a page's content, so a page whose opener carries an image and one
+ * whose opener is text-only still read as the same design. The H1 comes from
+ * `HeadlineH1` — the same component the page layout renders when a page has no
+ * opener block at all — which keeps all three cases on one scale by
+ * construction.
+ */
 export const HeroSectionBlock: React.FC<HeroSectionType> = ({
   badge,
   title,
@@ -41,114 +56,99 @@ export const HeroSectionBlock: React.FC<HeroSectionType> = ({
       ? (image as SimplifiedImageType & { url?: string })
       : undefined;
   const rawUrl = typeof image === 'string' ? image : imageObject?.url;
-  const imageUrl =
-    getRelativeImageUrl(rawUrl) || 'https://placehold.co/1200x675/47564c/ffffff?text=conveniat27';
+  // No placeholder image: an opener without one is a text-only opener, rather
+  // than one that pulls a stand-in graphic from an external host.
+  const imageUrl = getRelativeImageUrl(rawUrl);
+  const hasImage = imageUrl !== '';
   const imageAlt = getImageAltInLocale(locale, imageObject) || title;
 
+  const hasPrimary =
+    primaryCtaLabel != undefined &&
+    primaryCtaLabel !== '' &&
+    primaryCtaLink != undefined &&
+    primaryCtaLink !== '';
+  const hasSecondary =
+    secondaryCtaLabel != undefined &&
+    secondaryCtaLabel !== '' &&
+    secondaryCtaLink != undefined &&
+    secondaryCtaLink !== '';
+
   return (
-    <section className="mt-6 pt-4 sm:mt-10 lg:mt-16 [min-height:1000px]:mt-32 [min-height:700px]:mt-16 [min-height:850px]:mt-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-12">
-          {/* Left: Hero Text & CTAs */}
-          <div className="space-y-6 text-center lg:col-span-7 lg:text-left">
-            {badge && badge.trim() !== '' && (
-              <div className="border-conveniat-green/20 bg-conveniat-green/10 text-conveniat-green inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-bold">
-                <span className="bg-conveniat-green size-2 animate-pulse rounded-full" />
-                {badge}
-              </div>
-            )}
+    <div className="@container">
+      <div
+        className={cn(
+          'grid grid-cols-1 items-center gap-8 @3xl:gap-12',
+          hasImage && '@3xl:grid-cols-12',
+        )}
+      >
+        <div className={cn('min-w-0', hasImage && '@3xl:col-span-7')}>
+          <HeadlineH1 className="mt-0 mb-3">{title}</HeadlineH1>
 
-            <h1 className="text-conveniat-green font-heading text-3xl leading-tight font-black tracking-tight sm:text-4xl lg:text-5xl">
-              {title}
-            </h1>
+          {badge != undefined && badge.trim() !== '' && (
+            <p className="font-heading text-conveniat-green/70 mb-2 text-xs font-bold tracking-[0.18em] uppercase">
+              {badge}
+            </p>
+          )}
 
-            {description && description.trim() !== '' && (
-              <p className="font-body max-w-2xl text-base leading-relaxed text-gray-600 sm:text-lg lg:mx-0">
-                {description}
-              </p>
-            )}
+          {description != undefined && description.trim() !== '' && (
+            <p className="font-body text-conveniat-green max-w-[46ch] text-lg leading-[1.55] font-medium text-pretty @xl:text-xl @xl:leading-[1.5]">
+              {description}
+            </p>
+          )}
 
-            {/* Quick Action CTAs */}
-            {((primaryCtaLabel && primaryCtaLink) || (secondaryCtaLabel && secondaryCtaLink)) && (
-              <div className="flex flex-col items-center justify-center gap-3.5 pt-2 sm:flex-row lg:justify-start">
-                {primaryCtaLabel && primaryCtaLink && (
-                  <LinkComponent
-                    href={primaryCtaLink}
-                    className="bg-conveniat-green hover:bg-conveniat-green-hover inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:w-auto"
-                  >
-                    <span>{primaryCtaLabel}</span>
-                    <svg className="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </LinkComponent>
-                )}
-
-                {secondaryCtaLabel && secondaryCtaLink && (
-                  <LinkComponent
-                    href={secondaryCtaLink}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3.5 text-sm font-semibold text-gray-700 shadow-2xs transition-all duration-200 hover:border-gray-400 hover:bg-gray-50 sm:w-auto"
-                  >
-                    <svg
-                      className="text-conveniat-green size-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                      />
-                    </svg>
-                    <span>{secondaryCtaLabel}</span>
-                  </LinkComponent>
-                )}
-              </div>
-            )}
-
-            {/* Deadline Banner */}
-            {deadlineText && deadlineText.trim() !== '' && (
-              <div className="flex items-center justify-center gap-2 pt-2 text-xs font-semibold text-gray-500 lg:justify-start">
-                <svg
-                  className="text-cevi-red size-4 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          {(hasPrimary || hasSecondary) && (
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              {hasPrimary && (
+                <LinkComponent
+                  href={primaryCtaLink}
+                  hideExternalIcon
+                  className={cn(chipBase, 'bg-conveniat-green text-white hover:bg-green-700')}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span>{deadlineText}</span>
-              </div>
-            )}
-          </div>
+                  {primaryCtaLabel}
+                  <ArrowRight className="size-3.5" />
+                </LinkComponent>
+              )}
 
-          {/* Right: Hero Visual Card */}
-          <div className="lg:col-span-5">
-            <div className="group relative mx-auto max-w-md overflow-hidden rounded-2xl border-4 border-white bg-white p-2 shadow-xl ring-1 ring-gray-200/60 lg:max-w-none">
+              {hasSecondary && (
+                <LinkComponent
+                  href={secondaryCtaLink}
+                  hideExternalIcon
+                  className={cn(
+                    chipBase,
+                    'border-conveniat-green/20 bg-conveniat-green/5 text-conveniat-green hover:border-conveniat-green/40 hover:bg-conveniat-green/10 border',
+                  )}
+                >
+                  {secondaryCtaLabel}
+                  <ArrowRight className="size-3.5" />
+                </LinkComponent>
+              )}
+            </div>
+          )}
+
+          {deadlineText != undefined && deadlineText.trim() !== '' && (
+            <p className="font-body mt-4 flex items-center gap-2 text-xs font-semibold text-gray-500">
+              <Clock className="text-cevi-red size-4 shrink-0" />
+              {deadlineText}
+            </p>
+          )}
+        </div>
+
+        {hasImage && (
+          <div className="@3xl:col-span-5">
+            <div className="relative overflow-hidden rounded-2xl bg-white p-2 ring-1 ring-gray-200/70">
               <div className="relative aspect-video w-full overflow-hidden rounded-xl">
                 <Image
                   src={imageUrl}
                   alt={imageAlt}
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  sizes="(max-width: 1024px) 100vw, 40vw"
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 40vw"
                 />
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 };

@@ -1,8 +1,11 @@
-import { MINIO_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { createLogger } from '@/utils/server-logger';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import { NextResponse } from 'next/server';
 import { getPayload } from 'payload';
+
+const logger = createLogger('api:form-file');
 
 export async function GET(
   request: Request,
@@ -76,7 +79,7 @@ export async function GET(
     }
 
     const getCommand = new GetObjectCommand({
-      Bucket: MINIO_BUCKET_NAME,
+      Bucket: S3_BUCKET_NAME,
       Key: fileDocument.filename,
     });
 
@@ -105,7 +108,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Failed to download form file:', error);
+    logger.error('Failed to download a form file', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal Server Error' },
       { status: 500 },

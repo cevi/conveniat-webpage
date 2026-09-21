@@ -7,12 +7,119 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import type { StaticTranslationString } from '@/types/types';
+import { useLocale } from '@payloadcms/ui';
 import React from 'react';
+
+const regenerateTitle: StaticTranslationString = {
+  de: 'Rechnung neu generieren?',
+  en: 'Regenerate the bill?',
+  fr: 'Régénérer la facture ?',
+};
+
+const regenerateMessage: StaticTranslationString = {
+  de: 'Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die Rechnungsnummer werden unwiderruflich überschrieben.',
+  en: 'Do you really want to regenerate this bill? The existing PDF and invoice number are irreversibly overwritten.',
+  fr: 'Voulez-vous vraiment régénérer cette facture ? Le PDF et le numéro de facture existants seront écrasés définitivement.',
+};
+
+const regenerateConfirm: StaticTranslationString = {
+  de: 'Neu generieren',
+  en: 'Regenerate',
+  fr: 'Régénérer',
+};
+
+const regeneratingLabel: StaticTranslationString = {
+  de: 'Wird generiert...',
+  en: 'Regenerating...',
+  fr: 'Régénération...',
+};
+
+const sendTitle: StaticTranslationString = {
+  de: 'Rechnung versenden?',
+  en: 'Send the bill?',
+  fr: 'Envoyer la facture ?',
+};
+
+const sendMessage: StaticTranslationString = {
+  de: 'Die Rechnung wird als E-Mail an die für die Rechnung hinterlegte Adresse dieser Person versendet. Das lässt sich nicht rückgängig machen.',
+  en: 'The bill is emailed to the invoice address on file for this person. This cannot be undone.',
+  fr: "La facture sera envoyée par e-mail à l'adresse de facturation enregistrée. Cette action est irréversible.",
+};
+
+const sendConfirm: StaticTranslationString = {
+  de: 'Versenden',
+  en: 'Send',
+  fr: 'Envoyer',
+};
+
+const sendingLabel: StaticTranslationString = {
+  de: 'Wird versendet...',
+  en: 'Sending...',
+  fr: 'Envoi...',
+};
+
+const removeTitle: StaticTranslationString = {
+  de: 'Anmeldung stornieren?',
+  en: 'Cancel this registration?',
+  fr: 'Annuler cette inscription ?',
+};
+
+const removeMessage: StaticTranslationString = {
+  de: 'Die Anmeldung wird auf „Entfernt“ gesetzt und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
+  en: 'The registration is set to “Removed” and is no longer billed or synced. Any bill already raised is kept for the record. This can only be undone by reactivating the registration in the Cevi.DB.',
+  fr: "L'inscription passe à « Supprimé » et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée.",
+};
+
+const removeConfirm: StaticTranslationString = {
+  de: 'Stornieren',
+  en: 'Cancel registration',
+  fr: "Annuler l'inscription",
+};
+
+const removingLabel: StaticTranslationString = {
+  de: 'Wird storniert...',
+  en: 'Cancelling...',
+  fr: 'Annulation...',
+};
+
+const reminderTitle: StaticTranslationString = {
+  de: 'Erinnerung an Adressverwalter senden?',
+  en: 'Send a reminder to the address managers?',
+  fr: "Envoyer un rappel aux gestionnaires d'adresses ?",
+};
+
+const reminderMessage: StaticTranslationString = {
+  de: 'Die Adressverwalter/-innen dieses Hofs erhalten eine E-Mail mit dieser Anmeldung und den fehlenden Pflichtangaben. Sind für den Hof keine Empfänger hinterlegt, wird nichts versendet.',
+  en: 'The address managers of this Hof receive an email listing this registration and its missing mandatory fields. Nothing is sent if the Hof has no recipients configured.',
+  fr: "Les gestionnaires d'adresses de ce Hof reçoivent un e-mail avec cette inscription et les données obligatoires manquantes. Rien n'est envoyé si aucun destinataire n'est configuré.",
+};
+
+const reminderConfirm: StaticTranslationString = {
+  de: 'Erinnerung senden',
+  en: 'Send reminder',
+  fr: 'Envoyer le rappel',
+};
+
+const reminderLabel: StaticTranslationString = {
+  de: 'Erinnerung an Adressverwalter senden',
+  en: 'Send reminder to address managers',
+  fr: "Envoyer un rappel aux gestionnaires d'adresses",
+};
+
+const reminderBusyLabel: StaticTranslationString = {
+  de: 'Wird versendet...',
+  en: 'Sending...',
+  fr: 'Envoi...',
+};
 
 interface RowData {
   id: string;
   billPdfs?: (string | { id: string })[];
   invoiceNumber?: string;
+  status?: string;
 }
 
 /**
@@ -22,10 +129,17 @@ interface RowData {
 export const BillingActionsCell: React.FC<{
   rowData: RowData;
 }> = ({ rowData }) => {
-  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const { code } = useLocale();
+  const locale = resolveAdminLocale(code);
+  const [confirmAction, setConfirmAction] = React.useState<
+    'regenerate' | 'send' | 'remove' | 'reminder' | undefined
+  >();
   const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | undefined>();
 
   const hasPdf = Array.isArray(rowData.billPdfs) && rowData.billPdfs.length > 0;
+  // Only a registration the sync parked as incomplete has anything to remind about.
+  const isMissingPflichtangaben = rowData.status === 'pflichtangaben_missing';
 
   const handlePreview = (): void => {
     window.open(
@@ -43,37 +157,104 @@ export const BillingActionsCell: React.FC<{
     link.remove();
   };
 
-  const handleSendEmail = async (): Promise<void> => {
+  /**
+   * Posts one of the per-row billing actions and reloads only if it actually worked.
+   *
+   * Both of these used to `await fetch(...)` and then reload unconditionally, which made a
+   * 401 or a 500 look exactly like success — the row came back unchanged and the operator
+   * was left believing the mail had gone out. A rejected promise is not the failure mode
+   * that matters here; a non-2xx response is.
+   */
+  const runAction = async (path: string, failureMessage: string): Promise<void> => {
     setLoading(true);
+    setError(undefined);
     try {
-      await fetch('/api/confidential/billing/send-single', {
+      const response = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ participantId: rowData.id }),
       });
+      const result = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+        errors?: string[];
+      };
+
+      if (!response.ok || result.success !== true) {
+        setError(result.error ?? result.errors?.[0] ?? failureMessage);
+        return;
+      }
+      // The run reports per-participant problems in `errors` while still answering 200.
+      if (result.errors !== undefined && result.errors.length > 0) {
+        setError(result.errors[0] ?? failureMessage);
+        return;
+      }
+
+      setConfirmAction(undefined);
       globalThis.location.reload();
-    } catch (error) {
-      console.error('Failed to send email:', error);
+    } catch (error_) {
+      setError(error_ instanceof Error ? error_.message : failureMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSendEmail = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/send-single',
+      'Die Rechnung konnte nicht versendet werden.',
+    );
+  };
+
+  const copyByAction = {
+    send: { title: sendTitle, message: sendMessage, confirm: sendConfirm, busy: sendingLabel },
+    regenerate: {
+      title: regenerateTitle,
+      message: regenerateMessage,
+      confirm: regenerateConfirm,
+      busy: regeneratingLabel,
+    },
+    remove: {
+      title: removeTitle,
+      message: removeMessage,
+      confirm: removeConfirm,
+      busy: removingLabel,
+    },
+    reminder: {
+      title: reminderTitle,
+      message: reminderMessage,
+      confirm: reminderConfirm,
+      busy: reminderBusyLabel,
+    },
+  } as const;
+
+  const active = copyByAction[confirmAction ?? 'regenerate'];
+  const copy = {
+    title: active.title[locale],
+    message: active.message[locale],
+    confirmLabel: active.confirm[locale],
+    submittingText: active.busy[locale],
+  };
+
   const handleRegenerate = async (): Promise<void> => {
-    setLoading(true);
-    try {
-      await fetch('/api/confidential/billing/regenerate-single', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId: rowData.id }),
-      });
-      globalThis.location.reload();
-    } catch (error) {
-      console.error('Failed to regenerate bill:', error);
-    } finally {
-      setLoading(false);
-      setConfirmOpen(false);
-    }
+    await runAction(
+      '/api/confidential/billing/regenerate-single',
+      'Die Rechnung konnte nicht neu generiert werden.',
+    );
+  };
+
+  const handleReminder = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/send-pflichtangaben-reminder',
+      'Die Erinnerung konnte nicht versendet werden.',
+    );
+  };
+
+  const handleRemove = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/remove-participant',
+      'Die Anmeldung konnte nicht storniert werden.',
+    );
   };
 
   return (
@@ -114,61 +295,84 @@ export const BillingActionsCell: React.FC<{
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(): void => {
-              void handleSendEmail();
+              setConfirmAction('send');
             }}
             disabled={!hasPdf}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             Email senden
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => {
+              setConfirmAction('reminder');
+            }}
+            disabled={!isMissingPflichtangaben}
+            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {reminderLabel[locale]}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(): void => {
-              setConfirmOpen(true);
+              setConfirmAction('regenerate');
             }}
             className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
           >
             Neu generieren
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => {
+              setConfirmAction('remove');
+            }}
+            className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+          >
+            Stornieren
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Inline Confirmation Modal */}
-      {confirmOpen && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
-            <h3 className="mb-2 text-lg font-bold text-gray-900 dark:text-gray-100">
-              Rechnung neu generieren?
-            </h3>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-              Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die
-              Rechnungsnummer werden unwiderruflich überschrieben.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={(): void => {
-                  setConfirmOpen(false);
-                }}
-                disabled={loading}
-                className="cursor-pointer rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={(): void => {
-                  void handleRegenerate();
-                }}
-                disabled={loading}
-                className="cursor-pointer rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
-              >
-                {loading ? 'Wird generiert...' : 'Bestätigen'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/*
+        Rendered through the shared modal, which portals to `document.body`. An overlay
+        written inline here cannot win on z-index at any value: Payload's table sets
+        `isolation: isolate` on `.table` and `position: relative; z-index: 1` on every
+        `th`/`td`, so the overlay was confined to its own cell's stacking context and any
+        cell later in the document painted straight over it.
+      */}
+      <ConfirmationModal
+        isOpen={confirmAction !== undefined}
+        onClose={(): void => {
+          setConfirmAction(undefined);
+          setError(undefined);
+        }}
+        onConfirm={async (): Promise<void> => {
+          switch (confirmAction) {
+            case 'send': {
+              await handleSendEmail();
+              break;
+            }
+            case 'reminder': {
+              await handleReminder();
+              break;
+            }
+            case 'remove': {
+              await handleRemove();
+              break;
+            }
+            default: {
+              await handleRegenerate();
+            }
+          }
+        }}
+        title={copy.title}
+        // The shared modal renders the body with `whitespace-pre-line`, so a failure is
+        // appended as its own paragraph rather than needing a second slot.
+        message={error === undefined ? copy.message : `${copy.message}\n\n⚠ ${error}`}
+        confirmLabel={copy.confirmLabel}
+        submittingText={copy.submittingText}
+        isSubmitting={loading}
+        locale={locale}
+        confirmVariant="danger"
+      />
     </>
   );
 };

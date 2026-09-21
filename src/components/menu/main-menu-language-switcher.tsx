@@ -1,5 +1,6 @@
 'use client';
 
+import { languageOptions } from '@/config/language-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Disclosure, DisclosureButton, DisclosurePanel, useClose } from '@headlessui/react';
 import { ChevronDown, Languages } from 'lucide-react';
@@ -47,7 +48,7 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
     }
 
     // Use window.location.href for a hard refresh
-    globalThis.location.href = newPath;
+    globalThis.location.assign(newPath);
     close(); // close nav
   };
 
@@ -62,24 +63,15 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
           <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
         </DisclosureButton>
         <DisclosurePanel className="mt-2 mb-4 space-y-2">
-          <DisclosureButton
-            onClick={() => handleLanguageChange('de')}
-            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-          >
-            Deutsch
-          </DisclosureButton>
-          <DisclosureButton
-            onClick={() => handleLanguageChange('fr')}
-            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-          >
-            Français
-          </DisclosureButton>
-          <DisclosureButton
-            onClick={() => handleLanguageChange('en')}
-            className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-          >
-            English
-          </DisclosureButton>
+          {languageOptions.map(({ value, label }) => (
+            <DisclosureButton
+              key={value}
+              onClick={() => handleLanguageChange(value)}
+              className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
+            >
+              {label}
+            </DisclosureButton>
+          ))}
         </DisclosurePanel>
       </Disclosure>
     </div>

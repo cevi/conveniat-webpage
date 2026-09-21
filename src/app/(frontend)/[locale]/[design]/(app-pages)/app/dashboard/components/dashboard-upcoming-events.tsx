@@ -3,9 +3,9 @@
 import { DashboardUpcomingEventsSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-upcoming-events-skeleton';
 import { CallToAction } from '@/components/ui/buttons/call-to-action';
 import { Card } from '@/components/ui/card';
-import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
-import { resolveLocation } from '@/features/schedule/utils/location-utils';
+import type { DashboardEvent } from '@/features/schedule/utils/dashboard-events';
+import { selectTodaysDashboardEvents } from '@/features/schedule/utils/dashboard-events';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -39,25 +39,37 @@ const exploreProgramText: StaticTranslationString = {
   fr: 'Planifie ton aventure dès maintenant.',
 };
 
-const EventCard: React.FC<{
-  entry: CampScheduleEntryFrontendType;
-  locale: Locale;
-}> = ({ entry, locale }) => {
-  const location = resolveLocation(entry.location);
-  const { time } = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
+const helperShiftBadgeText: StaticTranslationString = {
+  en: 'Helper shift',
+  de: 'Schichteinsatz',
+  fr: 'Service',
+};
 
-  const categoryData = getCategoryDisplayData(entry.category);
+/** how many of today's entries the card shows before deferring to the full program */
+const MAX_DISPLAYED_EVENTS = 3;
+
+const EventCard: React.FC<{
+  event: DashboardEvent;
+  locale: Locale;
+}> = ({ event, locale }) => {
+  const { location } = event;
+  const { time } = formatScheduleDateTime(locale, event.date, event.time);
+
+  const categoryData = getCategoryDisplayData(event.category);
+  // a shift without a category would be indistinguishable from a program block otherwise
+  const badgeLabel =
+    categoryData.label === '' && event.isShift ? helperShiftBadgeText[locale] : categoryData.label;
 
   return (
     <Link
-      href={`/app/schedule?id=${entry.id}`}
+      href={event.href}
       className="group block cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:border-gray-300 hover:shadow-md active:scale-[0.99]"
     >
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {/* Category Tag */}
-            {categoryData.label && (
+            {badgeLabel !== '' && (
               <div className="mb-2">
                 <span
                   className={cn(
@@ -65,13 +77,13 @@ const EventCard: React.FC<{
                     categoryData.className,
                   )}
                 >
-                  {categoryData.label}
+                  {badgeLabel}
                 </span>
               </div>
             )}
 
             <h3 className="group-hover:text-conveniat-green mb-1 text-base leading-snug font-semibold text-gray-900 transition-colors">
-              {entry.title}
+              {event.title}
             </h3>
 
             {/* Info Row: Date, Time & Location */}
@@ -182,35 +194,48 @@ export const DashboardUpcomingEvents: React.FC<DashboardUpcomingEventsProperties
     },
   );
 
+  /**
+   * The helper shifts are a secondary source for this card: a user without a single shift is
+   * the normal case, so none of the three queries may take the section down or hold up the
+   * program blocks - they all degrade to "no shifts to show".
+   *
+   * All three are part of the offline pre-fetch, so they are served from the persisted cache
+   * on a cold, offline dashboard just like the schedule entries above.
+   */
+  const shiftQueryOptions = {
+    staleTime: 60 * 1000,
+    refetchOnMount: true,
+    throwOnError: false,
+  } as const;
+
+  const { data: shifts } = trpc.schedule.getHelperShifts.useQuery(undefined, shiftQueryOptions);
+  const { data: enrolledShiftIds } = trpc.shifts.getMyShiftEnrollments.useQuery(
+    undefined,
+    shiftQueryOptions,
+  );
+  const { data: organisedShiftIds } = trpc.shifts.getMyOrganisedShifts.useQuery(
+    undefined,
+    shiftQueryOptions,
+  );
+
   // no cached entries available yet (first ever visit) -> show the skeleton
   if (scheduleEvents === undefined) {
     return <DashboardUpcomingEventsSkeleton locale={locale} />;
   }
 
-  // We need "today" in the context of the user or the event? Usually user's local time.
-  const today = new Date();
+  // the user's local time, which is both the day they mean by "today" and the point the card
+  // measures "what is still ahead of me" against
+  const now = new Date();
 
-  const upcomingStarredEvents = scheduleEvents.filter((entry) => {
-    // Check if starred
-    if (!starredEntries.has(entry.id)) {
-      return false;
-    }
-
-    // Check if it is today
-    // entry.timeslot.date is typically an ISO string.
-    const entryDate = new Date(entry.timeslot.date);
-
-    // Compare year, month, day
-    return (
-      entryDate.getDate() === today.getDate() &&
-      entryDate.getMonth() === today.getMonth() &&
-      entryDate.getFullYear() === today.getFullYear()
-    );
+  const displayEvents = selectTodaysDashboardEvents({
+    scheduleEntries: scheduleEvents,
+    starredEntryIds: starredEntries,
+    shifts: shifts ?? [],
+    enrolledShiftIds: enrolledShiftIds ?? [],
+    organisedShiftIds: organisedShiftIds ?? [],
+    now,
+    limit: MAX_DISPLAYED_EVENTS,
   });
-
-  // TODO: Sort matched events by time? Server already sorts them.
-  // Take top 3
-  const displayEvents = upcomingStarredEvents.slice(0, 3);
   const isEmpty = displayEvents.length === 0;
 
   return (
@@ -223,7 +248,7 @@ export const DashboardUpcomingEvents: React.FC<DashboardUpcomingEventsProperties
         {isEmpty ? (
           <NoStarredItemsCard locale={locale} />
         ) : (
-          displayEvents.map((entry) => <EventCard key={entry.id} entry={entry} locale={locale} />)
+          displayEvents.map((event) => <EventCard key={event.id} event={event} locale={locale} />)
         )}
         <div className="flex justify-center">
           {isEmpty ? (

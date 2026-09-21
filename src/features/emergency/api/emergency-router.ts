@@ -4,6 +4,7 @@ import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shar
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import {
   ChatMembershipPermission,
@@ -18,6 +19,8 @@ import { z } from 'zod';
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 // eslint-disable-next-line import/no-restricted-paths
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
+
+const logger = createLogger('emergency:router');
 
 const GeolocationCoordinatesSchema = z.object({
   latitude: z.number(),
@@ -90,9 +93,12 @@ export const emergencyRouter = createTRPCRouter({
         },
       });
 
-      console.log(
-        `New emergency alert from user ${user.nickname} at location: ${JSON.stringify(location)}`,
-      );
+      // The reporter's nickname and their coordinates are personal data, so neither
+      // belongs in a log line that is shipped to Loki and kept.
+      logger.debug('New emergency alert received', {
+        'user.id': user.uuid,
+        'alert.location.present': location !== undefined,
+      });
 
       // Prepare messages with explicit timestamps to ensure order: System -> Location -> Question
       const baseTime = new Date();
@@ -130,7 +136,7 @@ export const emergencyRouter = createTRPCRouter({
       // Fetch currently active piket members for emergency
       let activePiketMembers = await getActivePiketMembers(ChatType.EMERGENCY, baseTime).catch(
         (error: unknown) => {
-          console.error('Failed to query active emergency piket members:', error);
+          logger.error('Failed to query the active emergency piket members', { error });
           return [];
         },
       );
@@ -312,8 +318,15 @@ export const emergencyRouter = createTRPCRouter({
 
         sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
           chatName: chat.name,
+          // The alert that starts the emergency chat is the one push that has to wake a
+          // piket member up, so it goes out on the siren channel rather than the regular
+          // chat channel.
+          notificationType: 'emergency',
         }).catch((error: unknown) => {
-          console.error('Failed to send push notification to piket members:', error);
+          logger.error('Failed to send the emergency push notification to the piket members', {
+            error,
+            'notification.recipient.count': piketRecipientIds.length,
+          });
         });
       }
 
@@ -334,7 +347,11 @@ export const emergencyRouter = createTRPCRouter({
               senderId: user.uuid,
             })
             .catch((error: unknown) => {
-              console.error('Failed to publish new_chat event for emergency chat:', error);
+              logger.error('Failed to publish the new_chat event for an emergency chat', {
+                error,
+                'chat.id': chatUuid,
+                'user.id': memberId,
+              });
             });
         }
       });
@@ -368,7 +385,11 @@ export const emergencyRouter = createTRPCRouter({
             },
           })
           .catch((error: unknown) => {
-            console.error('Failed to publish real-time event for emergency message:', error);
+            logger.error('Failed to publish the real-time event for an emergency message', {
+              error,
+              'chat.id': chatUuid,
+              'message.id': message.uuid,
+            });
           });
       }
 

@@ -2,6 +2,7 @@ import type {
   AlertSetting,
   AppFeatureFlag,
   AppLandingPage,
+  DonationBarometer,
   Footer,
   Header,
   SEO,
@@ -273,5 +274,41 @@ export const getAppLandingPageCached = cache(
       return { title: '', showActionCards: false };
     }
     return await readAppLandingPage(locale);
+  },
+);
+
+/**
+ * Fetches the Donation Barometer global, cached across requests.
+ *
+ * The global carries no drafts, so there is no preview bypass here: an edit in
+ * the admin UI expires the entry through the `afterChange` hook and the next
+ * render, preview or not, reads the new figure.
+ */
+const readDonationBarometer = async (locale: Locale): Promise<DonationBarometer> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'donation-barometer', 'global:donation-barometer');
+
+  return await withSpan('getDonationBarometerCached', async () => {
+    const payload = await getPayload({ config });
+    return await payload.findGlobal({
+      slug: 'donation-barometer',
+      locale,
+      select: {
+        goalAmount: true,
+        raisedAmount: true,
+        lastUpdated: true,
+        milestones: true,
+      },
+    });
+  });
+};
+
+export const getDonationBarometerCached = cache(
+  async (locale: Locale): Promise<DonationBarometer> => {
+    if (isBuildPhase()) {
+      return {} as DonationBarometer;
+    }
+    return await readDonationBarometer(locale);
   },
 );

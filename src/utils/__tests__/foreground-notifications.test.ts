@@ -59,6 +59,45 @@ describe('foreground notifications', () => {
     expect(mockToast).not.toHaveBeenCalled();
   });
 
+  /**
+   * Firebase never renders a foreground message, so the channel the server named on
+   * the push is not consulted. The shell reads `notificationType` from the bridge call
+   * instead — without it an emergency alert arriving while the app is open would play
+   * the regular chat sound.
+   */
+  it('asks the shell for the emergency channel when the message is an alert', () => {
+    const showNotification = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
+
+    notifyForegroundMessage({ ...baseNotification, notificationType: 'emergency' });
+
+    expect(showNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ notificationType: 'emergency' }),
+    );
+  });
+
+  it('leaves the type off a regular message, which the shell reads as the chat channel', () => {
+    const showNotification = jest.fn();
+    globalThis.AppWebViewNativePush = {
+      getStatus: jest.fn(),
+      requestPermission: jest.fn(),
+      deleteToken: jest.fn(),
+      openSettings: jest.fn(),
+      showNotification,
+    };
+
+    notifyForegroundMessage({ ...baseNotification, notificationType: 'default' });
+
+    const request = (showNotification.mock.calls as unknown[][])[0]?.[0] as Record<string, string>;
+    expect(request['notificationType']).toBeUndefined();
+  });
+
   it('falls back to the in-app banner on app builds without showNotification', () => {
     globalThis.AppWebViewNativePush = {
       getStatus: jest.fn(),

@@ -1,5 +1,6 @@
 import type {
   ConditionedBlock,
+  DateSlotSelectionBlock,
   ExtendedFormType,
   FormFieldBlock,
   JobSelectionBlock,
@@ -37,13 +38,24 @@ export const buildEmptyFormState = (config: ExtendedFormType): DefaultValues<Fie
   const values: Record<string, boolean | string | number | string[]> = {};
 
   const processFields = (
-    fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock)[],
+    fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock)[],
   ): void => {
     for (const field of fields) {
       if (field.blockType === 'conditionedBlock') {
         // Conditioned block fields are excluded from initial default values so hidden fields remain undefined
         continue;
-      } else if ('name' in field && typeof field.name === 'string' && field.name.length > 0) {
+      }
+
+      // A dateSlotSelection owns a second field for the Ressort wish.
+      if (
+        field.blockType === 'dateSlotSelection' &&
+        typeof field.ressortName === 'string' &&
+        field.ressortName.length > 0
+      ) {
+        values[field.ressortName] = '';
+      }
+
+      if ('name' in field && typeof field.name === 'string' && field.name.length > 0) {
         if (field.blockType === 'checkbox') {
           values[field.name] = 'defaultValue' in field && field.defaultValue === true;
         } else if (

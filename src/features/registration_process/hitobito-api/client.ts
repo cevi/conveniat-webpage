@@ -1,3 +1,4 @@
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 import {
   extractAuthenticityToken,
   extractCsrfMetaToken,
@@ -11,6 +12,23 @@ export class FatalError extends Error {
     super(message);
     this.name = 'FatalError';
   }
+}
+
+/** Where Hitobito sends a frontend request that carries no valid session. */
+const SIGN_IN_PATH = '/users/sign_in';
+
+/**
+ * Whether a response is Hitobito's login page instead of what was asked for.
+ *
+ * An expired cookie is a `302` to the sign-in page, which `fetch` follows by default, so
+ * the response is a `200` and `response.ok` says nothing. Every scraper downstream then
+ * parses a login form and reports whatever it did not find there.
+ */
+function isSignInRedirect(requestedUrl: string, finalUrl: string): boolean {
+  if (finalUrl === '') return false;
+  return (
+    new URL(finalUrl).pathname === SIGN_IN_PATH && new URL(requestedUrl).pathname !== SIGN_IN_PATH
+  );
 }
 
 export class HitobitoClient {
@@ -163,7 +181,14 @@ export class HitobitoClient {
 
       span.setAttribute('http.status_code', response.status);
 
+      // Drained before the check below, so a dead session does not leak the connection.
       const body = await response.text();
+
+      if (isSignInRedirect(url, response.url)) {
+        span.setAttribute('hitobito.session_expired', true);
+        throw new SessionExpiredError(url);
+      }
+
       return { response, body };
     });
   }

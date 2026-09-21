@@ -193,10 +193,18 @@ function createTextNode(text: string, format: number): TextNode {
 /**
  * Converts Lexical JSON to simple Markdown.
  * This is the reverse operation for pre-filling the editor.
+ *
+ * Accepts `null`/`undefined` because optional (and localized, with
+ * `fallback: false`) richText fields come back unset from Payload — an absent
+ * value is an empty document, not an error.
  */
-export function convertLexicalToMarkdown(editorState: SerializedEditorState): string {
-  const rootChildren = editorState.root.children;
+export function convertLexicalToMarkdown(
+  editorState: SerializedEditorState | null | undefined,
+): string {
+  // Guard `root` too: stored documents predating the current editor config
+  // are not guaranteed to match the generated type.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const rootChildren = editorState?.root?.children;
   if (!rootChildren || rootChildren.length === 0) return '';
 
   const lines: string[] = [];

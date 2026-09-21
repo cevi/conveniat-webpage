@@ -1,4 +1,5 @@
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { WifiOff } from 'lucide-react';
 import React from 'react';
@@ -35,10 +36,10 @@ export default async function OfflinePage({
           <div className="mb-8 flex justify-center">
             <WifiOff size={96} className="text-slate-500" strokeWidth={1.5} />
           </div>
-          <h1 className="mb-4 font-['Montserrat'] text-3xl font-bold text-slate-100">
+          <h1 className="mb-4 font-['Montserrat'] text-3xl font-bold text-slate-900">
             {offlineTitle[locale]}
           </h1>
-          <p className="leading-relaxed text-slate-400">{offlineMessage[locale]}</p>
+          <p className="leading-relaxed text-slate-600">{offlineMessage[locale]}</p>
         </div>
       </div>
     </>
@@ -47,7 +48,7 @@ export default async function OfflinePage({
 
 export const generateStaticParams = (): { locale: Locale; design: DesignCodes }[] => {
   const designs: DesignCodes[] = [DesignCodes.APP_DESIGN, DesignCodes.WEB_DESIGN];
-  const locales: Locale[] = ['de', 'fr', 'en'];
+  const locales = i18nConfig.locales as Locale[];
 
   return designs.flatMap((design) => locales.map((locale) => ({ locale, design })));
 };

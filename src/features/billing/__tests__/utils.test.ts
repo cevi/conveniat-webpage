@@ -1,4 +1,13 @@
-import { calculateModule10Recursive, generateQrReference } from '@/features/billing/utils';
+import {
+  calculateModule10Recursive,
+  describeQrReference,
+  formatQrReference,
+  formatRoleName,
+  generateQrReference,
+  isAufbauOrAbbaulager,
+  resolveRoleDisplayName,
+  resolveRoleOptions,
+} from '@/features/billing/utils';
 
 describe('Billing Utilities', () => {
   describe('calculateModule10Recursive', () => {
@@ -46,6 +55,230 @@ describe('Billing Utilities', () => {
       // counter: "00123"
       const baseExpected = '09012345612345123456700123';
       expect(reference.slice(0, 26)).toBe(baseExpected);
+    });
+  });
+});
+
+describe('formatRoleName', () => {
+  it('names the plain event roles in German', () => {
+    expect(formatRoleName('Event::Role::Participant')).toBe('Teilnehmer:in');
+    expect(formatRoleName('Event::Role::Leader')).toBe('Leiter:in');
+    expect(formatRoleName('Event::Role::AssistantLeader')).toBe('Hilfsleiter:in');
+  });
+
+  it('names the camp variants the same way', () => {
+    // Hitobito namespaces the same role twice; a participant should not see the difference.
+    expect(formatRoleName('Event::Camp::Role::Leader')).toBe('Leiter:in');
+    expect(formatRoleName('Event::Camp::Role::Participant')).toBe('Teilnehmer:in');
+  });
+
+  it('falls back to the bare suffix for a role nobody has mapped yet', () => {
+    expect(formatRoleName('Event::Role::Quartermaster')).toBe('Quartermaster');
+  });
+
+  it('renders a dash when the role never made it out of Cevi.DB', () => {
+    expect(formatRoleName('')).toBe('–');
+    // eslint-disable-next-line unicorn/no-useless-undefined -- a missing role is the case under test
+    expect(formatRoleName(undefined)).toBe('–');
+  });
+});
+
+describe('describeQrReference', () => {
+  it('assembles the fields in order and totals 27 digits', () => {
+    const { reference, segments } = describeQrReference('123456', '1234', '9012', 1);
+
+    expect(segments.map((segment) => segment.digits)).toEqual([
+      '090',
+      '123456',
+      '01234',
+      '0009012',
+      '00001',
+      '0',
+    ]);
+    expect(segments.map((segment) => segment.digits).join('')).toBe(reference);
+    expect(reference).toHaveLength(27);
+  });
+
+  it('describes exactly what generateQrReference builds', () => {
+    // The explanation in the admin panel is only worth showing if it cannot drift.
+    const { reference } = describeQrReference('987654', '55', '7', 42);
+    expect(reference).toBe(generateQrReference('987654', '55', '7', 42));
+  });
+
+  it('keeps the varying end of an id that is too long for its field', () => {
+    const { segments } = describeQrReference('1234567890', '1234', '9012', 1);
+    expect(segments[1]?.digits).toBe('567890');
+  });
+});
+
+describe('formatQrReference', () => {
+  it('groups from the right, leaving the first block short', () => {
+    expect(formatQrReference('090123456012340009012000010')).toBe(
+      '09 01234 56012 34000 90120 00010',
+    );
+  });
+
+  it('round-trips the reference it was given', () => {
+    const reference = generateQrReference('123456', '1234', '9012', 1);
+    expect(formatQrReference(reference).replaceAll(' ', '')).toBe(reference);
+  });
+});
+
+describe('resolveRoleDisplayName', () => {
+  it('prefers the name an operator configured', () => {
+    expect(
+      resolveRoleDisplayName({
+        roleTypePattern: 'Event::Role::Leader',
+        label: 'Leitendenbeitrag',
+        roleName: 'Leitungsperson',
+      }),
+    ).toBe('Leitungsperson');
+  });
+
+  it('falls back to the built-in German name, not to the fee label', () => {
+    // The fee label says what is charged; the role says what the person is.
+    expect(
+      resolveRoleDisplayName({
+        roleTypePattern: 'Event::Role::Leader',
+        label: 'Leitendenbeitrag',
+      }),
+    ).toBe('Leiter:in');
+  });
+
+  it('ignores a role name that is only whitespace', () => {
+    expect(
+      resolveRoleDisplayName({
+        roleTypePattern: 'Event::Role::Participant',
+        label: 'Teilnehmendenbeitrag',
+        roleName: '   ',
+      }),
+    ).toBe('Teilnehmer:in');
+  });
+});
+
+describe('resolveRoleOptions', () => {
+  const pricing = [
+    { roleTypePattern: 'Participant', label: 'Teilnehmendenbeitrag', roleName: 'Teilnehmer:in' },
+    { roleTypePattern: 'Leader', label: 'Leitendenbeitrag', roleName: 'Leiter:in' },
+    { roleTypePattern: 'Cook', label: 'Küchenbeitrag', roleName: 'Küche' },
+  ];
+
+  it('lists every configured role and ticks the matching one', () => {
+    expect(resolveRoleOptions('Event::Role::Leader', pricing)).toEqual([
+      { name: 'Teilnehmer:in', checked: false },
+      { name: 'Leiter:in', checked: true },
+      { name: 'Küche', checked: false },
+    ]);
+  });
+
+  it('ticks exactly one role', () => {
+    const ticked = resolveRoleOptions('Event::Role::Participant', pricing).filter(
+      (option) => option.checked,
+    );
+    expect(ticked).toHaveLength(1);
+  });
+
+  it('ticks nothing for a role that nothing prices', () => {
+    // Such a role is no longer billed at all, so borrowing the first entry's tick would
+    // tell the participant they are someone else.
+    const options = resolveRoleOptions('Event::Role::Quartermaster', pricing);
+    expect(options.every((option) => !option.checked)).toBe(true);
+    expect(options).toHaveLength(3);
+  });
+
+  it('returns nothing when no role pricing is configured', () => {
+    expect(resolveRoleOptions('Event::Role::Leader', [])).toEqual([]);
+  });
+
+  it('collapses pricing entries that share a role name', () => {
+    // Leader and AssistantLeader are separate billing rows but the same thing to the
+    // person reading the bill, so naming them alike must not print the box twice.
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'Leitendenbeitrag', roleName: 'Leiter:in' },
+      {
+        roleTypePattern: 'Event::Role::AssistantLeader',
+        label: 'Leitendenbeitrag',
+        roleName: 'Leiter:in',
+      },
+      {
+        roleTypePattern: 'Event::Role::Participant',
+        label: 'Teilnehmendenbeitrag',
+        roleName: 'Teilnehmer:in',
+      },
+    ];
+
+    expect(resolveRoleOptions('Event::Role::Leader', shared)).toEqual([
+      { name: 'Leiter:in', checked: true },
+      { name: 'Teilnehmer:in', checked: false },
+    ]);
+  });
+
+  it('ticks the collapsed box when the second entry behind it is the billed one', () => {
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'Leitendenbeitrag', roleName: 'Leiter:in' },
+      {
+        roleTypePattern: 'Event::Role::AssistantLeader',
+        label: 'Leitendenbeitrag',
+        roleName: 'Leiter:in',
+      },
+    ];
+
+    // Billed as AssistantLeader, which hides behind the same box as Leader.
+    expect(resolveRoleOptions('Event::Role::AssistantLeader', shared)).toEqual([
+      { name: 'Leiter:in', checked: true },
+    ]);
+  });
+
+  it('keeps the spelling the operator typed first when names differ only by case', () => {
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'x', roleName: 'Leiter:in' },
+      { roleTypePattern: 'Event::Role::AssistantLeader', label: 'x', roleName: 'leiter:in' },
+    ];
+
+    expect(resolveRoleOptions('Event::Role::Leader', shared)).toEqual([
+      { name: 'Leiter:in', checked: true },
+    ]);
+  });
+
+  it('still ticks exactly one box after collapsing', () => {
+    const shared = [
+      { roleTypePattern: 'Event::Role::Leader', label: 'x', roleName: 'Leiter:in' },
+      { roleTypePattern: 'Event::Role::AssistantLeader', label: 'x', roleName: 'Leiter:in' },
+      { roleTypePattern: 'Event::Role::Participant', label: 'x', roleName: 'Teilnehmer:in' },
+    ];
+
+    for (const role of [
+      'Event::Role::Leader',
+      'Event::Role::AssistantLeader',
+      'Event::Role::Participant',
+    ]) {
+      const ticked = resolveRoleOptions(role, shared).filter((option) => option.checked);
+      expect(ticked).toHaveLength(1);
+    }
+  });
+
+  describe('isAufbauOrAbbaulager', () => {
+    it('detects Aufbau- and Abbaulager event names', () => {
+      expect(isAufbauOrAbbaulager('Aufbaulager conveniat27 - Aarburg')).toBe(true);
+      expect(isAufbauOrAbbaulager('Abbaulager conveniat27 - Aarburg')).toBe(true);
+      expect(isAufbauOrAbbaulager('AUFBAULAGER CONVENIAT27')).toBe(true);
+      expect(isAufbauOrAbbaulager('abbaulager')).toBe(true);
+    });
+
+    it('returns false for Hauptlager and other regular events', () => {
+      expect(isAufbauOrAbbaulager('Hauptlager conveniat27 - Aarburg')).toBe(false);
+      expect(isAufbauOrAbbaulager('conveniat27 Sommerlager')).toBe(false);
+      expect(isAufbauOrAbbaulager('')).toBe(false);
+    });
+
+    it('safely handles non-string and missing values without throwing', () => {
+      // eslint-disable-next-line unicorn/no-useless-undefined
+      expect(isAufbauOrAbbaulager(undefined)).toBe(false);
+      // eslint-disable-next-line unicorn/no-null
+      expect(isAufbauOrAbbaulager(null)).toBe(false);
+      expect(isAufbauOrAbbaulager(12_345)).toBe(false);
+      expect(isAufbauOrAbbaulager({})).toBe(false);
+      expect(isAufbauOrAbbaulager(true)).toBe(false);
     });
   });
 });

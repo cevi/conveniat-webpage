@@ -43,7 +43,7 @@ export interface CampMapAnnotationPoint {
   openingHours: CampMapAnnotationPayloadDocumentType['openingHours'];
   images: Image[];
   geometry: { coordinates: [number, number] };
-  icon: 'MapPin' | 'Tent';
+  icon: CampMapAnnotationPayloadDocumentType['icon'];
   color: string;
   importance: 'high' | 'medium' | 'low';
   enableSupportChat?: boolean;
@@ -59,7 +59,7 @@ export interface CampMapAnnotationPolygon {
   openingHours: CampMapAnnotationPayloadDocumentType['openingHours'];
   images: Image[];
   geometry: { coordinates: [number, number][] };
-  icon: 'MapPin' | 'Tent';
+  icon: CampMapAnnotationPayloadDocumentType['icon'];
   color: string;
   isInteractive: boolean;
   importance: 'high' | 'medium' | 'low';

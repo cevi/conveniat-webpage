@@ -3,10 +3,12 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
 import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
+import { ChatImage } from '@/features/chat/components/chat-view/message/chat-image';
 import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
+import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
@@ -118,6 +120,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const touchStartY = useRef(0);
   const longPressTimerReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const renderedContent = formatMessageContent(message.messagePayload, activeLocale);
+  const attachedImages = extractMessageImages(message.messagePayload, activeLocale);
   const {
     replyInThread,
     quoteMessage,
@@ -509,7 +512,21 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 <ImageMessage message={message} />
               </div>
             ) : (
-              <div className="text-[0.95rem] leading-relaxed">{renderedContent}</div>
+              <>
+                {attachedImages.length > 0 && (
+                  <div className="mb-2 flex flex-col gap-2">
+                    {attachedImages.map((image) => (
+                      <ChatImage
+                        key={image.url}
+                        url={image.url}
+                        alt={image.alt}
+                        caption={image.caption}
+                      />
+                    ))}
+                  </div>
+                )}
+                <div className="text-[0.95rem] leading-relaxed">{renderedContent}</div>
+              </>
             )}
             {/* Timestamp and status */}
             <div

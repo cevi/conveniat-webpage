@@ -1,4 +1,9 @@
-import type { CampCategory } from '@/features/payload-cms/payload-types';
+import type {
+  CampCategory,
+  CampMapAnnotation,
+  HelperShift,
+} from '@/features/payload-cms/payload-types';
+import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS } from '@/lib/feature-flags';
@@ -12,6 +17,17 @@ import { cacheLife, cacheTag } from 'next/cache';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
+export interface HelperShiftOrganiser {
+  id: string;
+  fullName: string;
+  /**
+   * The Ceviname, optional because most users never set one - and because a shift restored
+   * from a persisted query cache written before this field existed simply has no value here.
+   */
+  nickname?: string | null | undefined;
+  email: string;
+}
+
 export interface HelperShiftFrontendType {
   id: string;
   title: string;
@@ -21,15 +37,32 @@ export interface HelperShiftFrontendType {
     date: string;
     time: string;
   };
-  location?: unknown;
   // relationships can be unpopulated (ID string) or dangling (null) at runtime
+  location?: string | CampMapAnnotation | null | undefined;
   category?: string | CampCategory | null | undefined;
+  organiser: HelperShiftOrganiser[];
   participants_max?: number | undefined;
   enable_enrolment?: boolean | undefined;
   hide_participant_list?: boolean | undefined;
   hide_when_full?: boolean | undefined;
   mainContent?: unknown;
 }
+
+/**
+ * Narrows the populated organiser relationship down to the few fields the helper portal
+ * renders. The rest of the user document - roles, the Hitobito payload, everything the admin
+ * panel keeps - must not ride along: this result is shared cache, handed to every helper.
+ *
+ * Entries that are still ID strings are dropped rather than rendered as a nameless contact
+ * row - that is also how a relationship pointing at a deleted user comes back, so a stale
+ * organiser drops out of the card instead of showing a chat button that goes nowhere.
+ */
+const toOrganisers = (organiser: HelperShift['organiser']): HelperShiftOrganiser[] =>
+  (organiser ?? []).flatMap((entry) =>
+    typeof entry === 'string'
+      ? []
+      : [{ id: entry.id, fullName: entry.fullName, nickname: entry.nickname, email: entry.email }],
+  );
 
 const getHelperShiftsCached = async (
   where: Where = {},
@@ -65,6 +98,7 @@ const getHelperShiftsCached = async (
       },
       location: document_.location,
       category: document_.category,
+      organiser: toOrganisers(document_.organiser),
       participants_max:
         typeof document_.participants_max === 'number' ? document_.participants_max : undefined,
       enable_enrolment:
@@ -164,7 +198,19 @@ export const getHelperShifts = async (
     userEnrolledShiftIds = new Set(userEnrollments.map((enrollment_) => enrollment_.courseId));
   }
 
+  /**
+   * A full shift disappears for the helpers who could still have taken it, and for nobody else.
+   *
+   * The people it stays visible to are the ones the shift is *about*: whoever is enrolled - who
+   * would otherwise lose the entry from their own program the moment the last slot went - and
+   * the organisers, who have to reach their shift to see the roster and the contact block even
+   * though they never take up a slot themselves. Organiser-ship is read off the relationship the
+   * shift already carries, so it needs no extra query.
+   */
   return shifts.filter(
-    (shift) => !fullShiftIds.has(shift.id) || userEnrolledShiftIds.has(shift.id),
+    (shift) =>
+      !fullShiftIds.has(shift.id) ||
+      userEnrolledShiftIds.has(shift.id) ||
+      isOrganiserOf(shift.organiser, userId),
   );
 };

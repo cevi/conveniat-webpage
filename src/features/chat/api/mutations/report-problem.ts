@@ -6,7 +6,10 @@ import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import type { StaticTranslationString } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
 import { z } from 'zod';
+
+const logger = createLogger('chat:mutations');
 
 const systemMessageContent: StaticTranslationString = {
   en: 'Please describe the problem and attach photos (detail + wide angle).',
@@ -33,7 +36,7 @@ export const reportProblem = trpcBaseProcedure
       ChatType.SUPPORT_GROUP,
       new Date(),
     ).catch((error: unknown) => {
-      console.error('Failed to query active support piket members:', error);
+      logger.error('Failed to query the active support piket members', { error });
       return [];
     });
 
@@ -88,7 +91,11 @@ export const reportProblem = trpcBaseProcedure
             senderId: user.uuid,
           })
           .catch((error: unknown) => {
-            console.error('Failed to publish new_chat event for problem report:', error);
+            logger.error('Failed to publish the new_chat event for a problem report', {
+              error,
+              'chat.id': chat.uuid,
+              'user.id': memberId,
+            });
           });
       }
     });
@@ -107,7 +114,10 @@ export const reportProblem = trpcBaseProcedure
       sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
         chatName: chat.name,
       }).catch((error: unknown) => {
-        console.error('Failed to send support push notification to piket members:', error);
+        logger.error('Failed to send the support push notification to the piket members', {
+          error,
+          'chat.id': chat.uuid,
+        });
       });
     }
 
@@ -157,7 +167,11 @@ export const reportProblem = trpcBaseProcedure
         },
       })
       .catch((error: unknown) => {
-        console.error('Failed to publish real-time event for problem report:', error);
+        logger.error('Failed to publish the real-time event for a problem report', {
+          error,
+          'chat.id': chat.uuid,
+          'message.id': systemMessage.uuid,
+        });
       });
 
     return chat;

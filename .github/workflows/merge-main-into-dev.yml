@@ -1,0 +1,111 @@
+# Keeps dev from falling behind main once a release is cut.
+#
+# A release is made by merging release-please's pull request into main. The version bump and the
+# changelog therefore exist on main and nowhere else, and dev is behind from that moment on. The
+# main ruleset requires the head branch to be up to date, so the next dev -> main release pull
+# request reports "This branch is out-of-date with the base branch" and sits there until someone
+# merges main back by hand, as in #1796.
+#
+# dev cannot simply be rebased or fast-forwarded onto main: its ruleset requires a pull request
+# for every update and names no bypass actors, so the merge back travels the same road as any
+# other change. This workflow drives that road on its own: it merges main into a branch off dev,
+# opens the pull request and turns auto-merge on, which keeps eslint and the test suite in play
+# rather than routing around them.
+#
+# The pull request is opened with a personal access token for the reason
+# .github/workflows/release-please.yml already gives: one opened with GITHUB_TOKEN starts no
+# workflows, and the two checks dev requires would never report.
+name: Merge Main Back Into Dev
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: read
+
+jobs:
+  merge-main-into-dev:
+    runs-on: ubuntu-latest
+
+    # Same guard as the production build: a hand-published release or a pre-release is not a
+    # release of main and has nothing to carry back.
+    if: ${{ !github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v') }}
+
+    steps:
+      - name: 🛎️ Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      - name: 🔀 Merge main into a branch off dev
+        id: merge
+        env:
+          BRANCH: chore/merge-main-into-dev
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags origin main dev
+
+          if git merge-base --is-ancestor origin/main origin/dev; then
+            echo "dev already contains every commit on main, nothing to merge back"
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Reuse the branch while an earlier merge back is still open, so two releases in quick
+          # succession share one pull request instead of overwriting each other's.
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            git fetch --no-tags origin "$BRANCH"
+            git checkout -B "$BRANCH" FETCH_HEAD
+          else
+            git checkout -B "$BRANCH" origin/dev
+          fi
+
+          if ! git merge --no-ff --no-edit -m "chore: merge main back into dev after $TAG" origin/main; then
+            git merge --abort || true
+            echo "::error::main does not merge into dev cleanly. Resolve it on a branch by hand."
+            exit 1
+          fi
+
+          git push origin "HEAD:refs/heads/$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          echo "merged=true" >> "$GITHUB_OUTPUT"
+
+      - name: 🔁 Open the pull request and let it merge itself
+        if: ${{ steps.merge.outputs.merged == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          BRANCH: ${{ steps.merge.outputs.branch }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          body=$(
+            cat <<'BODY'
+          Carries the release commits, the version bump and the changelog, from `main` back onto `dev`.
+
+          Until they land, `dev` is behind `main`, and because the `main` ruleset requires the head branch
+          to be up to date, the next `dev` -> `main` release pull request cannot merge.
+
+          Opened by `.github/workflows/merge-main-into-dev.yml`. Auto-merge is on, so this lands on its own
+          once eslint and the test suite are green. If a check fails or GitHub asks for an approval, merge
+          it by hand.
+          BODY
+          )
+
+          if [ -z "$(gh pr list --head "$BRANCH" --base dev --state open --json number --jq '.[].number')" ]; then
+            gh pr create \
+              --base dev \
+              --head "$BRANCH" \
+              --title "chore: merge main back into dev after $TAG" \
+              --body "$body"
+          fi
+
+          gh pr merge "$BRANCH" --auto --merge ||
+            echo "::warning::Could not turn on auto-merge. Merge the pull request by hand."

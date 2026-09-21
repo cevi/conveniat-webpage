@@ -14,6 +14,7 @@ import {
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
+import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -53,12 +54,6 @@ const localizedConflict: StaticTranslationString = {
   de: 'Zeitkonflikt',
   en: 'Time conflict',
   fr: 'Conflit horaire',
-};
-
-const localizedSpotsLeft: StaticTranslationString = {
-  de: 'Plätze frei',
-  en: 'spots left',
-  fr: 'places restantes',
 };
 
 const localizedOffline: StaticTranslationString = {
@@ -142,6 +137,9 @@ export const EnrollmentAction: React.FC<{
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
+      // The detail page reads the singular status for the roster and the admin actions; without
+      // this it kept showing the participant list from before this enrolment.
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
@@ -178,6 +176,9 @@ export const EnrollmentAction: React.FC<{
   const switchEnrollment = trpc.schedule.switchEnrollment.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
+      // The detail page reads the singular status for the roster and the admin actions; without
+      // this it kept showing the participant list from before this enrolment.
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
@@ -196,6 +197,9 @@ export const EnrollmentAction: React.FC<{
   const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
     onSuccess: () => {
       void utils.schedule.getCourseStatuses.invalidate();
+      // The detail page reads the singular status for the roster and the admin actions; without
+      // this it kept showing the participant list from before this enrolment.
+      void utils.schedule.getCourseStatus.invalidate({ courseId });
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
@@ -287,7 +291,7 @@ export const EnrollmentAction: React.FC<{
           </span>
           {spotsLeft !== undefined && spotsLeft > 0 && (
             <span className="text-green-600">
-              ({spotsLeft} {localizedSpotsLeft[locale]})
+              ({spotsLeft} {getSpotsLeftText(spotsLeft, locale)})
             </span>
           )}
           {isFull && <span className="font-medium text-red-500">({localizedFull[locale]})</span>}

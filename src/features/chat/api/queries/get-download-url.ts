@@ -1,6 +1,6 @@
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -24,7 +24,7 @@ export const getDownloadUrl = trpcBaseProcedure
 
     // 2. Generate pre-signed GET URL
     const command = new GetObjectCommand({
-      Bucket: MINIO_BUCKET_NAME,
+      Bucket: S3_BUCKET_NAME,
       Key: key,
     });
 

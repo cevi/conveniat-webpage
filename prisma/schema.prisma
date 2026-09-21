@@ -348,15 +348,17 @@ model PresenceLog {
 }
 
 enum PhotoContestStatus {
-  DRAFT
-  UPLOADING
-  VOTING
-  CLOSED
-}
+  /// not visible in the app at all
+  HIDDEN
 
-enum PhotoContestType {
-  PRESELECTED
-  LIVE_EVENT
+  /// photos are visible and voting is open
+  ACTIVE
+
+  /// photos are visible, but voting is closed and the results stay hidden
+  CLOSED_HIDDEN
+
+  /// photos and the final results are visible
+  CLOSED
 }
 
 model PhotoContest {
@@ -364,8 +366,7 @@ model PhotoContest {
   slug               String             @unique
   title              String
   description        String?
-  contestType        PhotoContestType   @default(PRESELECTED)
-  status             PhotoContestStatus @default(DRAFT)
+  status             PhotoContestStatus @default(HIDDEN)
 
   votingStart        DateTime?
   votingEnd          DateTime?

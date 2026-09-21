@@ -121,4 +121,33 @@ describe('getURLForLinkField', () => {
     const url = getURLForLinkField(linkField, 'de');
     expect(url).toBe('/ressort#projekt%20leitung%20%26%20team');
   });
+
+  describe('custom URLs', () => {
+    it('should return a custom URL the router can resolve', () => {
+      const linkField: LinkFieldDataType = {
+        type: 'custom',
+        url: 'https://donate.raisenow.io/cprdt',
+      };
+
+      expect(getURLForLinkField(linkField, 'de')).toBe('https://donate.raisenow.io/cprdt');
+    });
+
+    it.each([['https://'], ['http://'], ['//'], ['']])(
+      'should drop the half-typed custom URL %p rather than render a dead link',
+      (url) => {
+        // Payload does not validate draft fields, so an editor who saves
+        // mid-typing and hits preview gets this far.
+        // See https://github.com/cevi/conveniat-webpage/issues/1670
+        const linkField: LinkFieldDataType = { type: 'custom', url };
+
+        expect(getURLForLinkField(linkField, 'de')).toBeUndefined();
+      },
+    );
+
+    it('should drop a custom link with no URL at all', () => {
+      const linkField: LinkFieldDataType = { type: 'custom' };
+
+      expect(getURLForLinkField(linkField, 'de')).toBeUndefined();
+    });
+  });
 });

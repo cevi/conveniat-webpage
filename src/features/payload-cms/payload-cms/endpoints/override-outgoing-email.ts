@@ -17,6 +17,11 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
     return Response.json({ error: 'Unauthorized' }, { status: 403 });
   }
 
+  // `user` is widened to `User | PayloadMcpApiKey` by the MCP plugin's API key
+  // collection, which carries no email — fall back to the id so the audit trail
+  // is never empty.
+  const actingAdmin = 'email' in user ? user.email : String(user.id);
+
   if (typeof id !== 'string' || id.length === 0) {
     return Response.json({ error: 'Missing ID' }, { status: 400 });
   }
@@ -53,8 +58,8 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
       manualOverride: true,
       response: {
         response: isSuccess
-          ? `Status manually set to SUCCESS by Admin ${user.email} (${user.id})`
-          : `Status manually set to ERROR by Admin ${user.email} (${user.id})`,
+          ? `Status manually set to SUCCESS by Admin ${actingAdmin} (${user.id})`
+          : `Status manually set to ERROR by Admin ${actingAdmin} (${user.id})`,
       },
       bounceReport: false, // For SMTP status
     };
@@ -70,14 +75,14 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
         action: isSuccess ? 'delivered' : 'failed',
         status: isSuccess ? '2.0.0' : '5.0.0',
         diagnosticCode: isSuccess
-          ? `Manually marked as SUCCESS by Admin ${user.email}`
-          : `Manually marked as ERROR by Admin ${user.email}`,
+          ? `Manually marked as SUCCESS by Admin ${actingAdmin}`
+          : `Manually marked as ERROR by Admin ${actingAdmin}`,
         actionDate: new Date().toISOString(),
       },
       response: {
         response: isSuccess
-          ? `DSN manually set to SUCCESS by Admin ${user.email} (${user.id})`
-          : `DSN manually set to ERROR by Admin ${user.email} (${user.id})`,
+          ? `DSN manually set to SUCCESS by Admin ${actingAdmin} (${user.id})`
+          : `DSN manually set to ERROR by Admin ${actingAdmin} (${user.id})`,
       },
     };
 

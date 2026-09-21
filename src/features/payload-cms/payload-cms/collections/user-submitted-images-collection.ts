@@ -23,7 +23,7 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     },
   },
   admin: {
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.WebpageMedia.label,
     groupBy: true,
     disableCopyToLocale: true,
     defaultColumns: ['filename', 'updatedAt', 'user'],
@@ -31,6 +31,7 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
   },
   access: {
     admin: hasAdminOrWebAccess,
+    read: hasAdminOrWebAccess,
     create: hasAdminOrWebAccess,
     delete: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
@@ -93,7 +94,7 @@ export const UserSubmittedImagesCollection: CollectionConfig = {
     adminThumbnail: 'tiny',
     cacheTags: true,
 
-    // disable local storage for images, we use minio for storage
+    // disable local storage for images, uploads go to S3 storage
     disableLocalStorage: true,
 
     // we store the original image as well as three pre-optimized versions

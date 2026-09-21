@@ -1,4 +1,7 @@
-import { ProgramTeamAccessForGenericPage } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  ProgramTeamAccessForGenericPage,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { trackSlugHistory } from '@/features/payload-cms/payload-cms/hooks/track-slug-history';
 import { AllowsEditsByUserField } from '@/features/payload-cms/payload-cms/shared-fields/allows-edits-by-user-field';
@@ -34,7 +37,7 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
   },
   defaultSort: 'internalPageName',
   admin: {
-    group: AdminPanelDashboardGroups.PagesAndContent,
+    group: AdminPanelDashboardGroups.WebpageContent.label,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
@@ -56,7 +59,10 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
 
   access: {
     read: ProgramTeamAccessForGenericPage,
+    // The program team edits the pages it was named on, it does not add or remove pages.
+    create: hasAdminOrWebAccess,
     update: ProgramTeamAccessForGenericPage,
+    delete: hasAdminOrWebAccess,
     // do we need readVersions?
   },
 

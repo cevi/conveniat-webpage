@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { getUserGroups } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Access, PayloadRequest } from 'payload';
 
@@ -18,8 +19,7 @@ export const canAccessAdminPanel: ({
   req: PayloadRequest;
 }) => boolean | Promise<boolean> = ({ req: { user } }) => {
   if (!user) return false;
-  if (!Array.isArray(user.groups)) return false;
-  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+  return getUserGroups(user).some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };
 
 export const canUserAccessAdminPanel: ({
@@ -39,6 +39,5 @@ export const canUserAccessAdminPanel: ({
  */
 export const canAccessAPI: Access = ({ req: { user } }) => {
   if (!user) return false;
-  if (!Array.isArray(user.groups)) return false;
-  return user.groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+  return getUserGroups(user).some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
 };

@@ -1,12 +1,14 @@
 import type {
   ConditionedBlock,
+  DateSlotSelectionBlock,
   FormFieldBlock,
   FormSection,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FieldName, UseFormReturn } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 
 export interface UseFormStepsReturn {
   currentStepIndex: number;
@@ -19,16 +21,53 @@ export interface UseFormStepsReturn {
   prev: (event?: React.MouseEvent) => void;
 }
 
-const scrollToTop = (formId?: string): void => {
-  if (typeof globalThis !== 'undefined') {
-    const element = formId ? document.querySelector(`#${CSS.escape(formId)}`) : undefined;
-    if (element) {
-      // scroll to element - 100px to account for sticky nav
-      const topPos = element.getBoundingClientRect().top + window.pageYOffset - 100;
-      window.scrollTo({ top: topPos, behavior: 'smooth' });
-    }
-  }
+/** Height of the sticky navigation covering the top of the viewport. */
+const STICKY_NAV_OFFSET = 100;
+
+/**
+ * Brings the top of the form back into view after a step change, and only then.
+ *
+ * Moving the page while the helper can already see where the step starts is jarring, and a
+ * cut-off bottom does not call for it either: the next step reads from the top. Measuring
+ * before the new step renders is fine, since a step change only moves the bottom edge.
+ */
+const scrollFormTopIntoView = (formId?: string): void => {
+  if (typeof formId !== 'string' || formId === '') return;
+  const element = document.querySelector(`#${CSS.escape(formId)}`);
+  if (element === null) return;
+
+  const { top } = element.getBoundingClientRect();
+  const isTopVisible = top >= STICKY_NAV_OFFSET && top < window.innerHeight;
+  if (isTopVisible) return;
+
+  window.scrollTo({ top: top + window.scrollY - STICKY_NAV_OFFSET, behavior: 'smooth' });
 };
+
+type SectionField = FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock;
+
+/** Names of the fields a `dateSlotSelection` block registers — it owns up to two. */
+const getFieldNames = (
+  field: FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock,
+): string[] => {
+  const names: string[] = [];
+  if ('name' in field && typeof field.name === 'string' && field.name !== '') {
+    names.push(field.name);
+  }
+  if (
+    field.blockType === 'dateSlotSelection' &&
+    typeof field.ressortName === 'string' &&
+    field.ressortName !== ''
+  ) {
+    names.push(field.ressortName);
+  }
+  return names;
+};
+
+/** Every field name under a list of blocks, conditioned ones included. */
+const collectFieldNames = (fields: SectionField[]): string[] =>
+  fields.flatMap((field) =>
+    field.blockType === 'conditionedBlock' ? collectFieldNames(field.fields) : getFieldNames(field),
+  );
 
 export const useFormSteps = (
   sections: FormSection[],
@@ -36,6 +75,66 @@ export const useFormSteps = (
   formMethods: UseFormReturn<any>,
   formId?: string,
 ): UseFormStepsReturn => {
+  /*
+   * A section can be gated on an answer from an earlier step, so the list of steps is
+   * derived from the current form values rather than from the config alone. `useWatch`
+   * rather than `watch` keeps the subscription scoped to the trigger fields.
+   */
+  const conditionFieldNames = useMemo(
+    () =>
+      sections.map((section) => {
+        const field = section.displayCondition?.field;
+        return typeof field === 'string' && field !== '' ? field : '';
+      }),
+    [sections],
+  );
+
+  const conditionValues = useWatch({
+    control: formMethods.control,
+    name: conditionFieldNames,
+  }) as (string | number | boolean | undefined)[];
+
+  /*
+   * A value-based key rather than the filtered array itself: `useWatch` hands back a fresh
+   * array every render, so memoizing on it would give `steps` a new identity each time and
+   * re-run everything downstream — including the reset below.
+   */
+  const visibilityKey = sections
+    .map((section, index) => {
+      if (conditionFieldNames[index] === '') return '1';
+      const expected = section.displayCondition?.value ?? '';
+      return String(conditionValues[index] ?? '') === expected ? '1' : '0';
+    })
+    .join('');
+
+  const steps = useMemo(
+    () => sections.filter((_, index) => visibilityKey[index] === '1'),
+    [sections, visibilityKey],
+  );
+
+  /*
+   * Answers given on a branch the helper then left would otherwise stay in the form state
+   * and be submitted: hiding a section only unmounts it, react-hook-form keeps the values.
+   * `unregister` rather than `resetField`, because resetting restores the empty-string
+   * default and the field would still travel with the payload — a slot registration would
+   * carry phantom job answers into the submission and the export.
+   *
+   * A field another section is gated on is never dropped: unregistering it would flip that
+   * section's visibility, which would recompute this list, which would flip it back.
+   */
+  const hiddenFieldNames = useMemo(() => {
+    const gateFields = new Set(conditionFieldNames.filter((name) => name !== ''));
+    return sections
+      .filter((_, index) => visibilityKey[index] !== '1')
+      .flatMap((section) => collectFieldNames(section.fields))
+      .filter((name) => !gateFields.has(name));
+  }, [sections, visibilityKey, conditionFieldNames]);
+
+  const { unregister } = formMethods;
+  useEffect(() => {
+    if (hiddenFieldNames.length > 0) unregister(hiddenFieldNames);
+  }, [hiddenFieldNames, unregister]);
+
   /*
    * Initialize state from sessionStorage if available to avoid layout shift
    * and "setState during render" lint errors.
@@ -50,16 +149,26 @@ export const useFormSteps = (
     return 0;
   });
 
+  /*
+   * Switching the answer that gates a section shortens the list of steps, which can leave
+   * the index past its end — most visibly when the restored session index pointed at a
+   * step that is now skipped. Clamping on read rather than writing the state back keeps
+   * this out of an effect: every consumer, including `next` and `prev`, works off the
+   * clamped value, so the stored index never has to be corrected.
+   */
+  const clampedStepIndex =
+    steps.length === 0 ? 0 : Math.min(Math.max(currentStepIndex, 0), steps.length - 1);
+
   // Save step to sessionStorage whenever it changes
   useEffect(() => {
     if (typeof formId === 'string' && formId !== '') {
-      sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(currentStepIndex));
+      sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(clampedStepIndex));
     }
-  }, [formId, currentStepIndex]);
+  }, [formId, clampedStepIndex]);
 
-  const currentActualStep = sections[currentStepIndex];
-  const isFirstStep = currentStepIndex === 0;
-  const isLastStep = currentStepIndex === sections.length - 1;
+  const currentActualStep = steps[clampedStepIndex];
+  const isFirstStep = clampedStepIndex === 0;
+  const isLastStep = clampedStepIndex === steps.length - 1;
 
   // Helper to get fields currently visible (handling conditionals)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +181,9 @@ export const useFormSteps = (
 
     // Explicitly define recursive function to avoid "processFields is undefined" issues if declared as const fn
     function processFields(
-      fieldsToProcess: (FormFieldBlock | ConditionedBlock | JobSelectionBlock)[],
+      fieldsToProcess: (
+        FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock
+      )[],
     ): void {
       for (const field of fieldsToProcess) {
         if (field.blockType === 'conditionedBlock') {
@@ -84,8 +195,8 @@ export const useFormSteps = (
           if (condition) {
             processFields(field.fields);
           }
-        } else if ('name' in field && field.name !== '') {
-          fieldNames.push(field.name);
+        } else {
+          fieldNames.push(...getFieldNames(field));
         }
       }
     }
@@ -103,8 +214,8 @@ export const useFormSteps = (
     const isValid = await formMethods.trigger(fields, { shouldFocus: true });
 
     if (isValid && !isLastStep) {
-      setCurrentStepIndex((previous) => previous + 1);
-      scrollToTop(formId);
+      setCurrentStepIndex(clampedStepIndex + 1);
+      scrollFormTopIntoView(formId);
     }
     return isValid;
   };
@@ -112,16 +223,16 @@ export const useFormSteps = (
   const previous = (event?: React.MouseEvent): void => {
     event?.preventDefault();
     if (!isFirstStep) {
-      setCurrentStepIndex((previous_) => previous_ - 1);
+      setCurrentStepIndex(clampedStepIndex - 1);
     }
-    scrollToTop(formId);
+    scrollFormTopIntoView(formId);
   };
 
   return {
-    currentStepIndex,
+    currentStepIndex: clampedStepIndex,
     setCurrentStepIndex,
     currentActualStep,
-    steps: sections,
+    steps,
     isFirstStep,
     isLastStep,
     next,

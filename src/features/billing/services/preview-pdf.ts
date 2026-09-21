@@ -2,7 +2,13 @@ import type { ParticipantRepositoryPort } from '@/features/billing/ports/partici
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { StoragePort } from '@/features/billing/ports/storage.port';
 import { generateQrBillPdf } from '@/features/billing/services/bill-generator-service';
-import { generateQrReference } from '@/features/billing/utils';
+import type { VatSplitConfig } from '@/features/billing/services/vat-calculation';
+import {
+  calculateVat,
+  describeVatExemptionRule,
+  resolveVatExemptionLabel,
+} from '@/features/billing/services/vat-calculation';
+import { generateQrReference, resolveRoleOptions } from '@/features/billing/utils';
 
 export interface PreviewPdfResult {
   pdfBuffer: Buffer;
@@ -66,7 +72,13 @@ export async function previewPdfUseCase(
   // Resolve preview amount from role pricing (use "Participant" default)
   const rolePricing =
     (settings.rolePricing as
-      | Array<{ roleTypePattern: string; label: string; amount: number; vatCode?: string }>
+      | Array<{
+          roleTypePattern: string;
+          label: string;
+          amount: number;
+          vatCode?: string;
+          vatSplits?: VatSplitConfig[] | null;
+        }>
       | undefined) ?? [];
   const participantPricing =
     rolePricing.find((rp) => rp.roleTypePattern.toLowerCase().includes('participant')) ??
@@ -74,7 +86,15 @@ export async function previewPdfUseCase(
   const rawAmount = participantPricing?.amount;
   const amount = typeof rawAmount === 'number' && !Number.isNaN(rawAmount) ? rawAmount : 150;
   const roleLabel = participantPricing?.label ?? 'Teilnehmer:in';
-  const vatCode = participantPricing?.vatCode;
+
+  // The preview debtor is an adult, so the split is what an operator wants to see here;
+  // the youth exemption is exercised on a real participant's bill.
+  const vat = calculateVat({
+    netAmount: amount,
+    vatSplits: participantPricing?.vatSplits,
+    vatCode: participantPricing?.vatCode,
+    exemption: settings.vatExemption,
+  });
 
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
   const customReference =
@@ -135,8 +155,19 @@ export async function previewPdfUseCase(
       .replaceAll('{{participation-id}}', '9012')
       .replaceAll('{{people-id}}', '123456')}-0001`,
     invoiceLetterText,
+    invoiceLetterTextAfter: (settings.invoiceLetterTextAfter as string | undefined) ?? undefined,
     roleLabel,
-    vatCode,
+    registration: {
+      fullName: 'Maximilian Muster',
+      nickname: 'Maxi',
+      birthday: '2001-04-17',
+      eventName: 'Hauptlager conveniat27 – Hof Süd',
+      roleType: 'Event::Role::Participant',
+      roleOptions: resolveRoleOptions('Event::Role::Participant', rolePricing),
+    },
+    vatExemptionNote: describeVatExemptionRule(settings.vatExemption),
+    vatExemptionLabel: resolveVatExemptionLabel(settings.vatExemption),
+    vat,
     paymentDeadlineDays,
     firstName: 'Maximilian',
   });

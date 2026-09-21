@@ -1,6 +1,6 @@
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -30,7 +30,7 @@ export const getUploadUrl = trpcBaseProcedure
 
     // 3. Generate pre-signed PUT URL
     const command = new PutObjectCommand({
-      Bucket: MINIO_BUCKET_NAME,
+      Bucket: S3_BUCKET_NAME,
       Key: key,
       ContentType: contentType,
     });

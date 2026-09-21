@@ -1,10 +1,7 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import type { ChatMessage } from '@/features/chat/api/types';
-import { useChatId } from '@/features/chat/context/chat-id-context';
-import { trpc } from '@/trpc/client';
-import { Loader2 } from 'lucide-react';
+import { ChatImage } from '@/features/chat/components/chat-view/message/chat-image';
 import React from 'react';
 
 interface MessagePayload {
@@ -13,36 +10,9 @@ interface MessagePayload {
 }
 
 export const ImageMessage: React.FC<{ message: ChatMessage }> = ({ message }) => {
-  const chatId = useChatId();
   const messageData = message.messagePayload as unknown as MessagePayload | undefined;
-  const isS3Key =
-    typeof messageData?.url === 'string' && messageData.url.startsWith('chat-images/');
 
-  const { data: downloadData, isLoading } = trpc.chat.getDownloadUrl.useQuery(
-    { chatId, key: typeof messageData?.url === 'string' ? messageData.url : '' },
-    { enabled: isS3Key, staleTime: 1000 * 60 * 5 },
-  );
+  if (typeof messageData?.url !== 'string' || messageData.url === '') return <></>;
 
-  if (typeof messageData?.url !== 'string' || !messageData.url) return <></>;
-
-  const displayUrl = isS3Key ? downloadData?.url : messageData.url;
-
-  if (isS3Key && isLoading) {
-    return (
-      <div className="flex h-48 w-64 items-center justify-center rounded-lg bg-gray-100">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative overflow-hidden rounded-lg">
-      <img
-        src={displayUrl}
-        alt={messageData.altText ?? 'Image message'}
-        className="h-auto w-full object-cover"
-        loading="lazy"
-      />
-    </div>
-  );
+  return <ChatImage url={messageData.url} alt={messageData.altText} />;
 };

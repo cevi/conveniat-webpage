@@ -1,6 +1,7 @@
 import { SetHideCopyrightFooter } from '@/components/footer/hide-footer-context';
 import { ClientProviders } from '@/context/client-providers';
 import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import type { ReactNode } from 'react';
@@ -29,7 +30,7 @@ const AppLayout: React.FC<LayoutProperties> = ({ children }) => {
 
 export const generateStaticParams = (): { locale: Locale; design: DesignCodes }[] => {
   const designs: DesignCodes[] = [DesignCodes.APP_DESIGN];
-  const locales: Locale[] = ['de', 'fr', 'en'];
+  const locales = i18nConfig.locales as Locale[];
 
   return designs.flatMap((design) => locales.map((locale) => ({ locale, design })));
 };

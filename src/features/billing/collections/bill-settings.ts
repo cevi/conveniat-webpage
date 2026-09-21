@@ -1,4 +1,5 @@
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 import { z } from 'zod';
 
@@ -11,6 +12,24 @@ const IdValidationSchema = z.union([
   z.null(),
   z.undefined(),
 ]);
+
+/**
+ * A VAT split has to account for the whole net amount, or the invoice silently taxes only
+ * part of the camp fee. An empty list is fine — it means "use the single VAT code".
+ */
+const VatSplitsValidationSchema = z
+  .array(z.object({ share: z.number().nullable().optional() }).passthrough())
+  .nullable()
+  .optional()
+  .refine(
+    (splits) => {
+      if (!splits || splits.length === 0) return true;
+      const total = splits.reduce((sum, split) => sum + (split.share ?? 0), 0);
+      // Tolerate the third of a percent that thirds-style splits cannot express exactly.
+      return Math.abs(total - 100) < 0.011;
+    },
+    { message: 'Die Anteile der MWST-Aufteilung müssen zusammen 100% ergeben.' },
+  );
 
 /**
  * Payload Global for QR Bill configuration.
@@ -27,11 +46,7 @@ export const BillSettingsGlobal: GlobalConfig = {
   },
   admin: {
     hideAPIURL: true,
-    group: {
-      en: 'Billing',
-      de: 'Rechnungen',
-      fr: 'Facturation',
-    },
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
   },
   access: {
     read: canAccessBilling,
@@ -145,6 +160,156 @@ export const BillSettingsGlobal: GlobalConfig = {
                     return true;
                   },
                 },
+                {
+                  name: 'addressManagerEmails',
+                  type: 'text',
+                  label: {
+                    en: 'Address managers (from Cevi.DB)',
+                    de: 'Adressverwalter/-innen (aus Cevi.DB)',
+                    fr: "Gestionnaires d'adresses (Cevi.DB)",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.',
+                      de: 'Kommagetrennt. Wird vom Subgruppen-Abgleich geschrieben; an diese Adressen geht die Erinnerung zu den Pflichtangaben.',
+                      fr: 'Séparées par des virgules. Écrites par la synchronisation des sous-groupes ; ce sont les destinataires du rappel sur les données obligatoires.',
+                    },
+                  },
+                },
+                {
+                  name: 'reminderRecipientsOverride',
+                  type: 'text',
+                  label: {
+                    en: 'Override reminder recipients',
+                    de: 'Empfänger der Erinnerung überschreiben',
+                    fr: 'Remplacer les destinataires du rappel',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.',
+                      de: 'Kommagetrennt. Wenn ausgefüllt, gehen die Erinnerungen für diesen Hof an diese Adressen statt an die abgeglichenen Adressverwalter/-innen.',
+                      fr: "Séparées par des virgules. Si rempli, ces adresses sont utilisées à la place des gestionnaires d'adresses synchronisés pour ce Hof.",
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              name: 'pflichtangabenReminder',
+              type: 'group',
+              label: {
+                en: 'Reminder for missing mandatory fields',
+                de: 'Erinnerung bei fehlenden Pflichtangaben',
+                fr: 'Rappel pour données obligatoires manquantes',
+              },
+              admin: {
+                description: {
+                  en: 'Emails each Hof its registrations that cannot be billed yet.',
+                  de: 'Meldet jedem Hof per E-Mail die noch nicht verrechenbaren Anmeldungen.',
+                  fr: 'Envoie à chaque Hof ses inscriptions pas encore facturables.',
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: true,
+                  label: {
+                    en: 'Send the reminder',
+                    de: 'Erinnerung versenden',
+                    fr: 'Envoyer le rappel',
+                  },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'weekday',
+                      type: 'select',
+                      defaultValue: '1',
+                      label: { en: 'Weekday', de: 'Wochentag', fr: 'Jour' },
+                      options: [
+                        { value: '1', label: { en: 'Monday', de: 'Montag', fr: 'Lundi' } },
+                        { value: '2', label: { en: 'Tuesday', de: 'Dienstag', fr: 'Mardi' } },
+                        { value: '3', label: { en: 'Wednesday', de: 'Mittwoch', fr: 'Mercredi' } },
+                        { value: '4', label: { en: 'Thursday', de: 'Donnerstag', fr: 'Jeudi' } },
+                        { value: '5', label: { en: 'Friday', de: 'Freitag', fr: 'Vendredi' } },
+                        { value: '6', label: { en: 'Saturday', de: 'Samstag', fr: 'Samedi' } },
+                        { value: '0', label: { en: 'Sunday', de: 'Sonntag', fr: 'Dimanche' } },
+                      ],
+                    },
+                    {
+                      name: 'hour',
+                      type: 'number',
+                      defaultValue: 7,
+                      min: 0,
+                      max: 23,
+                      label: {
+                        en: 'Hour (0–23, Europe/Zurich)',
+                        de: 'Stunde (0–23, Europe/Zürich)',
+                        fr: 'Heure (0–23, Europe/Zurich)',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'minDaysMissing',
+                  type: 'number',
+                  defaultValue: 7,
+                  min: 0,
+                  label: {
+                    en: 'At least this many days after the first sync',
+                    de: 'Mindestens so viele Tage nach dem ersten Abgleich',
+                    fr: 'Au moins autant de jours après la première synchronisation',
+                  },
+                  admin: {
+                    description: {
+                      en: 'A fresh registration gets this grace period before it is reported.',
+                      de: 'So lange bleibt eine frische Anmeldung von der Erinnerung verschont.',
+                      fr: "Une inscription récente bénéficie de ce délai avant d'être signalée.",
+                    },
+                  },
+                },
+                {
+                  name: 'subject',
+                  type: 'text',
+                  defaultValue: 'conveniat27 – fehlende Pflichtangaben in {{eventName}}',
+                  label: { en: 'Subject', de: 'Betreff', fr: 'Sujet' },
+                  admin: {
+                    description: {
+                      en: 'Placeholders: {{eventName}}, {{count}}.',
+                      de: 'Platzhalter: {{eventName}}, {{count}}.',
+                      fr: 'Espaces réservés : {{eventName}}, {{count}}.',
+                    },
+                  },
+                },
+                {
+                  name: 'body',
+                  type: 'textarea',
+                  defaultValue:
+                    'Hallo\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:',
+                  label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
+                  admin: {
+                    description: {
+                      en: 'Intro above the list of registrations. Same placeholders as the subject.',
+                      de: 'Einleitung über der Liste der Anmeldungen. Gleiche Platzhalter wie beim Betreff.',
+                      fr: 'Introduction au-dessus de la liste. Mêmes espaces réservés que le sujet.',
+                    },
+                  },
+                },
+                {
+                  name: 'lastSentAt',
+                  type: 'date',
+                  label: { en: 'Last sent', de: 'Zuletzt versendet', fr: 'Dernier envoi' },
+                  admin: {
+                    readOnly: true,
+                    description: {
+                      en: 'Written by the scheduler. Also what stops a second send in the same week.',
+                      de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Versand in derselben Woche.',
+                      fr: 'Écrit par le planificateur; empêche un second envoi la même semaine.',
+                    },
+                  },
+                },
               ],
             },
           ],
@@ -194,7 +359,12 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'creditorStreet',
                   type: 'text',
                   required: true,
-                  defaultValue: 'Musterstrasse',
+                  // The real address, not a placeholder. These fields are readOnly, so a
+                  // deployment whose `bill-settings` global has never been saved — a fresh
+                  // database, a new environment — prints whatever stands here on every QR
+                  // bill with no way for an operator to correct it. It used to say
+                  // "Musterstrasse".
+                  defaultValue: 'Sihlstrasse',
                   label: {
                     en: 'Creditor Street',
                     de: 'Strasse des Zahlungsempfängers',
@@ -399,9 +569,25 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Text for the PDF letter page before the QR bill.',
-                  de: 'Text für die Brief-Seite im PDF vor dem QR-Einzahlungsschein.',
-                  fr: 'Texte pour la page de lettre du PDF avant le bulletin de versement QR.',
+                  en: 'Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.',
+                  de: 'Text auf Seite 1, oberhalb der Anmeldedaten. Webadressen wie con27.ch/agbs werden als anklickbare Links gedruckt.',
+                  fr: 'Texte en page 1, au-dessus des données d’inscription. Les adresses web telles que con27.ch/agbs sont imprimées comme des liens cliquables.',
+                },
+              },
+            },
+            {
+              name: 'invoiceLetterTextAfter',
+              type: 'textarea',
+              label: {
+                en: 'Letter Text after the Registration Details',
+                de: 'Text nach den Anmeldedaten',
+                fr: 'Texte après les données d’inscription',
+              },
+              admin: {
+                description: {
+                  en: 'Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}. Web addresses such as con27.ch/agbs are printed as clickable links.',
+                  de: 'Text auf Seite 1, unterhalb der Anmeldedaten und des Hinweises zu deren Korrektur. Leer lassen, um nichts zu drucken. Gleiche Platzhalter wie oben: {{firstName}}, {{amount}}, {{reference}}. Webadressen wie con27.ch/agbs werden als anklickbare Links gedruckt.',
+                  fr: 'Texte en page 1, sous les données d’inscription. Laissez vide pour ne rien imprimer. Les adresses web telles que con27.ch/agbs sont imprimées comme des liens cliquables.',
                 },
               },
             },
@@ -457,9 +643,33 @@ export const BillSettingsGlobal: GlobalConfig = {
                   type: 'text',
                   required: true,
                   label: {
-                    en: 'Display Label',
-                    de: 'Anzeigebezeichnung',
-                    fr: "Libellé d'affichage",
+                    en: 'Fee Label',
+                    de: 'Bezeichnung des Beitrags',
+                    fr: 'Libellé de la contribution',
+                  },
+                  admin: {
+                    description: {
+                      en: 'The position line on the invoice, e.g. "Teilnehmendenbeitrag". This is what is being charged, not what the person is.',
+                      de: 'Die Positionszeile auf der Rechnung, z.B. "Teilnehmendenbeitrag". Das ist, was verrechnet wird – nicht, was die Person ist.',
+                      fr: 'La ligne de position sur la facture, par ex. « Teilnehmendenbeitrag ».',
+                    },
+                  },
+                },
+                {
+                  name: 'roleName',
+                  type: 'text',
+                  required: false,
+                  label: {
+                    en: 'Role Name',
+                    de: 'Bezeichnung der Rolle',
+                    fr: 'Nom du rôle',
+                  },
+                  admin: {
+                    description: {
+                      en: 'What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.',
+                      de: 'Was die Person ist, z.B. "Teilnehmer:in". Wird auf der Anmeldebestätigung aufgeführt, damit Teilnehmende ihre Rolle prüfen können. Leer lassen, um die eingebaute deutsche Bezeichnung der Hitobito-Rolle zu verwenden.',
+                      fr: "Ce que la personne est, par ex. « Teilnehmer:in ». Affiché sur la confirmation d'inscription.",
+                    },
                   },
                 },
                 {
@@ -471,6 +681,13 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'MWST-Code / Satz (z.B. 8.1%)',
                     fr: 'Code / Taux TVA',
                   },
+                  admin: {
+                    description: {
+                      en: 'Used only when no VAT split is defined below.',
+                      de: 'Wird nur verwendet, wenn unten keine MWST-Aufteilung definiert ist.',
+                      fr: "Utilisé uniquement si aucune répartition de TVA n'est définie ci-dessous.",
+                    },
+                  },
                 },
                 {
                   name: 'amount',
@@ -480,6 +697,192 @@ export const BillSettingsGlobal: GlobalConfig = {
                     en: 'Amount (CHF)',
                     de: 'Betrag (CHF)',
                     fr: 'Montant (CHF)',
+                  },
+                },
+                {
+                  name: 'vatSplits',
+                  type: 'array',
+                  label: {
+                    en: 'VAT Split',
+                    de: 'MWST-Aufteilung',
+                    fr: 'Répartition de la TVA',
+                  },
+                  admin: {
+                    description: {
+                      en: 'Split the net amount across several VAT rates, e.g. 50% accommodation at 3.8% and 50% at 8.1%. The shares must add up to 100%. Leave empty to tax the whole amount at the VAT code above.',
+                      de: 'Teile den Netto-Betrag auf mehrere MWST-Sätze auf, z.B. 50% Beherbergung zu 3.8% und 50% zu 8.1%. Die Anteile müssen zusammen 100% ergeben. Leer lassen, um den ganzen Betrag mit dem MWST-Satz oben zu besteuern.',
+                      fr: "Répartissez le montant net entre plusieurs taux de TVA, par ex. 50% d'hébergement à 3.8% et 50% à 8.1%. Les parts doivent totaliser 100%. Laissez vide pour taxer le montant entier au taux ci-dessus.",
+                    },
+                  },
+                  validate: (value: unknown): string | true => {
+                    const result = VatSplitsValidationSchema.safeParse(value);
+                    if (!result.success) {
+                      return result.error.issues[0]?.message ?? 'Die MWST-Aufteilung ist ungültig.';
+                    }
+                    return true;
+                  },
+                  fields: [
+                    {
+                      name: 'label',
+                      type: 'text',
+                      required: false,
+                      label: {
+                        en: 'Label',
+                        de: 'Bezeichnung',
+                        fr: 'Libellé',
+                      },
+                      admin: {
+                        description: {
+                          en: 'Printed next to this VAT line on the invoice, e.g. "Beherbergung".',
+                          de: 'Wird auf der Rechnung neben dieser MWST-Zeile gedruckt, z.B. "Beherbergung".',
+                          fr: 'Imprimé à côté de cette ligne de TVA sur la facture.',
+                        },
+                      },
+                    },
+                    {
+                      name: 'share',
+                      type: 'number',
+                      required: true,
+                      label: {
+                        en: 'Share (%)',
+                        de: 'Anteil (%)',
+                        fr: 'Part (%)',
+                      },
+                    },
+                    {
+                      name: 'vatCode',
+                      type: 'text',
+                      required: true,
+                      label: {
+                        en: 'VAT Rate',
+                        de: 'MWST-Satz (z.B. 3.8%)',
+                        fr: 'Taux TVA',
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'vatExemption',
+              type: 'group',
+              label: {
+                en: 'Youth VAT Exemption',
+                de: 'MWST-Befreiung für Jugendliche',
+                fr: 'Exonération de TVA pour les jeunes',
+              },
+              admin: {
+                description: {
+                  en: 'Branchen-Info 24, Ziff. 18.4: a participant counts as under-age until the end of the calendar year in which they reach the age limit. Bills for them carry no VAT.',
+                  de: 'Branchen-Info 24, Ziff. 18.4: Teilnehmende gelten bis zum Ende des Kalenderjahres, in dem sie die Altersgrenze erreichen, als jugendlich. Ihre Rechnungen sind MWST-befreit.',
+                  fr: "Branchen-Info 24, ch. 18.4 : un participant est considéré comme mineur jusqu'à la fin de l'année civile durant laquelle il atteint la limite d'âge.",
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: true,
+                  label: {
+                    en: 'Apply the youth exemption',
+                    de: 'MWST-Befreiung für Jugendliche anwenden',
+                    fr: "Appliquer l'exonération pour les jeunes",
+                  },
+                  admin: {
+                    description: {
+                      en: 'When off, every bill is taxed regardless of the participant’s age.',
+                      de: 'Wenn deaktiviert, wird jede Rechnung unabhängig vom Alter besteuert.',
+                      fr: "Si désactivé, chaque facture est taxée indépendamment de l'âge.",
+                    },
+                  },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'maxAge',
+                      type: 'number',
+                      defaultValue: 18,
+                      label: {
+                        en: 'Age Limit',
+                        de: 'Altersgrenze',
+                        fr: "Limite d'âge",
+                      },
+                      admin: {
+                        description: {
+                          en: 'Someone reaching this age during the reference year is still exempt for that whole year.',
+                          de: 'Wer im Referenzjahr dieses Alter erreicht, gilt für das ganze Jahr noch als jugendlich.',
+                          fr: "Une personne atteignant cet âge pendant l'année de référence reste exonérée toute l'année.",
+                        },
+                      },
+                    },
+                    {
+                      name: 'referenceYearMode',
+                      type: 'select',
+                      defaultValue: 'invoiceYear',
+                      label: {
+                        en: 'Reference Year',
+                        de: 'Referenzjahr',
+                        fr: 'Année de référence',
+                      },
+                      options: [
+                        {
+                          value: 'invoiceYear',
+                          label: {
+                            en: 'Year the bill is raised',
+                            de: 'Jahr der Rechnungsstellung',
+                            fr: "Année d'émission de la facture",
+                          },
+                        },
+                        {
+                          value: 'fixedYear',
+                          label: {
+                            en: 'Fixed year (e.g. the camp year)',
+                            de: 'Festes Jahr (z.B. Lagerjahr)',
+                            fr: 'Année fixe (par ex. année du camp)',
+                          },
+                        },
+                      ],
+                      admin: {
+                        description: {
+                          en: 'The VAT debt arises when the bill is raised, so that is the default. Pick the fixed year to judge every participant against the camp year instead.',
+                          de: 'Die MWST-Schuld entsteht im Zeitpunkt der Rechnungsstellung – daher der Standard. Wähle das feste Jahr, um alle Teilnehmenden am Lagerjahr zu messen.',
+                          fr: "La dette de TVA naît lors de l'émission de la facture, d'où le défaut.",
+                        },
+                      },
+                    },
+                    {
+                      name: 'fixedReferenceYear',
+                      type: 'number',
+                      defaultValue: 2027,
+                      label: {
+                        en: 'Fixed Reference Year',
+                        de: 'Festes Referenzjahr',
+                        fr: 'Année de référence fixe',
+                      },
+                      admin: {
+                        condition: (_, siblingData): boolean =>
+                          (siblingData as { referenceYearMode?: string } | undefined)
+                            ?.referenceYearMode === 'fixedYear',
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'exemptLabel',
+                  type: 'text',
+                  defaultValue: 'von der Steuer ausgenommene Leistung an Jugendliche',
+                  label: {
+                    en: 'Exemption Reason on the Invoice',
+                    de: 'Befreiungsgrund auf der Rechnung',
+                    fr: "Motif d'exonération sur la facture",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Printed in brackets after “MWST 0.0%” on an exempt bill. Left empty, the default wording is used.',
+                      de: 'Wird auf einer befreiten Rechnung in Klammern hinter «MWST 0.0%» gedruckt. Leer gelassen, gilt der Standardtext.',
+                      fr: "Imprimé entre parenthèses après « MWST 0.0% » sur une facture exonérée. Laissé vide, le texte par défaut s'applique.",
+                    },
                   },
                 },
               ],
@@ -522,6 +925,199 @@ export const BillSettingsGlobal: GlobalConfig = {
             },
 
             {
+              name: 'scheduledReport',
+              type: 'group',
+              label: {
+                en: 'Weekly Report',
+                de: 'Wöchentlicher Bericht',
+                fr: 'Rapport hebdomadaire',
+              },
+              admin: {
+                description: {
+                  en: 'Emails the registration report and the bill overview on a fixed weekday.',
+                  de: 'Verschickt den Anmeldestand-Bericht und die Rechnungsübersicht an einem festen Wochentag.',
+                  fr: "Envoie le rapport d'inscriptions et la synthèse des factures un jour fixe.",
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  label: {
+                    en: 'Send the weekly report',
+                    de: 'Wochenbericht versenden',
+                    fr: 'Envoyer le rapport hebdomadaire',
+                  },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'weekday',
+                      type: 'select',
+                      defaultValue: '1',
+                      label: { en: 'Weekday', de: 'Wochentag', fr: 'Jour' },
+                      options: [
+                        { value: '1', label: { en: 'Monday', de: 'Montag', fr: 'Lundi' } },
+                        { value: '2', label: { en: 'Tuesday', de: 'Dienstag', fr: 'Mardi' } },
+                        { value: '3', label: { en: 'Wednesday', de: 'Mittwoch', fr: 'Mercredi' } },
+                        { value: '4', label: { en: 'Thursday', de: 'Donnerstag', fr: 'Jeudi' } },
+                        { value: '5', label: { en: 'Friday', de: 'Freitag', fr: 'Vendredi' } },
+                        { value: '6', label: { en: 'Saturday', de: 'Samstag', fr: 'Samedi' } },
+                        { value: '0', label: { en: 'Sunday', de: 'Sonntag', fr: 'Dimanche' } },
+                      ],
+                    },
+                    {
+                      name: 'hour',
+                      type: 'number',
+                      defaultValue: 7,
+                      min: 0,
+                      max: 23,
+                      label: {
+                        en: 'Hour (0–23, Europe/Zurich)',
+                        de: 'Stunde (0–23, Europe/Zürich)',
+                        fr: 'Heure (0–23, Europe/Zurich)',
+                      },
+                    },
+                  ],
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'attachPdf',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      label: {
+                        en: 'Attach the registration report (PDF)',
+                        de: 'Anmeldestand-Bericht anhängen (PDF)',
+                        fr: "Joindre le rapport d'inscriptions (PDF)",
+                      },
+                    },
+                    {
+                      name: 'attachExcel',
+                      type: 'checkbox',
+                      defaultValue: true,
+                      label: {
+                        en: 'Attach the bill overview (Excel)',
+                        de: 'Rechnungsübersicht anhängen (Excel)',
+                        fr: 'Joindre la synthèse des factures (Excel)',
+                      },
+                      admin: {
+                        description: {
+                          en: 'Sends the detailed bill overview (Excel) to the finance recipients.',
+                          de: 'Verschickt die detaillierte Rechnungsübersicht (Excel) an die Finanz-Empfänger.',
+                          fr: 'Envoie la synthèse des factures (Excel) aux destinataires finances.',
+                        },
+                      },
+                    },
+                  ],
+                },
+                {
+                  name: 'recipients',
+                  type: 'text',
+                  label: {
+                    en: 'Registration Report Recipients',
+                    de: 'Empfänger Anmeldestand-Bericht',
+                    fr: "Destinataires rapport d'inscriptions",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Comma-separated list of email addresses. Receives the general registration report (PDF). Does not receive confidential financial figures.',
+                      de: 'Kommagetrennte Liste von E-Mail-Adressen. Erhält den allgemeinen Anmeldestand-Bericht (PDF). Erhält keine vertraulichen Finanz-Zahlen.',
+                      fr: "Liste d'adresses e-mail séparées par des virgules. Reçoit le rapport d'inscriptions (PDF). Ne reçoit pas les données financières confidentielles.",
+                    },
+                  },
+                },
+                {
+                  name: 'subject',
+                  type: 'text',
+                  defaultValue: 'conveniat27 – Anmeldestand vom {{date}}',
+                  label: { en: 'Subject', de: 'Betreff', fr: 'Sujet' },
+                  admin: {
+                    description: {
+                      en: 'Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      de: 'Platzhalter: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      fr: 'Espaces réservés : {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                    },
+                  },
+                },
+                {
+                  name: 'body',
+                  type: 'textarea',
+                  defaultValue:
+                    'Guten Morgen\n\nAnbei der aktuelle Anmeldestand für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDetails und mögliche Probleme stehen im angehängten Bericht.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                  label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
+                  admin: {
+                    description: {
+                      en: 'Same placeholders as the subject.',
+                      de: 'Gleiche Platzhalter wie beim Betreff.',
+                      fr: 'Mêmes espaces réservés que le sujet.',
+                    },
+                  },
+                },
+                {
+                  name: 'financeSubject',
+                  type: 'text',
+                  defaultValue: 'conveniat27 – Rechnungsübersicht vom {{date}}',
+                  label: {
+                    en: 'Finance Email Subject',
+                    de: 'Finanz-E-Mail Betreff',
+                    fr: "Sujet de l'e-mail finances",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      de: 'Platzhalter: {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                      fr: 'Espaces réservés : {{date}}, {{total}}, {{new}}, {{blocked}}.',
+                    },
+                  },
+                },
+                {
+                  name: 'financeBody',
+                  type: 'textarea',
+                  defaultValue:
+                    'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen',
+                  label: {
+                    en: 'Finance Email Text',
+                    de: 'Finanz-E-Mail Text',
+                    fr: "Texte de l'e-mail finances",
+                  },
+                  admin: {
+                    description: {
+                      en: 'Same placeholders as the subject.',
+                      de: 'Gleiche Platzhalter wie beim Betreff.',
+                      fr: 'Mêmes espaces réservés que le sujet.',
+                    },
+                  },
+                },
+                {
+                  name: 'lastSentAt',
+                  type: 'date',
+                  label: { en: 'Last sent', de: 'Zuletzt versendet', fr: 'Dernier envoi' },
+                  admin: {
+                    readOnly: true,
+                    description: {
+                      en: 'Written by the scheduler. Also what stops a second send in the same week.',
+                      de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Versand in derselben Woche.',
+                      fr: 'Écrit par le planificateur; empêche un second envoi la même semaine.',
+                    },
+                  },
+                },
+                {
+                  name: 'weeklyReportDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton',
+                    },
+                  },
+                },
+              ],
+            },
+            {
               name: 'financeEmailRecipients',
               type: 'text',
               defaultValue: '',
@@ -532,9 +1128,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Comma-separated list of email addresses to receive the CSV export.',
-                  de: 'Kommagetrennte Liste von E-Mail-Adressen für den CSV-Export.',
-                  fr: "Liste d'adresses e-mail séparées par des virgules pour l'export CSV.",
+                  en: 'Comma-separated list of email addresses for the weekly bill overview (Excel).',
+                  de: 'Kommagetrennte Liste von E-Mail-Adressen für die wöchentliche Rechnungsübersicht (Excel).',
+                  fr: "Liste d'adresses e-mail séparées par des virgules pour la synthèse hebdomadaire des factures (Excel).",
                 },
               },
             },
@@ -588,6 +1184,16 @@ export const BillSettingsGlobal: GlobalConfig = {
             fr: 'Aperçu PDF',
           },
           fields: [
+            {
+              name: 'referenceNumberExplainer',
+              type: 'ui',
+              admin: {
+                components: {
+                  Field:
+                    '@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer',
+                },
+              },
+            },
             {
               name: 'pdfPreview',
               type: 'ui',

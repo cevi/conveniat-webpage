@@ -2,8 +2,11 @@ import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:mutations');
 
 const toggleReactionInputSchema = z.object({
   messageId: z.string().uuid('Invalid message ID format.'),
@@ -109,7 +112,11 @@ export const toggleReaction = trpcBaseProcedure
         },
       })
       .catch((error: unknown) => {
-        console.error('Failed to publish message_updated event:', error);
+        logger.error('Failed to publish the message_updated event', {
+          error,
+          'chat.id': message.chatId,
+          'message.id': message.uuid,
+        });
       });
 
     return { success: true };

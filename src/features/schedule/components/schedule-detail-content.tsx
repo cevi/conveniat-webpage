@@ -3,6 +3,7 @@ import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
 import {
@@ -15,6 +16,7 @@ import { useOnlineStatus } from '@/hooks/use-online-status';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import {
   AlertTriangle,
@@ -311,6 +313,11 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
         {/* Enrollment Section (when enabled & not editing) */}
         {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
 
+        {/* Participant List (organisers only, when enrolment is enabled & not editing) */}
+        {!isEditing && isAdmin && (
+          <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
+        )}
+
         {/* Contact Organisers Section */}
         {organisers.length > 0 && !isEditing && (
           <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
@@ -323,29 +330,33 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               </h3>
             </div>
             <div className="space-y-2.5">
-              {organisers.map((organiser) => (
-                <div
-                  key={organiser.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="bg-conveniat-green font-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
-                      {organiser.fullName.charAt(0).toUpperCase()}
+              {organisers.map((organiser) => {
+                const displayName = formatUserFullName(organiser.fullName, organiser.nickname);
+
+                return (
+                  <div
+                    key={organiser.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="bg-conveniat-green font-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
+                        {organiser.fullName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-body truncate text-sm font-semibold text-gray-900">
+                          {displayName}
+                        </div>
+                        <div className="font-body truncate text-xs text-gray-500">
+                          {organiser.email}
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-body truncate text-sm font-semibold text-gray-900">
-                        {organiser.fullName}
-                      </div>
-                      <div className="font-body truncate text-xs text-gray-500">
-                        {organiser.email}
-                      </div>
+                    <div className="shrink-0">
+                      <ChatLinkButton userId={organiser.id} />
                     </div>
                   </div>
-                  <div className="shrink-0">
-                    <ChatLinkButton userId={organiser.id} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

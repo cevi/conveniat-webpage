@@ -43,6 +43,19 @@ ENV NEXT_PUBLIC_POSTHOG_KEY=${NEXT_PUBLIC_POSTHOG_KEY}
 ARG POSTHOG_API_KEY
 ARG POSTHOG_PROJECT_ID
 
+# Locales this deployment serves, as a comma separated list (e.g. `de,fr`). Empty means all
+# locales, which is what conveniat27 ships; konekta builds pass `de,fr` to drop English.
+# This must be available at build time: it is inlined into the client bundle.
+ARG NEXT_PUBLIC_ENABLED_LOCALES
+ENV NEXT_PUBLIC_ENABLED_LOCALES=${NEXT_PUBLIC_ENABLED_LOCALES}
+
+# Base URL of the Cevi.DB web UI, used to link a bill-participant row back to its
+# participation. Like every NEXT_PUBLIC_ value it is inlined into the client bundle at
+# build time, so setting it only in the deployment environment has no effect: the admin
+# reads it from the bundle, where it would be `undefined`.
+ARG NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
+ENV NEXT_PUBLIC_HITOBITO_API_URL=${NEXT_PUBLIC_HITOBITO_API_URL}
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -53,6 +66,9 @@ RUN \
   cp /app/public/dev-icons/* /app/public/; \
   fi
 
+# Build identity for src/build.ts. The workflows pass these; a local build falls back to .git.
+ARG BUILD_GIT_HASH
+ARG BUILD_GIT_REF
 RUN sh create_build_info.sh
 
 # generate prisma client
@@ -109,10 +125,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/cache/fs-fallback ./.next/c
 # copy prisma client
 COPY --from=builder --chown=nextjs:nodejs /app/src/lib/prisma/ /app/src/lib/prisma/
 
+COPY --chown=nextjs:nodejs docker/entrypoint.sh ./entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
-CMD ["node", "server.js"]
+# The entrypoint copies this build's static assets into the mounted cumulative directory first.
+CMD ["./entrypoint.sh"]

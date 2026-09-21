@@ -1,8 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import {
-  hasAccessToThisHelper,
-  Roles,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { overrideOutgoingEmailStatusHandler } from '@/features/payload-cms/payload-cms/endpoints/override-outgoing-email';
 import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
@@ -25,7 +22,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'subject',
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
     groupBy: true,
     defaultColumns: [
       'subject',
@@ -40,7 +37,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   access: {
     // read only for admins, only access programmatically
-    read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
+    read: isFullAdmin,
     create: () => false,
     update: () => false,
     delete: () => false,
@@ -165,6 +162,23 @@ export const OutgoingEmails: CollectionConfig = {
       },
     },
     {
+      // A reminder to a Hof's Adressverwalter covers every registration that is missing
+      // something, so one mail links to many participants.
+      name: 'billParticipants',
+      type: 'relationship',
+      relationTo: 'bill-participants',
+      hasMany: true,
+      label: {
+        en: 'Affected registrations',
+        de: 'Betroffene Anmeldungen',
+        fr: 'Inscriptions concernées',
+      },
+      admin: {
+        readOnly: true,
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'type',
       label: {
         en: 'Type',
@@ -208,10 +222,14 @@ export const OutgoingEmails: CollectionConfig = {
             const safeData = (data ?? {}) as Record<string, unknown>;
             const formSubmission = safeData['formSubmission'];
             const billParticipant = safeData['billParticipant'];
+            const billParticipants = safeData['billParticipants'];
             if (formSubmission !== undefined && formSubmission !== null) {
               return 'formSubmission';
             }
             if (billParticipant !== undefined && billParticipant !== null) {
+              return 'billParticipant';
+            }
+            if (Array.isArray(billParticipants) && billParticipants.length > 0) {
               return 'billParticipant';
             }
             return 'other';
@@ -269,7 +287,10 @@ export const OutgoingEmails: CollectionConfig = {
                   : (formValue as string);
               }
             } catch (error) {
-              console.error('Error fetching form submission inside form afterRead hook:', error);
+              req.payload.logger.error(
+                { error, 'form.submission.id': formSubmissionId },
+                'Failed to read the form submission inside the form afterRead hook',
+              );
             }
             return undefined;
           }) as FieldHook,

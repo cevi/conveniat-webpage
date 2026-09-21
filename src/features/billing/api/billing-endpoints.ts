@@ -1,14 +1,19 @@
 import {
+  billingCancelHandler,
   billingExportCsvHandler,
+  billingExportXlsxHandler,
   billingGenerateHandler,
   billingPopulateSubeventsHandler,
   billingPreviewPdfHandler,
   billingRegenerateAllHandler,
   billingRegenerateSingleHandler,
+  billingRemoveParticipantHandler,
   billingSendHandler,
+  billingSendPflichtangabenReminderHandler,
   billingSendSingleHandler,
   billingSyncHandler,
   billingSyncStatusHandler,
+  billingWeeklyReportPdfHandler,
 } from '@/features/billing/api/bill-admin-api';
 import type { Endpoint } from 'payload';
 
@@ -39,6 +44,11 @@ export const billingEndpoints: Endpoint[] = [
     handler: billingRegenerateSingleHandler,
   },
   {
+    path: '/confidential/billing/remove-participant',
+    method: 'post',
+    handler: billingRemoveParticipantHandler,
+  },
+  {
     path: '/confidential/billing/send',
     method: 'post',
     handler: billingSendHandler,
@@ -49,14 +59,34 @@ export const billingEndpoints: Endpoint[] = [
     handler: billingSendSingleHandler,
   },
   {
+    path: '/confidential/billing/send-pflichtangaben-reminder',
+    method: 'post',
+    handler: billingSendPflichtangabenReminderHandler,
+  },
+  {
     path: '/confidential/billing/export-csv',
     method: 'get',
     handler: billingExportCsvHandler,
   },
   {
+    path: '/confidential/billing/export-xlsx',
+    method: 'get',
+    handler: billingExportXlsxHandler,
+  },
+  {
+    path: '/confidential/billing/weekly-report-pdf',
+    method: 'get',
+    handler: billingWeeklyReportPdfHandler,
+  },
+  {
     path: '/confidential/billing/preview-pdf',
     method: 'get',
     handler: billingPreviewPdfHandler,
+  },
+  {
+    path: '/confidential/billing/cancel',
+    method: 'post',
+    handler: billingCancelHandler,
   },
   {
     path: '/confidential/billing/populate-subevents',

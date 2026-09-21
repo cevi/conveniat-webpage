@@ -10,6 +10,7 @@ import type {
 import { getLanguagePrefix } from '@/features/payload-cms/utils/get-language-prefix';
 import type { Locale } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
+import { isRoutableURL } from '@/utils/is-routable-url';
 import type { FieldHook } from 'payload';
 
 export const hasPermissionsForLinkField = async (
@@ -58,7 +59,13 @@ export const getURLForLinkField = (
   const { type } = linkFieldData;
 
   if (type === 'custom') {
-    return linkFieldData.url ?? undefined;
+    const { url } = linkFieldData;
+    // A custom URL is editor input Payload never validated on a draft, so it can
+    // be a half-typed "https://". Reporting no destination leaves the block to
+    // render without its link, which beats a link a visitor clicks in vain.
+    // See https://github.com/cevi/conveniat-webpage/issues/1670
+    if (url === undefined || url === null || !isRoutableURL(url)) return undefined;
+    return url;
   }
 
   if (type === 'email') {

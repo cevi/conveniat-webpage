@@ -1,5 +1,6 @@
 allowBuilds:
   '@firebase/util': true
+  '@parcel/watcher': false
   '@posthog/cli': true
   '@prisma/engines': true
   '@swc/core': true

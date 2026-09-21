@@ -1,5 +1,6 @@
 'use client';
 
+import type { NotificationType } from '@/lib/notification-type';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import {
@@ -374,6 +375,36 @@ export function extractMessageIdentifier(payload: Record<string, unknown>): stri
   return undefined;
 }
 
+/**
+ * Reads the `notificationType` the server put into the FCM `data` payload.
+ *
+ * Only relevant while the app is in the foreground: Firebase hands the message to
+ * the shell instead of rendering it, so the channel the server named on the message
+ * is never used and the WebView has to pass the type back down through
+ * `showNotification`. iOS and Android nest the payload differently, hence the
+ * candidate list - it deliberately omits `aps`, which `sendFcmNotification` never
+ * writes this key into; move the key there and this stops finding it.
+ */
+export function extractNotificationType(payload: Record<string, unknown>): NotificationType {
+  const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
+
+  const candidates: (Record<string, unknown> | undefined)[] = [
+    payload['data'] as Record<string, unknown> | undefined,
+    notificationObject?.['data'] as Record<string, unknown> | undefined,
+    (payload['userInfo'] ?? notificationObject?.['userInfo']) as
+      Record<string, unknown> | undefined,
+    notificationObject,
+    payload,
+  ];
+
+  for (const object_ of candidates) {
+    if (!object_ || typeof object_ !== 'object') continue;
+    if (object_['notificationType'] === 'emergency') return 'emergency';
+  }
+
+  return 'default';
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -404,6 +435,16 @@ export function useNativePush(): {
   const [lastError, setLastError] = useState<string | undefined>();
   const rollbackTimeoutReference = useRef<NodeJS.Timeout | undefined>(undefined);
   const hasReceivedBridgeEventReference = useRef(false);
+  /**
+   * Token this device has already registered, and the one currently in flight. The
+   * bridge re-emits `native-push-token` several times per permission change - three
+   * times in the same millisecond is normal - and every emission used to fire its own
+   * `registerDevice`. Batched together they race server-side over the same row, most
+   * of them lose, and the user sees "registration failed" for a subscription that was
+   * in fact stored. One registration per token is all the backend ever needed.
+   */
+  const registeredTokenReference = useRef<string | undefined>(undefined);
+  const registrationInFlightReference = useRef<string | undefined>(undefined);
 
   const addLog = (message: string, data?: unknown): void => {
     const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -449,18 +490,38 @@ export function useNativePush(): {
       token: string,
       platform: 'ios' | 'android',
     ): Promise<void> => {
+      // A repeat emission for a token that is already registered, or one whose call is
+      // still open, carries no new information - it only adds a competitor for the same
+      // row. A failed attempt clears both, so a genuine retry still gets through.
+      if (registeredTokenReference.current === token) {
+        console.log('[NativePush:PWA] registerDevice: token already registered, skipping');
+        return;
+      }
+      if (registrationInFlightReference.current === token) {
+        console.log('[NativePush:PWA] registerDevice: registration already in flight, skipping');
+        return;
+      }
+      registrationInFlightReference.current = token;
+
       try {
         console.log('[NativePush:PWA] calling registerDevice: platform =', platform);
         addLog(`Calling registerDevice: platform=${platform}`);
         const { getOrCreateDeviceId } = await import('@/utils/device-id');
         const deviceId = getOrCreateDeviceId();
         await registerDevice({ token, platform, deviceId });
+        registeredTokenReference.current = token;
         console.log('[NativePush:PWA] registerDevice: success');
         addLog(`registerDevice: success`);
         setIsRegisteredOnBackend(true);
         setIsUnauthenticated(false);
         setLastError(undefined);
       } catch (error: unknown) {
+        // Only this token's failure says anything about this token. A registration for
+        // a token that has since been rotated away must not clear the record of the
+        // newer one, or a repeat emission of it would register a second time.
+        if (registeredTokenReference.current === token) {
+          registeredTokenReference.current = undefined;
+        }
         const errorMessage = error instanceof Error ? error.message : String(error);
         console.error('[NativePush:PWA] registerDevice: failed', error);
         addLog(`registerDevice failed: ${errorMessage}`, error);
@@ -487,6 +548,13 @@ export function useNativePush(): {
             console.error('Failed to load posthog-js', importError);
           }
         }
+      } finally {
+        // Clear the slot only if it is still ours. Two registrations for different
+        // tokens can overlap, and the first to settle would otherwise release the
+        // marker the second is still relying on.
+        if (registrationInFlightReference.current === token) {
+          registrationInFlightReference.current = undefined;
+        }
       }
     };
 
@@ -494,6 +562,12 @@ export function useNativePush(): {
       token: string,
       platform: 'ios' | 'android',
     ): Promise<void> => {
+      // The token is on its way out, so let a later registration of the same token
+      // through instead of treating it as already registered.
+      if (registeredTokenReference.current === token) {
+        registeredTokenReference.current = undefined;
+      }
+
       try {
         console.log('[NativePush:PWA] calling unregisterDevice: platform =', platform);
         addLog(`Calling unregisterDevice: platform=${platform}`);
@@ -507,7 +581,16 @@ export function useNativePush(): {
       }
     };
 
+    // The same handler is attached to both `globalThis` and `document` below, because
+    // the native side is not consistent about where it dispatches. An event that
+    // bubbles from `document` to the window therefore arrives twice - same Event
+    // object, so it can be recognised and dropped rather than handled again.
+    const handledEvents = new WeakSet<Event>();
+
     const handleNativeEvent = (event: Event): void => {
+      if (handledEvents.has(event)) return;
+      handledEvents.add(event);
+
       hasReceivedBridgeEventReference.current = true;
       const customEvent = event as CustomEvent<NativePushEventDetail | null | undefined>;
       const detail = customEvent.detail ?? {};
@@ -683,6 +766,7 @@ export function useNativePush(): {
             title: notificationTitle,
             body: notificationBody,
             targetPath,
+            notificationType: extractNotificationType(payload),
           });
           break;
         }

@@ -4,7 +4,8 @@ import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { useDocumentInfo, useField } from '@payloadcms/ui';
-import maplibregl from 'maplibre-gl';
+import type { Evented } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { FieldClientComponent } from 'payload';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -554,9 +555,12 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
         }
       };
 
-      map.on('draw.create', syncValue);
-      map.on('draw.delete', syncValue);
-      map.on('draw.update', syncValue);
+      // mapbox-gl-draw fires its own `draw.*` events on the map. MapLibre 6 types `Map.on` by
+      // its own event names only, so register them on the untyped Evented base.
+      const drawEvents = map as unknown as Evented;
+      drawEvents.on('draw.create', syncValue);
+      drawEvents.on('draw.delete', syncValue);
+      drawEvents.on('draw.update', syncValue);
 
       map.on('load', () => {
         setMapLoaded(true);
@@ -572,7 +576,7 @@ const MapPolygonField: FieldClientComponent = ({ path }) => {
         }
       };
 
-      map.on('draw.modechange', updateCursor);
+      drawEvents.on('draw.modechange', updateCursor);
       // Initial cursor check
       updateCursor();
 

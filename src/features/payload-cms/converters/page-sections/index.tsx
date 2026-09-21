@@ -12,14 +12,18 @@ import {
   RenderCardGrid,
   RenderContactPerson,
   RenderCountdown,
+  RenderDonationBarometer,
+  RenderDonationCta,
   RenderFeaturedSection,
   RenderFileDownload,
   RenderFormBlock,
   RenderHeroSection,
   RenderInstagramEmbed,
+  RenderMediaText,
   RenderNewsCard,
   RenderPhotoCarousel,
   RenderPhotoContestBlock,
+  RenderProcessSteps,
   RenderRichTextSection,
   RenderSectionSeparatorBlock,
   RenderSinglePicture,
@@ -73,6 +77,8 @@ export const PageSectionsConverter: React.FC<
     countdown: RenderCountdown,
     whiteSpace: RenderWhiteSpace,
     callToAction: RenderCallToAction,
+    donationCta: RenderDonationCta,
+    donationBarometer: RenderDonationBarometer,
     newsCard: RenderNewsCard,
     campScheduleEntryBlock: RenderCampScheduleEntry,
     twoColumnBlock: RenderTwoColumnBlock,
@@ -82,11 +88,15 @@ export const PageSectionsConverter: React.FC<
     featuredSection: RenderFeaturedSection,
     tabsBlock: RenderTabsBlock,
     heroSection: RenderHeroSection,
+    mediaText: RenderMediaText,
+    processSteps: RenderProcessSteps,
     sectionSeparator: RenderSectionSeparatorBlock,
   };
 
   return (
-    <div>
+    // A heading that lives in its own block would otherwise sit the same
+    // distance from the section above it as from the content it introduces.
+    <div className="[&>section[data-heading-only]+section]:mt-3">
       {blocks.map((block) => {
         const BlockComponent = componentMap[block.blockType];
         if (BlockComponent === undefined)

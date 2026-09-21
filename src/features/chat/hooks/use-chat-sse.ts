@@ -216,9 +216,14 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         // is not currently looking at. Inside the native app Firebase does not
         // render anything while the app is open, so this is the only signal the
         // user gets; de-duplicated against the FCM bridge event by message id.
+        const cachedChat = trpcUtils.chat.chats
+          .getData({})
+          ?.find((chat) => chat.id === data.chatId);
+
         notifyRealtimeChatMessage({
           chatId: data.chatId,
-          chatName: trpcUtils.chat.chats.getData({})?.find((chat) => chat.id === data.chatId)?.name,
+          chatName: cachedChat?.name,
+          chatType: cachedChat?.chatType,
           message,
           currentUserId: currentUser,
         });

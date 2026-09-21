@@ -1,8 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import {
-  hasAccessToThisHelper,
-  Roles,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
@@ -22,9 +19,7 @@ export const PresenceLogCollection: CollectionConfig = {
   },
   access: {
     // Only Admin and WebCoreTeam can view the logs
-    read: hasAccessToThisHelper({
-      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-    }),
+    read: hasAdminOrWebAccess,
     create: () => false,
     update: () => false,
     delete: () => false,
@@ -32,7 +27,7 @@ export const PresenceLogCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING,
-    group: AdminPanelDashboardGroups.InternalCollections,
+    group: AdminPanelDashboardGroups.BackofficePeople.label,
     defaultColumns: ['user', 'isPresent', 'timestamp'],
   },
   fields: [

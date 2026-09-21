@@ -27,14 +27,17 @@ import {
   MessageEventType,
   MessageType,
 } from '@/lib/prisma/client';
-import { MINIO_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { createLogger } from '@/utils/server-logger';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('admin:router');
 
 const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
   const hasAccess = hasAccessToThisUser({
@@ -494,7 +497,13 @@ export const adminRouter = createTRPCRouter({
               lastReadMessageId: lastMessage.uuid,
             },
           })
-          .catch(() => {});
+          .catch((error: unknown) => {
+            logger.warn('Failed to advance the admin last-read marker', {
+              error,
+              'chat.id': input.chatId,
+              'user.id': user.uuid,
+            });
+          });
       }
 
       // Publish real-time event to update standard users' checkmarks instantly
@@ -521,7 +530,7 @@ export const adminRouter = createTRPCRouter({
 
       const chat = await prisma.chat.findUnique({
         where: { uuid: input.chatId },
-        select: { chatMemberships: true, name: true },
+        select: { chatMemberships: true, name: true, type: true },
       });
 
       if (!chat) {
@@ -561,8 +570,17 @@ export const adminRouter = createTRPCRouter({
       sendNotification(input.content, recipientUserIds, input.chatId, message.uuid, {
         chatName: chat.name,
         senderName: user.name,
+        // This is the reply path of the CMS Alert Management view, so it posts into
+        // emergency chats as well and has to reach the same verdict as the in-app
+        // send in `create-message`: same message, same channel, whichever way it
+        // was typed.
+        ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
       }).catch((error: unknown) => {
-        console.error('Failed to send admin push notification:', error);
+        logger.error('Failed to send the admin push notification', {
+          error,
+          'chat.id': input.chatId,
+          'message.id': message.uuid,
+        });
       });
 
       if (recipientUserIds.length > 0) {
@@ -596,7 +614,11 @@ export const adminRouter = createTRPCRouter({
           },
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish real-time admin event:', error);
+          logger.error('Failed to publish the real-time admin message event', {
+            error,
+            'chat.id': input.chatId,
+            'message.id': message.uuid,
+          });
         });
 
       return message;
@@ -620,7 +642,7 @@ export const adminRouter = createTRPCRouter({
 
       // Generate pre-signed PUT URL
       const command = new PutObjectCommand({
-        Bucket: MINIO_BUCKET_NAME,
+        Bucket: S3_BUCKET_NAME,
         Key: key,
         ContentType: contentType,
       });
@@ -726,7 +748,11 @@ export const adminRouter = createTRPCRouter({
           },
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish real-time system event on close:', error);
+          logger.error('Failed to publish the system message event on close', {
+            error,
+            'chat.id': input.chatId,
+            'message.id': systemMessage.uuid,
+          });
         });
 
       // Publish chat_updated event
@@ -741,7 +767,10 @@ export const adminRouter = createTRPCRouter({
           },
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish chat_updated event on close:', error);
+          logger.error('Failed to publish the chat_updated event on close', {
+            error,
+            'chat.id': input.chatId,
+          });
         });
 
       return updatedChat;
@@ -841,7 +870,11 @@ export const adminRouter = createTRPCRouter({
           },
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish real-time system event on reopen:', error);
+          logger.error('Failed to publish the system message event on reopen', {
+            error,
+            'chat.id': input.chatId,
+            'message.id': systemMessage.uuid,
+          });
         });
 
       // Publish chat_updated event
@@ -856,7 +889,10 @@ export const adminRouter = createTRPCRouter({
           },
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish chat_updated event on reopen:', error);
+          logger.error('Failed to publish the chat_updated event on reopen', {
+            error,
+            'chat.id': input.chatId,
+          });
         });
 
       return updatedChat;
@@ -1055,7 +1091,11 @@ export const adminRouter = createTRPCRouter({
           },
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish real-time member added event:', error);
+          logger.error('Failed to publish the member-added event', {
+            error,
+            'chat.id': chatId,
+            'message.id': systemMessage.uuid,
+          });
         });
 
       // Notify the added user on their personal channel: their SSE connection is
@@ -1068,7 +1108,11 @@ export const adminRouter = createTRPCRouter({
           senderId: SYSTEM_SENDER_ID,
         })
         .catch((error: unknown) => {
-          console.error('Failed to publish new_chat event to added member:', error);
+          logger.error('Failed to publish the new_chat event to the added member', {
+            error,
+            'chat.id': chatId,
+            'user.id': userId,
+          });
         });
 
       return { success: true };

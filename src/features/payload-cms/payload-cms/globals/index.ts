@@ -4,6 +4,7 @@ import { AlertSettingsGlobal } from '@/features/payload-cms/payload-cms/globals/
 import { AllChatsManagement } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
 import { AppFeatureFlags } from '@/features/payload-cms/payload-cms/globals/app-feature-flags';
 import { AppLandingPageGlobal } from '@/features/payload-cms/payload-cms/globals/app-landing-page-global';
+import { DonationBarometerGlobal } from '@/features/payload-cms/payload-cms/globals/donation-barometer-global';
 import { FooterGlobal } from '@/features/payload-cms/payload-cms/globals/footer-global';
 import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-global';
 import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global';
@@ -13,18 +14,28 @@ import { CampsitePresenceGlobal } from '@/features/presence/payload-cms/globals/
 import { RegistrationManagement } from '@/features/registration_process/api/registration-management';
 import type { GlobalConfig } from 'payload';
 
+/**
+ * Globals always follow the collections of their group in the sidebar, so this order only
+ * matters within a group. See `admin-panel-dashboard-groups.ts`.
+ */
 export const globalConfig: GlobalConfig[] = [
+  // Webseite
   HeaderGlobal,
   FooterGlobal,
   SeoGlobal,
-  PWAGlobal,
-  AlertSettingsGlobal,
-  AppFeatureFlags,
-  AppLandingPageGlobal,
-  SupportChatManagement,
-  AlertManagement,
-  AllChatsManagement,
+  DonationBarometerGlobal,
   RegistrationManagement,
-  BillSettingsGlobal,
+
+  // App
+  AppLandingPageGlobal,
+  AlertManagement,
+  AlertSettingsGlobal,
+  SupportChatManagement,
+  AllChatsManagement,
   CampsitePresenceGlobal,
+  PWAGlobal,
+  AppFeatureFlags,
+
+  // Backoffice
+  BillSettingsGlobal,
 ];

@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, unicorn/no-null, unicorn/prefer-ternary */
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import prisma from '@/lib/db/prisma';
@@ -9,8 +12,9 @@ export const PhotoContestCollection: CollectionConfig = {
   slug: 'photo-contests',
   admin: {
     useAsTitle: 'title',
-    group: AdminPanelDashboardGroups.AppContent,
-    defaultColumns: ['title', 'slug', 'status', 'contestType', 'maxPointsPerUser'],
+    group: AdminPanelDashboardGroups.AppContent.label,
+    hidden: shouldHideInAdminPanel,
+    defaultColumns: ['title', 'slug', 'status', 'maxPointsPerUser'],
   },
   access: {
     read: (): boolean => true,
@@ -27,8 +31,7 @@ export const PhotoContestCollection: CollectionConfig = {
             update: {
               title: doc.title,
               description: doc.description ?? null,
-              contestType: doc.contestType ?? 'PRESELECTED',
-              status: doc.status ?? 'DRAFT',
+              status: doc.status ?? 'HIDDEN',
               maxPointsPerUser: doc.maxPointsPerUser ?? 2,
               maxPointsPerImage: doc.maxPointsPerImage ?? 2,
             },
@@ -36,8 +39,7 @@ export const PhotoContestCollection: CollectionConfig = {
               slug: doc.slug,
               title: doc.title,
               description: doc.description ?? null,
-              contestType: doc.contestType ?? 'PRESELECTED',
-              status: doc.status ?? 'DRAFT',
+              status: doc.status ?? 'HIDDEN',
               maxPointsPerUser: doc.maxPointsPerUser ?? 2,
               maxPointsPerImage: doc.maxPointsPerImage ?? 2,
             },
@@ -80,7 +82,10 @@ export const PhotoContestCollection: CollectionConfig = {
                     };
                     resolvedUrl = mediaObject.url ?? mediaObject.sizes?.large?.url ?? null;
                   } catch (error) {
-                    console.error('Could not fetch image from media library:', error);
+                    req.payload.logger.error(
+                      { error, 'image.id': item.image },
+                      'Could not fetch an image from the media library',
+                    );
                     hasResolutionError = true;
                   }
                 }
@@ -107,8 +112,8 @@ export const PhotoContestCollection: CollectionConfig = {
             const validImageUrls = new Set(resolvedItems.map((img) => img.imageUrl));
 
             if (hasResolutionError) {
-              console.warn(
-                'Skipping deletion of missing photo contest images due to media library resolution errors.',
+              req.payload.logger.warn(
+                'Skipping the deletion of missing photo contest images, the media library could not be read',
               );
             } else {
               for (const img of currentImages) {
@@ -143,12 +148,12 @@ export const PhotoContestCollection: CollectionConfig = {
             }
           }
         } catch (error) {
-          console.error('Failed to sync photo contest to database:', error);
+          req.payload.logger.error({ error }, 'Failed to sync a photo contest to the database');
         }
       },
     ],
     afterDelete: [
-      async ({ doc }): Promise<void> => {
+      async ({ doc, req }): Promise<void> => {
         try {
           if (typeof doc.slug === 'string' && doc.slug.length > 0) {
             await prisma.photoContest.delete({
@@ -156,7 +161,7 @@ export const PhotoContestCollection: CollectionConfig = {
             });
           }
         } catch (error) {
-          console.error('Failed to delete photo contest from database:', error);
+          req.payload.logger.error({ error }, 'Failed to delete a photo contest from the database');
         }
       },
     ],
@@ -205,33 +210,55 @@ export const PhotoContestCollection: CollectionConfig = {
       },
     },
     {
-      name: 'contestType',
-      type: 'select',
-      defaultValue: 'PRESELECTED',
-      options: [
-        { label: 'Preselected (Vorausgewählt)', value: 'PRESELECTED' },
-        { label: 'Live Event (Vor Ort Uploads)', value: 'LIVE_EVENT' },
-      ],
-      label: {
-        de: 'Wettbewerbs-Typ',
-        en: 'Contest Type',
-        fr: 'Type de concours',
-      },
-    },
-    {
       name: 'status',
       type: 'select',
-      defaultValue: 'DRAFT',
+      required: true,
+      defaultValue: 'HIDDEN',
       options: [
-        { label: 'Entwurf (Draft)', value: 'DRAFT' },
-        { label: 'Live Uploads Aktiv (Uploading)', value: 'UPLOADING' },
-        { label: 'Abstimmung Aktiv (Voting)', value: 'VOTING' },
-        { label: 'Abgeschlossen (Closed)', value: 'CLOSED' },
+        {
+          value: 'HIDDEN',
+          label: {
+            de: 'Versteckt – nicht in der App sichtbar',
+            en: 'Hidden – not visible in the app',
+            fr: 'Masqué – non visible dans l’app',
+          },
+        },
+        {
+          value: 'ACTIVE',
+          label: {
+            de: 'Aktiv – Abstimmung offen',
+            en: 'Active – open for voting',
+            fr: 'Actif – vote ouvert',
+          },
+        },
+        {
+          value: 'CLOSED_HIDDEN',
+          label: {
+            de: 'Beendet – Fotos sichtbar, Resultate versteckt',
+            en: 'Closed – photos visible, results hidden',
+            fr: 'Terminé – photos visibles, résultats masqués',
+          },
+        },
+        {
+          value: 'CLOSED',
+          label: {
+            de: 'Beendet – Fotos und Resultate sichtbar',
+            en: 'Closed – photos and results visible',
+            fr: 'Terminé – photos et résultats visibles',
+          },
+        },
       ],
       label: {
         de: 'Status',
         en: 'Status',
         fr: 'Statut',
+      },
+      admin: {
+        description: {
+          de: 'Steuert, was Teilnehmende in der App sehen: nichts, die Abstimmung, nur die Fotos oder Fotos inklusive Punktestand.',
+          en: 'Controls what participants see in the app: nothing, the vote, only the photos, or photos including the score.',
+          fr: 'Contrôle ce que les participants voient dans l’app : rien, le vote, seulement les photos ou les photos avec le score.',
+        },
       },
     },
     {

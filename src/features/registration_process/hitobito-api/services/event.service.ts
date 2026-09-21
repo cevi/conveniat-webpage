@@ -1,9 +1,11 @@
 import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 import {
   EventParticipationListResponseSchema,
   type EventParticipationWithPersonSchema,
   type IncludedPersonSchema,
 } from '@/features/registration_process/hitobito-api/event-participation-schemas';
+import { parseParticipationAnswerFields } from '@/features/registration_process/hitobito-api/html-parser';
 import type { Logger, RoleResource } from '@/features/registration_process/hitobito-api/types';
 import { traceMethod, withRetries, withSpan } from '@/utils/tracing-helpers';
 import type { z } from 'zod';
@@ -280,10 +282,17 @@ export class EventService {
 
         const parsed = EventParticipationListResponseSchema.safeParse(response);
         if (!parsed.success) {
+          // Throw rather than break. Breaking returned whatever had been collected so far,
+          // so an unparseable body — a login page after the cookie expired, say — was
+          // indistinguishable from an event that genuinely has no participants, and a
+          // failure part-way through pagination silently returned a partial list. Callers
+          // decide removal from this list, so "empty" has to mean empty.
           this.logger?.error(
             `Failed to parse event_participations response: ${parsed.error.message}`,
           );
-          break;
+          throw new Error(
+            `Antwort von Cevi.DB für Anlass ${eventId} konnte nicht gelesen werden: ${parsed.error.message}`,
+          );
         }
 
         // Collect included people resources
@@ -480,6 +489,10 @@ export class EventService {
         );
         return legacyPerson;
       } catch (error) {
+        // The HTML scrape below reads through the same session this one just lost, so
+        // there is nothing left to fall back to. Swallowing it would put an empty name
+        // and address on the participation, which the sync writes to the row.
+        if (error instanceof SessionExpiredError) throw error;
         this.logger?.warn(
           `First level fallback (legacy JSON) failed after 3 attempts for participation ${participationId}: ${error instanceof Error ? error.message : String(error)}`,
         );
@@ -581,6 +594,7 @@ export class EventService {
           },
         );
       } catch (error) {
+        if (error instanceof SessionExpiredError) throw error;
         this.logger?.error(
           `Second level fallback failed for participation ${participationId}: ${String(error)}`,
         );
@@ -689,6 +703,9 @@ export class EventService {
       return this.parseParticipationAnswersHtml(body);
     } catch (error) {
       onLog?.(`Scraper Error: ${error instanceof Error ? error.message : String(error)}`);
+      // "Not signed in" is not "this participation has no answers". Swallowed, it would
+      // reach the caller as an empty form and report every Pflichtangabe as missing.
+      if (error instanceof SessionExpiredError) throw error;
       this.logger?.warn(
         `fetchParticipationAnswers failed for ${participationId}: ${String(error)}`,
       );
@@ -697,127 +714,16 @@ export class EventService {
   }
 
   /**
-   * Helper to parse custom question labels and their input values from the participation edit HTML page.
+   * Helper to parse custom question labels and their input values from the participation
+   * edit HTML page. The parsing itself lives in `parseParticipationAnswerFields`, which the
+   * write-back in the billing feature needs to address one answer by its question text.
    */
   private parseParticipationAnswersHtml(html: string): Record<string, string> {
     const answers: Record<string, string> = {};
-
-    const nameRegex = /name="participation\[answer_(\d+)\]/g;
-    const questionIds = new Set<string>();
-    let match = nameRegex.exec(html);
-    while (match !== null) {
-      if (match[1] !== undefined) {
-        questionIds.add(match[1]);
-      }
-      match = nameRegex.exec(html);
+    for (const field of parseParticipationAnswerFields(html)) {
+      if (field.label === '' || field.value === undefined) continue;
+      answers[field.label] = field.value;
     }
-
-    for (const qId of questionIds) {
-      let questionText = '';
-
-      // Backwards label search to find the main label for a question ID
-      const targetString = `participation[answer_${qId}]`;
-      const inputPos = html.indexOf(targetString);
-      if (inputPos !== -1) {
-        const precedingHtml = html.slice(Math.max(0, inputPos - 1000), inputPos);
-        const labelRegex = /<label[^>]*>([\s\S]*?)<\/label>/gi;
-        const labels = [...precedingHtml.matchAll(labelRegex)];
-
-        if (labels.length > 0) {
-          const controlLabel = labels.reverse().find((l) => {
-            const fullTag = l[0];
-            return fullTag.includes('control-label') || !fullTag.includes('for=');
-          });
-          if (controlLabel?.[1] === undefined) {
-            const firstLabel = labels[0];
-            if (firstLabel?.[1] !== undefined) {
-              questionText = firstLabel[1].replaceAll(/<[^>]*>/g, '').trim();
-            }
-          } else {
-            questionText = controlLabel[1].replaceAll(/<[^>]*>/g, '').trim();
-          }
-        }
-      }
-
-      // If still empty, fall back to label with matching for attribute
-      if (questionText === '') {
-        const labelRegexFor = new RegExp(
-          `<label[^>]*for="participation_answer_${qId}(?:_[^"]*)?"[^>]*>([\\s\\S]*?)<\\/label>`,
-          'i',
-        );
-        const labelMatch = html.match(labelRegexFor);
-        if (labelMatch?.[1] !== undefined) {
-          questionText = labelMatch[1].replaceAll(/<[^>]*>/g, '').trim();
-        }
-      }
-
-      if (questionText !== '') {
-        // Clean up question text (remove trailing colons or asterisks)
-        questionText = questionText.replace(/[:*]$/, '').trim();
-
-        // 1. Select
-        const selectRegex = new RegExp(
-          `<select[^>]*name="participation\\[answer_${qId}\\]"[^>]*>([\\s\\S]*?)<\\/select>`,
-          'i',
-        );
-        const selectMatch = html.match(selectRegex);
-        if (selectMatch?.[1] !== undefined) {
-          const selectedMatch =
-            selectMatch[1].match(/<option[^>]*selected="selected"[^>]*value="([^"]*)"/i) ??
-            selectMatch[1].match(/<option[^>]*value="([^"]*)"[^>]*selected/i);
-          answers[questionText] = selectedMatch?.[1] ?? '';
-          continue;
-        }
-
-        // 2. Radio
-        const radioRegex1 = new RegExp(
-          `<input[^>]*type="radio"[^>]*name="participation\\[answer_${qId}\\]"[^>]*checked="checked"[^>]*value="([^"]*)"`,
-          'i',
-        );
-        const radioRegex2 = new RegExp(
-          `<input[^>]*checked="checked"[^>]*type="radio"[^>]*name="participation\\[answer_${qId}\\]"[^>]*value="([^"]*)"`,
-          'i',
-        );
-        const radioMatch = html.match(radioRegex1) ?? html.match(radioRegex2);
-        if (radioMatch?.[1] !== undefined) {
-          answers[questionText] = radioMatch[1];
-          continue;
-        }
-
-        // 3. Checkbox
-        const checkboxRegex = new RegExp(
-          `<input[^>]*type="checkbox"[^>]*name="participation\\[answer_${qId}\\]"[^>]*checked="checked"[^>]*value="([^"]*)"`,
-          'i',
-        );
-        const checkboxMatch = html.match(checkboxRegex);
-        if (checkboxMatch?.[1] !== undefined) {
-          answers[questionText] = checkboxMatch[1];
-          continue;
-        }
-
-        // 4. Textarea
-        const textareaRegex = new RegExp(
-          `<textarea[^>]*name="participation\\[answer_${qId}\\]"[^>]*>([\\s\\S]*?)<\\/textarea>`,
-          'i',
-        );
-        const textareaMatch = html.match(textareaRegex);
-        if (textareaMatch?.[1] !== undefined) {
-          answers[questionText] = textareaMatch[1].trim();
-          continue;
-        }
-
-        // 5. Input Text
-        const inputRegex = new RegExp(
-          `<input[^>]*name="participation\\[answer_${qId}\\]"[^>]*value="([^"]*)"`,
-          'i',
-        );
-        const inputMatch = html.match(inputRegex);
-        if (inputMatch?.[1] !== undefined) {
-          answers[questionText] = inputMatch[1];
-        }
-      }
-    }
-
     return answers;
   }
 }

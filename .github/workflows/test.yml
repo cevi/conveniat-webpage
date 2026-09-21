@@ -1,10 +1,10 @@
 name: Run Test Suite
 
+# Every pull request, not just those targeting main and dev: a required status check
+# that never reports leaves the pull request pending forever, and a stacked branch is
+# exactly the case where the suite is most worth having.
 on:
   pull_request:
-    branches:
-      - main
-      - dev
 
 jobs:
   test:

@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/no-null */
 import type { ParticipantRepositoryPort } from '@/features/billing/ports/participant-repository.port';
+import { BILLABLE_STATUSES } from '@/features/billing/services/billing-status';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
@@ -108,9 +109,10 @@ export class PayloadParticipantRepositoryAdapter implements ParticipantRepositor
       where:
         typeof participantId === 'string' && participantId.length > 0
           ? { id: { equals: participantId } }
-          : {
-              status: { equals: 'new' },
-            },
+          : // `updated` and `re_added` used to be dead ends: the sync parked people there
+            // and this query never looked at them again, so a re-enrolled participant was
+            // created as `re_added` and then simply never billed.
+            { status: { in: [...BILLABLE_STATUSES] } },
       limit: 10_000,
     });
     return result.docs;

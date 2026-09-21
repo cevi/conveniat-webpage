@@ -5,6 +5,7 @@
 import {
   extractMessageIdentifier,
   extractNotificationTitleAndBody,
+  extractNotificationType,
   useNativePush,
 } from '@/hooks/use-native-push';
 import {
@@ -72,6 +73,23 @@ const buildDuplicateMessageEvent = (): CustomEvent =>
         },
       },
     },
+  });
+
+const dispatchToken = async (token: string): Promise<void> => {
+  await act(async () => {
+    globalThis.dispatchEvent(
+      new CustomEvent('app-webview-native-push-event', {
+        detail: { type: 'native-push-token', payload: { token, platform: 'android' } },
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+};
+
+const openEvent = (url: string, bubbles: boolean): CustomEvent =>
+  new CustomEvent('app-webview-native-push-event', {
+    bubbles,
+    detail: { type: 'native-push-open', payload: { url } },
   });
 
 describe('useNativePush', () => {
@@ -192,6 +210,127 @@ describe('useNativePush', () => {
     expect(result.current.lastError).toBeUndefined();
   });
 
+  /**
+   * The bridge re-emits `native-push-token` several times per permission change - three
+   * times in the same millisecond is normal. Every emission used to fire its own
+   * `registerDevice`; batched into one request they raced over the same row server-side,
+   * most of them lost, and the user was told registration had failed for a subscription
+   * that was in fact stored.
+   */
+  describe('duplicate registration suppression', () => {
+    const mockRegisterDevice = jest.fn().mockResolvedValue({ success: true });
+    const mockUnregisterDevice = jest.fn().mockResolvedValue({ success: true });
+
+    beforeEach(() => {
+      mockRegisterDevice.mockClear();
+      // Restores the default after a test that installs a pending implementation,
+      // which `mockClear` on its own would leave in place for the next one.
+      mockRegisterDevice.mockResolvedValue({ success: true });
+      mockUnregisterDevice.mockClear();
+      // A leftover pending redirect would navigate on mount and blur the count below.
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const trpcMock = jest.requireMock('@/trpc/client');
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+      trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
+        mutateAsync: mockRegisterDevice,
+      });
+      trpcMock.trpc.nativePush.unregisterDevice.useMutation.mockReturnValue({
+        mutateAsync: mockUnregisterDevice,
+      });
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+    });
+
+    it('registers a repeated token only once', async () => {
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-repeat');
+      await dispatchToken('token-repeat');
+      await dispatchToken('token-repeat');
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(1);
+    });
+
+    it('registers a new token after the previous one was deleted', async () => {
+      renderHook(() => useNativePush());
+
+      await dispatchToken('token-old');
+
+      await act(async () => {
+        globalThis.dispatchEvent(
+          new CustomEvent('app-webview-native-push-event', {
+            detail: {
+              type: 'native-push-token-deleted',
+              payload: { token: 'token-old', platform: 'android' },
+            },
+          }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      await dispatchToken('token-new');
+
+      expect(mockUnregisterDevice).toHaveBeenCalledTimes(1);
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * The token can rotate while a registration for the previous one is still open.
+     * The in-flight marker holds a single token, so the older call settling must not
+     * release the marker the newer call is relying on - otherwise a repeat emission
+     * of the newer token starts a second registration for a request still in flight,
+     * which is the duplication this whole guard exists to prevent.
+     */
+    it('keeps a newer token in flight when an overlapping older registration settles', async () => {
+      const pendingRegistrations = new Map<string, (value: unknown) => void>();
+      mockRegisterDevice.mockImplementation(
+        async ({ token }: { token: string }) =>
+          new Promise((resolve) => pendingRegistrations.set(token, resolve)),
+      );
+
+      renderHook(() => useNativePush());
+
+      // Neither call resolves, so both are open at the same time.
+      await dispatchToken('token-a');
+      await dispatchToken('token-b');
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+
+      // The older one wins the race back.
+      await act(async () => {
+        pendingRegistrations.get('token-a')?.({ success: true });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      await dispatchToken('token-b');
+
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(2);
+    });
+
+    /**
+     * The handler is attached to both `globalThis` and `document`, because the native
+     * side is not consistent about where it dispatches. A bubbling event is then
+     * delivered twice - the same Event object, handled once.
+     */
+    it('handles an event that bubbles from document to window only once', () => {
+      renderHook(() => useNativePush());
+
+      // Establish what a single delivery costs, then check that a bubbling one - which
+      // reaches the document listener and the window listener - costs exactly the same.
+      act(() => {
+        globalThis.dispatchEvent(openEvent('/app/dashboard', false));
+      });
+      const navigationsPerDelivery = mockPush.mock.calls.length;
+      mockPush.mockClear();
+
+      act(() => {
+        document.dispatchEvent(openEvent('/app/schedule', true));
+      });
+
+      expect(navigationsPerDelivery).toBeGreaterThan(0);
+      expect(mockPush).toHaveBeenCalledTimes(navigationsPerDelivery);
+    });
+  });
+
   describe('extractMessageIdentifier', () => {
     it('prefers the chat message id in data over the Firebase delivery id', () => {
       // Shape produced by the native shell's normalizeRemoteMessage(): the
@@ -210,6 +349,31 @@ describe('useNativePush', () => {
 
     it('returns undefined when nothing identifies the message', () => {
       expect(extractMessageIdentifier({ data: { chatId: 'chat-abc' } })).toBeUndefined();
+    });
+  });
+
+  describe('extractNotificationType', () => {
+    it('finds the emergency type in the FCM data payload', () => {
+      expect(
+        extractNotificationType({
+          messageId: 'firebase-delivery-id',
+          data: { notificationType: 'emergency', chatId: 'chat-abc' },
+        }),
+      ).toBe('emergency');
+    });
+
+    // iOS delivers the same field under userInfo rather than data.
+    it('finds it in the iOS userInfo payload', () => {
+      expect(extractNotificationType({ userInfo: { notificationType: 'emergency' } })).toBe(
+        'emergency',
+      );
+    });
+
+    it('treats a missing or unknown type as a regular chat notification', () => {
+      expect(extractNotificationType({ data: { chatId: 'chat-abc' } })).toBe('default');
+      expect(extractNotificationType({ data: { notificationType: 'something-else' } })).toBe(
+        'default',
+      );
     });
   });
 

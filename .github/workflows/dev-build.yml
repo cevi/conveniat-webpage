@@ -35,7 +35,17 @@ jobs:
             NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.cevi.tools
             NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
             NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+            NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
             POSTHOG_API_KEY=${{ secrets.POSTHOG_API_KEY }}
             POSTHOG_PROJECT_ID=${{ secrets.POSTHOG_PROJECT_ID }}
+            BUILD_GIT_HASH=${{ github.sha }}
+            BUILD_GIT_REF=${{ github.ref_name }}
+          # No provenance attestation. Buildx attaches one by default, which turns the push
+          # into an OCI index with a second, `unknown/unknown` manifest whose config is the
+          # 2-byte empty descriptor `sha256:44136fa3…`. Buildx never uploads that blob (it
+          # carries it inline), registry.cevi.tools does not have it, and so every consumer
+          # that resolves the whole index fails with "does not exist or it is not available".
+          # That is what has kept Shepherd from redeploying conveniat since 2026-09-08.
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha

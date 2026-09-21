@@ -9,10 +9,10 @@ import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { environmentVariables } from '@/config/environment-variables';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
 import type { Locale, NavigationMode } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { sharedFontClassName } from '@/utils/fonts';
 import { cn } from '@/utils/tailwindcss-override';
@@ -53,7 +53,7 @@ const GlobalAppFooterWrapper: React.FC<{
   );
 };
 
-const validLocales = new Set<string>(Object.values(LOCALE));
+const validLocales = new Set<string>(i18nConfig.locales);
 const validDesigns = new Set<string>(Object.values(DesignCodes));
 
 const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {

@@ -1,5 +1,6 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import type { ReactNode } from 'react';
 import React from 'react';
@@ -19,7 +20,7 @@ const Layout: React.FC<LayoutProperties> = ({ children }) => {
 
 export const generateStaticParams = (): { locale: Locale; design: DesignCodes }[] => {
   const designs: DesignCodes[] = [DesignCodes.WEB_DESIGN, DesignCodes.APP_DESIGN];
-  const locales: Locale[] = ['de', 'fr', 'en'];
+  const locales = i18nConfig.locales as Locale[];
 
   return designs.flatMap((design) => locales.map((locale) => ({ locale, design })));
 };

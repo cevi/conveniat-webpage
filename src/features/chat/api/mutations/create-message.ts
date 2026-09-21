@@ -3,11 +3,19 @@ import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { ChatCapability, LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatMembershipPermission, MessageEventType, MessageType } from '@/lib/prisma/client';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+} from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:mutations');
 
 // Zod schema for input validation
 const sendMessageInputSchema = z.object({
@@ -125,6 +133,7 @@ export const createMessage = trpcBaseProcedure
       where: { uuid: validatedMessage.chatId },
       select: {
         name: true,
+        type: true,
         capabilities: true,
         chatMemberships: {
           select: {
@@ -140,9 +149,10 @@ export const createMessage = trpcBaseProcedure
       chat.chatMemberships.length === 0 ||
       !chat.chatMemberships.some((membership) => membership.userId === user.uuid)
     ) {
-      console.warn(
-        `User ${user.uuid} attempted to send message to chat ${validatedMessage.chatId} they are not a member of.`,
-      );
+      logger.warn('Message send rejected: sender is not a member of the chat', {
+        'chat.id': validatedMessage.chatId,
+        'user.id': user.uuid,
+      });
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: 'You are not a member of this chat.',
@@ -168,9 +178,10 @@ export const createMessage = trpcBaseProcedure
       const hasThreadRepliesCapability = chat.capabilities.includes(ChatCapability.THREAD_REPLIES);
 
       if (!isThreadReply || !hasThreadsCapability || !hasThreadRepliesCapability) {
-        console.warn(
-          `User ${user.uuid} is a GUEST and attempted to send a message outside allowed thread replies context in chat ${validatedMessage.chatId}.`,
-        );
+        logger.warn('Message send rejected: guest outside an allowed thread reply context', {
+          'chat.id': validatedMessage.chatId,
+          'user.id': user.uuid,
+        });
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'You do not have permission to send messages in this chat.',
@@ -211,9 +222,10 @@ export const createMessage = trpcBaseProcedure
           });
         }
 
-        console.log(
-          `Duplicate send for message ${clientMessageId} ignored, returning stored copy.`,
-        );
+        logger.debug('Duplicate send ignored, returning the stored copy', {
+          'chat.id': validatedMessage.chatId,
+          'message.id': clientMessageId,
+        });
 
         const storedPayload = extractMessagePayload(alreadyStored.contentVersions[0]?.payload);
         return {
@@ -235,11 +247,11 @@ export const createMessage = trpcBaseProcedure
       }
     }
 
-    console.log(
-      `Push notification for chat ${validatedMessage.chatId} is sent to ${user.uuid} ${JSON.stringify(
-        chat.chatMemberships,
-      )}`,
-    );
+    logger.debug('Preparing message fan-out', {
+      'chat.id': validatedMessage.chatId,
+      'chat.membership.count': chat.chatMemberships.length,
+      'user.id': user.uuid,
+    });
 
     const recipientUserIds = chat.chatMemberships
       .filter((membership) => membership.userId !== user.uuid)
@@ -304,7 +316,10 @@ export const createMessage = trpcBaseProcedure
       data: { lastUpdate: new Date() },
     });
 
-    console.log(`Message created with ID: ${createdMessage.uuid}`);
+    logger.debug('Message created', {
+      'chat.id': validatedMessage.chatId,
+      'message.id': createdMessage.uuid,
+    });
 
     // TODO: the following should be done asynchronously,
     //  so that the user does not have to wait for the push notification to be sent
@@ -319,9 +334,19 @@ export const createMessage = trpcBaseProcedure
       {
         chatName: chat.name,
         senderName: user.name,
+        // Every message in an emergency chat is part of a running alert, so the
+        // follow-ups reach the piket members on the siren channel too - a reply that
+        // only lands in the notification shade is exactly the failure mode the
+        // emergency channel exists to prevent. Support chats stay on the regular
+        // channel; they are not time critical in the same way.
+        ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
       },
     ).catch((error: unknown) => {
-      console.error('Failed to send push notification:', error);
+      logger.error('Failed to send push notification', {
+        error,
+        'chat.id': validatedMessage.chatId,
+        'message.id': createdMessage.uuid,
+      });
     });
 
     // Record DISTRIBUTED event after a successful notification attempt (only for chats with < LARGE_CHAT_THRESHOLD users)
@@ -360,7 +385,11 @@ export const createMessage = trpcBaseProcedure
         },
       })
       .catch((error: unknown) => {
-        console.error('Failed to publish real-time event:', error);
+        logger.error('Failed to publish the new_message real-time event', {
+          error,
+          'chat.id': validatedMessage.chatId,
+          'message.id': createdMessage.uuid,
+        });
       });
 
     return {

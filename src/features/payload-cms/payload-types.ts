@@ -47,44 +47,46 @@ export type SupportedTimezones = 'Europe/Zurich';
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    'payload-mcp-api-keys': PayloadMcpApiKeyAuthOperations;
   };
   blocks: {};
   collections: {
-    blog: Blog;
     'generic-page': GenericPage;
+    blog: Blog;
     timeline: Timeline;
+    timelineCategory: TimelineCategory;
+    images: Image;
+    userSubmittedImages: UserSubmittedImage;
+    documents: Document;
+    permissions: Permission;
+    form_collection: FormCollection;
+    'helper-jobs': HelperJob;
+    'blocked-jobs': BlockedJob;
+    'announcement-channels': AnnouncementChannel;
+    announcements: Announcement;
+    'emergency-cards': EmergencyCard;
     'photo-contests': PhotoContest;
     'camp-map-annotations': CampMapAnnotation;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
     'helper-shifts': HelperShift;
-    'helper-jobs': HelperJob;
-    'announcement-channels': AnnouncementChannel;
-    announcements: Announcement;
-    'emergency-cards': EmergencyCard;
-    images: Image;
-    userSubmittedImages: UserSubmittedImage;
-    documents: Document;
-    form_collection: FormCollection;
-    users: User;
-    permissions: Permission;
+    'piket-schedules': PiketSchedule;
     'push-notification-subscriptions': PushNotificationSubscription;
-    timelineCategory: TimelineCategory;
-    'chat-images': ChatImage;
-    'blocked-jobs': BlockedJob;
-    'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
-    'outgoing-emails': OutgoingEmail;
+    users: User;
+    'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
-    'piket-schedules': PiketSchedule;
+    'outgoing-emails': OutgoingEmail;
     'payload-workers': PayloadWorker;
-    'presence-logs': PresenceLog;
+    'chat-images': ChatImage;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
     forms: Form;
     'form-submissions': FormSubmission;
     'search-collection': SearchCollection;
     go: Go;
     exports: Export;
     imports: Import;
+    'payload-mcp-api-keys': PayloadMcpApiKey;
     'payload-kv': PayloadKv;
     'payload-jobs': PayloadJob;
     'payload-folders': FolderInterface;
@@ -93,17 +95,18 @@ export interface Config {
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {
+    timelineCategory: {
+      relatedTimelineEntries: 'timeline';
+    };
     'helper-jobs': {
       submissions: 'form-submissions';
     };
     users: {
       presenceLogs: 'presence-logs';
     };
-    timelineCategory: {
-      relatedTimelineEntries: 'timeline';
-    };
     'bill-participants': {
       relatedEmails: 'outgoing-emails';
+      reminderEmails: 'outgoing-emails';
     };
     forms: {
       submissions: 'form-submissions';
@@ -113,41 +116,42 @@ export interface Config {
     };
   };
   collectionsSelect: {
-    blog: BlogSelect<false> | BlogSelect<true>;
     'generic-page': GenericPageSelect<false> | GenericPageSelect<true>;
+    blog: BlogSelect<false> | BlogSelect<true>;
     timeline: TimelineSelect<false> | TimelineSelect<true>;
+    timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
+    images: ImagesSelect<false> | ImagesSelect<true>;
+    userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
+    documents: DocumentsSelect<false> | DocumentsSelect<true>;
+    permissions: PermissionsSelect<false> | PermissionsSelect<true>;
+    form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
+    'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
+    'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
+    'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
+    announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
+    'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
-    'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
-    'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
-    announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
-    'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
-    images: ImagesSelect<false> | ImagesSelect<true>;
-    userSubmittedImages: UserSubmittedImagesSelect<false> | UserSubmittedImagesSelect<true>;
-    documents: DocumentsSelect<false> | DocumentsSelect<true>;
-    form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
-    users: UsersSelect<false> | UsersSelect<true>;
-    permissions: PermissionsSelect<false> | PermissionsSelect<true>;
+    'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
-    timelineCategory: TimelineCategorySelect<false> | TimelineCategorySelect<true>;
-    'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
-    'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
-    'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
-    'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
+    'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
-    'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
+    'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
-    'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
+    'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
+    'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     'search-collection': SearchCollectionSelect<false> | SearchCollectionSelect<true>;
     go: GoSelect<false> | GoSelect<true>;
     exports: ExportsSelect<false> | ExportsSelect<true>;
     imports: ImportsSelect<false> | ImportsSelect<true>;
+    'payload-mcp-api-keys': PayloadMcpApiKeysSelect<false> | PayloadMcpApiKeysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-folders': PayloadFoldersSelect<false> | PayloadFoldersSelect<true>;
@@ -163,32 +167,34 @@ export interface Config {
     header: Header;
     footer: Footer;
     SEO: SEO;
-    PWA: PWA;
-    alert_settings: AlertSetting;
-    'app-feature-flags': AppFeatureFlag;
-    'app-landing-page': AppLandingPage;
-    'support-chat-management': SupportChatManagement;
-    'alert-management': AlertManagement;
-    'all-chats-management': AllChatsManagement;
+    'donation-barometer': DonationBarometer;
     'registration-management': RegistrationManagement;
-    'bill-settings': BillSetting;
+    'app-landing-page': AppLandingPage;
+    'alert-management': AlertManagement;
+    alert_settings: AlertSetting;
+    'support-chat-management': SupportChatManagement;
+    'all-chats-management': AllChatsManagement;
     'campsite-presence': CampsitePresence;
+    PWA: PWA;
+    'app-feature-flags': AppFeatureFlag;
+    'bill-settings': BillSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
     header: HeaderSelect<false> | HeaderSelect<true>;
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
-    PWA: PWASelect<false> | PWASelect<true>;
-    alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
-    'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
-    'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
-    'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
-    'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
-    'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
+    'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
     'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
-    'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
+    'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
+    'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
+    alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
+    'support-chat-management': SupportChatManagementSelect<false> | SupportChatManagementSelect<true>;
+    'all-chats-management': AllChatsManagementSelect<false> | AllChatsManagementSelect<true>;
     'campsite-presence': CampsitePresenceSelect<false> | CampsitePresenceSelect<true>;
+    PWA: PWASelect<false> | PWASelect<true>;
+    'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
+    'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -197,9 +203,10 @@ export interface Config {
     'presence-count': PresenceCountWidget;
     'user-count': UserCountWidget;
     'email-stats': EmailStatsWidget;
+    'admin-areas': AdminAreasWidget;
     collections: CollectionsWidget;
   };
-  user: User;
+  user: User | PayloadMcpApiKey;
   jobs: {
     tasks: {
       resolveUser: TaskResolveUser;
@@ -218,7 +225,10 @@ export interface Config {
       syncParticipants: TaskSyncParticipants;
       generateBills: TaskGenerateBills;
       sendBills: TaskSendBills;
+      sendWeeklyReport: TaskSendWeeklyReport;
+      sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
       inline: {
@@ -250,13 +260,29 @@ export interface UserAuthOperations {
     password: string;
   };
 }
+export interface PayloadMcpApiKeyAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
 /**
- * Represents a block article that can be published on the website.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog".
+ * via the `definition` "generic-page".
  */
-export interface Blog {
+export interface GenericPage {
   id: string;
   publishingStatus?:
     | {
@@ -286,14 +312,9 @@ export interface Blog {
     /**
      * This is the title that will be displayed on the page.
      */
-    blogH1: string;
-    bannerImage: string | Image;
-    releaseDate: string;
+    pageTitle: string;
     permissions?: (string | null) | Permission;
-    /**
-     * This is the text that will be displayed as a teaser on the blog overview page.
-     */
-    blogShortTitle: string;
+    releaseDate: string;
     /**
      * The main content of the page
      */
@@ -320,6 +341,8 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'richTextSection';
         }
+      | MediaTextBlock
+      | ProcessStepsBlock
       | {
           id?: string | null;
           blockName?: string | null;
@@ -416,6 +439,574 @@ export interface Blog {
           blockName?: string | null;
           blockType: 'callToAction';
         }
+      | DonationCtaBlock
+      | DonationBarometerBlock
+      | {
+          linkField?: {
+            type?: ('reference' | 'custom' | 'email') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
+                } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
+            url?: string | null;
+            email?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          headline: string;
+          date: string;
+          image?: (string | null) | Image;
+          paragraph?: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          } | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'newsCard';
+        }
+      | {
+          date: string;
+          location?: (string | null) | CampMapAnnotation;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'campScheduleEntryBlock';
+        }
+      | CardGridBlock
+      | ContactPersonBlock
+      | TwoColumnBlock
+      | SponsorGridBlock
+      | FeaturedSectionBlock
+      | TabsBlock
+    )[];
+  };
+  seo: {
+    urlSlug: string;
+    /**
+     * This is the title that will be displayed in the browser tab.
+     */
+    metaTitle?: string | null;
+    /**
+     * This is the description that will be displayed in search engine results.
+     */
+    metaDescription?: string | null;
+    /**
+     * These are the keywords that will be used to improve the visibility of the page in search engines.
+     */
+    keywords?: string | null;
+    urlSlugHistory?:
+      | {
+          slug?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  lastEditedByUser?: (string | null) | User;
+  allowsEditsByUser?: (string | User)[] | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * Holds the publishing status of the document in each locale
+ */
+export interface LocalizedPublishingStatus {
+  published: IsPublishedInCorrespondingLocale;
+  [k: string]: unknown;
+}
+/**
+ * Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: string;
+  displayName?: string | null;
+  /**
+   * The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.
+   */
+  cevi_db_uuid?: number | null;
+  /**
+   * Whether the user has access to the admin panel. This is set automatically based on the user groups.
+   */
+  adminPanelAccess?: boolean | null;
+  /**
+   * The email address of the user. Used for matching when the user logs in via Hitobito.
+   */
+  email: string;
+  /**
+   * The full name of the user, as it will be displayed publicly.
+   */
+  fullName: string;
+  /**
+   * The Ceviname of the user.
+   */
+  nickname?: string | null;
+  groups?: GroupsOfTheUser;
+  /**
+   * The Hof of the user.
+   */
+  hof?: number | null;
+  /**
+   * The Quartier of the user.
+   */
+  quartier?: number | null;
+  /**
+   * An additional description of the user shown in the chat.
+   */
+  description?: string | null;
+  /**
+   * Hide this user from the chat creation selection.
+   */
+  hidden?: boolean | null;
+  /**
+   * Whether the user is currently present on the campsite.
+   */
+  presentAtCamp?: boolean | null;
+  /**
+   * Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).
+   */
+  presenceLogs?: {
+    docs?: (string | PresenceLog)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  collection: 'users';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs".
+ */
+export interface PresenceLog {
+  id: string;
+  user: string | User;
+  isPresent: boolean;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "permissions".
+ */
+export interface Permission {
+  id: string;
+  /**
+   * The name of the permission.
+   */
+  permissionName: string;
+  /**
+   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
+   */
+  permissions?:
+    | {
+        group_id: number;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * These permissions are special and disable group checking for CeviDB groups.
+   */
+  special_permissions?: {
+    public?: boolean | null;
+    logged_in?: boolean | null;
+  };
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock".
+ */
+export interface HeroSectionBlock {
+  badge?: string | null;
+  title: string;
+  description?: string | null;
+  primaryCtaLabel?: string | null;
+  primaryCtaLink?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  deadlineText?: string | null;
+  image?: (string | null) | Image;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroSection';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "images".
+ */
+export interface Image {
+  id: string;
+  /**
+   * Describe the image for screen readers. (de)
+   */
+  alt_de: string;
+  /**
+   * Describe the image for screen readers. (en)
+   */
+  alt_en: string;
+  /**
+   * Describe the image for screen readers. (fr)
+   */
+  alt_fr: string;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (de)
+   */
+  imageCaption_de?: string | null;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (en)
+   */
+  imageCaption_en?: string | null;
+  /**
+   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
+   */
+  imageCaption_fr?: string | null;
+  /**
+   * Indicates if this image was generated as a PDF thumbnail.
+   */
+  isPdfThumbnail?: boolean | null;
+  /**
+   * Example: for the newsletter
+   */
+  internalDescription?: string | null;
+  lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    tiny?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    large?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SectionSeparatorBlock".
+ */
+export interface SectionSeparatorBlock {
+  /**
+   * If enabled, the separator is rendered full page width (max 1120px centered). Otherwise column width.
+   */
+  isFullWidth?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'sectionSeparator';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock".
+ */
+export interface MediaTextBlock {
+  image: string | Image;
+  /**
+   * Which side the image sits on. On mobile the image is always on top.
+   */
+  imagePosition: 'right' | 'left';
+  /**
+   * How much room the image takes next to the text. Choose "Narrow" when there is a lot of text.
+   */
+  imageWidth: 'narrow' | 'medium' | 'wide';
+  imageShape: 'rounded' | 'circle' | 'plain';
+  /**
+   * A tinted background sets the section apart from the rest of the page.
+   */
+  background: 'none' | 'tinted';
+  eyebrow?: string | null;
+  title?: string | null;
+  richTextSection: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Label of the button below the text. Leave empty for no button.
+   */
+  linkLabel?: string | null;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'mediaText';
+}
+/**
+ * Represents a block article that can be published on the website.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blog".
+ */
+export interface Blog {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  /**
+   * Name of the page for internal purposes.
+   */
+  internalPageName: string;
+  /**
+   * Authors of the Page (internal use only)
+   */
+  authors?: (string | User)[] | null;
+  /**
+   * Status of the page (internal use)
+   */
+  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
+  content: {
+    /**
+     * This is the title that will be displayed on the page.
+     */
+    blogH1: string;
+    bannerImage: string | Image;
+    releaseDate: string;
+    permissions?: (string | null) | Permission;
+    /**
+     * This is the text that will be displayed as a teaser on the blog overview page.
+     */
+    blogShortTitle: string;
+    /**
+     * The main content of the page
+     */
+    mainContent: (
+      | HeroSectionBlock
+      | SectionSeparatorBlock
+      | {
+          richTextSection: {
+            root: {
+              type: string;
+              children: {
+                type: any;
+                version: number;
+                [k: string]: unknown;
+              }[];
+              direction: ('ltr' | 'rtl') | null;
+              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+              indent: number;
+              version: number;
+            };
+            [k: string]: unknown;
+          };
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'richTextSection';
+        }
+      | MediaTextBlock
+      | ProcessStepsBlock
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'blogPostsOverview';
+        }
+      | FormBlock
+      | ApprovedFormSubmissionsBlock
+      | {
+          images: (string | Image)[];
+          /**
+           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
+           */
+          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'photoCarousel';
+        }
+      | PhotoContestBlock
+      | {
+          image: string | Image;
+          /**
+           * Choose the aspect ratio of the image.
+           */
+          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'singlePicture';
+        }
+      | YoutubeEmbedding
+      | InstagramEmbedding
+      | SwisstopoMapEmbedding
+      | {
+          file: string | Document;
+          openInNewTab?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'fileDownload';
+        }
+      | DetailsTable
+      | AccordionBlocks
+      | SummaryBox
+      | TimelineEntries
+      | Countdown
+      | {
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'whiteSpace';
+        }
+      | {
+          /**
+           * Label for the button
+           */
+          label?: string | null;
+          linkField?: {
+            type?: ('reference' | 'custom' | 'email') | null;
+            reference?:
+              | ({
+                  relationTo: 'blog';
+                  value: string | Blog;
+                } | null)
+              | ({
+                  relationTo: 'generic-page';
+                  value: string | GenericPage;
+                } | null)
+              | ({
+                  relationTo: 'images';
+                  value: string | Image;
+                } | null)
+              | ({
+                  relationTo: 'documents';
+                  value: string | Document;
+                } | null)
+              | ({
+                  relationTo: 'camp-map-annotations';
+                  value: string | CampMapAnnotation;
+                } | null)
+              | ({
+                  relationTo: 'camp-schedule-entry';
+                  value: string | CampScheduleEntry;
+                } | null);
+            /**
+             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+             */
+            fragment?: string | null;
+            url?: string | null;
+            email?: string | null;
+            openInNewTab?: boolean | null;
+          };
+          /**
+           * Show inverted colors
+           */
+          inverted?: boolean | null;
+          id?: string | null;
+          blockName?: string | null;
+          blockType: 'callToAction';
+        }
+      | DonationCtaBlock
+      | DonationBarometerBlock
       | {
           linkField?: {
             type?: ('reference' | 'custom' | 'email') | null;
@@ -517,219 +1108,26 @@ export interface Blog {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * Holds the publishing status of the document in each locale
- */
-export interface LocalizedPublishingStatus {
-  published: IsPublishedInCorrespondingLocale;
-  [k: string]: unknown;
-}
-/**
- * Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.
- *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "ProcessStepsBlock".
  */
-export interface User {
-  id: string;
-  displayName?: string | null;
+export interface ProcessStepsBlock {
+  title?: string | null;
   /**
-   * The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.
+   * Side by side suits short steps, stacked suits longer text. On mobile the steps are always stacked.
    */
-  cevi_db_uuid?: number | null;
+  layout: 'horizontal' | 'vertical';
   /**
-   * Whether the user has access to the admin panel. This is set automatically based on the user groups.
+   * The steps are numbered in this order (2–6 steps).
    */
-  adminPanelAccess?: boolean | null;
-  /**
-   * The email address of the user. Used for matching when the user logs in via Hitobito.
-   */
-  email: string;
-  /**
-   * The full name of the user, as it will be displayed publicly.
-   */
-  fullName: string;
-  /**
-   * The Ceviname of the user.
-   */
-  nickname?: string | null;
-  groups?: GroupsOfTheUser;
-  /**
-   * The Hof of the user.
-   */
-  hof?: number | null;
-  /**
-   * The Quartier of the user.
-   */
-  quartier?: number | null;
-  /**
-   * An additional description of the user shown in the chat.
-   */
-  description?: string | null;
-  /**
-   * Hide this user from the chat creation selection.
-   */
-  hidden?: boolean | null;
-  /**
-   * Whether the user is currently present on the campsite.
-   */
-  presentAtCamp?: boolean | null;
-  /**
-   * Verlauf der Anwesenheit auf dem Lagerplatz (Check-in / Check-out).
-   */
-  presenceLogs?: {
-    docs?: (string | PresenceLog)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-  collection: 'users';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "presence-logs".
- */
-export interface PresenceLog {
-  id: string;
-  user: string | User;
-  isPresent: boolean;
-  timestamp: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "images".
- */
-export interface Image {
-  id: string;
-  /**
-   * Describe the image for screen readers. (de)
-   */
-  alt_de: string;
-  /**
-   * Describe the image for screen readers. (en)
-   */
-  alt_en: string;
-  /**
-   * Describe the image for screen readers. (fr)
-   */
-  alt_fr: string;
-  /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (de)
-   */
-  imageCaption_de?: string | null;
-  /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (en)
-   */
-  imageCaption_en?: string | null;
-  /**
-   * Optional text to display below the image (e.g. image source, copyright information, explanatory text) (fr)
-   */
-  imageCaption_fr?: string | null;
-  /**
-   * Indicates if this image was generated as a PDF thumbnail.
-   */
-  isPdfThumbnail?: boolean | null;
-  /**
-   * Example: for the newsletter
-   */
-  internalDescription?: string | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    tiny?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    large?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "permissions".
- */
-export interface Permission {
-  id: string;
-  /**
-   * The name of the permission.
-   */
-  permissionName: string;
-  /**
-   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
-   */
-  permissions?:
-    | {
-        group_id: number;
-        note?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * These permissions are special and disable group checking for CeviDB groups.
-   */
-  special_permissions?: {
-    public?: boolean | null;
-    logged_in?: boolean | null;
-  };
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "HeroSectionBlock".
- */
-export interface HeroSectionBlock {
-  badge?: string | null;
-  title: string;
-  description?: string | null;
-  primaryCtaLabel?: string | null;
-  primaryCtaLink?: string | null;
-  secondaryCtaLabel?: string | null;
-  secondaryCtaLink?: string | null;
-  deadlineText?: string | null;
-  image?: (string | null) | Image;
+  steps: {
+    title: string;
+    description: string;
+    id?: string | null;
+  }[];
   id?: string | null;
   blockName?: string | null;
-  blockType: 'heroSection';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "SectionSeparatorBlock".
- */
-export interface SectionSeparatorBlock {
-  /**
-   * If enabled, the separator is rendered full page width (max 1120px centered). Otherwise column width.
-   */
-  isFullWidth?: boolean | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'sectionSeparator';
+  blockType: 'processSteps';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -757,6 +1155,13 @@ export interface Form {
     formSection: {
       sectionTitle: string;
       layout?: ('standard' | 'split') | null;
+      /**
+       * Skips this whole step unless the named field of an earlier step holds the given value. Leave the field name empty to always show the step.
+       */
+      displayCondition?: {
+        field?: string | null;
+        value?: string | null;
+      };
       fields?:
         | (
             | {
@@ -984,6 +1389,41 @@ export interface Form {
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'jobSelection';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * First day a helper can mark.
+                 */
+                startDate: string;
+                /**
+                 * Last day a helper can mark.
+                 */
+                endDate: string;
+                minDays?: number | null;
+                /**
+                 * Leave empty to allow any length up to the last day.
+                 */
+                maxDays?: number | null;
+                /**
+                 * How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.
+                 */
+                maxRanges?: number | null;
+                /**
+                 * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.
+                 */
+                ressortName?: string | null;
+                ressortLabel?: string | null;
+                ressortRequired?: boolean | null;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'dateSlotSelection';
               }
             | {
                 name: string;
@@ -1233,6 +1673,41 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'jobSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * First day a helper can mark.
+                           */
+                          startDate: string;
+                          /**
+                           * Last day a helper can mark.
+                           */
+                          endDate: string;
+                          minDays?: number | null;
+                          /**
+                           * Leave empty to allow any length up to the last day.
+                           */
+                          maxDays?: number | null;
+                          /**
+                           * How many separate slots a helper may mark. Each one respects the minimum and maximum days, and slots cannot touch.
+                           */
+                          maxRanges?: number | null;
+                          /**
+                           * Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.
+                           */
+                          ressortName?: string | null;
+                          ressortLabel?: string | null;
+                          ressortRequired?: boolean | null;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'dateSlotSelection';
                         }
                       | {
                           name: string;
@@ -1669,6 +2144,7 @@ export interface Document {
   pdfThumbnailUrl?: string | null;
   permissions?: (string | null) | Permission;
   lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
   folder?: (string | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
@@ -1890,11 +2366,32 @@ export interface TeamMembersBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page".
+ * via the `definition` "camp-map-annotations".
  */
-export interface GenericPage {
+export interface CampMapAnnotation {
   id: string;
-  publishingStatus?:
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
+  annotationType: 'marker' | 'polygon';
+  icon?:
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
+    | null;
+  /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
     | {
         [k: string]: unknown;
       }
@@ -1903,250 +2400,202 @@ export interface GenericPage {
     | number
     | boolean
     | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
   /**
-   * Name of the page for internal purposes.
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
    */
-  internalPageName: string;
+  showLabel?: boolean | null;
   /**
-   * Authors of the Page (internal use only)
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
    */
-  authors?: (string | User)[] | null;
+  isInteractive?: boolean | null;
   /**
-   * Status of the page (internal use)
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
    */
-  internalStatus: 'draft' | 'translation' | 'review' | 'approved' | 'archived';
-  content: {
-    /**
-     * This is the title that will be displayed on the page.
-     */
-    pageTitle: string;
-    permissions?: (string | null) | Permission;
-    releaseDate: string;
-    /**
-     * The main content of the page
-     */
-    mainContent: (
-      | HeroSectionBlock
-      | SectionSeparatorBlock
-      | {
-          richTextSection: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          };
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'richTextSection';
-        }
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'blogPostsOverview';
-        }
-      | FormBlock
-      | ApprovedFormSubmissionsBlock
-      | {
-          images: (string | Image)[];
-          /**
-           * The aspect ratio applies to all images of the carousel. Images that do not match are cropped centrally.
-           */
-          aspectRatio?: ('video' | '3/2' | '4/3' | '1/1' | '3/4' | '2/3' | '9/16') | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'photoCarousel';
-        }
-      | PhotoContestBlock
-      | {
-          image: string | Image;
-          /**
-           * Choose the aspect ratio of the image.
-           */
-          aspectRatio: 'video' | '3/2' | '2/1' | '4/3' | '1/1' | '21/9' | 'auto';
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'singlePicture';
-        }
-      | YoutubeEmbedding
-      | InstagramEmbedding
-      | SwisstopoMapEmbedding
-      | {
-          file: string | Document;
-          openInNewTab?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'fileDownload';
-        }
-      | DetailsTable
-      | AccordionBlocks
-      | SummaryBox
-      | TimelineEntries
-      | Countdown
-      | {
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'whiteSpace';
-        }
-      | {
-          /**
-           * Label for the button
-           */
-          label?: string | null;
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          /**
-           * Show inverted colors
-           */
-          inverted?: boolean | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'callToAction';
-        }
-      | {
-          linkField?: {
-            type?: ('reference' | 'custom' | 'email') | null;
-            reference?:
-              | ({
-                  relationTo: 'blog';
-                  value: string | Blog;
-                } | null)
-              | ({
-                  relationTo: 'generic-page';
-                  value: string | GenericPage;
-                } | null)
-              | ({
-                  relationTo: 'images';
-                  value: string | Image;
-                } | null)
-              | ({
-                  relationTo: 'documents';
-                  value: string | Document;
-                } | null)
-              | ({
-                  relationTo: 'camp-map-annotations';
-                  value: string | CampMapAnnotation;
-                } | null)
-              | ({
-                  relationTo: 'camp-schedule-entry';
-                  value: string | CampScheduleEntry;
-                } | null);
-            /**
-             * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
-             */
-            fragment?: string | null;
-            url?: string | null;
-            email?: string | null;
-            openInNewTab?: boolean | null;
-          };
-          headline: string;
-          date: string;
-          image?: (string | null) | Image;
-          paragraph?: {
-            root: {
-              type: string;
-              children: {
-                type: any;
-                version: number;
-                [k: string]: unknown;
-              }[];
-              direction: ('ltr' | 'rtl') | null;
-              format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-              indent: number;
-              version: number;
-            };
-            [k: string]: unknown;
-          } | null;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'newsCard';
-        }
-      | {
-          date: string;
-          location?: (string | null) | CampMapAnnotation;
-          id?: string | null;
-          blockName?: string | null;
-          blockType: 'campScheduleEntryBlock';
-        }
-      | CardGridBlock
-      | ContactPersonBlock
-      | TwoColumnBlock
-      | SponsorGridBlock
-      | FeaturedSectionBlock
-      | TabsBlock
-    )[];
+  hiddenOnDefaultMap?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
   };
-  seo: {
-    urlSlug: string;
-    /**
-     * This is the title that will be displayed in the browser tab.
-     */
-    metaTitle?: string | null;
-    /**
-     * This is the description that will be displayed in search engine results.
-     */
-    metaDescription?: string | null;
-    /**
-     * These are the keywords that will be used to improve the visibility of the page in search engines.
-     */
-    keywords?: string | null;
-    urlSlugHistory?:
-      | {
-          slug?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-  };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
   lastEditedByUser?: (string | null) | User;
-  allowsEditsByUser?: (string | User)[] | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-schedule-entry".
+ */
+export interface CampScheduleEntry {
+  id: string;
+  /**
+   * The title of the entry.
+   */
+  title: string;
+  /**
+   * The description of the entry
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * Time slots for the schedule entry
+   */
+  timeslot: {
+    date: string;
+    /**
+     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
+     */
+    time: string;
+  };
+  target_group?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  enable_enrolment?: boolean | null;
+  hide_participant_list?: boolean | null;
+  participants_min?: number | null;
+  participants_max?: number | null;
+  /**
+   * Location of the Schedule Entry
+   */
+  location: string | CampMapAnnotation;
+  /**
+   * Organiser
+   */
+  organiser?: (string | User)[] | null;
+  category?: (string | null) | CampCategory;
+  lastEditedByUser?: (string | null) | User;
+  enrolledCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-categories".
+ */
+export interface CampCategory {
+  id: string;
+  title: string;
+  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "AccordionTimelineElementBlock".
+ */
+export interface AccordionTimelineElementBlock {
+  dateText: string;
+  title: string;
+  contentBlocks?:
+    | (
+        | PlainTextBlock
+        | TeamMembersBlock
+        | FormBlock
+        | {
+            file: string | Document;
+            openInNewTab?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fileDownload';
+          }
+      )[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'accordionTimelineElement';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TitleOnlyAccordionValueBlock".
+ */
+export interface TitleOnlyAccordionValueBlock {
+  title: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'titleOnlyAccordionValueBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "NestedAccordionBlocks".
+ */
+export interface NestedAccordionBlocks {
+  accordionBlocks?:
+    | {
+        title: string;
+        valueBlocks: (
+          | PlainTextBlock
+          | TeamMembersBlock
+          | FormBlock
+          | {
+              file: string | Document;
+              openInNewTab?: boolean | null;
+              id?: string | null;
+              blockName?: string | null;
+              blockType: 'fileDownload';
+            }
+          | AccordionTimelineElementBlock
+          | TitleOnlyAccordionValueBlock
+        )[];
+        id?: string | null;
+      }[]
+    | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'nestedAccordion';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2341,186 +2790,6 @@ export interface Timeline {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-map-annotations".
- */
-export interface CampMapAnnotation {
-  id: string;
-  /**
-   * The title of the annotation.
-   */
-  title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
-  annotationType: 'marker' | 'polygon';
-  icon?:
-    | (
-        | 'MapPin'
-        | 'Tent'
-        | 'Utensils'
-        | 'Flag'
-        | 'HelpCircle'
-        | 'Recycle'
-        | 'GlassWater'
-        | 'Stage'
-        | 'Toilet'
-        | 'BriefcaseMedical'
-      )
-    | null;
-  /**
-   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
-   */
-  importance: 'high' | 'medium' | 'low';
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  geometry?: [number, number] | null;
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
-   */
-  showLabel?: boolean | null;
-  /**
-   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
-   */
-  isInteractive?: boolean | null;
-  /**
-   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
-   */
-  hiddenOnDefaultMap?: boolean | null;
-  /**
-   * If checked, users will be able to report issues and start a support chat from this location.
-   */
-  enableSupportChat?: boolean | null;
-  /**
-   * A detailed description of the annotation.
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  openingHours?:
-    | {
-        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
-        /**
-         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
-         */
-        time: string;
-        id?: string | null;
-      }[]
-    | null;
-  images?: (string | Image)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-schedule-entry".
- */
-export interface CampScheduleEntry {
-  id: string;
-  /**
-   * The title of the entry.
-   */
-  title: string;
-  /**
-   * The description of the entry
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  /**
-   * Time slots for the schedule entry
-   */
-  timeslot: {
-    date: string;
-    /**
-     * Time slots in HH:mm format (e.g., 08:00 - 18:00)
-     */
-    time: string;
-  };
-  target_group?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  enable_enrolment?: boolean | null;
-  hide_participant_list?: boolean | null;
-  participants_min?: number | null;
-  participants_max?: number | null;
-  /**
-   * Location of the Schedule Entry
-   */
-  location: string | CampMapAnnotation;
-  /**
-   * Organiser
-   */
-  organiser?: (string | User)[] | null;
-  category?: (string | null) | CampCategory;
-  lastEditedByUser?: (string | null) | User;
-  enrolledCount?: number | null;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-categories".
- */
-export interface CampCategory {
-  id: string;
-  title: string;
-  colorTheme: 'purple' | 'green' | 'blue' | 'gray' | 'indigo' | 'amber' | 'rose' | 'cyan' | 'orange';
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "countdown".
  */
 export interface Countdown {
@@ -2540,6 +2809,128 @@ export interface Countdown {
   id?: string | null;
   blockName?: string | null;
   blockType: 'countdown';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationCtaBlock".
+ */
+export interface DonationCtaBlock {
+  eyebrow?: string | null;
+  /**
+   * A title that names the impact carries further than one that names the action: "Give every child a camp" rather than "Donate now".
+   */
+  title: string;
+  description?: string | null;
+  buttonLabel: string;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  /**
+   * Optional logos (e.g. TWINT, Visa, Mastercard). Upload the official logos to the media library and select them here.
+   */
+  paymentMethods?:
+    | {
+        logo: string | Image;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * e.g. "Payments are processed securely via RaiseNow."
+   */
+  note?: string | null;
+  variant: 'highlight' | 'card';
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'donationCta';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationBarometerBlock".
+ */
+export interface DonationBarometerBlock {
+  /**
+   * The amount raised and the goal are maintained under "Donation Barometer" in the page settings — they apply to every page and are not set here.
+   */
+  eyebrow?: string | null;
+  /**
+   * Name the goal, not the barometer: "So every child can come along" carries further than "Donation status".
+   */
+  title: string;
+  description?: string | null;
+  /**
+   * Leave empty when the barometer sits next to a separate donation call-to-action.
+   */
+  buttonLabel?: string | null;
+  linkField?: {
+    type?: ('reference' | 'custom' | 'email') | null;
+    reference?:
+      | ({
+          relationTo: 'blog';
+          value: string | Blog;
+        } | null)
+      | ({
+          relationTo: 'generic-page';
+          value: string | GenericPage;
+        } | null)
+      | ({
+          relationTo: 'images';
+          value: string | Image;
+        } | null)
+      | ({
+          relationTo: 'documents';
+          value: string | Document;
+        } | null)
+      | ({
+          relationTo: 'camp-map-annotations';
+          value: string | CampMapAnnotation;
+        } | null)
+      | ({
+          relationTo: 'camp-schedule-entry';
+          value: string | CampScheduleEntry;
+        } | null);
+    /**
+     * Optional fragment / anchor (e.g. "projektleitung" for accordion block)
+     */
+    fragment?: string | null;
+    url?: string | null;
+    email?: string | null;
+    openInNewTab?: boolean | null;
+  };
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'donationBarometer';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2882,6 +3273,7 @@ export interface TwoColumnBlock {
       }
     | CardGridBlock
     | ContactPersonBlock
+    | ProcessStepsBlock
   )[];
   /**
    * Content for the right column.
@@ -3070,6 +3462,7 @@ export interface TwoColumnBlock {
       }
     | CardGridBlock
     | ContactPersonBlock
+    | ProcessStepsBlock
   )[];
   id?: string | null;
   blockName?: string | null;
@@ -3418,6 +3811,7 @@ export interface TabsBlock {
         }
       | CardGridBlock
       | ContactPersonBlock
+      | ProcessStepsBlock
     )[];
     id?: string | null;
   }[];
@@ -3427,67 +3821,240 @@ export interface TabsBlock {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "AccordionTimelineElementBlock".
+ * via the `definition` "userSubmittedImages".
  */
-export interface AccordionTimelineElementBlock {
-  dateText: string;
-  title: string;
-  contentBlocks?:
-    | (
-        | PlainTextBlock
-        | TeamMembersBlock
-        | FormBlock
-        | {
-            file: string | Document;
-            openInNewTab?: boolean | null;
-            id?: string | null;
-            blockName?: string | null;
-            blockType: 'fileDownload';
-          }
-      )[]
-    | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'accordionTimelineElement';
+export interface UserSubmittedImage {
+  id: string;
+  uploaded_by: string | User;
+  original_filename?: string | null;
+  user_description: string;
+  content_hash?: string | null;
+  lastEditedByUser?: (string | null) | User;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    tiny?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    large?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TitleOnlyAccordionValueBlock".
+ * via the `definition` "form_collection".
  */
-export interface TitleOnlyAccordionValueBlock {
-  title: string;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'titleOnlyAccordionValueBlock';
+export interface FormCollection {
+  id: string;
+  /**
+   * Temporary files are deleted automatically after 24 hours if the form is not submitted.
+   */
+  isTemporary: boolean;
+  form?: (string | null) | Form;
+  formSubmission?: (string | null) | FormSubmission;
+  originalFilename?: string | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "NestedAccordionBlocks".
+ * via the `definition` "blocked-jobs".
  */
-export interface NestedAccordionBlocks {
-  accordionBlocks?:
+export interface BlockedJob {
+  id: string;
+  /**
+   * The original payload job ID that was blocked.
+   */
+  originalJobId: string;
+  /**
+   * The workflow that will be re-queued upon resolution.
+   */
+  workflowSlug: string;
+  /**
+   * The original input data for the workflow.
+   */
+  input:
     | {
-        title: string;
-        valueBlocks: (
-          | PlainTextBlock
-          | TeamMembersBlock
-          | FormBlock
-          | {
-              file: string | Document;
-              openInNewTab?: boolean | null;
-              id?: string | null;
-              blockName?: string | null;
-              blockType: 'fileDownload';
-            }
-          | AccordionTimelineElementBlock
-          | TitleOnlyAccordionValueBlock
-        )[];
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'pending' | 'resolved' | 'rejected';
+  /**
+   * The reason why the job was blocked.
+   */
+  reason?: string | null;
+  /**
+   * Resolution data to merge into the workflow input when re-queued.
+   */
+  resolutionData?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcement-channels".
+ */
+export interface AnnouncementChannel {
+  id: string;
+  name: string;
+  description?: string | null;
+  targetType: 'all' | 'roles' | 'cevi_groups';
+  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
+  targetCeviGroups?:
+    | {
+        groupId: number;
+        groupName: string;
         id?: string | null;
       }[]
     | null;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'nestedAccordion';
+  allowEmojiReactions?: boolean | null;
+  allowThreads?: boolean | null;
+  allowThreadReplies?: boolean | null;
+  chatUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements".
+ */
+export interface Announcement {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  /**
+   * These images are sent along with the announcement into the chat.
+   */
+  images?: (string | Image)[] | null;
+  channel: string | AnnouncementChannel;
+  status: 'scheduled' | 'published';
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  author?: (string | null) | User;
+  chatMessageUuid?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards".
+ */
+export interface EmergencyCard {
+  id: string;
+  publishingStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  _localized_status: LocalizedPublishingStatus;
+  _disable_unpublishing?: boolean | null;
+  _locale: string;
+  title: string;
+  description: string;
+  procedure: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  documents?: (string | Document)[] | null;
+  images?: (string | Image)[] | null;
+  /**
+   * If enabled, this card will be expanded by default when viewing the emergency page.
+   */
+  isExpandedByDefault?: boolean | null;
+  /**
+   * If enabled, this card will always remain expanded and cannot be collapsed by users.
+   */
+  isNonMinifiable?: boolean | null;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3498,8 +4065,10 @@ export interface PhotoContest {
   slug: string;
   title: string;
   description?: string | null;
-  contestType?: ('PRESELECTED' | 'LIVE_EVENT') | null;
-  status?: ('DRAFT' | 'UPLOADING' | 'VOTING' | 'CLOSED') | null;
+  /**
+   * Controls what participants see in the app: nothing, the vote, only the photos, or photos including the score.
+   */
+  status: 'HIDDEN' | 'ACTIVE' | 'CLOSED_HIDDEN' | 'CLOSED';
   maxPointsPerUser?: number | null;
   maxPointsPerImage?: number | null;
   images?:
@@ -3588,6 +4157,10 @@ export interface HelperShift {
       )[]
     | null;
   /**
+   * Organisers of this shift. The shift shows up in their daily program automatically, they are shown to helpers as contacts, and they are the only ones who see the list of enrolled helpers in the app.
+   */
+  organiser?: (string | User)[] | null;
+  /**
    * Location of the shift (optional).
    */
   location?: (string | null) | CampMapAnnotation;
@@ -3600,6 +4173,10 @@ export interface HelperShift {
    */
   participants_max?: number | null;
   enable_enrolment?: boolean | null;
+  /**
+   * How many minutes before the shift starts helpers can no longer withdraw from it. Set to 0 to allow withdrawing until the shift begins.
+   */
+  unenrollment_deadline_minutes?: number | null;
   hide_participant_list?: boolean | null;
   /**
    * Hide this slot when full for users who are not enrolled in it.
@@ -3630,188 +4207,18 @@ export interface HelperShift {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "announcement-channels".
+ * via the `definition` "piket-schedules".
  */
-export interface AnnouncementChannel {
+export interface PiketSchedule {
   id: string;
-  name: string;
-  description?: string | null;
-  targetType: 'all' | 'roles' | 'cevi_groups';
-  targetRoles?: ('full-admin' | 'web-core-team' | 'translation-team' | 'program-team')[] | null;
-  targetCeviGroups?:
-    | {
-        groupId: number;
-        groupName: string;
-        id?: string | null;
-      }[]
-    | null;
-  allowEmojiReactions?: boolean | null;
-  allowThreads?: boolean | null;
-  allowThreadReplies?: boolean | null;
-  chatUuid?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "announcements".
- */
-export interface Announcement {
-  id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  title: string;
-  content: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  channel: string | AnnouncementChannel;
-  status: 'scheduled' | 'published';
-  scheduledAt?: string | null;
-  publishedAt?: string | null;
-  author?: (string | null) | User;
-  chatMessageUuid?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "emergency-cards".
- */
-export interface EmergencyCard {
-  id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  title: string;
-  description: string;
-  procedure: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  documents?: (string | Document)[] | null;
-  images?: (string | Image)[] | null;
-  /**
-   * If enabled, this card will be expanded by default when viewing the emergency page.
-   */
-  isExpandedByDefault?: boolean | null;
-  /**
-   * If enabled, this card will always remain expanded and cannot be collapsed by users.
-   */
-  isNonMinifiable?: boolean | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  _status?: ('draft' | 'published') | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "userSubmittedImages".
- */
-export interface UserSubmittedImage {
-  id: string;
-  uploaded_by: string | User;
-  original_filename?: string | null;
-  user_description: string;
-  content_hash?: string | null;
+  users: (string | User)[];
+  startTime: string;
+  endTime: string;
+  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP')[];
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    tiny?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-    large?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form_collection".
- */
-export interface FormCollection {
-  id: string;
-  /**
-   * Temporary files are deleted automatically after 24 hours if the form is not submitted.
-   */
-  isTemporary: boolean;
-  form?: (string | null) | Form;
-  formSubmission?: (string | null) | FormSubmission;
-  originalFilename?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3836,134 +4243,7 @@ export interface PushNotificationSubscription {
   createdAt: string;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "chat-images".
- */
-export interface ChatImage {
-  id: string;
-  chatId: string;
-  uploadedBy: string | User;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    thumbnail?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blocked-jobs".
- */
-export interface BlockedJob {
-  id: string;
-  /**
-   * The original payload job ID that was blocked.
-   */
-  originalJobId: string;
-  /**
-   * The workflow that will be re-queued upon resolution.
-   */
-  workflowSlug: string;
-  /**
-   * The original input data for the workflow.
-   */
-  input:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  status: 'pending' | 'resolved' | 'rejected';
-  /**
-   * The reason why the job was blocked.
-   */
-  reason?: string | null;
-  /**
-   * Resolution data to merge into the workflow input when re-queued.
-   */
-  resolutionData?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "smtp-bounce-mail-tracking".
- */
-export interface SmtpBounceMailTracking {
-  id: string;
-  uid: string;
-  failureCount: number;
-  lastAttempt: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "outgoing-emails".
- */
-export interface OutgoingEmail {
-  id: string;
-  deliveryStatus?: ('pending' | 'success' | 'error') | null;
-  dsnReceivedAt?: string | null;
-  smtpReceivedAt?: string | null;
-  to: string;
-  subject: string;
-  formSubmission?: (string | null) | FormSubmission;
-  billParticipant?: (string | null) | BillParticipant;
-  type?: ('formSubmission' | 'billParticipant' | 'other') | null;
-  form?: (string | null) | Form;
-  html?: string | null;
-  smtpResults?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  rawSmtpResults?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  rawDsnEmail?: string | null;
-  createdAt: string;
-  lastRetriggeredBy?: (string | null) | User;
-  updatedAt: string;
-}
-/**
- * Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.
+ * Participants synced from Cevi.DB, and the bills raised for them.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bill-participants".
@@ -3994,6 +4274,10 @@ export interface BillParticipant {
   zipCode?: string | null;
   town?: string | null;
   email?: string | null;
+  /**
+   * The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.
+   */
+  anmeldestatus?: string | null;
   birthday?: string | null;
   gender?: string | null;
   active?: boolean | null;
@@ -4002,16 +4286,39 @@ export interface BillParticipant {
   lastSyncDate?: string | null;
   billCreatedDate?: string | null;
   billSentDate?: string | null;
+  /**
+   * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
+   */
+  financeNote?: string | null;
   removedDate?: string | null;
   reAddedDate?: string | null;
   referenceNumber?: string | null;
   invoiceNumber?: string | null;
+  /**
+   * Gross amount, i.e. the net camp fee plus VAT.
+   */
   invoiceAmount?: number | null;
+  netAmount?: number | null;
+  vatExempt?: boolean | null;
+  /**
+   * The VAT lines as they were printed on the bill.
+   */
+  vatBreakdown?:
+    | {
+        label?: string | null;
+        share?: number | null;
+        netAmount?: number | null;
+        vatCode?: string | null;
+        vatAmount?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   billPdfs?: (string | BillPdf)[] | null;
   status:
     | 'new'
     | 'pflichtangaben_missing'
     | 'invalid_anmeldeangaben'
+    | 'needs_manual_review'
     | 'bill_created'
     | 'bill_sent'
     | 'removed'
@@ -4053,6 +4360,11 @@ export interface BillParticipant {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  reminderEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -4062,6 +4374,7 @@ export interface BillParticipant {
  */
 export interface BillPdf {
   id: string;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -4076,18 +4389,43 @@ export interface BillPdf {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "piket-schedules".
+ * via the `definition` "outgoing-emails".
  */
-export interface PiketSchedule {
+export interface OutgoingEmail {
   id: string;
-  users: (string | User)[];
-  startTime: string;
-  endTime: string;
-  chatTypes: ('EMERGENCY' | 'SUPPORT_GROUP')[];
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
+  deliveryStatus?: ('pending' | 'success' | 'error') | null;
+  dsnReceivedAt?: string | null;
+  smtpReceivedAt?: string | null;
+  to: string;
+  subject: string;
+  formSubmission?: (string | null) | FormSubmission;
+  billParticipant?: (string | null) | BillParticipant;
+  billParticipants?: (string | BillParticipant)[] | null;
+  type?: ('formSubmission' | 'billParticipant' | 'other') | null;
+  form?: (string | null) | Form;
+  html?: string | null;
+  smtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawSmtpResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  rawDsnEmail?: string | null;
   createdAt: string;
-  deletedAt?: string | null;
+  lastRetriggeredBy?: (string | null) | User;
+  updatedAt: string;
 }
 /**
  * Registered background worker instances and their activity heartbeats.
@@ -4107,6 +4445,56 @@ export interface PayloadWorker {
     | null;
   lastHeartbeat: string;
   activeJobId?: string | null;
+  activeJobIds?:
+    | {
+        jobId: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "chat-images".
+ */
+export interface ChatImage {
+  id: string;
+  chatId: string;
+  uploadedBy: string | User;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "smtp-bounce-mail-tracking".
+ */
+export interface SmtpBounceMailTracking {
+  id: string;
+  uid: string;
+  failureCount: number;
+  lastAttempt: string;
+  ignoredAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4237,6 +4625,62 @@ export interface Import {
   focalY?: number | null;
 }
 /**
+ * Bearer tokens that let an MCP client (Claude, Cursor, …) read and edit content. Point the client at /api/mcp on this site and send the key as the header "Authorization: Bearer <key>". Every capability below is off until you tick it, and the key can never do more than the user it belongs to. Copy the key right after saving — it is only readable while the document is open.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-mcp-api-keys".
+ */
+export interface PayloadMcpApiKey {
+  id: string;
+  /**
+   * The user this key acts as. Every read and write the MCP client makes is checked against this user's roles, so the key inherits their permissions — and nothing more. Defaults to you.
+   */
+  user: string | User;
+  /**
+   * A useful label for the API key.
+   */
+  label?: string | null;
+  /**
+   * The purpose of the API key.
+   */
+  description?: string | null;
+  genericPage?: {
+    /**
+     * Allow clients to find generic-page.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create generic-page.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update generic-page.
+     */
+    update?: boolean | null;
+  };
+  forms?: {
+    /**
+     * Allow clients to find forms.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create forms.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update forms.
+     */
+    update?: boolean | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  hasAPIKey?: boolean | null;
+  collection: 'payload-mcp-api-keys';
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -4323,7 +4767,10 @@ export interface PayloadJob {
           | 'syncParticipants'
           | 'generateBills'
           | 'sendBills'
+          | 'sendWeeklyReport'
+          | 'sendPflichtangabenReminders'
           | 'cleanupTemporaryFormFiles'
+          | 'autoCheckoutPresence'
           | 'createCollectionExport'
           | 'createCollectionImport';
         taskID: string;
@@ -4378,7 +4825,10 @@ export interface PayloadJob {
         | 'syncParticipants'
         | 'generateBills'
         | 'sendBills'
+        | 'sendWeeklyReport'
+        | 'sendPflichtangabenReminders'
         | 'cleanupTemporaryFormFiles'
+        | 'autoCheckoutPresence'
         | 'createCollectionExport'
         | 'createCollectionImport'
       )
@@ -4406,16 +4856,60 @@ export interface PayloadLockedDocument {
   id: string;
   document?:
     | ({
-        relationTo: 'blog';
-        value: string | Blog;
-      } | null)
-    | ({
         relationTo: 'generic-page';
         value: string | GenericPage;
       } | null)
     | ({
+        relationTo: 'blog';
+        value: string | Blog;
+      } | null)
+    | ({
         relationTo: 'timeline';
         value: string | Timeline;
+      } | null)
+    | ({
+        relationTo: 'timelineCategory';
+        value: string | TimelineCategory;
+      } | null)
+    | ({
+        relationTo: 'images';
+        value: string | Image;
+      } | null)
+    | ({
+        relationTo: 'userSubmittedImages';
+        value: string | UserSubmittedImage;
+      } | null)
+    | ({
+        relationTo: 'documents';
+        value: string | Document;
+      } | null)
+    | ({
+        relationTo: 'permissions';
+        value: string | Permission;
+      } | null)
+    | ({
+        relationTo: 'form_collection';
+        value: string | FormCollection;
+      } | null)
+    | ({
+        relationTo: 'helper-jobs';
+        value: string | HelperJob;
+      } | null)
+    | ({
+        relationTo: 'blocked-jobs';
+        value: string | BlockedJob;
+      } | null)
+    | ({
+        relationTo: 'announcement-channels';
+        value: string | AnnouncementChannel;
+      } | null)
+    | ({
+        relationTo: 'announcements';
+        value: string | Announcement;
+      } | null)
+    | ({
+        relationTo: 'emergency-cards';
+        value: string | EmergencyCard;
       } | null)
     | ({
         relationTo: 'photo-contests';
@@ -4438,68 +4932,20 @@ export interface PayloadLockedDocument {
         value: string | HelperShift;
       } | null)
     | ({
-        relationTo: 'helper-jobs';
-        value: string | HelperJob;
-      } | null)
-    | ({
-        relationTo: 'announcement-channels';
-        value: string | AnnouncementChannel;
-      } | null)
-    | ({
-        relationTo: 'announcements';
-        value: string | Announcement;
-      } | null)
-    | ({
-        relationTo: 'emergency-cards';
-        value: string | EmergencyCard;
-      } | null)
-    | ({
-        relationTo: 'images';
-        value: string | Image;
-      } | null)
-    | ({
-        relationTo: 'userSubmittedImages';
-        value: string | UserSubmittedImage;
-      } | null)
-    | ({
-        relationTo: 'documents';
-        value: string | Document;
-      } | null)
-    | ({
-        relationTo: 'form_collection';
-        value: string | FormCollection;
-      } | null)
-    | ({
-        relationTo: 'users';
-        value: string | User;
-      } | null)
-    | ({
-        relationTo: 'permissions';
-        value: string | Permission;
+        relationTo: 'piket-schedules';
+        value: string | PiketSchedule;
       } | null)
     | ({
         relationTo: 'push-notification-subscriptions';
         value: string | PushNotificationSubscription;
       } | null)
     | ({
-        relationTo: 'timelineCategory';
-        value: string | TimelineCategory;
+        relationTo: 'users';
+        value: string | User;
       } | null)
     | ({
-        relationTo: 'chat-images';
-        value: string | ChatImage;
-      } | null)
-    | ({
-        relationTo: 'blocked-jobs';
-        value: string | BlockedJob;
-      } | null)
-    | ({
-        relationTo: 'smtp-bounce-mail-tracking';
-        value: string | SmtpBounceMailTracking;
-      } | null)
-    | ({
-        relationTo: 'outgoing-emails';
-        value: string | OutgoingEmail;
+        relationTo: 'presence-logs';
+        value: string | PresenceLog;
       } | null)
     | ({
         relationTo: 'bill-participants';
@@ -4510,16 +4956,20 @@ export interface PayloadLockedDocument {
         value: string | BillPdf;
       } | null)
     | ({
-        relationTo: 'piket-schedules';
-        value: string | PiketSchedule;
+        relationTo: 'outgoing-emails';
+        value: string | OutgoingEmail;
       } | null)
     | ({
         relationTo: 'payload-workers';
         value: string | PayloadWorker;
       } | null)
     | ({
-        relationTo: 'presence-logs';
-        value: string | PresenceLog;
+        relationTo: 'chat-images';
+        value: string | ChatImage;
+      } | null)
+    | ({
+        relationTo: 'smtp-bounce-mail-tracking';
+        value: string | SmtpBounceMailTracking;
       } | null)
     | ({
         relationTo: 'forms';
@@ -4538,14 +4988,23 @@ export interface PayloadLockedDocument {
         value: string | Go;
       } | null)
     | ({
+        relationTo: 'payload-mcp-api-keys';
+        value: string | PayloadMcpApiKey;
+      } | null)
+    | ({
         relationTo: 'payload-folders';
         value: string | FolderInterface;
       } | null);
   globalSlug?: string | null;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'payload-mcp-api-keys';
+        value: string | PayloadMcpApiKey;
+      };
   updatedAt: string;
   createdAt: string;
 }
@@ -4555,10 +5014,15 @@ export interface PayloadLockedDocument {
  */
 export interface PayloadPreference {
   id: string;
-  user: {
-    relationTo: 'users';
-    value: string | User;
-  };
+  user:
+    | {
+        relationTo: 'users';
+        value: string | User;
+      }
+    | {
+        relationTo: 'payload-mcp-api-keys';
+        value: string | PayloadMcpApiKey;
+      };
   key?: string | null;
   value?:
     | {
@@ -4585,9 +5049,9 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blog_select".
+ * via the `definition` "generic-page_select".
  */
-export interface BlogSelect<T extends boolean = true> {
+export interface GenericPageSelect<T extends boolean = true> {
   publishingStatus?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
@@ -4598,11 +5062,9 @@ export interface BlogSelect<T extends boolean = true> {
   content?:
     | T
     | {
-        blogH1?: T;
-        bannerImage?: T;
-        releaseDate?: T;
+        pageTitle?: T;
         permissions?: T;
-        blogShortTitle?: T;
+        releaseDate?: T;
         mainContent?:
           | T
           | {
@@ -4615,6 +5077,8 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              mediaText?: T | MediaTextBlockSelect<T>;
+              processSteps?: T | ProcessStepsBlockSelect<T>;
               blogPostsOverview?:
                 | T
                 | {
@@ -4680,6 +5144,8 @@ export interface BlogSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              donationCta?: T | DonationCtaBlockSelect<T>;
+              donationBarometer?: T | DonationBarometerBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -4731,6 +5197,7 @@ export interface BlogSelect<T extends boolean = true> {
             };
       };
   lastEditedByUser?: T;
+  allowsEditsByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -4759,6 +5226,50 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
  */
 export interface SectionSeparatorBlockSelect<T extends boolean = true> {
   isFullWidth?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaTextBlock_select".
+ */
+export interface MediaTextBlockSelect<T extends boolean = true> {
+  image?: T;
+  imagePosition?: T;
+  imageWidth?: T;
+  imageShape?: T;
+  background?: T;
+  eyebrow?: T;
+  title?: T;
+  richTextSection?: T;
+  linkLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ProcessStepsBlock_select".
+ */
+export interface ProcessStepsBlockSelect<T extends boolean = true> {
+  title?: T;
+  layout?: T;
+  steps?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        id?: T;
+      };
   id?: T;
   blockName?: T;
 }
@@ -5049,6 +5560,58 @@ export interface CountdownSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationCtaBlock_select".
+ */
+export interface DonationCtaBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
+  paymentMethods?:
+    | T
+    | {
+        logo?: T;
+        id?: T;
+      };
+  note?: T;
+  variant?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "DonationBarometerBlock_select".
+ */
+export interface DonationBarometerBlockSelect<T extends boolean = true> {
+  eyebrow?: T;
+  title?: T;
+  description?: T;
+  buttonLabel?: T;
+  linkField?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        fragment?: T;
+        url?: T;
+        email?: T;
+        openInNewTab?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "CardGridBlock_select".
  */
 export interface CardGridBlockSelect<T extends boolean = true> {
@@ -5212,6 +5775,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
             };
         cardGrid?: T | CardGridBlockSelect<T>;
         contactPerson?: T | ContactPersonBlockSelect<T>;
+        processSteps?: T | ProcessStepsBlockSelect<T>;
       };
   rightColumn?:
     | T
@@ -5318,6 +5882,7 @@ export interface TwoColumnBlockSelect<T extends boolean = true> {
             };
         cardGrid?: T | CardGridBlockSelect<T>;
         contactPerson?: T | ContactPersonBlockSelect<T>;
+        processSteps?: T | ProcessStepsBlockSelect<T>;
       };
   id?: T;
   blockName?: T;
@@ -5514,6 +6079,7 @@ export interface TabsBlockSelect<T extends boolean = true> {
                   };
               cardGrid?: T | CardGridBlockSelect<T>;
               contactPerson?: T | ContactPersonBlockSelect<T>;
+              processSteps?: T | ProcessStepsBlockSelect<T>;
             };
         id?: T;
       };
@@ -5522,9 +6088,9 @@ export interface TabsBlockSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "generic-page_select".
+ * via the `definition` "blog_select".
  */
-export interface GenericPageSelect<T extends boolean = true> {
+export interface BlogSelect<T extends boolean = true> {
   publishingStatus?: T;
   _localized_status?: T;
   _disable_unpublishing?: T;
@@ -5535,9 +6101,11 @@ export interface GenericPageSelect<T extends boolean = true> {
   content?:
     | T
     | {
-        pageTitle?: T;
-        permissions?: T;
+        blogH1?: T;
+        bannerImage?: T;
         releaseDate?: T;
+        permissions?: T;
+        blogShortTitle?: T;
         mainContent?:
           | T
           | {
@@ -5550,6 +6118,8 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              mediaText?: T | MediaTextBlockSelect<T>;
+              processSteps?: T | ProcessStepsBlockSelect<T>;
               blogPostsOverview?:
                 | T
                 | {
@@ -5615,6 +6185,8 @@ export interface GenericPageSelect<T extends boolean = true> {
                     id?: T;
                     blockName?: T;
                   };
+              donationCta?: T | DonationCtaBlockSelect<T>;
+              donationBarometer?: T | DonationBarometerBlockSelect<T>;
               newsCard?:
                 | T
                 | {
@@ -5666,7 +6238,6 @@ export interface GenericPageSelect<T extends boolean = true> {
             };
       };
   lastEditedByUser?: T;
-  allowsEditsByUser?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
@@ -5736,13 +6307,297 @@ export interface TimelineSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "timelineCategory_select".
+ */
+export interface TimelineCategorySelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  relatedTimelineEntries?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "images_select".
+ */
+export interface ImagesSelect<T extends boolean = true> {
+  alt_de?: T;
+  alt_en?: T;
+  alt_fr?: T;
+  imageCaption_de?: T;
+  imageCaption_en?: T;
+  imageCaption_fr?: T;
+  isPdfThumbnail?: T;
+  internalDescription?: T;
+  lastEditedByUser?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        tiny?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        large?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "userSubmittedImages_select".
+ */
+export interface UserSubmittedImagesSelect<T extends boolean = true> {
+  uploaded_by?: T;
+  original_filename?: T;
+  user_description?: T;
+  content_hash?: T;
+  lastEditedByUser?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        tiny?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        large?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "documents_select".
+ */
+export interface DocumentsSelect<T extends boolean = true> {
+  internalDescription?: T;
+  pdfThumbnailUrl?: T;
+  permissions?: T;
+  lastEditedByUser?: T;
+  _objectKey?: T;
+  folder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "permissions_select".
+ */
+export interface PermissionsSelect<T extends boolean = true> {
+  permissionName?: T;
+  permissions?:
+    | T
+    | {
+        group_id?: T;
+        note?: T;
+        id?: T;
+      };
+  special_permissions?:
+    | T
+    | {
+        public?: T;
+        logged_in?: T;
+      };
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form_collection_select".
+ */
+export interface FormCollectionSelect<T extends boolean = true> {
+  isTemporary?: T;
+  form?: T;
+  formSubmission?: T;
+  originalFilename?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "helper-jobs_select".
+ */
+export interface HelperJobsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  category?: T;
+  maxQuota?: T;
+  dateRange?:
+    | T
+    | {
+        startDate?: T;
+        endDate?: T;
+      };
+  dateRangeCategory?: T;
+  prerequisites?: T;
+  submissions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "blocked-jobs_select".
+ */
+export interface BlockedJobsSelect<T extends boolean = true> {
+  originalJobId?: T;
+  workflowSlug?: T;
+  input?: T;
+  status?: T;
+  reason?: T;
+  resolutionData?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcement-channels_select".
+ */
+export interface AnnouncementChannelsSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  targetType?: T;
+  targetRoles?: T;
+  targetCeviGroups?:
+    | T
+    | {
+        groupId?: T;
+        groupName?: T;
+        id?: T;
+      };
+  allowEmojiReactions?: T;
+  allowThreads?: T;
+  allowThreadReplies?: T;
+  chatUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "announcements_select".
+ */
+export interface AnnouncementsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  content?: T;
+  images?: T;
+  channel?: T;
+  status?: T;
+  scheduledAt?: T;
+  publishedAt?: T;
+  author?: T;
+  chatMessageUuid?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "emergency-cards_select".
+ */
+export interface EmergencyCardsSelect<T extends boolean = true> {
+  publishingStatus?: T;
+  _localized_status?: T;
+  _disable_unpublishing?: T;
+  _locale?: T;
+  title?: T;
+  description?: T;
+  procedure?: T;
+  documents?: T;
+  images?: T;
+  isExpandedByDefault?: T;
+  isNonMinifiable?: T;
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "photo-contests_select".
  */
 export interface PhotoContestsSelect<T extends boolean = true> {
   slug?: T;
   title?: T;
   description?: T;
-  contestType?: T;
   status?: T;
   maxPointsPerUser?: T;
   maxPointsPerImage?: T;
@@ -5874,10 +6729,12 @@ export interface HelperShiftsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  organiser?: T;
   location?: T;
   category?: T;
   participants_max?: T;
   enable_enrolment?: T;
+  unenrollment_deadline_minutes?: T;
   hide_participant_list?: T;
   hide_when_full?: T;
   notes?: T;
@@ -5888,277 +6745,13 @@ export interface HelperShiftsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "helper-jobs_select".
+ * via the `definition` "piket-schedules_select".
  */
-export interface HelperJobsSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  title?: T;
-  description?: T;
-  category?: T;
-  maxQuota?: T;
-  dateRange?:
-    | T
-    | {
-        startDate?: T;
-        endDate?: T;
-      };
-  dateRangeCategory?: T;
-  prerequisites?: T;
-  submissions?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "announcement-channels_select".
- */
-export interface AnnouncementChannelsSelect<T extends boolean = true> {
-  name?: T;
-  description?: T;
-  targetType?: T;
-  targetRoles?: T;
-  targetCeviGroups?:
-    | T
-    | {
-        groupId?: T;
-        groupName?: T;
-        id?: T;
-      };
-  allowEmojiReactions?: T;
-  allowThreads?: T;
-  allowThreadReplies?: T;
-  chatUuid?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "announcements_select".
- */
-export interface AnnouncementsSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  title?: T;
-  content?: T;
-  channel?: T;
-  status?: T;
-  scheduledAt?: T;
-  publishedAt?: T;
-  author?: T;
-  chatMessageUuid?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "emergency-cards_select".
- */
-export interface EmergencyCardsSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  title?: T;
-  description?: T;
-  procedure?: T;
-  documents?: T;
-  images?: T;
-  isExpandedByDefault?: T;
-  isNonMinifiable?: T;
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "images_select".
- */
-export interface ImagesSelect<T extends boolean = true> {
-  alt_de?: T;
-  alt_en?: T;
-  alt_fr?: T;
-  imageCaption_de?: T;
-  imageCaption_en?: T;
-  imageCaption_fr?: T;
-  isPdfThumbnail?: T;
-  internalDescription?: T;
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-  sizes?:
-    | T
-    | {
-        tiny?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-        large?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "userSubmittedImages_select".
- */
-export interface UserSubmittedImagesSelect<T extends boolean = true> {
-  uploaded_by?: T;
-  original_filename?: T;
-  user_description?: T;
-  content_hash?: T;
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-  sizes?:
-    | T
-    | {
-        tiny?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-        large?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-      };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "documents_select".
- */
-export interface DocumentsSelect<T extends boolean = true> {
-  internalDescription?: T;
-  pdfThumbnailUrl?: T;
-  permissions?: T;
-  lastEditedByUser?: T;
-  folder?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "form_collection_select".
- */
-export interface FormCollectionSelect<T extends boolean = true> {
-  isTemporary?: T;
-  form?: T;
-  formSubmission?: T;
-  originalFilename?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
- */
-export interface UsersSelect<T extends boolean = true> {
-  displayName?: T;
-  cevi_db_uuid?: T;
-  adminPanelAccess?: T;
-  email?: T;
-  fullName?: T;
-  nickname?: T;
-  groups?: T;
-  hof?: T;
-  quartier?: T;
-  description?: T;
-  hidden?: T;
-  presentAtCamp?: T;
-  presenceLogs?: T;
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "permissions_select".
- */
-export interface PermissionsSelect<T extends boolean = true> {
-  permissionName?: T;
-  permissions?:
-    | T
-    | {
-        group_id?: T;
-        note?: T;
-        id?: T;
-      };
-  special_permissions?:
-    | T
-    | {
-        public?: T;
-        logged_in?: T;
-      };
+export interface PiketSchedulesSelect<T extends boolean = true> {
+  users?: T;
+  startTime?: T;
+  endTime?: T;
+  chatTypes?: T;
   lastEditedByUser?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -6189,12 +6782,157 @@ export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "timelineCategory_select".
+ * via the `definition` "users_select".
  */
-export interface TimelineCategorySelect<T extends boolean = true> {
-  name?: T;
+export interface UsersSelect<T extends boolean = true> {
+  displayName?: T;
+  cevi_db_uuid?: T;
+  adminPanelAccess?: T;
+  email?: T;
+  fullName?: T;
+  nickname?: T;
+  groups?: T;
+  hof?: T;
+  quartier?: T;
   description?: T;
-  relatedTimelineEntries?: T;
+  hidden?: T;
+  presentAtCamp?: T;
+  presenceLogs?: T;
+  lastEditedByUser?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs_select".
+ */
+export interface PresenceLogsSelect<T extends boolean = true> {
+  user?: T;
+  isPresent?: T;
+  timestamp?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-participants_select".
+ */
+export interface BillParticipantsSelect<T extends boolean = true> {
+  participationUuid?: T;
+  userId?: T;
+  eventId?: T;
+  groupId?: T;
+  eventName?: T;
+  firstName?: T;
+  lastName?: T;
+  nickname?: T;
+  fullName?: T;
+  roleType?: T;
+  street?: T;
+  zip?: T;
+  zipCode?: T;
+  town?: T;
+  email?: T;
+  anmeldestatus?: T;
+  birthday?: T;
+  gender?: T;
+  active?: T;
+  enrollmentDate?: T;
+  firstSyncDate?: T;
+  lastSyncDate?: T;
+  billCreatedDate?: T;
+  billSentDate?: T;
+  financeNote?: T;
+  removedDate?: T;
+  reAddedDate?: T;
+  referenceNumber?: T;
+  invoiceNumber?: T;
+  invoiceAmount?: T;
+  netAmount?: T;
+  vatExempt?: T;
+  vatBreakdown?:
+    | T
+    | {
+        label?: T;
+        share?: T;
+        netAmount?: T;
+        vatCode?: T;
+        vatAmount?: T;
+        id?: T;
+      };
+  billPdfs?: T;
+  status?: T;
+  missingStammdaten?: T;
+  missingAnmeldeangaben?: T;
+  syncHistory?: T;
+  relatedEmails?: T;
+  reminderEmails?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-pdfs_select".
+ */
+export interface BillPdfsSelect<T extends boolean = true> {
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outgoing-emails_select".
+ */
+export interface OutgoingEmailsSelect<T extends boolean = true> {
+  deliveryStatus?: T;
+  dsnReceivedAt?: T;
+  smtpReceivedAt?: T;
+  to?: T;
+  subject?: T;
+  formSubmission?: T;
+  billParticipant?: T;
+  billParticipants?: T;
+  type?: T;
+  form?: T;
+  html?: T;
+  smtpResults?: T;
+  rawSmtpResults?: T;
+  rawDsnEmail?: T;
+  createdAt?: T;
+  lastRetriggeredBy?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-workers_select".
+ */
+export interface PayloadWorkersSelect<T extends boolean = true> {
+  workerId?: T;
+  hostname?: T;
+  queues?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  lastHeartbeat?: T;
+  activeJobId?: T;
+  activeJobIds?:
+    | T
+    | {
+        jobId?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6205,6 +6943,7 @@ export interface TimelineCategorySelect<T extends boolean = true> {
 export interface ChatImagesSelect<T extends boolean = true> {
   chatId?: T;
   uploadedBy?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -6233,150 +6972,13 @@ export interface ChatImagesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blocked-jobs_select".
- */
-export interface BlockedJobsSelect<T extends boolean = true> {
-  originalJobId?: T;
-  workflowSlug?: T;
-  input?: T;
-  status?: T;
-  reason?: T;
-  resolutionData?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "smtp-bounce-mail-tracking_select".
  */
 export interface SmtpBounceMailTrackingSelect<T extends boolean = true> {
   uid?: T;
   failureCount?: T;
   lastAttempt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "outgoing-emails_select".
- */
-export interface OutgoingEmailsSelect<T extends boolean = true> {
-  deliveryStatus?: T;
-  dsnReceivedAt?: T;
-  smtpReceivedAt?: T;
-  to?: T;
-  subject?: T;
-  formSubmission?: T;
-  billParticipant?: T;
-  type?: T;
-  form?: T;
-  html?: T;
-  smtpResults?: T;
-  rawSmtpResults?: T;
-  rawDsnEmail?: T;
-  createdAt?: T;
-  lastRetriggeredBy?: T;
-  updatedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bill-participants_select".
- */
-export interface BillParticipantsSelect<T extends boolean = true> {
-  participationUuid?: T;
-  userId?: T;
-  eventId?: T;
-  groupId?: T;
-  eventName?: T;
-  firstName?: T;
-  lastName?: T;
-  nickname?: T;
-  fullName?: T;
-  roleType?: T;
-  street?: T;
-  zip?: T;
-  zipCode?: T;
-  town?: T;
-  email?: T;
-  birthday?: T;
-  gender?: T;
-  active?: T;
-  enrollmentDate?: T;
-  firstSyncDate?: T;
-  lastSyncDate?: T;
-  billCreatedDate?: T;
-  billSentDate?: T;
-  removedDate?: T;
-  reAddedDate?: T;
-  referenceNumber?: T;
-  invoiceNumber?: T;
-  invoiceAmount?: T;
-  billPdfs?: T;
-  status?: T;
-  missingStammdaten?: T;
-  missingAnmeldeangaben?: T;
-  syncHistory?: T;
-  relatedEmails?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bill-pdfs_select".
- */
-export interface BillPdfsSelect<T extends boolean = true> {
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "piket-schedules_select".
- */
-export interface PiketSchedulesSelect<T extends boolean = true> {
-  users?: T;
-  startTime?: T;
-  endTime?: T;
-  chatTypes?: T;
-  lastEditedByUser?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  deletedAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-workers_select".
- */
-export interface PayloadWorkersSelect<T extends boolean = true> {
-  workerId?: T;
-  hostname?: T;
-  queues?:
-    | T
-    | {
-        name?: T;
-        id?: T;
-      };
-  lastHeartbeat?: T;
-  activeJobId?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "presence-logs_select".
- */
-export interface PresenceLogsSelect<T extends boolean = true> {
-  user?: T;
-  isPresent?: T;
-  timestamp?: T;
+  ignoredAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6396,6 +6998,12 @@ export interface FormsSelect<T extends boolean = true> {
           | {
               sectionTitle?: T;
               layout?: T;
+              displayCondition?:
+                | T
+                | {
+                    field?: T;
+                    value?: T;
+                  };
               fields?:
                 | T
                 | {
@@ -6535,6 +7143,24 @@ export interface FormsSelect<T extends boolean = true> {
                           dateRangeCategory?: T;
                           category?: T;
                           required?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    dateSlotSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          startDate?: T;
+                          endDate?: T;
+                          minDays?: T;
+                          maxDays?: T;
+                          maxRanges?: T;
+                          ressortName?: T;
+                          ressortLabel?: T;
+                          ressortRequired?: T;
+                          required?: T;
+                          placement?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -6699,6 +7325,24 @@ export interface FormsSelect<T extends boolean = true> {
                                       dateRangeCategory?: T;
                                       category?: T;
                                       required?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                dateSlotSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      startDate?: T;
+                                      endDate?: T;
+                                      minDays?: T;
+                                      maxDays?: T;
+                                      maxRanges?: T;
+                                      ressortName?: T;
+                                      ressortLabel?: T;
+                                      ressortRequired?: T;
+                                      required?: T;
+                                      placement?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -6892,6 +7536,35 @@ export interface ImportsSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-mcp-api-keys_select".
+ */
+export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
+  user?: T;
+  label?: T;
+  description?: T;
+  genericPage?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
+  forms?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+  hasAPIKey?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7357,107 +8030,66 @@ export interface SEO {
   createdAt?: string | null;
 }
 /**
- * Settings for the Progressive Web App
+ * The goal and the amount raised so far, shared by every Spendenbarometer block on the site.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "PWA".
+ * via the `definition` "donation-barometer".
  */
-export interface PWA {
+export interface DonationBarometer {
   id: string;
   /**
-   * Once deployed as an PWA App to the App Store, this name will be used as the App Name. A change will require a new deployment to the App Store.
+   * The full amount the campaign is asking for. Changing it moves every barometer on the site.
    */
-  appName: string;
+  goalAmount: number;
   /**
-   * Once deployed as an PWA App to the App Store, this name will be used as the App Name. A change will require a new deployment to the App Store.
+   * Maintained by hand for now. Round it — a barometer reading 162,400 invites less doubt than one reading 162,437.55.
    */
-  appShortName: string;
+  raisedAmount: number;
   /**
-   * Once deployed as an PWA App to the App Store, this description will be used as the App Description. A change will require a new deployment to the App Store.
+   * Shown under the barometer. A donation total without a date reads as guesswork.
    */
-  appDescription: string;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "alert_settings".
- */
-export interface AlertSetting {
-  id: string;
-  questions?:
+  lastUpdated?: string | null;
+  /**
+   * Optional stops along the way. The next one that is not yet funded is named under the barometer, so give each a label that says what the money buys.
+   */
+  milestones?:
     | {
-        /**
-         * Optional key to link from another question.
-         */
-        key?: string | null;
-        question: string;
-        options: {
-          option: string;
-          /**
-           * Optional key to link to the next question.
-           */
-          nextQuestionKey?: string | null;
-          id?: string | null;
-        }[];
+        amount: number;
+        label: string;
         id?: string | null;
       }[]
     | null;
-  finalResponseMessage: string;
-  emergencyPhoneNumber: string;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "app-feature-flags".
+ * via the `definition` "registration-management".
  */
-export interface AppFeatureFlag {
+export interface RegistrationManagement {
   id: string;
   /**
-   * Toggles the ability for users to send messages globally.
+   * Email sent to the helper after registration. This email confirms a provisional registration. The final confirmation is sent by the responsible department.
    */
-  globalMessagingEnabled?: boolean | null;
+  confirmationEmail?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
   /**
-   * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
+   * Session cookie for the hitobito API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
    */
-  createChatsEnabled?: boolean | null;
-  /**
-   * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
-   */
-  hideHofAndQuartier?: boolean | null;
-  /**
-   * Toggles visibility of the Helper Shifts (Schichteinsätze) menu item in the app.
-   */
-  helperShiftsEnabled?: boolean | null;
-  /**
-   * Toggles hiding full helper slots for users who are not enrolled in them.
-   */
-  hideFullHelperShifts?: boolean | null;
-  /**
-   * Toggles visibility of the Image Upload menu item in the app.
-   */
-  imageUploadEnabled?: boolean | null;
-  /**
-   * Toggles visibility of the Photo Contest menu item in the app.
-   */
-  photoContestEnabled?: boolean | null;
-  /**
-   * Toggles visibility of the Reservations menu item in the app.
-   */
-  reservationsEnabled?: boolean | null;
-  /**
-   * Toggles visibility of the conveniat27 Forum menu item in the app.
-   */
-  forumEnabled?: boolean | null;
-  /**
-   * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
-   */
-  checkHitobitoApprovalsEnabled?: boolean | null;
-  /**
-   * Toggles the redesigned inline top navigation bar on desktop screens.
-   */
-  redesignedMainMenuEnabled?: boolean | null;
+  browserCookie?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -7500,6 +8132,8 @@ export interface AppLandingPage {
             blockName?: string | null;
             blockType: 'richTextSection';
           }
+        | MediaTextBlock
+        | ProcessStepsBlock
         | {
             id?: string | null;
             blockName?: string | null;
@@ -7596,6 +8230,8 @@ export interface AppLandingPage {
             blockName?: string | null;
             blockType: 'callToAction';
           }
+        | DonationCtaBlock
+        | DonationBarometerBlock
         | {
             linkField?: {
               type?: ('reference' | 'custom' | 'email') | null;
@@ -7678,9 +8314,9 @@ export interface AppLandingPage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "support-chat-management".
+ * via the `definition` "alert-management".
  */
-export interface SupportChatManagement {
+export interface AlertManagement {
   id: string;
   dummy?: string | null;
   updatedAt?: string | null;
@@ -7688,9 +8324,38 @@ export interface SupportChatManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "alert-management".
+ * via the `definition` "alert_settings".
  */
-export interface AlertManagement {
+export interface AlertSetting {
+  id: string;
+  questions?:
+    | {
+        /**
+         * Optional key to link from another question.
+         */
+        key?: string | null;
+        question: string;
+        options: {
+          option: string;
+          /**
+           * Optional key to link to the next question.
+           */
+          nextQuestionKey?: string | null;
+          id?: string | null;
+        }[];
+        id?: string | null;
+      }[]
+    | null;
+  finalResponseMessage: string;
+  emergencyPhoneNumber: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chat-management".
+ */
+export interface SupportChatManagement {
   id: string;
   dummy?: string | null;
   updatedAt?: string | null;
@@ -7708,32 +8373,88 @@ export interface AllChatsManagement {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "registration-management".
+ * via the `definition` "campsite-presence".
  */
-export interface RegistrationManagement {
+export interface CampsitePresence {
+  id: string;
+  startDate?: string | null;
+  endDate?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Settings for the Progressive Web App
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PWA".
+ */
+export interface PWA {
   id: string;
   /**
-   * Email sent to the helper after registration. This email confirms a provisional registration. The final confirmation is sent by the responsible department.
+   * Once deployed as an PWA App to the App Store, this name will be used as the App Name. A change will require a new deployment to the App Store.
    */
-  confirmationEmail?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
+  appName: string;
   /**
-   * Session cookie for the hitobito API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   * Once deployed as an PWA App to the App Store, this name will be used as the App Name. A change will require a new deployment to the App Store.
    */
-  browserCookie?: string | null;
+  appShortName: string;
+  /**
+   * Once deployed as an PWA App to the App Store, this description will be used as the App Description. A change will require a new deployment to the App Store.
+   */
+  appDescription: string;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-feature-flags".
+ */
+export interface AppFeatureFlag {
+  id: string;
+  /**
+   * Toggles the ability for users to send messages globally.
+   */
+  globalMessagingEnabled?: boolean | null;
+  /**
+   * Toggles the ability for users to create new chats (1-on-1 and Group). Emergency/Support chats are excluded.
+   */
+  createChatsEnabled?: boolean | null;
+  /**
+   * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
+   */
+  hideHofAndQuartier?: boolean | null;
+  /**
+   * Toggles visibility of the Helper Shifts (Schichteinsätze) menu item in the app.
+   */
+  helperShiftsEnabled?: boolean | null;
+  /**
+   * Toggles hiding full helper slots for users who are not enrolled in them.
+   */
+  hideFullHelperShifts?: boolean | null;
+  /**
+   * Toggles visibility of the Image Upload menu item in the app.
+   */
+  imageUploadEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Photo Contest menu item in the app.
+   */
+  photoContestEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the Reservations menu item in the app.
+   */
+  reservationsEnabled?: boolean | null;
+  /**
+   * Toggles visibility of the conveniat27 Forum menu item in the app.
+   */
+  forumEnabled?: boolean | null;
+  /**
+   * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
+   */
+  checkHitobitoApprovalsEnabled?: boolean | null;
+  /**
+   * Toggles the redesigned inline top navigation bar on desktop screens.
+   */
+  redesignedMainMenuEnabled?: boolean | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -7760,9 +8481,41 @@ export interface BillSetting {
          * Hitobito group ID this event belongs to (up to 6 digits)
          */
         groupId: string;
+        /**
+         * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
+         */
+        addressManagerEmails?: string | null;
+        /**
+         * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+         */
+        reminderRecipientsOverride?: string | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Emails each Hof its registrations that cannot be billed yet.
+   */
+  pflichtangabenReminder?: {
+    enabled?: boolean | null;
+    weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
+    hour?: number | null;
+    /**
+     * A fresh registration gets this grace period before it is reported.
+     */
+    minDaysMissing?: number | null;
+    /**
+     * Placeholders: {{eventName}}, {{count}}.
+     */
+    subject?: string | null;
+    /**
+     * Intro above the list of registrations. Same placeholders as the subject.
+     */
+    body?: string | null;
+    /**
+     * Written by the scheduler. Also what stops a second send in the same week.
+     */
+    lastSentAt?: string | null;
+  };
   creditorName: string;
   creditorIban: string;
   creditorStreet: string;
@@ -7795,25 +8548,112 @@ export interface BillSetting {
   eventNumberTemplate?: string | null;
   paymentDeadlineDays?: number | null;
   /**
-   * Text for the PDF letter page before the QR bill.
+   * Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.
    */
   invoiceLetterText?: string | null;
+  /**
+   * Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}. Web addresses such as con27.ch/agbs are printed as clickable links.
+   */
+  invoiceLetterTextAfter?: string | null;
   /**
    * Define the camp fee per Hitobito event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").
    */
   rolePricing?:
     | {
         roleTypePattern: string;
+        /**
+         * The position line on the invoice, e.g. "Teilnehmendenbeitrag". This is what is being charged, not what the person is.
+         */
         label: string;
+        /**
+         * What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.
+         */
+        roleName?: string | null;
+        /**
+         * Used only when no VAT split is defined below.
+         */
         vatCode?: string | null;
         amount: number;
+        /**
+         * Split the net amount across several VAT rates, e.g. 50% accommodation at 3.8% and 50% at 8.1%. The shares must add up to 100%. Leave empty to tax the whole amount at the VAT code above.
+         */
+        vatSplits?:
+          | {
+              /**
+               * Printed next to this VAT line on the invoice, e.g. "Beherbergung".
+               */
+              label?: string | null;
+              share: number;
+              vatCode: string;
+              id?: string | null;
+            }[]
+          | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Branchen-Info 24, Ziff. 18.4: a participant counts as under-age until the end of the calendar year in which they reach the age limit. Bills for them carry no VAT.
+   */
+  vatExemption?: {
+    /**
+     * When off, every bill is taxed regardless of the participant’s age.
+     */
+    enabled?: boolean | null;
+    /**
+     * Someone reaching this age during the reference year is still exempt for that whole year.
+     */
+    maxAge?: number | null;
+    /**
+     * The VAT debt arises when the bill is raised, so that is the default. Pick the fixed year to judge every participant against the camp year instead.
+     */
+    referenceYearMode?: ('invoiceYear' | 'fixedYear') | null;
+    fixedReferenceYear?: number | null;
+    /**
+     * Printed in brackets after “MWST 0.0%” on an exempt bill. Left empty, the default wording is used.
+     */
+    exemptLabel?: string | null;
+  };
   accountDebit?: string | null;
   accountCredit?: string | null;
   /**
-   * Comma-separated list of email addresses to receive the CSV export.
+   * Emails the registration report and the bill overview on a fixed weekday.
+   */
+  scheduledReport?: {
+    enabled?: boolean | null;
+    weekday?: ('1' | '2' | '3' | '4' | '5' | '6' | '0') | null;
+    hour?: number | null;
+    attachPdf?: boolean | null;
+    /**
+     * Sends the detailed bill overview (Excel) to the finance recipients.
+     */
+    attachExcel?: boolean | null;
+    /**
+     * Comma-separated list of email addresses. Receives the general registration report (PDF). Does not receive confidential financial figures.
+     */
+    recipients?: string | null;
+    /**
+     * Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.
+     */
+    subject?: string | null;
+    /**
+     * Same placeholders as the subject.
+     */
+    body?: string | null;
+    /**
+     * Placeholders: {{date}}, {{total}}, {{new}}, {{blocked}}.
+     */
+    financeSubject?: string | null;
+    /**
+     * Same placeholders as the subject.
+     */
+    financeBody?: string | null;
+    /**
+     * Written by the scheduler. Also what stops a second send in the same week.
+     */
+    lastSentAt?: string | null;
+  };
+  /**
+   * Comma-separated list of email addresses for the weekly bill overview (Excel).
    */
   financeEmailRecipients?: string | null;
   invoiceEmailSubject?: string | null;
@@ -7821,17 +8661,6 @@ export interface BillSetting {
    * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.
    */
   invoiceEmailBody?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "campsite-presence".
- */
-export interface CampsitePresence {
-  id: string;
-  startDate?: string | null;
-  endDate?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -8014,57 +8843,30 @@ export interface SEOSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "PWA_select".
+ * via the `definition` "donation-barometer_select".
  */
-export interface PWASelect<T extends boolean = true> {
-  appName?: T;
-  appShortName?: T;
-  appDescription?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "alert_settings_select".
- */
-export interface AlertSettingsSelect<T extends boolean = true> {
-  questions?:
+export interface DonationBarometerSelect<T extends boolean = true> {
+  goalAmount?: T;
+  raisedAmount?: T;
+  lastUpdated?: T;
+  milestones?:
     | T
     | {
-        key?: T;
-        question?: T;
-        options?:
-          | T
-          | {
-              option?: T;
-              nextQuestionKey?: T;
-              id?: T;
-            };
+        amount?: T;
+        label?: T;
         id?: T;
       };
-  finalResponseMessage?: T;
-  emergencyPhoneNumber?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "app-feature-flags_select".
+ * via the `definition` "registration-management_select".
  */
-export interface AppFeatureFlagsSelect<T extends boolean = true> {
-  globalMessagingEnabled?: T;
-  createChatsEnabled?: T;
-  hideHofAndQuartier?: T;
-  helperShiftsEnabled?: T;
-  hideFullHelperShifts?: T;
-  imageUploadEnabled?: T;
-  photoContestEnabled?: T;
-  reservationsEnabled?: T;
-  forumEnabled?: T;
-  checkHitobitoApprovalsEnabled?: T;
-  redesignedMainMenuEnabled?: T;
+export interface RegistrationManagementSelect<T extends boolean = true> {
+  confirmationEmail?: T;
+  browserCookie?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -8087,6 +8889,8 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        mediaText?: T | MediaTextBlockSelect<T>;
+        processSteps?: T | ProcessStepsBlockSelect<T>;
         blogPostsOverview?:
           | T
           | {
@@ -8152,6 +8956,8 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               id?: T;
               blockName?: T;
             };
+        donationCta?: T | DonationCtaBlockSelect<T>;
+        donationBarometer?: T | DonationBarometerBlockSelect<T>;
         newsCard?:
           | T
           | {
@@ -8194,9 +9000,9 @@ export interface AppLandingPageSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "support-chat-management_select".
+ * via the `definition` "alert-management_select".
  */
-export interface SupportChatManagementSelect<T extends boolean = true> {
+export interface AlertManagementSelect<T extends boolean = true> {
   dummy?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -8204,9 +9010,34 @@ export interface SupportChatManagementSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "alert-management_select".
+ * via the `definition` "alert_settings_select".
  */
-export interface AlertManagementSelect<T extends boolean = true> {
+export interface AlertSettingsSelect<T extends boolean = true> {
+  questions?:
+    | T
+    | {
+        key?: T;
+        question?: T;
+        options?:
+          | T
+          | {
+              option?: T;
+              nextQuestionKey?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  finalResponseMessage?: T;
+  emergencyPhoneNumber?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "support-chat-management_select".
+ */
+export interface SupportChatManagementSelect<T extends boolean = true> {
   dummy?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -8224,11 +9055,43 @@ export interface AllChatsManagementSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "registration-management_select".
+ * via the `definition` "campsite-presence_select".
  */
-export interface RegistrationManagementSelect<T extends boolean = true> {
-  confirmationEmail?: T;
-  browserCookie?: T;
+export interface CampsitePresenceSelect<T extends boolean = true> {
+  startDate?: T;
+  endDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PWA_select".
+ */
+export interface PWASelect<T extends boolean = true> {
+  appName?: T;
+  appShortName?: T;
+  appDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "app-feature-flags_select".
+ */
+export interface AppFeatureFlagsSelect<T extends boolean = true> {
+  globalMessagingEnabled?: T;
+  createChatsEnabled?: T;
+  hideHofAndQuartier?: T;
+  helperShiftsEnabled?: T;
+  hideFullHelperShifts?: T;
+  imageUploadEnabled?: T;
+  photoContestEnabled?: T;
+  reservationsEnabled?: T;
+  forumEnabled?: T;
+  checkHitobitoApprovalsEnabled?: T;
+  redesignedMainMenuEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -8244,7 +9107,20 @@ export interface BillSettingsSelect<T extends boolean = true> {
         eventId?: T;
         eventName?: T;
         groupId?: T;
+        addressManagerEmails?: T;
+        reminderRecipientsOverride?: T;
         id?: T;
+      };
+  pflichtangabenReminder?:
+    | T
+    | {
+        enabled?: T;
+        weekday?: T;
+        hour?: T;
+        minDaysMissing?: T;
+        subject?: T;
+        body?: T;
+        lastSentAt?: T;
       };
   creditorName?: T;
   creditorIban?: T;
@@ -8263,31 +9139,54 @@ export interface BillSettingsSelect<T extends boolean = true> {
   eventNumberTemplate?: T;
   paymentDeadlineDays?: T;
   invoiceLetterText?: T;
+  invoiceLetterTextAfter?: T;
   rolePricing?:
     | T
     | {
         roleTypePattern?: T;
         label?: T;
+        roleName?: T;
         vatCode?: T;
         amount?: T;
+        vatSplits?:
+          | T
+          | {
+              label?: T;
+              share?: T;
+              vatCode?: T;
+              id?: T;
+            };
         id?: T;
+      };
+  vatExemption?:
+    | T
+    | {
+        enabled?: T;
+        maxAge?: T;
+        referenceYearMode?: T;
+        fixedReferenceYear?: T;
+        exemptLabel?: T;
       };
   accountDebit?: T;
   accountCredit?: T;
+  scheduledReport?:
+    | T
+    | {
+        enabled?: T;
+        weekday?: T;
+        hour?: T;
+        attachPdf?: T;
+        attachExcel?: T;
+        recipients?: T;
+        subject?: T;
+        body?: T;
+        financeSubject?: T;
+        financeBody?: T;
+        lastSentAt?: T;
+      };
   financeEmailRecipients?: T;
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "campsite-presence_select".
- */
-export interface CampsitePresenceSelect<T extends boolean = true> {
-  startDate?: T;
-  endDate?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -8341,6 +9240,16 @@ export interface EmailStatsWidget {
     [k: string]: unknown;
   };
   width: 'x-small' | 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "admin-areas_widget".
+ */
+export interface AdminAreasWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8581,11 +9490,37 @@ export interface TaskSendBills {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendWeeklyReport".
+ */
+export interface TaskSendWeeklyReport {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSendPflichtangabenReminders".
+ */
+export interface TaskSendPflichtangabenReminders {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskCleanupTemporaryFormFiles".
  */
 export interface TaskCleanupTemporaryFormFiles {
   input?: unknown;
   output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskAutoCheckoutPresence".
+ */
+export interface TaskAutoCheckoutPresence {
+  input?: unknown;
+  output: {
+    checkedOut?: number | null;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8597,35 +9532,35 @@ export interface TaskCreateCollectionExport {
     name: string;
     batchSize?: number | null;
     collectionSlug:
-      | 'blog'
       | 'generic-page'
+      | 'blog'
       | 'timeline'
+      | 'timelineCategory'
+      | 'images'
+      | 'userSubmittedImages'
+      | 'documents'
+      | 'permissions'
+      | 'form_collection'
+      | 'helper-jobs'
+      | 'blocked-jobs'
+      | 'announcement-channels'
+      | 'announcements'
+      | 'emergency-cards'
       | 'photo-contests'
       | 'camp-map-annotations'
       | 'camp-categories'
       | 'camp-schedule-entry'
       | 'helper-shifts'
-      | 'helper-jobs'
-      | 'announcement-channels'
-      | 'announcements'
-      | 'emergency-cards'
-      | 'images'
-      | 'userSubmittedImages'
-      | 'documents'
-      | 'form_collection'
-      | 'users'
-      | 'permissions'
+      | 'piket-schedules'
       | 'push-notification-subscriptions'
-      | 'timelineCategory'
-      | 'chat-images'
-      | 'blocked-jobs'
-      | 'smtp-bounce-mail-tracking'
-      | 'outgoing-emails'
+      | 'users'
+      | 'presence-logs'
       | 'bill-participants'
       | 'bill-pdfs'
-      | 'piket-schedules'
+      | 'outgoing-emails'
       | 'payload-workers'
-      | 'presence-logs'
+      | 'chat-images'
+      | 'smtp-bounce-mail-tracking'
       | 'forms'
       | 'form-submissions'
       | 'search-collection'

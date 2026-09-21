@@ -1,4 +1,7 @@
-import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 
@@ -11,9 +14,10 @@ export const AlertManagement: GlobalConfig = {
   },
   access: {
     read: () => true,
+    update: hasAdminOrWebAccess,
   },
   admin: {
-    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     hideAPIURL: true,
     components: {
       views: {

@@ -1,5 +1,8 @@
 import type { Proxy, ProxyModule } from '@/proxy/types';
+import { createLogger } from '@/utils/server-logger';
 import { NextResponse } from 'next/server';
+
+const logger = createLogger('proxy:chain');
 
 /**
  *
@@ -62,8 +65,8 @@ export const proxyChain = (proxies: { proxy: ProxyModule; name: string }[]): Pro
           finalResponse.headers.append('set-cookie', cookie);
         }
       } else {
-        console.error(
-          '[ProxyChain] CRITICAL: response.headers.getSetCookie is not a function. Rotated session cookies cannot be copied, which may break downstream session state.',
+        logger.error(
+          'response.headers.getSetCookie is not a function, so rotated session cookies cannot be copied and downstream session state may break',
         );
       }
 

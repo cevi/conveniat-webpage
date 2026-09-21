@@ -1,3 +1,5 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LinkField } from '@/features/payload-cms/payload-cms/shared-fields/link-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { asLocalizedGlobal } from '@/features/payload-cms/payload-cms/utils/localized-global';
@@ -111,6 +113,10 @@ const appNavBarIconOptions = [
 
 export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
   slug: 'footer',
+  access: {
+    read: () => true,
+    update: hasAdminOrWebAccess,
+  },
   hooks: { afterChange: [flushPageCacheOnChangeGlobal] },
   label: {
     en: 'Footer',
@@ -294,6 +300,7 @@ export const FooterGlobal: GlobalConfig = asLocalizedGlobal({
     },
   ],
   admin: {
+    group: AdminPanelDashboardGroups.WebpageContent.label,
     description: {
       en: 'Settings for the footer',
       de: 'Einstellungen für die Fusszeile',

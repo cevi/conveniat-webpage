@@ -5,7 +5,8 @@ import { useAppMode } from '@/hooks/use-app-mode';
 import { performReliablePushNavigation } from '@/hooks/use-native-push';
 import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
-import { SerwistProvider } from '@/lib/serwist-client';
+import { useServiceWorkerRegistration } from '@/hooks/use-service-worker-registration';
+import { SerwistProvider, useSerwist } from '@/lib/serwist-client';
 import { useOptionalTrpcUtils } from '@/trpc/client';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
@@ -17,6 +18,20 @@ interface ServiceWorkerManagerProperties {
   children: ReactNode;
   swUrl?: string;
 }
+
+/**
+ * Registers the service worker created by {@link SerwistProvider}.
+ *
+ * `SerwistProvider` would register it itself, but it does so without handling a rejected
+ * registration, which turns a browser that cannot install a service worker into an
+ * unhandled rejection on every page load. The provider registers with the default scope
+ * `/`, so its own out-of-scope check never applies here.
+ */
+const ServiceWorkerRegistration: React.FC = () => {
+  const { serwist } = useSerwist();
+  useServiceWorkerRegistration(serwist);
+  return <></>;
+};
 
 /**
  * A central component to manage Service Worker registration and App Mode detection.
@@ -111,5 +126,10 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
     return <>{children}</>;
   }
 
-  return <SerwistProvider swUrl={swUrl}>{children}</SerwistProvider>;
+  return (
+    <SerwistProvider register={false} swUrl={swUrl}>
+      <ServiceWorkerRegistration />
+      {children}
+    </SerwistProvider>
+  );
 };

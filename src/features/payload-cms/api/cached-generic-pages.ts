@@ -7,19 +7,19 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
 
 /**
- * Fetches Generic Pages by slug.
- * Uses Next.js 16.3 'use cache' for persistent and request-level deduplicated caching.
- * Supports both published and draft (preview) modes.
+ * Reads a Generic Page by slug straight from the CMS, with no caching layer.
+ *
+ * Every `draft` read goes through here. A draft read must never be served from the
+ * persistent `'use cache'` layer: the live preview iframe has to show what the editor
+ * just typed, and a `cacheLife('hours')` entry would keep serving the previous version
+ * for up to an hour. `revalidateTag` from the afterChange hook only flushes the instance
+ * that handled the write, so with more than one replica the stale entry can outlive it.
  */
-export const getGenericPageBySlugCached = async (
+const fetchGenericPageBySlug = async (
   slug: string,
   locale: Locale,
-  draft: boolean = false,
+  draft: boolean,
 ): Promise<{ docs: GenericPage[] }> => {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
   return await withSpan('getGenericPageBySlugCached', async () => {
     const payload = await getPayload({ config });
 
@@ -60,19 +60,44 @@ export const getGenericPageBySlugCached = async (
 };
 
 /**
- * Lightweight existence check for Generic Pages by slug.
- * Fetches ONLY content.permissions (skipping full layout depth:1 cascade).
- * Used during fallback resolution to test if a page exists without loading full content.
+ * Fetches published Generic Pages by slug.
+ * Uses Next.js 16.3 'use cache' for persistent and request-level deduplicated caching.
  */
-export const getGenericPageExistsBySlugCached = async (
+const getPublishedGenericPageBySlugCached = async (
   slug: string,
   locale: Locale,
-  draft: boolean = false,
 ): Promise<{ docs: GenericPage[] }> => {
   'use cache';
   cacheLife('hours');
   cacheTag('payload', 'generic-page', `collection:generic-page`);
 
+  return await fetchGenericPageBySlug(slug, locale, false);
+};
+
+/**
+ * Fetches Generic Pages by slug.
+ * Published reads are cached persistently; draft (preview) reads bypass the cache.
+ */
+export const getGenericPageBySlugCached = async (
+  slug: string,
+  locale: Locale,
+  draft: boolean = false,
+): Promise<{ docs: GenericPage[] }> => {
+  return draft
+    ? await fetchGenericPageBySlug(slug, locale, true)
+    : await getPublishedGenericPageBySlugCached(slug, locale);
+};
+
+/**
+ * Lightweight existence check for Generic Pages by slug, uncached.
+ * Fetches ONLY content.permissions (skipping full layout depth:1 cascade).
+ * Used during fallback resolution to test if a page exists without loading full content.
+ */
+const fetchGenericPageExistsBySlug = async (
+  slug: string,
+  locale: Locale,
+  draft: boolean,
+): Promise<{ docs: GenericPage[] }> => {
   return await withSpan('getGenericPageExistsBySlugCached', async () => {
     const payload = await getPayload({ config });
 
@@ -107,18 +132,42 @@ export const getGenericPageExistsBySlugCached = async (
 };
 
 /**
- * Fetches a Generic Page by ID.
- * Used for fallback logic when slug lookup fails in current locale.
+ * Cached existence check for published Generic Pages by slug.
  */
-export const getGenericPageByIDCached = async (
-  id: string,
+const getPublishedGenericPageExistsBySlugCached = async (
+  slug: string,
   locale: Locale,
-  draft: boolean = false,
-): Promise<GenericPage> => {
+): Promise<{ docs: GenericPage[] }> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
 
+  return await fetchGenericPageExistsBySlug(slug, locale, false);
+};
+
+/**
+ * Existence check for Generic Pages by slug.
+ * Published reads are cached persistently; draft (preview) reads bypass the cache.
+ */
+export const getGenericPageExistsBySlugCached = async (
+  slug: string,
+  locale: Locale,
+  draft: boolean = false,
+): Promise<{ docs: GenericPage[] }> => {
+  return draft
+    ? await fetchGenericPageExistsBySlug(slug, locale, true)
+    : await getPublishedGenericPageExistsBySlugCached(slug, locale);
+};
+
+/**
+ * Reads a Generic Page by ID straight from the CMS, with no caching layer.
+ * Used for fallback logic when slug lookup fails in current locale.
+ */
+const fetchGenericPageByID = async (
+  id: string,
+  locale: Locale,
+  draft: boolean,
+): Promise<GenericPage> => {
   return await withSpan('getGenericPageByIDCached', async () => {
     const payload = await getPayload({ config });
 
@@ -141,18 +190,42 @@ export const getGenericPageByIDCached = async (
 };
 
 /**
- * Fetches a Generic Page by its slug history (previous slugs).
- * Used for fallback redirection when the current slug doesn't match any active page.
+ * Cached read of a published Generic Page by ID.
  */
-export const getGenericPageBySlugHistoryCached = async (
-  slug: string,
+const getPublishedGenericPageByIDCached = async (
+  id: string,
   locale: Locale,
-  draft: boolean = false,
-): Promise<{ docs: GenericPage[] }> => {
+): Promise<GenericPage> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
+  cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
 
+  return await fetchGenericPageByID(id, locale, false);
+};
+
+/**
+ * Fetches a Generic Page by ID.
+ * Published reads are cached persistently; draft (preview) reads bypass the cache.
+ */
+export const getGenericPageByIDCached = async (
+  id: string,
+  locale: Locale,
+  draft: boolean = false,
+): Promise<GenericPage> => {
+  return draft
+    ? await fetchGenericPageByID(id, locale, true)
+    : await getPublishedGenericPageByIDCached(id, locale);
+};
+
+/**
+ * Reads a Generic Page by its slug history (previous slugs), with no caching layer.
+ * Used for fallback redirection when the current slug doesn't match any active page.
+ */
+const fetchGenericPageBySlugHistory = async (
+  slug: string,
+  locale: Locale,
+  draft: boolean,
+): Promise<{ docs: GenericPage[] }> => {
   return await withSpan('getGenericPageBySlugHistoryCached', async () => {
     const payload = await getPayload({ config });
 
@@ -182,6 +255,34 @@ export const getGenericPageBySlugHistoryCached = async (
 
     return { docs: uniqueDocuments as unknown as GenericPage[] };
   });
+};
+
+/**
+ * Cached read of published Generic Pages by slug history.
+ */
+const getPublishedGenericPageBySlugHistoryCached = async (
+  slug: string,
+  locale: Locale,
+): Promise<{ docs: GenericPage[] }> => {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('payload', 'generic-page', `collection:generic-page`);
+
+  return await fetchGenericPageBySlugHistory(slug, locale, false);
+};
+
+/**
+ * Fetches a Generic Page by its slug history (previous slugs).
+ * Published reads are cached persistently; draft (preview) reads bypass the cache.
+ */
+export const getGenericPageBySlugHistoryCached = async (
+  slug: string,
+  locale: Locale,
+  draft: boolean = false,
+): Promise<{ docs: GenericPage[] }> => {
+  return draft
+    ? await fetchGenericPageBySlugHistory(slug, locale, true)
+    : await getPublishedGenericPageBySlugHistoryCached(slug, locale);
 };
 
 /**

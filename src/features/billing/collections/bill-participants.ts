@@ -1,8 +1,13 @@
+import {
+  canTransition,
+  describeRefusedTransition,
+} from '@/features/billing/services/billing-status';
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import {
   canAccessBillingField,
   canUserAccessBilling,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
 /**
@@ -28,11 +33,7 @@ export const BillParticipantsCollection: CollectionConfig = {
   admin: {
     hidden: ({ user }): boolean => !canUserAccessBilling(user),
     hideAPIURL: true,
-    group: {
-      en: 'Billing',
-      de: 'Rechnungen',
-      fr: 'Facturation',
-    },
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'fullName',
     groupBy: true,
     defaultColumns: [
@@ -45,13 +46,37 @@ export const BillParticipantsCollection: CollectionConfig = {
       'actions',
     ],
     description: {
-      en: 'Synced from Cevi.DB. Use the toolbar above the table to sync, generate, and send bills.',
-      de: 'Synchronisiert von der Cevi.DB. Nutze die Aktionsleiste über der Tabelle zum Synchronisieren, Generieren und Versenden.',
-      fr: "Synchronisé depuis Cevi.DB. Utilisez la barre d'outils au-dessus du tableau pour synchroniser, générer et envoyer.",
+      en: 'Participants synced from Cevi.DB, and the bills raised for them.',
+      de: 'Von Cevi.DB abgeglichene Teilnehmende und die dazu erstellten Rechnungen.',
+      fr: 'Participants synchronisés depuis Cevi.DB et les factures établies pour eux.',
     },
     components: {
       beforeListTable: ['@/features/billing/components/billing-list-toolbar'],
     },
+  },
+  hooks: {
+    beforeChange: [
+      ({ data, originalDoc, operation }): Record<string, unknown> => {
+        // The one place every status write passes through. The transitions used to be
+        // implied by whichever branch happened to run, so nothing stopped the per-row
+        // "Neu generieren" action from moving a `removed` participation back to `new` —
+        // which resurrected a registration the Cevi.DB no longer has and left the sync
+        // reporting the same irreconcilable event on every run.
+        const next = (data as { status?: unknown }).status;
+        const previous = (originalDoc as { status?: unknown } | undefined)?.status;
+
+        if (
+          operation === 'update' &&
+          typeof next === 'string' &&
+          typeof previous === 'string' &&
+          !canTransition(previous, next)
+        ) {
+          throw new Error(describeRefusedTransition(previous, next));
+        }
+
+        return data as Record<string, unknown>;
+      },
+    ],
   },
   access: {
     read: canAccessAdminPanel,
@@ -247,6 +272,24 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: { disableGroupBy: true },
     },
     {
+      name: 'anmeldestatus',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: {
+        en: 'Registration status (Cevi.DB)',
+        de: 'Anmeldestatus',
+        fr: "Statut d'inscription (Cevi.DB)",
+      },
+      admin: {
+        disableGroupBy: true,
+        description: {
+          en: 'The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.',
+          de: 'Die Antwort auf «Administrationsangaben » Anmeldestatus» aus der Cevi.DB.',
+          fr: 'La réponse « Administrationsangaben » Anmeldestatus » de la Cevi.DB.',
+        },
+      },
+    },
+    {
       name: 'birthday',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
@@ -336,6 +379,24 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
     },
     {
+      name: 'financeNote',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'textarea',
+      label: {
+        en: 'Note for finance',
+        de: 'Bemerkung für die Finanzen',
+        fr: 'Remarque pour les finances',
+      },
+      admin: {
+        description: {
+          en: 'Free text carried into the finance overview export. Never touched by a Cevi.DB sync.',
+          de: 'Freitext, der in den Rechnungsübersicht-Export übernommen wird. Wird von einem Cevi.DB-Abgleich nie überschrieben.',
+          fr: "Texte libre repris dans l'export de synthèse. Jamais écrasé par une synchronisation Cevi.DB.",
+        },
+        disableGroupBy: true,
+      },
+    },
+    {
       name: 'removedDate',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
@@ -401,7 +462,88 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
       admin: {
         disableGroupBy: true,
+        description: {
+          en: 'Gross amount, i.e. the net camp fee plus VAT.',
+          de: 'Bruttobetrag, also der Netto-Lagerbeitrag zuzüglich MWST.',
+          fr: 'Montant brut, soit la contribution nette plus la TVA.',
+        },
       },
+    },
+    {
+      name: 'netAmount',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'number',
+      label: {
+        en: 'Net Amount (CHF)',
+        de: 'Netto-Betrag (CHF)',
+        fr: 'Montant net (CHF)',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        disableListColumn: true,
+      },
+    },
+    {
+      name: 'vatExempt',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'checkbox',
+      label: {
+        en: 'VAT Exempt (youth)',
+        de: 'MWST-befreit (Jugendliche)',
+        fr: 'Exonéré de TVA (jeunes)',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        disableListColumn: true,
+      },
+    },
+    {
+      // Frozen at generation time on purpose: the settings can change after a bill has gone
+      // out, and the finance export has to reproduce the invoice, not the current config.
+      name: 'vatBreakdown',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'array',
+      label: {
+        en: 'VAT Breakdown',
+        de: 'MWST-Aufstellung',
+        fr: 'Détail de la TVA',
+      },
+      admin: {
+        readOnly: true,
+        disableListColumn: true,
+        disableListFilter: true,
+        disableGroupBy: true,
+        description: {
+          en: 'The VAT lines as they were printed on the bill.',
+          de: 'Die MWST-Zeilen, wie sie auf der Rechnung gedruckt wurden.',
+          fr: 'Les lignes de TVA telles quelles ont été imprimées sur la facture.',
+        },
+      },
+      fields: [
+        { name: 'label', type: 'text', label: { en: 'Label', de: 'Bezeichnung', fr: 'Libellé' } },
+        {
+          name: 'share',
+          type: 'number',
+          label: { en: 'Share (%)', de: 'Anteil (%)', fr: 'Part (%)' },
+        },
+        {
+          name: 'netAmount',
+          type: 'number',
+          label: { en: 'Net (CHF)', de: 'Netto (CHF)', fr: 'Net (CHF)' },
+        },
+        {
+          name: 'vatCode',
+          type: 'text',
+          label: { en: 'VAT Rate', de: 'MWST-Satz', fr: 'Taux TVA' },
+        },
+        {
+          name: 'vatAmount',
+          type: 'number',
+          label: { en: 'VAT (CHF)', de: 'MWST (CHF)', fr: 'TVA (CHF)' },
+        },
+      ],
     },
     {
       name: 'billPdfs',
@@ -448,6 +590,14 @@ export const BillParticipantsCollection: CollectionConfig = {
             fr: "Détails d'inscription invalides",
           },
           value: 'invalid_anmeldeangaben',
+        },
+        {
+          label: {
+            en: 'Needs manual review',
+            de: 'Manuelle Prüfung nötig',
+            fr: 'Vérification manuelle requise',
+          },
+          value: 'needs_manual_review',
         },
         {
           label: { en: 'Bill Created', de: 'Rechnung erstellt', fr: 'Facture créée' },
@@ -555,6 +705,24 @@ export const BillParticipantsCollection: CollectionConfig = {
         components: {
           Cell: '@/features/billing/components/related-emails-cell',
         },
+      },
+      access: { read: canAccessBillingField },
+    },
+
+    // Reminders sent to the Adressverwalter of a Hof list every affected registration,
+    // so they hang off the `billParticipants` side of `outgoing-emails`.
+    {
+      name: 'reminderEmails',
+      type: 'join',
+      collection: 'outgoing-emails',
+      on: 'billParticipants',
+      label: {
+        en: 'Reminder emails',
+        de: 'Erinnerungen an Adressverwalter',
+        fr: 'Rappels envoyés',
+      },
+      admin: {
+        disableListColumn: true,
       },
       access: { read: canAccessBillingField },
     },

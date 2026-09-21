@@ -3,6 +3,7 @@ import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import type { NewsCardType } from '@/components/news-card';
 import { NewsCardBlock } from '@/components/news-card';
+import { getDonationBarometerCached } from '@/features/payload-cms/api/cached-globals';
 import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
@@ -15,6 +16,10 @@ import type { ContactPersonType } from '@/features/payload-cms/components/conten
 import { ContactPersonBlock } from '@/features/payload-cms/components/content-blocks/contact-person';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
+import type { DonationBarometerType } from '@/features/payload-cms/components/content-blocks/donation-barometer';
+import { DonationBarometer } from '@/features/payload-cms/components/content-blocks/donation-barometer';
+import type { DonationCtaType } from '@/features/payload-cms/components/content-blocks/donation-cta';
+import { DonationCta } from '@/features/payload-cms/components/content-blocks/donation-cta';
 import { FeaturedSection } from '@/features/payload-cms/components/content-blocks/featured-section';
 import type { FileDownloadType } from '@/features/payload-cms/components/content-blocks/file-download';
 import { FileDownload } from '@/features/payload-cms/components/content-blocks/file-download';
@@ -27,6 +32,8 @@ import {
 import type { LexicalRichTextSectionType } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { ListBlogPosts } from '@/features/payload-cms/components/content-blocks/list-blog-articles';
+import { MediaText } from '@/features/payload-cms/components/content-blocks/media-text';
+import { ProcessSteps } from '@/features/payload-cms/components/content-blocks/process-steps';
 import { ShowForm } from '@/features/payload-cms/components/content-blocks/show-form';
 import {
   SponsorGrid,
@@ -43,6 +50,8 @@ import { resolveRichTextLinks } from '@/features/payload-cms/payload-cms/utils/r
 import type {
   AccordionBlocks,
   FeaturedSectionBlock,
+  MediaTextBlock,
+  ProcessStepsBlock,
   SectionSeparatorBlock,
   Timeline,
   TimelineCategory,
@@ -83,6 +92,8 @@ export type ContentBlockTypeNames =
   | 'countdown'
   | 'whiteSpace'
   | 'callToAction'
+  | 'donationCta'
+  | 'donationBarometer'
   | 'newsCard'
   | 'campScheduleEntryBlock'
   | 'twoColumnBlock'
@@ -92,6 +103,8 @@ export type ContentBlockTypeNames =
   | 'tabsBlock'
   | 'featuredSection'
   | 'heroSection'
+  | 'mediaText'
+  | 'processSteps'
   | 'sectionSeparator';
 
 export type SectionRenderer<T = object> = React.FC<
@@ -665,6 +678,63 @@ export const RenderCallToAction: SectionRenderer<CallToActionType> = ({
   );
 };
 
+export const RenderDonationCta: SectionRenderer<DonationCtaType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Spenden-Aufruf',
+          en: 'donation call-to-action',
+          fr: 'l’appel aux dons',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <DonationCta {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderDonationBarometer: SectionRenderer<DonationBarometerType> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  // The figures live on the `donation-barometer` global rather than on the
+  // block, so every placement shows the same amount and a later automatic
+  // update has exactly one field to write.
+  const figures = await getDonationBarometerCached(locale);
+
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Das Spendenbarometer',
+          en: 'donation barometer',
+          fr: 'le baromètre des dons',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <DonationBarometer {...block} figures={figures} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
 export const RenderNewsCard: SectionRenderer<NewsCardType> = ({
   block,
   sectionClassName,
@@ -713,6 +783,61 @@ export const RenderCampScheduleEntry: SectionRenderer<CampScheduleEntryType> = (
       locale={locale}
     >
       <CampScheduleEntryContentBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderMediaText: SectionRenderer<MediaTextBlock> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  const payload = await getPayload({ config });
+  await resolveRichTextLinks(block.richTextSection, payload, locale);
+
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Bild-mit-Text-Block',
+          en: 'media and text block',
+          fr: 'le bloc image et texte',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <MediaText {...block} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderProcessSteps: SectionRenderer<ProcessStepsBlock> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Ablauf-Block',
+          en: 'process steps block',
+          fr: 'le bloc des étapes',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <ProcessSteps {...block} />
     </SectionWrapper>
   );
 };

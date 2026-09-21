@@ -17,6 +17,7 @@ import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getBuildInfo } from '@/utils/get-build-info';
 import { isAdminSession } from '@/utils/is-admin-session';
+import { isRoutableURL } from '@/utils/is-routable-url';
 import { cn } from '@/utils/tailwindcss-override';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { ChevronDown, OctagonAlert } from 'lucide-react';
@@ -89,7 +90,11 @@ const isLinkConfigured = (linkFieldData?: LinkFieldDataType): boolean => {
   if (!linkFieldData) return false;
   const { type } = linkFieldData;
   if (type === 'custom') {
-    return typeof linkFieldData.url === 'string' && linkFieldData.url.trim() !== '';
+    // Not merely "the editor typed something": an unfinished URL is no more a
+    // destination than an empty one, so the entry renders as a plain label
+    // rather than a link to nowhere.
+    // See https://github.com/cevi/conveniat-webpage/issues/1670
+    return typeof linkFieldData.url === 'string' && isRoutableURL(linkFieldData.url);
   }
   if (type === 'email') {
     return typeof linkFieldData.email === 'string' && linkFieldData.email.trim() !== '';

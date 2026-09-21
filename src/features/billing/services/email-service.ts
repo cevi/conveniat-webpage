@@ -1,15 +1,34 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
+import { RedisRunLockAdapter } from '@/features/billing/adapters/redis-run-lock.adapter';
+import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import { writeBackAnmeldestatus } from '@/features/billing/services/anmeldestatus-writeback';
+import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
+import { BillingTaskSlug } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
+import { BILL_PDF_BUCKET_NAME } from '@/lib/s3';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
 import type { Payload } from 'payload';
+
+/** How long a send run may hold its lock before it is assumed dead. */
+const RUN_LOCK_TTL_SECONDS = 2 * 60 * 60;
 
 interface SyncHistoryEntry {
   date: string;
   action: string;
+  /** The value written back to the Cevi.DB. */
+  value?: string;
+  /** Why a step after the send failed, for the operator reading the row. */
+  reviewReason?: string;
+}
+
+/** What `sendBills` lets a test replace. */
+interface SendBillsDependencies {
+  s3Client?: S3Client;
+  hitobitoService?: HitobitoServicePort;
 }
 
 /**
@@ -21,7 +40,57 @@ interface SyncHistoryEntry {
 export async function sendBills(
   payload: Payload,
   participantId?: string,
-  dependencies?: { hitobitoClient?: HitobitoClient; s3Client?: S3Client },
+  dependencies?: SendBillsDependencies,
+  reporter?: JobProgressReporter,
+  /** Identifies the run. Queued tasks pass their job id; see `RunLockPort`. */
+  runOwner?: string,
+): Promise<SendSummary> {
+  // Both routes into sending — the queued task and the per-row "Email senden" — come
+  // through here. Two overlapping runs would each pick up the same `bill_created` rows
+  // and mail the same invoice twice before either had written `bill_sent` back.
+  const { classifyLockConflict } = await import('@/features/billing/ports/run-lock.port');
+
+  const owner = runOwner ?? `request:${randomUUID()}`;
+  const result = await new RedisRunLockAdapter().acquire(
+    BillingTaskSlug.SendBills,
+    RUN_LOCK_TTL_SECONDS,
+    owner,
+  );
+
+  if (!result.acquired) {
+    if (classifyLockConflict(result.heldBy, owner) === 'duplicate-worker') {
+      // The same queued job, picked up by both replicas. The other worker is sending.
+      payload.logger.info(
+        `Bill sending for job ${owner} is already running on another worker; skipping this duplicate execution.`,
+      );
+      return { sentCount: 0, failedCount: 0, duplicate: true, errors: [] };
+    }
+
+    payload.logger.warn(
+      `Refused to start bill sending for ${owner}: run ${result.heldBy ?? 'unknown'} holds the lock.`,
+    );
+    return {
+      sentCount: 0,
+      failedCount: 0,
+      errors: ['Es läuft bereits ein Versand. Bitte warte, bis dieser abgeschlossen ist.'],
+    };
+  }
+
+  try {
+    return await sendBillsLocked(payload, participantId, dependencies, reporter);
+  } finally {
+    // Inside the lock on purpose: only the execution that acquired it owns the progress
+    // record, and the keys are scoped by task slug rather than by job.
+    await reporter?.finish();
+    await result.lock.release();
+  }
+}
+
+async function sendBillsLocked(
+  payload: Payload,
+  participantId: string | undefined,
+  dependencies: SendBillsDependencies | undefined,
+  reporter: JobProgressReporter | undefined,
 ): Promise<SendSummary> {
   const summary: SendSummary = {
     sentCount: 0,
@@ -42,32 +111,7 @@ export async function sendBills(
     (settings.invoiceEmailBody as string | undefined) ??
     'Bitte finden Sie Ihre Rechnung im Anhang.';
 
-  // 2. Create Hitobito client for fetching person email addresses
-  const logger = {
-    info: (message: string): void => {
-      payload.logger.info(message);
-    },
-    warn: (message: string): void => {
-      payload.logger.warn(message);
-    },
-    error: (message: string): void => {
-      payload.logger.error(message);
-    },
-  };
-
-  const client =
-    dependencies?.hitobitoClient ??
-    new HitobitoClient(
-      {
-        baseUrl: HITOBITO_CONFIG.baseUrl,
-        apiToken: HITOBITO_CONFIG.apiToken,
-        browserCookie: '',
-      },
-      logger,
-    );
-  const personService = new PersonService(client, logger);
-
-  // 3. Query participants needing email
+  // 2. Query participants needing email
   // Note: When participantId is provided (e.g., admin clicking "Email senden" in the UI),
   // we intentionally bypass the 'bill_created' status check to allow force-resending bills.
   const whereClause = participantId
@@ -86,22 +130,45 @@ export async function sendBills(
     return summary;
   }
 
-  // 4. Create S3 client once for all PDF fetches
+  // 3. Create S3 client once for all PDF fetches
   const s3 =
     dependencies?.s3Client ??
     new S3Client({
-      endpoint: environmentVariables.MINIO_HOST,
+      endpoint: environmentVariables.S3_HOST,
       region: 'us-east-1',
       credentials: {
-        accessKeyId: environmentVariables.MINIO_ACCESS_KEY_ID,
-        secretAccessKey: environmentVariables.MINIO_SECRET_ACCESS_KEY,
+        accessKeyId: environmentVariables.S3_ACCESS_KEY_ID,
+        secretAccessKey: environmentVariables.S3_SECRET_ACCESS_KEY,
       },
       forcePathStyle: true,
     });
 
-  for (const document_ of participants.docs) {
+  // 4. The Cevi.DB write-back needs the same browser cookie the sync uses. Built once per
+  // run; when it is missing the bills still go out and every row records why its
+  // Anmeldestatus stayed behind.
+  const hitobitoService = dependencies?.hitobitoService ?? (await createHitobitoService(payload));
+  const writeBackLogger = {
+    warn: (message: string): void => payload.logger.warn(message),
+    debug: (message: string): void => payload.logger.debug(message),
+  };
+
+  for (const [index, document_] of participants.docs.entries()) {
+    await reporter?.report({
+      processedItems: index,
+      totalItems: participants.docs.length,
+      currentItemName: String(document_.fullName),
+      runningSummary: { sentCount: summary.sentCount, failedCount: summary.failedCount },
+    });
+
+    if (await reporter?.shouldCancel()) {
+      summary.cancelled = true;
+      payload.logger.info(
+        `Bill sending cancelled by operator after ${String(index)} of ${String(participants.docs.length)} participants.`,
+      );
+      break;
+    }
+
     try {
-      const userId = document_.userId;
       const fullName = document_.fullName;
       const firstName = fullName.split(' ')[0] ?? fullName;
       const lastName = fullName.split(' ').slice(1).join(' ');
@@ -132,7 +199,7 @@ export async function sendBills(
       }
 
       const command = new GetObjectCommand({
-        Bucket: environmentVariables.MINIO_BUCKET_NAME,
+        Bucket: BILL_PDF_BUCKET_NAME,
         Key: pdfDocument.filename,
       });
 
@@ -145,12 +212,24 @@ export async function sendBills(
 
       const pdfBuffer = Buffer.from(await response.Body.transformToByteArray());
 
-      // Fetch email from Cevi.DB
-      const personResult = await personService.getDetails({ personId: userId });
-      const email = personResult.success ? personResult.attributes?.email : undefined;
+      // The bill goes to the address the participant gave *for the bill* — the
+      // "Mailadresse für Rechnung" answer on the camp registration, which the sync stores
+      // on `email`. It is deliberately not the Cevi.DB account address: for a minor that
+      // is the child's own mailbox, while the registration answer is the one the parents
+      // filled in precisely so the invoice would reach them.
+      //
+      // The answer is matched by question text upstream rather than by its id, because
+      // Hitobito numbers the questions per event.
+      const rawEmail = document_.email;
+      const email = typeof rawEmail === 'string' ? rawEmail.trim() : '';
 
-      if (!email) {
-        summary.errors.push(`No email for participant ${String(document_.id)} (${fullName})`);
+      if (email === '') {
+        // Never silently fall back to the account address: that is the bug this replaced.
+        // A registration without an invoice address is a Pflichtangabe gap, and the sync
+        // already blocks such a row from being billed at all.
+        summary.errors.push(
+          `${fullName}: keine "Mailadresse für Rechnung" hinterlegt – Rechnung nicht versendet.`,
+        );
         summary.failedCount++;
         continue;
       }
@@ -188,6 +267,10 @@ export async function sendBills(
       const newStatus = isReminderSent ? 'reminder_sent' : 'bill_sent';
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+      const historyAfterSend: SyncHistoryEntry[] = [
+        ...history,
+        { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
+      ];
       await payload.update({
         collection: 'bill-participants',
         context: { internal: true },
@@ -195,14 +278,52 @@ export async function sendBills(
         data: {
           status: newStatus,
           billSentDate: new Date().toISOString(),
-          syncHistory: [
-            ...history,
-            { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
-          ],
+          syncHistory: historyAfterSend,
         },
       });
 
       summary.sentCount++;
+
+      // The bill is out, so the Cevi.DB has to read "Rechnung gestellt". A row that is
+      // already there, or that the Anmeldeverantwortliche has closed as "definitiv", is
+      // left alone — a write-back must never move a registration backwards.
+      const writeBack = await writeBackAnmeldestatus(
+        hitobitoService,
+        {
+          groupId: document_.groupId ?? '',
+          eventId: document_.eventId,
+          participationUuid: document_.participationUuid,
+          fullName,
+          anmeldestatus: document_.anmeldestatus,
+        },
+        new Date().toISOString(),
+        writeBackLogger,
+      );
+
+      if (writeBack.error !== undefined) {
+        summary.errors.push(writeBack.error);
+        // The operator can only fix a cookie in one place, so link them to it.
+        if (writeBack.cookieInvalid === true) summary.relatedDocuments = ['registrationManagement'];
+      }
+
+      if (
+        writeBack.historyEntries.length > 0 ||
+        writeBack.anmeldestatus !== document_.anmeldestatus
+      ) {
+        await payload.update({
+          collection: 'bill-participants',
+          context: { internal: true },
+          id: document_.id,
+          data: {
+            // Left out entirely when there is nothing to store, so the column keeps
+            // whatever it held.
+            ...(writeBack.anmeldestatus === undefined
+              ? {}
+              : { anmeldestatus: writeBack.anmeldestatus }),
+            syncHistory: [...historyAfterSend, ...writeBack.historyEntries],
+          },
+        });
+      }
     } catch (error) {
       summary.errors.push(
         `Participant ${String(document_.id)} (${String(document_.fullName)}): ${String(error)}`,
@@ -215,4 +336,30 @@ export async function sendBills(
     `Email send complete: ${String(summary.sentCount)} sent, ${String(summary.failedCount)} failed`,
   );
   return summary;
+}
+
+/**
+ * The Cevi.DB client for a send run, or `undefined` when no browser cookie is configured.
+ * Built exactly like the sync builds it.
+ */
+async function createHitobitoService(payload: Payload): Promise<HitobitoServicePort | undefined> {
+  const regManagement = await payload.findGlobal({
+    slug: 'registration-management',
+    context: { internal: true },
+  });
+  const browserCookie = (regManagement.browserCookie ?? '').trim();
+  if (browserCookie === '') return undefined;
+
+  return new HitobitoServiceAdapter(
+    {
+      baseUrl: HITOBITO_CONFIG.baseUrl,
+      apiToken: HITOBITO_CONFIG.apiToken,
+      browserCookie,
+    },
+    {
+      info: (message: string): void => payload.logger.info(message),
+      warn: (message: string): void => payload.logger.warn(message),
+      error: (message: string): void => payload.logger.error(message),
+    },
+  );
 }

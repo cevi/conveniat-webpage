@@ -7,14 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { languageOptions } from '@/config/language-options';
 import { Globe } from 'lucide-react';
 import React from 'react';
-
-export const languageOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'de', label: 'Deutsch' },
-  { value: 'fr', label: 'Français' },
-];
 
 interface LanguageSwitcherProperties {
   onLanguageChange: (lang: string) => void;

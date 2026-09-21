@@ -3,13 +3,27 @@ import type { Payload } from 'payload';
 
 export type SendEmailOptions = Parameters<Payload['sendEmail']>[0];
 
+/**
+ * What became of one tracked mail.
+ *
+ * An SMTP failure is recorded on the `outgoing-emails` row and does not throw, so a
+ * caller that needs to know whether the mail actually left has to read this.
+ */
+export interface TrackedEmailResult {
+  success: boolean;
+  outgoingEmailId: string;
+  /** The SMTP error, when there was one. */
+  error?: string;
+}
+
 export const sendTrackedEmail = async (
   payload: Payload,
   emailOptions: SendEmailOptions,
   formSubmissionId?: string,
-  billParticipantId?: string,
+  /** One participation, or the several a reminder to a Hof's Adressverwalter covers. */
+  billParticipantId?: string | string[],
   existingOutgoingEmailId?: string,
-): Promise<void> => {
+): Promise<TrackedEmailResult> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
     subject?: string;
@@ -35,6 +49,7 @@ export const sendTrackedEmail = async (
       html?: string;
       formSubmission?: string;
       billParticipant?: string;
+      billParticipants?: string[];
       deliveryStatus: 'pending' | 'success' | 'error';
     } = {
       to,
@@ -48,6 +63,8 @@ export const sendTrackedEmail = async (
     }
     if (typeof billParticipantId === 'string' && billParticipantId.length > 0) {
       data.billParticipant = billParticipantId;
+    } else if (Array.isArray(billParticipantId) && billParticipantId.length > 0) {
+      data.billParticipants = billParticipantId;
     }
 
     try {
@@ -161,4 +178,10 @@ export const sendTrackedEmail = async (
       });
     }
   }
+
+  return {
+    success,
+    outgoingEmailId: String(outgoingEmailId),
+    ...(success ? {} : { error: String(responseOrError) }),
+  };
 };

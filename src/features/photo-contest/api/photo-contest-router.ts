@@ -22,7 +22,7 @@ export const photoContestRouter = createTRPCRouter({
       : false;
 
     const contests = await ctx.prisma.photoContest.findMany({
-      where: isAdmin ? {} : { status: { not: 'DRAFT' } },
+      where: isAdmin ? {} : { status: { not: 'HIDDEN' } },
       orderBy: { createdAt: 'desc' },
       include: {
         images: {
@@ -87,7 +87,7 @@ export const photoContestRouter = createTRPCRouter({
           })
         : false;
 
-      if (!contest || (!isAdmin && contest.status === 'DRAFT')) {
+      if (!contest || (!isAdmin && contest.status === 'HIDDEN')) {
         throw new TRPCError({
           code: 'NOT_FOUND',
           message: 'Fotowettbewerb nicht gefunden.',
@@ -106,9 +106,10 @@ export const photoContestRouter = createTRPCRouter({
 
       const totalPointsUsed = myVotes.reduce((sum, v) => sum + v.points, 0);
 
-      // Count votes per image if voting is closed or user is admin
+      // Only a fully closed contest publishes its results — CLOSED_HIDDEN keeps them secret,
+      // for admins too, so that what they see matches what participants see.
       let voteCounts: Record<string, number> = {};
-      if (contest.status === 'CLOSED' || isAdmin) {
+      if (contest.status === 'CLOSED') {
         const aggregated = await ctx.prisma.photoContestVote.groupBy({
           by: ['imageId'],
           where: { contestId: contest.id },
@@ -167,7 +168,7 @@ export const photoContestRouter = createTRPCRouter({
         });
       }
 
-      if (contest.status !== 'VOTING') {
+      if (contest.status !== 'ACTIVE') {
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'Abstimmung für diesen Wettbewerb ist aktuell nicht aktiv.',
@@ -260,127 +261,6 @@ export const photoContestRouter = createTRPCRouter({
     }),
 
   /**
-   * Admin / Event Uploader: Add image to contest.
-   * Admins can upload anytime (DRAFT, UPLOADING, VOTING, CLOSED).
-   * Authenticated users can upload when contest.status is UPLOADING.
-   */
-  addImage: trpcBaseProcedure
-    .input(
-      z.object({
-        contestId: z.string(),
-        imageUrl: z.string().url(),
-        thumbnailUrl: z.string().url().optional(),
-        title: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const isAdmin = hasAccessToThisUser({
-        user: ctx.user,
-        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-      });
-
-      const contest = await ctx.prisma.photoContest.findUnique({
-        where: { id: input.contestId },
-      });
-
-      if (!contest) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Wettbewerb nicht gefunden.',
-        });
-      }
-
-      // Allow image uploads if user is admin, or if contest status is UPLOADING
-      if (!isAdmin && contest.status !== 'UPLOADING') {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Bilder-Upload ist für diesen Wettbewerb aktuell nicht geöffnet.',
-        });
-      }
-
-      const maxOrder = await ctx.prisma.photoContestImage.findFirst({
-        where: { contestId: input.contestId },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-      });
-
-      const nextOrder = (maxOrder?.order ?? 0) + 1;
-
-      const newImage = await ctx.prisma.photoContestImage.create({
-        data: {
-          contestId: input.contestId,
-          imageUrl: input.imageUrl,
-          thumbnailUrl: input.thumbnailUrl ?? input.imageUrl,
-          title: input.title ?? null,
-          description: input.description ?? null,
-          uploadedById: ctx.user.uuid,
-          order: nextOrder,
-        },
-      });
-
-      return newImage;
-    }),
-
-  /**
-   * Alias for addImage for backward compatibility.
-   */
-  adminAddImage: trpcBaseProcedure
-    .input(
-      z.object({
-        contestId: z.string(),
-        imageUrl: z.string().url(),
-        thumbnailUrl: z.string().url().optional(),
-        title: z.string().optional(),
-        description: z.string().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const isAdmin = hasAccessToThisUser({
-        user: ctx.user,
-        requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-      });
-
-      const contest = await ctx.prisma.photoContest.findUnique({
-        where: { id: input.contestId },
-      });
-
-      if (!contest) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: 'Wettbewerb nicht gefunden.',
-        });
-      }
-
-      if (!isAdmin && contest.status !== 'UPLOADING') {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Bilder-Upload ist für diesen Wettbewerb aktuell nicht geöffnet.',
-        });
-      }
-
-      const maxOrder = await ctx.prisma.photoContestImage.findFirst({
-        where: { contestId: input.contestId },
-        orderBy: { order: 'desc' },
-        select: { order: true },
-      });
-
-      const nextOrder = (maxOrder?.order ?? 0) + 1;
-
-      return await ctx.prisma.photoContestImage.create({
-        data: {
-          contestId: input.contestId,
-          imageUrl: input.imageUrl,
-          thumbnailUrl: input.thumbnailUrl ?? input.imageUrl,
-          title: input.title ?? null,
-          description: input.description ?? null,
-          uploadedById: ctx.user.uuid,
-          order: nextOrder,
-        },
-      });
-    }),
-
-  /**
    * Admin: Create a new Photo Contest
    */
   adminCreateContest: trpcAdminProcedure
@@ -389,8 +269,7 @@ export const photoContestRouter = createTRPCRouter({
         slug: z.string().min(2),
         title: z.string().min(2),
         description: z.string().optional(),
-        contestType: z.enum(['PRESELECTED', 'LIVE_EVENT']),
-        status: z.enum(['DRAFT', 'UPLOADING', 'VOTING', 'CLOSED']).default('DRAFT'),
+        status: z.enum(['HIDDEN', 'ACTIVE', 'CLOSED_HIDDEN', 'CLOSED']).default('HIDDEN'),
         votingStart: z.date().optional(),
         votingEnd: z.date().optional(),
         maxPointsPerUser: z.number().int().min(1).default(2),
@@ -414,7 +293,6 @@ export const photoContestRouter = createTRPCRouter({
           slug: input.slug,
           title: input.title,
           description: input.description ?? null,
-          contestType: input.contestType,
           status: input.status,
           votingStart: input.votingStart ?? null,
           votingEnd: input.votingEnd ?? null,
@@ -435,7 +313,7 @@ export const photoContestRouter = createTRPCRouter({
         id: z.string(),
         title: z.string().optional(),
         description: z.string().optional(),
-        status: z.enum(['DRAFT', 'UPLOADING', 'VOTING', 'CLOSED']).optional(),
+        status: z.enum(['HIDDEN', 'ACTIVE', 'CLOSED_HIDDEN', 'CLOSED']).optional(),
         votingStart: z.date().nullable().optional(),
         votingEnd: z.date().nullable().optional(),
         maxPointsPerUser: z.number().int().min(1).optional(),
@@ -475,41 +353,4 @@ export const photoContestRouter = createTRPCRouter({
 
       return { success: true };
     }),
-
-  /**
-   * Admin: Seed default contests (Cevi Schweiz & Cevi Mil) if they don't exist
-   */
-  adminSeedDefaultContests: trpcAdminProcedure.mutation(async ({ ctx }) => {
-    const ceviSchweiz = await ctx.prisma.photoContest.upsert({
-      where: { slug: 'cevi-schweiz' },
-      update: {},
-      create: {
-        slug: 'cevi-schweiz',
-        title: 'Cevi Schweiz Foto-Wettbewerb',
-        description:
-          'Stimme für deine Lieblingsfotos des Cevi Schweiz Fotowettbewerbs ab! Du hast insgesamt 2 Punkte: Vergebe 2 Punkte für 1 Bild oder je 1 Punkt für 2 verschiedene Bilder.',
-        contestType: 'PRESELECTED',
-        status: 'VOTING',
-        maxPointsPerUser: 2,
-        maxPointsPerImage: 2,
-      },
-    });
-
-    const ceviMil = await ctx.prisma.photoContest.upsert({
-      where: { slug: 'cevi-mil' },
-      update: {},
-      create: {
-        slug: 'cevi-mil',
-        title: 'Cevi Mil Live Foto-Wettbewerb (Dani)',
-        description:
-          'Live-Fotos vom Konekta! Bilder werden während dem Konekta hochgeladen. Voting läuft von Samstag 23:00 bis Sonntag 09:00 Uhr. Du hast 2 Punkte zum Vergeben.',
-        contestType: 'LIVE_EVENT',
-        status: 'UPLOADING',
-        maxPointsPerUser: 2,
-        maxPointsPerImage: 2,
-      },
-    });
-
-    return { ceviSchweiz, ceviMil };
-  }),
 });

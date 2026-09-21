@@ -1,27 +1,62 @@
-import build from '@/build';
-import { initHttpClient } from '@/lib/http-client';
-import { hostMetrics, sdk } from '@/tracing';
-import { installConsoleOtelBridge } from '@/utils/otel-console-bridge';
-
-export function register(): void {
+/**
+ * Runs once per server instance, in every runtime Next.js compiles this file for.
+ *
+ * The Node-only work is behind a dynamic import so it never reaches the Edge instrumentation
+ * bundle. Nothing in `@/tracing` — the `NodeSDK`, the Prometheus HTTP server, the `node:v8`
+ * heap statistics — can run on Edge anyway, so there is nothing to register there.
+ */
+export const register = async (): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
-  if (process.env['NEXT_RUNTIME'] === 'nodejs') {
-    // initialize the global HTTP client
-    initHttpClient();
+  if (process.env['NEXT_RUNTIME'] !== 'nodejs') return;
+
+  const { registerNodeInstrumentation } = await import('./instrumentation-node');
+  registerNodeInstrumentation();
+};
+
+/**
+ * Names an error whose `message` is empty.
+ *
+ * Next.js throws bail-out and control-flow sentinels as a bare `new Error()` and keeps the
+ * identity somewhere other than `message`: `StaticGenBailoutError` carries
+ * `code: 'NEXT_STATIC_GEN_BAILOUT'` and prints the reason through `console.error` right before
+ * throwing, `redirect()` and `notFound()` carry only a `digest`. Captured as they are, all of
+ * them reach PostHog with an empty `$exception_message` and collapse into one issue titled
+ * "Error" that names neither the route nor the reason.
+ * see: https://github.com/cevi/conveniat-webpage/issues/1582
+ *
+ * The constructor name comes last because a production bundle minifies it —
+ * `StaticGenBailoutError` ships as `tE` — so it only identifies the error in development.
+ */
+const describeMessagelessError = (error: object): string => {
+  if ('digest' in error && typeof error.digest === 'string' && error.digest !== '') {
+    return error.digest;
   }
+  if ('code' in error && typeof error.code === 'string' && error.code !== '') {
+    return error.code;
+  }
+  const constructorName: unknown = (error as { constructor?: { name?: unknown } }).constructor
+    ?.name;
+  return typeof constructorName === 'string' && constructorName !== '' ? constructorName : 'Error';
+};
 
-  // start the SDK
-  console.log(
-    `Starting OpenTelemetry SDK for ${build.version} (${build.git.hash}) on branch ${build.git.branch}`,
-  );
+/**
+ * The error handed to PostHog. One that already has a message is reported unchanged. One without
+ * a message is reported through a stand-in carrying the description and the original stack, so
+ * the issue is readable and still points at the frames that threw.
+ */
+const toReportableError = (error: unknown): unknown => {
+  if (error === null || typeof error !== 'object') return error;
+  if ('message' in error && typeof error.message === 'string' && error.message !== '') return error;
 
-  sdk.start();
-  hostMetrics.start();
-
-  // Must come after sdk.start(): before the SDK registers a LoggerProvider the
-  // logs API hands back a no-op logger, so anything captured earlier is dropped.
-  installConsoleOtelBridge();
-}
+  const reportable = new Error(describeMessagelessError(error));
+  if ('name' in error && typeof error.name === 'string' && error.name !== '') {
+    reportable.name = error.name;
+  }
+  if ('stack' in error && typeof error.stack === 'string') {
+    reportable.stack = error.stack;
+  }
+  return reportable;
+};
 
 export const onRequestError = async (
   error: unknown,
@@ -30,6 +65,11 @@ export const onRequestError = async (
 ): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
   if (process.env['NEXT_RUNTIME'] === 'nodejs') {
+    // Imported lazily for the same reason the tracing setup is: this module is compiled
+    // for the Edge runtime too, and the logger reaches for `node:os` at import time.
+    const { createLogger } = await import('./utils/server-logger');
+    const logger = createLogger('instrumentation');
+
     const { getPostHogServer } = await import('./lib/posthog-server');
     const posthog = getPostHogServer();
     let distinctId: string | undefined;
@@ -51,7 +91,7 @@ export const onRequestError = async (
             }
           }
         } catch (error_) {
-          console.error('Error parsing PostHog cookie:', error_);
+          logger.warn('Could not parse the PostHog cookie', { error: error_ });
         }
       }
     }
@@ -105,12 +145,12 @@ export const onRequestError = async (
         return;
       }
 
-      posthog.captureException(error, distinctId, properties);
+      posthog.captureException(toReportableError(error), distinctId, properties);
 
       try {
         await posthog.flush();
       } catch (flushError) {
-        console.error('Error flushing PostHog events:', flushError);
+        logger.error('Failed to flush the PostHog events', { error: flushError });
       }
     }
   }

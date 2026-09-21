@@ -1,7 +1,9 @@
 'use client';
 
+import type { NotificationType } from '@/lib/notification-type';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
+import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import { toast } from 'sonner';
 
 /**
@@ -61,6 +63,12 @@ export interface ForegroundNotification {
   body: string;
   /** In-app path opened when the user interacts with the notification. */
   targetPath: string;
+  /**
+   * Which channel the native shell should render this on. Defaults to `default`;
+   * `emergency` gets the siren and the alarm vibration pattern. See
+   * {@link NotificationType}.
+   */
+  notificationType?: NotificationType | undefined;
 }
 
 const notifiedKeys = new Set<string>();
@@ -160,6 +168,9 @@ const requestNativeSystemNotification = (notification: ForegroundNotification): 
       url: notification.targetPath,
       ...(notification.chatId !== undefined && { chatId: notification.chatId }),
       ...(notification.messageId !== undefined && { messageId: notification.messageId }),
+      // The shell reads this to pick the emergency channel; anything other than
+      // `emergency` (including omitting it) means the regular chat channel.
+      ...(notification.notificationType === 'emergency' && { notificationType: 'emergency' }),
     });
     return true;
   } catch (error: unknown) {
@@ -213,13 +224,17 @@ export const notifyForegroundMessage = (notification: ForegroundNotification): v
 
   if (!registerNotificationKey(deduplicationKey)) return;
 
+  // Neither the system notification the shell renders nor the in-app banner
+  // understands the chat's markdown dialect, so the markers have to go - the same
+  // way the server strips them off the push it sends (see
+  // `stripMarkdownFormatting`). Both channels show the same message; they must not
+  // disagree about whether it is wrapped in asterisks.
+  const strippedTitle = stripMarkdownFormatting(notification.title).trim();
+
   const resolvedNotification: ForegroundNotification = {
     ...notification,
-    title:
-      notification.title.trim() === ''
-        ? defaultNotificationTitle[getDocumentLocale()]
-        : notification.title.trim(),
-    body: notification.body.trim(),
+    title: strippedTitle === '' ? defaultNotificationTitle[getDocumentLocale()] : strippedTitle,
+    body: stripMarkdownFormatting(notification.body).trim(),
   };
 
   if (requestNativeSystemNotification(resolvedNotification)) return;

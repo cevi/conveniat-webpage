@@ -1,6 +1,5 @@
 import {
-  hasAccessToThisHelper,
-  Roles,
+  isFullAdmin,
   shouldHideInAdminPanelIfNotAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -132,7 +131,7 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
 
   admin: {
     hidden: shouldHideInAdminPanelIfNotAdmin,
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
@@ -150,9 +149,9 @@ export const PushNotificationSubscriptions: CollectionConfig = asPushNotificatio
     },
   },
   access: {
-    read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
+    read: isFullAdmin,
     create: () => false, // disable creating subscriptions
     update: () => false, // disable update for subscriptions
-    delete: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
+    delete: isFullAdmin,
   },
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import { languageNames, languageOptions } from '@/config/language-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { ChevronDown, Languages } from 'lucide-react';
@@ -10,12 +11,6 @@ const languageLabel: StaticTranslationString = {
   de: 'Sprache',
   en: 'Language',
   fr: 'Langue',
-};
-
-const languageNames: Record<Locale, string> = {
-  de: 'Deutsch',
-  en: 'English',
-  fr: 'Français',
 };
 
 export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
@@ -63,13 +58,13 @@ export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
           />
         </DisclosureButton>
         <DisclosurePanel className="mt-2 space-y-1 px-3.5">
-          {(['de', 'fr', 'en'] as Locale[]).map((lang) => (
+          {languageOptions.map(({ value, label }) => (
             <button
-              key={lang}
-              onClick={() => handleLanguageChange(lang)}
+              key={value}
+              onClick={() => handleLanguageChange(value)}
               className="block w-full cursor-pointer rounded-lg px-6 py-2 text-left text-sm font-semibold text-gray-500 hover:bg-gray-50"
             >
-              {languageNames[lang]}
+              {label}
             </button>
           ))}
         </DisclosurePanel>

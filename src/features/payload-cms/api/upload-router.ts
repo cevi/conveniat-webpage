@@ -1,4 +1,4 @@
-import { MINIO_BUCKET_NAME, s3Client, s3ClientPublic } from '@/lib/s3';
+import { S3_BUCKET_NAME, s3Client, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -41,7 +41,7 @@ export const uploadRouter = createTRPCRouter({
       const key = `temp/${uuid}-${sanitizedFilename}`;
 
       const command = new PutObjectCommand({
-        Bucket: MINIO_BUCKET_NAME,
+        Bucket: S3_BUCKET_NAME,
         Key: key,
         ContentType: input.contentType,
       });
@@ -65,7 +65,7 @@ export const uploadRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       // Fetch file from S3
       const getCommand = new GetObjectCommand({
-        Bucket: MINIO_BUCKET_NAME,
+        Bucket: S3_BUCKET_NAME,
         Key: input.key,
       });
 
@@ -171,7 +171,7 @@ export const uploadRouter = createTRPCRouter({
         // Cleanup temp file
         try {
           const deleteCommand = new DeleteObjectCommand({
-            Bucket: MINIO_BUCKET_NAME,
+            Bucket: S3_BUCKET_NAME,
             Key: input.key,
           });
           await s3Client.send(deleteCommand);

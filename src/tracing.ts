@@ -1,4 +1,5 @@
 import build from '@/build';
+import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -309,6 +310,24 @@ export const sdk = new NodeSDK({
   ],
 });
 
-// Initialize Host Metrics
-// Relies on the global MeterProvider registered by NodeSDK
-export const hostMetrics = new HostMetrics({ name: 'host-metrics' });
+/**
+ * Starts the process-level instruments: host metrics and the Node memory gauges.
+ *
+ * Call this after `sdk.start()`, never before. Both sets of instruments take their meter from
+ * the global MeterProvider, `metrics.getMeter()` resolves that provider at the moment it is
+ * called, and the metrics API keeps no proxy standing in for a provider that is not registered
+ * yet. `HostMetrics` binds its meter in its constructor, so building it at module scope — as
+ * this file did until now — bound it to the no-op provider that is in place while
+ * `src/tracing.ts` is still being evaluated, which happens before `register()` runs
+ * `sdk.start()`. Every `system.*` and `process.*` series it defines was therefore dropped for
+ * the life of the process: `/metrics` served four series and none of them described memory,
+ * which is why issue #1659 could only infer why the containers were being killed.
+ *
+ * `@/lib/chat-realtime-metrics` takes its meter at module scope too and works, because nothing
+ * imports it until a request needs the chat pub/sub, long after the SDK is up.
+ */
+export const startRuntimeMetrics = (): void => {
+  const hostMetrics = new HostMetrics({ name: 'host-metrics' });
+  hostMetrics.start();
+  registerRuntimeMemoryMetrics();
+};

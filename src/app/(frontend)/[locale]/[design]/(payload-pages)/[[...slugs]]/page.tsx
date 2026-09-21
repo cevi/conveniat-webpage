@@ -1,7 +1,6 @@
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
@@ -10,12 +9,15 @@ import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
+import { createLogger } from '@/utils/server-logger';
 import type { Metadata } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 
 import { notFound, redirect, unstable_rethrow } from 'next/navigation';
 import type React from 'react';
 import { cache } from 'react';
+
+const logger = createLogger('pages:render');
 
 /**
  * Dynamic Payload CMS catch-all route handles dynamic slug resolution, locale switching,
@@ -27,7 +29,7 @@ const getCanonicalData = (
   specialPage: SpecialRouteResolutionEntry,
   locale: Locale,
 ): { canonical: string; languages: { [k: string]: string } } => {
-  const availableLocales: Locale[] = ['de', 'fr', 'en'];
+  const availableLocales = i18nConfig.locales as Locale[];
   const canonicalLocale = specialPage.alternatives['de'] === '' ? locale : 'de';
   const canonicalPath = specialPage.alternatives[canonicalLocale];
 
@@ -47,7 +49,7 @@ const getCanonicalData = (
 const normalizeAlternativePath = (alternativePath: string): string =>
   alternativePath.replace(/^\/+/, '');
 
-const validLocales = new Set<string>(Object.values(LOCALE));
+const validLocales = new Set<string>(i18nConfig.locales);
 const validDesigns = new Set<string>(Object.values(DesignCodes));
 
 const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
@@ -192,7 +194,7 @@ export const generateMetadata = async ({
     // During prerendering, searchParams rejects — preview is never active.
     // The check below is only reached for non-Next.js errors.
     if (!(error instanceof Error && error.message.includes('searchParams'))) {
-      console.error('Unexpected error while resolving preview state:', error);
+      logger.error('Unexpected error while resolving the preview state', { error });
     }
   }
 
@@ -236,7 +238,7 @@ const CMSPage: React.FC<{
   // this logic is needed for the case the do not have set
   // we only treat valid locales as a valid locale, otherwise we use the default locale
   // and unshift the locale to the slugs array
-  if (!(Object.values(LOCALE) as string[]).includes(locale)) {
+  if (!i18nConfig.locales.includes(locale)) {
     slugs ??= [];
     slugs.unshift(locale);
     locale = i18nConfig.defaultLocale;
@@ -292,7 +294,9 @@ const CMSPage: React.FC<{
       );
     } else {
       // redirect to the alternative locale
-      console.log('Redirecting to alternative locale for special page');
+      logger.debug('Redirecting a special page to the alternative locale', {
+        locale: validatedLocale,
+      });
       const normalizedAlternativePath = normalizeAlternativePath(
         specialPage.alternatives[validatedLocale],
       );
@@ -336,7 +340,9 @@ const CMSPage: React.FC<{
       // redirect to alternative collectionPage if available
       const alternative = collectionPage.alternatives[validatedLocale];
       const normalizedAlternativePath = normalizeAlternativePath(alternative);
-      console.log('Redirecting to alternative locale for collection page');
+      logger.debug('Redirecting a collection page to the alternative locale', {
+        locale: validatedLocale,
+      });
       redirect(`/${validatedLocale}/${normalizedAlternativePath}`);
     }
   }

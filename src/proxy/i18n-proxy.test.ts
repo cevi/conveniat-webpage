@@ -21,6 +21,7 @@ jest.mock('@/features/payload-cms/payload-cms/locales', () => ({
     FR: 'fr',
     DE: 'de',
   },
+  enabledLocales: ['en', 'fr', 'de'],
 }));
 
 jest.mock('@/types/types', () => {

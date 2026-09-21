@@ -10,7 +10,7 @@ import {
   ANNOTATION_FOCUS_MARGINS,
 } from '@/features/map/utils/annotation-focus';
 import { renderHook } from '@testing-library/react';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 
 const CANVAS_WIDTH = 400;
 const CANVAS_HEIGHT = 700;

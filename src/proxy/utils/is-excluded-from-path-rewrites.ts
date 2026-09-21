@@ -11,7 +11,7 @@ export const isExcludedFromPathRewrites = (request: NextRequest): boolean => {
 
   // Do not rewrite static assets/chunks (e.g. JS, CSS, maps, images, manifests, sitemaps, webmanifest, xml)
   const isStaticAsset =
-    /\.(js|css|png|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|map|json)$/i.test(pathname) ||
+    /\.(js|css|png|webp|ico|svg|webmanifest|xml|txt|jpg|jpeg|gif|map|json)$/i.test(pathname) ||
     pathname.startsWith('/imgs/') ||
     pathname.startsWith('/serwist/');
 

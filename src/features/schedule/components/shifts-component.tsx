@@ -5,7 +5,6 @@ import { DateCarouselViewWrapper } from '@/features/schedule/components/date-car
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
 import { ShiftCard } from '@/features/schedule/components/shift-card';
-import { ShiftMainContent } from '@/features/schedule/components/shift-main-content';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useShiftFilters } from '@/features/schedule/hooks/use-shift-filter';
 import { trpc } from '@/trpc/client';
@@ -36,51 +35,6 @@ const foundShiftsText: StaticTranslationString = {
   de: '{{count}} Treffer',
   fr: '{{count}} service{{plural}} trouvé{{plural}}',
 };
-
-function hasShiftMainContent(mainContent?: unknown): boolean {
-  if (!Array.isArray(mainContent) || mainContent.length === 0) {
-    return false;
-  }
-
-  return mainContent.some((block) => {
-    if (block === null || block === undefined || typeof block !== 'object') {
-      return false;
-    }
-    const b = block as Record<string, unknown>;
-
-    if (b['blockType'] === 'richTextSection') {
-      const section =
-        typeof b['richTextSection'] === 'object' && b['richTextSection'] !== null
-          ? (b['richTextSection'] as Record<string, unknown>)
-          : undefined;
-      const root =
-        typeof section?.['root'] === 'object' && section['root'] !== null
-          ? (section['root'] as Record<string, unknown>)
-          : undefined;
-      if (root === undefined) {
-        return false;
-      }
-
-      const hasTextNode = (node: unknown): boolean => {
-        if (node === null || node === undefined || typeof node !== 'object') {
-          return false;
-        }
-        const n = node as Record<string, unknown>;
-        if (typeof n['text'] === 'string' && n['text'].trim().length > 0) {
-          return true;
-        }
-        if (Array.isArray(n['children'])) {
-          return n['children'].some((childItem) => hasTextNode(childItem));
-        }
-        return false;
-      };
-
-      return hasTextNode(root);
-    }
-
-    return true;
-  });
-}
 
 /**
  * Client Component for the /app/helper-portal page.
@@ -152,17 +106,9 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
 
       {hasShifts && (
         <div className="space-y-3">
-          {currentShifts.map((shift) => {
-            const hasMainContent = hasShiftMainContent(shift.mainContent);
-
-            return (
-              <ShiftCard key={shift.id} shift={shift} locale={locale}>
-                {hasMainContent && (
-                  <ShiftMainContent blocks={shift.mainContent as unknown[]} locale={locale} />
-                )}
-              </ShiftCard>
-            );
-          })}
+          {currentShifts.map((shift) => (
+            <ShiftCard key={shift.id} shift={shift} locale={locale} />
+          ))}
         </div>
       )}
 

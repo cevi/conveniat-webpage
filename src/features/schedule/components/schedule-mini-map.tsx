@@ -7,6 +7,7 @@ import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { ExternalLink } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
@@ -14,6 +15,23 @@ import React from 'react';
 
 interface ScheduleMiniMapProperties {
   location: CampMapAnnotation;
+  /**
+   * Sizes the map box, replacing the default fixed height.
+   *
+   * The schedule detail wants a strip of a known height; the helper portal wants one that keeps
+   * its proportions across phone widths. Passing the box in leaves both to the caller rather
+   * than growing a second copy of this component.
+   */
+  className?: string;
+  /**
+   * Whether the map may be touched at all.
+   *
+   * A map that answers taps is a map that can be made to say something else: pan away from the
+   * shift, open a neighbouring annotation, and what is on screen is no longer the meeting point
+   * the page is about. Where the map is there to state a fact rather than to be explored, the
+   * "open in map" button is the way out to a map that does respond.
+   */
+  interactive?: boolean;
 }
 
 interface CoordinateObject {
@@ -53,15 +71,15 @@ function parsePolygonCoordinates(rawCoords: unknown): [number, number][] {
     .filter((p): p is [number, number] => p !== undefined);
 }
 
-function isValidIcon(icon: string | null | undefined): icon is 'MapPin' | 'Tent' {
-  return icon === 'MapPin' || icon === 'Tent';
-}
-
 /**
  * A mini map component for the schedule details page.
  * Displays the location with a marker/polygon and all other polygons with reduced opacity.
  */
-export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location }) => {
+export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
+  location,
+  className,
+  interactive = true,
+}) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   // Fetch all polygon annotations for context
   const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(undefined, {
@@ -103,8 +121,6 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
   // Build polygon annotations - highlighted one first, then others with reduced opacity
   const polygonAnnotations: CampMapAnnotationPolygon[] = [];
 
-  const validIcon = isValidIcon(location.icon) ? location.icon : 'MapPin';
-
   const validImages = location.images?.filter((img): img is Image => typeof img !== 'string') ?? [];
 
   // Add highlighted (current) polygon
@@ -114,7 +130,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
       title: location.title,
       images: validImages,
       geometry: { coordinates: currentPolygonCoords },
-      icon: validIcon,
+      icon: location.icon,
       color: location.color ?? '#f64955',
       isInteractive: false,
       importance: 'high',
@@ -145,8 +161,12 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
 
   return (
     <div
-      className="relative mt-2 w-full overflow-hidden rounded-xl border border-gray-200"
-      style={{ height: '160px' }}
+      className={cn(
+        'relative mt-2 w-full overflow-hidden rounded-xl border border-gray-200',
+        className,
+      )}
+      // the inline height is the default only; a caller that sizes the box owns it entirely
+      style={className === undefined ? { height: '160px' } : undefined}
     >
       {/* Map container with explicit dimensions */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
@@ -167,7 +187,9 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
                     openingHours: location.openingHours,
                     images: validImages,
                     geometry: { coordinates: location.geometry },
-                    icon: validIcon,
+                    // the colour and the pin glyph come from being the selected annotation,
+                    // which this marker always is - see `selectedAnnotationId` below
+                    icon: location.icon,
                     color: location.color ?? '#f64955',
                     importance: 'high',
                   },
@@ -189,6 +211,12 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({ location 
           disableFlyTo
         />
       </div>
+
+      {/*
+        Swallows every pointer event before it reaches the map. Sits under the button below,
+        which keeps its own higher layer, so the way out to the full map still works.
+      */}
+      {!interactive && <div className="absolute inset-0 z-[5]" aria-hidden="true" />}
 
       {/* Overlay Button: Open in Map - styled like maplibregl controls */}
       <div className="absolute top-2 right-2 z-10">

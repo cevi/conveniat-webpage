@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 
 jest.mock('@/features/payload-cms/payload-cms/locales', () => ({
   LOCALE: { EN: 'en', FR: 'fr', DE: 'de' },
+  enabledLocales: ['en', 'fr', 'de'],
 }));
 
 jest.mock('@/types/types', () => {

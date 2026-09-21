@@ -22,6 +22,12 @@ export const environmentVariables = createEnv({
     API_TOKEN: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
     BILLING_ADMIN_GROUP_ID: z.string().optional(),
+    // Destructive: resets every participant to `new` and overwrites their PDFs and
+    // invoice numbers. Off unless a deployment opts in explicitly.
+    BILLING_ALLOW_REGENERATE_ALL: z
+      .string()
+      .optional()
+      .transform((value) => value === 'true'),
     EVENT_ID: z.string().optional(),
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
@@ -61,13 +67,17 @@ export const environmentVariables = createEnv({
 
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
-    MINIO_ROOT_USER: z.string().min(5),
-    MINIO_ROOT_PASSWORD: z.string().min(5),
-    MINIO_ACCESS_KEY_ID: z.string().min(5),
-    MINIO_SECRET_ACCESS_KEY: z.string().min(5),
-    MINIO_BUCKET_NAME: z.string().min(5),
-    MINIO_HOST: z.string().url(),
-    MINIO_PUBLIC_HOST: z.string().url(),
+    S3_ACCESS_KEY_ID: z.string().min(5),
+    S3_SECRET_ACCESS_KEY: z.string().min(5),
+    S3_BUCKET_NAME: z.string().min(5),
+    /**
+     * Bucket for bill PDFs. Optional: unset means they stay in `S3_BUCKET_NAME`
+     * alongside every other upload, which is where they are today. The bucket has to
+     * exist before this is set — nothing creates it.
+     */
+    S3_BILL_PDF_BUCKET_NAME: z.string().min(3).optional(),
+    S3_HOST: z.string().url(),
+    S3_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().optional(),
@@ -104,6 +114,18 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
     NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: z.boolean(),
+    /**
+     * Comma separated list of the locales this deployment serves, e.g. `de,fr`.
+     *
+     * Unset means "all locales" (conveniat27); the konekta deployment restricts it to German
+     * and French. German is always kept, it is the default and fallback locale.
+     *
+     * This is a build time flag: it is inlined into the client bundle, because the language
+     * switchers are client components. It is read in
+     * `@/features/payload-cms/payload-cms/locales`, not through this module — that module has to
+     * stay dependency free for the proxy (middleware) bundle.
+     */
+    NEXT_PUBLIC_ENABLED_LOCALES: z.string().optional(),
     NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
     NEXT_PUBLIC_HITOBITO_API_URL: z.string().url().optional(),
     NEXT_PUBLIC_SUPPORT_GROUP_ID: z.string().min(1).optional(),
@@ -115,6 +137,7 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_POSTHOG_KEY: process.env['NEXT_PUBLIC_POSTHOG_KEY'],
     NEXT_PUBLIC_POSTHOG_HOST: process.env['NEXT_PUBLIC_POSTHOG_HOST'],
     NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS: process.env['ENABLE_CON27_SHORT_URLS'] === 'true',
+    NEXT_PUBLIC_ENABLED_LOCALES: process.env['NEXT_PUBLIC_ENABLED_LOCALES'],
     NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
     NEXT_PUBLIC_HITOBITO_API_URL: process.env['NEXT_PUBLIC_HITOBITO_API_URL'],
     NEXT_PUBLIC_SUPPORT_GROUP_ID: process.env['NEXT_PUBLIC_SUPPORT_GROUP_ID'],

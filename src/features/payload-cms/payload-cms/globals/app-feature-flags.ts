@@ -29,7 +29,7 @@ export const AppFeatureFlags: GlobalConfig = {
     fr: 'Indicateurs de fonctionnalités',
   },
   admin: {
-    group: AdminPanelDashboardGroups.BackofficeAppFeatures,
+    group: AdminPanelDashboardGroups.AppOperations.label,
     hidden: shouldHideInAdminPanelIfNotAdmin,
   },
   access: {
