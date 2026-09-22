@@ -277,6 +277,17 @@ describe('design-rewrite-proxy', () => {
     expect(getRewritePathname()).toContain(DesignCodes.APP_DESIGN);
   });
 
+  it('uses APP_DESIGN when Conveniat27App user-agent is detected', async () => {
+    const request = mockRequest('https://example.com/app/dashboard', {
+      userAgent: 'Mozilla/5.0 Conveniat27App/1.0',
+    });
+    const response = mockResponse();
+
+    await handler(request, {} as NextFetchEvent, response);
+
+    expect(getRewritePathname()).toContain(DesignCodes.APP_DESIGN);
+  });
+
   // -----------------------------------------------------------------------
   // Referer-based app mode for /app/dashboard
   // -----------------------------------------------------------------------

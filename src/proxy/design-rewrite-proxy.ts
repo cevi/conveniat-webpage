@@ -3,6 +3,7 @@ import type { ProxyModule } from '@/proxy/types';
 import { Cookie, Header } from '@/types/types';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
 import { createLogger } from '@/utils/server-logger';
+import { isNativeAppUserAgent } from '@/utils/standalone-check';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -86,7 +87,7 @@ export const designRewriteProxy: ProxyModule = (next) => async (request, event, 
   const isRefererTrigger = appModeForDashboardBasedOnReferer(pathname, request);
 
   const userAgent = request.headers.get('user-agent') ?? '';
-  const isNativeApp = userAgent.includes('KonektaApp');
+  const isNativeApp = isNativeAppUserAgent(userAgent);
 
   if (forceAppMode || implicitAppMode || isRefererTrigger || isNativeApp) {
     designPrefix = DesignCodes.APP_DESIGN;

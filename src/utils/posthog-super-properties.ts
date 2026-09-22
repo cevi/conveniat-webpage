@@ -11,7 +11,7 @@ import type { PostHog } from 'posthog-js';
  *
  * PostHog already captures `$os` / `$os_version` (e.g. iOS 18.7.0) and the raw user
  * agent, so the platform and OS are covered. What it cannot see is which release of
- * the wrapper is running: the shell hardcodes `KonektaApp/1.0` into the user agent,
+ * the wrapper is running: the shell hardcodes a fixed marker like `KonektaApp/1.0` into the user agent,
  * so every native client looks identical and a native regression is unattributable.
  *
  * These keys are only meaningful inside the native app. `register()` persists to
