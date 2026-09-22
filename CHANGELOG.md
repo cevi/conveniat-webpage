@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.12.0](https://github.com/cevi/conveniat-webpage/compare/v1.11.3...v1.12.0) (2026-09-22)
+
+
+### Features
+
+* **observability:** attach the trace id to reported errors ([e2e5a1f](https://github.com/cevi/conveniat-webpage/commit/e2e5a1fe373ecc507967ff07f4f947f88a830182))
+* **trpc:** trace every procedure and record its duration ([375e52d](https://github.com/cevi/conveniat-webpage/commit/375e52d5a2b95e40b8730eaff22557f9393c4413))
+* **jobs:** trace every task run and record its duration ([4a75f18](https://github.com/cevi/conveniat-webpage/commit/4a75f18ba2c5087becafd538d4c675f4b8791d36))
+
+
+### Bug Fixes
+
+* **push:** detect the Conveniat27 native app user agent ([b714d88](https://github.com/cevi/conveniat-webpage/commit/b714d88abe12f873571743008abb10af0c12fcb3)), closes [#1838](https://github.com/cevi/conveniat-webpage/issues/1838)
+* **billing:** refresh the name of a Hof renamed in Cevi.DB ([d865adc](https://github.com/cevi/conveniat-webpage/commit/d865adc1696c29df4d39d1df37d87cc8302bb010))
+* **billing:** show the stored Hof names as text, not as entities ([655a5ec](https://github.com/cevi/conveniat-webpage/commit/655a5ec0da609e977c4ec0ee2612b2dafa23f0d3))
+* **billing:** make the subevent walk readable in Loki ([01b2843](https://github.com/cevi/conveniat-webpage/commit/01b28431e081949f49a31e9026b3e64ddd8e9dac))
+* **auth:** scanner probes are logged as debug instead of errors ([ec4ff44](https://github.com/cevi/conveniat-webpage/commit/ec4ff44eff1781978395b35e74d29bbfd63287ee))
+* **observability:** job runner no longer logs under a dead request span ([c645ca7](https://github.com/cevi/conveniat-webpage/commit/c645ca7be7b9c82e9d9b40ef2a05aee17d26693b))
+* **observability:** pass the startup error as a log attribute ([d33f695](https://github.com/cevi/conveniat-webpage/commit/d33f69565d2b7eeb57435d8691fa694438a410dd))
+
 ## [1.11.3](https://github.com/cevi/conveniat-webpage/compare/v1.11.2...v1.11.3) (2026-09-21)
 
 
