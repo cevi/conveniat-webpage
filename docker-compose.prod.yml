@@ -1,3 +1,11 @@
+# The conveniat27 production stack, as deployed.
+#
+# This is a copy of /cluster/swarm/stacks/conveniat/docker-compose.yml on cevi-tools-s02,
+# which ansible copies there from cevi-tools-infrastructure. That repository is where a
+# change to the stack is made; this copy exists so the deployment can be read alongside the
+# code it runs, and it is only worth having while it matches. It is not runnable as it
+# stands: the `configs` below name files on the host, and the volumes name host paths.
+#
 services:
   payload:
     image: registry.cevi.tools/cevi/conveniat27-webpage:latest
@@ -9,15 +17,13 @@ services:
         - NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
         - NEXT_PUBLIC_POSTHOG_KEY=phc_QXeG5AHoyxCVCcIse8a2rriQKZgAwkk3vO15Zz0aDud
         - NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
-        - POSTHOG_API_KEY=${POSTHOG_API_KEY}
-        - POSTHOG_PROJECT_ID=${POSTHOG_PROJECT_ID}
 
     deploy:
       replicas: 2
 
       update_config:
         parallelism: 1 # Update one replica at a time
-        delay: 15s # 15s delay between updates for Traefik health checks
+        delay: 15s # No delay between updates
         order: start-first # Start new containers before stopping old ones
         monitor: 5s # Time to wait after an update to monitor for failure
         failure_action: pause # What to do if an update fails
@@ -30,11 +36,68 @@ services:
         window: 60s
 
       labels:
-        # Shepherd rolls the service when the image tag's digest changes. The stacks actually
-        # deployed live in cevi-tools-infrastructure; this file mirrors them for local use.
+        # Shepherd polls the registry every minute and rolls the service when the tag's digest
+        # changes. This is what makes a published release reach the deployment.
         - shepherd.enable=true
 
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+
+    volumes:
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/firebase-service-account.json:/app/firebase-service-account.json:ro
+      # The image's entrypoint copies each build's .next/static in here, and nginx serves
+      # /_next/static/ from the same directory, so a browser still running the previous build
+      # can fetch its chunks after the rollover. The container runs as uid 1001, so the host
+      # directory must be owned by it: chown -R 1001:65533 <dir>
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/next-static-cumulative:/app/.next/static-persistent:rw
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/next-cache:/app/.next/cache
+
+    # dns:
+    #  - 8.8.8.8 # Replace with your desired DNS server
+
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+
+    # OpenTelemetry wiring for the shared, multi-tenant observability stack.
+    # Declared here rather than in .env so the telemetry identity of this
+    # deployment is version-controlled. These override any OTEL_* left in .env
+    # (compose `environment:` beats `env_file:`).
+    environment:
+      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
+      # Selects the tenant in Loki and Tempo.
+      OTEL_TENANT_ID: conveniat27-prod
+      OTEL_SERVICE_NAME: conveniat27-app
+      OTEL_SERVICE_NAMESPACE: conveniat27
+      DEPLOYMENT_ENV: production
+      # Head sampling. Measured at 38 MB/h of compressed blocks per service at
+      # 100%; 25% keeps production inside the shared 4 GB Tempo budget.
+      OTEL_TRACES_SAMPLER_ARG: '0.25'
+
+    networks:
+      - backend-net
+      - observability-net
+
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  nginx:
+    image: nginx:alpine
+    deploy:
+      replicas: 2
+      labels:
+        - swarmpit.service.deployment.autoredeploy=true
+
         - traefik.enable=true
+        - traefik.docker.network=traefik-net-1400
 
         # redirect conveniat.ch (HTTPS)
         - traefik.http.routers.conveniat-redirect-secure.rule=Host(`conveniat.ch`)
@@ -51,12 +114,18 @@ services:
         - traefik.http.routers.conveniat-redirect-http.middlewares=redirect-to-https@file
 
         # short url
+        # con27.ch is served by the app itself rather than redirected at the edge, so a
+        # printed short link costs one hop instead of two: addprefix turns /agbs into
+        # /go/agbs and the route handler answers 307 straight to the target. Only the app
+        # can do this — the slug to target mapping lives in the `go` collection, which
+        # editors change without a deploy. The handler answers with an absolute Location
+        # (APP_HOST_URL), which is what keeps the reader from landing back on con27.ch and
+        # looping through this same prefix; see fix(go) in conveniat27 v1.11.1.
         - traefik.http.routers.short-con27-router.rule=Host(`con27.ch`)
         - traefik.http.routers.short-con27-router.entrypoints=websecure
-        - traefik.http.routers.short-con27-router.middlewares=redirect-to-conveniat27
-        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.regex=^https?://con27.ch/(.*)
-        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.replacement=https://conveniat27.ch/go/$$$${1}
-        - traefik.http.middlewares.redirect-to-conveniat27.redirectregex.permanent=true
+        - traefik.http.routers.short-con27-router.service=conveniat27
+        - traefik.http.routers.short-con27-router.middlewares=con27-go-prefix,retry-middleware-prod
+        - traefik.http.middlewares.con27-go-prefix.addprefix.prefix=/go
 
         - traefik.http.routers.con27-router-http.rule=Host(`con27.ch`)
         - traefik.http.routers.con27-router-http.entrypoints=web
@@ -72,7 +141,7 @@ services:
         - traefik.http.routers.conveniat27-router.service=conveniat27
         - traefik.http.routers.conveniat27-router.middlewares=conveniat27-to-non-www,retry-middleware-prod
 
-        - traefik.http.services.conveniat27.loadbalancer.server.port=3000
+        - traefik.http.services.conveniat27.loadbalancer.server.port=80
 
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.regex=^https://www.conveniat27.ch/(.*)
         - traefik.http.middlewares.conveniat27-to-non-www.redirectregex.replacement=https://conveniat27.ch/$$$${1}
@@ -87,52 +156,17 @@ services:
         - traefik.http.middlewares.retry-middleware-prod.retry.attempts=3
         - traefik.http.middlewares.retry-middleware-prod.retry.initialinterval=50ms
 
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 2048M
-
+    configs:
+      - source: nginx-config
+        target: /etc/nginx/nginx.conf
     volumes:
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/next-cache:/app/.next/cache
-      - /cluster/dist_storage_insane/service_data/conveniat-prod/firebase-service-account.json:/app/firebase-service-account.json:ro
-
-    dns:
-      - 8.8.8.8 # Replace with your desired DNS server
-
-    depends_on:
-      - mongo
-      - redis
-    env_file:
-      - .env
-
-    # OpenTelemetry wiring for the shared, multi-tenant observability stack.
-    # Declared here rather than in .env so the telemetry identity of this
-    # deployment is version-controlled. These override any OTEL_* left in .env
-    # (compose `environment:` beats `env_file:`), but OTEL_SDK_DISABLED must
-    # still be removed from .env or the SDK stays off entirely.
-    environment:
-      OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: http://observability_tempo:4318/v1/traces
-      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: http://observability_loki:3100/otlp/v1/logs
-      # Selects the tenant in Loki and Tempo.
-      OTEL_TENANT_ID: conveniat27-prod
-      OTEL_SERVICE_NAME: conveniat27-app
-      OTEL_SERVICE_NAMESPACE: conveniat27
-      DEPLOYMENT_ENV: production
-      # Head sampling ratio. A service produced ~900 MB/day of compressed trace
-      # blocks at 100%; 25% keeps it inside the shared 4 GB Tempo budget.
-      OTEL_TRACES_SAMPLER_ARG: '0.25'
-
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/nginx-cache:/var/cache/nginx
+      - /cluster/dist_storage_insane/service_data/conveniat-prod/next-static-cumulative:/var/www/next-static:ro
     networks:
-      - traefik-net-1400
       - backend-net
-      - observability-net
-
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -fs http://localhost:3000/status | grep -q "status\":\"ok"']
-      interval: 5s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+      - traefik-net-1400
+    depends_on:
+      - payload
 
   mongo:
     image: mongo:latest
@@ -154,17 +188,36 @@ services:
       - backend-net
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/mongodb-data-backup-dumps:/backup
+    # Hourly dumps of a 522M database. The previous form wrote an uncompressed
+    # directory tree (`--out`), so 30 days of retention meant 743 near-identical
+    # copies: 53 GB across 91,615 files, of which _generic-page_versions.bson
+    # alone was 41 MB of every 74 MB dump. `--archive --gzip` makes each backup a
+    # single ~12 MB file, taking the store to roughly 9 GB and 743 files, and
+    # turns the retention sweep into a flat unlink instead of a tree walk.
+    #
+    # The old sweep also lacked -maxdepth 1, so it descended into every dump and
+    # matched the inner per-database directories as deletion candidates too. Both
+    # patterns are kept for now so the existing directory-format dumps still age
+    # out; the -type d branch can go once the last of them is past 30 days.
     command: >
       sh -c '
         while true; do
           echo "INFO: 🧹 Deleting backups older than 30 days...";
-          find /backup -name "*.gz" -mtime +30 -delete;
+          find /backup -maxdepth 1 -type f -name "dump_*.gz" -mtime +30 -delete;
+          find /backup -maxdepth 1 -type d -name "dump_*" -mtime +30 -exec rm -rf {} +;
           echo "INFO: Creating database backup...";
-          mongodump --host mongo --archive=/backup/dump_$$$$(date +%Y-%m-%d_%H-%M-%S).gz --gzip;
+          mongodump --host mongo --gzip --archive=/backup/dump_$$$$(date +%Y-%m-%d_%H-%M-%S).gz;
           echo "INFO: Backup complete. Waiting 1 hour.";
           sleep 3600; # 1 hour
         done
       '
+
+    # The service previously ran with no resource limits at all.
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
 
   # S3 storage for Payload uploads. All components run in one process; the entrypoint config
   # builds the S3 identities from the S3_* variables, so the app configuration is the same as
@@ -223,26 +276,21 @@ services:
   postgres:
     image: postgres:17
 
-    command: >
-      postgres
-      -c fsync=on
-      -c synchronous_commit=on
-      -c max_connections=200
-      -c shared_buffers=2GB
-      -c effective_cache_size=6GB
-      -c maintenance_work_mem=512MB
-      -c checkpoint_completion_target=0.9
-      -c wal_buffers=16MB
-      -c default_statistics_target=100
-      -c random_page_cost=1.1
-      -c effective_io_concurrency=200
-      -c work_mem=16MB
-      -c min_wal_size=1GB
-      -c max_wal_size=4GB
-      -c max_worker_processes=4
-      -c max_parallel_workers_per_gather=2
-      -c max_parallel_workers=4
-      -c max_parallel_maintenance_workers=2
+    deploy:
+      labels:
+        - swarmpit.service.deployment.autoredeploy=true
+
+        # expose the DB via tcp on port 443
+        - traefik.enable=true
+        - traefik.tcp.routers.conveniat27-database.entrypoints=websecure
+        - traefik.tcp.routers.conveniat27-database.rule=HostSNI(`db.conveniat27.ch`)
+
+        # define TLS
+        - traefik.tcp.routers.conveniat27-database.tls=true
+        - traefik.tcp.routers.conveniat27-database.tls.certresolver=myresolver
+        - traefik.tcp.routers.conveniat27-database.middlewares=vpn-whitelist@file
+
+        - traefik.tcp.services.conveniat27-database.loadbalancer.server.port=5432
 
     env_file:
       - .env
@@ -252,27 +300,31 @@ services:
 
     networks:
       - backend-net
+      - traefik-net-1400
 
-  # tempo / loki removed — telemetry now goes to the shared, multi-tenant stack
-  # (cevi/cevi-tools-infrastructure, stacks/observability) under the
-  # `conveniat27-prod` tenant, reached over the external observability-net.
+  # tempo / loki removed — telemetry now goes to the shared, multi-tenant
+  # stack in stacks/observability under the `conveniat27-prod` tenant,
+  # reached over the external observability-net.
 
   redis:
     image: redis:alpine
     networks:
-      - backend-net
+      backend-net:
+        aliases:
+          - redis
     volumes:
       - /cluster/dist_storage_insane/service_data/conveniat-prod/redis:/data
-    logging:
-      driver: none
-    deploy:
-      replicas: 1
+#    logging:
+#      driver: none
 
 configs:
   seaweedfs-entrypoint:
-    # A copy of docker/seaweedfs-entrypoint.sh from this repository.
     name: seaweedfs_entrypoint_conveniat_prod-${STAMP}
     file: /cluster/dist_storage_insane/config/conveniat27/seaweedfs-entrypoint.sh
+
+  nginx-config:
+    name: nginx_conveniat_prod-${STAMP}
+    file: /cluster/dist_storage_insane/config/conveniat27/nginx.conf
 
 networks:
   traefik-net-1400:
@@ -284,3 +336,4 @@ networks:
 
   observability-net:
     external: true
+    attachable: true

@@ -1,4 +1,6 @@
 import { onRequestError } from '@/instrumentation';
+import type { Span } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 
 const capturedCalls: unknown[][] = [];
 const captureException = jest.fn((...parameters: unknown[]): void => {
@@ -40,10 +42,28 @@ const messagelessError = (extras: Record<string, string> = {}): Error =>
 
 const capturedError = (): Error => capturedCalls[0]?.[0] as Error;
 
+const capturedProperties = (): Record<string, unknown> =>
+  capturedCalls[0]?.[2] as Record<string, unknown>;
+
+/**
+ * Stands in for the span Next.js has entered by the time it calls `onRequestError`. There is no
+ * SDK in the test environment, so without this the context manager is the no-op one and
+ * `getActiveSpan()` always returns undefined.
+ */
+const withActiveSpan = (traceId: string, spanId: string): void => {
+  jest.spyOn(trace, 'getActiveSpan').mockReturnValue({
+    spanContext: () => ({ traceId, spanId, traceFlags: 1 }),
+  } as unknown as Span);
+};
+
 describe('onRequestError', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     capturedCalls.length = 0;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('reports an error that has a message unchanged', async () => {
@@ -89,6 +109,33 @@ describe('onRequestError', () => {
     await onRequestError(new TimeoutError(), emptyRequest, {});
 
     expect(capturedError().message).toBe('TimeoutError');
+  });
+
+  it('reports the ids of the span the request is being traced under', async () => {
+    withActiveSpan('4bf92f3577b34da6a3ce929d0e0e4736', '00f067aa0ba902b7');
+
+    await onRequestError(new Error('database connection refused'), emptyRequest, {});
+
+    expect(capturedProperties()).toMatchObject({
+      trace_id: '4bf92f3577b34da6a3ce929d0e0e4736',
+      span_id: '00f067aa0ba902b7',
+    });
+  });
+
+  it('reports without trace ids when no span is active', async () => {
+    await onRequestError(new Error('database connection refused'), emptyRequest, {});
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(capturedProperties()).not.toHaveProperty('trace_id');
+    expect(capturedProperties()).not.toHaveProperty('span_id');
+  });
+
+  it('drops an invalid span context rather than reporting an all-zero trace id', async () => {
+    withActiveSpan('00000000000000000000000000000000', '0000000000000000');
+
+    await onRequestError(new Error('database connection refused'), emptyRequest, {});
+
+    expect(capturedProperties()).not.toHaveProperty('trace_id');
   });
 
   it('still drops a not-found sentinel instead of reporting it under its digest', async () => {

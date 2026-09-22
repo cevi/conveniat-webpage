@@ -35,7 +35,13 @@ interface RedirectTarget {
  * The site serves the default locale without a prefix, so `/de/impressum` exists only to
  * be redirected to `/impressum`, and that redirect is also where the reader's locale
  * cookie is set. A short link is read once, from paper, so it names the canonical path
- * directly and carries the same cookie — the entry already says which locale it means.
+ * directly and sets the cookie itself.
+ *
+ * That cookie only reaches a reader who is already on the site's own host: one set while
+ * answering con27.ch belongs to con27.ch and is never sent to conveniat27.ch. A target in
+ * a prefixed locale carries its locale in the path regardless, so only the prefix-less
+ * default locale defers to whatever session the reader brings — the same document either
+ * way, and the price of arriving in a single redirect.
  */
 const redirectTo = ({ path, locale }: RedirectTarget): Response => {
   const headers = new Headers({

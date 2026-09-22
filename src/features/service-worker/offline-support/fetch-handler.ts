@@ -15,6 +15,7 @@ import {
 import { DesignModeTriggers } from '@/utils/design-codes';
 import { isDraftMode } from '@/utils/draft-mode';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
+import { isNativeAppUserAgent } from '@/utils/standalone-check';
 import type { Serwist } from 'serwist';
 
 declare const self: ServiceWorkerGlobalScope;
@@ -395,11 +396,11 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     (event.clientId !== '' && isClientInAppMode(event.clientId)) ||
     (event.resultingClientId !== '' && isClientInAppMode(event.resultingClientId));
 
-  // Detect native app WebView via User-Agent (matches the server-side check in design-rewrite-proxy.ts).
-  // This is the most reliable signal: the WebView ALWAYS sends 'KonektaApp/1.0' in the UA,
+  // Detect native app WebView via User-Agent (same predicate as design-rewrite-proxy.ts).
+  // This is the most reliable signal: the WebView ALWAYS sends its brand marker in the UA,
   // regardless of SW state, client ID tracking, or query params.
   const userAgent = event.request.headers.get('user-agent') ?? '';
-  const isNativeAppWebView = userAgent.includes('KonektaApp');
+  const isNativeAppWebView = isNativeAppUserAgent(userAgent);
 
   if (isApi) {
     try {
