@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/cevi/conveniat-webpage/compare/v1.11.3...v1.12.0) (2026-09-22)
+
+
+### chore
+
+* release 1.12.0 ([c0f2f75](https://github.com/cevi/conveniat-webpage/commit/c0f2f75747243c8b60a91aee05778ded0372efce))
+
+
+### Bug Fixes
+
+* **push:** detect the Conveniat27 native app user agent ([2248d96](https://github.com/cevi/conveniat-webpage/commit/2248d96fec7ca8c635e6caf9105c6df9cd20c368))
+* **push:** detect the Conveniat27 native app user agent ([b714d88](https://github.com/cevi/conveniat-webpage/commit/b714d88abe12f873571743008abb10af0c12fcb3)), closes [#1838](https://github.com/cevi/conveniat-webpage/issues/1838)
+
 ## [1.11.3](https://github.com/cevi/conveniat-webpage/compare/v1.11.2...v1.11.3) (2026-09-21)
 
 
