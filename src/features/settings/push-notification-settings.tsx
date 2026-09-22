@@ -170,7 +170,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
 
     const debugData = {
       exportedAt: new Date().toISOString(),
-      environment: isNativeApp ? 'Native WebView (KonektaApp)' : 'Web Browser',
+      environment: isNativeApp ? 'Native WebView' : 'Web Browser',
       isNativeApp,
       isBridgePresent,
       nativeStatus: status,
@@ -289,7 +289,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
               <div>
                 <span className="text-gray-400">Environment: </span>
                 <span className={isNativeApp ? 'font-semibold text-green-400' : 'text-blue-400'}>
-                  {isNativeApp ? 'Native WebView (KonektaApp)' : 'Web Browser'}
+                  {isNativeApp ? 'Native WebView' : 'Web Browser'}
                 </span>
               </div>
               <div>
