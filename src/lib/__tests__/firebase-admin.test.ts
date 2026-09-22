@@ -54,16 +54,16 @@ describe('sendFcmNotification', () => {
   });
 
   /**
-   * `konekta-push` is what the shell creates at startup. `konekta-default`, which this
-   * used to name, was renamed away in cevi/konekta-app@29d3af24 and has not existed on a
-   * device since (#1583) - leaving every push to be placed by FCM's fallback chain
+   * `conveniat27-push` is what the shell creates at startup. This constant used to
+   * name `konekta-push`, copied from cevi/konekta-app without updating for this app's
+   * real channel id (#1583) - leaving every push to be placed by FCM's fallback chain
    * rather than by this field.
    */
   it('addresses the Android channel the native app actually creates', async () => {
     await sendFcmNotification('token-1', { title: 'Alarm', body: 'Einsatz', data: {} });
 
     expect(mockSend).toHaveBeenCalledTimes(1);
-    expect(lastSentMessage().android?.notification?.channelId).toBe('konekta-push');
+    expect(lastSentMessage().android?.notification?.channelId).toBe('conveniat27-push');
   });
 
   it('leaves a regular push undeclared, so the shell renders it on the chat channel', async () => {
@@ -80,7 +80,7 @@ describe('sendFcmNotification', () => {
       await sendEmergency();
 
       const message = lastSentMessage();
-      expect(message.android?.notification?.channelId).toBe('konekta-emergency');
+      expect(message.android?.notification?.channelId).toBe('conveniat27-emergency');
       // Below API 26 there is no channel to carry the siren, so name the raw resource.
       expect(message.android?.notification?.sound).toBe('emergency_siren');
     });

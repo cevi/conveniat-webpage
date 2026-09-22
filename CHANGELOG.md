@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.3](https://github.com/cevi/conveniat-webpage/compare/v1.11.2...v1.11.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* correct Android FCM channel id to conveniat27-push ([f038a96](https://github.com/cevi/conveniat-webpage/commit/f038a96dec29d9e02a2d65cea2b0880f76f14b3b))
+* correct Android FCM channel id to conveniat27-push ([817d7ff](https://github.com/cevi/conveniat-webpage/commit/817d7ffd5e76faf783147ff257de648c29bd8546))
+
 ## [1.11.2](https://github.com/cevi/conveniat-webpage/compare/v1.11.1...v1.11.2) (2026-09-20)
 
 
