@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.12.1](https://github.com/cevi/conveniat-webpage/compare/v1.12.0...v1.12.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* add Conveniat27 native app to universal/app link verification files ([3763382](https://github.com/cevi/conveniat-webpage/commit/376338210a8a4455a53e3183bef861d57d230934))
+* add Conveniat27 native app to universal/app link verification files ([2cc3b38](https://github.com/cevi/conveniat-webpage/commit/2cc3b38a06e46a5952ae272f4db0dd3d16926279)), closes [#1843](https://github.com/cevi/conveniat-webpage/issues/1843)
+
 ## [1.12.0](https://github.com/cevi/conveniat-webpage/compare/v1.11.3...v1.12.0) (2026-09-22)
 
 
