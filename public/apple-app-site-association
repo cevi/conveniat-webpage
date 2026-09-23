@@ -8,6 +8,14 @@
             "/": "/*"
           }
         ]
+      },
+      {
+        "appIDs": ["5989NN7MH5.ch.cevi.conveniat27.Conveniat27App"],
+        "components": [
+          {
+            "/": "/*"
+          }
+        ]
       }
     ]
   }
