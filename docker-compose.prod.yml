@@ -125,7 +125,18 @@ services:
         - traefik.http.routers.short-con27-router.entrypoints=websecure
         - traefik.http.routers.short-con27-router.service=conveniat27
         - traefik.http.routers.short-con27-router.middlewares=con27-go-prefix,retry-middleware-prod
+        - traefik.http.routers.short-con27-router.priority=1
         - traefik.http.middlewares.con27-go-prefix.addprefix.prefix=/go
+
+        # Universal Links (iOS) and App Links (Android) fetch AASA / assetlinks.json
+        # straight from con27.ch's own root, expecting a direct 200 — not a redirect
+        # through the /go short-link prefix. This bypasses con27-go-prefix so those
+        # two files are served exactly like on conveniat27.ch.
+        - traefik.http.routers.con27-wellknown-router.rule=Host(`con27.ch`) && PathPrefix(`/.well-known/`)
+        - traefik.http.routers.con27-wellknown-router.entrypoints=websecure
+        - traefik.http.routers.con27-wellknown-router.service=conveniat27
+        - traefik.http.routers.con27-wellknown-router.middlewares=retry-middleware-prod
+        - traefik.http.routers.con27-wellknown-router.priority=100
 
         - traefik.http.routers.con27-router-http.rule=Host(`con27.ch`)
         - traefik.http.routers.con27-router-http.entrypoints=web
