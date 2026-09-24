@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.13.0](https://github.com/cevi/conveniat-webpage/compare/v1.12.1...v1.13.0) (2026-09-24)
+
+
+### Features
+
+* **documents:** localized display name for downloads ([635454a](https://github.com/cevi/conveniat-webpage/commit/635454adb35152355a62dfcff16ac845678519c0))
+* **documents:** localized display name for downloads ([eb32224](https://github.com/cevi/conveniat-webpage/commit/eb32224954c7c27bf2231e31cfca7ba79725284c)), closes [#250](https://github.com/cevi/conveniat-webpage/issues/250) [#219](https://github.com/cevi/conveniat-webpage/issues/219)
+* **documents:** name saved files after the display name ([21621b9](https://github.com/cevi/conveniat-webpage/commit/21621b9e1770b9c5e664122d8f72b52c98c89ef9))
+
+
+### Bug Fixes
+
+* **deploy:** serve con27.ch association files without the /go prefix ([7950bbc](https://github.com/cevi/conveniat-webpage/commit/7950bbcba3c5f2ed143a98a80f7f14ae44d5052c))
+* **deploy:** serve con27.ch association files without the /go prefix ([7adbbc5](https://github.com/cevi/conveniat-webpage/commit/7adbbc5ddd570dfdf3c7b32ec8cba5b7caaf0991)), closes [#1847](https://github.com/cevi/conveniat-webpage/issues/1847)
+
 ## [1.12.1](https://github.com/cevi/conveniat-webpage/compare/v1.12.0...v1.12.1) (2026-09-23)
 
 
