@@ -127,6 +127,16 @@ services:
         - traefik.http.routers.short-con27-router.middlewares=con27-go-prefix,retry-middleware-prod
         - traefik.http.middlewares.con27-go-prefix.addprefix.prefix=/go
 
+        # iOS Universal Links and Android App Links verify con27.ch by fetching the
+        # association files from its own root and accept only a direct 200, so these
+        # must bypass the /go prefix. The explicit priority keeps this router ahead of
+        # the catch-all above even if its rule grows longer.
+        - traefik.http.routers.con27-well-known-router.rule=Host(`con27.ch`) && PathPrefix(`/.well-known/`)
+        - traefik.http.routers.con27-well-known-router.entrypoints=websecure
+        - traefik.http.routers.con27-well-known-router.service=conveniat27
+        - traefik.http.routers.con27-well-known-router.middlewares=retry-middleware-prod
+        - traefik.http.routers.con27-well-known-router.priority=1000
+
         - traefik.http.routers.con27-router-http.rule=Host(`con27.ch`)
         - traefik.http.routers.con27-router-http.entrypoints=web
         - traefik.http.routers.con27-router-http.middlewares=redirect-to-https@file
