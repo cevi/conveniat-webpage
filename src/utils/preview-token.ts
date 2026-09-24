@@ -1,4 +1,4 @@
-'use server';
+import 'server-only';
 
 import { environmentVariables } from '@/config/environment-variables';
 import * as jwt from 'jsonwebtoken';
