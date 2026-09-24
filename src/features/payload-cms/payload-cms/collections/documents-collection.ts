@@ -4,11 +4,15 @@ import {
   shouldHideInAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
+import { buildDocumentContentDisposition } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { Document } from '@/features/payload-cms/payload-types';
-import type { CollectionAfterChangeHook, CollectionConfig } from 'payload';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
+import type { CollectionAfterChangeHook, CollectionConfig, UploadConfig } from 'payload';
 
 const schedulePdfThumbnail: CollectionAfterChangeHook<Document> = async ({ doc, req }) => {
   if (doc.mimeType === 'application/pdf' && req.context['skipPdfThumbnail'] !== true) {
@@ -18,6 +22,43 @@ const schedulePdfThumbnail: CollectionAfterChangeHook<Document> = async ({ doc, 
     });
   }
   return doc;
+};
+
+const isEnabledLocale = (locale: string | undefined): locale is Locale =>
+  locale !== undefined && i18nConfig.locales.includes(locale);
+
+/**
+ * Names the served file after the display name in the requested locale. It only sets a header
+ * and returns nothing, so the S3 storage handler registered after it still serves the file.
+ */
+const nameFileAfterDisplayName: NonNullable<UploadConfig['handlers']>[number] = async (
+  request,
+  { headers, params },
+) => {
+  if (headers === undefined) return;
+
+  // the doc Payload hands to handlers is raw (all locales) and absent when access returns true
+  const locale = isEnabledLocale(request.locale) ? request.locale : LOCALE.DE;
+  try {
+    const { docs } = await request.payload.find({
+      collection: 'documents',
+      where: { filename: { equals: params.filename } },
+      locale,
+      select: { title: true },
+      limit: 1,
+      depth: 0,
+      pagination: false,
+      // read access was already checked by Payload before any handler runs
+      overrideAccess: true,
+    });
+    const contentDisposition = buildDocumentContentDisposition(docs[0]?.title, params.filename);
+    if (contentDisposition !== undefined) {
+      headers.set('Content-Disposition', contentDisposition);
+    }
+  } catch (error) {
+    // the file is still served, only under its stored name
+    request.payload.logger.warn({ err: error, msg: 'Could not resolve document display name' });
+  }
 };
 
 export const DocumentsCollection: CollectionConfig = {
@@ -95,6 +136,7 @@ export const DocumentsCollection: CollectionConfig = {
     LastEditedByUserField,
   ],
   upload: {
+    handlers: [nameFileAfterDisplayName],
     adminThumbnail: ({ doc }) =>
       typeof doc['pdfThumbnailUrl'] === 'string' && doc['pdfThumbnailUrl'].length > 0
         ? doc['pdfThumbnailUrl']

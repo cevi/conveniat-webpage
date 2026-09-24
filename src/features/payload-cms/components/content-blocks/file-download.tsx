@@ -1,4 +1,5 @@
 import { LinkComponent } from '@/components/ui/link-component';
+import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { Locale } from '@/types/types';
 import { Download, Paperclip } from 'lucide-react';
 import React from 'react';
@@ -38,13 +39,13 @@ const dateStringToFormatedDate = (locale: Locale, dateString: string): string =>
 
 export const FileDownload: React.FC<FileDownloadType> = ({ locale, ...block }) => {
   // the display name is localized without fallback, so it can be empty in any locale
-  const title = block.file.title ?? '';
+  const title = (block.file.title ?? '').trim();
   const displayName = title === '' ? block.file.filename : title;
 
   return (
     <div className="group hover:border-conveniat-green/30 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs transition-all duration-300 hover:bg-green-50/10 hover:shadow-md sm:my-6">
       <LinkComponent
-        href={block.file.url}
+        href={withLocaleParameter(block.file.url, locale)}
         openInNewTab={block.openInNewTab}
         className="block p-3 sm:p-4"
         hideExternalIcon
