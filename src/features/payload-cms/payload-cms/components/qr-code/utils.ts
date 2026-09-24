@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { createPreviewToken } from '@/features/payload-cms/payload-cms/components/qr-code/create-preview-token';
 import type { Locale } from '@/types/types';
 import { serverSideSlugToUrlResolution } from '@/utils/find-url-prefix';
-import { generatePreviewToken } from '@/utils/preview-token';
 import { notFound } from 'next/navigation';
 import type { CollectionSlug } from 'payload';
 
@@ -70,15 +70,12 @@ export const prepareQRCodeData = async (
     };
   }
 
-  const maxExpirySeconds = 86_400 * 7; // 7 days
-  const currentExpiry = expirySeconds <= maxExpirySeconds ? expirySeconds : 10_800;
-
   if (!savedDocumentData?.id) {
     console.error('Cannot generate preview token: document ID is missing');
     throw new Error('Cannot generate preview token: document ID is missing');
   }
 
-  const previewToken = await generatePreviewToken(savedDocumentData.id, currentExpiry);
+  const previewToken = await createPreviewToken(savedDocumentData.id, expirySeconds);
   if (previewToken === '') {
     console.error('Failed to generate preview token');
     throw new Error('Failed to generate preview token');

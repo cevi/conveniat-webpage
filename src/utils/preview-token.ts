@@ -1,4 +1,6 @@
-'use server';
+// Never mark this file 'use server': that would let anyone mint a preview token.
+// Minting goes through createPreviewToken, which checks the session first.
+import 'server-only';
 
 import { environmentVariables } from '@/config/environment-variables';
 import * as jwt from 'jsonwebtoken';
