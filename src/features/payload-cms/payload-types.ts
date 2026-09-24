@@ -2138,6 +2138,10 @@ export interface SwisstopoMapEmbedding {
 export interface Document {
   id: string;
   /**
+   * Shown to visitors instead of the file name. Leave empty to show the file name.
+   */
+  title?: string | null;
+  /**
    * Example: for the newsletter
    */
   internalDescription?: string | null;
@@ -6420,6 +6424,7 @@ export interface UserSubmittedImagesSelect<T extends boolean = true> {
  * via the `definition` "documents_select".
  */
 export interface DocumentsSelect<T extends boolean = true> {
+  title?: T;
   internalDescription?: T;
   pdfThumbnailUrl?: T;
   permissions?: T;

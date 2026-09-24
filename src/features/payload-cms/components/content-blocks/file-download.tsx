@@ -7,6 +7,7 @@ export interface FileDownloadType {
   file: {
     url: string;
     filename: string;
+    title?: string | null;
     filesize: number;
     updatedAt: string;
   };
@@ -36,6 +37,10 @@ const dateStringToFormatedDate = (locale: Locale, dateString: string): string =>
 };
 
 export const FileDownload: React.FC<FileDownloadType> = ({ locale, ...block }) => {
+  // the display name is localized without fallback, so it can be empty in any locale
+  const title = block.file.title ?? '';
+  const displayName = title === '' ? block.file.filename : title;
+
   return (
     <div className="group hover:border-conveniat-green/30 my-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xs transition-all duration-300 hover:bg-green-50/10 hover:shadow-md sm:my-6">
       <LinkComponent
@@ -51,9 +56,9 @@ export const FileDownload: React.FC<FileDownloadType> = ({ locale, ...block }) =
           <div className="flex min-w-0 flex-col">
             <span
               className="text-conveniat-green group-hover:text-conveniat-green/80 block truncate text-sm font-semibold transition duration-200"
-              title={block.file.filename}
+              title={displayName}
             >
-              {block.file.filename}
+              {displayName}
             </span>
             <span className="mt-0.5 text-xs text-gray-500">
               {formatBytes(block.file.filesize)} •{' '}

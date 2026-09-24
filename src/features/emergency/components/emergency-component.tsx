@@ -402,8 +402,11 @@ export const EmergencyComponent: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                   {alert.documents.map((documentOrId) => {
                     if (typeof documentOrId === 'string') return;
+                    const title = documentOrId.title ?? '';
                     const displayName =
-                      documentOrId.internalDescription || documentOrId.filename || 'Document';
+                      title === ''
+                        ? documentOrId.internalDescription || documentOrId.filename || 'Document'
+                        : title;
                     return (
                       <a
                         key={documentOrId.id}

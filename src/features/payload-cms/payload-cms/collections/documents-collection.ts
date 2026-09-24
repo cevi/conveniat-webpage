@@ -52,6 +52,23 @@ export const DocumentsCollection: CollectionConfig = {
   },
   fields: [
     {
+      name: 'title',
+      label: {
+        en: 'Display Name',
+        de: 'Anzeigename',
+        fr: 'Nom affiché',
+      },
+      type: 'text',
+      localized: true,
+      admin: {
+        description: {
+          en: 'Shown to visitors instead of the file name. Leave empty to show the file name.',
+          de: 'Wird Besuchenden anstelle des Dateinamens angezeigt. Leer lassen, um den Dateinamen anzuzeigen.',
+          fr: 'Affiché aux visiteurs à la place du nom de fichier. Laisser vide pour afficher le nom de fichier.',
+        },
+      },
+    },
+    {
       name: 'internalDescription',
       label: {
         en: 'Internal Description',
