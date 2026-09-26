@@ -26,7 +26,7 @@ describe('buildAnnouncementMessagePayload', () => {
   it('renders title and body per locale', async () => {
     const result = await buildAnnouncementMessagePayload({
       payload: payloadWithImages([]),
-      documentAll: {
+      announcement: {
         title: { de: 'Titel', en: 'Title' },
         content: { de: richText('Inhalt'), en: richText('Content') },
       },
@@ -37,23 +37,22 @@ describe('buildAnnouncementMessagePayload', () => {
     expect(result['fr']).toBeUndefined();
   });
 
-  it('prefers the incoming values of the locale currently being saved', async () => {
+  it('leaves out a language the editor left empty', async () => {
     const result = await buildAnnouncementMessagePayload({
       payload: payloadWithImages([]),
-      documentAll: {
-        title: { de: 'Alter Titel' },
-        content: { de: richText('Alter Inhalt') },
+      announcement: {
+        title: { de: 'Titel', fr: '' },
+        content: { de: richText('Inhalt'), fr: richText('') },
       },
-      override: { locale: 'de', title: 'Neuer Titel', content: richText('Neuer Inhalt') },
     });
 
-    expect(result['de']?.text).toBe('*Neuer Titel*\n\nNeuer Inhalt');
+    expect(Object.keys(result)).toEqual(['de']);
   });
 
   it('attaches the images to every locale, with localized alt text and caption', async () => {
     const result = await buildAnnouncementMessagePayload({
       payload: payloadWithImages([image('a', '/api/images/file/a.webp')]),
-      documentAll: {
+      announcement: {
         title: { de: 'Titel', en: 'Title' },
         content: { de: richText('Inhalt'), en: richText('Content') },
       },
@@ -70,7 +69,7 @@ describe('buildAnnouncementMessagePayload', () => {
   it('keeps the order the editor picked, which `find` does not preserve', async () => {
     const result = await buildAnnouncementMessagePayload({
       payload: payloadWithImages([image('b', '/b.webp'), image('a', '/a.webp')]),
-      documentAll: { title: { de: 'Titel' }, content: { de: richText('Inhalt') } },
+      announcement: { title: { de: 'Titel' }, content: { de: richText('Inhalt') } },
       imageReferences: ['a', 'b'],
     });
 
@@ -80,11 +79,8 @@ describe('buildAnnouncementMessagePayload', () => {
   it('accepts populated image documents as well as ids', async () => {
     const result = await buildAnnouncementMessagePayload({
       payload: payloadWithImages([image('a', '/a.webp')]),
-      documentAll: {
-        title: { de: 'Titel' },
-        content: { de: richText('Inhalt') },
-        images: [image('a', '/a.webp')],
-      },
+      announcement: { title: { de: 'Titel' }, content: { de: richText('Inhalt') } },
+      imageReferences: [image('a', '/a.webp')],
     });
 
     expect(result['de']?.images).toHaveLength(1);
@@ -94,7 +90,7 @@ describe('buildAnnouncementMessagePayload', () => {
     const find = jest.fn();
     const result = await buildAnnouncementMessagePayload({
       payload: { find } as unknown as Payload,
-      documentAll: { title: { de: 'Titel' }, content: { de: richText('Inhalt') } },
+      announcement: { title: { de: 'Titel' }, content: { de: richText('Inhalt') } },
     });
 
     expect(result['de']).not.toHaveProperty('images');
