@@ -1,5 +1,6 @@
 import type { LocaleCode } from '@/features/payload-cms/payload-cms/locales';
 import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
+import type { MCPAccessSettings, MCPPluginConfig } from '@payloadcms/plugin-mcp';
 import type { CollectionSlug, PayloadRequest } from 'payload';
 import { z } from 'zod';
 
@@ -25,6 +26,34 @@ export const PUBLISHING_TOOL_NAME = 'setPublishingStatus';
 
 const reply = (text: string): ToolResponse => ({ content: [{ type: 'text', text }] });
 
+const KEY_ACCESS_CONTEXT = 'mcpKeyAccessSettings';
+
+/**
+ * Keeps the calling key's settings on the request, for {@link createPublishingTool}.
+ *
+ * The plugin checks a key's per-collection toggles only when it registers its own tools, and
+ * hands a custom tool nothing but the request. Without this, a key limited to `generic-page`
+ * could still publish `helper-jobs` as long as its owner may.
+ */
+export const rememberKeyAccessSettings: NonNullable<MCPPluginConfig['overrideAuth']> = async (
+  request,
+  getDefaultMcpAccessSettings,
+) => {
+  const settings = await getDefaultMcpAccessSettings();
+  request.context[KEY_ACCESS_CONTEXT] = settings;
+  return settings;
+};
+
+/** The group name the plugin gives a collection's toggles on the key, e.g. `helperJobs`. */
+const toKeyGroupName = (slug: string): string =>
+  slug.replaceAll(/-(.)/g, (_match, character: string) => character.toUpperCase());
+
+const keyMayUpdate = (request: PayloadRequest, collection: CollectionSlug): boolean => {
+  const settings = request.context[KEY_ACCESS_CONTEXT] as MCPAccessSettings | undefined;
+  const group = settings?.[toKeyGroupName(collection)] as { update?: boolean } | undefined;
+  return group?.update === true;
+};
+
 /**
  * Builds the MCP tool that publishes or unpublishes one document in one locale.
  *
@@ -34,8 +63,9 @@ const reply = (text: string): ToolResponse => ({ content: [{ type: 'text', text 
  *
  * It does what the Publish and Unpublish buttons of the admin panel do: the latest version,
  * draft included, becomes the published one for the given locale, and the other locales keep
- * their state. The write runs as the key's user with `overrideAccess: false`, so the key can
- * never publish what its owner could not publish in the admin panel.
+ * their state. The key also needs `update` on the collection, and the write runs as the
+ * key's user with `overrideAccess: false`, so the key can never publish what its owner could
+ * not publish in the admin panel.
  *
  * @param collections - slugs of the draft-enabled, localized collections the tool may touch
  * @returns the tool definition for `mcpPlugin({ mcp: { tools } })`
@@ -77,6 +107,10 @@ export const createPublishingTool = (
       if (!parsed.success) return reply(`Error: ${parsed.error.message}`);
       const { collection, id, locale, published } = parsed.data;
       const { payload, user } = request;
+
+      if (!keyMayUpdate(request, collection)) {
+        return reply(`Error: this key may not update ${collection}.`);
+      }
 
       // A fresh local request on purpose: `mcpWritesDraftsOnly` forces every write carrying
       // the MCP request into a draft, and this tool is the one write that must not be.
@@ -135,8 +169,8 @@ export const createPublishingTool = (
       }
 
       payload.logger.info(
-        `[mcp] ${published ? 'published' : 'unpublished'} ${collection}/${id} in ${locale} ` +
-          `as user ${String(user?.id)}`,
+        { collection, id, locale, published, userId: user?.id },
+        `[mcp] ${published ? 'published' : 'unpublished'} ${collection}/${id} in ${locale}`,
       );
       return reply(`${published ? 'Published' : 'Unpublished'} ${collection}/${id} in ${locale}.`);
     },

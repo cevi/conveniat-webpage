@@ -8,6 +8,7 @@ import { awaitMcpResponse } from '@/features/payload-cms/payload-cms/plugins/mcp
 import {
   createPublishingTool,
   PUBLISHING_TOOL_NAME,
+  rememberKeyAccessSettings,
 } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-publishing-tool';
 import { mcpWritesDraftsOnly } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-writes-drafts-only';
 import { mcpPlugin } from '@payloadcms/plugin-mcp';
@@ -182,6 +183,7 @@ const configuredMcpPlugin = mcpPlugin({
       },
     },
   },
+  overrideAuth: rememberKeyAccessSettings,
   mcp: {
     tools: [createPublishingTool(['generic-page', 'forms', 'helper-jobs'])],
     serverOptions: {

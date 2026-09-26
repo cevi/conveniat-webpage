@@ -1,4 +1,8 @@
-import { createPublishingTool } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-publishing-tool';
+import {
+  createPublishingTool,
+  rememberKeyAccessSettings,
+} from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-publishing-tool';
+import type { MCPAccessSettings } from '@payloadcms/plugin-mcp';
 import type { PayloadRequest } from 'payload';
 
 interface Snapshot {
@@ -7,20 +11,27 @@ interface Snapshot {
 }
 
 const user = { id: 'editor-1' };
+const MAY_UPDATE_HELPER_JOBS = { helperJobs: { update: true } };
 
-const setup = (
+const setup = async (
   snapshot: Snapshot,
-): {
+  keyToggles: Record<string, unknown> = MAY_UPDATE_HELPER_JOBS,
+): Promise<{
   request: PayloadRequest;
   update: jest.Mock<Promise<unknown>, [Record<string, unknown>]>;
   findByID: jest.Mock;
-} => {
+}> => {
   const findByID = jest.fn().mockResolvedValue(snapshot);
   const update = jest.fn<Promise<unknown>, [Record<string, unknown>]>().mockResolvedValue({});
   const request = {
     user,
+    context: {},
     payload: { findByID, update, logger: { info: jest.fn() } },
   } as unknown as PayloadRequest;
+  // authenticate the way the MCP endpoint does, so the tool sees the key's toggles
+  await rememberKeyAccessSettings(request, () =>
+    Promise.resolve({ user, ...keyToggles } as unknown as MCPAccessSettings),
+  );
   return { request, update, findByID };
 };
 
@@ -36,7 +47,7 @@ const call = async (
 
 describe('setPublishingStatus', () => {
   it('publishes the latest version in one locale as the key user', async () => {
-    const { request, update } = setup({
+    const { request, update } = await setup({
       publishingStatus: { de: { published: false, pendingChanges: true } },
     });
 
@@ -55,7 +66,7 @@ describe('setPublishingStatus', () => {
   });
 
   it('does not carry the MCP request, whose writes are forced into drafts', async () => {
-    const { request, update } = setup({
+    const { request, update } = await setup({
       publishingStatus: { de: { published: false, pendingChanges: false } },
     });
 
@@ -65,7 +76,7 @@ describe('setPublishingStatus', () => {
   });
 
   it('unpublishes a published locale', async () => {
-    const { request, update } = setup({
+    const { request, update } = await setup({
       publishingStatus: { de: { published: true, pendingChanges: false } },
     });
 
@@ -78,7 +89,7 @@ describe('setPublishingStatus', () => {
   });
 
   it('refuses to unpublish while a draft is pending, since that would put it live', async () => {
-    const { request, update } = setup({
+    const { request, update } = await setup({
       publishingStatus: { de: { published: true, pendingChanges: true } },
     });
 
@@ -89,7 +100,7 @@ describe('setPublishingStatus', () => {
   });
 
   it('refuses to unpublish a document marked as not unpublishable', async () => {
-    const { request, update } = setup({
+    const { request, update } = await setup({
       publishingStatus: { de: { published: true, pendingChanges: false } },
       _disable_unpublishing: true,
     });
@@ -99,7 +110,7 @@ describe('setPublishingStatus', () => {
   });
 
   it('leaves an up-to-date published document alone', async () => {
-    const { request, update } = setup({
+    const { request, update } = await setup({
       publishingStatus: { de: { published: true, pendingChanges: false } },
     });
 
@@ -108,15 +119,33 @@ describe('setPublishingStatus', () => {
   });
 
   it('reports a document the key cannot read instead of throwing', async () => {
-    const { request, findByID, update } = setup({});
+    const { request, findByID, update } = await setup({});
     findByID.mockRejectedValue(new Error('Forbidden'));
 
     expect(await call(request, { locale: 'de', published: true })).toMatch(/can read/);
     expect(update).not.toHaveBeenCalled();
   });
 
+  it('refuses a key that may not update the collection, even if its owner may', async () => {
+    const { request, update } = await setup(
+      { publishingStatus: { de: { published: false, pendingChanges: true } } },
+      { genericPage: { update: true }, helperJobs: { find: true, update: false } },
+    );
+
+    expect(await call(request, { locale: 'de', published: true })).toMatch(/may not update/);
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the key settings are unknown', async () => {
+    const { request, update } = await setup({});
+    request.context = {};
+
+    expect(await call(request, { locale: 'de', published: true })).toMatch(/may not update/);
+    expect(update).not.toHaveBeenCalled();
+  });
+
   it('rejects a collection the tool was not given', async () => {
-    const { request, update } = setup({});
+    const { request, update } = await setup({});
 
     const response = await tool.handler(
       { collection: 'users', id: 'x', locale: 'de', published: true },
