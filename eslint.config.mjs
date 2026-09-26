@@ -117,7 +117,7 @@ const config = defineConfig([
     ],
   },
 
-  // 3b. Logging: prefer the shared logger over console.* — see #1525.
+  // 3b. Logging: prefer the shared logger over console.*
   //
   // `console.log`/`info`/`debug`/`trace` are not bridged into Loki (see
   // `src/utils/otel-console-bridge.ts`), so they are invisible in Grafana and
@@ -142,10 +142,9 @@ const config = defineConfig([
       'src/features/payload-cms/payload-cms/initialization/seeding/**',
       '**/__tests__/**',
 
-      // Temporary: not yet migrated. This list shrinks per area as #1525
-      // progresses; do not add to it.
-      // Bracketed route segments are glob character classes, so these are matched by directory.
-      'src/app/(frontend)/**/app/chat/new-chat-with-user/**',
+      // Browser code: no server logger runs there, so it keeps console.*. A glob cannot tell a
+      // client file from a server one, so each is listed by name. Add a browser file here when
+      // it needs console; never a server file.
       'src/app/(onboarding)/entrypoint/page.tsx',
       'src/app/global-error.tsx',
       'src/features/chat/components/chat-view/message/index.tsx',
@@ -154,11 +153,9 @@ const config = defineConfig([
       'src/features/chat/hooks/use-offline-queue-processor.ts',
       'src/features/chat/hooks/use-update-chat-mutation.ts',
       'src/features/emergency/components/emergency-component.tsx',
-      'src/features/map/components/map-annotations/drawer-header.tsx',
       'src/features/onboarding/hooks/use-onboarding.ts',
       'src/features/payload-cms/payload-cms/components/live-preview-restorer.tsx',
       'src/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field.tsx',
-      'src/features/settings/profile-details.tsx',
       'src/hooks/use-native-push.ts',
       'src/lib/chat-sync.ts',
       'src/lib/toast.ts',

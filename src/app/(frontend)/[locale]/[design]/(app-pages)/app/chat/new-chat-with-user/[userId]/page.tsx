@@ -3,10 +3,13 @@ import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { createLogger } from '@/utils/server-logger';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type React from 'react';
+
+const logger = createLogger('chat:new-chat-with-user');
 
 const labels = {
   mustBeLoggedIn: {
@@ -92,29 +95,29 @@ const NewChatWithUserPage: React.FC<{
             })),
           })
           .catch((error: unknown) => {
-            console.error('[NewChatWithUserPage] Failed to create chat via TRPC:', error);
+            logger.error('Failed to create chat via tRPC', { error });
             // eslint-disable-next-line unicorn/no-useless-undefined
             return undefined; // Return undefined if chat creation fails
           });
 
         if (chatId === undefined) {
-          console.warn('[NewChatWithUserPage] Chat creation returned undefined. userId:', userId);
+          logger.warn('Chat creation returned undefined', { 'user.id': userId });
           result = { type: 'failedToCreate', userId };
         } else {
-          console.log('[NewChatWithUserPage] Chat created successfully. chatId:', chatId);
+          logger.debug('Chat created', { 'chat.id': chatId });
           result = { type: 'redirect', url: `/app/chat/${chatId}` };
         }
       } else {
         result = 'cannotCreateChat';
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     // Re-throw redirect errors - they're not real errors
     if (isRedirectError(error)) {
       throw error;
     }
 
-    console.error('[NewChatWithUserPage] Fatal error in page:', error);
+    logger.error('Fatal error in page', { error });
     result = 'error';
   }
 
