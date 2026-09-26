@@ -4,16 +4,6 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import type { GlobalConfig } from 'payload';
 import { z } from 'zod';
 
-const IdValidationSchema = z.union([
-  z
-    .string()
-    .trim()
-    .regex(/^\d{1,6}$/, 'Must be a number up to 6 digits'),
-  z.literal(''),
-  z.null(),
-  z.undefined(),
-]);
-
 /**
  * A VAT split has to account for the whole net amount, or the invoice silently taxes only
  * part of the camp fee. An empty list is fine — it means "use the single VAT code".
@@ -57,109 +47,64 @@ export const BillSettingsGlobal: GlobalConfig = {
     {
       type: 'tabs',
       tabs: [
-        // Tab 1: Events Configuration
+        // Tab 1: Reminders. The Hof events that used to live here moved to the `hoefe`
+        // collection; the legacy list below only stays for the migration.
         {
           label: {
-            en: 'Events',
-            de: 'Anlässe',
-            fr: 'Événements',
+            en: 'Reminders',
+            de: 'Erinnerungen',
+            fr: 'Rappels',
           },
           fields: [
             {
-              name: 'populateSubeventsButton',
-              type: 'ui',
-              admin: {
-                components: {
-                  Field:
-                    '@/features/billing/components/populate-subevents-button#PopulateSubeventsButton',
-                },
-              },
-            },
-            {
+              // Legacy: read once by `migrateLegacyHoefe` to fill the `hoefe` collection, and
+              // otherwise by nothing. Kept for one release so a rollback still finds its data;
+              // remove it together with that migration step.
               name: 'events',
               type: 'array',
               label: {
-                en: 'Hitobito Events to Sync',
-                de: 'Hitobito Anlässe zum Synchronisieren',
-                fr: 'Événements Hitobito à synchroniser',
+                en: 'Hitobito Events to Sync (legacy)',
+                de: 'Hitobito Anlässe zum Synchronisieren (veraltet)',
+                fr: 'Événements Hitobito à synchroniser (obsolète)',
               },
+              // No `required` on the rows either: nobody can edit them any more, so a row that
+              // fails validation must not be able to block saving the rest of the settings.
+              access: { update: () => false },
               admin: {
-                components: {
-                  RowLabel: {
-                    path: '@/features/billing/components/event-row-label#EventRowLabel',
-                  },
-                },
+                hidden: true,
                 description: {
-                  en: 'Configure which Hitobito events should be synced for billing.',
-                  de: 'Konfigurieren Sie, welche Hitobito-Anlässe für die Rechnungsstellung synchronisiert werden.',
-                  fr: 'Configurez les événements Hitobito à synchroniser pour la facturation.',
+                  en: 'Migrated to the Hofs collection; the billing no longer reads it. Will be removed.',
+                  de: 'In die Sammlung «Höfe» übernommen; die Rechnungsstellung liest es nicht mehr. Wird entfernt.',
+                  fr: 'Migré vers la collection des Hofs ; la facturation ne le lit plus. Sera supprimé.',
                 },
               },
               fields: [
                 {
                   name: 'eventId',
                   type: 'text',
-                  required: true,
                   label: {
                     en: 'Event ID',
                     de: 'Anlass-ID',
                     fr: "ID de l'événement",
                   },
-                  admin: {
-                    description: {
-                      en: 'Hitobito event ID to sync (up to 6 digits)',
-                      de: 'Hitobito Anlass-ID zum Synchronisieren (bis zu 6 Stellen)',
-                      fr: "ID de l'événement Hitobito à synchroniser (jusqu'à 6 chiffres)",
-                    },
-                  },
-                  validate: (val: string | null | undefined): string | true => {
-                    const result = IdValidationSchema.safeParse(val);
-                    if (!result.success) {
-                      return 'Event ID must be a number up to 6 digits';
-                    }
-                    return true;
-                  },
                 },
                 {
                   name: 'eventName',
                   type: 'text',
-                  required: true,
                   hooks: { afterRead: [decodeStoredEventName] },
                   label: {
                     en: 'Event Name',
                     de: 'Anlass-Name',
                     fr: "Nom de l'événement",
                   },
-                  admin: {
-                    description: {
-                      en: 'Display name, e.g. "Hof Süd"',
-                      de: 'Anzeigename, z.B. "Hof Süd"',
-                      fr: 'Nom d\'affichage, par ex. "Hof Süd"',
-                    },
-                  },
                 },
                 {
                   name: 'groupId',
                   type: 'text',
-                  required: true,
                   label: {
                     en: 'Group ID',
                     de: 'Gruppen-ID',
                     fr: 'ID du groupe',
-                  },
-                  admin: {
-                    description: {
-                      en: 'Hitobito group ID this event belongs to (up to 6 digits)',
-                      de: 'Hitobito Gruppen-ID, zu der dieser Anlass gehört (bis zu 6 Stellen)',
-                      fr: "ID du groupe Hitobito auquel cet événement appartient (jusqu'à 6 chiffres)",
-                    },
-                  },
-                  validate: (val: string | null | undefined): string | true => {
-                    const result = IdValidationSchema.safeParse(val);
-                    if (!result.success) {
-                      return 'Group ID must be a number up to 6 digits';
-                    }
-                    return true;
                   },
                 },
                 {
@@ -170,13 +115,6 @@ export const BillSettingsGlobal: GlobalConfig = {
                     de: 'Adressverwalter/-innen (aus Cevi.DB)',
                     fr: "Gestionnaires d'adresses (Cevi.DB)",
                   },
-                  admin: {
-                    description: {
-                      en: 'Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.',
-                      de: 'Kommagetrennt. Wird vom Subgruppen-Abgleich geschrieben; an diese Adressen geht die Erinnerung zu den Pflichtangaben.',
-                      fr: 'Séparées par des virgules. Écrites par la synchronisation des sous-groupes ; ce sont les destinataires du rappel sur les données obligatoires.',
-                    },
-                  },
                 },
                 {
                   name: 'reminderRecipientsOverride',
@@ -185,13 +123,6 @@ export const BillSettingsGlobal: GlobalConfig = {
                     en: 'Override reminder recipients',
                     de: 'Empfänger der Erinnerung überschreiben',
                     fr: 'Remplacer les destinataires du rappel',
-                  },
-                  admin: {
-                    description: {
-                      en: 'Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.',
-                      de: 'Kommagetrennt. Wenn ausgefüllt, gehen die Erinnerungen für diesen Hof an diese Adressen statt an die abgeglichenen Adressverwalter/-innen.',
-                      fr: "Séparées par des virgules. Si rempli, ces adresses sont utilisées à la place des gestionnaires d'adresses synchronisés pour ce Hof.",
-                    },
                   },
                 },
               ],

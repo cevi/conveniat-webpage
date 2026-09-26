@@ -10,6 +10,7 @@ jest.mock('@/config/environment-variables', () => ({
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
 import { BillSettingsGlobal } from '@/features/billing/collections/bill-settings';
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
+import { HoefeCollection } from '@/features/payload-cms/payload-cms/collections/hoefe-collection';
 import type { Field, FieldHook } from 'payload';
 
 const ESCAPED = 'Hauptlager conveniat27 - Altstetten &amp;amp; Albisrieden';
@@ -23,7 +24,7 @@ const read = (hook: FieldHook, value?: unknown): unknown =>
 const fieldNamed = (fields: Field[], name: string): Field | undefined =>
   fields.find((field) => 'name' in field && field.name === name);
 
-/** The `eventName` field of a row of the "Hitobito Anlässe zum Synchronisieren" array. */
+/** The `eventName` field of a row of the legacy event list of the bill settings. */
 const settingsEventNameField = (): Field | undefined => {
   const tabs = BillSettingsGlobal.fields.find((field) => field.type === 'tabs');
   const allTabFields =
@@ -57,7 +58,17 @@ describe('the Anlass-Name shown in the admin', () => {
     expect(read(hooks[0] as FieldHook, ESCAPED)).toBe(DECODED);
   });
 
-  it('is decoded on the event rows of the bill settings', () => {
+  it('is decoded on the events of a Hof', () => {
+    const events = fieldNamed(HoefeCollection.fields, 'events');
+    const field = events?.type === 'array' ? fieldNamed(events.fields, 'eventName') : undefined;
+    const hooks = field !== undefined && 'hooks' in field ? (field.hooks.afterRead ?? []) : [];
+
+    expect(hooks).toHaveLength(1);
+    expect(read(hooks[0] as FieldHook, ESCAPED)).toBe(DECODED);
+  });
+
+  // The migration reads the Höfe out of this list, so what it copies is decoded as well.
+  it('is decoded on the legacy event rows of the bill settings', () => {
     const field = settingsEventNameField();
     const hooks = field !== undefined && 'hooks' in field ? (field.hooks.afterRead ?? []) : [];
 
