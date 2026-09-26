@@ -115,8 +115,8 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
 
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto">
-        <div className="inline-flex rounded-full bg-gray-100 p-1" role="tablist">
+      <div>
+        <div className="inline-flex flex-wrap gap-y-1 rounded-3xl bg-gray-100 p-1" role="tablist">
           {TABS.map(({ tab: candidate, label }) => (
             <button
               key={candidate}
@@ -125,7 +125,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
               aria-selected={tab === candidate}
               onClick={() => setTab(candidate)}
               className={cn(
-                'cursor-pointer rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:px-5',
+                'cursor-pointer rounded-full px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 @xl:px-5',
                 tab === candidate
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-900',
@@ -227,13 +227,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
   );
 };
 
-/**
- * The Hof dashboard as an editor places it on a page: the address administrators of a Hof
- * hand in its plans, order material and follow what the Ressorts say. Signed-out visitors are
- * asked to sign in; nothing is fetched for them, since the tRPC client answers a 401 with a
- * sign out and a redirect.
- */
-export const HofDashboard: React.FC = () => {
+const HofDashboardContent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { status } = useSession();
 
@@ -250,3 +244,18 @@ export const HofDashboard: React.FC = () => {
   }
   return <DashboardForUser locale={locale} />;
 };
+
+/**
+ * The Hof dashboard as an editor places it on a page: the address administrators of a Hof
+ * hand in its plans, order material and follow what the Ressorts say. Signed-out visitors are
+ * asked to sign in; nothing is fetched for them, since the tRPC client answers a 401 with a
+ * sign out and a redirect.
+ *
+ * Laid out by container queries: the block sits in a content column far narrower than the
+ * viewport, and possibly in a two-column block.
+ */
+export const HofDashboard: React.FC = () => (
+  <div className="@container">
+    <HofDashboardContent />
+  </div>
+);

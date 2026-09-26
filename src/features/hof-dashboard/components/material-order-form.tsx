@@ -74,7 +74,7 @@ export const MaterialOrderForm: React.FC<{
   };
 
   return (
-    <Card className="border border-gray-100" contentClassName="space-y-4 p-5 sm:p-6">
+    <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
       <div className="space-y-1">
         <SectionHeading area={order.type === 'infrastructure' ? 'infrastructure' : 'program'}>
           {HOF_ORDER_TYPE_LABELS[order.type][locale]}

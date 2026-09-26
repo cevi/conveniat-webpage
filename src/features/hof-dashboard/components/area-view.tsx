@@ -62,7 +62,7 @@ const StadtlebenSection: React.FC<{
   stadtleben: HofDashboardData['stadtleben'];
   locale: Locale;
 }> = ({ stadtleben, locale }) => (
-  <Card className="border border-gray-100" contentClassName="space-y-4 p-5 sm:p-6">
+  <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
     <div className="flex flex-wrap items-baseline justify-between gap-2">
       <SectionHeading area="program">{translate('stadtleben', locale)}</SectionHeading>
       {stadtleben.deadline !== undefined && (
@@ -137,7 +137,7 @@ export const AreaView: React.FC<{
     <div className="space-y-6">
       <Card
         className="border border-gray-100"
-        contentClassName="grid gap-6 p-5 sm:grid-cols-2 sm:p-6"
+        contentClassName="grid gap-6 p-5 @3xl:grid-cols-2 @xl:p-6"
       >
         <dl>
           <ContactBlock

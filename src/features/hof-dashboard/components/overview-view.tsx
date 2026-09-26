@@ -45,9 +45,9 @@ export const OverviewView: React.FC<{
 
   return (
     <div className="space-y-6">
-      <Card className="border border-gray-100" contentClassName="space-y-4 p-5 sm:p-6">
+      <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
         <SectionHeading>{translate('contacts', locale)}</SectionHeading>
-        <dl className="grid gap-6 sm:grid-cols-3">
+        <dl className="grid gap-6 @2xl:grid-cols-3">
           <ContactBlock
             label={translate('avp', locale)}
             contact={data.contacts.avp}
@@ -66,8 +66,8 @@ export const OverviewView: React.FC<{
         </dl>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border border-gray-100" contentClassName="space-y-5 p-5 sm:p-6">
+      <div className="grid gap-6 @3xl:grid-cols-2">
+        <Card className="border border-gray-100" contentClassName="space-y-5 p-5 @xl:p-6">
           <SectionHeading>{translate('progress', locale)}</SectionHeading>
           {HOF_DASHBOARD_AREAS.map((area) => {
             const states = data.submissions
@@ -75,7 +75,7 @@ export const OverviewView: React.FC<{
               .map((submission) => progress[submission.type].state);
             return (
               <div key={area} className="space-y-1.5">
-                <div className="flex items-baseline justify-between text-sm">
+                <div className="flex items-baseline justify-between gap-3 text-sm">
                   <span className={cn('font-semibold', AREA_TEXT_CLASS[area])}>
                     {HOF_DASHBOARD_AREA_LABELS[area][locale]}
                   </span>
@@ -92,13 +92,13 @@ export const OverviewView: React.FC<{
           })}
         </Card>
 
-        <Card className="border border-gray-100" contentClassName="space-y-4 p-5 sm:p-6">
+        <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
           <SectionHeading>{translate('deadlines', locale)}</SectionHeading>
           <DeadlineList deadlines={data.deadlines} locale={locale} />
         </Card>
       </div>
 
-      <Card className="border border-gray-100" contentClassName="p-5 sm:p-6">
+      <Card className="border border-gray-100" contentClassName="p-5 @xl:p-6">
         <SectionHeading className="mb-2">{translate('nextUp', locale)}</SectionHeading>
         {open.length === 0 ? (
           <p className="flex items-center gap-2 text-sm text-green-600">
@@ -110,7 +110,7 @@ export const OverviewView: React.FC<{
             {open.map((submission) => (
               <li
                 key={submission.type}
-                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 py-3 @lg:flex-row @lg:items-center @lg:justify-between"
               >
                 <div className="min-w-0 space-y-0.5">
                   <p className="text-sm font-semibold text-gray-900">
@@ -127,7 +127,7 @@ export const OverviewView: React.FC<{
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="self-start sm:self-center"
+                  className="self-start @lg:self-center"
                   onClick={() => onOpen(submission.area, submission.type)}
                 >
                   {translate('open', locale)}

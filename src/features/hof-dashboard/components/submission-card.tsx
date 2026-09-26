@@ -178,7 +178,7 @@ export const SubmissionCard: React.FC<{
   const anyUploading = uploadingKey !== undefined;
 
   return (
-    <article id={`submission-${submission.type}`} className="scroll-mt-24 space-y-4 p-5 sm:p-6">
+    <article id={`submission-${submission.type}`} className="scroll-mt-24 space-y-4 p-5 @xl:p-6">
       <header className="space-y-1">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h4 className="text-base font-bold text-gray-900">
@@ -200,7 +200,7 @@ export const SubmissionCard: React.FC<{
         </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 @lg:flex-row @lg:items-start @lg:justify-between">
         {plans.length === 0 ? (
           <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
         ) : (
@@ -238,7 +238,7 @@ export const SubmissionCard: React.FC<{
             </p>
             <p className="text-sm text-gray-500">{translate('safetyConceptHint', locale)}</p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex flex-col gap-3 @lg:flex-row @lg:items-start @lg:justify-between">
             {safetyConcepts.length === 0 ? (
               <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
             ) : (
