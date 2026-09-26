@@ -25,4 +25,11 @@ describe('toFiles', () => {
       ['plan-1', 1],
     ]);
   });
+
+  it('shows the name the Hof uploaded, not the one storage gave a duplicate', () => {
+    const [shown] = toFiles([
+      { ...file('plan-2', 'plan', '2026-10-03T10:00:00.000Z'), originalFilename: 'Plan.pdf' },
+    ]);
+    expect(shown?.filename).toBe('Plan.pdf');
+  });
 });

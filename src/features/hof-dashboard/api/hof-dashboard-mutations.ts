@@ -134,7 +134,13 @@ export const completeHofUpload = async ({
   try {
     await payload.create({
       collection: 'hof-files',
-      data: { submission: submission.id, hof: hofId, kind, uploadedBy: userId },
+      data: {
+        submission: submission.id,
+        hof: hofId,
+        kind,
+        uploadedBy: userId,
+        originalFilename: filename,
+      },
       file: {
         data: Buffer.from(body),
         mimetype: HOF_FILE_TYPES[extension],

@@ -70,6 +70,18 @@ export const HofFilesCollection: CollectionConfig = {
       label: { de: 'Art', en: 'Kind', fr: 'Type' },
     },
     {
+      // Payload renames a file whose name is taken, so a second "Plan.pdf" is stored as
+      // "Plan-1.pdf"; the Hof should read the name it chose
+      name: 'originalFilename',
+      type: 'text',
+      label: {
+        de: 'Ursprünglicher Dateiname',
+        en: 'Original file name',
+        fr: 'Nom de fichier d’origine',
+      },
+      admin: { readOnly: true },
+    },
+    {
       name: 'uploadedBy',
       type: 'relationship',
       relationTo: 'users',

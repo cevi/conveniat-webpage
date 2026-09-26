@@ -11,7 +11,7 @@ export const toFiles = (files: HofFile[]): HofDashboardFile[] => {
       counters[file.kind] += 1;
       return {
         id: file.id,
-        filename: file.filename ?? file.id,
+        filename: file.originalFilename ?? file.filename ?? file.id,
         url: file.url ?? undefined,
         kind: file.kind,
         uploadedAt: file.createdAt,

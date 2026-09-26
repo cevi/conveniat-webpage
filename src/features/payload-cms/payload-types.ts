@@ -4642,6 +4642,7 @@ export interface HofFile {
   submission: string | HofSubmission;
   hof: string | Hof;
   kind: 'plan' | 'safetyConcept';
+  originalFilename?: string | null;
   uploadedBy?: (string | null) | User;
   prefix?: string | null;
   _objectKey?: string | null;
@@ -7284,6 +7285,7 @@ export interface HofFilesSelect<T extends boolean = true> {
   submission?: T;
   hof?: T;
   kind?: T;
+  originalFilename?: T;
   uploadedBy?: T;
   prefix?: T;
   _objectKey?: T;
