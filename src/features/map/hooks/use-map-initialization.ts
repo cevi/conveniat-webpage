@@ -1,4 +1,5 @@
 import type { InitialMapPose } from '@/features/map/types/types';
+import { configureMapLibreWorker } from '@/lib/maplibre-worker';
 import { AttributionControl, Map as MapLibre } from 'maplibre-gl';
 
 import { useEffect, useState } from 'react';
@@ -47,6 +48,7 @@ export const useMapInitialization = (
     let mapInstance: MapLibre;
 
     try {
+      configureMapLibreWorker();
       mapInstance = new MapLibre({
         container: mapContainer,
         validateStyle,

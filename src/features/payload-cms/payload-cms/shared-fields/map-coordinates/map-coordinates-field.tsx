@@ -8,6 +8,7 @@ import type { PointFieldClientComponent } from 'payload';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { DynamicLucidIconRenderer } from '@/features/map/components/maplibre-renderer/dynamic-lucid-icon-renderer';
+import { configureMapLibreWorker } from '@/lib/maplibre-worker';
 import { formatHexColor } from '@/utils/format-hex-color';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { Check, ChevronDown, ChevronUp, MapPin, Settings2, Trash2 } from 'lucide-react';
@@ -212,6 +213,7 @@ const MapCoordinatesField: PointFieldClientComponent = ({ path }) => {
       // acceleration disabled, blocked/sandboxed GPU). Uncaught, that exception tears down the
       // whole admin document view and makes the annotation uneditable.
       try {
+        configureMapLibreWorker();
         map = new maplibregl.Map({
           container: mapContainerReference.current,
           style: '/vector-map/base_style.json',
