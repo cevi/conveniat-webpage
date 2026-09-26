@@ -181,7 +181,13 @@ export const autoCheckoutPresenceTask: TaskConfig<{
       data: { presentAtCamp: false },
     });
 
-    logger.info(`Checked out ${checkedOut} user(s) at the end of the campsite presence period.`);
+    // A run that closed nothing is the normal case once the camp is over, so it stays out of the
+    // error and info volume.
+    if (checkedOut > 0) {
+      logger.info({ checkedOut }, 'Checked out users at the end of the campsite presence period.');
+    } else {
+      logger.debug('No users left to check out at the end of the campsite presence period.');
+    }
 
     return { output: { checkedOut } };
   },
