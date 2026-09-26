@@ -436,6 +436,11 @@ export const HelperShiftsCollection: CollectionConfig = {
       localized: false,
       editor: mapAnnotationDescriptionLexicalEditorSettings,
       hooks: patchRichTextLinkHook,
+      // The collection is readable by everyone over REST, so the notes need their own rule
+      // to stay with the people who edit shifts.
+      access: {
+        read: hasAdminOrWebAccess,
+      },
       admin: {
         position: 'sidebar',
         description: {
