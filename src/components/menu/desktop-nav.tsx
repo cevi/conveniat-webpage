@@ -72,7 +72,6 @@ export const DesktopNav: React.FC<{
   const navReference = useRef<HTMLElement>(null);
   const flyoutReference = useRef<HTMLDivElement>(null);
   const dismissReferences = [navReference, flyoutReference];
-  const openIntentTimeoutReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const searchInputReference = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -82,36 +81,10 @@ export const DesktopNav: React.FC<{
   const activeSubMenu = activeItem?.subMenu;
   const hasActiveSubMenu = Array.isArray(activeSubMenu) && activeSubMenu.length > 0;
 
-  const cancelPendingIntent = (): void => {
-    if (openIntentTimeoutReference.current) {
-      clearTimeout(openIntentTimeoutReference.current);
-      openIntentTimeoutReference.current = undefined;
-    }
-  };
+  const closeDropdown = (): void => setOpenDropdownId(undefined);
 
-  const closeDropdown = (): void => {
-    cancelPendingIntent();
-    setOpenDropdownId(undefined);
-  };
-
-  /**
-   * Hover Intent Handler
-   * Hovering opens a submenu. Once one is open, switching to another waits briefly, so a cursor
-   * moving diagonally from the header down into the flyout does not switch menus on the way.
-   */
-  const handleMouseEnter = (itemId: string): void => {
-    cancelPendingIntent();
-    if (typeof openDropdownId === 'string' && openDropdownId !== itemId) {
-      openIntentTimeoutReference.current = setTimeout(() => {
-        setOpenDropdownId(itemId);
-      }, 120);
-    } else {
-      setOpenDropdownId(itemId);
-    }
-  };
-
-  // The flyout stays open when the cursor leaves the header: a flyout that closes on mouse leave
-  // punishes every overshoot. It closes on a click outside, on Escape, and when a link is followed.
+  // Submenus open on click, not hover, so the flyout never closes under a cursor that overshoots.
+  // It closes on a click outside, on Escape, and when a link is followed.
   useDismissOnOutsideInteraction(dismissReferences, hasActiveSubMenu, closeDropdown);
 
   const closeOnLinkClick = (event: React.MouseEvent): void => {
@@ -181,7 +154,6 @@ export const DesktopNav: React.FC<{
                 href={item.itemLink}
                 openInNewTab={item.openInNewTab}
                 prefetch
-                onMouseEnter={cancelPendingIntent}
                 className="hover:bg-conveniat-green/10 hover:text-conveniat-green rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap text-gray-700 transition-all duration-200"
               >
                 {item.label}
@@ -197,13 +169,7 @@ export const DesktopNav: React.FC<{
                 <button
                   type="button"
                   aria-expanded={isOpen}
-                  onMouseEnter={() => handleMouseEnter(item.id)}
-                  onClick={() => {
-                    // Hover has usually opened it already, so a click that toggled would close
-                    // the menu the user is reaching for. Closing is left to outside clicks.
-                    cancelPendingIntent();
-                    setOpenDropdownId(item.id);
-                  }}
+                  onClick={() => setOpenDropdownId(isOpen ? undefined : item.id)}
                   className={cn(
                     'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all duration-200',
                     isOpen
@@ -239,7 +205,6 @@ export const DesktopNav: React.FC<{
         <div
           ref={flyoutReference}
           className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
-          onMouseEnter={cancelPendingIntent}
           onClick={closeOnLinkClick}
         >
           <div className="w-full px-6 py-8 xl:px-12">
