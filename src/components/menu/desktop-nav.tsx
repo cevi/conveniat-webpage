@@ -7,7 +7,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Languages, Search, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const SubItemWithoutChildren: React.FC<{ subItem: ProcessedMainMenuItem }> = ({ subItem }) => {
   if (typeof subItem.itemLink === 'string' && subItem.itemLink !== '') {
@@ -29,6 +29,36 @@ const SubItemWithoutChildren: React.FC<{ subItem: ProcessedMainMenuItem }> = ({ 
   return <span className="block px-3 py-2 text-sm font-medium text-gray-400">{subItem.label}</span>;
 };
 
+/**
+ * Calls `onDismiss` on a pointer press outside every referenced element, or on Escape, while `isOpen`.
+ */
+const useDismissOnOutsideInteraction = (
+  references: React.RefObject<HTMLElement | null>[],
+  isOpen: boolean,
+  onDismiss: () => void,
+): void => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent): void => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (references.some((reference) => reference.current?.contains(target) === true)) return;
+      onDismiss();
+    };
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') onDismiss();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return (): void => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [references, isOpen, onDismiss]);
+};
+
 export const DesktopNav: React.FC<{
   locale: Locale;
   menuItems: ProcessedMainMenuItem[];
@@ -39,9 +69,9 @@ export const DesktopNav: React.FC<{
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const navContainerReference = useRef<HTMLDivElement>(null);
+  const navReference = useRef<HTMLElement>(null);
   const flyoutReference = useRef<HTMLDivElement>(null);
-  const closeTimeoutReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const dismissReferences = [navReference, flyoutReference];
   const openIntentTimeoutReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const searchInputReference = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -52,75 +82,40 @@ export const DesktopNav: React.FC<{
   const activeSubMenu = activeItem?.subMenu;
   const hasActiveSubMenu = Array.isArray(activeSubMenu) && activeSubMenu.length > 0;
 
-  /**
-   * Hover Intent Handler
-   * Prevents accidental menu switching when cursor moves diagonally from header to megamenu popover.
-   */
-  const handleMouseEnter = (itemId: string): void => {
-    if (closeTimeoutReference.current) {
-      clearTimeout(closeTimeoutReference.current);
-      closeTimeoutReference.current = undefined;
-    }
-
-    if (
-      typeof openDropdownId === 'string' &&
-      openDropdownId !== '' &&
-      openDropdownId !== itemId &&
-      itemId !== ''
-    ) {
-      if (openIntentTimeoutReference.current) {
-        clearTimeout(openIntentTimeoutReference.current);
-      }
-      openIntentTimeoutReference.current = setTimeout(() => {
-        setOpenDropdownId(itemId);
-      }, 120);
-    } else {
-      if (openIntentTimeoutReference.current) {
-        clearTimeout(openIntentTimeoutReference.current);
-        openIntentTimeoutReference.current = undefined;
-      }
-      setOpenDropdownId(itemId);
-    }
-  };
-
-  /**
-   * Safe Mouse Leave Handler
-   * Verifies that the cursor has genuinely left both the header navigation area and the megamenu flyout panel before closing.
-   */
-  const handleMouseLeave = (event?: React.MouseEvent): void => {
-    if (event?.relatedTarget instanceof Node) {
-      const target = event.relatedTarget;
-      if (
-        Boolean(flyoutReference.current?.contains(target)) ||
-        Boolean(navContainerReference.current?.contains(target))
-      ) {
-        return;
-      }
-    }
-
-    if (openIntentTimeoutReference.current) {
-      clearTimeout(openIntentTimeoutReference.current);
-      openIntentTimeoutReference.current = undefined;
-    }
-
-    if (closeTimeoutReference.current) {
-      clearTimeout(closeTimeoutReference.current);
-    }
-
-    closeTimeoutReference.current = setTimeout(() => {
-      setOpenDropdownId(undefined);
-    }, 200);
-  };
-
   const cancelPendingIntent = (): void => {
     if (openIntentTimeoutReference.current) {
       clearTimeout(openIntentTimeoutReference.current);
       openIntentTimeoutReference.current = undefined;
     }
-    if (closeTimeoutReference.current) {
-      clearTimeout(closeTimeoutReference.current);
-      closeTimeoutReference.current = undefined;
+  };
+
+  const closeDropdown = (): void => {
+    cancelPendingIntent();
+    setOpenDropdownId(undefined);
+  };
+
+  /**
+   * Hover Intent Handler
+   * Hovering opens a submenu. Once one is open, switching to another waits briefly, so a cursor
+   * moving diagonally from the header down into the flyout does not switch menus on the way.
+   */
+  const handleMouseEnter = (itemId: string): void => {
+    cancelPendingIntent();
+    if (typeof openDropdownId === 'string' && openDropdownId !== itemId) {
+      openIntentTimeoutReference.current = setTimeout(() => {
+        setOpenDropdownId(itemId);
+      }, 120);
+    } else {
+      setOpenDropdownId(itemId);
     }
+  };
+
+  // The flyout stays open when the cursor leaves the header: a flyout that closes on mouse leave
+  // punishes every overshoot. It closes on a click outside, on Escape, and when a link is followed.
+  useDismissOnOutsideInteraction(dismissReferences, hasActiveSubMenu, closeDropdown);
+
+  const closeOnLinkClick = (event: React.MouseEvent): void => {
+    if (event.target instanceof Element && event.target.closest('a') !== null) closeDropdown();
   };
 
   const handleLanguageChange = (lang: Locale): void => {
@@ -167,13 +162,13 @@ export const DesktopNav: React.FC<{
   };
 
   return (
-    <div
-      ref={navContainerReference}
-      className="hidden items-center gap-4 xl:flex"
-      onMouseLeave={handleMouseLeave}
-    >
+    <div className="hidden items-center gap-4 xl:flex">
       {/* Main Navigation Bar */}
-      <nav className="flex items-center gap-1 transition-all duration-300 xl:gap-1.5">
+      <nav
+        ref={navReference}
+        onClick={closeOnLinkClick}
+        className="flex items-center gap-1 transition-all duration-300 xl:gap-1.5"
+      >
         {menuItems.map((item) => {
           if (!item.isVisible) return;
 
@@ -186,12 +181,7 @@ export const DesktopNav: React.FC<{
                 href={item.itemLink}
                 openInNewTab={item.openInNewTab}
                 prefetch
-                onMouseEnter={() => {
-                  if (closeTimeoutReference.current) clearTimeout(closeTimeoutReference.current);
-                  closeTimeoutReference.current = setTimeout(() => {
-                    setOpenDropdownId(undefined);
-                  }, 150);
-                }}
+                onMouseEnter={cancelPendingIntent}
                 className="hover:bg-conveniat-green/10 hover:text-conveniat-green rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap text-gray-700 transition-all duration-200"
               >
                 {item.label}
@@ -206,10 +196,14 @@ export const DesktopNav: React.FC<{
               <div key={item.id} className="relative">
                 <button
                   type="button"
+                  aria-expanded={isOpen}
                   onMouseEnter={() => handleMouseEnter(item.id)}
-                  onClick={() =>
-                    isOpen ? setOpenDropdownId(undefined) : handleMouseEnter(item.id)
-                  }
+                  onClick={() => {
+                    // Hover has usually opened it already, so a click that toggled would close
+                    // the menu the user is reaching for. Closing is left to outside clicks.
+                    cancelPendingIntent();
+                    setOpenDropdownId(item.id);
+                  }}
                   className={cn(
                     'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all duration-200',
                     isOpen
@@ -240,13 +234,13 @@ export const DesktopNav: React.FC<{
         })}
       </nav>
 
-      {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header, with top hit-bridge) */}
+      {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header) */}
       {hasActiveSubMenu && (
         <div
           ref={flyoutReference}
-          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200 before:absolute before:-top-4 before:right-0 before:left-0 before:h-4 before:content-['']"
+          className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
           onMouseEnter={cancelPendingIntent}
-          onMouseLeave={handleMouseLeave}
+          onClick={closeOnLinkClick}
         >
           <div className="w-full px-6 py-8 xl:px-12">
             <div className="flex flex-wrap gap-8 xl:gap-12">
