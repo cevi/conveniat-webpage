@@ -16,7 +16,7 @@ export const DocumentLinks: React.FC<{ documents: HofDashboardDocument[]; locale
           href={document.url}
           target="_blank"
           rel="noreferrer"
-          className="group flex min-h-11 items-center justify-between gap-4 py-3"
+          className="group flex min-h-11 items-center justify-between gap-4 py-3 no-underline"
         >
           <span className="flex min-w-0 items-start gap-3">
             <FileText className="mt-0.5 h-5 w-5 shrink-0 text-gray-500" aria-hidden />
@@ -33,7 +33,8 @@ export const DocumentLinks: React.FC<{ documents: HofDashboardDocument[]; locale
           </span>
           <span className="text-conveniat-green flex shrink-0 items-center gap-1.5 text-sm font-semibold">
             <Download className="h-4 w-4" aria-hidden />
-            {translate('download', locale)}
+            {/* on a phone the icon says it; the title needs the room */}
+            <span className="sr-only @md:not-sr-only">{translate('download', locale)}</span>
           </span>
         </a>
       </li>
