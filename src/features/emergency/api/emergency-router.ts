@@ -1,3 +1,5 @@
+import type { EmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
+import { toEmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
 import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-globals';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
@@ -53,22 +55,25 @@ export const emergencyRouter = createTRPCRouter({
     return await getAlertSettingsCached(ctx.locale, false, 'de'); // fallback to german
   }),
 
-  getEmergencyCards: publicProcedure.query(async ({ ctx }) => {
+  getEmergencyCards: publicProcedure.query(async ({ ctx }): Promise<EmergencyCardDto[]> => {
     const payloadAPI = await getPayload({ config });
     const response = await payloadAPI.find({
       collection: 'emergency-cards',
       limit: 100,
-      depth: 2, // Ensure documents and images relationships are populated
+      depth: 1, // populates the documents and images, which is all the card renders
       locale: ctx.locale,
       fallbackLocale: false,
       draft: false,
+      // Documents carry their own permissions. Without this the local API populates every
+      // linked document, and a restricted one would show up on the card for everybody.
+      overrideAccess: false,
       where: {
         _localized_status: {
           equals: { published: true },
         },
       },
     });
-    return response.docs;
+    return response.docs.map((card) => toEmergencyCardDto(card));
   }),
 
   newAlert: trpcBaseProcedure
