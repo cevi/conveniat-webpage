@@ -4679,6 +4679,7 @@ export interface HofMaterialOrder {
     | null;
   powerConnection?: boolean | null;
   lastEditedBy?: (string | null) | User;
+  lastEditedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -7319,6 +7320,7 @@ export interface HofMaterialOrdersSelect<T extends boolean = true> {
       };
   powerConnection?: T;
   lastEditedBy?: T;
+  lastEditedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

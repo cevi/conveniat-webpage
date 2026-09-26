@@ -19,6 +19,8 @@ export const useSafetyRiskAnswer = (
   const mutation = trpc.hofDashboard.updateSafetyRisk.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
+    // one answer after the other, so a quick correction is what the server keeps
+    scope: { id: `hof-safety-risk-${hofId}` },
     onMutate: async ({ submissionType, elevatedSafetyRisk }) => {
       await dashboard.cancel({ hofId });
       const previous = dashboard.getData({ hofId });

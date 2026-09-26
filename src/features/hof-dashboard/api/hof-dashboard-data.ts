@@ -61,7 +61,8 @@ export interface HofDashboardOrder {
   /** Lines the Hof ordered that are no longer on the list, kept as they were ordered. */
   retiredItems: { id: string; name: string; quantity: number }[];
   powerConnection: boolean;
-  updatedAt: string | undefined;
+  /** When the Hof last saved it; a reviewer's edit in the admin does not count. */
+  savedAt: string | undefined;
 }
 
 export interface HofDashboardDocument {
@@ -132,7 +133,7 @@ const toOrder = (
     | {
         items?: { itemId: string; name: string; quantity: number }[] | null;
         powerConnection?: boolean | null;
-        updatedAt: string;
+        lastEditedAt?: string | null;
       }
     | undefined,
 ): HofDashboardOrder => {
@@ -159,7 +160,7 @@ const toOrder = (
     items,
     retiredItems,
     powerConnection: stored?.powerConnection === true,
-    updatedAt: stored?.updatedAt,
+    savedAt: stored?.lastEditedAt ?? undefined,
   };
 };
 

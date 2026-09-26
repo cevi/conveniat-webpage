@@ -13,6 +13,7 @@ import { SubmissionCard } from '@/features/hof-dashboard/components/submission-c
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
 import { useSafetyRiskAnswer } from '@/features/hof-dashboard/hooks/use-safety-risk-answer';
+import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import {
   daysUntil,
@@ -82,6 +83,7 @@ export const AreaView: React.FC<{
   locale: Locale;
 }> = ({ area, data, progress, locale }) => {
   const { upload, uploads } = useHofUpload(data.hof.id, locale);
+  useWarnBeforeLeaving(Object.keys(uploads).length > 0);
   const answerSafetyRisk = useSafetyRiskAnswer(data.hof.id, locale);
 
   const submissions = data.submissions.filter((submission) => submission.area === area);

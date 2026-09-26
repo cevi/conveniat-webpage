@@ -29,9 +29,9 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 /**
- * Above the site header (`z-[100]`), on a backdrop from the palette: it has no `black`, so
- * `bg-black/80` rendered no backdrop at all. `closeLabel` names the close button for screen
- * readers, in the reader's language.
+ * Above the site header (`z-[100]`), on a backdrop the palette defines: `tailwind.config.ts`
+ * replaces the colours and has no `black`, so `bg-black/80` rendered no backdrop at all.
+ * `closeLabel` names the close button for screen readers, in the reader's language.
  */
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,

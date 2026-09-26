@@ -37,7 +37,7 @@ const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = (
   upload,
   locale,
 }) => (
-  <div className="w-full space-y-2 rounded-lg bg-gray-50 p-3" aria-live="polite">
+  <div className="w-full space-y-2 rounded-lg bg-gray-50 p-3">
     <div className="flex items-center justify-between gap-3 text-sm">
       <span className="min-w-0 truncate font-semibold text-gray-900">{upload.filename}</span>
       <span className="shrink-0 text-gray-600 tabular-nums">{upload.percent} %</span>
@@ -55,10 +55,14 @@ const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = (
         style={{ width: `${upload.percent}%` }}
       />
     </div>
-    <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={upload.cancel}>
-      <X aria-hidden />
-      {translate('cancel', locale)}
-    </button>
+    {upload.cancel === undefined ? (
+      <p className="text-sm text-gray-600">{translate('saving', locale)}</p>
+    ) : (
+      <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={upload.cancel}>
+        <X aria-hidden />
+        {translate('cancel', locale)}
+      </button>
+    )}
   </div>
 );
 
@@ -108,7 +112,9 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
     </DialogTrigger>
     <DialogContent
       closeLabel={translate('close', locale)}
-      className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-gray-200 bg-white"
+      // the title says it all; without this Radix warns about a missing description
+      aria-describedby={undefined}
+      className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-gray-200"
     >
       <DialogHeader>
         <DialogTitle className="font-heading text-conveniat-green pr-8 text-left leading-snug">
@@ -148,7 +154,7 @@ const SafetyRiskChoice: React.FC<{
         aria-pressed={value === option}
         onClick={() => onChange(option)}
         className={cn(
-          'min-h-10 min-w-16 cursor-pointer rounded-md px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
+          'min-h-10 min-w-16 cursor-pointer rounded-md px-4 text-sm font-semibold transition-colors',
           value === option ? 'bg-conveniat-green text-white' : 'text-gray-700 hover:bg-gray-50',
         )}
       >
@@ -166,10 +172,9 @@ const FilesWithUpload: React.FC<{
   onFile: (file: File) => void;
 }> = ({ files, upload, locale, onFile }) => (
   <div className="space-y-3">
-    {files.length === 0 && upload === undefined ? (
+    {files.length > 0 && <FileList files={files} locale={locale} />}
+    {files.length === 0 && upload === undefined && (
       <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
-    ) : (
-      <FileList files={files} locale={locale} />
     )}
     {upload === undefined ? (
       <UploadButton

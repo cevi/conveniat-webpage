@@ -8,7 +8,12 @@ import {
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { HOF_ORDER_MAX_QUANTITY, HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
-import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
+import {
+  formatCountdown,
+  formatDate,
+  formatNumber,
+  translate,
+} from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
@@ -191,7 +196,7 @@ export const MaterialOrderForm: React.FC<{
           {order.items.length > 0 && (
             <p className="text-xs text-gray-500">
               {translate('quantityHint', locale, {
-                n: new Intl.NumberFormat('de-CH').format(HOF_ORDER_MAX_QUANTITY),
+                n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
               })}
             </p>
           )}
@@ -231,8 +236,8 @@ export const MaterialOrderForm: React.FC<{
               >
                 {dirty
                   ? translate('unsavedChanges', locale)
-                  : order.updatedAt !== undefined &&
-                    translate('lastSaved', locale, { date: formatDate(order.updatedAt, locale) })}
+                  : order.savedAt !== undefined &&
+                    translate('lastSaved', locale, { date: formatDate(order.savedAt, locale) })}
               </p>
               <button
                 type="submit"

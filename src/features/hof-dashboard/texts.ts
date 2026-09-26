@@ -299,6 +299,10 @@ export const formatCountdown = (daysLeft: number, locale: Locale): string => {
   return translate('inDays', locale, { n: daysLeft });
 };
 
+/** A number as the reader writes it, e.g. 10'000 in Swiss German. */
+export const formatNumber = (value: number, locale: Locale): string =>
+  new Intl.NumberFormat(DATE_LOCALES[locale]).format(value);
+
 /** A file size in the unit people read it in. */
 export const formatFileSize = (bytes: number, locale: Locale): string => {
   const megabytes = bytes / (1024 * 1024);

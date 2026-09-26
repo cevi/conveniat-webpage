@@ -62,7 +62,7 @@ export const FileList: React.FC<{
         ))}
       </ul>
       {earlier.length > 0 && (
-        <details className="group text-sm">
+        <details className="text-sm">
           <summary className="min-h-9 cursor-pointer py-2 font-semibold text-gray-600 hover:text-gray-900">
             {translate('earlierVersions', locale, { n: earlier.length })}
           </summary>

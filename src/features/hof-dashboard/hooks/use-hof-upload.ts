@@ -17,11 +17,14 @@ import { TRPCClientError } from '@trpc/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-/** An upload under way: which file, how far it is, and how to call it off. */
+/**
+ * An upload under way: which file, how far it is, and how to call it off. Once the file is up
+ * and being filed, it can no longer be called off, and `cancel` is gone.
+ */
 export interface UploadInProgress {
   filename: string;
   percent: number;
-  cancel: () => void;
+  cancel?: () => void;
 }
 
 /** Raised when the user calls an upload off, so it is not reported as a failure. */
@@ -85,7 +88,16 @@ export const useHofUpload = (
   ): Promise<void> => {
     const typesText = HOF_FILE_EXTENSIONS.join(', ');
     const extension = hofFileExtensionOf(file.name);
-    const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    // a file in a cloud folder of the phone may no longer be readable
+    const head = await file
+      .slice(0, 8)
+      .arrayBuffer()
+      .then((buffer) => new Uint8Array(buffer))
+      .catch(() => {});
+    if (head === undefined) {
+      notifyFailure(locale, 'uploadFailed');
+      return;
+    }
     if (extension === undefined || !startsLike(head, extension)) {
       toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
       return;
@@ -97,13 +109,25 @@ export const useHofUpload = (
 
     const key = uploadKey(submissionType, kind);
     const request = new XMLHttpRequest();
-    const cancel = (): void => request.abort();
+    // an XHR not yet opened ignores abort(), so a cancel before the transfer starts is kept here
+    let cancelled = false;
+    const cancel = (): void => {
+      cancelled = true;
+      request.abort();
+    };
+    const stopIfCancelled = (): void => {
+      if (cancelled) throw new UploadCancelled();
+    };
     track(key, { filename: file.name, percent: 0, cancel });
     try {
       const target = await createUploadUrl.mutateAsync({ hofId, filename: file.name });
+      stopIfCancelled();
       await putWithProgress(request, target.url, file, target.contentType, (percent) =>
         track(key, { filename: file.name, percent, cancel }),
       );
+      stopIfCancelled();
+      // filing it resets the Ressort's status, so from here on it is too late to call off
+      track(key, { filename: file.name, percent: 100 });
       await completeUpload.mutateAsync({
         hofId,
         submissionType,

@@ -35,7 +35,7 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
-    defaultColumns: ['title', 'updatedAt', 'lastEditedBy'],
+    defaultColumns: ['title', 'lastEditedAt', 'lastEditedBy'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.',
@@ -141,6 +141,17 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
         fr: 'Dernière modification par',
       },
       admin: { position: 'sidebar', readOnly: true },
+    },
+    {
+      // the Hof's own last save, which a title refresh or a reviewer's edit leaves alone
+      name: 'lastEditedAt',
+      type: 'date',
+      label: {
+        de: 'Zuletzt gespeichert vom Hof',
+        en: 'Last saved by the Hof',
+        fr: 'Dernier enregistrement par le Hof',
+      },
+      admin: { position: 'sidebar', readOnly: true, date: { pickerAppearance: 'dayAndTime' } },
     },
   ],
 };

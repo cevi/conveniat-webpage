@@ -102,6 +102,20 @@ describe('completeHofUpload', () => {
     });
   });
 
+  it('reports an upload that never arrived as missing', async () => {
+    mockSend.mockRejectedValueOnce(Object.assign(new Error('gone'), { name: 'NoSuchKey' }));
+    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+
+  it('passes on a storage failure instead of calling the upload missing', async () => {
+    mockSend.mockRejectedValueOnce(new Error('connection refused'));
+    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toThrow(
+      'connection refused',
+    );
+  });
+
   it('answers a file whose content does not match its ending as an unsupported type', async () => {
     mockPayload.create
       .mockResolvedValueOnce({ id: 'submission' })

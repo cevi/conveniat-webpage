@@ -140,7 +140,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
       <div className="space-y-6">
         {[data.orders.infrastructure, data.orders.stadtleben].map((order) => (
           <MaterialOrderForm
-            key={`${order.type}-${order.updatedAt ?? 'new'}`}
+            key={`${order.type}-${order.savedAt ?? 'new'}`}
             hofId={data.hof.id}
             order={order}
             canPassDeadline={data.canPassDeadlines}

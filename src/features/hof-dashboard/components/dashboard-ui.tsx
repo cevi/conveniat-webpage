@@ -145,10 +145,11 @@ export const ProgressLine: React.FC<{
     due.push(formatCountdown(progress.daysLeft, locale));
   }
   return (
-    <p className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-sm', className)}>
+    // a span, since it also sits inside the overview's row buttons
+    <span className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-sm', className)}>
       <StatusPill tone={STATE_TONE[progress.state]}>{label}</StatusPill>
       {due.length > 0 && <span className="text-gray-600">{due.join(' · ')}</span>}
-    </p>
+    </span>
   );
 };
 

@@ -27,9 +27,7 @@ export const daysUntil = (deadline: string, now: Date): number =>
 
 /** The deadline a submission works towards: the next one still ahead, else the last one. */
 export const nextDeadline = (deadlines: readonly string[], now: Date): string | undefined => {
-  const sorted = deadlines
-    .filter((deadline) => !Number.isNaN(new Date(deadline).getTime()))
-    .toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const sorted = deadlines.toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime());
   return sorted.find((deadline) => daysUntil(deadline, now) >= 0) ?? sorted.at(-1);
 };
 

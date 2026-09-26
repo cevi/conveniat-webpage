@@ -46,7 +46,9 @@ export const HofSelection: React.FC<
   }
 > = ({ name, label, required, control, registerAction, error }) => {
   const locale = useCurrentLocale(i18nConfig) as keyof StaticTranslationString;
-  const { data: hoefe, isLoading, isError } = trpc.hofDashboard.getHofList.useQuery();
+  const { data: hoefe, isLoading, isError, fetchStatus } = trpc.hofDashboard.getHofList.useQuery();
+  // without signal the query waits paused instead of failing
+  const unavailable = hoefe === undefined && (isError || fetchStatus === 'paused');
 
   return (
     <Select
@@ -60,7 +62,7 @@ export const HofSelection: React.FC<
       optionType="dropdown"
       allowMultiple={false}
       placeholder={
-        isError ? loadErrorText[locale] : (isLoading ? loadingText : placeholderText)[locale]
+        unavailable ? loadErrorText[locale] : (isLoading ? loadingText : placeholderText)[locale]
       }
       options={(hoefe ?? []).map((hof) => ({ value: hof.id, label: hof.name }))}
     />
