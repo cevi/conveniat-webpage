@@ -3,11 +3,10 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import PageDisplayClient from '@/features/payload-cms/components/search/page-display-client';
-import type { GenericPage } from '@/features/payload-cms/payload-types';
+import SearchResultCard from '@/features/payload-cms/components/search/search-result-card';
+import type { SearchResults } from '@/features/payload-cms/components/search/search-results';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { MoveLeft, MoveRight } from 'lucide-react';
-import type { PaginatedDocs } from 'payload';
 import React from 'react';
 
 const searchResultHeader: StaticTranslationString = {
@@ -38,12 +37,12 @@ const SearchOnlyPagesClient: React.FC<{
   locale: Locale;
   page: number;
   searchQuery: string;
-  permittedPages: GenericPage[];
-  pages: PaginatedDocs<GenericPage>;
-}> = ({ locale, page, searchQuery, permittedPages, pages }): React.JSX.Element => {
-  const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = pages;
+  searchResults: SearchResults;
+}> = ({ locale, page, searchQuery, searchResults }): React.JSX.Element => {
+  const { results } = searchResults;
+  const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = searchResults.pagination;
 
-  const buildPageLink = (targetPage: number | undefined | null): string => {
+  const buildPageLink = (targetPage: number | undefined): string => {
     const newSearchParameters = new URLSearchParams();
     newSearchParameters.set('q', searchQuery);
     newSearchParameters.set('only', 'pages');
@@ -60,9 +59,9 @@ const SearchOnlyPagesClient: React.FC<{
 
       <div className="my-8 flex flex-col gap-y-4">
         <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
-        {permittedPages.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-        {permittedPages.map((permittedPage) => (
-          <PageDisplayClient key={permittedPage.id} page={permittedPage} locale={locale} />
+        {results.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+        {results.map((result) => (
+          <SearchResultCard key={result.id} result={result} locale={locale} />
         ))}
       </div>
       <nav className="mt-8 flex justify-between">

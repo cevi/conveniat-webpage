@@ -3,11 +3,10 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { SearchBar } from '@/components/ui/search-bar';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import BlogDisplayClient from '@/features/payload-cms/components/search/blog-display-client';
-import type { Blog } from '@/features/payload-cms/payload-types';
+import SearchResultCard from '@/features/payload-cms/components/search/search-result-card';
+import type { SearchResults } from '@/features/payload-cms/components/search/search-results';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { MoveLeft, MoveRight } from 'lucide-react';
-import type { PaginatedDocs } from 'payload';
 
 const searchResultHeader: StaticTranslationString = {
   de: 'Suchresultate für ',
@@ -31,10 +30,10 @@ const SearchOnlyBlogsClient: React.FC<{
   locale: Locale;
   page: number;
   searchQuery: string;
-  permittedBlogs: Blog[];
-  blogs: PaginatedDocs<Blog>;
-}> = ({ locale, page, searchQuery, permittedBlogs, blogs }): React.JSX.Element => {
-  const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = blogs;
+  searchResults: SearchResults;
+}> = ({ locale, page, searchQuery, searchResults }): React.JSX.Element => {
+  const { results } = searchResults;
+  const { totalPages, hasPrevPage, hasNextPage, prevPage, nextPage } = searchResults.pagination;
 
   const searchAlternatives = {
     en: '/search',
@@ -42,7 +41,7 @@ const SearchOnlyBlogsClient: React.FC<{
     fr: '/recherche',
   };
 
-  const buildPageLink = (targetPage: number | undefined | null): string => {
+  const buildPageLink = (targetPage: number | undefined): string => {
     const newSearchParameters = new URLSearchParams();
     newSearchParameters.set('q', searchQuery);
     newSearchParameters.set('only', 'pages');
@@ -59,9 +58,9 @@ const SearchOnlyBlogsClient: React.FC<{
 
       <div className="my-8 flex flex-col gap-y-4">
         <h2 className="text-2xl font-bold">{searchResultsTitlePages[locale]}</h2>
-        {permittedBlogs.length === 0 && <p>{searchResultNoResults[locale]}</p>}
-        {permittedBlogs.map((permittedBlog) => (
-          <BlogDisplayClient key={permittedBlog.id} blog={permittedBlog} locale={locale} />
+        {results.length === 0 && <p>{searchResultNoResults[locale]}</p>}
+        {results.map((result) => (
+          <SearchResultCard key={result.id} result={result} locale={locale} />
         ))}
       </div>
       <nav className="mt-8 flex justify-between">
