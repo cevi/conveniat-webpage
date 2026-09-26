@@ -1,5 +1,6 @@
 'use client';
 
+import { endOfDay } from '@/features/material/utils/holders';
 import { shouldRetryMaterialQuery } from '@/features/material/utils/query-errors';
 import type { RouterOutputs } from '@/trpc/client';
 import { trpc } from '@/trpc/client';
@@ -8,19 +9,10 @@ import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useCallback, useEffect, useState } from 'react';
 
-export type MaterialItem = RouterOutputs['material']['getItemList'][number];
+export type MaterialItem = RouterOutputs['material']['getInventory'][number];
 export type MaterialItemDetail = RouterOutputs['material']['getItem'];
-export type MaterialLoan = RouterOutputs['material']['getLoanList'][number];
-export type MaterialHof = RouterOutputs['material']['getHofList'][number];
-export type MaterialTeamDashboard = RouterOutputs['material']['getTeamDashboard'];
-export type MaterialMe = RouterOutputs['material']['getMe'];
-
-/**
- * The Höfe the reader belongs to. A `getMe` restored from the cache of an app version before
- * the Höfe has `departments` instead, so the field may be missing.
- */
-export const getMyHoefe = (me: { hoefe?: MaterialMe['hoefe'] } | undefined): MaterialMe['hoefe'] =>
-  me?.hoefe ?? [];
+export type MaterialLoan = MaterialItemDetail['openLoans'][number];
+export type MaterialHolderGroup = RouterOutputs['material']['getCounterQueue']['pickups'][number];
 
 /**
  * Options every material query shares. The app-wide client neither refetches on mount nor
@@ -62,4 +54,16 @@ export const useNow = (): Date => {
     return (): void => clearInterval(timer);
   }, []);
   return now;
+};
+
+/**
+ * The end of the reader's day, which the counter's queries are asked for. The same value for
+ * the whole day, so the query key only changes at midnight.
+ */
+export const useDayEnd = (): Date => {
+  const now = useNow();
+  const [dayEnd, setDayEnd] = useState(() => endOfDay(now));
+  // moved on during render, not in an effect, so no frame shows yesterday's queue
+  if (now > dayEnd) setDayEnd(endOfDay(now));
+  return dayEnd;
 };

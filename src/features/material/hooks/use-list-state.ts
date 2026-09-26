@@ -1,12 +1,7 @@
 'use client';
 
-import {
-  pageWindow,
-  rangeBetween,
-  type PageSize,
-  type PageWindow,
-} from '@/features/material/utils/list-view';
-import { useCallback, useRef, useState } from 'react';
+import { pageWindow, type PageSize, type PageWindow } from '@/features/material/utils/list-view';
+import { useState } from 'react';
 
 interface PageState {
   key: string;
@@ -60,57 +55,4 @@ export const usePagination = (
     loadPrevious: () =>
       setState({ ...current, page: Math.max(1, slice.page - 1), loaded: current.loaded + 1 }),
   };
-};
-
-export interface Selection {
-  ids: ReadonlySet<string>;
-  /** a row's checkbox; with shift held it takes the range since the last one clicked */
-  toggle: (id: string, options?: { shift?: boolean; pageIds?: readonly string[] }) => void;
-  setMany: (ids: readonly string[], selected: boolean) => void;
-  clear: () => void;
-}
-
-/**
- * Selected rows by id, held in state rather than in the checkboxes, so the selection outlives
- * a page change and a refetch that re-renders every row.
- */
-export const useSelection = (): Selection => {
-  const [ids, setIds] = useState<ReadonlySet<string>>(() => new Set());
-  const lastClicked = useRef<string | undefined>(undefined);
-
-  const setMany = useCallback((changed: readonly string[], selected: boolean): void => {
-    setIds((previous) => {
-      const next = new Set(previous);
-      for (const id of changed) {
-        if (selected) next.add(id);
-        else next.delete(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const toggle = useCallback<Selection['toggle']>((id, options) => {
-    const anchor = lastClicked.current;
-    lastClicked.current = id;
-    setIds((previous) => {
-      const selected = !previous.has(id);
-      const range =
-        options?.shift === true && anchor !== undefined && options.pageIds !== undefined
-          ? rangeBetween(options.pageIds, anchor, id)
-          : [id];
-      const next = new Set(previous);
-      for (const rowId of range) {
-        if (selected) next.add(rowId);
-        else next.delete(rowId);
-      }
-      return next;
-    });
-  }, []);
-
-  const clear = useCallback((): void => {
-    lastClicked.current = undefined;
-    setIds(new Set());
-  }, []);
-
-  return { ids, toggle, setMany, clear };
 };

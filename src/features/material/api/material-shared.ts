@@ -1,4 +1,3 @@
-import { isMaterialTeam } from '@/features/material/api/material-access';
 import {
   getAvailableForPeriod,
   getItemStatus,
@@ -8,14 +7,13 @@ import {
   type StockSummary,
 } from '@/features/material/utils/stock';
 import type { MaterialLoanStatus, Prisma, PrismaClient } from '@/lib/prisma/client';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { TRPCError } from '@trpc/server';
 
 export type MaterialPrisma = PrismaClient | Prisma.TransactionClient;
 
 /** Loans that keep pieces away from the stock. */
-export const HOLDING_STATUSES: MaterialLoanStatus[] = ['REQUESTED', 'RESERVED', 'ISSUED'];
+export const HOLDING_STATUSES: MaterialLoanStatus[] = ['RESERVED', 'ISSUED'];
 
 export const holdSelect = {
   status: true,
@@ -40,7 +38,6 @@ export const loanInclude = {
     },
   },
   person: { select: { uuid: true, name: true } },
-  createdBy: { select: { uuid: true, name: true } },
 } satisfies Prisma.MaterialLoanInclude;
 
 export type MaterialLoanWithRelations = Prisma.MaterialLoanGetPayload<{
@@ -59,14 +56,14 @@ const errors = {
     fr: 'Prêt introuvable.',
   },
   notEnough: {
-    de: 'Für diesen Zeitraum sind nur noch {n} verfügbar.',
-    en: 'Only {n} are available for this period.',
-    fr: 'Seulement {n} disponibles pour cette période.',
+    de: '{item}: für diesen Zeitraum sind nur noch {n} verfügbar.',
+    en: '{item}: only {n} are available for this period.',
+    fr: '{item} : seulement {n} disponibles pour cette période.',
   },
   overMax: {
-    de: 'Pro Ausleihe sind höchstens {n} erlaubt.',
-    en: 'At most {n} are allowed per loan.',
-    fr: 'Au maximum {n} par prêt.',
+    de: '{item}: pro Ausleihe sind höchstens {n} erlaubt.',
+    en: '{item}: at most {n} are allowed per loan.',
+    fr: '{item} : au maximum {n} par prêt.',
   },
   period: {
     de: 'Die Rückgabe muss nach der Ausleihe liegen.',
@@ -74,49 +71,39 @@ const errors = {
     fr: 'Le retour doit être après le début.',
   },
   disabled: {
-    de: 'Dieser Artikel kann zurzeit nicht ausgeliehen werden.',
-    en: 'This item cannot be borrowed at the moment.',
-    fr: 'Cet article ne peut pas être emprunté pour le moment.',
+    de: '{item} kann zurzeit nicht ausgeliehen werden.',
+    en: '{item} cannot be borrowed at the moment.',
+    fr: '{item} ne peut pas être emprunté pour le moment.',
   },
   notReservable: {
-    de: 'Dieser Artikel wird nur direkt im Materialdepot ausgegeben.',
-    en: 'This item is only handed out at the material depot.',
-    fr: 'Cet article est remis uniquement au dépôt de matériel.',
+    de: '{item} wird nur sofort ausgegeben und kann nicht vorbereitet werden.',
+    en: '{item} is only handed out at once and cannot be prepared ahead.',
+    fr: '{item} est remis uniquement sur place et ne peut pas être préparé.',
   },
   notConsumable: {
-    de: 'Nur Verbrauchsmaterial kann verbraucht werden.',
-    en: 'Only consumables can be used up.',
-    fr: 'Seul le matériel de consommation peut être consommé.',
+    de: '{item} ist kein Verbrauchsmaterial und kann nicht verbraucht werden.',
+    en: '{item} is not a consumable and cannot be used up.',
+    fr: '{item} n’est pas du matériel de consommation.',
   },
   wrongStatus: {
     de: 'Diese Aktion ist im aktuellen Status nicht möglich.',
     en: 'This action is not possible in the current status.',
     fr: 'Cette action n’est pas possible dans le statut actuel.',
   },
-  notOwnHof: {
-    de: 'Du kannst nur für deinen eigenen Hof reservieren. Für andere wende dich ans Materialteam.',
-    en: 'You can only book for your own Hof. Ask the material team for others.',
-    fr: 'Tu ne peux réserver que pour ton propre Hof. Pour les autres, adresse-toi à l’équipe matériel.',
-  },
-  notSelf: {
-    de: 'Als Einzelperson kannst du nur auf dich selbst reservieren.',
-    en: 'As a single person you can only book for yourself.',
-    fr: 'En tant que personne, tu ne peux réserver que pour toi.',
-  },
-  tooManyRequests: {
-    de: 'Du hast schon {n} offene Anfragen. Warte, bis das Materialteam sie bestätigt.',
-    en: 'You already have {n} open requests. Wait until the material team confirms them.',
-    fr: 'Tu as déjà {n} demandes ouvertes. Attends que l’équipe matériel les confirme.',
-  },
   notOnShelf: {
-    de: 'Im Depot liegen nur noch {n} brauchbare Stück.',
-    en: 'Only {n} usable pieces are left in the depot.',
-    fr: 'Il ne reste que {n} pièces utilisables au dépôt.',
+    de: '{item}: im Depot liegen nur noch {n} brauchbare Stück.',
+    en: '{item}: only {n} usable pieces are left in the depot.',
+    fr: '{item} : il ne reste que {n} pièces utilisables au dépôt.',
   },
   personNotFound: {
     de: 'Person nicht gefunden.',
     en: 'Person not found.',
     fr: 'Personne introuvable.',
+  },
+  noHolder: {
+    de: 'Wähle einen Hof oder eine Person.',
+    en: 'Choose a Hof or a person.',
+    fr: 'Choisis un Hof ou une personne.',
   },
   hofNotFound: {
     de: 'Hof nicht gefunden.',
@@ -135,16 +122,17 @@ const errors = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-/** A user-facing error in the caller's language. */
+/** A user-facing error in the caller's language, with `{n}` and `{item}` filled in. */
 export const materialError = (
   code: TRPCError['code'],
   key: keyof typeof errors,
   locale: Locale,
   n?: number,
+  item?: string,
 ): TRPCError =>
   new TRPCError({
     code,
-    message: errors[key][locale].replace('{n}', String(n ?? '')),
+    message: errors[key][locale].replace('{n}', String(n ?? '')).replace('{item}', item ?? ''),
   });
 
 /**
@@ -156,22 +144,15 @@ export const lockItem = async (tx: Prisma.TransactionClient, itemId: string): Pr
 };
 
 /**
- * Loans the user may see: all of them for the material team, otherwise the ones they booked,
- * the ones booked on them and the ones of their Höfe. The Höfe are only read when needed.
+ * Locks several articles for one basket, always in ascending id order: two baskets that share
+ * articles then queue behind each other instead of each holding one lock the other waits for.
  */
-export const visibleLoansWhere = async (
-  user: HitobitoNextAuthUser,
-  myHofIds: () => Promise<string[]>,
-): Promise<Prisma.MaterialLoanWhereInput> =>
-  isMaterialTeam(user)
-    ? {}
-    : {
-        OR: [
-          { createdById: user.uuid },
-          { personId: user.uuid },
-          { hofId: { in: await myHofIds() } },
-        ],
-      };
+export const lockItems = async (
+  tx: Prisma.TransactionClient,
+  itemIds: Iterable<string>,
+): Promise<void> => {
+  for (const itemId of [...new Set(itemIds)].toSorted()) await lockItem(tx, itemId);
+};
 
 export interface MaterialItemWithStock {
   id: string;
@@ -273,9 +254,9 @@ export const assertAvailable = async ({
     },
   });
   if (!item) throw materialError('NOT_FOUND', 'itemNotFound', locale);
-  if (item.isDisabled) throw materialError('BAD_REQUEST', 'disabled', locale);
+  if (item.isDisabled) throw materialError('BAD_REQUEST', 'disabled', locale, 0, item.name);
   if (quantity > item.maxLoanQuantity) {
-    throw materialError('BAD_REQUEST', 'overMax', locale, item.maxLoanQuantity);
+    throw materialError('BAD_REQUEST', 'overMax', locale, item.maxLoanQuantity, item.name);
   }
 
   const available = getAvailableForPeriod(
@@ -284,7 +265,9 @@ export const assertAvailable = async ({
     { start: startDate, end: endDate },
     new Date(),
   );
-  if (quantity > available) throw materialError('CONFLICT', 'notEnough', locale, available);
+  if (quantity > available) {
+    throw materialError('CONFLICT', 'notEnough', locale, available, item.name);
+  }
 };
 
 /** Pieces handed out and not back yet; used-up consumables already left the total. */

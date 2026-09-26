@@ -79,7 +79,7 @@ model Chat {
   name String
 
   description String?
-  status      ChatStatus  @default(OPEN)
+  status      ChatStatus @default(OPEN)
 
   lastUpdate DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -105,10 +105,10 @@ model Chat {
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
 
+  @@unique([courseId, courseType])
   @@index([name])
   @@index([description])
   @@index([lastUpdate])
-  @@unique([courseId, courseType])
 }
 
 enum ChatMembershipPermission {
@@ -133,7 +133,7 @@ model ChatMembership {
   hasDeleted Boolean @default(false)
 
   /// High-water mark for read receipts
-  lastReadMessageId      String?
+  lastReadMessageId String?
 
   chatPermission ChatMembershipPermission @default(MEMBER)
 
@@ -182,9 +182,9 @@ model Message {
   contentVersions MessageContent[]
 
   /// The parent message if this is a reply in a thread
-  parentId String?
-  parent   Message?  @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
-  replies  Message[] @relation("Thread")
+  parentId  String?
+  parent    Message?          @relation("Thread", fields: [parentId], references: [uuid], onDelete: Cascade)
+  replies   Message[]         @relation("Thread")
   reactions MessageReaction[]
 
   @@index([chatId, createdAt(sort: Asc)])
@@ -299,13 +299,13 @@ model PushNotificationLog {
 
   content String
 
-  sentAt          DateTime               @default(now())
+  sentAt          DateTime                @default(now())
   deliveredAt     DateTime?
   interactedAt    DateTime?
   interactionType String?
   userAgent       String?
   channel         PushNotificationChannel @default(WEB_PUSH)
-  status          PushNotificationStatus @default(PENDING)
+  status          PushNotificationStatus  @default(PENDING)
   error           String?
 
   @@index([userId])
@@ -328,10 +328,10 @@ model MessageReaction {
   createdAt DateTime @default(now())
 
   messageId String
-  message   Message  @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
+  message   Message @relation(fields: [messageId], references: [uuid], onDelete: Cascade)
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [uuid])
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
 
   @@unique([messageId, userId, emoji])
   @@index([messageId])
@@ -344,7 +344,7 @@ model PresenceLog {
   isPresent Boolean
   timestamp DateTime @default(now())
 
-  user      User     @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
 
   @@index([userUuid])
   @@index([timestamp])
@@ -365,63 +365,63 @@ enum PhotoContestStatus {
 }
 
 model PhotoContest {
-  id                 String             @id @default(uuid(7))
-  slug               String             @unique
-  title              String
-  description        String?
-  status             PhotoContestStatus @default(HIDDEN)
+  id          String             @id @default(uuid(7))
+  slug        String             @unique
+  title       String
+  description String?
+  status      PhotoContestStatus @default(HIDDEN)
 
-  votingStart        DateTime?
-  votingEnd          DateTime?
+  votingStart DateTime?
+  votingEnd   DateTime?
 
-  maxPointsPerUser   Int                @default(2)
-  maxPointsPerImage  Int                @default(2)
+  maxPointsPerUser  Int @default(2)
+  maxPointsPerImage Int @default(2)
 
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  images             PhotoContestImage[]
-  votes              PhotoContestVote[]
+  images PhotoContestImage[]
+  votes  PhotoContestVote[]
 
   @@index([status])
   @@index([slug])
 }
 
 model PhotoContestImage {
-  id                 String             @id @default(uuid(7))
-  contestId          String
-  contest            PhotoContest       @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  id        String       @id @default(uuid(7))
+  contestId String
+  contest   PhotoContest @relation(fields: [contestId], references: [id], onDelete: Cascade)
 
-  imageUrl           String
-  thumbnailUrl       String?
-  title              String?
-  description        String?
-  uploadedById       String?
-  uploadedBy         User?              @relation(fields: [uploadedById], references: [uuid])
+  imageUrl     String
+  thumbnailUrl String?
+  title        String?
+  description  String?
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [uuid])
 
-  order              Int                @default(0)
-  createdAt          DateTime           @default(now())
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
 
-  votes              PhotoContestVote[]
+  votes PhotoContestVote[]
 
   @@index([contestId])
   @@index([uploadedById])
 }
 
 model PhotoContestVote {
-  id                 String            @id @default(uuid(7))
-  contestId          String
-  contest            PhotoContest      @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  id        String       @id @default(uuid(7))
+  contestId String
+  contest   PhotoContest @relation(fields: [contestId], references: [id], onDelete: Cascade)
 
-  imageId            String
-  image              PhotoContestImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+  imageId String
+  image   PhotoContestImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
 
-  userId             String
-  user               User              @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid], onDelete: Cascade)
 
-  points             Int               @default(1)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  points    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([contestId, userId, imageId])
   @@index([contestId, userId])
@@ -481,9 +481,9 @@ model MaterialItem {
 
   /// handed out and used up, so a return is optional and the stock shrinks on issue
   isConsumable Boolean @default(false)
-  /// can be requested ahead; otherwise the material team only hands it out at the counter
+  /// can be prepared ahead for a pickup; otherwise the material team only hands it out at once
   isReservable Boolean @default(true)
-  /// withdrawn by the material team, nothing can be requested
+  /// withdrawn by the material team, nothing can be handed out
   isDisabled   Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -496,9 +496,7 @@ model MaterialItem {
 }
 
 enum MaterialLoanStatus {
-  /// asked for, not yet confirmed by the material team
-  REQUESTED
-  /// confirmed, the pieces are held for the period
+  /// prepared by the material team for a pickup, the pieces are held for the period
   RESERVED
   /// handed out, the pieces are away
   ISSUED
@@ -516,8 +514,8 @@ enum MaterialCondition {
   MISSING
 }
 
-/// one request, reservation or loan of one article. Overdue is not a status: it is an issued
-/// loan whose end date lies in the past.
+/// one reservation or loan of one article, booked on a Hof or on a person. Overdue is not a
+/// status: it is an issued loan whose end date lies in the past.
 model MaterialLoan {
   id     String @id @default(uuid(7))
   /// short number printed on the loan's QR label and spoken at the counter
@@ -528,10 +526,12 @@ model MaterialLoan {
 
   quantity Int
 
-  /// id of the Hof in Payload's `hoefe` collection; no foreign key, the Hof lives in MongoDB
-  hofId String
+  /// id of the Hof in Payload's `hoefe` collection; no foreign key, the Hof lives in MongoDB.
+  /// Empty only for a loan booked on a person without a Hof: every loan has a Hof or a person,
+  /// which the API checks, since the Hof cannot be a foreign key.
+  hofId String?
 
-  /// set when the material is lent to one person instead of the whole Hof
+  /// set when the material is lent to one person; the loan then belongs to them, not the Hof
   personId String?
   person   User?   @relation("MaterialLoanPerson", fields: [personId], references: [uuid])
 
@@ -544,17 +544,15 @@ model MaterialLoan {
   /// consumables handed out to be used up rather than lent
   isConsumption Boolean @default(false)
 
-  status MaterialLoanStatus @default(REQUESTED)
+  status MaterialLoanStatus
 
   issuedQuantity Int?
   issuedAt       DateTime?
 
-  /// the borrower said the material is on its way back, the material team has not checked it
-  returnAnnouncedAt DateTime?
-  returnedQuantity  Int?
-  returnedAt        DateTime?
-  returnCondition   MaterialCondition?
-  returnNote        String?
+  returnedQuantity Int?
+  returnedAt       DateTime?
+  returnCondition  MaterialCondition?
+  returnNote       String?
 
   createdById String
   createdBy   User   @relation("MaterialLoanCreatedBy", fields: [createdById], references: [uuid])

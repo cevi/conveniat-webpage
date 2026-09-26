@@ -89,24 +89,34 @@ export const getMyHofIds = cache(async (user: HitobitoNextAuthUser): Promise<str
   return mine;
 });
 
-/** A loan's Hof by name, `null` when the Hof has been deleted since. */
+/** A loan's Hof by name. */
 export interface LoanHof {
   id: string;
   name: string;
 }
 
 /**
- * Adds the Hof's name to loans. The Hof is a Payload document, so Prisma cannot join it; a
- * loan whose Hof is gone gets `null` and shows as an unknown Hof.
+ * Adds the Hof's name to loans. The Hof is a Payload document, so Prisma cannot join it. A
+ * loan booked on a person without a Hof, or whose Hof is gone, gets `null`; `hofId` tells the
+ * two apart.
  */
-export const withHof = async <T extends { hofId: string }>(
+export const withHof = async <T extends { hofId: string | null }>(
   loans: T[],
 ): Promise<(T & { hof: LoanHof | null })[]> => {
   const hoefe = await listHoefe();
   const names = new Map(hoefe.map((hof) => [hof.id, hof.name]));
   return loans.map((loan) => {
-    const name = names.get(loan.hofId);
-    // eslint-disable-next-line unicorn/no-null -- the same shape for every loan
-    return { ...loan, hof: name === undefined ? null : { id: loan.hofId, name } };
+    const name = loan.hofId === null ? undefined : names.get(loan.hofId);
+    return {
+      ...loan,
+      // eslint-disable-next-line unicorn/no-null -- the same shape for every loan
+      hof: loan.hofId === null || name === undefined ? null : { id: loan.hofId, name },
+    };
   });
+};
+
+/** The Hof lives in Payload, so no foreign key checks that it exists. */
+export const hofExists = async (hofId: string): Promise<boolean> => {
+  const hoefe = await listHoefe();
+  return hoefe.some((hof) => hof.id === hofId);
 };

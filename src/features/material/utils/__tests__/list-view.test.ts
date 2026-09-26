@@ -1,64 +1,4 @@
-import {
-  ariaSort,
-  bulkEligible,
-  loanRowActions,
-  nextSort,
-  pageLinks,
-  pageWindow,
-  rangeBetween,
-  selectionState,
-  sortRows,
-  summariseBulk,
-  type SortState,
-} from '@/features/material/utils/list-view';
-
-describe('nextSort', () => {
-  it('cycles ascending, descending, then back to the original order', () => {
-    const first = nextSort(undefined, 'name');
-    expect(first).toEqual({ key: 'name', direction: 'ascending' });
-    const second = nextSort(first, 'name');
-    expect(second).toEqual({ key: 'name', direction: 'descending' });
-    expect(nextSort(second, 'name')).toBeUndefined();
-  });
-
-  it('starts ascending on another column', () => {
-    expect(nextSort({ key: 'name', direction: 'descending' }, 'date')).toEqual({
-      key: 'date',
-      direction: 'ascending',
-    });
-  });
-
-  it('reports aria-sort only for the sorted column', () => {
-    const sort: SortState<'name' | 'date'> = { key: 'name', direction: 'descending' };
-    expect(ariaSort(sort, 'name')).toBe('descending');
-    expect(ariaSort(sort, 'date')).toBe('none');
-  });
-});
-
-describe('sortRows', () => {
-  const rows = [
-    { name: 'b', n: 1 },
-    { name: 'a', n: 2 },
-    { name: 'b', n: 3 },
-  ];
-  type Row = (typeof rows)[number];
-  const comparators = {
-    name: (x: Row, y: Row): number => x.name.localeCompare(y.name),
-  };
-
-  it('keeps the original order without a sort', () => {
-    expect(sortRows(rows, undefined, comparators).map((row) => row.n)).toEqual([1, 2, 3]);
-  });
-
-  it('sorts stably in both directions', () => {
-    expect(
-      sortRows(rows, { key: 'name', direction: 'ascending' }, comparators).map((row) => row.n),
-    ).toEqual([2, 1, 3]);
-    expect(
-      sortRows(rows, { key: 'name', direction: 'descending' }, comparators).map((row) => row.n),
-    ).toEqual([1, 3, 2]);
-  });
-});
+import { pageLinks, pageWindow, summariseBulk } from '@/features/material/utils/list-view';
 
 describe('pageWindow', () => {
   it('shows one page of rows', () => {
@@ -115,37 +55,7 @@ describe('pageLinks', () => {
   });
 });
 
-describe('selection', () => {
-  it('turns from none to some to all', () => {
-    const ids = ['a', 'b', 'c'];
-    expect(selectionState(ids, new Set())).toBe('none');
-    expect(selectionState(ids, new Set(['b', 'x']))).toBe('some');
-    expect(selectionState(ids, new Set(['a', 'b', 'c']))).toBe('all');
-  });
-
-  it('selects a shift-click range in either direction', () => {
-    const ids = ['a', 'b', 'c', 'd'];
-    expect(rangeBetween(ids, 'b', 'd')).toEqual(['b', 'c', 'd']);
-    expect(rangeBetween(ids, 'd', 'b')).toEqual(['b', 'c', 'd']);
-    expect(rangeBetween(ids, 'gone', 'c')).toEqual(['c']);
-  });
-});
-
-describe('bulk actions', () => {
-  const loans = [
-    { id: '1', status: 'REQUESTED' as const },
-    { id: '2', status: 'RESERVED' as const },
-    { id: '3', status: 'ISSUED' as const },
-  ];
-
-  it('confirms only requests', () => {
-    expect(bulkEligible('confirm', loans)).toEqual({ ids: ['1'], skipped: 2 });
-  });
-
-  it('hands out requests and reservations', () => {
-    expect(bulkEligible('issue', loans)).toEqual({ ids: ['1', '2'], skipped: 1 });
-  });
-
+describe('summariseBulk', () => {
   it('counts results and keeps distinct reasons', () => {
     expect(
       summariseBulk([
@@ -154,18 +64,5 @@ describe('bulk actions', () => {
         { id: '3', ok: false, error: 'Not on shelf' },
       ]),
     ).toEqual({ done: 1, failed: 2, errors: ['Not on shelf'] });
-  });
-});
-
-describe('loanRowActions', () => {
-  it('puts the counter step first for the material team', () => {
-    expect(loanRowActions({ status: 'REQUESTED' }, true)[0]).toBe('confirm');
-    expect(loanRowActions({ status: 'RESERVED' }, true)[0]).toBe('issue');
-    expect(loanRowActions({ status: 'ISSUED' }, true)[0]).toBe('return');
-  });
-
-  it('gives a participant no counter steps', () => {
-    expect(loanRowActions({ status: 'ISSUED' }, false)).toEqual(['view', 'incident']);
-    expect(loanRowActions({ status: 'RETURNED' }, false)).toEqual(['view']);
   });
 });

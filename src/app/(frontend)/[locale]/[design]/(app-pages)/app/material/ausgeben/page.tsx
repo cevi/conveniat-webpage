@@ -1,10 +1,10 @@
-import { LoanListView } from '@/features/material/components/loan-list-view';
+import { HandOutView } from '@/features/material/components/hand-out-view';
 import type React from 'react';
 import { Suspense } from 'react';
 
 const Page: React.FC = () => (
   <Suspense>
-    <LoanListView mode="reservations" />
+    <HandOutView />
   </Suspense>
 );
 
