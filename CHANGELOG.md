@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.17.0](https://github.com/cevi/conveniat-webpage/compare/v1.16.0...v1.17.0) (2026-09-26)
+
+
+### Features
+
+* **announcements:** publish every language at once, with a single push ([a6d0742](https://github.com/cevi/conveniat-webpage/commit/a6d0742eb18a40d398a260e75f341ea2e1110a38))
+* **announcements:** publish every language at once, with a single push ([86ab276](https://github.com/cevi/conveniat-webpage/commit/86ab2762af80ae040fe7509eb21dc0320be74cab))
+* **announcements:** show push delivery, taps and chat reads on the announcement ([cdd128d](https://github.com/cevi/conveniat-webpage/commit/cdd128dc95d82ad9f1bf694166128109b5e7c0ce))
+* **announcements:** show push delivery, taps and chat reads on the announcement ([bc5027a](https://github.com/cevi/conveniat-webpage/commit/bc5027a7f85d2ece4184c5a6658b1b5fd27443c7))
+* **billing:** move the Höfe into a shared collection ([973c928](https://github.com/cevi/conveniat-webpage/commit/973c92830924dfe40496bd68a3436bdb1cd8dc75))
+* **billing:** move the Höfe into a shared collection ([dbd4c2a](https://github.com/cevi/conveniat-webpage/commit/dbd4c2a7ee4bb3c423538d32f22a825e289cdaa5))
+* **material:** book loans on a Hof instead of a department ([775d1dd](https://github.com/cevi/conveniat-webpage/commit/775d1ddae7601f7d60c6e9fd01cc38ebdfb773da))
+* **material:** four screens for the counter: overview, hand out, take back, inventory ([6effa5b](https://github.com/cevi/conveniat-webpage/commit/6effa5bdf335b694995bb992687450add80332d4))
+* **material:** Höfe request material and announce returns ([9729450](https://github.com/cevi/conveniat-webpage/commit/97294506a57ed19d62e5dc433e1d14b8d94169fb))
+* **material:** material depot for reservations, loans and returns ([48f1e44](https://github.com/cevi/conveniat-webpage/commit/48f1e44a3e36a667aaf9340ae5246e783d5e9408))
+* **material:** material depot for reservations, loans and returns ([c767084](https://github.com/cevi/conveniat-webpage/commit/c7670844c8466ce6f1753afe67bfdaa8e27b0fff))
+* **material:** phone-first lists, bulk actions and pagination ([45a1c8f](https://github.com/cevi/conveniat-webpage/commit/45a1c8fd415371e0af46bc135e1250b5e3dcd1de))
+
+
+### Bug Fixes
+
+* **admin:** push subscription page uses Payload's own edit view ([9a2271d](https://github.com/cevi/conveniat-webpage/commit/9a2271d250552718dbd26bf3dbc3f5be5de17d0c))
+* **billing:** seed the Höfe right after the users ([1b89717](https://github.com/cevi/conveniat-webpage/commit/1b897175efcebc306b171e04f546421cad93669a))
+* **documents:** downloads cell no longer crashes the edit view's form state ([6df4db1](https://github.com/cevi/conveniat-webpage/commit/6df4db1555bfc34294704e2172a762b740c5da29))
+* **documents:** downloads cell no longer crashes the edit view's form state ([d9e2861](https://github.com/cevi/conveniat-webpage/commit/d9e2861ac6757f4155bb5e457161f276eda7c927))
+* **forms:** helper job list returns only the fields the form shows ([5178b77](https://github.com/cevi/conveniat-webpage/commit/5178b77e790c8d9f53918d6d16c18c018a70d6ef))
+* **forms:** helper job list returns only the fields the form shows ([ae36be5](https://github.com/cevi/conveniat-webpage/commit/ae36be5bd41db3f63afcaf90b82ade1114dfbb22))
+* **material:** keep the depot tabs clear of the header logo on phones ([fd518aa](https://github.com/cevi/conveniat-webpage/commit/fd518aa29d314ecb423c573c8eb6209e57c475a3))
+* **material:** review findings on requests, the role gate and touch targets ([0db5aca](https://github.com/cevi/conveniat-webpage/commit/0db5acaa53714fb617a5227e3c861120063c3ee1))
+* **onboarding:** skip the Cevi.DB login screen while offline ([809e9bd](https://github.com/cevi/conveniat-webpage/commit/809e9bd29e9049decc07862fc2af97a6ea303c58))
+* **payload-cms:** donation barometer test passes on ICU before 78 ([557b83d](https://github.com/cevi/conveniat-webpage/commit/557b83db4a9f2d14b1a4347cd1411cab46606490))
+* **payload-cms:** donation barometer test passes on ICU before 78 ([00a2f9a](https://github.com/cevi/conveniat-webpage/commit/00a2f9a6bf30ddb8ed7bcdde0ac4e4e00be8d374))
+* **presence:** auto checkout runs every queue tick instead of every 5 minutes ([2164906](https://github.com/cevi/conveniat-webpage/commit/21649063b30f7ff2ae38f32037560b353d140c34))
+* **push:** only admins can read push history or send test pushes ([bc9fe0c](https://github.com/cevi/conveniat-webpage/commit/bc9fe0c3b3ee79204cf2af86edc38044f39c336e))
+* **push:** only admins can read push history or send test pushes ([3e52743](https://github.com/cevi/conveniat-webpage/commit/3e52743e5367022ad8793d0dafc911a7d7ac5313))
+* **push:** push history and test sends are for full admins only ([dd8da74](https://github.com/cevi/conveniat-webpage/commit/dd8da74079a4bc47de4360877c1b293b772f8e1c))
+* **push:** record taps on native app notifications ([3a1093e](https://github.com/cevi/conveniat-webpage/commit/3a1093ec314fe0fa88e49cbb7a40f28ab957bfa2))
+
+
+### Performance
+
+* **docker:** cut the production image from 3.6 GB to 750 MB ([f5cbe88](https://github.com/cevi/conveniat-webpage/commit/f5cbe88a72cbd62bbc825fd5a9fff460974e0859))
+* **docker:** cut the production image from 3.6 GB to 750 MB ([c04c16d](https://github.com/cevi/conveniat-webpage/commit/c04c16d56ffea0c85ec017925b8eaaeea46f7325))
+
 ## [1.16.0](https://github.com/cevi/conveniat-webpage/compare/v1.15.0...v1.16.0) (2026-09-26)
 
 
