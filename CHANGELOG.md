@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.15.0](https://github.com/cevi/conveniat-webpage/compare/v1.14.0...v1.15.0) (2026-09-26)
+
+
+### Features
+
+* **billing:** download the bill overview Excel from the bill settings ([5beaf15](https://github.com/cevi/conveniat-webpage/commit/5beaf151f002013d6b489f6434833b4325f5547f))
+* **billing:** download the bill overview Excel from the bill settings ([d87d712](https://github.com/cevi/conveniat-webpage/commit/d87d712a43cdbc859782f2ca131d03cb310d9d71))
+* **cms:** add posterHero full-bleed banner block ([be6bd1a](https://github.com/cevi/conveniat-webpage/commit/be6bd1a05871178b113f834123a2769b87c4124f))
+* **cms:** add posterHero full-bleed banner block ([4803351](https://github.com/cevi/conveniat-webpage/commit/480335198e4d44011992358b337c49e6aad1dff6))
+* **mcp:** serve helper jobs over MCP ([b50bad6](https://github.com/cevi/conveniat-webpage/commit/b50bad61efb5387d0ef89280bcfcea90bccc6461))
+
+
+### Bug Fixes
+
+* **billing:** keep the bill overview download out of the browser cache ([d54c5ac](https://github.com/cevi/conveniat-webpage/commit/d54c5acef73ec9f60da83214668182cfa8a2ea7c))
+* **cms:** poster hero sits flush under the header ([dbd51be](https://github.com/cevi/conveniat-webpage/commit/dbd51be38d61eb6b4ad78268ae05ab4053974ac6))
+* **push:** title notifications with the deployment's app name ([e9c0bee](https://github.com/cevi/conveniat-webpage/commit/e9c0bee037eee83c196a99094dcb062ddc908583))
+* **push:** title notifications with the deployment's app name ([08428c1](https://github.com/cevi/conveniat-webpage/commit/08428c1931374fb476af905afe607279b757a04b)), closes [#1855](https://github.com/cevi/conveniat-webpage/issues/1855)
+
 ## [1.14.0](https://github.com/cevi/conveniat-webpage/compare/v1.13.0...v1.14.0) (2026-09-26)
 
 
