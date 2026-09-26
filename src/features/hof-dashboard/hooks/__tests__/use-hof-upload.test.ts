@@ -1,0 +1,98 @@
+/**
+ * @jest-environment jsdom
+ */
+
+import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
+import { trpc } from '@/trpc/client';
+import { act, renderHook } from '@testing-library/react';
+
+jest.mock('@/trpc/client', () => ({
+  trpc: {
+    useUtils: jest.fn(),
+    hofDashboard: {
+      createUploadUrl: { useMutation: jest.fn() },
+      completeUpload: { useMutation: jest.fn() },
+    },
+  },
+}));
+jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
+
+const createUploadUrl = jest.fn();
+const completeUpload = jest.fn();
+const opened = jest.fn();
+
+/** An XMLHttpRequest that records being opened and finishes the moment it is sent. */
+class FakeRequest extends EventTarget {
+  public status = 200;
+  public upload = new EventTarget();
+  public open(): void {
+    opened();
+  }
+  public setRequestHeader(): void {}
+  public send(): void {
+    this.dispatchEvent(new Event('load'));
+  }
+  public abort(): void {
+    this.dispatchEvent(new Event('abort'));
+  }
+}
+
+/** A PDF as the browser hands it over; jsdom's files cannot be read as bytes. */
+const pdf = {
+  name: 'Plan.pdf',
+  size: 13,
+  slice: () => ({
+    arrayBuffer: (): Promise<ArrayBuffer> =>
+      Promise.resolve(Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d]).buffer),
+  }),
+} as unknown as File;
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  globalThis.XMLHttpRequest = FakeRequest as unknown as typeof XMLHttpRequest;
+  (trpc.useUtils as unknown as jest.Mock).mockReturnValue({
+    hofDashboard: { getHofDashboard: { invalidate: jest.fn() } },
+  });
+  jest
+    .mocked(trpc.hofDashboard.createUploadUrl.useMutation)
+    .mockReturnValue({ mutateAsync: createUploadUrl } as never);
+  jest
+    .mocked(trpc.hofDashboard.completeUpload.useMutation)
+    .mockReturnValue({ mutateAsync: completeUpload } as never);
+  completeUpload.mockResolvedValue({});
+});
+
+describe('useHofUpload', () => {
+  it('files an upload once it is up', async () => {
+    createUploadUrl.mockResolvedValue({ url: 'https://s3/put', key: 'k', contentType: 'x' });
+    const { result } = renderHook(() => useHofUpload('hof-nord', 'de'));
+    await act(() => result.current.upload(pdf, 'hofBuildings', 'plan'));
+    expect(opened).toHaveBeenCalled();
+    expect(completeUpload).toHaveBeenCalledWith(expect.objectContaining({ filename: 'Plan.pdf' }));
+  });
+
+  it('files nothing when cancelled before the transfer starts', async () => {
+    const url = Promise.withResolvers<unknown>();
+    createUploadUrl.mockReturnValue(url.promise);
+    const { result } = renderHook(() => useHofUpload('hof-nord', 'de'));
+
+    let running: Promise<void> = Promise.resolve();
+    act(() => {
+      running = result.current.upload(pdf, 'hofBuildings', 'plan');
+    });
+    await act(async () => {
+      // the file's first bytes are read before the upload shows
+      await new Promise((done) => setTimeout(done, 0));
+    });
+    act(() => result.current.uploads['hofBuildings:plan']?.cancel?.());
+    // the card is back at its button at once
+    expect(result.current.uploads['hofBuildings:plan']).toBeUndefined();
+
+    await act(async () => {
+      url.resolve({ url: 'https://s3/put', key: 'k', contentType: 'x' });
+      await running;
+    });
+    expect(opened).not.toHaveBeenCalled();
+    expect(completeUpload).not.toHaveBeenCalled();
+  });
+});

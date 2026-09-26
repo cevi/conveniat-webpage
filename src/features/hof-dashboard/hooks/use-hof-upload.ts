@@ -31,6 +31,18 @@ export interface UploadInProgress {
 class UploadCancelled extends Error {}
 
 /**
+ * The first bytes of a file, to check it is what its ending says. A file in a cloud folder of
+ * the phone may no longer be readable; that reads as undefined.
+ */
+const readHead = async (file: File): Promise<Uint8Array | undefined> => {
+  try {
+    return new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  } catch {
+    return undefined;
+  }
+};
+
+/**
  * Puts the file to storage with the progress reported as it goes. `fetch` cannot report the
  * progress of a request body, and a plan of 20 MB takes minutes on camp wifi.
  */
@@ -88,12 +100,7 @@ export const useHofUpload = (
   ): Promise<void> => {
     const typesText = HOF_FILE_EXTENSIONS.join(', ');
     const extension = hofFileExtensionOf(file.name);
-    // a file in a cloud folder of the phone may no longer be readable
-    const head = await file
-      .slice(0, 8)
-      .arrayBuffer()
-      .then((buffer) => new Uint8Array(buffer))
-      .catch(() => {});
+    const head = await readHead(file);
     if (head === undefined) {
       notifyFailure(locale, 'uploadFailed');
       return;

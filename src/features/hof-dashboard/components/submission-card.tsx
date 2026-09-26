@@ -25,6 +25,7 @@ import {
   uploadKey,
 } from '@/features/hof-dashboard/constants';
 import type { UploadInProgress } from '@/features/hof-dashboard/hooks/use-hof-upload';
+import { useRefocusWhenDone } from '@/features/hof-dashboard/hooks/use-refocus-when-done';
 import { translate } from '@/features/hof-dashboard/texts';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
@@ -69,8 +70,9 @@ const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = (
 
 const UploadButton: React.FC<{
   label: string;
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
   onFile: (file: File) => void;
-}> = ({ label, onFile }) => {
+}> = ({ label, buttonRef, onFile }) => {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -86,6 +88,7 @@ const UploadButton: React.FC<{
         }}
       />
       <button
+        ref={buttonRef}
         type="button"
         className={SECONDARY_BUTTON_CLASS}
         onClick={() => input.current?.click()}
@@ -171,27 +174,33 @@ const FilesWithUpload: React.FC<{
   upload: UploadInProgress | undefined;
   locale: Locale;
   onFile: (file: File) => void;
-}> = ({ files, upload, locale, onFile }) => (
-  <div className="space-y-3">
-    {files.length > 0 && <FileList files={files} locale={locale} />}
-    {files.length === 0 && upload === undefined && (
-      <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
-    )}
-    {upload === undefined ? (
-      <div className="space-y-1">
-        <UploadButton
-          label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
-          onFile={onFile}
-        />
-        <p className="text-xs text-gray-500">
-          {translate('fileRules', locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) })}
-        </p>
-      </div>
-    ) : (
-      <UploadProgress upload={upload} locale={locale} />
-    )}
-  </div>
-);
+}> = ({ files, upload, locale, onFile }) => {
+  const button = useRef<HTMLButtonElement>(null);
+  // the cancel button goes with the upload; the focus comes back to where it started
+  useRefocusWhenDone(upload !== undefined, button);
+  return (
+    <div className="space-y-3">
+      {files.length > 0 && <FileList files={files} locale={locale} />}
+      {files.length === 0 && upload === undefined && (
+        <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
+      )}
+      {upload === undefined ? (
+        <div className="space-y-1">
+          <UploadButton
+            label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
+            buttonRef={button}
+            onFile={onFile}
+          />
+          <p className="text-xs text-gray-500">
+            {translate('fileRules', locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) })}
+          </p>
+        </div>
+      ) : (
+        <UploadProgress upload={upload} locale={locale} />
+      )}
+    </div>
+  );
+};
 
 /**
  * One plan the Hof hands in: where it stands, its versions, the safety question and, when the
