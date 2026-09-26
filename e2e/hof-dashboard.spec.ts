@@ -92,7 +92,11 @@ const DASHBOARD = {
 /** Answers the batched tRPC calls the dashboard makes, and records the mutations. */
 const mockBackend = async (
   page: Page,
-  { signedIn = true, hoefe = [DASHBOARD.hof] }: { signedIn?: boolean; hoefe?: unknown[] } = {},
+  {
+    signedIn = true,
+    hoefe = [DASHBOARD.hof],
+    dashboard = DASHBOARD,
+  }: { signedIn?: boolean; hoefe?: unknown[]; dashboard?: unknown } = {},
 ): Promise<string[]> => {
   const mutations: string[] = [];
   await page.route('**/api/auth/session', async (route) => {
@@ -114,7 +118,7 @@ const mockBackend = async (
     const procedures = new URL(route.request().url()).pathname.split('/api/trpc/')[1]?.split(',');
     const answers = (procedures ?? []).map((procedure) => {
       if (procedure === 'hofDashboard.getMyHofList') return hoefe;
-      if (procedure === 'hofDashboard.getHofDashboard') return DASHBOARD;
+      if (procedure === 'hofDashboard.getHofDashboard') return dashboard;
       if (procedure.startsWith('hofDashboard.')) mutations.push(procedure);
       // eslint-disable-next-line unicorn/no-null -- tRPC answers "nothing" with null
       return null;
@@ -204,5 +208,25 @@ test.describe('Hof dashboard', () => {
 
     await card.getByRole('button', { name: 'Was zählt dazu?' }).click();
     await expect(page.getByRole('dialog')).toContainText('Absturzhöhe');
+  });
+
+  test('asks for the new version the Ressort requested', async ({ page }) => {
+    await mockBackend(page, {
+      dashboard: {
+        ...DASHBOARD,
+        submissions: DASHBOARD.submissions.map((entry) =>
+          entry['type'] === 'flagpole'
+            ? { ...entry, status: 'revisionRequired', feedback: 'Die Statik fehlt noch.' }
+            : entry,
+        ),
+      },
+    });
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Infrastruktur' }).click();
+
+    const card = page.locator('[data-submission="flagpole"]');
+    await expect(card.getByText('Überarbeitung erforderlich')).toBeVisible();
+    await expect(card.getByText('Die Statik fehlt noch.')).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Neue Version hochladen' })).toBeVisible();
   });
 });
