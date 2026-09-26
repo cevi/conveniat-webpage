@@ -37,15 +37,7 @@ class FakeRequest extends EventTarget {
   }
 }
 
-/** A PDF as the browser hands it over; jsdom's files cannot be read as bytes. */
-const pdf = {
-  name: 'Plan.pdf',
-  size: 13,
-  slice: () => ({
-    arrayBuffer: (): Promise<ArrayBuffer> =>
-      Promise.resolve(Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d]).buffer),
-  }),
-} as unknown as File;
+const pdf = new File(['%PDF-1.4 plan'], 'Plan.pdf', { type: 'application/pdf' });
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -79,10 +71,6 @@ describe('useHofUpload', () => {
     let running: Promise<void> = Promise.resolve();
     act(() => {
       running = result.current.upload(pdf, 'hofBuildings', 'plan');
-    });
-    await act(async () => {
-      // the file's first bytes are read before the upload shows
-      await new Promise((done) => setTimeout(done, 0));
     });
     act(() => result.current.uploads['hofBuildings:plan']?.cancel?.());
     // the card is back at its button at once

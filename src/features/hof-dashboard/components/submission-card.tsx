@@ -27,6 +27,7 @@ import {
 } from '@/features/hof-dashboard/constants';
 import type { UploadInProgress } from '@/features/hof-dashboard/hooks/use-hof-upload';
 import { useRefocusWhenDone } from '@/features/hof-dashboard/hooks/use-refocus-when-done';
+import { useSafetyRiskAnswer } from '@/features/hof-dashboard/hooks/use-safety-risk-answer';
 import { translate } from '@/features/hof-dashboard/texts';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
@@ -212,14 +213,20 @@ const FilesWithUpload: React.FC<{
  * answer is yes, the safety concept.
  */
 export const SubmissionCard: React.FC<{
+  hofId: string;
   submission: HofDashboardSubmission;
   progress: SubmissionProgress;
   criteria: string[];
   locale: Locale;
   uploads: Record<string, UploadInProgress>;
   onUpload: (file: File, kind: HofFileKind) => void;
-  onSafetyRisk: (value: 'yes' | 'no') => void;
-}> = ({ submission, progress, criteria, locale, uploads, onUpload, onSafetyRisk }) => {
+}> = ({ hofId, submission, progress, criteria, locale, uploads, onUpload }) => {
+  const [safetyRisk, answerSafetyRisk] = useSafetyRiskAnswer(
+    hofId,
+    submission.type,
+    submission.elevatedSafetyRisk,
+    locale,
+  );
   const plans = submission.files.filter((file) => file.kind === 'plan');
   const safetyConcepts = submission.files.filter((file) => file.kind === 'safetyConcept');
   const id = useId();
@@ -271,20 +278,20 @@ export const SubmissionCard: React.FC<{
           {translate('safetyRiskQuestion', locale)}
         </span>
         <SafetyRiskChoice
-          value={submission.elevatedSafetyRisk}
+          value={safetyRisk}
           labelledBy={questionId}
           locale={locale}
-          onChange={onSafetyRisk}
+          onChange={answerSafetyRisk}
         />
         {criteria.length > 0 && <SafetyCriteriaDialog criteria={criteria} locale={locale} />}
       </div>
 
       {/* a concept handed in stays listed even if the answer changes to no */}
-      {(submission.elevatedSafetyRisk === 'yes' || safetyConcepts.length > 0) && (
+      {(safetyRisk === 'yes' || safetyConcepts.length > 0) && (
         <div
           className={cn(
             'space-y-3 rounded-lg border p-4',
-            submission.elevatedSafetyRisk === 'yes' && safetyConcepts.length === 0
+            safetyRisk === 'yes' && safetyConcepts.length === 0
               ? 'border-amber-200 bg-amber-50'
               : 'border-gray-100 bg-gray-50',
           )}
@@ -301,7 +308,7 @@ export const SubmissionCard: React.FC<{
               {translate('safetyConcept', locale)}
             </p>
           )}
-          {submission.elevatedSafetyRisk === 'yes' ? (
+          {safetyRisk === 'yes' ? (
             <FilesWithUpload
               files={safetyConcepts}
               upload={uploads[uploadKey(submission.type, 'safetyConcept')]}

@@ -215,21 +215,21 @@ export const updateHofMaterialOrder = async ({
   quantities,
   powerConnection,
   userId,
-  mayPassDeadline,
+  isReviewer,
 }: {
   hofId: string;
   orderType: HofOrderType;
   quantities: { itemId: string; quantity: number }[];
   powerConnection: boolean;
   userId: string;
-  mayPassDeadline: boolean;
+  isReviewer: boolean;
 }): Promise<void> => {
   const payload = await getPayload({ config });
   const settings = await getHofDashboardSettings(payload, LOCALE.DE);
   const list =
     orderType === 'infrastructure' ? settings.infrastructureOrder : settings.stadtlebenOrder;
   const deadline = list?.deadline;
-  if (!mayPassDeadline && typeof deadline === 'string' && daysUntil(deadline, new Date()) < 0) {
+  if (!isReviewer && typeof deadline === 'string' && daysUntil(deadline, new Date()) < 0) {
     throw new TRPCError({ code: 'FORBIDDEN', message: 'order_closed' });
   }
 
@@ -270,23 +270,16 @@ export const updateHofMaterialOrder = async ({
       overrideAccess: true,
     });
   };
-  if (existing === undefined) {
-    try {
-      await payload.create({
+  // two first saves at the same moment: the unique index refuses the second, which then fails
+  // like any failed save and is simply saved again
+  await (existing === undefined
+    ? payload.create({
         collection: 'hof-material-orders',
         data: { hof: hofId, orderType, ...data },
         depth: 0,
         overrideAccess: true,
-      });
-    } catch (error) {
-      // a second tab saved the first order at the same moment; the last save wins, as always
-      const raced = await find();
-      if (raced === undefined) throw error;
-      await update(raced.id);
-    }
-  } else {
-    await update(existing.id);
-  }
+      })
+    : update(existing.id));
   logger.info('A Hof saved its material order', {
     'hof_dashboard.hof_id': hofId,
     'hof_dashboard.order_type': orderType,

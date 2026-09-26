@@ -31,7 +31,6 @@ export interface HofDashboardDeadline {
   date: string;
   title: string;
   area: HofDashboardArea;
-  submissionTypes: HofSubmissionType[];
 }
 
 export interface HofDashboardFile {
@@ -75,7 +74,6 @@ export interface HofDashboardDocument {
   title: string;
   url: string;
   filesize: number | undefined;
-  mimeType: string | undefined;
   area: HofDashboardArea | undefined;
 }
 
@@ -239,15 +237,15 @@ export const getHofDashboardData = async (
     });
   }
 
-  const deadlines: HofDashboardDeadline[] = (settings.deadlines ?? [])
-    .map((deadline, index) => ({
-      id: deadline.id ?? String(index),
-      date: deadline.date,
-      title: deadline.title,
-      area: deadline.area,
-      submissionTypes: deadline.submissionTypes ?? [],
-    }))
-    .toSorted((a, b) => a.date.localeCompare(b.date));
+  const storedDeadlines = (settings.deadlines ?? []).toSorted((a, b) =>
+    a.date.localeCompare(b.date),
+  );
+  const deadlines: HofDashboardDeadline[] = storedDeadlines.map((deadline, index) => ({
+    id: deadline.id ?? String(index),
+    date: deadline.date,
+    title: deadline.title,
+    area: deadline.area,
+  }));
 
   const submissions: HofDashboardSubmission[] = HOF_SUBMISSION_TYPES.map((type) => {
     const stored = storedSubmissions.docs.find((candidate) => candidate.submissionType === type);
@@ -262,8 +260,8 @@ export const getHofDashboardData = async (
       elevatedSafetyRisk: stored?.elevatedSafetyRisk ?? undefined,
       feedback: stored?.feedback ?? undefined,
       files: toFiles(files),
-      deadlines: deadlines
-        .filter((deadline) => deadline.submissionTypes.includes(type))
+      deadlines: storedDeadlines
+        .filter((deadline) => deadline.submissionTypes?.includes(type) === true)
         .map((deadline) => deadline.date),
     };
   });
@@ -306,7 +304,6 @@ export const getHofDashboardData = async (
         title: document.title ?? document.filename ?? document.id,
         url: document.url,
         filesize: document.filesize ?? undefined,
-        mimeType: document.mimeType ?? undefined,
         area: entry.area ?? undefined,
       },
     ];

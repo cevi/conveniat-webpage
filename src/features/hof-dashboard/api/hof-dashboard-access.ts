@@ -17,17 +17,14 @@ const hofDashboardEnabled = middleware(({ next }) => {
 });
 
 /**
- * Every signed-in user. `ctx.accessibleHoefe()` lists the Höfe they may open, read on first use
- * and then kept; `ctx.assertHofAccess(hofId)` throws unless the Hof is one of them.
+ * Every signed-in user. `ctx.accessibleHoefe()` lists the Höfe they may open;
+ * `ctx.assertHofAccess(hofId)` throws unless the Hof is one of them.
  */
 export const hofDashboardProcedure = trpcBaseProcedure
   .use(hofDashboardEnabled)
   .use(({ ctx, next }) => {
-    let accessible: Promise<AccessibleHof[]> | undefined;
-    const accessibleHoefe = (): Promise<AccessibleHof[]> =>
-      (accessible ??= getPayload({ config }).then((payload) =>
-        listAccessibleHoefe(payload, ctx.user),
-      ));
+    const accessibleHoefe = async (): Promise<AccessibleHof[]> =>
+      await listAccessibleHoefe(await getPayload({ config }), ctx.user);
     const assertHofAccess = async (hofId: string): Promise<AccessibleHof> => {
       const hoefe = await accessibleHoefe();
       const hof = hoefe.find((candidate) => candidate.id === hofId);

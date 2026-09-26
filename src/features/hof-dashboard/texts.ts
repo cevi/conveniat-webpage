@@ -112,11 +112,6 @@ export const text = {
     en: 'This file type is not accepted. Allowed: {types}.',
     fr: "Ce type de fichier n'est pas accepté. Autorisés : {types}.",
   },
-  fileContentMismatch: {
-    de: 'Diese Datei lässt sich nicht als {type} lesen. Ist sie vielleicht umbenannt?',
-    en: 'This file cannot be read as {type}. Was it renamed?',
-    fr: 'Ce fichier ne peut pas être lu comme {type}. A-t-il été renommé ?',
-  },
   fileUnreadable: {
     de: 'Die Datei lässt sich nicht öffnen. Ist sie vielleicht beschädigt?',
     en: 'The file cannot be opened. Could it be damaged?',

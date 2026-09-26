@@ -157,7 +157,7 @@ const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale
             key={order.type}
             hofId={data.hof.id}
             order={order}
-            canPassDeadline={data.canPassDeadlines}
+            isReviewer={data.isReviewer}
             locale={locale}
           />
         ))}

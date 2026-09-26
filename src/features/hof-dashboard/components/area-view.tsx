@@ -12,7 +12,6 @@ import { DocumentLinks } from '@/features/hof-dashboard/components/document-link
 import { SubmissionCard } from '@/features/hof-dashboard/components/submission-card';
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
-import { useSafetyRiskAnswer } from '@/features/hof-dashboard/hooks/use-safety-risk-answer';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import {
@@ -84,7 +83,6 @@ export const AreaView: React.FC<{
 }> = ({ area, data, progress, locale }) => {
   const { upload, uploads } = useHofUpload(data.hof.id, locale);
   useWarnBeforeLeaving(Object.keys(uploads).length > 0);
-  const answerSafetyRisk = useSafetyRiskAnswer(data.hof.id, locale);
 
   const submissions = data.submissions.filter((submission) => submission.area === area);
   const deadlines = data.deadlines.filter((deadline) => deadline.area === area);
@@ -121,15 +119,13 @@ export const AreaView: React.FC<{
         {submissions.map((submission) => (
           <SubmissionCard
             key={submission.type}
+            hofId={data.hof.id}
             submission={submission}
             progress={progress[submission.type]}
             criteria={data.safetyRiskCriteria}
             locale={locale}
             uploads={uploads}
             onUpload={(file, kind) => void upload(file, submission.type, kind)}
-            onSafetyRisk={(elevatedSafetyRisk) =>
-              answerSafetyRisk(submission.type, elevatedSafetyRisk)
-            }
           />
         ))}
       </div>

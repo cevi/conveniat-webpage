@@ -52,7 +52,7 @@ export const hofDashboardRouter = createTRPCRouter({
     await ctx.assertHofAccess(input.hofId);
     const data = await getHofDashboardData(input.hofId, ctx.locale);
     // reviewers may still change an order after its deadline
-    return { ...data, canPassDeadlines: ctx.isReviewer };
+    return { ...data, isReviewer: ctx.isReviewer };
   }),
 
   /** Where the browser puts a file before `completeUpload` files it. */
@@ -109,7 +109,7 @@ export const hofDashboardRouter = createTRPCRouter({
       await updateHofMaterialOrder({
         ...input,
         userId: ctx.user.uuid,
-        mayPassDeadline: ctx.isReviewer,
+        isReviewer: ctx.isReviewer,
       });
     }),
 });

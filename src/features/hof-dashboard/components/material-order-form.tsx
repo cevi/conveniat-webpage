@@ -71,9 +71,9 @@ export const MaterialOrderForm: React.FC<{
   hofId: string;
   order: HofDashboardOrder;
   /** The reviewers may still change an order after its deadline. */
-  canPassDeadline: boolean;
+  isReviewer: boolean;
   locale: Locale;
-}> = ({ hofId, order, canPassDeadline, locale }) => {
+}> = ({ hofId, order, isReviewer, locale }) => {
   const utils = trpc.useUtils();
   // unique per form, since the orders of several Höfe can be on the page
   const id = useId();
@@ -118,7 +118,7 @@ export const MaterialOrderForm: React.FC<{
   });
 
   const daysLeft = order.deadline === undefined ? undefined : daysUntil(order.deadline, new Date());
-  const closed = daysLeft !== undefined && daysLeft < 0 && !canPassDeadline;
+  const closed = daysLeft !== undefined && daysLeft < 0 && !isReviewer;
   const dirty = !sameOrder(shown, storedValues(order));
   useWarnBeforeLeaving(dirty);
 

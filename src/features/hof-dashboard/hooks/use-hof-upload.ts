@@ -9,7 +9,6 @@ import {
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
-import { startsLike } from '@/features/hof-dashboard/utils/file-signature';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -29,18 +28,6 @@ export interface UploadInProgress {
 
 /** Raised when the user calls an upload off, so it is not reported as a failure. */
 class UploadCancelled extends Error {}
-
-/**
- * The first bytes of a file, to check it is what its ending says. A file in a cloud folder of
- * the phone may no longer be readable; that reads as undefined.
- */
-const readHead = async (file: File): Promise<Uint8Array | undefined> => {
-  try {
-    return new Uint8Array(await file.slice(0, 8).arrayBuffer());
-  } catch {
-    return undefined;
-  }
-};
 
 /**
  * Puts the file to storage with the progress reported as it goes. `fetch` cannot report the
@@ -99,23 +86,12 @@ export const useHofUpload = (
     kind: HofFileKind,
   ): Promise<void> => {
     const typesText = HOF_FILE_EXTENSIONS.join(', ');
-    // the cheap checks first; reading the file is the one that can fail on its own
-    const extension = hofFileExtensionOf(file.name);
-    if (extension === undefined) {
+    if (hofFileExtensionOf(file.name) === undefined) {
       toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
       return;
     }
     if (file.size > HOF_FILE_MAX_BYTES) {
       toast.error(translate('fileTooLarge', locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) }));
-      return;
-    }
-    const head = await readHead(file);
-    if (head === undefined) {
-      notifyFailure(locale, 'uploadFailed');
-      return;
-    }
-    if (!startsLike(head, extension)) {
-      toast.error(translate('fileContentMismatch', locale, { type: extension.toUpperCase() }));
       return;
     }
 
@@ -154,7 +130,7 @@ export const useHofUpload = (
     } catch (error) {
       if (error instanceof UploadCancelled) return;
       console.error('Hof dashboard upload failed', error);
-      // its ending and first bytes passed here, so a file the server refuses is damaged
+      // its ending passed here, so a file whose content the server refuses is damaged
       if (error instanceof TRPCClientError && error.message === 'unsupported_file_type') {
         toast.error(translate('fileUnreadable', locale));
       } else {

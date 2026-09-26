@@ -60,7 +60,7 @@ const order = (
     quantities: [{ itemId: 'rope', quantity: 3 }],
     powerConnection: false,
     userId: 'user-8',
-    mayPassDeadline: false,
+    isReviewer: false,
     ...overrides,
   });
 
@@ -145,7 +145,7 @@ describe('updateHofMaterialOrder', () => {
       },
     });
     await expect(order()).rejects.toMatchObject({ code: 'FORBIDDEN', message: 'order_closed' });
-    await expect(order({ mayPassDeadline: true })).resolves.toBeUndefined();
+    await expect(order({ isReviewer: true })).resolves.toBeUndefined();
   });
 
   it('refuses material the list no longer has, instead of dropping it', async () => {

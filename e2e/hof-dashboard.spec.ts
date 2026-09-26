@@ -45,7 +45,6 @@ const DASHBOARD = {
       date: inDays(40),
       title: '1. Abgabe Grobkonzept',
       area: 'infrastructure',
-      submissionTypes: ['flagpole', 'entrance', 'hofBuildings', 'sleepingTent'],
     },
   ],
   submissions: [
@@ -86,7 +85,7 @@ const DASHBOARD = {
   stadtleben: { entries: [] },
   documents: [],
   safetyRiskCriteria: ['Bauten mit Absturzhöhe über 3 Metern'],
-  canPassDeadlines: false,
+  isReviewer: false,
 };
 
 /** Answers the batched tRPC calls the dashboard makes, and records the mutations. */
