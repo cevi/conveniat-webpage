@@ -4,7 +4,7 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
-import { takeFailedSend } from '@/features/chat/utils/failed-sends';
+import { getFailedChatMessages, getFailedSendInput } from '@/features/chat/utils/failed-sends';
 import { trpc } from '@/trpc/client';
 import { renderHook } from '@testing-library/react';
 
@@ -58,7 +58,7 @@ const renderWithCache = (): { options: SendMutationOptions; messages: () => Chat
           infinite = updater(infinite);
         },
       },
-      chats: { setData: jest.fn() },
+      chats: { setData: jest.fn(), invalidate: jest.fn(async () => {}) },
     },
   });
   (trpc.chat.user.useQuery as unknown as jest.Mock).mockReturnValue({ data: 'user-1' });
@@ -76,6 +76,8 @@ const renderWithCache = (): { options: SendMutationOptions; messages: () => Chat
 };
 
 describe('useMessageSend when the server refuses a message', () => {
+  beforeEach(() => localStorage.clear());
+
   const input = { chatId: 'chat-1', content: 'hello', parentId: 'thread-1', messageId: 'msg-1' };
 
   test('the bubble stays in place, marked as failed', async () => {
@@ -86,7 +88,9 @@ describe('useMessageSend when the server refuses a message', () => {
     expect(messages()).toHaveLength(1);
     expect(messages()[0]).toMatchObject({ id: 'msg-1', sendFailed: true });
     // the exact input is kept, so a retry resends into the same thread
-    expect(takeFailedSend('msg-1')).toMatchObject({ parentId: 'thread-1', content: 'hello' });
+    expect(getFailedSendInput('msg-1')).toMatchObject({ parentId: 'thread-1', content: 'hello' });
+    // and it outlives a refetch that drops it from the query cache
+    expect(getFailedChatMessages('chat-1', 'thread-1').map((m) => m.id)).toEqual(['msg-1']);
   });
 
   test('a retry turns the failed bubble back into a pending one instead of adding a copy', async () => {

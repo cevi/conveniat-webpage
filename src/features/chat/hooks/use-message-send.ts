@@ -7,7 +7,7 @@ import {
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
 } from '@/features/chat/utils';
-import { rememberFailedSend } from '@/features/chat/utils/failed-sends';
+import { forgetFailedSend, rememberFailedSend } from '@/features/chat/utils/failed-sends';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -312,7 +312,6 @@ export const useMessageSend = (): UseMessageSendMutation => {
       // toast made the text vanish from the conversation the moment it failed.
       const failedMessageId = context?.optimisticMessageId;
       if (failedMessageId === undefined) return;
-      rememberFailedSend(failedMessageId, variables);
       const markFailed = (item: ChatMessage): ChatMessage =>
         item.id === failedMessageId ? { ...item, sendFailed: true } : item;
 
@@ -339,6 +338,16 @@ export const useMessageSend = (): UseMessageSendMutation => {
           },
         );
       }
+
+      // persisted, so the next refetch of the list (which never had it) cannot drop it
+      const failedMessage = trpcUtils.chat.infiniteMessages
+        .getInfiniteData({ chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined })
+        ?.pages.flatMap((page) => page.items)
+        .find((item) => item.id === failedMessageId);
+      if (failedMessage) rememberFailedSend(failedMessage, variables);
+
+      // the overview was optimistically given this message as the chat's last one
+      void trpcUtils.chat.chats.invalidate();
     },
 
     onSuccess: (createdMessageData, { chatId, parentId }, context) => {
@@ -347,6 +356,8 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
       const optimisticMessageId = (context as OptimisticUpdateResult | undefined)
         ?.optimisticMessageId;
+      // a retry of a failed send went through
+      if (optimisticMessageId !== undefined) forgetFailedSend(optimisticMessageId);
 
       // Update the infinite query cache
       trpcUtils.chat.infiniteMessages.setInfiniteData(

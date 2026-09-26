@@ -4,7 +4,7 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
-import { takeFailedSend } from '@/features/chat/utils/failed-sends';
+import { forgetFailedSend, getFailedSendInput } from '@/features/chat/utils/failed-sends';
 import { trpc } from '@/trpc/client';
 import { useCallback } from 'react';
 
@@ -28,7 +28,7 @@ export const useFailedMessageActions = (): {
         typeof payload['quotedMessageId'] === 'string' ? payload['quotedMessageId'] : undefined;
 
       sendMessageMutation.mutate(
-        takeFailedSend(message.id) ?? {
+        getFailedSendInput(message.id) ?? {
           chatId,
           content: text,
           timestamp: new Date(message.createdAt),
@@ -43,7 +43,7 @@ export const useFailedMessageActions = (): {
 
   const discard = useCallback(
     (message: ChatMessage): void => {
-      takeFailedSend(message.id);
+      forgetFailedSend(message.id);
       trpcUtils.chat.infiniteMessages.setInfiniteData(
         { chatId, limit: CHAT_PAGE_SIZE, parentId: message.parentId },
         (data) =>
@@ -61,6 +61,7 @@ export const useFailedMessageActions = (): {
           (old) => old && { ...old, messages: old.messages.filter((m) => m.id !== message.id) },
         );
       }
+      void trpcUtils.chat.chats.invalidate();
     },
     [chatId, trpcUtils],
   );

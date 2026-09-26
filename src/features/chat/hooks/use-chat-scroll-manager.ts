@@ -39,7 +39,7 @@ export const useChatScrollManager = ({
   const hasScrolledReference = useRef(false);
   const isAtBottomReference = useRef(true);
   const previousScrollHeightReference = useRef<number>(0);
-  const previousFirstIdReference = useRef<string | undefined>(undefined);
+  const previousLeadingIdsReference = useRef<(string | undefined)[]>([]);
   const previousLastIdReference = useRef<string | undefined>(undefined);
   const lastScrollTopReference = useRef(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -65,23 +65,26 @@ export const useChatScrollManager = ({
     messagesEndReference.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  // Keep the reader's place when an older page is prepended. Only a changed first message
-  // means a prepend: compensating for an appended one would push the view down by its height.
+  // Keep the reader's place when an older page is prepended. Only messages that moved down
+  // mean a prepend: compensating for an appended one would push the view down by its height.
+  // The second message is checked too, because a thread pins its root at index 0 whatever
+  // page is loaded behind it.
   useLayoutEffect(() => {
     const container = scrollContainerReference.current;
     if (!container) return;
 
-    const firstId = sortedMessages[0]?.id;
+    const movedDown = (id: string | undefined, index: number): boolean =>
+      id !== undefined && sortedMessages.findIndex((m) => m.id === id) > index;
     const wasPrepended =
-      previousFirstIdReference.current !== undefined &&
-      firstId !== previousFirstIdReference.current;
+      movedDown(previousLeadingIdsReference.current[0], 0) ||
+      movedDown(previousLeadingIdsReference.current[1], 1);
     if (wasPrepended && previousScrollHeightReference.current > 0) {
       const heightDifference = container.scrollHeight - previousScrollHeightReference.current;
       if (heightDifference > 0) container.scrollTop += heightDifference;
     }
 
     previousScrollHeightReference.current = container.scrollHeight;
-    previousFirstIdReference.current = firstId;
+    previousLeadingIdsReference.current = [sortedMessages[0]?.id, sortedMessages[1]?.id];
   }, [sortedMessages, isFetchingNextPage]);
 
   // Initial scroll to bottom, follow new messages while at the bottom, count them otherwise

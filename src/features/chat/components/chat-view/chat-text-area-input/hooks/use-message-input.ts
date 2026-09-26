@@ -19,6 +19,9 @@ interface MessageInputProperties {
 interface UseMessageInputLogicResult {
   textareaProps: MessageInputProperties;
   handleSendMessage: () => void;
+  sendText: (text: string) => void;
+  takeMessage: () => string;
+  restoreMessage: (text: string) => void;
   isSendButtonDisabled: boolean;
   messageLength: number;
   isGlobalMessagingDisabled: boolean;
@@ -63,80 +66,97 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const isGlobalMessagingEnabled =
     featureFlags?.find((f) => f.key === 'send_messages')?.isEnabled ?? true;
 
+  /** Sends `text` as a message, without touching the composer. */
+  const sendText = useCallback(
+    (text: string): void => {
+      if (!isGlobalMessagingEnabled) return;
+      // Clear any previous error
+      setSendError(undefined);
+
+      sendMessageMutation.mutate(
+        {
+          chatId: chatId,
+          content: text,
+          timestamp: new Date(),
+          parentId: activeThreadId ?? undefined,
+          quotedMessageId: quotedMessageId ?? undefined,
+          // the client owns the message id so that a replay (offline outbox, lost
+          // response) is recognised by the server instead of stored a second time
+          messageId: generateMessageId(),
+        },
+        {
+          onSuccess: () => {
+            if (quotedMessageId) cancelQuote();
+
+            // Clear shared query parameters from the URL
+            if ('history' in globalThis && 'location' in globalThis) {
+              const url = new globalThis.URL(globalThis.location.href);
+              const hasText = url.searchParams.has('text');
+              const hasTitle = url.searchParams.has('title');
+              const hasUrl = url.searchParams.has('url');
+              if (hasText || hasTitle || hasUrl) {
+                url.searchParams.delete('text');
+                url.searchParams.delete('title');
+                url.searchParams.delete('url');
+                globalThis.history.replaceState(
+                  globalThis.history.state,
+                  '',
+                  url.pathname + url.search,
+                );
+              }
+            }
+          },
+          onError: (error) => {
+            const isOfflineError =
+              !navigator.onLine ||
+              error.message === 'Failed to fetch' ||
+              error.message.includes('Network request failed');
+
+            // offline sends are queued by useMessageSend. Any other failed bubble stays in the
+            // list with its own retry, so the text is not put back into the composer. Only a
+            // disabled chat is worth a banner, because retrying cannot help there.
+            if (
+              isOfflineError ||
+              error.message !== 'Messaging is disabled in this chat or globally.'
+            )
+              return;
+            const errorMessage = 'Messaging is currently disabled. Please try again later.';
+            setSendError(errorMessage);
+          },
+        },
+      );
+    },
+    [
+      chatId,
+      sendMessageMutation,
+      isGlobalMessagingEnabled,
+      activeThreadId,
+      quotedMessageId,
+      cancelQuote,
+    ],
+  );
+
   const handleSendMessage = useCallback((): void => {
     if (!isGlobalMessagingEnabled) return;
-
     const trimmedMessage = newMessage.trim();
-    if (trimmedMessage === '') {
-      return;
-    }
-
-    // Clear any previous error
-    setSendError(undefined);
-
+    if (trimmedMessage === '') return;
     // Optimistically clear the input
     setNewMessage('');
     resizeTextarea();
+    sendText(trimmedMessage);
+  }, [newMessage, isGlobalMessagingEnabled, resizeTextarea, sendText]);
 
-    sendMessageMutation.mutate(
-      {
-        chatId: chatId,
-        content: trimmedMessage,
-        timestamp: new Date(),
-        parentId: activeThreadId ?? undefined,
-        quotedMessageId: quotedMessageId ?? undefined,
-        // the client owns the message id so that a replay (offline outbox, lost
-        // response) is recognised by the server instead of stored a second time
-        messageId: generateMessageId(),
-      },
-      {
-        onSuccess: () => {
-          if (quotedMessageId) cancelQuote();
+  /** Empties the composer and returns what it held, for a send that has to wait. */
+  const takeMessage = useCallback((): string => {
+    const trimmedMessage = newMessage.trim();
+    setNewMessage('');
+    return trimmedMessage;
+  }, [newMessage]);
 
-          // Clear shared query parameters from the URL
-          if ('history' in globalThis && 'location' in globalThis) {
-            const url = new globalThis.URL(globalThis.location.href);
-            const hasText = url.searchParams.has('text');
-            const hasTitle = url.searchParams.has('title');
-            const hasUrl = url.searchParams.has('url');
-            if (hasText || hasTitle || hasUrl) {
-              url.searchParams.delete('text');
-              url.searchParams.delete('title');
-              url.searchParams.delete('url');
-              globalThis.history.replaceState(
-                globalThis.history.state,
-                '',
-                url.pathname + url.search,
-              );
-            }
-          }
-        },
-        onError: (error) => {
-          const isOfflineError =
-            !navigator.onLine ||
-            error.message === 'Failed to fetch' ||
-            error.message.includes('Network request failed');
-
-          // offline sends are queued by useMessageSend. Any other failed bubble stays in the
-          // list with its own retry, so the text is not put back into the composer. Only a
-          // disabled chat is worth a banner, because retrying cannot help there.
-          if (isOfflineError || error.message !== 'Messaging is disabled in this chat or globally.')
-            return;
-          const errorMessage = 'Messaging is currently disabled. Please try again later.';
-          setSendError(errorMessage);
-        },
-      },
-    );
-  }, [
-    newMessage,
-    chatId,
-    sendMessageMutation,
-    resizeTextarea,
-    isGlobalMessagingEnabled,
-    activeThreadId,
-    quotedMessageId,
-    cancelQuote,
-  ]);
+  /** Puts taken text back, unless something new was typed in the meantime. */
+  const restoreMessage = useCallback((text: string): void => {
+    setNewMessage((current) => (current === '' ? text : current));
+  }, []);
 
   const signalTyping = useTypingSignal(chatId, activeThreadId);
 
@@ -173,6 +193,9 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       disabled: !isGlobalMessagingEnabled,
     },
     handleSendMessage,
+    sendText,
+    takeMessage,
+    restoreMessage,
     isSendButtonDisabled,
     messageLength: newMessage.length,
     isGlobalMessagingDisabled: !isGlobalMessagingEnabled,

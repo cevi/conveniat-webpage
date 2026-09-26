@@ -130,6 +130,9 @@ export const ChatTextAreaInput: React.FC = () => {
   const {
     textareaProps,
     handleSendMessage,
+    sendText,
+    takeMessage,
+    restoreMessage,
     isSendButtonDisabled,
     messageLength,
     isGlobalMessagingDisabled,
@@ -186,23 +189,60 @@ export const ChatTextAreaInput: React.FC = () => {
     if (fileInputReference.current) fileInputReference.current.value = '';
   };
 
-  // The image goes first, then the text as its own message. A failed upload keeps both in
-  // the composer, so nothing typed or picked is lost.
+  // One send with an attachment at a time: a second Enter during the upload would send the
+  // image twice.
+  const isSendingReference = React.useRef(false);
+
+  /** Uploads and sends the staged image, if any; false when that failed. */
+  const sendStagedImage = async (): Promise<boolean> => {
+    if (stagedImage === undefined) return true;
+    const isUploaded = await uploadImage(stagedImage.file, activeThreadId);
+    setHasUploadFailed(!isUploaded);
+    if (isUploaded) clearStagedImage();
+    return isUploaded;
+  };
+
+  // The image goes first, then the text as its own message. The text is taken out of the
+  // composer when send is pressed, so what is typed during the upload stays for the next
+  // message; a failed upload puts it back next to the still-staged image.
   const sendWithAttachment = async (): Promise<void> => {
-    if (stagedImage !== undefined) {
-      const isUploaded = await uploadImage(stagedImage.file);
-      setHasUploadFailed(!isUploaded);
-      if (!isUploaded) return;
-      clearStagedImage();
+    if (stagedImage === undefined) {
+      handleSendMessage();
+      return;
     }
-    handleSendMessage();
+    if (isSendingReference.current) return;
+    isSendingReference.current = true;
+    const text = takeMessage();
+    try {
+      if (await sendStagedImage()) {
+        if (text !== '') sendText(text);
+      } else {
+        restoreMessage(text);
+      }
+    } finally {
+      isSendingReference.current = false;
+    }
   };
 
   const isTooLong = messageLength > MAX_MESSAGE_LENGTH;
   const isNearLimit = messageLength > MAX_MESSAGE_LENGTH * 0.8;
 
-  const handleSplitAndSend = (): void => {
-    const message = textareaProps.value;
+  const handleSplitAndSend = async (): Promise<void> => {
+    if (isSendingReference.current) return;
+    isSendingReference.current = true;
+    const message = takeMessage();
+    try {
+      if (!(await sendStagedImage())) {
+        restoreMessage(message);
+        return;
+      }
+      sendInChunks(message);
+    } finally {
+      isSendingReference.current = false;
+    }
+  };
+
+  const sendInChunks = (message: string): void => {
     const chunks: string[] = [];
 
     // Split message into chunks of MAX_MESSAGE_LENGTH, trying to break at word boundaries
@@ -245,12 +285,10 @@ export const ChatTextAreaInput: React.FC = () => {
         chatId,
         content: chunk.trim(),
         timestamp: new Date(),
+        parentId: activeThreadId,
         messageId: generateMessageId(),
       });
     }
-
-    // Clear the input
-    textareaProps.onChange({ target: { value: '' } } as React.ChangeEvent<HTMLTextAreaElement>);
   };
 
   if (isGuest && !isAllowedGuestThreadReplies) {
@@ -393,7 +431,7 @@ export const ChatTextAreaInput: React.FC = () => {
           <div className="mr-1 mb-1 pb-1">
             {isTooLong ? (
               <Button
-                onClick={handleSplitAndSend}
+                onClick={() => void handleSplitAndSend()}
                 size="sm"
                 className="mb-1 h-8 shrink-0 rounded-[16px] bg-orange-500 px-4 text-white shadow-sm hover:bg-orange-600"
               >

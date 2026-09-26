@@ -20,6 +20,7 @@ interface UseImageUploadOptions {
       chatId: string;
       content: string;
       type: MessageType;
+      parentId?: string | undefined;
       timestamp?: Date;
       messageId?: string;
     }) => void;
@@ -35,7 +36,7 @@ export const useImageUpload = ({
   sendMessageMutation: customSendMessageMutation,
 }: UseImageUploadOptions): {
   /** Resolves to whether the image was uploaded and its message handed to the send queue. */
-  uploadImage: (file: File) => Promise<boolean>;
+  uploadImage: (file: File, parentId?: string) => Promise<boolean>;
   isUploading: boolean;
   isPending: boolean;
 } => {
@@ -47,7 +48,7 @@ export const useImageUpload = ({
   const sendMessageMutation = customSendMessageMutation ?? defaultSendMessageMutation;
 
   const uploadImage = useCallback(
-    async (file: File): Promise<boolean> => {
+    async (file: File, parentId?: string): Promise<boolean> => {
       try {
         setIsUploading(true);
 
@@ -77,6 +78,7 @@ export const useImageUpload = ({
           content: key,
           timestamp: new Date(),
           type: MessageType.IMAGE_MSG,
+          parentId,
           messageId: generateMessageId(),
         });
 
