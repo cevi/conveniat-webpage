@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.16.0](https://github.com/cevi/conveniat-webpage/compare/v1.15.0...v1.16.0) (2026-09-26)
+
+
+### Features
+
+* **forms:** send a confirmation email only for the branch a person took ([10973e9](https://github.com/cevi/conveniat-webpage/commit/10973e91c2b0ba02c765ab5315b704e4c35710ca))
+* **forms:** send a confirmation email only for the branch a person took ([3b33ae8](https://github.com/cevi/conveniat-webpage/commit/3b33ae846cbabed8e8a2763b2d93d8cff4daae12))
+* **mcp:** publish and unpublish documents through a per-key capability ([90d3942](https://github.com/cevi/conveniat-webpage/commit/90d3942bd91914763c23a5daf3875f851a7ea22a))
+* **mcp:** publish and unpublish documents through a per-key capability ([5c5be25](https://github.com/cevi/conveniat-webpage/commit/5c5be25c42e6d3c57becec1e87306b0f2496032a))
+* **payload-cms:** open the frontend in app or web view from the dashboard ([56f5029](https://github.com/cevi/conveniat-webpage/commit/56f50292d79ed0c85aeb0530a70e2431e25eef6b))
+* **payload-cms:** open the frontend in app or web view from the dashboard ([aa21934](https://github.com/cevi/conveniat-webpage/commit/aa21934e52e6ce3170cc31ea29d2c148c42af4af)), closes [#1633](https://github.com/cevi/conveniat-webpage/issues/1633)
+
+
+### Bug Fixes
+
+* **billing:** write the bill overview Excel in Banana's import format ([fe23c64](https://github.com/cevi/conveniat-webpage/commit/fe23c649885c38e59ecc3df03971dfa1c562be1c))
+* **billing:** write the bill overview Excel in Banana's import format ([91c8350](https://github.com/cevi/conveniat-webpage/commit/91c8350c6165b9d3ad810871920e6e640b08c879))
+* **logging:** route the last server-side console calls through the logger ([c023a8b](https://github.com/cevi/conveniat-webpage/commit/c023a8bb0b3ce3876484f0b657853663ac82ae8f))
+* **logging:** route the last server-side console calls through the logger ([374dffb](https://github.com/cevi/conveniat-webpage/commit/374dffb354b8ec0186ad4e136f36211f9d43bde6)), closes [#1525](https://github.com/cevi/conveniat-webpage/issues/1525)
+* **mcp:** publishing respects the key's per-collection update toggle ([d99726c](https://github.com/cevi/conveniat-webpage/commit/d99726c84a1aaa38173d54c98df5369592f69bd7))
+
 ## [1.15.0](https://github.com/cevi/conveniat-webpage/compare/v1.14.0...v1.15.0) (2026-09-26)
 
 
