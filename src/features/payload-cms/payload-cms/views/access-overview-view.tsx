@@ -112,6 +112,7 @@ const roleLabels: Record<Roles | 'billing', StaticTranslationString> = {
     fr: 'Équipe de traduction',
   },
   [Roles.ProgramTeam]: { de: 'Programmteam', en: 'Programme team', fr: 'Équipe programme' },
+  [Roles.MaterialTeam]: { de: 'Materialteam', en: 'Material team', fr: 'Équipe matériel' },
   billing: { de: 'Rechnungswesen', en: 'Billing', fr: 'Facturation' },
 };
 
@@ -155,6 +156,11 @@ const listRoleColumns = (): RoleColumn[] => {
       key: Roles.ProgramTeam,
       envName: 'CEVIDB_GROUP_PROGRAM_TEAM',
       groupIds: environmentVariables.CEVIDB_GROUP_PROGRAM_TEAM,
+    },
+    {
+      key: Roles.MaterialTeam,
+      envName: 'CEVIDB_GROUP_MATERIAL_TEAM',
+      groupIds: environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM,
     },
     {
       key: 'billing',

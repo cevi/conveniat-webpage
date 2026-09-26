@@ -37,6 +37,7 @@ const features_folder = [
   'native-push',
   'presence',
   'photo-contest',
+  'material',
 ];
 
 const featuresDirectory = path.join(__dirname, 'src', 'features');

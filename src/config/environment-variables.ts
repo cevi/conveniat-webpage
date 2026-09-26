@@ -65,6 +65,17 @@ export const environmentVariables = createEnv({
         .filter((n) => !Number.isNaN(n)),
     ),
 
+    /** optional: without it, only full admins run the material depot */
+    CEVIDB_GROUP_MATERIAL_TEAM: z
+      .string()
+      .default('')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isInteger(n) && n > 0),
+      ),
+
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
     S3_ACCESS_KEY_ID: z.string().min(5),
@@ -94,6 +105,10 @@ export const environmentVariables = createEnv({
       .transform((value) => value === 'true')
       .default('false'),
     FEATURE_ENABLE_PRESENCE_TRACKING: z
+      .string()
+      .transform((value) => value === 'true')
+      .default('false'),
+    FEATURE_ENABLE_MATERIAL_MANAGEMENT: z
       .string()
       .transform((value) => value === 'true')
       .default('false'),

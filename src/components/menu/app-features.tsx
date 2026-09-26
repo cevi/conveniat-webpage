@@ -1,4 +1,5 @@
 import { LinkComponent } from '@/components/ui/link-component';
+import { environmentVariables } from '@/config/environment-variables';
 import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { LucideIcon } from 'lucide-react';
@@ -9,6 +10,7 @@ import {
   LucideMessageCircleQuestion,
   Map,
   MessageSquare,
+  Package,
   Settings,
   Siren,
   Trophy,
@@ -75,6 +77,12 @@ const reservationsFeatureTranslation: StaticTranslationString = {
   en: 'Reservations',
   de: 'Reservationen',
   fr: 'Réservations',
+};
+
+const materialFeatureTranslation: StaticTranslationString = {
+  en: 'Material depot',
+  de: 'Materialdepot',
+  fr: 'Dépôt de matériel',
 };
 
 const settingsFeatureTranslation: StaticTranslationString = {
@@ -184,6 +192,13 @@ export const AppFeatures: React.FC<{
             href="/app/reservations"
             Icon={Truck}
             text={reservationsFeatureTranslation[locale]}
+          />
+        )}
+        {environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT && (
+          <AppFeatureMenuItem
+            href="/app/material"
+            Icon={Package}
+            text={materialFeatureTranslation[locale]}
           />
         )}
         <AppFeatureMenuItem
