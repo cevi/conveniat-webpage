@@ -15,6 +15,7 @@ import { contactForm } from '@/features/payload-cms/payload-cms/initialization/s
 import { generateMainMenu } from '@/features/payload-cms/payload-cms/initialization/seeding/generate-main-menu';
 import { internalPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/internal-page';
 import { landingPageContent } from '@/features/payload-cms/payload-cms/initialization/seeding/landing-page';
+import { seedMaterial } from '@/features/payload-cms/payload-cms/initialization/seeding/material';
 import {
   seedPermissionAdminsOnly,
   seedPermissionLoggedIn,
@@ -508,6 +509,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   // early, so features that point at a Hof find them even if later CMS seeding fails
   console.log('Seeding: Creating Höfe...');
   await seedHoefe(payload);
+
+  // Prisma only, so a later failure in the CMS content does not leave the depot empty
+  await seedMaterial(userIds);
 
   // seed blog articles
   console.log('Seeding: Creating blog articles...');

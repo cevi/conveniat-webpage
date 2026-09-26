@@ -26,6 +26,9 @@ model User {
   presenceLogs         PresenceLog[]
   photoContestImages   PhotoContestImage[]
   photoContestVotes    PhotoContestVote[]
+  materialLoans        MaterialLoan[]        @relation("MaterialLoanPerson")
+  createdMaterialLoans MaterialLoan[]        @relation("MaterialLoanCreatedBy")
+  materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
 
   @@index([name])
 }
@@ -440,4 +443,169 @@ model DocumentDownload {
   downloadedAt DateTime @default(now())
 
   @@index([documentId])
+}
+
+/// a shelf of the material catalogue, e.g. J+S-Material or Verbrauchsmaterial
+model MaterialCategory {
+  id        String @id @default(uuid(7))
+  name      String @unique
+  sortOrder Int    @default(0)
+
+  items MaterialItem[]
+}
+
+/// one article of the material catalogue. The quantities count pieces, not labels: an article
+/// owns `totalQuantity` pieces, of which the damaged and the ones in repair cannot be lent.
+model MaterialItem {
+  id                 String  @id @default(uuid(7))
+  /// short code printed on the QR label, opens the article when scanned
+  code               String  @unique
+  name               String
+  description        String  @default("")
+  usageNotes         String?
+  returnInstructions String  @default("")
+  imageUrl           String?
+  /// what one piece is called, e.g. "Stück" or "Rollen"
+  unit               String  @default("Stück")
+
+  categoryId String
+  category   MaterialCategory @relation(fields: [categoryId], references: [id])
+
+  totalQuantity     Int
+  /// most pieces a single loan may ask for
+  maxLoanQuantity   Int
+  damagedQuantity   Int @default(0)
+  inRepairQuantity  Int @default(0)
+  /// the dashboard warns once the free pieces drop to this number
+  lowStockThreshold Int @default(0)
+
+  /// handed out and used up, so a return is optional and the stock shrinks on issue
+  isConsumable Boolean @default(false)
+  /// can be requested ahead; otherwise the material team only hands it out at the counter
+  isReservable Boolean @default(true)
+  /// withdrawn by the material team, nothing can be requested
+  isDisabled   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans     MaterialLoan[]
+  incidents MaterialIncident[]
+
+  @@index([categoryId])
+}
+
+/// a department (Abteilung) that borrows material
+model MaterialDepartment {
+  id              String  @id @default(uuid(7))
+  name            String  @unique
+  shortName       String  @unique
+  /// the person who looks after the department's material
+  contactName     String?
+  /// Cevi.DB group of the department; its members see the department's loans in the app
+  hitobitoGroupId Int?    @unique
+
+  loans MaterialLoan[]
+}
+
+enum MaterialLoanStatus {
+  /// asked for, not yet confirmed by the material team
+  REQUESTED
+  /// confirmed, the pieces are held for the period
+  RESERVED
+  /// handed out, the pieces are away
+  ISSUED
+  /// back at the material depot
+  RETURNED
+  /// consumables handed out for good
+  CONSUMED
+  CANCELLED
+}
+
+enum MaterialCondition {
+  OK
+  LIGHT_DAMAGE
+  DAMAGED
+  MISSING
+}
+
+/// one request, reservation or loan of one article. Overdue is not a status: it is an issued
+/// loan whose end date lies in the past.
+model MaterialLoan {
+  id     String @id @default(uuid(7))
+  /// short number printed on the loan's QR label and spoken at the counter
+  number Int    @unique @default(autoincrement())
+
+  itemId String
+  item   MaterialItem @relation(fields: [itemId], references: [id])
+
+  quantity Int
+
+  departmentId String
+  department   MaterialDepartment @relation(fields: [departmentId], references: [id])
+
+  /// set when the material is lent to one person instead of the whole department
+  personId String?
+  person   User?   @relation("MaterialLoanPerson", fields: [personId], references: [uuid])
+
+  responsibleName String
+  comment         String?
+
+  startDate DateTime
+  endDate   DateTime
+
+  /// consumables handed out to be used up rather than lent
+  isConsumption Boolean @default(false)
+
+  status MaterialLoanStatus @default(REQUESTED)
+
+  issuedQuantity Int?
+  issuedAt       DateTime?
+
+  /// the borrower said the material is on its way back, the material team has not checked it
+  returnAnnouncedAt DateTime?
+  returnedQuantity  Int?
+  returnedAt        DateTime?
+  returnCondition   MaterialCondition?
+  returnNote        String?
+
+  createdById String
+  createdBy   User   @relation("MaterialLoanCreatedBy", fields: [createdById], references: [uuid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incidents MaterialIncident[]
+
+  @@index([itemId, status])
+  @@index([departmentId])
+  @@index([personId])
+  @@index([createdById])
+  @@index([status, endDate])
+}
+
+/// a damage or a loss, reported at a return or on its own, for the material team to follow up
+model MaterialIncident {
+  id String @id @default(uuid(7))
+
+  itemId String
+  item   MaterialItem @relation(fields: [itemId], references: [id])
+
+  loanId String?
+  loan   MaterialLoan? @relation(fields: [loanId], references: [id])
+
+  condition MaterialCondition
+  quantity  Int
+  note      String
+  /// object key in the S3 bucket
+  photoKey  String?
+
+  reportedById String?
+  reportedBy   User?   @relation("MaterialIncidentReportedBy", fields: [reportedById], references: [uuid])
+
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([itemId])
+  @@index([resolvedAt])
 }

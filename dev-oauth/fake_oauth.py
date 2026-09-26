@@ -85,6 +85,17 @@ FAKE_USERS = [
             {"group_id": 107, "group_name": "Program Team", "role_name": "Program Team", "role_class": "editor"}
         ],
         "comment": "Dieser Benutzer gehört zum Program Team." 
+    },
+    {
+        "id": "7",
+        "email": "benutzer7@conveniat27.ch",
+        "first_name": "MaterialTeam User",
+        "last_name": "MaterialTeam",
+        "nickname": "MaterialTeam",
+        "roles": [
+            {"group_id": 108, "group_name": "Material Team", "role_name": "Material Team", "role_class": "editor"}
+        ],
+        "comment": "Dieser Benutzer gehört zum Materialteam und führt das Materialdepot in der App."
     }
 ]
 
