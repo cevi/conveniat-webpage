@@ -22,6 +22,12 @@ const placeholderText: StaticTranslationString = {
   fr: 'Choisir un Hof',
 };
 
+const loadErrorText: StaticTranslationString = {
+  de: 'Die Höfe konnten nicht geladen werden. Prüfe deine Verbindung.',
+  en: 'The Höfe could not be loaded. Check your connection.',
+  fr: 'Les Hofs n’ont pas pu être chargés. Vérifie ta connexion.',
+};
+
 const loadingText: StaticTranslationString = {
   de: 'Höfe werden geladen …',
   en: 'Loading Höfe …',
@@ -40,7 +46,7 @@ export const HofSelection: React.FC<
   }
 > = ({ name, label, required, control, registerAction, error }) => {
   const locale = useCurrentLocale(i18nConfig) as keyof StaticTranslationString;
-  const { data: hoefe, isLoading } = trpc.hofDashboard.getHofList.useQuery();
+  const { data: hoefe, isLoading, isError } = trpc.hofDashboard.getHofList.useQuery();
 
   return (
     <Select
@@ -53,7 +59,9 @@ export const HofSelection: React.FC<
       {...(error === undefined ? {} : { error })}
       optionType="dropdown"
       allowMultiple={false}
-      placeholder={isLoading ? loadingText[locale] : placeholderText[locale]}
+      placeholder={
+        isError ? loadErrorText[locale] : (isLoading ? loadingText : placeholderText)[locale]
+      }
       options={(hoefe ?? []).map((hof) => ({ value: hof.id, label: hof.name }))}
     />
   );

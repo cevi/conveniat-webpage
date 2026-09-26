@@ -1,4 +1,5 @@
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
+import { refreshHofTitles } from '@/features/hof-dashboard/payload-cms/hof-title';
 import {
   canAccessBilling,
   canAccessBillingField,
@@ -88,6 +89,7 @@ export const HoefeCollection: CollectionConfig = {
       ],
     },
   },
+  hooks: { afterChange: [refreshHofTitles] },
   access: {
     // Name, group and events are not confidential, and other areas build on them. The two
     // address fields below are narrowed to the billing team on the field.

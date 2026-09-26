@@ -1,4 +1,5 @@
-import type { Field, PayloadRequest } from 'payload';
+import type { Hof } from '@/features/payload-cms/payload-types';
+import type { CollectionAfterChangeHook, Field, PayloadRequest } from 'payload';
 
 /**
  * A title like "Hof Nord · Hofbauten", so the admin's lists and relationship pickers read. In
@@ -29,4 +30,29 @@ export const hofTitleField: Field = {
   type: 'text',
   label: { de: 'Titel', en: 'Title', fr: 'Titre' },
   admin: { hidden: true },
+};
+
+/**
+ * Keeps the titles above current when a Hof is renamed: they are stored, so the admin can list
+ * and search them, and would otherwise keep the old name. Saving each entry again lets its own
+ * hook write the new title.
+ */
+export const refreshHofTitles: CollectionAfterChangeHook<Hof> = async ({
+  doc,
+  previousDoc,
+  operation,
+  req,
+}) => {
+  if (operation !== 'update' || doc.name === previousDoc.name) return doc;
+  for (const collection of ['hof-submissions', 'hof-material-orders'] as const) {
+    await req.payload.update({
+      collection,
+      where: { hof: { equals: doc.id } },
+      data: {},
+      depth: 0,
+      overrideAccess: true,
+      req,
+    });
+  }
+  return doc;
 };

@@ -9,6 +9,7 @@ import {
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
+import { startsLike } from '@/features/hof-dashboard/utils/file-signature';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -83,7 +84,9 @@ export const useHofUpload = (
     kind: HofFileKind,
   ): Promise<void> => {
     const typesText = HOF_FILE_EXTENSIONS.join(', ');
-    if (hofFileExtensionOf(file.name) === undefined) {
+    const extension = hofFileExtensionOf(file.name);
+    const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    if (extension === undefined || !startsLike(head, extension)) {
       toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
       return;
     }
