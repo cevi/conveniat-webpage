@@ -130,9 +130,9 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                 { de: 'Termin', en: 'Deadline', fr: 'Échéance' },
                 { de: 'Termine', en: 'Deadlines', fr: 'Échéances' },
                 {
-                  en: 'Each submission works towards the next deadline that lists it. Once the last one has passed, an open submission is overdue.',
-                  de: 'Jede Abgabe richtet sich nach dem nächsten Termin, der sie aufführt. Ist der letzte vorbei, ist eine offene Abgabe überfällig.',
-                  fr: 'Chaque dépôt vise la prochaine échéance qui le mentionne. Une fois la dernière passée, un dépôt ouvert est en retard.',
+                  en: 'An open submission works towards the next deadline that lists it and is overdue from the first one it misses. A revision the Ressort asks for works towards the next deadline.',
+                  de: 'Eine offene Abgabe richtet sich nach dem nächsten Termin, der sie aufführt, und ist ab dem ersten verpassten überfällig. Eine vom Ressort verlangte Überarbeitung richtet sich nach dem nächsten Termin.',
+                  fr: 'Un dépôt ouvert vise la prochaine échéance qui le mentionne et est en retard dès la première manquée. Une révision demandée par le Ressort vise l’échéance suivante.',
                 },
               ),
               fields: [

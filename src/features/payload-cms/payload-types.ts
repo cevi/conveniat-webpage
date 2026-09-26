@@ -9134,7 +9134,7 @@ export interface BillSetting {
 export interface HofDashboardSetting {
   id: string;
   /**
-   * Each submission works towards the next deadline that lists it. Once the last one has passed, an open submission is overdue.
+   * An open submission works towards the next deadline that lists it and is overdue from the first one it misses. A revision the Ressort asks for works towards the next deadline.
    */
   deadlines?:
     | {
