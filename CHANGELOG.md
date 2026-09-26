@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.14.0](https://github.com/cevi/conveniat-webpage/compare/v1.13.0...v1.14.0) (2026-09-26)
+
+
+### Features
+
+* **documents:** count downloads and show them in the admin panel ([fff4bf8](https://github.com/cevi/conveniat-webpage/commit/fff4bf8dec2e0f0286a6316c0af19d50e5518e04))
+* **documents:** count downloads and show them in the admin panel ([6b37f5f](https://github.com/cevi/conveniat-webpage/commit/6b37f5f73807f36292f7267d8451b9129a29755b))
+* **menu:** keep desktop submenu open until an outside click ([4f16d2b](https://github.com/cevi/conveniat-webpage/commit/4f16d2b0954573814b8eca32ec9146bfd91defe3))
+* **menu:** open desktop submenus on click instead of hover ([0b6ea51](https://github.com/cevi/conveniat-webpage/commit/0b6ea51669306dcea14678de2e39799883693d6b))
+* **menu:** open desktop submenus on click, close on outside click ([52ff10b](https://github.com/cevi/conveniat-webpage/commit/52ff10b25f5125305cc17c6a8ccdb71c93116e30))
+
+
+### Bug Fixes
+
+* **billing:** export the accounting CSV in Banana's import format ([9d21360](https://github.com/cevi/conveniat-webpage/commit/9d2136039601d288cae4abe4200a090f0928365f))
+* **billing:** export the accounting CSV in Banana's import format ([7342fd6](https://github.com/cevi/conveniat-webpage/commit/7342fd6b00b896328767c4827e1362a9531c122a))
+* **documents:** keep downloads of users missing from the Postgres mirror ([6abe202](https://github.com/cevi/conveniat-webpage/commit/6abe202f24f0357ebb0ca5cc2473469056740766))
+* **mcp:** pages saved over MCP clear the page cache ([27bb057](https://github.com/cevi/conveniat-webpage/commit/27bb057b43318c97c80e301243de85e55a78f1fe))
+* **mcp:** pages saved over MCP clear the page cache ([ca923ba](https://github.com/cevi/conveniat-webpage/commit/ca923ba31a0cfa55148378171c6bc42f27b2a9f6))
+* **mcp:** save every MCP write as a draft ([0d71948](https://github.com/cevi/conveniat-webpage/commit/0d71948ae7d4e7656b6ce5fad133cb28909bf771))
+* **mcp:** save every MCP write as a draft ([e89ef39](https://github.com/cevi/conveniat-webpage/commit/e89ef394cf33da898e5c08cbbc08628319a6cf1f))
+* **preview:** only editors can mint preview tokens ([2d1994a](https://github.com/cevi/conveniat-webpage/commit/2d1994a5d15309dc9423124fdd928e17a9437ad4))
+* **preview:** only editors can mint preview tokens ([99f378a](https://github.com/cevi/conveniat-webpage/commit/99f378a7459f7facfea947566bd46d7fb2043a10))
+
 ## [1.13.0](https://github.com/cevi/conveniat-webpage/compare/v1.12.1...v1.13.0) (2026-09-24)
 
 
