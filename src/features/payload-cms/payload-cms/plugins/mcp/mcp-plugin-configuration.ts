@@ -82,8 +82,8 @@ const userFieldDescription = {
  * keys are managed in the admin panel under the `MCP API Keys` collection, where an admin
  * can additionally allow or disallow every single capability enabled below, per key.
  *
- * Only the two collections requested are exposed: `forms` (the form builder) and
- * `generic-page`. `delete` is deliberately left off for both — a deletion through an MCP
+ * Only the collections requested are exposed: `forms` (the form builder), `generic-page`
+ * and `helper-jobs`. `delete` is deliberately left off for all — a deletion through an MCP
  * client is irreversible and cannot be reviewed like a draft can. Flip the flag here if
  * that is ever wanted; the per-key toggles only appear for capabilities enabled here.
  *
@@ -109,6 +109,20 @@ const configuredMcpPlugin = mcpPlugin({
         'Forms built with the Payload form builder (registration, feedback and contact ' +
         'forms of the conveniat27 website), including their fields, confirmation ' +
         'settings and emails. Does not expose the submitted answers.',
+      enabled: {
+        create: true,
+        delete: false,
+        find: true,
+        update: true,
+      },
+    },
+    'helper-jobs': {
+      description:
+        'Helper jobs (Helfendenjobs) that people can sign up for through the helper ' +
+        'registration forms: title, description, ressort, date range, quota and ' +
+        'prerequisites. Title, description and prerequisites are localized (de/fr/en). ' +
+        'Not draft-enabled: created or updated jobs are live immediately. Does not ' +
+        'expose who signed up.',
       enabled: {
         create: true,
         delete: false,

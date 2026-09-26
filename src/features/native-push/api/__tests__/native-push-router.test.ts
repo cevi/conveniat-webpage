@@ -84,6 +84,7 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
   const update = jest.fn();
   const create = jest.fn();
   const deleteMany = jest.fn();
+  const findGlobal = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -95,7 +96,9 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
       update,
       create,
       delete: deleteMany,
+      findGlobal,
     });
+    findGlobal.mockResolvedValue({ appShortName: 'conveniat27' });
     deleteMany.mockResolvedValue({ docs: [] });
     create.mockResolvedValue({ id: 'sub-1' });
     update.mockResolvedValue({ id: 'sub-1' });
@@ -171,6 +174,21 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
 
     expect(create).toHaveBeenCalledTimes(1);
     expect(mockSendFcmNotification).toHaveBeenCalledTimes(1);
+  });
+
+  // conveniat27 and konekta ship from one tree, so the welcome must carry the name of
+  // the app the user installed, not a literal from either deployment (#1855).
+  it("titles the welcome with this deployment's app name", async () => {
+    find.mockResolvedValue(EMPTY);
+    findGlobal.mockResolvedValue({ appShortName: 'Konekta' });
+
+    await register();
+
+    expect(findGlobal).toHaveBeenCalledWith({ slug: 'PWA' });
+    expect(mockSendFcmNotification).toHaveBeenCalledWith(
+      'token-1',
+      expect.objectContaining({ title: 'Konekta' }),
+    );
   });
 
   it('claims the winner row when a concurrent create took the token first', async () => {

@@ -320,6 +320,7 @@ export interface GenericPage {
      */
     mainContent: (
       | HeroSectionBlock
+      | PosterHeroBlock
       | SectionSeparatorBlock
       | {
           richTextSection: {
@@ -747,6 +748,23 @@ export interface Image {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PosterHeroBlock".
+ */
+export interface PosterHeroBlock {
+  badge?: string | null;
+  title: string;
+  description?: string | null;
+  primaryCtaLabel?: string | null;
+  primaryCtaLink?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  image?: (string | null) | Image;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'posterHero';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "SectionSeparatorBlock".
  */
 export interface SectionSeparatorBlock {
@@ -886,6 +904,7 @@ export interface Blog {
      */
     mainContent: (
       | HeroSectionBlock
+      | PosterHeroBlock
       | SectionSeparatorBlock
       | {
           richTextSection: {
@@ -4676,6 +4695,20 @@ export interface PayloadMcpApiKey {
      */
     update?: boolean | null;
   };
+  helperJobs?: {
+    /**
+     * Allow clients to find helper-jobs.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create helper-jobs.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update helper-jobs.
+     */
+    update?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -5073,6 +5106,7 @@ export interface GenericPageSelect<T extends boolean = true> {
           | T
           | {
               heroSection?: T | HeroSectionBlockSelect<T>;
+              posterHero?: T | PosterHeroBlockSelect<T>;
               sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
@@ -5220,6 +5254,22 @@ export interface HeroSectionBlockSelect<T extends boolean = true> {
   secondaryCtaLabel?: T;
   secondaryCtaLink?: T;
   deadlineText?: T;
+  image?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "PosterHeroBlock_select".
+ */
+export interface PosterHeroBlockSelect<T extends boolean = true> {
+  badge?: T;
+  title?: T;
+  description?: T;
+  primaryCtaLabel?: T;
+  primaryCtaLink?: T;
+  secondaryCtaLabel?: T;
+  secondaryCtaLink?: T;
   image?: T;
   id?: T;
   blockName?: T;
@@ -6114,6 +6164,7 @@ export interface BlogSelect<T extends boolean = true> {
           | T
           | {
               heroSection?: T | HeroSectionBlockSelect<T>;
+              posterHero?: T | PosterHeroBlockSelect<T>;
               sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
               richTextSection?:
                 | T
@@ -7564,6 +7615,13 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         create?: T;
         update?: T;
       };
+  helperJobs?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;
@@ -8116,6 +8174,7 @@ export interface AppLandingPage {
   pageContent?:
     | (
         | HeroSectionBlock
+        | PosterHeroBlock
         | SectionSeparatorBlock
         | {
             richTextSection: {
@@ -8886,6 +8945,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
     | T
     | {
         heroSection?: T | HeroSectionBlockSelect<T>;
+        posterHero?: T | PosterHeroBlockSelect<T>;
         sectionSeparator?: T | SectionSeparatorBlockSelect<T>;
         richTextSection?:
           | T
