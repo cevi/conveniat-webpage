@@ -47,8 +47,7 @@ import { HelperShiftParticipationExport as HelperShiftParticipationExport_89d83a
 import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3a68008c96f8846494b } from '@/features/payload-cms/payload-cms/components/helper-shift-organiser-export'
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
-import { default as default_c9f917d9608a57eb8358fce7a7898bd3 } from '@/features/payload-cms/payload-cms/components/push-notification/push-notification'
-import { default as default_7d02a833b9164544e9c8d7653b246eb7 } from '@/features/payload-cms/components/push-notification/push-notification-history.tsx'
+import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
 import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
 import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
@@ -173,8 +172,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/helper-shift-organiser-export#HelperShiftOrganiserExport": HelperShiftOrganiserExport_706abe738905a3a68008c96f8846494b,
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
-  "@/features/payload-cms/payload-cms/components/push-notification/push-notification#default": default_c9f917d9608a57eb8358fce7a7898bd3,
-  "@/features/payload-cms/components/push-notification/push-notification-history.tsx#default": default_7d02a833b9164544e9c8d7653b246eb7,
+  "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
   "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
   "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,

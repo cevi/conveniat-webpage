@@ -4256,19 +4256,19 @@ export interface PiketSchedule {
  */
 export interface PushNotificationSubscription {
   id: string;
-  user?: (string | null) | User;
-  platform: 'web' | 'ios' | 'android';
-  token?: string | null;
   endpoint?: string | null;
-  expirationTime?: number | null;
+  token?: string | null;
   keys?: {
     p256dh?: string | null;
     auth?: string | null;
   };
+  expirationTime?: number | null;
   userAgent?: string | null;
-  deviceId?: string | null;
+  user?: (string | null) | User;
+  platform: 'web' | 'ios' | 'android';
   lastUsedAt?: string | null;
   registrationSource?: ('/entrypoint' | '/app/settings') | null;
+  deviceId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6825,21 +6825,21 @@ export interface PiketSchedulesSelect<T extends boolean = true> {
  * via the `definition` "push-notification-subscriptions_select".
  */
 export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
-  user?: T;
-  platform?: T;
-  token?: T;
   endpoint?: T;
-  expirationTime?: T;
+  token?: T;
   keys?:
     | T
     | {
         p256dh?: T;
         auth?: T;
       };
+  expirationTime?: T;
   userAgent?: T;
-  deviceId?: T;
+  user?: T;
+  platform?: T;
   lastUsedAt?: T;
   registrationSource?: T;
+  deviceId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
