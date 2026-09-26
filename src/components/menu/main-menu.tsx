@@ -108,7 +108,7 @@ const isLinkConfigured = (linkFieldData?: LinkFieldDataType): boolean => {
 export interface ProcessedSubSubSubMenuItem {
   id: string;
   label: string;
-  linkField?: LinkFieldDataType | undefined;
+  hasLink: boolean;
   hasPerm: boolean;
   isVisible: boolean;
   itemLink?: string | undefined;
@@ -118,7 +118,7 @@ export interface ProcessedSubSubSubMenuItem {
 export interface ProcessedSubSubMenuItem {
   id: string;
   label: string;
-  linkField?: LinkFieldDataType | undefined;
+  hasLink: boolean;
   hasPerm: boolean;
   isVisible: boolean;
   itemLink?: string | undefined;
@@ -129,7 +129,7 @@ export interface ProcessedSubSubMenuItem {
 export interface ProcessedSubMenuItem {
   id: string;
   label: string;
-  linkField?: LinkFieldDataType | undefined;
+  hasLink: boolean;
   hasPerm: boolean;
   isVisible: boolean;
   itemLink?: string | undefined;
@@ -140,7 +140,7 @@ export interface ProcessedSubMenuItem {
 export interface ProcessedMainMenuItem {
   id: string;
   label: string;
-  linkField?: LinkFieldDataType | undefined;
+  hasLink: boolean;
   hasPerm: boolean;
   isVisible: boolean;
   itemLink?: string | undefined;
@@ -148,6 +148,14 @@ export interface ProcessedMainMenuItem {
   subMenu?: ProcessedSubMenuItem[] | undefined;
 }
 
+/**
+ * Resolves the raw header menu into what the menus render: the URL, whether there is a
+ * link at all, and whether the current user may see it.
+ *
+ * The items go to the client `DesktopNav` as props, so they carry the resolved result
+ * and never the raw `linkField`, whose `reference.value` is the populated document the
+ * link points to.
+ */
 export const processMenuTree = async (
   rawMenu: Header['mainMenu'],
   locale: Locale,
@@ -200,7 +208,7 @@ export const processMenuTree = async (
                 subSubSubMenuItems.push({
                   id: subSubSubItem.id || Math.random().toString(),
                   label: subSubSubItem.label,
-                  linkField: subSubSubLinkField,
+                  hasLink: subSubSubHasLink,
                   hasPerm: subSubSubHasPerm,
                   isVisible: subSubSubIsVisible,
                   itemLink: subSubSubItemLink,
@@ -226,7 +234,7 @@ export const processMenuTree = async (
             subSubMenuItems.push({
               id: subSubItem.id || Math.random().toString(),
               label: subSubItem.label,
-              linkField: subSubLinkField,
+              hasLink: subSubHasLink,
               hasPerm: subSubHasPerm,
               isVisible: subSubIsVisible,
               itemLink: subSubItemLink,
@@ -251,7 +259,7 @@ export const processMenuTree = async (
         subMenuItems.push({
           id: subItem.id || Math.random().toString(),
           label: subItem.label,
-          linkField: subLinkField,
+          hasLink: subHasLink,
           hasPerm: subHasPerm,
           isVisible: subIsVisible,
           itemLink: subItemLink,
@@ -276,7 +284,7 @@ export const processMenuTree = async (
     processedItems.push({
       id: item.id || Math.random().toString(),
       label: item.label,
-      linkField: itemLinkField,
+      hasLink,
       hasPerm: hasPerm,
       isVisible: isVisible,
       itemLink: itemLink,
@@ -315,7 +323,7 @@ const MenuItemsList = async ({
             return (
               <SafeErrorBoundary fallback={<></>} key={item.id}>
                 <Disclosure as="div" className="-mx-3">
-                  {isLinkConfigured(item.linkField) ? (
+                  {item.hasLink ? (
                     <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
                       {item.hasPerm ? (
                         <LinkComponent
@@ -355,7 +363,7 @@ const MenuItemsList = async ({
                           return (
                             <SafeErrorBoundary fallback={<></>} key={subItem.id}>
                               <Disclosure as="div" className="pl-1">
-                                {isLinkConfigured(subItem.linkField) ? (
+                                {subItem.hasLink ? (
                                   <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
                                     {subItem.hasPerm ? (
                                       <LinkComponent
@@ -402,7 +410,7 @@ const MenuItemsList = async ({
                                         return (
                                           <SafeErrorBoundary fallback={<></>} key={subSubItem.id}>
                                             <Disclosure as="div" className="pl-3">
-                                              {isLinkConfigured(subSubItem.linkField) ? (
+                                              {subSubItem.hasLink ? (
                                                 <div className="flex w-full items-center justify-between rounded-lg hover:bg-gray-50">
                                                   {subSubItem.hasPerm ? (
                                                     <LinkComponent
@@ -443,7 +451,7 @@ const MenuItemsList = async ({
                                                       showPreviewForMainMenu,
                                                   )
                                                   .map((subSubSubItem) => {
-                                                    if (isLinkConfigured(subSubSubItem.linkField)) {
+                                                    if (subSubSubItem.hasLink) {
                                                       return subSubSubItem.hasPerm ? (
                                                         <LinkComponent
                                                           key={subSubSubItem.id}
@@ -478,7 +486,7 @@ const MenuItemsList = async ({
                                         );
                                       }
 
-                                      if (isLinkConfigured(subSubItem.linkField)) {
+                                      if (subSubItem.hasLink) {
                                         return subSubItem.hasPerm ? (
                                           <LinkComponent
                                             key={subSubItem.id}
@@ -513,7 +521,7 @@ const MenuItemsList = async ({
                           );
                         }
 
-                        if (isLinkConfigured(subItem.linkField)) {
+                        if (subItem.hasLink) {
                           return subItem.hasPerm ? (
                             <LinkComponent
                               key={subItem.id}
@@ -548,7 +556,7 @@ const MenuItemsList = async ({
             );
           }
 
-          if (isLinkConfigured(item.linkField)) {
+          if (item.hasLink) {
             return item.hasPerm ? (
               <LinkComponent
                 key={item.id}

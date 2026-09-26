@@ -197,6 +197,12 @@ function renderHtmlResponse({
   });
 }
 
+/**
+ * The approval page names the form by its internal title, which the `forms` default
+ * populate leaves out because form blocks carry it into public pages.
+ */
+const FORM_TITLE_ONLY = { forms: { title: true } } as const;
+
 async function findSubmissionByToken(
   token: string,
   id?: string,
@@ -213,6 +219,7 @@ async function findSubmissionByToken(
         collection: 'form-submissions',
         id: id.trim(),
         depth: 1,
+        populate: FORM_TITLE_ONLY,
         overrideAccess: true,
       })) as unknown as Record<string, unknown>;
       if (found['approvalToken'] === trimmedToken) {
@@ -230,6 +237,7 @@ async function findSubmissionByToken(
     },
     limit: 1,
     depth: 1,
+    populate: FORM_TITLE_ONLY,
     overrideAccess: true,
   });
 
