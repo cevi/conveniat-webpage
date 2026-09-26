@@ -76,6 +76,7 @@ export interface Config {
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
+    hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
     'payload-workers': PayloadWorker;
     'chat-images': ChatImage;
@@ -141,6 +142,7 @@ export interface Config {
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
+    hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
@@ -4458,6 +4460,49 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
+ * One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hoefe".
+ */
+export interface Hof {
+  id: string;
+  /**
+   * Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.
+   */
+  name: string;
+  /**
+   * Hitobito group ID of this Hof (up to 6 digits)
+   */
+  groupId: string;
+  /**
+   * Configure which Hitobito events should be synced for billing.
+   */
+  events?:
+    | {
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
+        eventId: string;
+        /**
+         * Name of the event in Cevi.DB, refreshed by every sync
+         */
+        eventName: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
+   */
+  addressManagerEmails?: string | null;
+  /**
+   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   */
+  reminderRecipientsOverride?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Registered background worker instances and their activity heartbeats.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5004,6 +5049,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-pdfs';
         value: string | BillPdf;
+      } | null)
+    | ({
+        relationTo: 'hoefe';
+        value: string | Hof;
       } | null)
     | ({
         relationTo: 'outgoing-emails';
@@ -6960,6 +7009,25 @@ export interface BillPdfsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hoefe_select".
+ */
+export interface HoefeSelect<T extends boolean = true> {
+  name?: T;
+  groupId?: T;
+  events?:
+    | T
+    | {
+        eventId?: T;
+        eventName?: T;
+        id?: T;
+      };
+  addressManagerEmails?: T;
+  reminderRecipientsOverride?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "outgoing-emails_select".
  */
 export interface OutgoingEmailsSelect<T extends boolean = true> {
@@ -8553,29 +8621,14 @@ export interface AppFeatureFlag {
 export interface BillSetting {
   id: string;
   /**
-   * Configure which Hitobito events should be synced for billing.
+   * Migrated to the Hofs collection; the billing no longer reads it. Will be removed.
    */
   events?:
     | {
-        /**
-         * Hitobito event ID to sync (up to 6 digits)
-         */
-        eventId: string;
-        /**
-         * Display name, e.g. "Hof Süd"
-         */
-        eventName: string;
-        /**
-         * Hitobito group ID this event belongs to (up to 6 digits)
-         */
-        groupId: string;
-        /**
-         * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
-         */
+        eventId?: string | null;
+        eventName?: string | null;
+        groupId?: string | null;
         addressManagerEmails?: string | null;
-        /**
-         * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
-         */
         reminderRecipientsOverride?: string | null;
         id?: string | null;
       }[]
@@ -9646,6 +9699,7 @@ export interface TaskCreateCollectionExport {
       | 'presence-logs'
       | 'bill-participants'
       | 'bill-pdfs'
+      | 'hoefe'
       | 'outgoing-emails'
       | 'payload-workers'
       | 'chat-images'

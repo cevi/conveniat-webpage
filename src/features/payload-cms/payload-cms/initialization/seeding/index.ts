@@ -26,6 +26,7 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
+import { seedHoefe } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
@@ -503,6 +504,10 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     userIds.push(await createRandomUser(payload));
   }
   console.log('Seeding: Users created.');
+
+  // early, so features that point at a Hof find them even if later CMS seeding fails
+  console.log('Seeding: Creating Höfe...');
+  await seedHoefe(payload);
 
   // seed blog articles
   console.log('Seeding: Creating blog articles...');

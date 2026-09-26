@@ -139,9 +139,13 @@ export enum BillingJobStatus {
 }
 
 /**
- * A subgroup event discovered on Cevi.DB and stored in the bill-settings event list.
+ * One Cevi.DB event of a Hof, flattened: the event carries its Hof's group and addresses.
+ *
+ * The `hoefe` collection stores one document per group with its events nested; the billing
+ * services work on this flat shape, one row per event, which is what the event list of the
+ * bill settings used to hold. See `flattenHofEvents`.
  */
-export interface PopulatedSubevent {
+export interface HofEventRow {
   eventId: string;
   eventName: string;
   groupId: string;
@@ -166,16 +170,13 @@ export type PopulateSubeventsStreamMessage =
       processedGroups: number;
       totalGroups: number;
       /** Events found since the previous frame — append, do not replace. */
-      foundEvents: PopulatedSubevent[];
+      foundEvents: HofEventRow[];
     }
   | {
       type: 'done';
-      /** The subset of the discovered events that was not in the settings yet. */
-      newEvents: PopulatedSubevent[];
-      /**
-       * The complete event list as it was just written to the settings, so the admin
-       * form can adopt it without a page reload.
-       */
-      allEvents: PopulatedSubevent[];
+      /** The subset of the discovered events that no Hof held yet. */
+      newEvents: HofEventRow[];
+      /** Every event of every Hof, as stored once the walk was written. */
+      allEvents: HofEventRow[];
     }
   | { type: 'error'; error: string };

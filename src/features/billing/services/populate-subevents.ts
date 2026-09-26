@@ -1,9 +1,11 @@
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { BillingLogger } from '@/features/billing/ports/logger.port';
-import type { SettingsPort } from '@/features/billing/ports/settings.port';
-import type { PopulatedSubevent } from '@/features/billing/types';
+import type { HofSyncWrite, SettingsPort } from '@/features/billing/ports/settings.port';
+import { flattenHofEvents } from '@/features/billing/services/hof-events';
+import type { HofEventRow } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
-import { decodeDisplayText } from '@/features/registration_process/hitobito-api/html-parser';
+import { deriveHofName } from '@/features/payload-cms/payload-cms/utils/hof-name';
+import type { Hof } from '@/features/payload-cms/payload-types';
 
 /**
  * Progress emitted while the subgroups of the parent group are walked.
@@ -15,7 +17,7 @@ import { decodeDisplayText } from '@/features/registration_process/hitobito-api/
 export interface PopulateSubeventsProgress {
   processedGroups: number;
   totalGroups: number;
-  foundEvents: PopulatedSubevent[];
+  foundEvents: HofEventRow[];
 }
 
 export type PopulateSubeventsProgressHandler = (
@@ -26,9 +28,120 @@ const PARENT_GROUP_ID = '4337';
 const CONCURRENCY_LIMIT = 3;
 const MAX_ATTEMPTS = 3;
 
+type StoredHof = Pick<Hof, 'name' | 'groupId' | 'events'> &
+  Partial<Pick<Hof, 'addressManagerEmails' | 'reminderRecipientsOverride'>>;
+
+interface WorkingHof {
+  name: string;
+  groupId: string;
+  events: Array<{ eventId: string; eventName: string }>;
+  addressManagerEmails?: string | null | undefined;
+  reminderRecipientsOverride?: string | null | undefined;
+}
+
+/** What a sync write would change on a Hof, to tell the Höfe it has to touch from the rest. */
+const syncedState = (hof: Pick<WorkingHof, 'events' | 'addressManagerEmails'>): string =>
+  JSON.stringify({
+    events: hof.events.map(({ eventId, eventName }) => ({ eventId, eventName })),
+    addressManagerEmails: hof.addressManagerEmails ?? '',
+  });
+
+/**
+ * Merges the events a walk found into the stored Höfe.
+ *
+ * A known Hof keeps its document — most of all its name and `reminderRecipientsOverride`,
+ * which an editor set by hand and a sync must never wipe — and has every field Cevi.DB owns
+ * refreshed: the names of its events, new events appended, and its address managers unless
+ * their lookup failed. A group without a Hof gets one, named after its first event.
+ *
+ * Aufbau- and Abbaulager events are dropped from the stored Höfe as well, the same rule the
+ * walk applies to what it finds.
+ *
+ * @returns the Höfe to write — only those the walk changed —, the events no Hof held before,
+ *   and every event of every Hof after the merge
+ */
+export function mergeWalkIntoHoefe(
+  stored: readonly StoredHof[],
+  walked: readonly HofEventRow[],
+): { writes: HofSyncWrite[]; newEvents: HofEventRow[]; allEvents: HofEventRow[] } {
+  const hoefe = new Map<string, WorkingHof>();
+  const storedState = new Map<string, string>();
+  const knownEventIds = new Set<string>();
+
+  for (const hof of stored) {
+    const events = (hof.events ?? []).map(({ eventId, eventName }) => ({ eventId, eventName }));
+    storedState.set(hof.groupId, syncedState({ ...hof, events }));
+    for (const event of events) knownEventIds.add(event.eventId);
+    hoefe.set(hof.groupId, {
+      name: hof.name,
+      groupId: hof.groupId,
+      events: events.filter((event) => !isAufbauOrAbbaulager(event.eventName)),
+      addressManagerEmails: hof.addressManagerEmails,
+      reminderRecipientsOverride: hof.reminderRecipientsOverride,
+    });
+  }
+
+  const newEvents: HofEventRow[] = [];
+  const refreshedAddresses = new Map<string, string>();
+
+  for (const row of walked) {
+    // Cevi.DB now lists the event under another group, so it moves to that group's Hof. The
+    // Hof it leaves stays, even when empty: other areas may point at it.
+    for (const hof of hoefe.values()) {
+      if (hof.groupId !== row.groupId)
+        hof.events = hof.events.filter((event) => event.eventId !== row.eventId);
+    }
+
+    let hof = hoefe.get(row.groupId);
+    if (hof === undefined) {
+      const groupEventNames = walked
+        .filter((candidate) => candidate.groupId === row.groupId)
+        .map((candidate) => candidate.eventName);
+      hof = { name: deriveHofName(groupEventNames, row.groupId), groupId: row.groupId, events: [] };
+      hoefe.set(row.groupId, hof);
+    }
+
+    const existing = hof.events.find((event) => event.eventId === row.eventId);
+    if (existing === undefined) {
+      hof.events.push({ eventId: row.eventId, eventName: row.eventName });
+      if (!knownEventIds.has(row.eventId)) newEvents.push(row);
+    } else {
+      // The name lives in Cevi.DB, and it is what the bills, the exports and the reminder
+      // mails print.
+      existing.eventName = row.eventName;
+    }
+
+    // Left undefined by the walk when the lookup failed, which keeps the stored list.
+    if (row.addressManagerEmails !== undefined) {
+      hof.addressManagerEmails = row.addressManagerEmails;
+      refreshedAddresses.set(row.groupId, row.addressManagerEmails);
+    }
+  }
+
+  const writes: HofSyncWrite[] = [];
+  for (const hof of hoefe.values()) {
+    hof.events.sort((a, b) => a.eventName.localeCompare(b.eventName));
+    if (storedState.get(hof.groupId) === syncedState(hof)) continue;
+
+    const addressManagerEmails = refreshedAddresses.get(hof.groupId);
+    writes.push({
+      groupId: hof.groupId,
+      name: hof.name,
+      events: hof.events,
+      ...(addressManagerEmails === undefined ? {} : { addressManagerEmails }),
+    });
+  }
+
+  const allEvents = flattenHofEvents([...hoefe.values()]).sort((a, b) =>
+    a.eventName.localeCompare(b.eventName),
+  );
+
+  return { writes, newEvents, allEvents };
+}
+
 /**
  * Fetches every subgroup of the conveniat27 parent group from Cevi.DB, collects the
- * matching events and merges them into the bill settings.
+ * matching events and merges them into the Höfe, one Hof per subgroup.
  *
  * @param onProgress optional callback invoked after every finished batch of subgroups.
  *   The walk is the slow part (~45s), so this is what a caller streams to the admin UI.
@@ -41,10 +154,10 @@ export async function populateSubeventsUseCase(
 ): Promise<{
   success: boolean;
   count: number;
-  /** The events that were not in the settings before this run. */
-  newEvents: PopulatedSubevent[];
-  /** The full list as written to the settings, new and pre-existing events alike. */
-  allEvents: PopulatedSubevent[];
+  /** The events that no Hof held before this run. */
+  newEvents: HofEventRow[];
+  /** Every event of every Hof once the walk is written, new and pre-existing alike. */
+  allEvents: HofEventRow[];
 }> {
   logger.info('Fetching the subgroups of the conveniat27 parent group from Cevi.DB', {
     'billing.parent_group_id': PARENT_GROUP_ID,
@@ -55,7 +168,7 @@ export async function populateSubeventsUseCase(
     'billing.total_groups': subgroupLinks.length,
   });
 
-  const results: PopulatedSubevent[] = [];
+  const results: HofEventRow[] = [];
 
   await onProgress?.({
     processedGroups: 0,
@@ -116,8 +229,8 @@ export async function populateSubeventsUseCase(
     return undefined;
   };
 
-  const executeBatch = async (ids: string[]): Promise<PopulatedSubevent[]> => {
-    const batchResults: PopulatedSubevent[] = [];
+  const executeBatch = async (ids: string[]): Promise<HofEventRow[]> => {
+    const batchResults: HofEventRow[] = [];
 
     await Promise.all(
       ids.map(async (groupId) => {
@@ -185,82 +298,18 @@ export async function populateSubeventsUseCase(
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
-  // Fetch existing settings to merge rather than overwriting
-  const settings = await settingsRepo.getBillSettings();
-  const existingEvents = Array.isArray(settings.events) ? settings.events : [];
+  const storedHoefe = await settingsRepo.getHoefe();
+  const { writes, newEvents, allEvents } = mergeWalkIntoHoefe(storedHoefe, results);
 
-  // Filter out any Aufbau- or Abbaulager events from pre-existing settings, and decode the
-  // rows that were written before the names were decoded on the way in. Without this an
-  // already known Hof keeps its `&amp;` forever, because the merge below leaves the name of
-  // an existing row alone.
-  const filteredExistingEvents = existingEvents
-    .filter((event) => !isAufbauOrAbbaulager(event.eventName))
-    .map((event) =>
-      // Legacy rows exist with no name at all; those stay exactly as they are.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      typeof event.eventName === 'string'
-        ? { ...event, eventName: decodeDisplayText(event.eventName) }
-        : event,
-    );
-
-  // Merge new results into filteredExistingEvents, using eventId as the key. A known event
-  // keeps its row — most of all its `reminderRecipientsOverride`, which an editor set by
-  // hand and which a sync must never wipe — and has every field Cevi.DB owns refreshed.
-  const mergedEvents = [...filteredExistingEvents];
-  const newEvents: PopulatedSubevent[] = [];
-  for (const newEvent of results) {
-    const existingIndex = mergedEvents.findIndex(
-      (existingEvent) => existingEvent.eventId === newEvent.eventId,
-    );
-    if (existingIndex === -1) {
-      mergedEvents.push(newEvent);
-      newEvents.push(newEvent);
-    } else {
-      // The name and the group live in Cevi.DB, so a Hof renamed or moved there has to
-      // reach the stored row: it is what the bills, the exports, the reminder mails and
-      // the participation sync read. `addressManagerEmails` is the one synced field that
-      // keeps its stored value when the lookup failed, see `withRetry` above.
-      mergedEvents[existingIndex] = {
-        ...mergedEvents[existingIndex],
-        eventName: newEvent.eventName,
-        groupId: newEvent.groupId,
-        ...(newEvent.addressManagerEmails === undefined
-          ? {}
-          : { addressManagerEmails: newEvent.addressManagerEmails }),
-      } as (typeof mergedEvents)[number];
-    }
-  }
-
-  // Sort merged events by eventName for clean structure in the UI
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  mergedEvents.sort((a, b) => (a.eventName ?? '').localeCompare(b.eventName ?? ''));
-
-  logger.info('Writing the walked events to the bill settings', {
+  logger.info('Writing the walked events to the Höfe', {
     'billing.total_groups': subgroupLinks.length,
     'billing.events_found': results.length,
     'billing.events_new': newEvents.length,
-    'billing.events_stored': mergedEvents.length,
+    'billing.events_stored': allEvents.length,
+    'billing.hoefe_written': writes.length,
   });
 
-  await settingsRepo.updateBillSettingsEvents(mergedEvents);
+  await settingsRepo.upsertHoefe(writes);
 
-  return {
-    success: true,
-    count: newEvents.length,
-    newEvents,
-    // Stripped of the Payload row `id`, which the settings form re-creates anyway.
-    allEvents: mergedEvents.map(
-      ({ eventId, eventName, groupId, addressManagerEmails, reminderRecipientsOverride }) => ({
-        eventId,
-        eventName,
-        groupId,
-        ...(addressManagerEmails === undefined || addressManagerEmails === null
-          ? {}
-          : { addressManagerEmails }),
-        ...(reminderRecipientsOverride === undefined || reminderRecipientsOverride === null
-          ? {}
-          : { reminderRecipientsOverride }),
-      }),
-    ),
-  };
+  return { success: true, count: newEvents.length, newEvents, allEvents };
 }

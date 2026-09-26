@@ -551,9 +551,9 @@ export async function syncParticipantsUseCase(
     errors: [],
   };
 
-  // 1. Load bill settings
+  // 1. Load bill settings and the events of the Höfe
   const settings = await settingsRepo.getBillSettings();
-  const rawEvents = (settings.events as BillSettingsEvent[] | undefined) ?? [];
+  const rawEvents: BillSettingsEvent[] = await settingsRepo.getHofEvents();
   const events: BillSettingsEvent[] = [];
   const excludedEvents: BillSettingsEvent[] = [];
 
@@ -605,8 +605,8 @@ export async function syncParticipantsUseCase(
     (pricing) => pricing.roleTypePattern,
   );
   if (events.length === 0) {
-    summary.errors.push('No events configured in Bill Settings.');
-    summary.relatedDocuments = ['billSettings'];
+    summary.errors.push('No events configured on any Hof.');
+    summary.relatedDocuments = ['hoefe'];
     return summary;
   }
 

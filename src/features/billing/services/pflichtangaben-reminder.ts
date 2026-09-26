@@ -1,3 +1,4 @@
+import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
 import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
 import type { WeeklySlotConfig } from '@/features/billing/services/send-weekly-report';
 import { isWeeklySlotDue, parseRecipients } from '@/features/billing/services/send-weekly-report';
@@ -18,7 +19,7 @@ export interface PflichtangabenReminderConfig extends WeeklySlotConfig {
   body?: string | null;
 }
 
-/** One event of the `bill-settings` event list, reduced to what a reminder needs. */
+/** One event of a Hof, reduced to what a reminder needs. See `flattenHofEvents`. */
 export interface ReminderEventSettings {
   eventId?: string | null;
   eventName?: string | null;
@@ -353,7 +354,8 @@ async function sendPflichtangabenRemindersLocked(
       errors: [],
     };
 
-  const groups = groupRemindersByEvent(overdue, settings.events ?? []);
+  const hofEvents = await new PayloadSettingsAdapter(payload).getHofEvents();
+  const groups = groupRemindersByEvent(overdue, hofEvents);
   const errors: string[] = [];
   let mailCount = 0;
   let participantCount = 0;
@@ -434,6 +436,7 @@ async function sendPflichtangabenRemindersLocked(
     mailCount,
     participantCount,
     errors,
-    ...(errors.length > 0 ? { relatedDocuments: ['billSettings' as const] } : {}),
+    // The recipients are set per Hof, so that is where a missing one is fixed.
+    ...(errors.length > 0 ? { relatedDocuments: ['hoefe' as const] } : {}),
   };
 }

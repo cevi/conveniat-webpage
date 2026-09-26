@@ -3,6 +3,7 @@ import {
   canAccessAdminPanel,
   canUserAccessAdminPanel,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Access, FieldAccess } from 'payload';
 
@@ -25,6 +26,19 @@ export const canAccessBilling: Access = (args) => {
     (group: unknown) =>
       group && typeof group === 'object' && 'id' in group && String(group.id) === billingGroupId,
   );
+};
+
+/**
+ * The billing team, the full admins and the web core team.
+ *
+ * For shared reference data the billing sync owns but other areas look up, like the Höfe:
+ * billing maintains it, admin and web have to see it to build on it. It lives here rather
+ * than in `roles.ts` because `roles.ts` is imported by this file, and billing is an add-on
+ * group rather than a role.
+ */
+export const hasBillingOrAdminOrWebAccess: Access = (args) => {
+  if (hasAdminOrWebAccess({ req: args.req })) return true;
+  return canAccessBilling(args);
 };
 
 export const canAccessBillingField: FieldAccess = ({ req }) => {
