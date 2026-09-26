@@ -119,6 +119,8 @@ const mockBackend = async (
       // eslint-disable-next-line unicorn/no-null -- tRPC answers "nothing" with null
       return null;
     });
+    // a write takes its time, as on camp wifi, so what shows before the answer can be seen
+    if (route.request().method() === 'POST') await new Promise((done) => setTimeout(done, 1500));
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -155,7 +157,7 @@ test.describe('Hof dashboard', () => {
       'aria-selected',
       'true',
     );
-    await expect(page.locator('#submission-hofBuildings')).toBeFocused();
+    await expect(page.locator('[data-submission="hofBuildings"]')).toBeFocused();
   });
 
   test('moves between the tabs with the arrow keys', async ({ page }) => {
@@ -191,7 +193,7 @@ test.describe('Hof dashboard', () => {
     await page.goto('/hof-dashboard');
 
     await page.getByRole('tab', { name: 'Infrastruktur' }).click();
-    const card = page.locator('#submission-entrance');
+    const card = page.locator('[data-submission="entrance"]');
     await card.getByRole('button', { name: 'Ja', exact: true }).click();
     // shown at once, before the server has it
     await expect(card.getByRole('button', { name: 'Ja', exact: true })).toHaveAttribute(

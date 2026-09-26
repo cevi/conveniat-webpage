@@ -4,54 +4,43 @@ import type {
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
   Panel,
+  ProgressPill,
   SectionHeading,
-  StatusPill,
-  type StatusTone,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
 import { FileList } from '@/features/hof-dashboard/components/file-list';
 import {
-  HOF_SUBMISSION_STATUS_LABELS,
   HOF_SUBMISSION_TYPE_LABELS,
-  type HofSubmissionStatus,
+  type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
+import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 
-/** A revision request is the one status that asks the Hof to act. */
-const STATUS_TONE: Record<HofSubmissionStatus, StatusTone> = {
-  submitted: 'done',
-  inReview: 'done',
-  revisionRequired: 'alert',
-  archived: 'neutral',
-};
-
-/** One submission's files, under its name and the Ressort's status. */
-const SubmissionFiles: React.FC<{ submission: HofDashboardSubmission; locale: Locale }> = ({
-  submission,
-  locale,
-}) => (
+/** One submission's files, under its name and where it stands, as on the overview. */
+const SubmissionFiles: React.FC<{
+  submission: HofDashboardSubmission;
+  progress: SubmissionProgress;
+  locale: Locale;
+}> = ({ submission, progress, locale }) => (
   <div className="space-y-2 pt-4 first:pt-0">
     <div className="flex flex-wrap items-center gap-2">
       <h4 className="text-sm font-bold text-gray-900">
         {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
       </h4>
-      {submission.status !== undefined && (
-        <StatusPill tone={STATUS_TONE[submission.status]}>
-          {HOF_SUBMISSION_STATUS_LABELS[submission.status][locale]}
-        </StatusPill>
-      )}
+      <ProgressPill progress={progress} status={submission.status} locale={locale} />
     </div>
     <FileList files={submission.files} locale={locale} showKind />
   </div>
 );
 
 /** The documents to download, and every file the Hof handed in, by submission. */
-export const DocumentsView: React.FC<{ data: HofDashboardData; locale: Locale }> = ({
-  data,
-  locale,
-}) => {
+export const DocumentsView: React.FC<{
+  data: HofDashboardData;
+  progress: Record<HofSubmissionType, SubmissionProgress>;
+  locale: Locale;
+}> = ({ data, progress, locale }) => {
   const handedIn = data.submissions.filter((submission) => submission.files.length > 0);
 
   return (
@@ -72,7 +61,12 @@ export const DocumentsView: React.FC<{ data: HofDashboardData; locale: Locale }>
         ) : (
           <div className="divide-y divide-gray-100">
             {handedIn.map((submission) => (
-              <SubmissionFiles key={submission.type} submission={submission} locale={locale} />
+              <SubmissionFiles
+                key={submission.type}
+                submission={submission}
+                progress={progress[submission.type]}
+                locale={locale}
+              />
             ))}
           </div>
         )}

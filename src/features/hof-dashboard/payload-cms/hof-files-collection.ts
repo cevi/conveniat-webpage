@@ -24,9 +24,10 @@ export const HofFilesCollection: CollectionConfig = {
     plural: { de: 'Hof-Dateien', en: 'Hof files', fr: 'Fichiers des Hofs' },
   },
   admin: {
-    useAsTitle: 'filename',
+    // what the Hof named the file; the stored name may carry a suffix against duplicates
+    useAsTitle: 'originalFilename',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
-    defaultColumns: ['filename', 'hof', 'kind', 'submission', 'createdAt'],
+    defaultColumns: ['originalFilename', 'hof', 'kind', 'submission', 'createdAt'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'Every file the Höfe handed in on the dashboard, one entry per version. The Hof and the submission are set by the upload and cannot be changed.',

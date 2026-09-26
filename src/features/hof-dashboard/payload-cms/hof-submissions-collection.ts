@@ -137,7 +137,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
       collection: 'hof-files',
       on: 'submission',
       defaultSort: '-createdAt',
-      admin: { defaultColumns: ['filename', 'kind', 'uploadedBy', 'createdAt'] },
+      admin: { defaultColumns: ['originalFilename', 'kind', 'uploadedBy', 'createdAt'] },
       label: { de: 'Dateien', en: 'Files', fr: 'Fichiers' },
     },
   ],

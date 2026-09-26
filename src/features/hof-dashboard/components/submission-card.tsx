@@ -19,6 +19,7 @@ import {
 import { FileList } from '@/features/hof-dashboard/components/file-list';
 import {
   HOF_FILE_ACCEPT,
+  HOF_FILE_MAX_BYTES,
   HOF_SUBMISSION_TYPE_LABELS,
   type HofFileKind,
   uploadKey,
@@ -30,7 +31,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Upload, X } from 'lucide-react';
 import type React from 'react';
-import { useRef } from 'react';
+import { useId, useRef } from 'react';
 
 /** A file on its way up: its name, how far it is, and a way to call it off. */
 const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = ({
@@ -177,10 +178,15 @@ const FilesWithUpload: React.FC<{
       <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
     )}
     {upload === undefined ? (
-      <UploadButton
-        label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
-        onFile={onFile}
-      />
+      <div className="space-y-1">
+        <UploadButton
+          label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
+          onFile={onFile}
+        />
+        <p className="text-xs text-gray-500">
+          {translate('fileRules', locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) })}
+        </p>
+      </div>
     ) : (
       <UploadProgress upload={upload} locale={locale} />
     )}
@@ -202,20 +208,19 @@ export const SubmissionCard: React.FC<{
 }> = ({ submission, progress, criteria, locale, uploads, onUpload, onSafetyRisk }) => {
   const plans = submission.files.filter((file) => file.kind === 'plan');
   const safetyConcepts = submission.files.filter((file) => file.kind === 'safetyConcept');
-  const questionId = `safety-question-${submission.type}`;
+  const id = useId();
+  const questionId = `${id}-question`;
+  const titleId = `${id}-title`;
 
   return (
     <article
-      id={`submission-${submission.type}`}
+      data-submission={submission.type}
       tabIndex={-1}
-      aria-labelledby={`submission-title-${submission.type}`}
+      aria-labelledby={titleId}
       className="scroll-mt-24 space-y-4 p-5 outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-inset @xl:p-6"
     >
       <header className="space-y-1">
-        <h4
-          id={`submission-title-${submission.type}`}
-          className="text-base font-bold text-gray-900"
-        >
+        <h4 id={titleId} className="text-base font-bold text-gray-900">
           {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
         </h4>
         <ProgressLine progress={progress} status={submission.status} locale={locale} />
@@ -236,7 +241,7 @@ export const SubmissionCard: React.FC<{
       />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-gray-100 pt-4">
-        <span id={questionId} className="text-sm font-medium text-gray-900">
+        <span id={questionId} className="basis-full text-sm font-medium text-gray-900">
           {translate('safetyRiskQuestion', locale)}
         </span>
         <SafetyRiskChoice

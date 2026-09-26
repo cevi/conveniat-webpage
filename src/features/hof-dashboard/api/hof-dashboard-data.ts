@@ -134,6 +134,7 @@ const toOrder = (
         items?: { itemId: string; name: string; quantity: number }[] | null;
         powerConnection?: boolean | null;
         lastEditedAt?: string | null;
+        updatedAt: string;
       }
     | undefined,
 ): HofDashboardOrder => {
@@ -160,7 +161,8 @@ const toOrder = (
     items,
     retiredItems,
     powerConnection: stored?.powerConnection === true,
-    savedAt: stored?.lastEditedAt ?? undefined,
+    // orders saved before the Hof's own save time was kept fall back to their last change
+    savedAt: stored?.lastEditedAt ?? stored?.updatedAt,
   };
 };
 

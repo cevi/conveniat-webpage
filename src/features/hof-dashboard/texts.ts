@@ -80,9 +80,9 @@ export const text = {
 
   gapPlan: { de: 'Planung fehlt', en: 'Plan missing', fr: 'Planification manquante' },
   gapSafetyRiskAnswer: {
-    de: 'Frage zum Sicherheitsrisiko offen',
-    en: 'Safety risk question unanswered',
-    fr: 'Question sur le risque de sécurité ouverte',
+    de: 'Sicherheitsrisiko angeben',
+    en: 'Safety risk not answered',
+    fr: 'Risque de sécurité à indiquer',
   },
   gapSafetyConcept: {
     de: 'Sicherheitskonzept fehlt',
@@ -111,6 +111,16 @@ export const text = {
     de: 'Dieser Dateityp wird nicht angenommen. Erlaubt: {types}.',
     en: 'This file type is not accepted. Allowed: {types}.',
     fr: "Ce type de fichier n'est pas accepté. Autorisés : {types}.",
+  },
+  fileContentMismatch: {
+    de: 'Diese Datei lässt sich nicht als {type} lesen. Ist sie vielleicht umbenannt?',
+    en: 'This file cannot be read as {type}. Was it renamed?',
+    fr: 'Ce fichier ne peut pas être lu comme {type}. A-t-il été renommé ?',
+  },
+  fileRules: {
+    de: 'PDF, Word, Excel, PowerPoint, Bild oder ZIP · bis {n} MB',
+    en: 'PDF, Word, Excel, PowerPoint, image or ZIP · up to {n} MB',
+    fr: 'PDF, Word, Excel, PowerPoint, image ou ZIP · jusqu’à {n} Mo',
   },
   noFileYet: {
     de: 'Noch keine Datei abgegeben',

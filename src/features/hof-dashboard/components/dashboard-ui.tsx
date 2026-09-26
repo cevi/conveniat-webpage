@@ -126,6 +126,17 @@ const progressLabel = (
   return translate(GAP_LABEL[progress.gap], locale);
 };
 
+/** Where a submission stands, as a pill: the same wherever it is shown. */
+export const ProgressPill: React.FC<{
+  progress: SubmissionProgress;
+  status: HofSubmissionStatus | undefined;
+  locale: Locale;
+}> = ({ progress, status, locale }) => (
+  <StatusPill tone={STATE_TONE[progress.state]}>
+    {progressLabel(progress, status, locale)}
+  </StatusPill>
+);
+
 /**
  * Where a submission stands: what is missing, or the Ressort's status once it is handed in,
  * named as everywhere else, and for what is missing the deadline and how far off it is.
@@ -136,7 +147,6 @@ export const ProgressLine: React.FC<{
   locale: Locale;
   className?: string;
 }> = ({ progress, status, locale, className }) => {
-  const label = progressLabel(progress, status, locale);
   const due: string[] = [];
   if (progress.state !== 'done' && progress.deadline !== undefined) {
     due.push(translate('dueOn', locale, { date: formatDate(progress.deadline, locale) }));
@@ -147,7 +157,7 @@ export const ProgressLine: React.FC<{
   return (
     // a span, since it also sits inside the overview's row buttons
     <span className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-sm', className)}>
-      <StatusPill tone={STATE_TONE[progress.state]}>{label}</StatusPill>
+      <ProgressPill progress={progress} status={status} locale={locale} />
       {due.length > 0 && <span className="text-gray-600">{due.join(' · ')}</span>}
     </span>
   );

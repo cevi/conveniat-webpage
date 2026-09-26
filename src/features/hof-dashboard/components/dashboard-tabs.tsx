@@ -1,16 +1,44 @@
 'use client';
 
 import { cn } from '@/utils/tailwindcss-override';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type React from 'react';
 import { useRef } from 'react';
 
 import { useScrollEdges } from '@/features/hof-dashboard/hooks/use-scroll-edges';
 
-/** The id of a tab's button and of its panel, so each can name the other. */
-export const tabIds = (id: string): { tab: string; panel: string } => ({
-  tab: `hof-dashboard-tab-${id}`,
-  panel: `hof-dashboard-panel-${id}`,
+/**
+ * The id of a tab's button and of its panel, so each can name the other. `prefix` keeps them
+ * apart when the dashboards of several Höfe are on the page.
+ */
+export const tabIds = (prefix: string, id: string): { tab: string; panel: string } => ({
+  tab: `${prefix}-tab-${id}`,
+  panel: `${prefix}-panel-${id}`,
 });
+
+/** An arrow over the end of the tab row, on the page's background, that scrolls it along. */
+const ScrollButton: React.FC<{ direction: 1 | -1; onClick: () => void }> = ({
+  direction,
+  onClick,
+}) => {
+  const Icon = direction === 1 ? ChevronRight : ChevronLeft;
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-hidden
+      onClick={onClick}
+      className={cn(
+        'absolute top-0 z-10 flex h-11 w-10 cursor-pointer items-center text-gray-600 hover:text-gray-900',
+        direction === 1
+          ? 'right-0 justify-end bg-linear-to-l from-slate-50 from-60% to-transparent'
+          : 'left-0 justify-start bg-linear-to-r from-slate-50 from-60% to-transparent',
+      )}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
+  );
+};
 
 /**
  * A row of tabs that scrolls sideways instead of wrapping. Only the selected tab is a tab stop;
@@ -18,11 +46,13 @@ export const tabIds = (id: string): { tab: string; panel: string } => ({
  */
 export const DashboardTabs = <T extends string>({
   tabs,
+  idPrefix,
   selected,
   label,
   onSelect,
 }: {
   tabs: { id: T; label: string }[];
+  idPrefix: string;
   selected: T;
   label: string;
   onSelect: (id: T) => void;
@@ -57,52 +87,52 @@ export const DashboardTabs = <T extends string>({
     focusTab(next);
   };
 
+  /** Moves the row by about one tab, for pointers; the keyboard has the arrow keys. */
+  const scrollBy = (direction: 1 | -1): void =>
+    row.current?.scrollBy({ left: direction * 120, behavior: 'smooth' });
+
   return (
-    <div
-      ref={row}
-      role="tablist"
-      aria-label={label}
-      className={cn(
-        '-mx-1 flex [scrollbar-width:none] overflow-x-auto border-b border-gray-200 px-1',
-        // fade out the side where tabs are hidden, so the row reads as scrollable
-        edges.start &&
-          edges.end &&
-          '[mask-image:linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)]',
-        edges.start &&
-          !edges.end &&
-          '[mask-image:linear-gradient(to_right,transparent,black_2rem)]',
-        !edges.start && edges.end && '[mask-image:linear-gradient(to_left,transparent,black_2rem)]',
-      )}
-    >
-      {tabs.map((tab, index) => {
-        const isSelected = tab.id === selected;
-        const ids = tabIds(tab.id);
-        return (
-          <button
-            key={tab.id}
-            ref={(element) => {
-              if (element === null) buttons.current.delete(tab.id);
-              else buttons.current.set(tab.id, element);
-            }}
-            id={ids.tab}
-            type="button"
-            role="tab"
-            aria-selected={isSelected}
-            aria-controls={ids.panel}
-            tabIndex={isSelected ? 0 : -1}
-            onClick={() => select(tab.id)}
-            onKeyDown={(event) => onKeyDown(event, index)}
-            className={cn(
-              '-mb-px min-h-11 shrink-0 cursor-pointer border-b-2 px-3 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600',
-              isSelected
-                ? 'border-conveniat-green text-conveniat-green'
-                : 'border-transparent text-gray-600 hover:text-gray-900',
-            )}
-          >
-            {tab.label}
-          </button>
-        );
-      })}
+    <div className="relative">
+      {/* the row is wider than the column on phones and desktops alike, so where tabs are
+          hidden an arrow says so and brings them in */}
+      {edges.start && <ScrollButton direction={-1} onClick={() => scrollBy(-1)} />}
+      {edges.end && <ScrollButton direction={1} onClick={() => scrollBy(1)} />}
+      <div
+        ref={row}
+        role="tablist"
+        aria-label={label}
+        className="-mx-1 flex [scrollbar-width:none] overflow-x-auto border-b border-gray-200 px-1"
+      >
+        {tabs.map((tab, index) => {
+          const isSelected = tab.id === selected;
+          const ids = tabIds(idPrefix, tab.id);
+          return (
+            <button
+              key={tab.id}
+              ref={(element) => {
+                if (element === null) buttons.current.delete(tab.id);
+                else buttons.current.set(tab.id, element);
+              }}
+              id={ids.tab}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              aria-controls={ids.panel}
+              tabIndex={isSelected ? 0 : -1}
+              onClick={() => select(tab.id)}
+              onKeyDown={(event) => onKeyDown(event, index)}
+              className={cn(
+                '-mb-px min-h-11 shrink-0 cursor-pointer border-b-2 px-3 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600',
+                isSelected
+                  ? 'border-conveniat-green text-conveniat-green'
+                  : 'border-transparent text-gray-600 hover:text-gray-900',
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 };

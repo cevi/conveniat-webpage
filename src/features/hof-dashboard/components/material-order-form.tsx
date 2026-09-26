@@ -21,7 +21,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 
 /** The material list, split under its section headings in the order the settings give them. */
@@ -61,6 +61,8 @@ export const MaterialOrderForm: React.FC<{
   locale: Locale;
 }> = ({ hofId, order, canPassDeadline, locale }) => {
   const utils = trpc.useUtils();
+  // unique per form, since the orders of several Höfe can be on the page
+  const id = useId();
   const [quantities, setQuantities] = useState(() => initialQuantities(order));
   const [powerConnection, setPowerConnection] = useState(order.powerConnection);
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
@@ -156,11 +158,11 @@ export const MaterialOrderForm: React.FC<{
                   {group.items.map((item) => (
                     <tr key={item.id}>
                       <td className="py-2 pr-3 text-gray-900">
-                        <label htmlFor={`order-${order.type}-${item.id}`}>{item.name}</label>
+                        <label htmlFor={`${id}-${item.id}`}>{item.name}</label>
                       </td>
                       <td className="py-1.5 text-right">
                         <input
-                          id={`order-${order.type}-${item.id}`}
+                          id={`${id}-${item.id}`}
                           type="number"
                           inputMode="numeric"
                           min={0}

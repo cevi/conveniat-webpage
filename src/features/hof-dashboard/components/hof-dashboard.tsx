@@ -32,7 +32,7 @@ import { i18nConfig } from '@/types/types';
 import { signIn, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 
 type Tab = 'overview' | HofDashboardArea | 'orders' | 'documents';
 
@@ -101,7 +101,9 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
   const [tab, setTab] = useState<Tab>('overview');
   const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
   const clearScrollTarget = useCallback(() => setScrollTarget(undefined), []);
-  useScrollToSubmission(scrollTarget, clearScrollTarget);
+  const root = useRef<HTMLDivElement>(null);
+  const idPrefix = useId();
+  useScrollToSubmission(root, scrollTarget, clearScrollTarget);
 
   const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
     { hofId },
@@ -149,13 +151,14 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
         ))}
       </div>
     ),
-    documents: <DocumentsView data={data} locale={locale} />,
+    documents: <DocumentsView data={data} progress={progress} locale={locale} />,
   };
 
   return (
-    <div className="space-y-6">
+    <div ref={root} className="space-y-6">
       <DashboardTabs
         tabs={TABS.map(({ id, label }) => ({ id, label: translate(label, locale) }))}
+        idPrefix={idPrefix}
         selected={tab}
         label={translate('hof', locale)}
         onSelect={setTab}
@@ -163,9 +166,9 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
       {TABS.map(({ id }) => (
         <div
           key={id}
-          id={tabIds(id).panel}
+          id={tabIds(idPrefix, id).panel}
           role="tabpanel"
-          aria-labelledby={tabIds(id).tab}
+          aria-labelledby={tabIds(idPrefix, id).tab}
           hidden={id !== tab}
         >
           {panels[id]}
@@ -180,6 +183,8 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
     meta: { persist: false },
   });
   const [selectedHofId, setSelectedHofId] = useState<string>();
+  // every Hof opened so far stays on the page, hidden, so switching back keeps what was typed
+  const [openedHofIds, setOpenedHofIds] = useState<string[]>([]);
 
   if (hoefe.isLoading) return <LoadingState />;
   if (hoefe.data === undefined) {
@@ -207,7 +212,13 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           <label htmlFor="hof-dashboard-hof" className="text-sm font-medium text-gray-600">
             {translate('hof', locale)}
           </label>
-          <Select value={hof.id} onValueChange={setSelectedHofId}>
+          <Select
+            value={hof.id}
+            onValueChange={(hofId) => {
+              setOpenedHofIds((opened) => [...new Set([...opened, hof.id, hofId])]);
+              setSelectedHofId(hofId);
+            }}
+          >
             <SelectTrigger
               id="hof-dashboard-hof"
               className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold"
@@ -224,7 +235,11 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           </Select>
         </div>
       )}
-      <DashboardForHof key={hof.id} hofId={hof.id} locale={locale} />
+      {[...new Set([...openedHofIds, hof.id])].map((hofId) => (
+        <div key={hofId} hidden={hofId !== hof.id}>
+          <DashboardForHof hofId={hofId} locale={locale} />
+        </div>
+      ))}
     </div>
   );
 };

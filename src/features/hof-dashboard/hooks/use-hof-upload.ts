@@ -98,8 +98,12 @@ export const useHofUpload = (
       notifyFailure(locale, 'uploadFailed');
       return;
     }
-    if (extension === undefined || !startsLike(head, extension)) {
+    if (extension === undefined) {
       toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
+      return;
+    }
+    if (!startsLike(head, extension)) {
+      toast.error(translate('fileContentMismatch', locale, { type: extension.toUpperCase() }));
       return;
     }
     if (file.size > HOF_FILE_MAX_BYTES) {
@@ -114,6 +118,8 @@ export const useHofUpload = (
     const cancel = (): void => {
       cancelled = true;
       request.abort();
+      // the card goes back to its button at once, not when the next step notices
+      track(key);
     };
     const stopIfCancelled = (): void => {
       if (cancelled) throw new UploadCancelled();
