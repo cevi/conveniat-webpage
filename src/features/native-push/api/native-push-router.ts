@@ -1,5 +1,6 @@
 import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
+import { getAppShortName } from '@/utils/get-app-short-name';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
@@ -197,7 +198,7 @@ export const nativePushRouter = createTRPCRouter({
           const bodyText = welcomeMessages[targetLocale];
 
           const result = await sendFcmNotification(input.token, {
-            title: 'Konekta',
+            title: await getAppShortName(),
             body: bodyText,
             data: {
               url: '/app/settings',
