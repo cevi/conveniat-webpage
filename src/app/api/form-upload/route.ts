@@ -1,7 +1,8 @@
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { NextResponse } from 'next/server';
-import { getPayload } from 'payload';
+import { createLocalReq, getPayload } from 'payload';
 
 const logger = createLogger('api:form-upload');
 
@@ -113,15 +114,28 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const result = await payload.find({
-      collection: 'form_collection',
-      where: {
-        id: { in: ids },
-      },
-      limit: ids.length,
-      depth: 0,
-      req: { user },
-    });
+    const accessRequest = await createLocalReq({ user }, payload);
+
+    // Editors read through the collection's own access rules, as over REST. Anyone else is a
+    // participant restoring the files they just attached to a form they are still filling in.
+    // form_collection does not record who uploaded a file, so the closest we can narrow that is
+    // to files that are still temporary: once a submission claims a file, it is out of reach.
+    const result = hasAdminOrWebAccess({ req: accessRequest })
+      ? await payload.find({
+          collection: 'form_collection',
+          where: { id: { in: ids } },
+          limit: ids.length,
+          depth: 0,
+          overrideAccess: false,
+          req: accessRequest,
+        })
+      : await payload.find({
+          collection: 'form_collection',
+          where: { and: [{ id: { in: ids } }, { isTemporary: { equals: true } }] },
+          limit: ids.length,
+          depth: 0,
+          overrideAccess: true,
+        });
 
     const documents = result.docs.map((fileDocument) => ({
       id: fileDocument.id,
