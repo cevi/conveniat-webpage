@@ -158,12 +158,12 @@ const SectionHeading: React.FC<{
   description: string;
   action?: React.ReactNode;
 }> = ({ title, description, action }) => (
-  <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-    <div>
+  <div className="mb-4">
+    <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="m-0">{title}</h3>
-      <p className="m-0 mt-1 text-(--theme-elevation-500)">{description}</p>
+      {action}
     </div>
-    {action}
+    <p className="m-0 mt-1 text-(--theme-elevation-500)">{description}</p>
   </div>
 );
 
@@ -307,10 +307,10 @@ const NotificationHistory: React.FC<{ userId: string; locale: Locale }> = ({ use
         description={historyDescription[locale]}
         action={
           <Button
-            buttonStyle="secondary"
+            buttonStyle="pill"
             className="m-0"
             disabled={isRefetching}
-            icon={<RefreshCw className={cn('h-4 w-4', { 'animate-spin': isRefetching })} />}
+            icon={<RefreshCw className={cn('size-3.5', { 'animate-spin': isRefetching })} />}
             iconPosition="left"
             onClick={() => void refetch()}
             size="small"
@@ -339,7 +339,7 @@ const NotificationHistory: React.FC<{ userId: string; locale: Locale }> = ({ use
       </div>
       {hasNextPage && (
         <Button
-          buttonStyle="secondary"
+          buttonStyle="pill"
           className="m-0"
           disabled={isFetchingNextPage}
           onClick={() => void fetchNextPage()}
