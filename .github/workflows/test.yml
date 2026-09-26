@@ -6,6 +6,11 @@ name: Run Test Suite
 on:
   pull_request:
 
+# A new push supersedes the run for the previous one; only the latest result gates the merge.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Run Test Suite
@@ -18,8 +23,10 @@ jobs:
       - name: Copy environment variables
         run: cp .env.example .env
 
+      # Postgres is the only service the suite reaches, and only through `prisma migrate` below.
+      # The Jest tests mock their clients, so pulling Mongo, SeaweedFS and Redis buys nothing.
       - name: Start Docker services
-        run: COMPOSE_PROFILES="" docker compose up -d --wait
+        run: COMPOSE_PROFILES="" docker compose up -d --wait postgres
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
