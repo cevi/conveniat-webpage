@@ -44,7 +44,11 @@ export const signalTyping = trpcBaseProcedure
       where: { uuid: chatId },
       select: {
         capabilities: true,
-        chatMemberships: { select: { userId: true, chatPermission: true } },
+        // only the sender's row: this runs every few seconds per typist, in chats of any size
+        chatMemberships: {
+          where: { userId: user.uuid },
+          select: { userId: true, chatPermission: true },
+        },
       },
     });
     assertMembershipCanWrite(chat, chatId, user.uuid, parentId);

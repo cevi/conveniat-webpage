@@ -302,6 +302,10 @@ export const useMessageSend = (): UseMessageSendMutation => {
             );
           }
         }
+        // a retry of a failed send that fell back to the outbox: the outbox owns it now
+        if (context?.optimisticMessageId !== undefined) {
+          forgetFailedSend(context.optimisticMessageId);
+        }
         toast.success('Message queued. Will be sent when online.');
         return;
       }

@@ -4,6 +4,7 @@ import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import {
   FAILED_SENDS_UPDATED_EVENT,
+  forgetFailedSend,
   getFailedChatMessages,
 } from '@/features/chat/utils/failed-sends';
 import { getPendingOutboxChatMessages } from '@/features/chat/utils/offline-outbox';
@@ -101,6 +102,20 @@ export const useMessageInfiniteScroll = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chatId, parentId, outboxVersion],
   );
+
+  // A failed send the server did store after all (a lost response) turns up in the fetched
+  // pages; the local copy would otherwise come back as a ghost once it scrolls out of them.
+  useEffect(() => {
+    for (const failed of getFailedChatMessages(chatId, parentId)) {
+      const isStored = fetchedMessages.some(
+        // a pending copy is only a retry in flight, not proof the server has it
+        (m) => m.id === failed.id && m.sendFailed !== true && m.status !== 'CREATED',
+      );
+      if (isStored) {
+        forgetFailedSend(failed.id);
+      }
+    }
+  }, [chatId, parentId, fetchedMessages]);
 
   const sortedMessages = useMemo(() => {
     const missingOutboxMessages = pendingOutboxMessages.filter(

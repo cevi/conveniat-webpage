@@ -153,9 +153,10 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     return trimmedMessage;
   }, [newMessage]);
 
-  /** Puts taken text back, unless something new was typed in the meantime. */
+  /** Puts taken text back, in front of anything typed in the meantime. */
   const restoreMessage = useCallback((text: string): void => {
-    setNewMessage((current) => (current === '' ? text : current));
+    if (text === '') return;
+    setNewMessage((current) => (current === '' ? text : `${text}\n${current}`));
   }, []);
 
   const signalTyping = useTypingSignal(chatId, activeThreadId);
