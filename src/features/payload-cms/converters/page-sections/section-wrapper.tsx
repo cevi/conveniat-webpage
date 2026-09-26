@@ -44,6 +44,17 @@ const blockSpacing: Partial<Record<ContentBlockTypeNames, string>> = {
   contactPerson: 'mt-12',
 };
 
+/**
+ * Classes for blocks that span the entire content area instead of the reading
+ * column.
+ */
+const fullBleedBlockClassNames: Partial<Record<ContentBlockTypeNames, string>> = {
+  posterHero: 'xl:-mx-12',
+};
+
+const isFullBleedBlock = (blockType: ContentBlockTypeNames): boolean =>
+  fullBleedBlockClassNames[blockType] !== undefined;
+
 const SectionWrapper = async ({
   block,
   sectionClassName,
@@ -60,6 +71,7 @@ const SectionWrapper = async ({
   locale: Locale;
 }): Promise<React.ReactElement> => {
   const blockTypeOverrideClassName = sectionOverrides?.[block.blockType];
+  const fullBleedClassName = fullBleedBlockClassNames[block.blockType];
   const isDraftMode = await isAdminSession();
 
   // Pre-validate block in draft mode to avoid render crashes (e.g. missing required fields)
@@ -86,7 +98,11 @@ const SectionWrapper = async ({
       return (
         <section
           key={block.id}
-          className={cn('mt-8 first:mt-0', sectionClassName, blockTypeOverrideClassName)}
+          className={cn(
+            'mt-8 first:mt-0',
+            fullBleedClassName ?? sectionClassName,
+            blockTypeOverrideClassName,
+          )}
         >
           <SectionErrorBoundary
             locale={locale}
@@ -110,7 +126,9 @@ const SectionWrapper = async ({
       className={cn(
         'mt-8 first:mt-0',
         blockSpacing[block.blockType],
-        sectionClassName ?? 'mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16',
+        fullBleedClassName ??
+          sectionClassName ??
+          'mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16',
         blockTypeOverrideClassName,
       )}
     >
@@ -123,6 +141,7 @@ const SectionWrapper = async ({
           className={cn('w-full', {
             'max-w-[840px]': block.blockType === 'richTextSection',
             'max-w-[1120px]':
+              !isFullBleedBlock(block.blockType) &&
               block.blockType !== 'richTextSection' &&
               block.blockType !== 'twoColumnBlock' &&
               block.blockType !== 'formBlock',

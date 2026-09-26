@@ -5,6 +5,7 @@ import type {
   DetailsTable,
   HeroSectionBlock,
   MediaTextBlock,
+  PosterHeroBlock,
   ProcessStepsBlock,
   SummaryBox,
   TwoColumnBlock,
@@ -86,6 +87,12 @@ export const extractTextContent = (mainContent: ContentBlock[]): string => {
         const hero = block as ContentBlock<HeroSectionBlock>;
         searchContent +=
           [hero.title, hero.badge, hero.description].filter(Boolean).join(' ') + '\n';
+        break;
+      }
+      case 'posterHero': {
+        const poster = block as ContentBlock<PosterHeroBlock>;
+        searchContent +=
+          [poster.title, poster.badge, poster.description].filter(Boolean).join(' ') + '\n';
         break;
       }
       case 'mediaText': {
