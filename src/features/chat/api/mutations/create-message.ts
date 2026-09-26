@@ -1,14 +1,13 @@
+import {
+  assertMembershipCanWrite,
+  assertWriteAbilities,
+} from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { ChatCapability, LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
+import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import {
-  ChatMembershipPermission,
-  ChatType,
-  MessageEventType,
-  MessageType,
-} from '@/lib/prisma/client';
+import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -88,17 +87,7 @@ export const createMessage = trpcBaseProcedure
     const validatedMessage = input;
 
     // 1. Global & Chat-specific Ability Check
-    const canSend = await Ability.can(
-      CapabilityAction.Send,
-      CapabilitySubject.Messages,
-      validatedMessage.chatId,
-    );
-    if (!canSend) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'Messaging is disabled in this chat or globally.',
-      });
-    }
+    await assertWriteAbilities(validatedMessage.chatId, validatedMessage.parentId);
 
     if (validatedMessage.type === MessageType.IMAGE_MSG) {
       const canUpload = await Ability.can(
@@ -110,20 +99,6 @@ export const createMessage = trpcBaseProcedure
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Image uploading is not enabled in this chat.',
-        });
-      }
-    }
-
-    if (validatedMessage.parentId) {
-      const canThread = await Ability.can(
-        CapabilityAction.Create,
-        CapabilitySubject.Threads,
-        validatedMessage.chatId,
-      );
-      if (!canThread) {
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'Threading is not enabled in this chat.',
         });
       }
     }
@@ -144,50 +119,7 @@ export const createMessage = trpcBaseProcedure
       },
     });
 
-    if (
-      !chat ||
-      chat.chatMemberships.length === 0 ||
-      !chat.chatMemberships.some((membership) => membership.userId === user.uuid)
-    ) {
-      logger.warn('Message send rejected: sender is not a member of the chat', {
-        'chat.id': validatedMessage.chatId,
-        'user.id': user.uuid,
-      });
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'You are not a member of this chat.',
-      });
-    }
-
-    const userMembership = chat.chatMemberships.find(
-      (membership) => membership.userId === user.uuid,
-    );
-
-    if (!userMembership) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'You are not a member of this chat.',
-      });
-    }
-
-    if (userMembership.chatPermission === ChatMembershipPermission.GUEST) {
-      // Guests can send messages ONLY if they are replying in a thread (parentId exists),
-      // and BOTH THREADS and THREAD_REPLIES capabilities are enabled for this chat.
-      const isThreadReply = !!validatedMessage.parentId;
-      const hasThreadsCapability = chat.capabilities.includes(ChatCapability.THREADS);
-      const hasThreadRepliesCapability = chat.capabilities.includes(ChatCapability.THREAD_REPLIES);
-
-      if (!isThreadReply || !hasThreadsCapability || !hasThreadRepliesCapability) {
-        logger.warn('Message send rejected: guest outside an allowed thread reply context', {
-          'chat.id': validatedMessage.chatId,
-          'user.id': user.uuid,
-        });
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'You do not have permission to send messages in this chat.',
-        });
-      }
-    }
+    assertMembershipCanWrite(chat, validatedMessage.chatId, user.uuid, validatedMessage.parentId);
 
     // 3. Idempotency: adopt the client-generated id as the message id when it is a UUID.
     // A replay of the same send then hits the row that already exists and is answered with

@@ -20,6 +20,11 @@ export interface ChatMessage {
     userName: string;
   }[];
   isPendingOffline?: boolean;
+  /**
+   * Client-only: the server refused or lost this message. The bubble stays in place with a
+   * retry action instead of disappearing. Absent in caches persisted by older versions.
+   */
+  sendFailed?: boolean;
 }
 
 interface ChatParticipant {

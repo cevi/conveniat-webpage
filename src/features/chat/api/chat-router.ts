@@ -10,6 +10,7 @@ import { onlinePing } from '@/features/chat/api/mutations/online-ping';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { reportProblem } from '@/features/chat/api/mutations/report-problem';
+import { signalTyping } from '@/features/chat/api/mutations/signal-typing';
 import { toggleReaction } from '@/features/chat/api/mutations/toggle-reaction';
 import { updateMessageContent } from '@/features/chat/api/mutations/update-message-content';
 import { getChat } from '@/features/chat/api/queries/get-chat';
@@ -34,6 +35,7 @@ export const chatRouter = createTRPCRouter({
   user: getUser,
   contacts: listContacts,
   onlinePing,
+  signalTyping,
   renameChat,
   chats: getChatList,
   chatDetails: getChat,

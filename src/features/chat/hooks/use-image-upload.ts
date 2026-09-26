@@ -20,6 +20,7 @@ interface UseImageUploadOptions {
       chatId: string;
       content: string;
       type: MessageType;
+      parentId?: string | undefined;
       timestamp?: Date;
       messageId?: string;
     }) => void;
@@ -34,7 +35,8 @@ export const useImageUpload = ({
   uploadUrlMutation: customUploadUrlMutation,
   sendMessageMutation: customSendMessageMutation,
 }: UseImageUploadOptions): {
-  uploadImage: (file: File) => Promise<void>;
+  /** Resolves to whether the image was uploaded and its message handed to the send queue. */
+  uploadImage: (file: File, parentId?: string) => Promise<boolean>;
   isUploading: boolean;
   isPending: boolean;
 } => {
@@ -46,7 +48,7 @@ export const useImageUpload = ({
   const sendMessageMutation = customSendMessageMutation ?? defaultSendMessageMutation;
 
   const uploadImage = useCallback(
-    async (file: File): Promise<void> => {
+    async (file: File, parentId?: string): Promise<boolean> => {
       try {
         setIsUploading(true);
 
@@ -76,14 +78,17 @@ export const useImageUpload = ({
           content: key,
           timestamp: new Date(),
           type: MessageType.IMAGE_MSG,
+          parentId,
           messageId: generateMessageId(),
         });
 
         onSuccess?.();
+        return true;
       } catch (error) {
         const error_ = error instanceof Error ? error : new Error('Unknown upload error');
         console.error('Failed to upload image:', error_);
         onError?.(error_);
+        return false;
       } finally {
         setIsUploading(false);
       }
