@@ -258,14 +258,17 @@ export const materialRouter = createTRPCRouter({
       };
     }),
 
-  /** Free pieces of one article for a period, so a request can say so before it is sent. */
+  /**
+   * Free pieces of one article for a period, so a request or a basket can say so before it is
+   * sent. The loans being changed are left out, since their pieces are free for the change.
+   */
   getAvailability: materialProcedure
     .input(
       z.object({
         itemId: z.string(),
         startDate: z.date(),
         endDate: z.date(),
-        excludeLoanId: z.string().optional(),
+        excludeLoanIds: z.array(z.string()).max(100).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -275,7 +278,9 @@ export const materialRouter = createTRPCRouter({
           loans: {
             where: {
               status: { in: HOLDING_STATUSES },
-              ...(input.excludeLoanId === undefined ? {} : { id: { not: input.excludeLoanId } }),
+              ...(input.excludeLoanIds === undefined
+                ? {}
+                : { id: { notIn: input.excludeLoanIds } }),
             },
             select: holdSelect,
           },

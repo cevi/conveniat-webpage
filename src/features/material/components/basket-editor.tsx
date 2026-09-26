@@ -66,9 +66,14 @@ const text = {
   },
   noneFree: { de: 'keine frei', en: 'none free', fr: 'aucun libre' },
   onlyFree: {
-    de: 'Nur {n} frei, der Rest fehlt am Regal.',
-    en: 'Only {n} free, the rest is not on the shelf.',
-    fr: 'Seulement {n} libres, le reste manque.',
+    de: 'Für diesen Zeitraum sind nur {n} frei.',
+    en: 'Only {n} free for this period.',
+    fr: 'Seulement {n} libres pour cette période.',
+  },
+  noneFreeInPeriod: {
+    de: 'Für diesen Zeitraum ist nichts mehr frei.',
+    en: 'Nothing is free for this period.',
+    fr: 'Plus rien de libre pour cette période.',
   },
   consumed: { de: 'wird verbraucht', en: 'used up', fr: 'sera consommé' },
   counterOnly: {
@@ -280,20 +285,52 @@ const ItemSearch: React.FC<{
   );
 };
 
+/**
+ * How many pieces of each basket article are free for the basket's period, asked of the server
+ * so that the basket says so while it is filled, not only when it is booked. The prepared loans
+ * being adjusted are left out: their pieces are this basket's. `undefined` while it is not known.
+ */
+const usePeriodFree = (
+  lines: readonly Line[],
+  prepared: readonly MaterialLoan[],
+  startDate: Date | undefined,
+  endDate: Date | undefined,
+  periodReversed: boolean,
+): Map<string, number | undefined> => {
+  const enabled = startDate !== undefined && endDate !== undefined && !periodReversed;
+  const results = trpc.useQueries((t) =>
+    lines.map((line) =>
+      t.material.getAvailability(
+        {
+          itemId: line.itemId,
+          startDate: startDate ?? new Date(0),
+          endDate: endDate ?? new Date(0),
+          excludeLoanIds: prepared
+            .filter((loan) => loan.item.id === line.itemId)
+            .map((loan) => loan.id),
+        },
+        { ...materialQueryOptions, enabled },
+      ),
+    ),
+  );
+  return new Map(lines.map((line, index) => [line.itemId, results[index]?.data?.available]));
+};
+
 /** One article in the basket: how many, capped where the stock ends, and whether used up. */
 const BasketLineRow: React.FC<{
   line: Line;
   item: MaterialItem | undefined;
+  /** free for the basket's period, the line's own prepared pieces included; unknown offline */
+  periodFree: number | undefined;
   preparing: boolean;
   onChange: (line: Line) => void;
   onRemove: () => void;
-}> = ({ line, item, preparing, onChange, onRemove }) => {
+}> = ({ line, item, periodFree, preparing, onChange, onRemove }) => {
   const locale = useMaterialLocale();
   const name = item?.name ?? '…';
-  const free = (item?.stock.available ?? 0) + line.held;
+  const free = periodFree ?? (item?.stock.available ?? 0) + line.held;
   const max = item?.maxLoanQuantity ?? line.quantity;
-  // a preparation for a later day may count on pieces that are out today
-  const cap = preparing ? max : basketLineCap({ available: free, maxLoanQuantity: max });
+  const cap = basketLineCap({ available: free, maxLoanQuantity: max });
   return (
     <li className="space-y-2 px-3 py-3">
       <div className="flex items-center gap-3">
@@ -344,9 +381,9 @@ const BasketLineRow: React.FC<{
           onChange={(quantity) => onChange({ ...line, quantity })}
         />
       </div>
-      {!preparing && line.quantity > cap && (
-        <p className="text-xs font-semibold text-red-700">
-          {format(text.onlyFree, locale, { n: cap })}
+      {line.quantity > cap && (
+        <p role="alert" className="text-xs font-semibold text-red-700">
+          {cap === 0 ? text.noneFreeInPeriod[locale] : format(text.onlyFree, locale, { n: cap })}
         </p>
       )}
       {preparing && item?.isReservable === false && (
@@ -419,9 +456,22 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
   const endDate = fromDateInput(end, 'end');
   const startDate = preparing ? fromDateInput(pickup, 'start') : now;
   const periodReversed = endDate !== undefined && startDate !== undefined && endDate < startDate;
+  const periodFree = usePeriodFree(lines, prepared, startDate, endDate, periodReversed);
+  // the server checks again on submit; this only stops a basket that is known not to fit
+  const overStock = lines.some((line) => {
+    const free = periodFree.get(line.itemId);
+    const max = byId.get(line.itemId)?.maxLoanQuantity ?? line.quantity;
+    return (
+      free !== undefined && line.quantity > basketLineCap({ available: free, maxLoanQuantity: max })
+    );
+  });
   const cancelsAll = adjusting && lines.length === 0;
   const canSubmit =
-    !book.isPending && endDate !== undefined && startDate !== undefined && !periodReversed;
+    !book.isPending &&
+    endDate !== undefined &&
+    startDate !== undefined &&
+    !periodReversed &&
+    !overStock;
 
   const submit = (): void => {
     if (endDate === undefined || startDate === undefined) return;
@@ -570,6 +620,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
                 key={line.itemId}
                 line={line}
                 item={byId.get(line.itemId)}
+                periodFree={periodFree.get(line.itemId)}
                 preparing={preparing}
                 onChange={(next) =>
                   setLines((current) => current.map((entry) => (entry === line ? next : entry)))
