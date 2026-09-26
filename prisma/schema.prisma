@@ -26,7 +26,6 @@ model User {
   presenceLogs         PresenceLog[]
   photoContestImages   PhotoContestImage[]
   photoContestVotes    PhotoContestVote[]
-  documentDownloads    DocumentDownload[]
 
   @@index([name])
 }
@@ -433,9 +432,9 @@ model DocumentDownload {
   /// id of the Payload document, which lives in MongoDB
   documentId String
 
-  /// absent when the visitor was not logged in
+  /// id of the Payload user, absent when the visitor was not logged in. Deliberately no relation
+  /// to User: that mirror can lag behind Payload, and a missing row must not lose the download.
   userId String?
-  user   User?   @relation(fields: [userId], references: [uuid])
 
   locale       String
   downloadedAt DateTime @default(now())

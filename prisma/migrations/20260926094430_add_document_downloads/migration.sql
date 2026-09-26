@@ -11,6 +11,3 @@ CREATE TABLE "DocumentDownload" (
 
 -- CreateIndex
 CREATE INDEX "DocumentDownload_documentId_idx" ON "DocumentDownload"("documentId");
-
--- AddForeignKey
-ALTER TABLE "DocumentDownload" ADD CONSTRAINT "DocumentDownload_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("uuid") ON DELETE SET NULL ON UPDATE CASCADE;
