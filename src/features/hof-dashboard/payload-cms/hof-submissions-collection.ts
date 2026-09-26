@@ -24,7 +24,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
     plural: { de: 'Hof-Abgaben', en: 'Hof submissions', fr: 'Dépôts des Hofs' },
   },
   admin: {
-    useAsTitle: 'submissionType',
+    useAsTitle: 'title',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
     defaultColumns: ['hof', 'submissionType', 'status', 'elevatedSafetyRisk', 'updatedAt'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
@@ -44,6 +44,13 @@ export const HofSubmissionsCollection: CollectionConfig = {
   },
   indexes: [{ fields: ['hof', 'submissionType'], unique: true }],
   fields: [
+    {
+      // set when the entry is made, so the admin's headings and pickers read "Hof Nord · …"
+      name: 'title',
+      type: 'text',
+      label: { de: 'Titel', en: 'Title', fr: 'Titre' },
+      admin: { hidden: true },
+    },
     {
       type: 'row',
       fields: [

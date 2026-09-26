@@ -13,7 +13,7 @@ import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { TRPCClientError } from '@trpc/client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 /**
@@ -72,6 +72,15 @@ export const useHofUpload = (
   const createUploadUrl = trpc.hofDashboard.createUploadUrl.useMutation({ networkMode: 'always' });
   const completeUpload = trpc.hofDashboard.completeUpload.useMutation({ networkMode: 'always' });
   const [uploads, setUploads] = useState<Record<string, UploadInProgress>>({});
+  // Leaving the dashboard, e.g. for another Hof, calls the uploads off: filed under a Hof no
+  // longer shown, they would report a success the user cannot place.
+  const running = useRef(new Set<() => void>());
+  useEffect(() => {
+    const cancels = running.current;
+    return (): void => {
+      for (const cancel of cancels) cancel();
+    };
+  }, []);
 
   /** Records how far an upload is, or forgets it once it is over. */
   const track = (key: string, upload?: UploadInProgress): void =>
@@ -109,6 +118,7 @@ export const useHofUpload = (
       if (state.cancelled) throw new UploadCancelled();
     };
     track(key, { filename: file.name, percent: 0, cancel });
+    running.current.add(cancel);
     try {
       const target = await createUploadUrl.mutateAsync({ hofId, filename: file.name });
       stopIfCancelled();
@@ -137,6 +147,7 @@ export const useHofUpload = (
         notifyFailure(locale, 'uploadFailed');
       }
     } finally {
+      running.current.delete(cancel);
       // a cancelled upload already left the card, which may by now hold the next one
       if (!state.cancelled) track(key);
     }

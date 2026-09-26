@@ -2,7 +2,10 @@
 
 import { useEffect } from 'react';
 
-/** How many parts of the dashboard hold something that would be lost right now. */
+/**
+ * How many parts of the dashboard hold something that would be lost right now; shared by all
+ * dashboards on the page, which is one in practice.
+ */
 let unsavedParts = 0;
 
 /** Whether leaving the current Hof would lose unsaved quantities or an upload under way. */

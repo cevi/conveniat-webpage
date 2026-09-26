@@ -52,11 +52,15 @@ export const DashboardTabList: React.FC<{ labels: string[]; label: string }> = (
       <TabList
         ref={row}
         aria-label={label}
-        className="-mx-1 flex [scrollbar-width:none] overflow-x-auto border-b border-gray-200 px-1"
+        className="-mx-1 flex scroll-px-10 [scrollbar-width:none] overflow-x-auto border-b border-gray-200 px-1"
       >
         {labels.map((tabLabel) => (
           <Tab
             key={tabLabel}
+            // Headless UI focuses a tab without scrolling; clear it of the arrows instead
+            onFocus={(event: React.FocusEvent<HTMLButtonElement>) =>
+              event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+            }
             className="data-selected:border-conveniat-green data-selected:text-conveniat-green -mb-px min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-2.5 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600"
           >
             {tabLabel}

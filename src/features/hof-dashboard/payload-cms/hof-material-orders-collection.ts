@@ -18,7 +18,7 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
     plural: { de: 'Hof-Materialbestellungen', en: 'Hof material orders', fr: 'Commandes des Hofs' },
   },
   admin: {
-    useAsTitle: 'orderType',
+    useAsTitle: 'title',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
     defaultColumns: ['hof', 'orderType', 'updatedAt', 'lastEditedBy'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
@@ -37,6 +37,13 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
   },
   indexes: [{ fields: ['hof', 'orderType'], unique: true }],
   fields: [
+    {
+      // set when the entry is made, so the admin's headings and pickers read "Hof Nord · …"
+      name: 'title',
+      type: 'text',
+      label: { de: 'Titel', en: 'Title', fr: 'Titre' },
+      admin: { hidden: true },
+    },
     {
       type: 'row',
       fields: [

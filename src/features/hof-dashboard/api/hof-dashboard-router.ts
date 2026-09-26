@@ -61,8 +61,8 @@ export const hofDashboardRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await ctx.assertHofAccess(input.hofId);
-      await completeHofUpload({ ...input, userId: ctx.user.uuid });
+      const hof = await ctx.assertHofAccess(input.hofId);
+      await completeHofUpload({ ...input, hof, userId: ctx.user.uuid });
     }),
 
   updateSafetyRisk: hofDashboardProcedure
@@ -73,8 +73,8 @@ export const hofDashboardRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await ctx.assertHofAccess(input.hofId);
-      await setHofSafetyRisk(input.hofId, input.submissionType, input.elevatedSafetyRisk);
+      const hof = await ctx.assertHofAccess(input.hofId);
+      await setHofSafetyRisk(hof, input.submissionType, input.elevatedSafetyRisk);
     }),
 
   updateMaterialOrder: hofDashboardProcedure
@@ -93,8 +93,9 @@ export const hofDashboardRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      await ctx.assertHofAccess(input.hofId);
+      const hof = await ctx.assertHofAccess(input.hofId);
       await updateHofMaterialOrder({
+        hof,
         ...input,
         userId: ctx.user.uuid,
         isReviewer: ctx.isReviewer,

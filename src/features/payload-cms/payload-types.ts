@@ -4608,6 +4608,7 @@ export interface OutgoingEmail {
  */
 export interface HofSubmission {
   id: string;
+  title?: string | null;
   hof: string | Hof;
   submissionType: 'flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram';
   /**
@@ -4665,6 +4666,7 @@ export interface HofFile {
  */
 export interface HofMaterialOrder {
   id: string;
+  title?: string | null;
   hof: string | Hof;
   orderType: 'infrastructure' | 'stadtleben';
   items?:
@@ -7265,6 +7267,7 @@ export interface HoefeSelect<T extends boolean = true> {
  * via the `definition` "hof-submissions_select".
  */
 export interface HofSubmissionsSelect<T extends boolean = true> {
+  title?: T;
   hof?: T;
   submissionType?: T;
   status?: T;
@@ -7303,6 +7306,7 @@ export interface HofFilesSelect<T extends boolean = true> {
  * via the `definition` "hof-material-orders_select".
  */
 export interface HofMaterialOrdersSelect<T extends boolean = true> {
+  title?: T;
   hof?: T;
   orderType?: T;
   items?:

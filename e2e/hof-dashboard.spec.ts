@@ -95,7 +95,8 @@ const mockBackend = async (
     signedIn = true,
     hoefe = [DASHBOARD.hof],
     dashboard = DASHBOARD,
-  }: { signedIn?: boolean; hoefe?: unknown[]; dashboard?: unknown } = {},
+    failWrites = false,
+  }: { signedIn?: boolean; hoefe?: unknown[]; dashboard?: unknown; failWrites?: boolean } = {},
 ): Promise<string[]> => {
   const mutations: string[] = [];
   await page.route('**/api/auth/session', async (route) => {
@@ -123,7 +124,27 @@ const mockBackend = async (
       return null;
     });
     // a write takes its time, as on camp wifi, so what shows before the answer can be seen
-    if (route.request().method() === 'POST') await new Promise((done) => setTimeout(done, 1500));
+    if (route.request().method() === 'POST') {
+      await new Promise((done) => setTimeout(done, 1500));
+      if (failWrites) {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify(
+            (procedures ?? []).map(() => ({
+              error: {
+                json: {
+                  message: 'failed',
+                  code: -32_603,
+                  data: { code: 'INTERNAL_SERVER_ERROR', httpStatus: 500 },
+                },
+              },
+            })),
+          ),
+        });
+        return;
+      }
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -247,5 +268,20 @@ test.describe('Hof dashboard', () => {
 
     expect(asked).toContain('Trotzdem den Hof wechseln?');
     await expect(page.getByLabel('Bindestrick')).toHaveValue('7');
+  });
+
+  test('puts the stored answer back when saving it fails', async ({ page }) => {
+    await mockBackend(page, { failWrites: true });
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Infrastruktur' }).click();
+
+    const yes = page.locator('[data-submission="entrance"]').getByRole('button', {
+      name: 'Ja',
+      exact: true,
+    });
+    await yes.click();
+    await expect(yes).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('Speichern fehlgeschlagen.')).toBeVisible();
+    await expect(yes).toHaveAttribute('aria-pressed', 'false');
   });
 });

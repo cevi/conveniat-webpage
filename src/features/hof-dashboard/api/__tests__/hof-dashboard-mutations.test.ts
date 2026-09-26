@@ -43,7 +43,7 @@ const PDF_BYTES = new TextEncoder().encode('%PDF-1.4');
 
 const upload = (key: string): Promise<void> =>
   completeHofUpload({
-    hofId: 'hof-nord',
+    hof: { id: 'hof-nord', name: 'Hof Nord' },
     submissionType: 'hofBuildings',
     kind: 'plan',
     key,
@@ -55,7 +55,7 @@ const order = (
   overrides: Partial<Parameters<typeof updateHofMaterialOrder>[0]> = {},
 ): Promise<void> =>
   updateHofMaterialOrder({
-    hofId: 'hof-nord',
+    hof: { id: 'hof-nord', name: 'Hof Nord' },
     orderType: 'infrastructure',
     quantities: [{ itemId: 'rope', quantity: 3 }],
     powerConnection: false,

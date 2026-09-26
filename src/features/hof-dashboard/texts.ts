@@ -58,7 +58,6 @@ export const text = {
     en: 'Everything is handed in. Thank you!',
     fr: 'Tout est déposé. Merci !',
   },
-  open: { de: 'Öffnen', en: 'Open', fr: 'Ouvrir' },
   deadlines: { de: 'Termine', en: 'Deadlines', fr: 'Échéances' },
   noDeadlines: {
     de: 'Es sind noch keine Termine erfasst.',

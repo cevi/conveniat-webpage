@@ -2,6 +2,8 @@ import { getHofDashboardSettings } from '@/features/hof-dashboard/api/hof-dashbo
 import {
   HOF_FILE_MAX_BYTES,
   HOF_FILE_TYPES,
+  HOF_ORDER_TYPE_LABELS,
+  HOF_SUBMISSION_TYPE_LABELS,
   hofFileExtensionOf,
   type HofFileKind,
   type HofOrderType,
@@ -9,6 +11,7 @@ import {
 } from '@/features/hof-dashboard/constants';
 import { buildOrderLines } from '@/features/hof-dashboard/utils/order-lines';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
+import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { HofMaterialOrder, HofSubmission } from '@/features/payload-cms/payload-types';
 import { S3_BUCKET_NAME, s3Client, s3ClientPublic } from '@/lib/s3';
@@ -55,9 +58,10 @@ export const createHofUploadUrl = async (
 /** The Hof's entry for one kind of plan, created the first time the Hof touches it. */
 const findOrCreateSubmission = async (
   payload: Payload,
-  hofId: string,
+  hof: HofName,
   submissionType: HofSubmissionType,
 ): Promise<HofSubmission> => {
+  const hofId = hof.id;
   const find = async (): Promise<HofSubmission | undefined> => {
     const { docs } = await payload.find({
       collection: 'hof-submissions',
@@ -75,7 +79,12 @@ const findOrCreateSubmission = async (
   try {
     return await payload.create({
       collection: 'hof-submissions',
-      data: { hof: hofId, submissionType },
+      // named once, when it is made: the Hof and the kind of plan never change afterwards
+      data: {
+        hof: hofId,
+        submissionType,
+        title: `${hof.name} · ${HOF_SUBMISSION_TYPE_LABELS[submissionType].de}`,
+      },
       depth: 0,
       overrideAccess: true,
     });
@@ -114,20 +123,21 @@ const readUpload = async (key: string): Promise<Uint8Array> => {
  * "submitted": whatever the Ressort said was about what the Hof had handed in before.
  */
 export const completeHofUpload = async ({
-  hofId,
+  hof,
   submissionType,
   kind,
   key,
   filename,
   userId,
 }: {
-  hofId: string;
+  hof: HofName;
   submissionType: HofSubmissionType;
   kind: HofFileKind;
   key: string;
   filename: string;
   userId: string;
 }): Promise<void> => {
+  const hofId = hof.id;
   const extension = hofFileExtensionOf(filename);
   if (!key.startsWith(uploadPrefix(hofId)) || key.includes('..') || extension === undefined) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
@@ -135,7 +145,7 @@ export const completeHofUpload = async ({
   const body = await readUpload(key);
 
   const payload = await getPayload({ config });
-  const submission = await findOrCreateSubmission(payload, hofId, submissionType);
+  const submission = await findOrCreateSubmission(payload, hof, submissionType);
   try {
     await payload.create({
       collection: 'hof-files',
@@ -187,12 +197,12 @@ export const completeHofUpload = async ({
 
 /** Records the Hof's answer to "elevated safety risk?" for one kind of plan. */
 export const setHofSafetyRisk = async (
-  hofId: string,
+  hof: HofName,
   submissionType: HofSubmissionType,
   elevatedSafetyRisk: 'yes' | 'no',
 ): Promise<void> => {
   const payload = await getPayload({ config });
-  const submission = await findOrCreateSubmission(payload, hofId, submissionType);
+  const submission = await findOrCreateSubmission(payload, hof, submissionType);
   await payload.update({
     collection: 'hof-submissions',
     id: submission.id,
@@ -210,20 +220,21 @@ export const setHofSafetyRisk = async (
  * the settings are only required in German, and the Ressort reads every order in one language.
  */
 export const updateHofMaterialOrder = async ({
-  hofId,
+  hof,
   orderType,
   quantities,
   powerConnection,
   userId,
   isReviewer,
 }: {
-  hofId: string;
+  hof: HofName;
   orderType: HofOrderType;
   quantities: { itemId: string; quantity: number }[];
   powerConnection: boolean;
   userId: string;
   isReviewer: boolean;
 }): Promise<void> => {
+  const hofId = hof.id;
   const payload = await getPayload({ config });
   const settings = await getHofDashboardSettings(payload, LOCALE.DE);
   const list =
@@ -274,7 +285,12 @@ export const updateHofMaterialOrder = async ({
   await (existing === undefined
     ? payload.create({
         collection: 'hof-material-orders',
-        data: { hof: hofId, orderType, ...data },
+        data: {
+          hof: hofId,
+          orderType,
+          title: `${hof.name} · ${HOF_ORDER_TYPE_LABELS[orderType].de}`,
+          ...data,
+        },
         depth: 0,
         overrideAccess: true,
       })
