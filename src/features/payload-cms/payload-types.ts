@@ -4676,6 +4676,20 @@ export interface PayloadMcpApiKey {
      */
     update?: boolean | null;
   };
+  helperJobs?: {
+    /**
+     * Allow clients to find helper-jobs.
+     */
+    find?: boolean | null;
+    /**
+     * Allow clients to create helper-jobs.
+     */
+    create?: boolean | null;
+    /**
+     * Allow clients to update helper-jobs.
+     */
+    update?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -7558,6 +7572,13 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         update?: T;
       };
   forms?:
+    | T
+    | {
+        find?: T;
+        create?: T;
+        update?: T;
+      };
+  helperJobs?:
     | T
     | {
         find?: T;
