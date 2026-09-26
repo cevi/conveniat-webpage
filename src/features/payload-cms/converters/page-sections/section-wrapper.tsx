@@ -46,10 +46,11 @@ const blockSpacing: Partial<Record<ContentBlockTypeNames, string>> = {
 
 /**
  * Classes for blocks that span the entire content area instead of the reading
- * column.
+ * column. The negative margins cancel the payload-pages layout padding
+ * (`pt-8 xl:px-12`), so a poster opening the page sits flush under the header.
  */
 const fullBleedBlockClassNames: Partial<Record<ContentBlockTypeNames, string>> = {
-  posterHero: 'xl:-mx-12',
+  posterHero: 'first:-mt-8 xl:-mx-12',
 };
 
 const isFullBleedBlock = (blockType: ContentBlockTypeNames): boolean =>
