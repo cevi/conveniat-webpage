@@ -9,8 +9,11 @@ export type MaterialItemStatus =
   | 'IN_REPAIR'
   | 'NOT_AVAILABLE';
 
-/** Overdue and due are read off an issued loan's end date, they are not stored. */
-export type MaterialLoanDisplayStatus = MaterialLoanStatus | 'RETURN_DUE' | 'OVERDUE';
+/**
+ * Overdue and due are read off an issued loan's end date, they are not stored; a rejection is
+ * a cancellation the material team gave a reason for.
+ */
+export type MaterialLoanDisplayStatus = MaterialLoanStatus | 'RETURN_DUE' | 'OVERDUE' | 'REJECTED';
 
 export interface StockCounts {
   totalQuantity: number;
@@ -31,7 +34,7 @@ export interface LoanHold {
 export interface StockSummary {
   /** pieces that could go out at all: owned minus damaged minus in repair */
   usable: number;
-  /** prepared for a pickup, not yet handed out */
+  /** requested or prepared for a pickup, not yet handed out */
   reserved: number;
   /** handed out and not back */
   issued: number;
@@ -42,12 +45,13 @@ export interface StockSummary {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * How many pieces a loan keeps from everybody else. A prepared pickup holds its pieces, so two
- * Höfe cannot both be promised the last tent. Consumables leave the stock when issued, so an
- * issued consumption holds nothing.
+ * How many pieces a loan keeps from everybody else. A request already holds its pieces, so two
+ * Höfe cannot both be promised the last tent while the material team sleeps. Consumables leave
+ * the stock when issued, so an issued consumption holds nothing.
  */
 export const getHeldQuantity = (loan: LoanHold): number => {
   switch (loan.status) {
+    case 'REQUESTED':
     case 'RESERVED': {
       return loan.quantity;
     }
@@ -140,9 +144,10 @@ export const getAvailableForPeriod = (
 
 /** The loan status as the counter and the borrowers see it. */
 export const getLoanDisplayStatus = (
-  loan: { status: MaterialLoanStatus; endDate: Date },
+  loan: { status: MaterialLoanStatus; endDate: Date; rejectionReason?: string | null },
   now: Date,
 ): MaterialLoanDisplayStatus => {
+  if (loan.status === 'CANCELLED' && typeof loan.rejectionReason === 'string') return 'REJECTED';
   if (loan.status !== 'ISSUED') return loan.status;
   const remaining = loan.endDate.getTime() - now.getTime();
   if (remaining < 0) return 'OVERDUE';

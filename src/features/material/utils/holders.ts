@@ -52,15 +52,19 @@ export interface HolderGroup<Loan> {
   loans: Loan[];
 }
 
-/** Loans by holder, in the order each holder first appears. */
+/**
+ * Loans by holder, in the order each holder first appears. `split` separates one holder's
+ * loans further, such as requests for different pickup days.
+ */
 export const groupByHolder = <Loan extends GroupableLoan>(
   loans: readonly Loan[],
+  split?: (loan: Loan) => string,
 ): HolderGroup<Loan>[] => {
   const groups = new Map<string, HolderGroup<Loan>>();
   for (const loan of loans) {
     const holder = holderOf(loan);
     if (holder === undefined) continue;
-    const key = holderKey(holder);
+    const key = split === undefined ? holderKey(holder) : `${holderKey(holder)}@${split(loan)}`;
     const group = groups.get(key) ?? {
       key,
       holder,
@@ -82,14 +86,28 @@ interface QueueLoan extends GroupableLoan {
   status: MaterialLoanStatus;
   startDate: Date;
   endDate: Date;
+  /** absent in a loan restored from an older app version */
+  returnAnnouncedAt?: Date | null;
 }
 
+/** The reader's day of a date, the key a request is grouped by. */
+export const dayKey = (date: Date): string =>
+  `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+
+/** Whether the borrower said the loan is on its way back. */
+export const isAnnounced = (loan: {
+  status: MaterialLoanStatus;
+  returnAnnouncedAt?: Date | null;
+}): boolean => loan.status === 'ISSUED' && loan.returnAnnouncedAt instanceof Date;
+
 export interface CounterQueue<Loan> {
+  /** asked for and waiting for the material team, one group per holder and pickup day */
+  requests: HolderGroup<Loan>[];
   /** prepared for a pickup until the end of the day, the ones waiting longest first */
   pickups: HolderGroup<Loan>[];
   /** prepared for a later day */
   later: HolderGroup<Loan>[];
-  /** out and due back until the end of the day, the overdue ones first */
+  /** out and announced, or due back until the end of the day; announced first, then overdue */
   returns: HolderGroup<Loan>[];
 }
 
@@ -98,8 +116,8 @@ const byStart = (a: QueueLoan, b: QueueLoan): number =>
 const byEnd = (a: QueueLoan, b: QueueLoan): number => a.endDate.getTime() - b.endDate.getTime();
 
 /**
- * What the counter works through on a day ending at `dayEnd`: pickups that are ready, the ones
- * for later days, and the material that should come back. Sorting the loans before grouping
+ * What the counter works through on a day ending at `dayEnd`: requests to answer, pickups that
+ * are ready, the ones for later days, and the material that should come back. Sorting the loans before grouping
  * orders the groups by their most urgent loan.
  */
 export const buildCounterQueue = <Loan extends QueueLoan>(
@@ -107,11 +125,21 @@ export const buildCounterQueue = <Loan extends QueueLoan>(
   dayEnd: Date,
 ): CounterQueue<Loan> => {
   const reserved = loans.filter((loan) => loan.status === 'RESERVED').toSorted(byStart);
+  const byAnnouncedThenEnd = (a: Loan, b: Loan): number => {
+    const announced = Number(isAnnounced(b)) - Number(isAnnounced(a));
+    return announced === 0 ? byEnd(a, b) : announced;
+  };
   return {
+    requests: groupByHolder(
+      loans.filter((loan) => loan.status === 'REQUESTED').toSorted(byStart),
+      (loan) => dayKey(loan.startDate),
+    ),
     pickups: groupByHolder(reserved.filter((loan) => loan.startDate <= dayEnd)),
     later: groupByHolder(reserved.filter((loan) => loan.startDate > dayEnd)),
     returns: groupByHolder(
-      loans.filter((loan) => loan.status === 'ISSUED' && loan.endDate <= dayEnd).toSorted(byEnd),
+      loans
+        .filter((loan) => loan.status === 'ISSUED' && (loan.endDate <= dayEnd || isAnnounced(loan)))
+        .toSorted(byAnnouncedThenEnd),
     ),
   };
 };

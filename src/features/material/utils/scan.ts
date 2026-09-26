@@ -52,6 +52,10 @@ export const parseScan = (value: string, origin: string): ScanResult | undefined
 export const itemPath = (code: string): string =>
   `/app/material/inventar?item=${encodeURIComponent(code)}`;
 
+/** An article in the catalogue, where everybody who is not in the material team reads it. */
+export const catalogItemPath = (code: string): string =>
+  `/app/material/katalog?item=${encodeURIComponent(code)}`;
+
 /** The label link of a loan: the take-back of whoever has it. */
 export const loanPath = (number: number): string => `/app/material/zurueck?loan=${number}`;
 

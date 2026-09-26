@@ -496,7 +496,9 @@ model MaterialItem {
 }
 
 enum MaterialLoanStatus {
-  /// prepared by the material team for a pickup, the pieces are held for the period
+  /// asked for by a Hof or a participant, not yet confirmed; the pieces are already held
+  REQUESTED
+  /// confirmed or prepared by the material team for a pickup, the pieces are held
   RESERVED
   /// handed out, the pieces are away
   ISSUED
@@ -514,7 +516,7 @@ enum MaterialCondition {
   MISSING
 }
 
-/// one reservation or loan of one article, booked on a Hof or on a person. Overdue is not a
+/// one request, reservation or loan of one article, booked on a Hof or on a person. Overdue is not a
 /// status: it is an issued loan whose end date lies in the past.
 model MaterialLoan {
   id     String @id @default(uuid(7))
@@ -549,10 +551,14 @@ model MaterialLoan {
   issuedQuantity Int?
   issuedAt       DateTime?
 
-  returnedQuantity Int?
-  returnedAt       DateTime?
-  returnCondition  MaterialCondition?
-  returnNote       String?
+  /// the borrower said the material is on its way back, the material team has not checked it
+  returnAnnouncedAt DateTime?
+  returnedQuantity  Int?
+  returnedAt        DateTime?
+  returnCondition   MaterialCondition?
+  returnNote        String?
+  /// why the material team turned a request down, shown to whoever asked
+  rejectionReason   String?
 
   createdById String
   createdBy   User   @relation("MaterialLoanCreatedBy", fields: [createdById], references: [uuid])

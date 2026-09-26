@@ -326,6 +326,8 @@ interface SeedLoan {
   /** booked on one of the seeded people, by position */
   person?: number;
   consumption?: boolean;
+  /** the borrower said it is on its way back */
+  announced?: boolean;
   returned?: { quantity: number; condition: 'OK' | 'LIGHT_DAMAGE' | 'DAMAGED'; note?: string };
 }
 
@@ -333,15 +335,24 @@ interface SeedLoan {
 const HOURS = 1 / 24;
 
 /**
- * A camp in full swing, so every screen of the counter has something to show: pickups the
- * material team prepared for today and later, material out that is due today or overdue with
+ * A camp in full swing, so every screen of the counter has something to show: requests from
+ * Höfe and a person, pickups the material team prepared for today and later, a return that was
+ * announced, material out that is due today or overdue with
  * Höfe and with people, some of them without a Hof, and a few returns with damage.
  */
 const LOANS: SeedLoan[] = [
   // out, Hof Nord: what the participants of Hof Nord see on their card
   { code: 'JS-ZTUCH', quantity: 60, status: 'ISSUED', start: -5, end: 4, hof: 'Hof Nord' },
   { code: 'JS-WOLL', quantity: 40, status: 'ISSUED', start: -5, end: 4, hof: 'Hof Nord' },
-  { code: 'JS-BINDE', quantity: 40, status: 'ISSUED', start: -4, end: 3, hof: 'Hof Nord' },
+  {
+    code: 'JS-BINDE',
+    quantity: 40,
+    status: 'ISSUED',
+    start: -4,
+    end: 3,
+    hof: 'Hof Nord',
+    announced: true,
+  },
   { code: 'WA-SCHAUF', quantity: 6, status: 'ISSUED', start: -2, end: 2 * HOURS, hof: 'Hof Nord' },
   // due today and overdue
   { code: 'JS-SILVA', quantity: 12, status: 'ISSUED', start: -3, end: -0.5, hof: 'Hof Süd' },
@@ -363,6 +374,12 @@ const LOANS: SeedLoan[] = [
   },
   { code: 'JS-FUSS', quantity: 4, status: 'ISSUED', start: -1, end: 1, person: 1 },
   { code: 'JS-BEACH', quantity: 3, status: 'ISSUED', start: -1, end: -0.3, person: 2 },
+  // asked for by Höfe and a person, waiting for the material team
+  { code: 'JS-SILVA', quantity: 8, status: 'REQUESTED', start: 1, end: 2, hof: 'Hof Nord' },
+  { code: 'JS-FUSS', quantity: 2, status: 'REQUESTED', start: 1, end: 2, hof: 'Hof Nord' },
+  { code: 'WA-SCHAUF', quantity: 4, status: 'REQUESTED', start: -HOURS, end: 1, hof: 'Hof Süd' },
+  { code: 'JS-BLITZ', quantity: 3, status: 'REQUESTED', start: 2, end: 3, hof: 'Hof Süd' },
+  { code: 'WA-PAMIR', quantity: 2, status: 'REQUESTED', start: 1, end: 2, person: 5 },
   // prepared for a pickup today
   { code: 'JS-BADM', quantity: 8, status: 'RESERVED', start: -HOURS, end: 1.3, hof: 'Hof Nord' },
   { code: 'JS-NETZ', quantity: 2, status: 'RESERVED', start: -HOURS, end: 1.3, hof: 'Hof Nord' },
@@ -588,6 +605,7 @@ export const seedMaterial = async (payload: Payload, userIds: string[]): Promise
         status: loan.status,
         issuedQuantity: handedOut ? loan.quantity : null,
         issuedAt: handedOut ? startDate : null,
+        returnAnnouncedAt: loan.announced === true ? new Date(now - 2 * HOURS * DAY) : null,
         returnedQuantity: loan.returned?.quantity ?? null,
         returnedAt: loan.returned ? endDate : null,
         returnCondition: loan.returned?.condition ?? null,

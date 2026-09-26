@@ -28,6 +28,7 @@ const itemStatusDot: Record<MaterialItemStatus, string> = {
 };
 
 const loanStatusClass: Record<MaterialLoanDisplayStatus, string> = {
+  REQUESTED: 'bg-amber-50 text-amber-800 ring-amber-600/30',
   RESERVED: 'bg-blue-50 text-blue-800 ring-blue-600/30',
   ISSUED: 'bg-green-50 text-green-800 ring-green-600/30',
   RETURN_DUE: 'bg-orange-50 text-orange-800 ring-orange-600/30',
@@ -35,6 +36,7 @@ const loanStatusClass: Record<MaterialLoanDisplayStatus, string> = {
   RETURNED: 'bg-gray-100 text-gray-700 ring-gray-500/30',
   CONSUMED: 'bg-gray-100 text-gray-700 ring-gray-500/30',
   CANCELLED: 'bg-gray-50 text-gray-400 ring-gray-300 line-through',
+  REJECTED: 'bg-red-50 text-red-800 ring-red-600/30',
 };
 
 const pill =

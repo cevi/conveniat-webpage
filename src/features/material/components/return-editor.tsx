@@ -28,7 +28,7 @@ import {
   useNow,
   type MaterialLoan,
 } from '@/features/material/hooks/use-material';
-import type { LoanHolder } from '@/features/material/utils/holders';
+import { isAnnounced, type LoanHolder } from '@/features/material/utils/holders';
 import {
   completeReturn,
   isReturnValid,
@@ -173,6 +173,7 @@ const ReturnLine: React.FC<{
             {overdue
               ? format(labels.overdueSince, locale, { day: formatDay(loan.endDate, locale) })
               : format(labels.dueOn, locale, { day: formatDay(loan.endDate, locale) })}
+            {isAnnounced(loan) && ` · ${labels.returnAnnounced[locale]}`}
             {!line.included && ` · ${text.notNow[locale]}`}
           </div>
         </div>

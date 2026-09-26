@@ -1,3 +1,4 @@
+import { isMaterialTeam } from '@/features/material/api/material-access';
 import {
   getAvailableForPeriod,
   getItemStatus,
@@ -7,13 +8,17 @@ import {
   type StockSummary,
 } from '@/features/material/utils/stock';
 import type { MaterialLoanStatus, Prisma, PrismaClient } from '@/lib/prisma/client';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { TRPCError } from '@trpc/server';
 
 export type MaterialPrisma = PrismaClient | Prisma.TransactionClient;
 
 /** Loans that keep pieces away from the stock. */
-export const HOLDING_STATUSES: MaterialLoanStatus[] = ['RESERVED', 'ISSUED'];
+export const HOLDING_STATUSES: MaterialLoanStatus[] = ['REQUESTED', 'RESERVED', 'ISSUED'];
+
+/** Asked for or confirmed, not handed out yet: what can still be changed or cancelled. */
+export const PENDING_STATUSES: MaterialLoanStatus[] = ['REQUESTED', 'RESERVED'];
 
 export const holdSelect = {
   status: true,
@@ -76,9 +81,9 @@ const errors = {
     fr: '{item} ne peut pas être emprunté pour le moment.',
   },
   notReservable: {
-    de: '{item} wird nur sofort ausgegeben und kann nicht vorbereitet werden.',
-    en: '{item} is only handed out at once and cannot be prepared ahead.',
-    fr: '{item} est remis uniquement sur place et ne peut pas être préparé.',
+    de: '{item} gibt es nur direkt am Depot, es kann nicht im Voraus angefragt oder vorbereitet werden.',
+    en: '{item} is only handed out at the depot and cannot be requested or prepared ahead.',
+    fr: '{item} est remis uniquement au dépôt et ne peut pas être demandé ni préparé à l’avance.',
   },
   notConsumable: {
     de: '{item} ist kein Verbrauchsmaterial und kann nicht verbraucht werden.',
@@ -99,6 +104,21 @@ const errors = {
     de: 'Person nicht gefunden.',
     en: 'Person not found.',
     fr: 'Personne introuvable.',
+  },
+  notOwnHof: {
+    de: 'Du kannst nur für deinen eigenen Hof anfragen. Für andere wende dich ans Materialteam.',
+    en: 'You can only request for your own Hof. Ask the material team for others.',
+    fr: 'Tu ne peux faire une demande que pour ton propre Hof. Pour les autres, adresse-toi à l’équipe matériel.',
+  },
+  notSelf: {
+    de: 'Als Einzelperson kannst du nur auf dich selbst anfragen.',
+    en: 'As a single person you can only request for yourself.',
+    fr: 'En tant que personne, tu ne peux faire une demande que pour toi.',
+  },
+  tooManyRequests: {
+    de: 'Du hast schon {n} offene Anfragen. Warte, bis das Materialteam sie bestätigt.',
+    en: 'You already have {n} open requests. Wait until the material team confirms them.',
+    fr: 'Tu as déjà {n} demandes ouvertes. Attends que l’équipe matériel les confirme.',
   },
   noHolder: {
     de: 'Wähle einen Hof oder eine Person.',
@@ -153,6 +173,24 @@ export const lockItems = async (
 ): Promise<void> => {
   for (const itemId of [...new Set(itemIds)].toSorted()) await lockItem(tx, itemId);
 };
+
+/**
+ * Loans the user may see: all of them for the material team, otherwise the ones they asked
+ * for, the ones booked on them and the ones of their Höfe. The Höfe are only read when needed.
+ */
+export const visibleLoansWhere = async (
+  user: HitobitoNextAuthUser,
+  myHofIds: () => Promise<string[]>,
+): Promise<Prisma.MaterialLoanWhereInput> =>
+  isMaterialTeam(user)
+    ? {}
+    : {
+        OR: [
+          { createdById: user.uuid },
+          { personId: user.uuid },
+          { hofId: { in: await myHofIds() } },
+        ],
+      };
 
 export interface MaterialItemWithStock {
   id: string;

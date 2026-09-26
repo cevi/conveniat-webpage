@@ -20,13 +20,15 @@ export const itemStatusLabel: Record<MaterialItemStatus, StaticTranslationString
 };
 
 export const loanStatusLabel: Record<MaterialLoanDisplayStatus, StaticTranslationString> = {
-  RESERVED: { de: 'Vorbereitet', en: 'Prepared', fr: 'Préparé' },
-  ISSUED: { de: 'Ausgeliehen', en: 'On loan', fr: 'Prêté' },
+  REQUESTED: { de: 'Angefragt', en: 'Requested', fr: 'Demandé' },
+  RESERVED: { de: 'Bestätigt', en: 'Confirmed', fr: 'Confirmé' },
+  ISSUED: { de: 'Ausgegeben', en: 'Handed out', fr: 'Remis' },
   RETURN_DUE: { de: 'Rückgabe fällig', en: 'Return due', fr: 'Retour dû' },
   OVERDUE: { de: 'Überfällig', en: 'Overdue', fr: 'En retard' },
   RETURNED: { de: 'Zurückgegeben', en: 'Returned', fr: 'Rendu' },
   CONSUMED: { de: 'Verbraucht', en: 'Used up', fr: 'Consommé' },
   CANCELLED: { de: 'Storniert', en: 'Cancelled', fr: 'Annulé' },
+  REJECTED: { de: 'Abgelehnt', en: 'Turned down', fr: 'Refusé' },
 };
 
 export const conditionLabel: Record<MaterialCondition, StaticTranslationString> = {
@@ -46,6 +48,7 @@ export const labels = {
   navHandOut: { de: 'Ausgeben', en: 'Hand out', fr: 'Remettre' },
   navTakeBack: { de: 'Zurück', en: 'Take back', fr: 'Retour' },
   navInventory: { de: 'Inventar', en: 'Inventory', fr: 'Inventaire' },
+  navCatalog: { de: 'Material', en: 'Material', fr: 'Matériel' },
   sections: {
     de: 'Bereiche des Materialdepots',
     en: 'Material depot sections',
@@ -71,6 +74,7 @@ export const labels = {
   unknownHof: { de: 'Unbekannter Hof', en: 'Unknown Hof', fr: 'Hof inconnu' },
   unknownPerson: { de: 'Unbekannte Person', en: 'Unknown person', fr: 'Personne inconnue' },
   person: { de: 'Person', en: 'Person', fr: 'Personne' },
+  status: { de: 'Status', en: 'Status', fr: 'Statut' },
   optional: { de: 'optional', en: 'optional', fr: 'facultatif' },
   category: { de: 'Kategorie', en: 'Category', fr: 'Catégorie' },
   description: { de: 'Beschreibung', en: 'Description', fr: 'Description' },
@@ -155,6 +159,7 @@ export const labels = {
     en: '{n} done, {failed} failed',
     fr: '{n} traités, {failed} en échec',
   },
+  returnAnnounced: { de: 'Rückgabe gemeldet', en: 'Return announced', fr: 'Retour annoncé' },
   clearDate: { de: 'Datum löschen', en: 'Clear date', fr: 'Effacer la date' },
 } satisfies Record<string, StaticTranslationString>;
 

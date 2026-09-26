@@ -19,6 +19,7 @@ interface TestLoan {
   person: { name: string } | null;
   startDate: Date;
   endDate: Date;
+  returnAnnouncedAt?: Date | null;
 }
 
 /* eslint-disable unicorn/no-null -- the columns are nullable, as the server sends them */
@@ -123,5 +124,35 @@ describe('buildCounterQueue', () => {
       ['person:lea', ['overdue']],
       ['hof:nord', ['due']],
     ]);
+  });
+
+  it('groups requests by holder and pickup day, apart from what is confirmed', () => {
+    const queue = buildCounterQueue(
+      [
+        onHof('mon-a', { status: 'REQUESTED', startDate: at(22, 9) }),
+        onHof('tue', { status: 'REQUESTED', startDate: at(23, 9) }),
+        onHof('mon-b', { status: 'REQUESTED', startDate: at(22, 15) }),
+        onHof('confirmed', { status: 'RESERVED', startDate: at(22, 9) }),
+      ],
+      dayEnd,
+    );
+    expect(queue.requests.map((group) => group.loans.map((loan) => loan.id))).toEqual([
+      ['mon-a', 'mon-b'],
+      ['tue'],
+    ]);
+    expect(queue.later.flatMap((group) => group.loans.map((loan) => loan.id))).toEqual([
+      'confirmed',
+    ]);
+  });
+
+  it('takes back an announced return first, even when it is due later', () => {
+    const queue = buildCounterQueue(
+      [
+        onHof('overdue', { endDate: at(19) }),
+        onPerson('announced', { endDate: at(25), returnAnnouncedAt: at(21, 8) }),
+      ],
+      dayEnd,
+    );
+    expect(queue.returns.map((group) => group.key)).toEqual(['person:lea', 'hof:nord']);
   });
 });

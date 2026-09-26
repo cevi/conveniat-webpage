@@ -1,17 +1,30 @@
 /* eslint-disable unicorn/no-null */
 import { materialTeamProcedure } from '@/features/material/api/material-access';
+import {
+  applyBooking,
+  assertBookable,
+  hasHolder,
+  holderSchema,
+  lockLoan,
+  MAX_LINES,
+  MAX_QUANTITY,
+  minDate,
+  quantitySchema,
+  type Booking,
+  type LoanWithItem,
+} from '@/features/material/api/material-booking';
 import { hofExists } from '@/features/material/api/material-hoefe';
 import {
-  assertAvailable,
   getInDepotQuantity,
   lockItem,
   lockItems,
   materialError,
+  PENDING_STATUSES,
 } from '@/features/material/api/material-shared';
 import { mergeBasketLines } from '@/features/material/utils/basket';
 import { holderKey, holderOf } from '@/features/material/utils/holders';
 import { isReturnValid } from '@/features/material/utils/returns';
-import type { MaterialCondition, MaterialItem, Prisma } from '@/lib/prisma/client';
+import type { MaterialCondition, Prisma } from '@/lib/prisma/client';
 import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
@@ -28,129 +41,6 @@ const photoKeySchema = z
   .string()
   .regex(/^material-incidents\/[\w-]+\.(jpg|jpeg|png|webp|heic|heif)$/)
   .optional();
-
-const MAX_QUANTITY = 100_000;
-const quantitySchema = z.number().int().min(1).max(MAX_QUANTITY);
-
-/** A basket is what one Hof takes over the counter, not the whole catalogue. */
-const MAX_LINES = 100;
-
-const minDate = (a: Date, b: Date): Date => new Date(Math.min(a.getTime(), b.getTime()));
-
-type LoanWithItem = Prisma.MaterialLoanGetPayload<{ include: { item: true } }>;
-
-const findLoan = async (
-  tx: Prisma.TransactionClient,
-  id: string,
-  locale: Locale,
-): Promise<LoanWithItem> => {
-  const loan = await tx.materialLoan.findUnique({ where: { id }, include: { item: true } });
-  if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', locale);
-  return loan;
-};
-
-/**
- * Finds a loan and locks its article, then reads the loan again under the lock. Two taps on
- * "hand out" otherwise both pass the status check on the copy they read before waiting.
- */
-const lockLoan = async (
-  tx: Prisma.TransactionClient,
-  id: string,
-  locale: Locale,
-): Promise<LoanWithItem> => {
-  const { itemId } = await findLoan(tx, id, locale);
-  await lockItem(tx, itemId);
-  return await findLoan(tx, id, locale);
-};
-
-/** One article going out now or being prepared, as a new loan or a prepared one changed. */
-interface Booking {
-  item: MaterialItem;
-  quantity: number;
-  isConsumption: boolean;
-  mode: 'ISSUE' | 'RESERVE';
-  startDate: Date;
-  endDate: Date;
-  /** the prepared loan this booking changes, which the stock is checked without */
-  loanId?: string;
-}
-
-/**
- * Checks a booking against the article's rules and stock: free for the whole period, and for
- * a hand-out also physically on the shelf, since a promised piece may have been damaged or
- * lost since. Call it under the article's lock.
- */
-const assertBookable = async (
-  tx: Prisma.TransactionClient,
-  booking: Booking,
-  locale: Locale,
-): Promise<void> => {
-  const { item } = booking;
-  if (booking.isConsumption && !item.isConsumable) {
-    throw materialError('BAD_REQUEST', 'notConsumable', locale, 0, item.name);
-  }
-  if (booking.mode === 'RESERVE' && !item.isReservable) {
-    throw materialError('BAD_REQUEST', 'notReservable', locale, 0, item.name);
-  }
-  await assertAvailable({
-    tx,
-    itemId: item.id,
-    quantity: booking.quantity,
-    startDate: booking.startDate,
-    endDate: booking.endDate,
-    ...(booking.loanId === undefined ? {} : { excludeLoanId: booking.loanId }),
-    locale,
-  });
-  if (booking.mode === 'ISSUE') {
-    const onShelf = await getInDepotQuantity(tx, item);
-    if (booking.quantity > onShelf) {
-      throw materialError('CONFLICT', 'notOnShelf', locale, Math.max(onShelf, 0), item.name);
-    }
-  }
-};
-
-type BookingFields = Pick<
-  Prisma.MaterialLoanUncheckedCreateInput,
-  'quantity' | 'isConsumption' | 'startDate' | 'endDate' | 'status' | 'issuedQuantity' | 'issuedAt'
->;
-
-/**
- * The loan fields a booking sets. Handing out a consumption also takes its pieces out of the
- * stock for good, since they do not come back.
- */
-const applyBooking = async (
-  tx: Prisma.TransactionClient,
-  booking: Booking,
-  now: Date,
-): Promise<BookingFields> => {
-  const issue = booking.mode === 'ISSUE';
-  if (issue && booking.isConsumption) {
-    await tx.materialItem.update({
-      where: { id: booking.item.id },
-      data: { totalQuantity: { decrement: booking.quantity } },
-    });
-  }
-  let status: 'RESERVED' | 'ISSUED' | 'CONSUMED' = 'RESERVED';
-  if (issue) status = booking.isConsumption ? 'CONSUMED' : 'ISSUED';
-  return {
-    quantity: booking.quantity,
-    isConsumption: booking.isConsumption,
-    startDate: booking.startDate,
-    endDate: booking.endDate,
-    status,
-    issuedQuantity: issue ? booking.quantity : null,
-    issuedAt: issue ? now : null,
-  };
-};
-
-/** A loan has a Hof or a person; the Hof is a Payload document, so no foreign key says so. */
-const holderSchema = {
-  hofId: z.string().min(1).optional(),
-  personId: z.string().min(1).optional(),
-};
-
-const hasHolder = (input: { hofId?: string | undefined; personId?: string | undefined }): boolean =>
-  input.hofId !== undefined || input.personId !== undefined;
 
 /**
  * Books a basket at the counter in one go: every line becomes a loan, handed out now or
@@ -219,7 +109,7 @@ export const createLoanBasket = materialTeamProcedure
       const foreign = prepared.some((loan) => {
         const owner = holderOf(loan);
         return (
-          loan.status !== 'RESERVED' ||
+          !PENDING_STATUSES.includes(loan.status) ||
           owner === undefined ||
           holderKey(owner) !== holderKey(holder)
         );
@@ -318,7 +208,8 @@ export const issueLoanList = materialTeamProcedure
       try {
         await ctx.prisma.$transaction(async (tx) => {
           const loan = await lockLoan(tx, id, ctx.locale);
-          if (loan.status !== 'RESERVED') {
+          // a request the team hands out straight away is confirmed by that
+          if (!PENDING_STATUSES.includes(loan.status)) {
             throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
           }
           const now = new Date();
@@ -541,4 +432,45 @@ export const createIncidentPhotoUploadUrl = materialTeamProcedure
       { expiresIn: 600 },
     );
     return { url, key };
+  });
+
+/**
+ * Confirms requests as they were asked for, one pickup at a time: all of them turn prepared,
+ * or none when one was changed or cancelled meanwhile. A request already holds its pieces, so
+ * confirming it changes no stock.
+ */
+export const confirmLoanList = materialTeamProcedure
+  .input(bulkInput)
+  .mutation(async ({ ctx, input }) => {
+    const ids = [...new Set(input.ids)];
+    await ctx.prisma.$transaction(async (tx) => {
+      const { count } = await tx.materialLoan.updateMany({
+        where: { id: { in: ids }, status: 'REQUESTED' },
+        data: { status: 'RESERVED' },
+      });
+      if (count !== ids.length) throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+    });
+    logger.info('Material requests confirmed', { 'material.bulk.count': ids.length });
+  });
+
+/**
+ * Turns requests down, with a reason whoever asked sees next to them. The pieces they held are
+ * free again at once.
+ */
+export const rejectLoanList = materialTeamProcedure
+  .input(bulkInput.extend({ reason: z.string().trim().max(1000).optional() }))
+  .mutation(async ({ ctx, input }) => {
+    const ids = [...new Set(input.ids)];
+    await ctx.prisma.$transaction(async (tx) => {
+      const { count } = await tx.materialLoan.updateMany({
+        where: { id: { in: ids }, status: 'REQUESTED' },
+        data: {
+          status: 'CANCELLED',
+          // an empty reason still tells a rejection from a request its owner withdrew
+          rejectionReason: input.reason ?? '',
+        },
+      });
+      if (count !== ids.length) throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+    });
+    logger.info('Material requests rejected', { 'material.bulk.count': ids.length });
   });

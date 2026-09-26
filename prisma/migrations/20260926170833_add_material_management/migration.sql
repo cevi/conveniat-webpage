@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "MaterialLoanStatus" AS ENUM ('RESERVED', 'ISSUED', 'RETURNED', 'CONSUMED', 'CANCELLED');
+CREATE TYPE "MaterialLoanStatus" AS ENUM ('REQUESTED', 'RESERVED', 'ISSUED', 'RETURNED', 'CONSUMED', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "MaterialCondition" AS ENUM ('OK', 'LIGHT_DAMAGE', 'DAMAGED', 'MISSING');
@@ -54,10 +54,12 @@ CREATE TABLE "MaterialLoan" (
     "status" "MaterialLoanStatus" NOT NULL,
     "issuedQuantity" INTEGER,
     "issuedAt" TIMESTAMP(3),
+    "returnAnnouncedAt" TIMESTAMP(3),
     "returnedQuantity" INTEGER,
     "returnedAt" TIMESTAMP(3),
     "returnCondition" "MaterialCondition",
     "returnNote" TEXT,
+    "rejectionReason" TEXT,
     "createdById" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

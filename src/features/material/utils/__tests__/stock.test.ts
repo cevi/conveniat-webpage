@@ -30,7 +30,7 @@ const hold = (overrides: Partial<LoanHold>): LoanHold => ({
 describe('getStockSummary', () => {
   it('keeps damaged and repaired pieces out of what can be lent', () => {
     const stock = getStockSummary(tents, [
-      hold({ status: 'RESERVED', quantity: 2 }),
+      hold({ status: 'REQUESTED', quantity: 2 }),
       hold({ status: 'ISSUED', quantity: 3, issuedQuantity: 2 }),
       hold({ status: 'RETURNED', quantity: 5 }),
     ]);
@@ -122,5 +122,17 @@ describe('getLoanDisplayStatus', () => {
 
   it('never marks a reservation overdue', () => {
     expect(getLoanDisplayStatus({ status: 'RESERVED', endDate: day(1) }, day(5))).toBe('RESERVED');
+  });
+});
+
+describe('getLoanDisplayStatus of a turned-down request', () => {
+  it('tells a rejection from a request its owner withdrew', () => {
+    expect(
+      getLoanDisplayStatus({ status: 'CANCELLED', endDate: day(1), rejectionReason: '' }, day(5)),
+    ).toBe('REJECTED');
+    expect(
+      // eslint-disable-next-line unicorn/no-null -- the column is nullable
+      getLoanDisplayStatus({ status: 'CANCELLED', endDate: day(1), rejectionReason: null }, day(5)),
+    ).toBe('CANCELLED');
   });
 });

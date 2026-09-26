@@ -282,3 +282,25 @@ export const Segmented = <Value extends string>({
     ))}
   </div>
 );
+
+/** A filter that is on or off, as a pill; wraps with its siblings instead of scrolling. */
+export const FilterChip: React.FC<{
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}> = ({ active, onClick, children }) => (
+  <button
+    type="button"
+    aria-pressed={active}
+    onClick={onClick}
+    className={cn(
+      'inline-flex h-11 max-w-full cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm font-semibold [&_svg]:size-4',
+      focusRing,
+      active
+        ? 'border-conveniat-green bg-conveniat-green text-white'
+        : 'border-gray-300 bg-white text-gray-800',
+    )}
+  >
+    <span className="truncate">{children}</span>
+  </button>
+);

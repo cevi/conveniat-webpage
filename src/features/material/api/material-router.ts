@@ -5,17 +5,28 @@ import {
 } from '@/features/material/api/material-access';
 import { listHoefe, withHof, type LoanHof } from '@/features/material/api/material-hoefe';
 import {
+  confirmLoanList,
   createIncidentPhotoUploadUrl,
   createLoanBasket,
   issueLoanList,
+  rejectLoanList,
   reportIncident,
   returnLoanBasket,
 } from '@/features/material/api/material-loan-mutations';
 import {
+  announceReturn,
+  cancelLoanRequest,
+  createLoanRequest,
+  updateLoanRequest,
+} from '@/features/material/api/material-request-mutations';
+import {
   HOLDING_STATUSES,
+  holdSelect,
   loadItemsWithStock,
   loanInclude,
   materialError,
+  visibleLoansWhere,
+  type MaterialItemWithStock,
   type MaterialLoanWithRelations,
   type MaterialPrisma,
 } from '@/features/material/api/material-shared';
@@ -27,8 +38,14 @@ import {
   updateCategory,
   updateItem,
 } from '@/features/material/api/material-team-mutations';
-import { buildCounterQueue, holderKey, holderOf } from '@/features/material/utils/holders';
-import { getPeakHeldQuantity } from '@/features/material/utils/stock';
+import {
+  buildCounterQueue,
+  groupByHolder,
+  holderKey,
+  holderOf,
+  isAnnounced,
+} from '@/features/material/utils/holders';
+import { getAvailableForPeriod, getPeakHeldQuantity } from '@/features/material/utils/stock';
 import type { Prisma } from '@/lib/prisma/client';
 import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter } from '@/trpc/init';
@@ -48,7 +65,32 @@ export type MaterialStockAlert =
  */
 const dayInput = z.object({ dayEnd: z.date() });
 
-/** Everything prepared or out, with the name of its Hof. */
+/** How long a turned-down request stays on the requester's overview. */
+const REJECTED_VISIBLE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The fields of an article that only the article page needs. */
+type ItemTexts = 'description' | 'usageNotes' | 'returnInstructions' | 'lowStockThreshold';
+
+/** What anybody may know about an article in a list: its numbers, never the loans behind them. */
+const toCatalogItem = (item: MaterialItemWithStock): Omit<MaterialItemWithStock, ItemTexts> => ({
+  id: item.id,
+  code: item.code,
+  name: item.name,
+  imageUrl: item.imageUrl,
+  unit: item.unit,
+  category: item.category,
+  totalQuantity: item.totalQuantity,
+  maxLoanQuantity: item.maxLoanQuantity,
+  damagedQuantity: item.damagedQuantity,
+  inRepairQuantity: item.inRepairQuantity,
+  isConsumable: item.isConsumable,
+  isReservable: item.isReservable,
+  isDisabled: item.isDisabled,
+  stock: item.stock,
+  status: item.status,
+});
+
+/** Everything asked for, prepared or out, with the name of its Hof. */
 const loadOpenLoans = async (
   prisma: MaterialPrisma,
 ): Promise<(MaterialLoanWithRelations & { hof: LoanHof | null })[]> =>
@@ -114,11 +156,24 @@ export const materialRouter = createTRPCRouter({
     const [hoefe, mine] = await Promise.all([listHoefe(), ctx.myHofIds()]);
     const loans = await ctx.prisma.materialLoan.findMany({
       where: {
-        status: { in: HOLDING_STATUSES },
         OR: [
-          // eslint-disable-next-line unicorn/no-null -- a person's loan is theirs, not the Hof's
-          { hofId: { in: mine }, personId: null },
-          { personId: ctx.user.uuid },
+          { status: { in: HOLDING_STATUSES } },
+          // a request turned down stays in view for a few days, with the reason
+          {
+            status: 'CANCELLED',
+            // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+            rejectionReason: { not: null },
+            updatedAt: { gte: new Date(Date.now() - REJECTED_VISIBLE_MS) },
+          },
+        ],
+        AND: [
+          {
+            OR: [
+              // eslint-disable-next-line unicorn/no-null -- a person's loan is theirs, not the Hof's
+              { hofId: { in: mine }, personId: null },
+              { personId: ctx.user.uuid },
+            ],
+          },
         ],
       },
       select: {
@@ -131,9 +186,24 @@ export const materialRouter = createTRPCRouter({
         endDate: true,
         hofId: true,
         personId: true,
-        item: { select: { name: true, unit: true, imageUrl: true } },
+        isConsumption: true,
+        responsibleName: true,
+        comment: true,
+        returnAnnouncedAt: true,
+        rejectionReason: true,
+        item: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            unit: true,
+            imageUrl: true,
+            maxLoanQuantity: true,
+            returnInstructions: true,
+          },
+        },
       },
-      orderBy: [{ endDate: 'asc' }, { number: 'asc' }],
+      orderBy: [{ startDate: 'asc' }, { number: 'asc' }],
     });
     return {
       hoefe: hoefe
@@ -147,9 +217,79 @@ export const materialRouter = createTRPCRouter({
     };
   }),
 
-  getCategoryList: materialTeamProcedure.query(async ({ ctx }) => {
+  getCategoryList: materialProcedure.query(async ({ ctx }) => {
     return await ctx.prisma.materialCategory.findMany({ orderBy: { sortOrder: 'asc' } });
   }),
+
+  /**
+   * The catalogue as everybody may see it: every article with its numbers, and with a period
+   * how many are free for it. Never who has what; that is the material team's `getInventory`.
+   */
+  getCatalog: materialProcedure
+    .input(z.object({ startDate: z.date(), endDate: z.date() }).optional())
+    .query(async ({ ctx, input }) => {
+      const now = new Date();
+      const entries = await loadItemsWithStock(ctx.prisma);
+      return entries.map(({ item, holds }) => ({
+        ...toCatalogItem(item),
+        availableForPeriod:
+          input === undefined || input.endDate < input.startDate
+            ? item.stock.available
+            : getAvailableForPeriod(
+                item,
+                holds,
+                { start: input.startDate, end: input.endDate },
+                now,
+              ),
+      }));
+    }),
+
+  /** One article of the catalogue in full, numbers and texts only. */
+  getCatalogItem: materialProcedure
+    .input(z.object({ code: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const [entry] = await loadItemsWithStock(ctx.prisma, { code: input.code });
+      if (!entry) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      return {
+        ...toCatalogItem(entry.item),
+        description: entry.item.description,
+        usageNotes: entry.item.usageNotes,
+        returnInstructions: entry.item.returnInstructions,
+      };
+    }),
+
+  /** Free pieces of one article for a period, so a request can say so before it is sent. */
+  getAvailability: materialProcedure
+    .input(
+      z.object({
+        itemId: z.string(),
+        startDate: z.date(),
+        endDate: z.date(),
+        excludeLoanId: z.string().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const item = await ctx.prisma.materialItem.findUnique({
+        where: { id: input.itemId },
+        include: {
+          loans: {
+            where: {
+              status: { in: HOLDING_STATUSES },
+              ...(input.excludeLoanId === undefined ? {} : { id: { not: input.excludeLoanId } }),
+            },
+            select: holdSelect,
+          },
+        },
+      });
+      if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+      const available = getAvailableForPeriod(
+        item,
+        item.loans,
+        { start: input.startDate, end: input.endDate },
+        new Date(),
+      );
+      return { available, maxLoanQuantity: item.maxLoanQuantity };
+    }),
 
   /** Every article with its stock, and how many holders have some of it out. */
   getInventory: materialTeamProcedure.query(async ({ ctx }) => {
@@ -266,11 +406,14 @@ export const materialRouter = createTRPCRouter({
     }),
 
   /** One loan by the number on its label, to find whoever has it. */
-  getLoan: materialTeamProcedure
+  getLoan: materialProcedure
     .input(z.object({ number: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const loan = await ctx.prisma.materialLoan.findUnique({
-        where: { number: input.number },
+      // a participant only opens the labels of their own and their Höfe's loans
+      const loan = await ctx.prisma.materialLoan.findFirst({
+        where: {
+          AND: [{ number: input.number }, await visibleLoansWhere(ctx.user, ctx.myHofIds)],
+        },
         include: loanInclude,
       });
       if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', ctx.locale);
@@ -297,8 +440,10 @@ export const materialRouter = createTRPCRouter({
       .flatMap((group) => group.loans)
       .filter((loan) => loan.endDate < now)
       .toSorted((a, b) => a.endDate.getTime() - b.endDate.getTime());
-    const dueToday = queue.returns.filter((group) =>
-      group.loans.some((loan) => loan.endDate >= now),
+    const dueToday = groupByHolder(
+      queue.returns
+        .flatMap((group) => group.loans)
+        .filter((loan) => loan.endDate >= now && loan.endDate <= input.dayEnd),
     );
 
     const stockAlerts: MaterialStockAlert[] = [];
@@ -322,6 +467,8 @@ export const materialRouter = createTRPCRouter({
     }
 
     return {
+      requests: queue.requests,
+      announced: queue.returns.filter((group) => group.loans.some((loan) => isAnnounced(loan))),
       pickups: queue.pickups,
       overdue,
       dueToday: {
@@ -335,7 +482,13 @@ export const materialRouter = createTRPCRouter({
     };
   }),
 
+  createLoanRequest,
+  updateLoanRequest,
+  cancelLoanRequest,
+  announceReturn,
   createLoanBasket,
+  confirmLoanList,
+  rejectLoanList,
   issueLoanList,
   returnLoanBasket,
   reportIncident,

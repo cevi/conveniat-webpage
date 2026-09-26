@@ -63,6 +63,11 @@ const text = {
     en: '{n} prepared · from {day}',
     fr: '{n} préparés · dès {day}',
   },
+  requestedLine: {
+    de: '{n} angefragt · ab {day}',
+    en: '{n} requested · from {day}',
+    fr: '{n} demandés · dès {day}',
+  },
   unit: { de: '{n} {unit}', en: '{n} {unit}', fr: '{n} {unit}' },
   repair: { de: 'Reparatur', en: 'Repair', fr: 'Réparation' },
   startRepair: {
@@ -263,6 +268,7 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
             const name = holderName(group, locale);
             const out = group.loans.filter((loan) => loan.status === 'ISSUED');
             const prepared = group.loans.filter((loan) => loan.status === 'RESERVED');
+            const requested = group.loans.filter((loan) => loan.status === 'REQUESTED');
             const overdue = out.some((loan) => loan.endDate < now);
             const lines = [
               ...(out.length > 0
@@ -278,6 +284,14 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
                     format(text.preparedLine, locale, {
                       n: prepared.reduce((sum, loan) => sum + loan.quantity, 0),
                       day: formatDay(prepared[0]?.startDate ?? now, locale),
+                    }),
+                  ]
+                : []),
+              ...(requested.length > 0
+                ? [
+                    format(text.requestedLine, locale, {
+                      n: requested.reduce((sum, loan) => sum + loan.quantity, 0),
+                      day: formatDay(requested[0]?.startDate ?? now, locale),
                     }),
                   ]
                 : []),

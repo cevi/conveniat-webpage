@@ -27,11 +27,13 @@ import {
   useNow,
   type MaterialHolderGroup,
 } from '@/features/material/hooks/use-material';
+import { useRoleRoute } from '@/features/material/hooks/use-material-role';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import {
   holderFromSearch,
   holderOf,
   holderSearch,
+  isAnnounced,
   type LoanHolder,
 } from '@/features/material/utils/holders';
 import { parseScan } from '@/features/material/utils/scan';
@@ -95,7 +97,8 @@ const DueCard: React.FC<{
   const giveBack = trpc.material.returnLoanBasket.useMutation();
   const [asking, setAsking] = useState(false);
   const name = holderName(group, locale);
-  const oldest = group.loans[0];
+  const announced = group.loans.some((loan) => isAnnounced(loan));
+  const oldest = group.loans.toSorted((a, b) => a.endDate.getTime() - b.endDate.getTime())[0];
   const overdue = oldest !== undefined && oldest.endDate < now;
   const lines = positionCount(group.loans.length, locale);
 
@@ -129,7 +132,12 @@ const DueCard: React.FC<{
               <User className="size-4 shrink-0 text-gray-500" aria-hidden />
             )}
             <span className="min-w-0 truncate font-bold text-gray-900">{name}</span>
-            {overdue && (
+            {announced && (
+              <span className="ml-auto shrink-0 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-800 ring-1 ring-blue-600/30">
+                {labels.returnAnnounced[locale]}
+              </span>
+            )}
+            {overdue && !announced && (
               <span className="ml-auto shrink-0 rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
                 {labels.overdue[locale]}
               </span>
@@ -140,7 +148,7 @@ const DueCard: React.FC<{
             {lines} ·{' '}
             {oldest !== undefined && overdue
               ? format(labels.overdueSince, locale, { day: formatDay(oldest.endDate, locale) })
-              : labels.dueToday[locale]}
+              : format(labels.dueOn, locale, { day: formatDay(oldest?.endDate ?? now, locale) })}
           </p>
         </div>
       </div>
@@ -319,11 +327,11 @@ const ScannedLoan: React.FC<{ number: number; onClose: () => void }> = ({ number
 };
 
 /**
- * The take-back screen. On top, whoever has material due today or overdue, each back complete
- * in one tap; below, anybody with material out by name, or a loan label scanned. A holder
+ * The take-back screen. On top, whoever announced a return, then whoever has material due today
+ * or overdue, each back complete in one tap; below, anybody with material out by name, or a loan label scanned. A holder
  * opens under `?hof=`, `?person=` or `?loan=`, the addresses the overview and the labels use.
  */
-export const TakeBackView: React.FC = () => {
+const TakeBackScreen: React.FC = () => {
   const parameters = useSearchParams();
   const history = useSearchHistory();
   const holder = holderFromSearch(parameters);
@@ -346,4 +354,17 @@ export const TakeBackView: React.FC = () => {
       />
     </div>
   );
+};
+
+/** The take-back is the material team's; everybody else is sent to their overview. */
+export const TakeBackView: React.FC = () => {
+  const locale = useMaterialLocale();
+  const loan = useSearchParams().get('loan');
+  // a participant who scanned a loan label sees that loan on their own overview
+  const allowed = useRoleRoute(
+    'team',
+    loan === null ? '/app/material' : `/app/material?loan=${encodeURIComponent(loan)}`,
+  );
+  if (!allowed) return <LoadingState text={labels.loading[locale]} />;
+  return <TakeBackScreen />;
 };

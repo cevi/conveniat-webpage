@@ -45,6 +45,7 @@ import { toast } from 'sonner';
 const text = {
   to: { de: 'An wen', en: 'To whom', fr: 'À qui' },
   adjustTitle: { de: 'Abholung anpassen', en: 'Adjust pickup', fr: 'Adapter le retrait' },
+  adjustRequest: { de: 'Anfrage anpassen', en: 'Adjust request', fr: 'Adapter la demande' },
   responsible: {
     de: 'Wer holt ab? (optional)',
     en: 'Who picks it up? (optional)',
@@ -380,7 +381,11 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
       nextDayInput(now),
     ),
   );
-  const [preparing, setPreparing] = useState(false);
+  const answersRequest = prepared.some((loan) => loan.status === 'REQUESTED');
+  // a request for a later day stays a preparation unless the team hands it out now
+  const [preparing, setPreparing] = useState(() =>
+    prepared.some((loan) => toDateInput(loan.startDate) > toDateInput(now)),
+  );
   // a pickup prepared for a later day keeps its day when it is only adjusted
   const [pickup, setPickup] = useState(() => {
     const firstDay = prepared.map((loan) => toDateInput(loan.startDate)).toSorted()[0];
@@ -492,7 +497,9 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
           <ChevronLeft aria-hidden />
         </MaterialButton>
         <h1 className="text-conveniat-green text-lg font-bold">
-          {adjusting ? text.adjustTitle[locale] : labels.navHandOut[locale]}
+          {adjusting
+            ? (answersRequest ? text.adjustRequest : text.adjustTitle)[locale]
+            : labels.navHandOut[locale]}
         </h1>
       </div>
 
