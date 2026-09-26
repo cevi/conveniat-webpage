@@ -1,6 +1,7 @@
 import { getApprovedFormSubmissionsCached } from '@/features/payload-cms/api/cached-approved-submissions';
 import { ApprovedFormSubmissionsClient } from '@/features/payload-cms/components/content-blocks/approved-form-submissions-client';
 import type { ApprovedFormSubmissionsBlock } from '@/features/payload-cms/payload-types';
+import { toPublicApprovedSubmissions } from '@/features/payload-cms/utils/public-approved-submissions';
 import type { Locale } from '@/types/types';
 import React from 'react';
 
@@ -24,17 +25,20 @@ export const ApprovedFormSubmissions: React.FC<ApprovedFormSubmissionsBlockPrope
 
   const submissions = await getApprovedFormSubmissionsCached(formId);
 
+  // Reduce on the server: the client component's props are serialized into the page.
+  const publicSubmissions = toPublicApprovedSubmissions(
+    submissions,
+    { titleFieldName, categoryFieldName, fileFieldName, displayFields },
+    locale,
+  );
+
   return (
     <ApprovedFormSubmissionsClient
-      submissions={submissions}
+      submissions={publicSubmissions}
       heading={heading}
       centerHorizontally={centerHorizontally}
-      titleFieldName={titleFieldName}
-      categoryFieldName={categoryFieldName}
-      fileFieldName={fileFieldName}
       searchPlaceholder={searchPlaceholder}
       fileDownloadButtonLabel={fileDownloadButtonLabel}
-      displayFields={displayFields}
       locale={locale}
     />
   );
