@@ -328,6 +328,8 @@ export const formPluginConfiguration = formBuilderPlugin({
           index: true,
           label: { en: 'Hof', de: 'Hof', fr: 'Hof' },
           admin: {
+            // it links to the Hof dashboard; a deployment without it has nothing to link to
+            hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
             position: 'sidebar',
             description: {
               en: 'Set by a "Hof Selection" field. Set it by hand for an older submission, and the Hof finds it on its dashboard.',
