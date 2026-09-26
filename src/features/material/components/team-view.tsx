@@ -59,33 +59,15 @@ const text = {
   confirmAll: { de: 'Bestätigen', en: 'Confirm', fr: 'Confirmer' },
   stockTable: { de: 'Bestand bearbeiten', en: 'Edit stock', fr: 'Modifier le stock' },
   newItem: { de: 'Neuer Artikel', en: 'New item', fr: 'Nouvel article' },
-  newDepartment: { de: 'Neue Abteilung', en: 'New department', fr: 'Nouveau groupe' },
-  name: { de: 'Name', en: 'Name', fr: 'Nom' },
-  shortName: { de: 'Kürzel', en: 'Short name', fr: 'Abréviation' },
-  contact: {
-    de: 'Materialverantwortliche Person',
-    en: 'Material contact',
-    fr: 'Responsable matériel',
-  },
-  groupId: {
-    de: 'Cevi.DB-Gruppen-ID',
-    en: 'Cevi.DB group id',
-    fr: 'ID du groupe Cevi.DB',
-  },
-  groupIdHint: {
-    de: 'Mitglieder dieser Gruppe sehen die Ausleihen der Abteilung in der App.',
-    en: 'Members of this group see the department’s loans in the app.',
-    fr: 'Les membres de ce groupe voient les prêts du groupe dans l’app.',
-  },
   reportedBy: { de: 'von {name}', en: 'by {name}', fr: 'par {name}' },
   searchItems: { de: 'Artikel suchen …', en: 'Search items …', fr: 'Chercher un article …' },
 } satisfies Record<string, StaticTranslationString>;
 
 const warningText = {
   OVERDUE: {
-    de: 'Überfällig: Ausleihe #{n} ({item}, {department})',
-    en: 'Overdue: loan #{n} ({item}, {department})',
-    fr: 'En retard : prêt n° {n} ({item}, {department})',
+    de: 'Überfällig: Ausleihe #{n} ({item}, {hof})',
+    en: 'Overdue: loan #{n} ({item}, {hof})',
+    fr: 'En retard : prêt n° {n} ({item}, {hof})',
   },
   LOW_STOCK: {
     de: 'Bestand zu niedrig: {item}, noch {n} frei',
@@ -129,7 +111,8 @@ const describeWarning = (warning: MaterialWarning, locale: Locale): string => {
       return format(warningText.OVERDUE, locale, {
         n: warning.loanNumber,
         item: warning.itemName,
-        department: warning.departmentName,
+        // a dashboard cached before the Höfe has no `hofName`
+        hof: warning.hofName ?? labels.unknownHof[locale],
       });
     }
     case 'LOW_STOCK': {

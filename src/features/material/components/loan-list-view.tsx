@@ -1,7 +1,12 @@
 'use client';
 
 import { LoanBulkBar } from '@/features/material/components/loan-bulk-bar';
-import { LoanCard, loanHolderName, loanQuantity } from '@/features/material/components/loan-card';
+import {
+  LoanCard,
+  loanHofName,
+  loanHolderName,
+  loanQuantity,
+} from '@/features/material/components/loan-card';
 import {
   LoanDetailDialog,
   type LoanDialogMode,
@@ -74,7 +79,7 @@ const text = {
     en: 'Item, person, number …',
     fr: 'Article, personne, numéro …',
   },
-  allDepartments: { de: 'Alle Abteilungen', en: 'All departments', fr: 'Tous les groupes' },
+  allHoefe: { de: 'Alle Höfe', en: 'All Hofs', fr: 'Tous les Hofs' },
   allStatus: { de: 'Alle Status', en: 'All statuses', fr: 'Tous les statuts' },
   count: { de: '{n} Einträge', en: '{n} entries', fr: '{n} entrées' },
   showClosed: {
@@ -105,12 +110,12 @@ const STATUS_RANK: Record<MaterialLoanDisplayStatus, number> = {
   CANCELLED: 7,
 };
 
-type SortKey = 'item' | 'quantity' | 'department' | 'start' | 'end' | 'status';
+type SortKey = 'item' | 'quantity' | 'hof' | 'start' | 'end' | 'status';
 
 const sortKeyLabel: Record<SortKey, StaticTranslationString> = {
   item: labels.article,
   quantity: labels.quantity,
-  department: labels.department,
+  hof: labels.hof,
   start: labels.startDate,
   end: labels.endDate,
   status: labels.status,
@@ -165,7 +170,8 @@ const comparatorsFor = (
 ): Record<SortKey, (a: MaterialLoan, b: MaterialLoan) => number> => ({
   item: (a, b) => a.item.name.localeCompare(b.item.name, locale),
   quantity: (a, b) => loanQuantity(a) - loanQuantity(b),
-  department: (a, b) => a.department.shortName.localeCompare(b.department.shortName, locale),
+  // a loan cached before the Höfe has no `hof`
+  hof: (a, b) => (a.hof?.name ?? '').localeCompare(b.hof?.name ?? '', locale),
   start: (a, b) => a.startDate.getTime() - b.startDate.getTime(),
   end: (a, b) => a.endDate.getTime() - b.endDate.getTime(),
   status: (a, b) =>
@@ -179,8 +185,7 @@ const matchesSearch = (loan: MaterialLoan, needle: string): boolean =>
     loan.item.code,
     loan.responsibleName,
     loan.person?.name ?? '',
-    loan.department.shortName,
-    loan.department.name,
+    loan.hof?.name ?? '',
     `#${loan.number}`,
   ].some((value) => value.toLowerCase().includes(needle));
 
@@ -198,7 +203,7 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
   const locale = useMaterialLocale();
   const now = useNow();
   const searchParameters = useSearchParams();
-  const [departmentId, setDepartmentId] = useState('');
+  const [hofId, setHofId] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<MaterialLoanDisplayStatus | ''>('');
   const [date, setDate] = useState('');
@@ -216,7 +221,7 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
     { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
   );
   const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
-  const departments = trpc.material.getDepartmentList.useQuery(undefined, materialQueryOptions);
+  const hoefe = trpc.material.getHofList.useQuery(undefined, materialQueryOptions);
   const isMaterialTeam = me.data?.isMaterialTeam ?? false;
 
   // a scanned loan label lands here with `?loan=<number>`, and may be missing from the list
@@ -255,7 +260,7 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
         } else if (displayStatus !== status) {
           return false;
         }
-        if (departmentId !== '' && loan.department.id !== departmentId) return false;
+        if (hofId !== '' && loan.hofId !== hofId) return false;
         if (!matchesSearch(loan, needle)) return false;
         if (
           day !== undefined &&
@@ -268,11 +273,11 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
       })
       .toSorted(sortFor(mode, now));
     return sortRows(filtered, sort, comparatorsFor(now, locale));
-  }, [loans.data, mode, status, departmentId, search, date, showClosed, sort, now, locale]);
+  }, [loans.data, mode, status, hofId, search, date, showClosed, sort, now, locale]);
 
   const pagination = usePagination(
     rows.length,
-    JSON.stringify([mode, status, departmentId, search.trim(), date, showClosed, sort]),
+    JSON.stringify([mode, status, hofId, search.trim(), date, showClosed, sort]),
   );
 
   if (loans.isLoading) return <LoadingState text={labels.loading[locale]} />;
@@ -289,16 +294,16 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
   const firstDate = primaryDate(mode);
   const secondDate = firstDate === 'end' ? 'start' : 'end';
 
-  const selectedDepartment = departments.data?.find((department) => department.id === departmentId);
+  const selectedHof = hoefe.data?.find((hof) => hof.id === hofId);
   const dateDay = fromDateInput(date, 'start');
   const chips: FilterChip[] = [
-    ...(selectedDepartment === undefined
+    ...(selectedHof === undefined
       ? []
       : [
           {
-            key: 'department',
-            label: `${labels.department[locale]}: ${selectedDepartment.shortName}`,
-            onRemove: () => setDepartmentId(''),
+            key: 'hof',
+            label: `${labels.hof[locale]}: ${selectedHof.name}`,
+            onRemove: () => setHofId(''),
           },
         ]),
     ...(status === ''
@@ -324,23 +329,23 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
       : []),
   ];
   const clearFilters = (): void => {
-    setDepartmentId('');
+    setHofId('');
     setStatus('');
     setDate('');
     setShowClosed(false);
     setSearch('');
   };
 
-  const departmentSelect = (
+  const hofSelect = (
     <NativeSelect
-      aria-label={labels.department[locale]}
-      value={departmentId}
-      onChange={(event) => setDepartmentId(event.target.value)}
+      aria-label={labels.hof[locale]}
+      value={hofId}
+      onChange={(event) => setHofId(event.target.value)}
     >
-      <option value="">{text.allDepartments[locale]}</option>
-      {departments.data?.map((department) => (
-        <option key={department.id} value={department.id}>
-          {department.shortName}
+      <option value="">{text.allHoefe[locale]}</option>
+      {hoefe.data?.map((hof) => (
+        <option key={hof.id} value={hof.id}>
+          {hof.name}
         </option>
       ))}
     </NativeSelect>
@@ -427,14 +432,14 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
             resultCount={rows.length}
             inlineControls={
               <>
-                {departmentSelect}
+                {hofSelect}
                 {statusSelect}
                 {dateInput}
               </>
             }
             sheetControls={
               <>
-                <Field label={labels.department[locale]}>{departmentSelect}</Field>
+                <Field label={labels.hof[locale]}>{hofSelect}</Field>
                 <Field label={labels.status[locale]}>{statusSelect}</Field>
                 <Field as="group" label={labels.date[locale]}>
                   {dateInput}
@@ -567,7 +572,7 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
           {/*
             wide: a table, from 42rem of list width. Measured on the list rather than the
             viewport, since the app's sidebar takes 480 px of a desktop screen, and in rem,
-            since the app's root font grows with the screen. Quantity, department and person
+            since the app's root font grows with the screen. Quantity, Hof and person
             fold into the article cell until there is room for their own columns; the second
             date only shows on a wide screen.
           */}
@@ -601,11 +606,11 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
                     </SortHeader>
                   </th>
                   <th
-                    className={cn(th, 'hidden w-24 @[54rem]:table-cell')}
-                    {...sortProperties(sort, 'department')}
+                    className={cn(th, 'hidden w-28 @[54rem]:table-cell')}
+                    {...sortProperties(sort, 'hof')}
                   >
-                    <SortHeader sortKey="department" sort={sort} onSort={onSort}>
-                      {labels.department[locale]}
+                    <SortHeader sortKey="hof" sort={sort} onSort={onSort}>
+                      {labels.hof[locale]}
                     </SortHeader>
                   </th>
                   <th className={cn(th, 'hidden w-40 @[64rem]:table-cell')}>
@@ -640,6 +645,7 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
                   const selected = selection.ids.has(loan.id);
                   const { primary, rest } = splitLoanActions(loan, isMaterialTeam);
                   const holder = loanHolderName(loan);
+                  const hofName = loanHofName(loan, locale);
                   const announced =
                     loan.returnAnnouncedAt instanceof Date && loan.status === 'ISSUED';
                   return (
@@ -690,10 +696,10 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
                         <div className="flex min-w-0 items-center gap-1.5 text-xs text-gray-500">
                           <span className="shrink-0 font-mono">#{loan.number}</span>
                           <span
-                            className="shrink-0 font-semibold text-gray-700 @[54rem]:hidden"
-                            title={loan.department.name}
+                            className="max-w-[50%] shrink-0 truncate font-semibold text-gray-700 @[54rem]:hidden"
+                            title={hofName}
                           >
-                            {loan.department.shortName}
+                            {hofName}
                           </span>
                           <span className="truncate @[64rem]:hidden" title={holder}>
                             {holder}
@@ -709,11 +715,8 @@ export const LoanListView: React.FC<{ mode: LoanListMode }> = ({ mode }) => {
                       <td className="hidden px-2 py-2 text-right font-bold tabular-nums @[54rem]:table-cell">
                         {loanQuantity(loan)}
                       </td>
-                      <td
-                        className="hidden truncate px-2 py-2 @[54rem]:table-cell"
-                        title={loan.department.name}
-                      >
-                        {loan.department.shortName}
+                      <td className="hidden truncate px-2 py-2 @[54rem]:table-cell" title={hofName}>
+                        {hofName}
                       </td>
                       <td className="hidden truncate px-2 py-2 @[64rem]:table-cell" title={holder}>
                         {holder}

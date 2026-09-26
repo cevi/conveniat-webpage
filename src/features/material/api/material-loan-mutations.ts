@@ -4,6 +4,7 @@ import {
   materialProcedure,
   materialTeamProcedure,
 } from '@/features/material/api/material-access';
+import { listHoefe } from '@/features/material/api/material-hoefe';
 import {
   assertAvailable,
   getInDepotQuantity,
@@ -35,15 +36,18 @@ const PENDING = new Set<MaterialLoanStatus>(['REQUESTED', 'RESERVED']);
 
 const minDate = (a: Date, b: Date): Date => new Date(Math.min(a.getTime(), b.getTime()));
 
-/** Finds a loan the user may act on; the material team may act on every loan. */
+/**
+ * Finds a loan the user may act on, `visible` being what `visibleLoansWhere` allows them;
+ * the material team may act on every loan.
+ */
 const findOwnLoan = async (
   prisma: Prisma.TransactionClient,
   id: string,
-  user: HitobitoNextAuthUser,
+  visible: Prisma.MaterialLoanWhereInput,
   locale: Locale,
 ): Promise<Prisma.MaterialLoanGetPayload<{ include: { item: true } }>> => {
   const loan = await prisma.materialLoan.findFirst({
-    where: { AND: [{ id }, visibleLoansWhere(user)] },
+    where: { AND: [{ id }, visible] },
     include: { item: true },
   });
   if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', locale);
@@ -57,12 +61,12 @@ const findOwnLoan = async (
 const lockLoan = async (
   tx: Prisma.TransactionClient,
   id: string,
-  user: HitobitoNextAuthUser,
+  visible: Prisma.MaterialLoanWhereInput,
   locale: Locale,
 ): Promise<Prisma.MaterialLoanGetPayload<{ include: { item: true } }>> => {
-  const { itemId } = await findOwnLoan(tx, id, user, locale);
+  const { itemId } = await findOwnLoan(tx, id, visible, locale);
   await lockItem(tx, itemId);
-  return await findOwnLoan(tx, id, user, locale);
+  return await findOwnLoan(tx, id, visible, locale);
 };
 
 const MAX_QUANTITY = 100_000;
@@ -85,36 +89,28 @@ const findPerson = async (
 const MAX_OPEN_REQUESTS = 20;
 
 /**
- * A participant books for a department they belong to through Cevi.DB, and for themselves
- * as a person. Only the material team books on behalf of anyone else.
+ * A participant books for a Hof they lead or are registered for, and for themselves as a
+ * person. Only the material team books on behalf of anyone else.
  */
-const assertMayBookFor = async (
-  prisma: Prisma.TransactionClient,
+const assertMayBookFor = (
   user: HitobitoNextAuthUser,
-  departmentId: string,
+  hofId: string,
   personId: string | null,
+  myHofIds: string[],
   locale: Locale,
-): Promise<void> => {
-  const department = await prisma.materialDepartment.findUnique({
-    where: { id: departmentId },
-    select: { hitobitoGroupId: true },
-  });
-  if (!department) throw materialError('NOT_FOUND', 'departmentNotFound', locale);
-  if (department.hitobitoGroupId === null || !user.group_ids.includes(department.hitobitoGroupId)) {
-    throw materialError('FORBIDDEN', 'notOwnDepartment', locale);
-  }
+): void => {
+  if (!myHofIds.includes(hofId)) throw materialError('FORBIDDEN', 'notOwnHof', locale);
   if (personId !== null && personId !== user.uuid) {
     throw materialError('FORBIDDEN', 'notSelf', locale);
   }
 };
 
-const findDepartment = async (
-  prisma: Prisma.TransactionClient,
-  departmentId: string,
-  locale: Locale,
-): Promise<void> => {
-  const department = await prisma.materialDepartment.findUnique({ where: { id: departmentId } });
-  if (!department) throw materialError('NOT_FOUND', 'departmentNotFound', locale);
+/** The Hof lives in Payload, so no foreign key checks that it exists. */
+const findHof = async (hofId: string, locale: Locale): Promise<void> => {
+  const hoefe = await listHoefe();
+  if (!hoefe.some((hof) => hof.id === hofId)) {
+    throw materialError('NOT_FOUND', 'hofNotFound', locale);
+  }
 };
 
 export const createLoan = materialProcedure
@@ -124,7 +120,7 @@ export const createLoan = materialProcedure
       quantity: quantitySchema,
       startDate: z.date(),
       endDate: z.date(),
-      departmentId: z.string(),
+      hofId: z.string(),
       personId: z.string().nullable(),
       responsibleName: z.string().trim().min(1).max(200),
       comment: z.string().trim().max(1000).optional(),
@@ -135,6 +131,11 @@ export const createLoan = materialProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const team = isMaterialTeam(ctx.user);
+    // the Höfe come from Payload, read before the transaction rather than under its lock
+    await findHof(input.hofId, ctx.locale);
+    if (!team) {
+      assertMayBookFor(ctx.user, input.hofId, input.personId, await ctx.myHofIds(), ctx.locale);
+    }
 
     return await ctx.prisma.$transaction(async (tx) => {
       await lockItem(tx, input.itemId);
@@ -146,10 +147,8 @@ export const createLoan = materialProcedure
       if (input.isConsumption && !item.isConsumable) {
         throw materialError('BAD_REQUEST', 'notConsumable', ctx.locale);
       }
-      await findDepartment(tx, input.departmentId, ctx.locale);
       await findPerson(tx, input.personId, ctx.locale);
       if (!team) {
-        await assertMayBookFor(tx, ctx.user, input.departmentId, input.personId, ctx.locale);
         const open = await tx.materialLoan.count({
           where: { createdById: ctx.user.uuid, status: 'REQUESTED' },
         });
@@ -177,7 +176,7 @@ export const createLoan = materialProcedure
         data: {
           itemId: item.id,
           quantity: input.quantity,
-          departmentId: input.departmentId,
+          hofId: input.hofId,
           personId: input.personId,
           responsibleName: input.responsibleName,
           comment: input.comment ?? null,
@@ -206,7 +205,7 @@ export const updateLoan = materialProcedure
       quantity: quantitySchema.optional(),
       startDate: z.date().optional(),
       endDate: z.date().optional(),
-      departmentId: z.string().optional(),
+      hofId: z.string().optional(),
       personId: z.string().nullable().optional(),
       responsibleName: z.string().trim().min(1).max(200).optional(),
       comment: z.string().trim().max(1000).nullable().optional(),
@@ -214,9 +213,11 @@ export const updateLoan = materialProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const team = isMaterialTeam(ctx.user);
+    if (input.hofId !== undefined) await findHof(input.hofId, ctx.locale);
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
 
     return await ctx.prisma.$transaction(async (tx) => {
-      const current = await lockLoan(tx, input.id, ctx.user, ctx.locale);
+      const current = await lockLoan(tx, input.id, visible, ctx.locale);
 
       // once the material is out, only the material team may move the return date
       const onlyExtendsIssued =
@@ -227,19 +228,17 @@ export const updateLoan = materialProcedure
       if (!PENDING.has(current.status) && !onlyExtendsIssued) {
         throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
       }
-      if (input.departmentId !== undefined) {
-        await findDepartment(tx, input.departmentId, ctx.locale);
-      }
       await findPerson(tx, input.personId, ctx.locale);
       const changesAssignee =
-        (input.departmentId !== undefined && input.departmentId !== current.departmentId) ||
+        (input.hofId !== undefined && input.hofId !== current.hofId) ||
         (input.personId !== undefined && input.personId !== current.personId);
       if (!team && changesAssignee) {
-        await assertMayBookFor(
-          tx,
+        assertMayBookFor(
           ctx.user,
-          input.departmentId ?? current.departmentId,
+          input.hofId ?? current.hofId,
           input.personId === undefined ? current.personId : input.personId,
+          // read for the visibility above already, so no second lookup under the lock
+          await ctx.myHofIds(),
           ctx.locale,
         );
       }
@@ -277,7 +276,7 @@ export const updateLoan = materialProcedure
           startDate,
           endDate,
           status,
-          ...(input.departmentId === undefined ? {} : { departmentId: input.departmentId }),
+          ...(input.hofId === undefined ? {} : { hofId: input.hofId }),
           ...(input.personId === undefined ? {} : { personId: input.personId }),
           ...(input.responsibleName === undefined
             ? {}
@@ -292,8 +291,9 @@ export const updateLoan = materialProcedure
 export const cancelLoan = materialProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
     await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, ctx.user, ctx.locale);
+      const loan = await lockLoan(tx, input.id, visible, ctx.locale);
       if (!PENDING.has(loan.status)) {
         throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
       }
@@ -306,7 +306,8 @@ export const cancelLoan = materialProcedure
 export const announceReturn = materialProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
-    const loan = await findOwnLoan(ctx.prisma, input.id, ctx.user, ctx.locale);
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
+    const loan = await findOwnLoan(ctx.prisma, input.id, visible, ctx.locale);
     const { count } = await ctx.prisma.materialLoan.updateMany({
       where: { id: loan.id, status: 'ISSUED' },
       data: { returnAnnouncedAt: new Date() },
@@ -331,10 +332,10 @@ const issueOne = async (
   tx: Prisma.TransactionClient,
   id: string,
   issuedQuantity: number | undefined,
-  user: HitobitoNextAuthUser,
+  visible: Prisma.MaterialLoanWhereInput,
   locale: Locale,
 ): Promise<void> => {
-  const loan = await lockLoan(tx, id, user, locale);
+  const loan = await lockLoan(tx, id, visible, locale);
   if (!PENDING.has(loan.status)) {
     throw materialError('BAD_REQUEST', 'wrongStatus', locale);
   }
@@ -382,8 +383,9 @@ export const confirmLoan = materialTeamProcedure
 export const issueLoan = materialTeamProcedure
   .input(z.object({ id: z.string(), issuedQuantity: quantitySchema }))
   .mutation(async ({ ctx, input }) => {
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
     await ctx.prisma.$transaction(async (tx) => {
-      await issueOne(tx, input.id, input.issuedQuantity, ctx.user, ctx.locale);
+      await issueOne(tx, input.id, input.issuedQuantity, visible, ctx.locale);
     });
   });
 
@@ -448,9 +450,10 @@ export const confirmLoanList = materialTeamProcedure
 export const issueLoanList = materialTeamProcedure
   .input(bulkInput)
   .mutation(async ({ ctx, input }) => {
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
     const results = await runForEach(input.ids, ctx.locale, (id) =>
       ctx.prisma.$transaction(async (tx) => {
-        await issueOne(tx, id, undefined, ctx.user, ctx.locale);
+        await issueOne(tx, id, undefined, visible, ctx.locale);
       }),
     );
     logger.info('Material loans issued in bulk', {
@@ -489,8 +492,9 @@ export const returnLoan = materialTeamProcedure
       ),
   )
   .mutation(async ({ ctx, input }) => {
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
     await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, ctx.user, ctx.locale);
+      const loan = await lockLoan(tx, input.id, visible, ctx.locale);
       if (loan.status !== 'ISSUED') throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
 
       const issued = loan.issuedQuantity ?? loan.quantity;
@@ -569,10 +573,11 @@ export const reportIncident = materialProcedure
   )
   .mutation(async ({ ctx, input }) => {
     const team = isMaterialTeam(ctx.user);
+    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
 
     await ctx.prisma.$transaction(async (tx) => {
       if (input.loanId !== undefined) {
-        const loan = await findOwnLoan(tx, input.loanId, ctx.user, ctx.locale);
+        const loan = await findOwnLoan(tx, input.loanId, visible, ctx.locale);
         if (loan.itemId !== input.itemId) {
           throw materialError('BAD_REQUEST', 'itemNotFound', ctx.locale);
         }

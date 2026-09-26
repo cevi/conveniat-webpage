@@ -3,6 +3,7 @@ import {
   materialProcedure,
   materialTeamProcedure,
 } from '@/features/material/api/material-access';
+import { listHoefe, withHof } from '@/features/material/api/material-hoefe';
 import {
   announceReturn,
   cancelLoan,
@@ -27,11 +28,9 @@ import {
 import {
   adjustItemStock,
   createCategory,
-  createDepartment,
   createItem,
   resolveIncident,
   updateCategory,
-  updateDepartment,
   updateItem,
 } from '@/features/material/api/material-team-mutations';
 import { getAvailableForPeriod, getPeakHeldQuantity } from '@/features/material/utils/stock';
@@ -49,7 +48,7 @@ const LOOKAHEAD_MS = DAY_MS;
 const loanListInput = z
   .object({
     itemId: z.string().optional(),
-    departmentId: z.string().optional(),
+    hofId: z.string().optional(),
     personId: z.string().optional(),
     /** only what is still requested, reserved or out, soonest due first */
     openOnly: z.boolean().optional(),
@@ -62,7 +61,8 @@ export type MaterialWarning =
       loanId: string;
       loanNumber: number;
       itemName: string;
-      departmentName: string;
+      /** `null` when the loan's Hof has been deleted since */
+      hofName: string | null;
     }
   | { kind: 'LOW_STOCK'; itemCode: string; itemName: string; available: number }
   | { kind: 'DAMAGED'; itemCode: string; itemName: string; quantity: number }
@@ -71,17 +71,14 @@ export type MaterialWarning =
   | { kind: 'MAX_REACHED'; itemCode: string; itemName: string };
 
 export const materialRouter = createTRPCRouter({
-  /** Who is asking, and which departments they belong to through Cevi.DB. */
+  /** Who is asking, and which Höfe they lead or are registered for. */
   getMe: materialProcedure.query(async ({ ctx }) => {
-    const departments = await ctx.prisma.materialDepartment.findMany({
-      where: { hitobitoGroupId: { in: ctx.user.group_ids } },
-      select: { id: true, name: true, shortName: true },
-    });
+    const [hoefe, mine] = await Promise.all([listHoefe(), ctx.myHofIds()]);
     return {
       uuid: ctx.user.uuid,
       name: ctx.user.nickname ?? ctx.user.name,
       isMaterialTeam: isMaterialTeam(ctx.user),
-      departments,
+      hoefe: hoefe.filter((hof) => mine.includes(hof.id)).map(({ id, name }) => ({ id, name })),
     };
   }),
 
@@ -101,12 +98,15 @@ export const materialRouter = createTRPCRouter({
 
     const openLoans = await ctx.prisma.materialLoan.findMany({
       where: {
-        AND: [{ itemId: item.id, status: { in: HOLDING_STATUSES } }, visibleLoansWhere(ctx.user)],
+        AND: [
+          { itemId: item.id, status: { in: HOLDING_STATUSES } },
+          await visibleLoansWhere(ctx.user, ctx.myHofIds),
+        ],
       },
       include: loanInclude,
       orderBy: { startDate: 'asc' },
     });
-    return { ...item, openLoans };
+    return { ...item, openLoans: await withHof(openLoans) };
   }),
 
   /** Free pieces for a period, so the request form can say so before anybody submits. */
@@ -143,38 +143,33 @@ export const materialRouter = createTRPCRouter({
     }),
 
   /**
-   * Every department, for the request form. The material team sees what each one has out;
-   * everybody else only for the departments they belong to.
+   * Every Hof, for the request form and the filters. The material team sees what each one has
+   * out and its Cevi.DB group; everybody else only the loans of their own Höfe.
    */
-  getDepartmentList: materialProcedure.query(async ({ ctx }) => {
+  getHofList: materialProcedure.query(async ({ ctx }) => {
     const team = isMaterialTeam(ctx.user);
-    const departments = await ctx.prisma.materialDepartment.findMany({
-      orderBy: { name: 'asc' },
-      // participants only get the loans of their own departments, so only those are loaded
-      include: {
-        loans: {
-          where: {
-            status: { in: HOLDING_STATUSES },
-            ...(team ? {} : { department: { hitobitoGroupId: { in: ctx.user.group_ids } } }),
-          },
-          include: loanInclude,
-          orderBy: { endDate: 'asc' },
+    const [hoefe, mine] = await Promise.all([listHoefe(), ctx.myHofIds()]);
+    const loans = await withHof(
+      await ctx.prisma.materialLoan.findMany({
+        where: {
+          status: { in: HOLDING_STATUSES },
+          // participants only get the loans of their own Höfe, so only those are loaded
+          ...(team ? {} : { hofId: { in: mine } }),
         },
-      },
-    });
-    return departments.map(({ loans, hitobitoGroupId, contactName, ...department }) => {
-      const isMine = hitobitoGroupId !== null && ctx.user.group_ids.includes(hitobitoGroupId);
-      return {
-        ...department,
-        isMine,
-        loans,
-        // the contact and the Cevi.DB mapping are the material team's business
-        // eslint-disable-next-line unicorn/no-null -- the same shape for everyone
-        contactName: team || isMine ? contactName : null,
-        // eslint-disable-next-line unicorn/no-null -- the same shape for everyone
-        hitobitoGroupId: team ? hitobitoGroupId : null,
-      };
-    });
+        include: loanInclude,
+        orderBy: { endDate: 'asc' },
+      }),
+    );
+    return hoefe.map((hof) => ({
+      id: hof.id,
+      name: hof.name,
+      eventCount: hof.eventIds.length,
+      isMine: mine.includes(hof.id),
+      loans: loans.filter((loan) => loan.hofId === hof.id),
+      // the Cevi.DB mapping is the material team's business
+      // eslint-disable-next-line unicorn/no-null -- the same shape for everyone
+      groupId: team ? hof.groupId : null,
+    }));
   }),
 
   /** People to lend to by name, for the material team's request form. */
@@ -194,12 +189,14 @@ export const materialRouter = createTRPCRouter({
 
   /** People who have material out or reserved, with what they have. */
   getPersonList: materialTeamProcedure.query(async ({ ctx }) => {
-    const loans = await ctx.prisma.materialLoan.findMany({
-      // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
-      where: { personId: { not: null }, status: { in: HOLDING_STATUSES } },
-      include: loanInclude,
-      orderBy: { endDate: 'asc' },
-    });
+    const loans = await withHof(
+      await ctx.prisma.materialLoan.findMany({
+        // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+        where: { personId: { not: null }, status: { in: HOLDING_STATUSES } },
+        include: loanInclude,
+        orderBy: { endDate: 'asc' },
+      }),
+    );
     const people = new Map<string, { uuid: string; name: string; loans: typeof loans }>();
     for (const loan of loans) {
       if (!loan.person) continue;
@@ -211,12 +208,12 @@ export const materialRouter = createTRPCRouter({
   }),
 
   getLoanList: materialProcedure.input(loanListInput).query(async ({ ctx, input }) => {
-    return await ctx.prisma.materialLoan.findMany({
+    const loans = await ctx.prisma.materialLoan.findMany({
       where: {
         AND: [
-          visibleLoansWhere(ctx.user),
+          await visibleLoansWhere(ctx.user, ctx.myHofIds),
           input.itemId === undefined ? {} : { itemId: input.itemId },
-          input.departmentId === undefined ? {} : { departmentId: input.departmentId },
+          input.hofId === undefined ? {} : { hofId: input.hofId },
           input.personId === undefined ? {} : { personId: input.personId },
           input.openOnly === true ? { status: { in: HOLDING_STATUSES } } : {},
         ],
@@ -229,18 +226,24 @@ export const materialRouter = createTRPCRouter({
           : [{ startDate: 'desc' }, { number: 'desc' }],
       take: 500,
     });
+    return await withHof(loans);
   }),
 
   getLoan: materialProcedure
     .input(z.object({ number: z.number().int() }))
     .query(async ({ ctx, input }) => {
-      const loan = await ctx.prisma.materialLoan.findFirst({
-        where: { AND: [{ number: input.number }, visibleLoansWhere(ctx.user)] },
-        include: {
-          ...loanInclude,
-          incidents: { orderBy: { createdAt: 'desc' } },
-        },
-      });
+      const [loan] = await withHof(
+        await ctx.prisma.materialLoan.findMany({
+          where: {
+            AND: [{ number: input.number }, await visibleLoansWhere(ctx.user, ctx.myHofIds)],
+          },
+          include: {
+            ...loanInclude,
+            incidents: { orderBy: { createdAt: 'desc' } },
+          },
+          take: 1,
+        }),
+      );
       if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', ctx.locale);
       return loan;
     }),
@@ -253,11 +256,13 @@ export const materialRouter = createTRPCRouter({
     const items = entries.map(({ item }) => item);
 
     const [openLoans, recentIncidents] = await Promise.all([
-      ctx.prisma.materialLoan.findMany({
-        where: { status: { in: HOLDING_STATUSES } },
-        include: loanInclude,
-        orderBy: { startDate: 'asc' },
-      }),
+      ctx.prisma.materialLoan
+        .findMany({
+          where: { status: { in: HOLDING_STATUSES } },
+          include: loanInclude,
+          orderBy: { startDate: 'asc' },
+        })
+        .then(withHof),
       ctx.prisma.materialIncident.findMany({
         // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
         where: { resolvedAt: null },
@@ -299,7 +304,8 @@ export const materialRouter = createTRPCRouter({
       loanId: loan.id,
       loanNumber: loan.number,
       itemName: loan.item.name,
-      departmentName: loan.department.shortName,
+      // eslint-disable-next-line unicorn/no-null -- the Hof has been deleted since
+      hofName: loan.hof?.name ?? null,
     }));
     for (const { item, holds } of entries) {
       if (item.isDisabled) continue;
@@ -361,8 +367,6 @@ export const materialRouter = createTRPCRouter({
   updateItem,
   adjustItemStock,
   resolveIncident,
-  createDepartment,
-  updateDepartment,
   createCategory,
   updateCategory,
 });

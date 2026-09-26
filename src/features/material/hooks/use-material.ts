@@ -11,8 +11,16 @@ import { useCallback, useEffect, useState } from 'react';
 export type MaterialItem = RouterOutputs['material']['getItemList'][number];
 export type MaterialItemDetail = RouterOutputs['material']['getItem'];
 export type MaterialLoan = RouterOutputs['material']['getLoanList'][number];
-export type MaterialDepartment = RouterOutputs['material']['getDepartmentList'][number];
+export type MaterialHof = RouterOutputs['material']['getHofList'][number];
 export type MaterialTeamDashboard = RouterOutputs['material']['getTeamDashboard'];
+export type MaterialMe = RouterOutputs['material']['getMe'];
+
+/**
+ * The Höfe the reader belongs to. A `getMe` restored from the cache of an app version before
+ * the Höfe has `departments` instead, so the field may be missing.
+ */
+export const getMyHoefe = (me: { hoefe?: MaterialMe['hoefe'] } | undefined): MaterialMe['hoefe'] =>
+  me?.hoefe ?? [];
 
 /**
  * Options every material query shares. The app-wide client neither refetches on mount nor

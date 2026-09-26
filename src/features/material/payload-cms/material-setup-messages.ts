@@ -32,31 +32,6 @@ export const setupMessages = {
     en: 'Category deleted.',
     fr: 'Catégorie supprimée.',
   },
-  invalidDepartment: {
-    de: 'Name (mindestens 2 Zeichen) und Kürzel sind nötig.',
-    en: 'A name (at least 2 characters) and a short name are required.',
-    fr: 'Un nom (au moins 2 caractères) et une abréviation sont nécessaires.',
-  },
-  departmentSaved: {
-    de: 'Abteilung «{name}» gespeichert.',
-    en: 'Department “{name}” saved.',
-    fr: 'Groupe « {name} » enregistré.',
-  },
-  departmentExists: {
-    de: 'Name, Kürzel oder Cevi.DB-Gruppe gehört schon einer anderen Abteilung.',
-    en: 'Name, short name or Cevi.DB group already belongs to another department.',
-    fr: 'Le nom, l’abréviation ou le groupe Cevi.DB appartient déjà à un autre groupe.',
-  },
-  departmentHasLoans: {
-    de: 'Die Abteilung hat {n} Ausleihen und bleibt deshalb bestehen.',
-    en: 'The department has {n} loans and therefore stays.',
-    fr: 'Le groupe a {n} prêts et reste donc en place.',
-  },
-  departmentDeleted: {
-    de: 'Abteilung gelöscht.',
-    en: 'Department deleted.',
-    fr: 'Groupe supprimé.',
-  },
   importEmpty: {
     de: 'Keine Zeilen gefunden.',
     en: 'No rows found.',

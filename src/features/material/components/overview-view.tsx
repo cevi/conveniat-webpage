@@ -1,6 +1,6 @@
 'use client';
 
-import { LoanCard, loanQuantity } from '@/features/material/components/loan-card';
+import { LoanCard, loanHofName, loanQuantity } from '@/features/material/components/loan-card';
 import { LoanDetailDialog } from '@/features/material/components/loan-detail-dialog';
 import { format, labels } from '@/features/material/components/material-labels';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
@@ -11,15 +11,17 @@ import {
   StatTile,
 } from '@/features/material/components/material-ui';
 import {
+  getMyHoefe,
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
   useMaterialLocale,
   useNow,
   type MaterialLoan,
+  type MaterialMe,
 } from '@/features/material/hooks/use-material';
 import { getLoanDisplayStatus } from '@/features/material/utils/stock';
 import { trpc } from '@/trpc/client';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { Building2, PackageSearch, ScanLine, User } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -58,20 +60,18 @@ interface HolderLine {
 interface Holder {
   key: string;
   label: string;
-  icon: 'department' | 'person';
+  icon: 'hof' | 'person';
   lines: Map<string, HolderLine>;
 }
 
 /**
- * What a department or a person has right now, one line per article, the way it would show
- * in the app: "AVP – 10 × Wolldecke, 2 × Handbeil".
+ * What a Hof or a person has right now, one line per article, the way it would show in the
+ * app: "Hof Nord – 10 × Wolldecke, 2 × Handbeil".
  */
-const useHolders = (
-  loans: MaterialLoan[],
-  me: { uuid: string; departments: { id: string; shortName: string }[] } | undefined,
-): Holder[] =>
+const useHolders = (loans: MaterialLoan[], me: MaterialMe | undefined, locale: Locale): Holder[] =>
   useMemo(() => {
     if (me === undefined) return [];
+    const myHofIds = new Set(getMyHoefe(me).map((hof) => hof.id));
     const holders = new Map<string, Holder>();
     const add = (holder: Omit<Holder, 'lines'>, loan: MaterialLoan): void => {
       const entry = holders.get(holder.key) ?? { ...holder, lines: new Map<string, HolderLine>() };
@@ -88,15 +88,12 @@ const useHolders = (
       if (loan.status !== 'ISSUED') continue;
       if (loan.person?.uuid === me.uuid) {
         add({ key: 'me', label: loan.person.name, icon: 'person' }, loan);
-      } else if (me.departments.some((department) => department.id === loan.department.id)) {
-        add(
-          { key: loan.department.id, label: loan.department.shortName, icon: 'department' },
-          loan,
-        );
+      } else if (myHofIds.has(loan.hofId)) {
+        add({ key: loan.hofId, label: loanHofName(loan, locale), icon: 'hof' }, loan);
       }
     }
     return [...holders.values()];
-  }, [loans, me]);
+  }, [loans, me, locale]);
 
 const LoanSection: React.FC<{
   title: string;
@@ -132,7 +129,7 @@ export const OverviewView: React.FC = () => {
   );
   const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
   const [openLoan, setOpenLoan] = useState<MaterialLoan | undefined>();
-  const holders = useHolders(loans.data ?? [], me.data);
+  const holders = useHolders(loans.data ?? [], me.data, locale);
 
   if (loans.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!loans.data) return <MaterialQueryError error={loans.error} />;
@@ -203,11 +200,13 @@ export const OverviewView: React.FC = () => {
                 <div key={holder.key}>
                   <div className="mb-1 flex items-center gap-1.5 font-bold text-gray-900">
                     {holder.icon === 'person' ? (
-                      <User className="size-4" aria-hidden />
+                      <User className="size-4 shrink-0" aria-hidden />
                     ) : (
-                      <Building2 className="size-4" aria-hidden />
+                      <Building2 className="size-4 shrink-0" aria-hidden />
                     )}
-                    {holder.key === 'me' ? text.withMe[locale] : holder.label}
+                    <span className="truncate">
+                      {holder.key === 'me' ? text.withMe[locale] : holder.label}
+                    </span>
                   </div>
                   <ul className="space-y-0.5 text-sm text-gray-700">
                     {[...holder.lines.values()].map((line) => (

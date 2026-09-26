@@ -19,6 +19,13 @@ export const loanHolderName = (loan: MaterialLoan): string =>
   loan.person?.name ?? loan.responsibleName;
 
 /**
+ * The Hof a loan is booked on. A Hof deleted since has no name, and a loan restored from the
+ * cache of an app version before the Höfe has no `hof` at all.
+ */
+export const loanHofName = (loan: MaterialLoan, locale: Locale): string =>
+  loan.hof?.name ?? labels.unknownHof[locale];
+
+/**
  * One loan as a tappable card, the same everywhere a loan is listed. Three lines at most:
  * what and how many with the status, who has it, and when it comes back.
  */
@@ -33,6 +40,7 @@ export const LoanCard: React.FC<{
 }> = ({ loan, locale, onOpen, now, selected = false, pressed }) => {
   const status = getLoanDisplayStatus(loan, now);
   const holder = loanHolderName(loan);
+  const hofName = loanHofName(loan, locale);
   // a cache entry restored from an older app version may lack the field
   const announced = loan.returnAnnouncedAt instanceof Date && loan.status === 'ISSUED';
   return (
@@ -58,12 +66,12 @@ export const LoanCard: React.FC<{
         </div>
         <div className="flex min-w-0 items-center gap-1.5 text-sm text-gray-600">
           <Building2 className="size-3.5 shrink-0" aria-hidden />
-          <span className="shrink-0" title={loan.department.name}>
-            {loan.department.shortName}
+          <span className="max-w-[50%] shrink-0 truncate" title={hofName}>
+            {hofName}
           </span>
           <span aria-hidden>·</span>
           <User className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate" title={holder}>
+          <span className="min-w-0 truncate" title={holder}>
             {holder}
           </span>
         </div>

@@ -39,23 +39,12 @@ CREATE TABLE "MaterialItem" (
 );
 
 -- CreateTable
-CREATE TABLE "MaterialDepartment" (
-    "id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "shortName" TEXT NOT NULL,
-    "contactName" TEXT,
-    "hitobitoGroupId" INTEGER,
-
-    CONSTRAINT "MaterialDepartment_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "MaterialLoan" (
     "id" TEXT NOT NULL,
     "number" SERIAL NOT NULL,
     "itemId" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL,
-    "departmentId" TEXT NOT NULL,
+    "hofId" TEXT NOT NULL,
     "personId" TEXT,
     "responsibleName" TEXT NOT NULL,
     "comment" TEXT,
@@ -103,22 +92,13 @@ CREATE UNIQUE INDEX "MaterialItem_code_key" ON "MaterialItem"("code");
 CREATE INDEX "MaterialItem_categoryId_idx" ON "MaterialItem"("categoryId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "MaterialDepartment_name_key" ON "MaterialDepartment"("name");
-
--- CreateIndex
-CREATE UNIQUE INDEX "MaterialDepartment_shortName_key" ON "MaterialDepartment"("shortName");
-
--- CreateIndex
-CREATE UNIQUE INDEX "MaterialDepartment_hitobitoGroupId_key" ON "MaterialDepartment"("hitobitoGroupId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "MaterialLoan_number_key" ON "MaterialLoan"("number");
 
 -- CreateIndex
 CREATE INDEX "MaterialLoan_itemId_status_idx" ON "MaterialLoan"("itemId", "status");
 
 -- CreateIndex
-CREATE INDEX "MaterialLoan_departmentId_idx" ON "MaterialLoan"("departmentId");
+CREATE INDEX "MaterialLoan_hofId_idx" ON "MaterialLoan"("hofId");
 
 -- CreateIndex
 CREATE INDEX "MaterialLoan_personId_idx" ON "MaterialLoan"("personId");
@@ -140,9 +120,6 @@ ALTER TABLE "MaterialItem" ADD CONSTRAINT "MaterialItem_categoryId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "MaterialLoan" ADD CONSTRAINT "MaterialLoan_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "MaterialItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MaterialLoan" ADD CONSTRAINT "MaterialLoan_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "MaterialDepartment"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MaterialLoan" ADD CONSTRAINT "MaterialLoan_personId_fkey" FOREIGN KEY ("personId") REFERENCES "User"("uuid") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -18,16 +18,11 @@ import type React from 'react';
 import { useState } from 'react';
 
 const text = {
-  contact: {
-    de: 'Materialverantwortlich: {name}',
-    en: 'Material contact: {name}',
-    fr: 'Responsable matériel : {name}',
-  },
-  mine: { de: 'Meine Abteilung', en: 'My department', fr: 'Mon groupe' },
-  noDepartments: {
-    de: 'Du bist keiner Abteilung zugeordnet. Das Materialteam sieht hier alle Abteilungen.',
-    en: 'You do not belong to a department. The material team sees all departments here.',
-    fr: 'Tu n’es rattaché·e à aucun groupe. L’équipe matériel voit ici tous les groupes.',
+  mine: { de: 'Mein Hof', en: 'My Hof', fr: 'Mon Hof' },
+  noHoefe: {
+    de: 'Du bist über deine Anmeldung keinem Hof zugeordnet. Das Materialteam sieht hier alle Höfe.',
+    en: 'Your registration does not link you to a Hof. The material team sees all Hofs here.',
+    fr: 'Ton inscription ne te rattache à aucun Hof. L’équipe matériel voit ici tous les Hofs.',
   },
 } satisfies Record<string, StaticTranslationString>;
 
@@ -42,14 +37,13 @@ const summarise = (loans: MaterialLoan[]): string => {
 };
 
 const HolderPanel: React.FC<{
-  icon: 'department' | 'person';
+  icon: 'hof' | 'person';
   title: string;
-  subtitle?: string;
   loans: MaterialLoan[];
   onOpen: (loan: MaterialLoan) => void;
   now: Date;
   badge?: string;
-}> = ({ icon, title, subtitle, loans, onOpen, now, badge }) => {
+}> = ({ icon, title, loans, onOpen, now, badge }) => {
   const locale = useMaterialLocale();
   const [open, setOpen] = useState(false);
   const Icon = icon === 'person' ? User : Building2;
@@ -66,14 +60,15 @@ const HolderPanel: React.FC<{
         <Icon className="mt-0.5 size-5 shrink-0 text-gray-500" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 font-bold text-gray-900">
-            {title}
+            <span className="min-w-0 truncate" title={title}>
+              {title}
+            </span>
             {badge !== undefined && (
-              <span className="bg-conveniat-green/10 text-conveniat-green rounded-full px-2 py-0.5 text-xs">
+              <span className="bg-conveniat-green/10 text-conveniat-green shrink-0 rounded-full px-2 py-0.5 text-xs">
                 {badge}
               </span>
             )}
           </div>
-          {subtitle !== undefined && <div className="text-xs text-gray-500">{subtitle}</div>}
           <div className="mt-1 text-sm text-gray-700">{summary === '' ? '–' : summary}</div>
         </div>
         <span className="text-xs font-semibold text-gray-500 tabular-nums">{loans.length}</span>
@@ -96,33 +91,30 @@ const HolderPanel: React.FC<{
   );
 };
 
-/** Departments with what each has out and reserved (§4 of the spec, variant A). */
-export const DepartmentsView: React.FC = () => {
+/** Höfe with what each has out and reserved (§4 of the spec, variant A). */
+export const HoefeView: React.FC = () => {
   const locale = useMaterialLocale();
   const now = useNow();
-  const departments = trpc.material.getDepartmentList.useQuery(undefined, materialQueryOptions);
+  const hoefe = trpc.material.getHofList.useQuery(undefined, materialQueryOptions);
   const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
   const [openLoan, setOpenLoan] = useState<MaterialLoan | undefined>();
 
-  if (departments.isLoading) return <LoadingState text={labels.loading[locale]} />;
-  if (!departments.data) return <MaterialQueryError error={departments.error} />;
+  if (hoefe.isLoading) return <LoadingState text={labels.loading[locale]} />;
+  if (!hoefe.data) return <MaterialQueryError error={hoefe.error} />;
 
   const isMaterialTeam = me.data?.isMaterialTeam ?? false;
-  const shown = departments.data.filter((department) => isMaterialTeam || department.isMine);
+  const shown = hoefe.data.filter((hof) => isMaterialTeam || hof.isMine);
 
   return (
     <div className="space-y-3">
-      {shown.length === 0 && <EmptyState text={text.noDepartments[locale]} />}
-      {shown.map((department) => (
+      {shown.length === 0 && <EmptyState text={text.noHoefe[locale]} />}
+      {shown.map((hof) => (
         <HolderPanel
-          key={department.id}
-          icon="department"
-          title={`${department.shortName} · ${department.name}`}
-          {...(department.contactName === null
-            ? {}
-            : { subtitle: text.contact[locale].replace('{name}', department.contactName) })}
-          {...(department.isMine ? { badge: text.mine[locale] } : {})}
-          loans={department.loans}
+          key={hof.id}
+          icon="hof"
+          title={hof.name}
+          {...(hof.isMine ? { badge: text.mine[locale] } : {})}
+          loans={hof.loans}
           onOpen={setOpenLoan}
           now={now}
         />

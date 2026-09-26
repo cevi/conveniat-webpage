@@ -17,7 +17,7 @@ import { z } from 'zod';
 /*
  * Server actions of the depot setup page in the admin panel. Payload admin components cannot
  * reach tRPC, which is why these exist; the app never calls them. Everything here is the
- * one-off setup: categories, departments and the first catalogue. Day-to-day stock changes
+ * one-off setup: categories and the first catalogue. Day-to-day stock changes
  * happen in the app, where they are checked against open loans.
  */
 
@@ -82,40 +82,6 @@ export const deleteMaterialCategory = async (id: string): Promise<SetupResult> =
   if (items > 0) return failed('categoryNotEmpty', { n: items });
   await prisma.materialCategory.delete({ where: { id } });
   return { ok: true, message: 'categoryDeleted' };
-};
-
-const departmentSchema = z.object({
-  id: z.string().optional(),
-  name: z.string().trim().min(2).max(200),
-  shortName: z.string().trim().min(1).max(20),
-  contactName: z.string().trim().max(200).nullable(),
-  hitobitoGroupId: z.number().int().positive().nullable(),
-});
-
-export const saveMaterialDepartment = async (
-  input: z.input<typeof departmentSchema>,
-): Promise<SetupResult> => {
-  if (!(await canSetUp())) return failed('forbidden');
-  const parsed = departmentSchema.safeParse(input);
-  if (!parsed.success) return failed('invalidDepartment');
-  const { id, ...data } = parsed.data;
-  try {
-    await (id === undefined
-      ? prisma.materialDepartment.create({ data })
-      : prisma.materialDepartment.update({ where: { id }, data }));
-    return { ok: true, message: 'departmentSaved', values: { name: data.shortName } };
-  } catch (error) {
-    if (isKnownError(error, 'P2002')) return failed('departmentExists');
-    throw error;
-  }
-};
-
-export const deleteMaterialDepartment = async (id: string): Promise<SetupResult> => {
-  if (!(await canSetUp())) return failed('forbidden');
-  const loans = await prisma.materialLoan.count({ where: { departmentId: id } });
-  if (loans > 0) return failed('departmentHasLoans', { n: loans });
-  await prisma.materialDepartment.delete({ where: { id } });
-  return { ok: true, message: 'departmentDeleted' };
 };
 
 const IMPORT_COLUMNS = [
