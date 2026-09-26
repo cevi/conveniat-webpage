@@ -132,11 +132,10 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
 /** Yes or no, as two toggle buttons of which the chosen one is filled. */
 const SafetyRiskChoice: React.FC<{
   value: 'yes' | 'no' | undefined;
-  disabled: boolean;
   labelledBy: string;
   locale: Locale;
   onChange: (value: 'yes' | 'no') => void;
-}> = ({ value, disabled, labelledBy, locale, onChange }) => (
+}> = ({ value, labelledBy, locale, onChange }) => (
   <div
     className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5"
     role="group"
@@ -147,7 +146,6 @@ const SafetyRiskChoice: React.FC<{
         key={option}
         type="button"
         aria-pressed={value === option}
-        disabled={disabled}
         onClick={() => onChange(option)}
         className={cn(
           'min-h-10 min-w-16 cursor-pointer rounded-md px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60',
@@ -194,19 +192,9 @@ export const SubmissionCard: React.FC<{
   criteria: string[];
   locale: Locale;
   uploads: Record<string, UploadInProgress>;
-  savingSafetyRisk: boolean;
   onUpload: (file: File, kind: HofFileKind) => void;
   onSafetyRisk: (value: 'yes' | 'no') => void;
-}> = ({
-  submission,
-  progress,
-  criteria,
-  locale,
-  uploads,
-  savingSafetyRisk,
-  onUpload,
-  onSafetyRisk,
-}) => {
+}> = ({ submission, progress, criteria, locale, uploads, onUpload, onSafetyRisk }) => {
   const plans = submission.files.filter((file) => file.kind === 'plan');
   const safetyConcepts = submission.files.filter((file) => file.kind === 'safetyConcept');
   const questionId = `safety-question-${submission.type}`;
@@ -248,7 +236,6 @@ export const SubmissionCard: React.FC<{
         </span>
         <SafetyRiskChoice
           value={submission.elevatedSafetyRisk}
-          disabled={savingSafetyRisk}
           labelledBy={questionId}
           locale={locale}
           onChange={onSafetyRisk}

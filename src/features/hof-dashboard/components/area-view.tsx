@@ -12,13 +12,12 @@ import { DocumentLinks } from '@/features/hof-dashboard/components/document-link
 import { SubmissionCard } from '@/features/hof-dashboard/components/submission-card';
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
+import { useSafetyRiskAnswer } from '@/features/hof-dashboard/hooks/use-safety-risk-answer';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
-import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import {
   daysUntil,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
-import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
@@ -82,14 +81,8 @@ export const AreaView: React.FC<{
   progress: Record<HofSubmissionType, SubmissionProgress>;
   locale: Locale;
 }> = ({ area, data, progress, locale }) => {
-  const utils = trpc.useUtils();
   const { upload, uploads } = useHofUpload(data.hof.id, locale);
-  const updateSafetyRisk = trpc.hofDashboard.updateSafetyRisk.useMutation({
-    // fail right away without signal instead of waiting paused for it
-    networkMode: 'always',
-    onSuccess: () => utils.hofDashboard.getHofDashboard.invalidate({ hofId: data.hof.id }),
-    onError: () => notifyFailure(locale, 'saveFailed'),
-  });
+  const answerSafetyRisk = useSafetyRiskAnswer(data.hof.id, locale);
 
   const submissions = data.submissions.filter((submission) => submission.area === area);
   const deadlines = data.deadlines.filter((deadline) => deadline.area === area);
@@ -131,17 +124,9 @@ export const AreaView: React.FC<{
             criteria={data.safetyRiskCriteria}
             locale={locale}
             uploads={uploads}
-            savingSafetyRisk={
-              updateSafetyRisk.isPending &&
-              updateSafetyRisk.variables.submissionType === submission.type
-            }
             onUpload={(file, kind) => void upload(file, submission.type, kind)}
             onSafetyRisk={(elevatedSafetyRisk) =>
-              updateSafetyRisk.mutate({
-                hofId: data.hof.id,
-                submissionType: submission.type,
-                elevatedSafetyRisk,
-              })
+              answerSafetyRisk(submission.type, elevatedSafetyRisk)
             }
           />
         ))}
