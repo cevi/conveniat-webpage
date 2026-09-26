@@ -35,6 +35,52 @@ describe('Onboarding Finite State Machine', () => {
       expect(step).toBe(OnboardingStep.Login);
     });
 
+    it('does not ask an offline user to log in and opens the cached app instead', () => {
+      const step = determineNextStep({
+        ...initialOnboardingContext,
+        hasAcceptedCookieBanner: true,
+        authStatus: 'unauthenticated',
+        hasSkippedLogin: false,
+        hasPushSubscription: true,
+        hasCachedContent: true,
+        isOnline: false,
+      });
+      expect(step).toBe(OnboardingStep.Loading);
+    });
+
+    it('shows NoInternet instead of Login to an offline user without cached content', () => {
+      const step = determineNextStep({
+        ...initialOnboardingContext,
+        hasAcceptedCookieBanner: true,
+        authStatus: 'unauthenticated',
+        hasSkippedLogin: false,
+        hasPushSubscription: true,
+        hasCachedContent: false,
+        isOnline: false,
+      });
+      expect(step).toBe(OnboardingStep.NoInternet);
+    });
+
+    it('asks for login again once the device is back online', () => {
+      const offlineState = onboardingReducer(initialOnboardingState, {
+        type: OnboardingAction.UPDATE_CONTEXT,
+        payload: {
+          hasAcceptedCookieBanner: true,
+          authStatus: 'unauthenticated',
+          hasPushSubscription: true,
+          hasCachedContent: true,
+          isOnline: false,
+        },
+      });
+      expect(offlineState.step).toBe(OnboardingStep.Loading);
+
+      const onlineState = onboardingReducer(offlineState, {
+        type: OnboardingAction.UPDATE_CONTEXT,
+        payload: { isOnline: true },
+      });
+      expect(onlineState.step).toBe(OnboardingStep.Login);
+    });
+
     it('should return PushNotifications if authenticated (skip login not needed) and no subscription', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
