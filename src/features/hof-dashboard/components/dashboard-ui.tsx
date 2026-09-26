@@ -1,5 +1,9 @@
 import type { HofContact } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import type { HofDashboardArea, HofSubmissionStatus } from '@/features/hof-dashboard/constants';
+import {
+  HOF_SUBMISSION_STATUS_LABELS,
+  type HofDashboardArea,
+  type HofSubmissionStatus,
+} from '@/features/hof-dashboard/constants';
 import {
   formatCountdown,
   formatDate,
@@ -22,7 +26,8 @@ export const AREA_TEXT_CLASS: Record<HofDashboardArea, string> = {
   program: 'text-cevi-red',
 };
 
-const AREA_BAR_CLASS: Record<HofDashboardArea, string> = {
+/** The area's colour as a fill, for progress bars and dots. */
+export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
   infrastructure: 'bg-conveniat-green',
   program: 'bg-cevi-red',
 };
@@ -64,34 +69,66 @@ export const SectionHeading: React.FC<{
   </h3>
 );
 
-const STATE_STYLE: Record<
-  SubmissionState,
+/** How loud a status reads: done, open, due soon or overdue, as the spec's traffic light. */
+export type StatusTone = 'done' | 'neutral' | 'warning' | 'alert';
+
+const TONE_STYLE: Record<
+  StatusTone,
   { icon: React.FC<{ className?: string }>; className: string }
 > = {
-  done: { icon: CheckCircle2, className: 'text-green-600' },
-  open: { icon: Clock, className: 'text-gray-600' },
-  dueSoon: { icon: Clock, className: 'text-amber-700' },
-  overdue: { icon: AlertCircle, className: 'text-red-700' },
+  done: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
+  neutral: { icon: Clock, className: 'bg-gray-100 text-gray-700 ring-gray-200' },
+  warning: { icon: Clock, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  alert: { icon: AlertCircle, className: 'bg-red-50 text-red-800 ring-red-200' },
 };
 
-const GAP_LABEL: Record<SubmissionGap, TextKey> = {
+/** A short status with its icon, tinted by how urgent it is. */
+export const StatusPill: React.FC<{ tone: StatusTone; children: React.ReactNode }> = ({
+  tone,
+  children,
+}) => {
+  const { icon: Icon, className } = TONE_STYLE[tone];
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset',
+        className,
+      )}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {children}
+    </span>
+  );
+};
+
+const STATE_TONE: Record<SubmissionState, StatusTone> = {
+  done: 'done',
+  open: 'neutral',
+  dueSoon: 'warning',
+  overdue: 'alert',
+};
+
+const GAP_LABEL: Record<Exclude<SubmissionGap, 'revision'>, TextKey> = {
   plan: 'gapPlan',
   safetyRiskAnswer: 'gapSafetyRiskAnswer',
   safetyConcept: 'gapSafetyConcept',
-  revision: 'gapRevision',
 };
 
-/** What a handed-in submission reads as: handed in, unless the Ressort has moved it on. */
-const DONE_LABEL: Record<HofSubmissionStatus, TextKey> = {
-  submitted: 'stateDone',
-  inReview: 'stateInReview',
-  revisionRequired: 'stateDone',
-  archived: 'stateArchived',
+/** The Ressort's status once handed in, else what is missing, named as everywhere else. */
+const progressLabel = (
+  progress: SubmissionProgress,
+  status: HofSubmissionStatus | undefined,
+  locale: Locale,
+): string => {
+  if (progress.gap === undefined)
+    return HOF_SUBMISSION_STATUS_LABELS[status ?? 'submitted'][locale];
+  if (progress.gap === 'revision') return HOF_SUBMISSION_STATUS_LABELS.revisionRequired[locale];
+  return translate(GAP_LABEL[progress.gap], locale);
 };
 
 /**
- * Where a submission stands, in one line: handed in and what the Ressort made of it, or what
- * is missing and by when.
+ * Where a submission stands: what is missing, or the Ressort's status once it is handed in,
+ * named as everywhere else, and for what is missing the deadline and how far off it is.
  */
 export const ProgressLine: React.FC<{
   progress: SubmissionProgress;
@@ -99,22 +136,18 @@ export const ProgressLine: React.FC<{
   locale: Locale;
   className?: string;
 }> = ({ progress, status, locale, className }) => {
-  const style = STATE_STYLE[progress.state];
-  const Icon = style.icon;
-  const parts: string[] =
-    progress.gap === undefined
-      ? [translate(DONE_LABEL[status ?? 'submitted'], locale)]
-      : [translate(GAP_LABEL[progress.gap], locale)];
+  const label = progressLabel(progress, status, locale);
+  const due: string[] = [];
   if (progress.state !== 'done' && progress.deadline !== undefined) {
-    parts.push(translate('dueOn', locale, { date: formatDate(progress.deadline, locale) }));
+    due.push(translate('dueOn', locale, { date: formatDate(progress.deadline, locale) }));
   }
   if (progress.state !== 'done' && progress.daysLeft !== undefined) {
-    parts.push(formatCountdown(progress.daysLeft, locale));
+    due.push(formatCountdown(progress.daysLeft, locale));
   }
   return (
-    <p className={cn('flex items-start gap-1.5 text-sm', style.className, className)}>
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      <span>{parts.join(' · ')}</span>
+    <p className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-sm', className)}>
+      <StatusPill tone={STATE_TONE[progress.state]}>{label}</StatusPill>
+      {due.length > 0 && <span className="text-gray-600">{due.join(' · ')}</span>}
     </p>
   );
 };
@@ -170,7 +203,7 @@ export const ProgressBar: React.FC<{ percent: number; area: HofDashboardArea; la
     aria-valuemax={100}
   >
     <div
-      className={cn('h-full rounded-full', AREA_BAR_CLASS[area])}
+      className={cn('h-full rounded-full', AREA_DOT_CLASS[area])}
       style={{ width: `${percent}%` }}
     />
   </div>

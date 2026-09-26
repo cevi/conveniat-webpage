@@ -2,6 +2,7 @@
 
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -22,22 +23,50 @@ import {
   type HofFileKind,
   uploadKey,
 } from '@/features/hof-dashboard/constants';
+import type { UploadInProgress } from '@/features/hof-dashboard/hooks/use-hof-upload';
 import { translate } from '@/features/hof-dashboard/texts';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Loader2, Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import type React from 'react';
 import { useRef } from 'react';
 
+/** A file on its way up: its name, how far it is, and a way to call it off. */
+const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = ({
+  upload,
+  locale,
+}) => (
+  <div className="w-full space-y-2 rounded-lg bg-gray-50 p-3" aria-live="polite">
+    <div className="flex items-center justify-between gap-3 text-sm">
+      <span className="min-w-0 truncate font-semibold text-gray-900">{upload.filename}</span>
+      <span className="shrink-0 text-gray-600 tabular-nums">{upload.percent} %</span>
+    </div>
+    <div
+      className="h-1.5 overflow-hidden rounded-full bg-gray-200"
+      role="progressbar"
+      aria-label={translate('uploadingFile', locale, { name: upload.filename })}
+      aria-valuenow={upload.percent}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className="bg-conveniat-green h-full rounded-full transition-[width]"
+        style={{ width: `${upload.percent}%` }}
+      />
+    </div>
+    <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={upload.cancel}>
+      <X aria-hidden />
+      {translate('cancel', locale)}
+    </button>
+  </div>
+);
+
 const UploadButton: React.FC<{
   label: string;
-  percent: number | undefined;
-  locale: Locale;
   onFile: (file: File) => void;
-}> = ({ label, percent, locale, onFile }) => {
+}> = ({ label, onFile }) => {
   const input = useRef<HTMLInputElement>(null);
-  const busy = percent !== undefined;
   return (
     <>
       <input
@@ -54,11 +83,10 @@ const UploadButton: React.FC<{
       <button
         type="button"
         className={SECONDARY_BUTTON_CLASS}
-        disabled={busy}
         onClick={() => input.current?.click()}
       >
-        {busy ? <Loader2 className="animate-spin" aria-hidden /> : <Upload aria-hidden />}
-        {busy ? translate('uploadingPercent', locale, { n: percent }) : label}
+        <Upload aria-hidden />
+        {label}
       </button>
     </>
   );
@@ -78,7 +106,10 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
         {translate('showCriteriaLink', locale)}
       </button>
     </DialogTrigger>
-    <DialogContent className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-gray-200 bg-white">
+    <DialogContent
+      closeLabel={translate('close', locale)}
+      className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-gray-200 bg-white"
+    >
       <DialogHeader>
         <DialogTitle className="font-heading text-conveniat-green pr-8 text-left leading-snug">
           {translate('safetyCriteria', locale)}
@@ -89,6 +120,11 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
           <li key={index}>{criterion}</li>
         ))}
       </ol>
+      <DialogClose asChild>
+        <button type="button" className={cn(SECONDARY_BUTTON_CLASS, 'w-full')}>
+          {translate('close', locale)}
+        </button>
+      </DialogClose>
     </DialogContent>
   </Dialog>
 );
@@ -124,27 +160,27 @@ const SafetyRiskChoice: React.FC<{
   </div>
 );
 
-/** The files of one kind, and the button that adds the next version. */
+/** The files of one kind, and the button that adds the next version, or its upload under way. */
 const FilesWithUpload: React.FC<{
   files: HofDashboardFile[];
-  percent: number | undefined;
+  upload: UploadInProgress | undefined;
   locale: Locale;
   onFile: (file: File) => void;
-}> = ({ files, percent, locale, onFile }) => (
-  <div className="flex flex-col gap-3 @lg:flex-row @lg:items-start @lg:justify-between">
-    {files.length === 0 ? (
+}> = ({ files, upload, locale, onFile }) => (
+  <div className="space-y-3">
+    {files.length === 0 && upload === undefined ? (
       <p className="text-sm text-gray-500">{translate('noFileYet', locale)}</p>
     ) : (
       <FileList files={files} locale={locale} />
     )}
-    <div className="shrink-0">
+    {upload === undefined ? (
       <UploadButton
         label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
-        percent={percent}
-        locale={locale}
         onFile={onFile}
       />
-    </div>
+    ) : (
+      <UploadProgress upload={upload} locale={locale} />
+    )}
   </div>
 );
 
@@ -157,7 +193,7 @@ export const SubmissionCard: React.FC<{
   progress: SubmissionProgress;
   criteria: string[];
   locale: Locale;
-  uploadProgress: Record<string, number>;
+  uploads: Record<string, UploadInProgress>;
   savingSafetyRisk: boolean;
   onUpload: (file: File, kind: HofFileKind) => void;
   onSafetyRisk: (value: 'yes' | 'no') => void;
@@ -166,7 +202,7 @@ export const SubmissionCard: React.FC<{
   progress,
   criteria,
   locale,
-  uploadProgress,
+  uploads,
   savingSafetyRisk,
   onUpload,
   onSafetyRisk,
@@ -201,7 +237,7 @@ export const SubmissionCard: React.FC<{
 
       <FilesWithUpload
         files={plans}
-        percent={uploadProgress[uploadKey(submission.type, 'plan')]}
+        upload={uploads[uploadKey(submission.type, 'plan')]}
         locale={locale}
         onFile={(file) => onUpload(file, 'plan')}
       />
@@ -237,7 +273,7 @@ export const SubmissionCard: React.FC<{
           </div>
           <FilesWithUpload
             files={safetyConcepts}
-            percent={uploadProgress[uploadKey(submission.type, 'safetyConcept')]}
+            upload={uploads[uploadKey(submission.type, 'safetyConcept')]}
             locale={locale}
             onFile={(file) => onUpload(file, 'safetyConcept')}
           />

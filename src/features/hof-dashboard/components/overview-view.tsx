@@ -1,11 +1,11 @@
 import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
+  AREA_DOT_CLASS,
   AREA_TEXT_CLASS,
   ContactBlock,
   Panel,
   ProgressBar,
   ProgressLine,
-  SECONDARY_BUTTON_CLASS,
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
@@ -23,8 +23,16 @@ import {
 } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ChevronRight } from 'lucide-react';
 import type React from 'react';
+
+/** Which area a submission belongs to, marked by the area's colour but read as plain text. */
+const AreaTag: React.FC<{ area: HofDashboardArea; locale: Locale }> = ({ area, locale }) => (
+  <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
+    <span className={cn('h-2 w-2 rounded-full', AREA_DOT_CLASS[area])} aria-hidden />
+    {HOF_DASHBOARD_AREA_LABELS[area][locale]}
+  </span>
+);
 
 /** Soonest first; a submission without a deadline goes last. */
 const byDeadline = (a: SubmissionProgress, b: SubmissionProgress): number =>
@@ -54,33 +62,26 @@ export const OverviewView: React.FC<{
             {translate('allDone', locale)}
           </p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="-mx-2 divide-y divide-gray-100">
             {open.map((submission) => (
-              <li
-                key={submission.type}
-                className="flex flex-col gap-2 py-3 @lg:flex-row @lg:items-center @lg:justify-between"
-              >
-                <div className="min-w-0 space-y-0.5">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
-                    <span
-                      className={cn('ml-2 text-xs font-semibold', AREA_TEXT_CLASS[submission.area])}
-                    >
-                      {HOF_DASHBOARD_AREA_LABELS[submission.area][locale]}
-                    </span>
-                  </p>
-                  <ProgressLine
-                    progress={progress[submission.type]}
-                    status={submission.status}
-                    locale={locale}
-                  />
-                </div>
+              <li key={submission.type}>
                 <button
                   type="button"
-                  className={cn(SECONDARY_BUTTON_CLASS, 'self-start @lg:self-center')}
+                  className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-gray-50"
                   onClick={() => onOpen(submission.area, submission.type)}
                 >
-                  {translate('open', locale)}
+                  <span className="min-w-0 space-y-1">
+                    <span className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-gray-900">
+                      {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
+                      <AreaTag area={submission.area} locale={locale} />
+                    </span>
+                    <ProgressLine
+                      progress={progress[submission.type]}
+                      status={submission.status}
+                      locale={locale}
+                    />
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-500" aria-hidden />
                 </button>
               </li>
             ))}

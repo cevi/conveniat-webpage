@@ -150,7 +150,7 @@ test.describe('Hof dashboard', () => {
     await expect(nextUp.getByRole('listitem').first()).toContainText('Hofbauten');
     await expect(nextUp.getByRole('listitem').first()).toContainText('in 5 Tagen');
 
-    await nextUp.getByRole('button', { name: 'Öffnen' }).first().click();
+    await nextUp.getByRole('button', { name: /Hofbauten/ }).click();
     await expect(page.getByRole('tab', { name: 'Infrastruktur' })).toHaveAttribute(
       'aria-selected',
       'true',

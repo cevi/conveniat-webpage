@@ -13,9 +13,9 @@ export const text = {
     fr: 'Se connecter avec Cevi.DB',
   },
   noAccess: {
-    de: 'Du hast keinen Zugriff auf ein Hof-Dashboard. Das Dashboard öffnet sich für Personen mit der Rolle «Adressverwaltung» in der Cevi.DB-Gruppe eines Hofs.',
-    en: 'You have no access to a Hof dashboard. It opens for people with the "address administration" role in the Cevi.DB group of a Hof.',
-    fr: "Tu n'as accès à aucun tableau de bord. Il s'ouvre pour les personnes ayant le rôle « Administration des adresses » dans le groupe Cevi.DB d'un Hof.",
+    de: 'Du hast keinen Zugriff auf ein Hof-Dashboard. Es öffnet sich für die Adressverwaltung der Cevi.DB-Gruppe eines Hofs. Hast du mehrere Cevi.DB-Konten, melde dich im Menü ab und mit dem richtigen wieder an.',
+    en: "You have no access to a Hof dashboard. It opens for the address administration of a Hof's Cevi.DB group. If you have several Cevi.DB accounts, sign out in the menu and back in with the right one.",
+    fr: "Tu n'as accès à aucun tableau de bord. Il s'ouvre pour l'administration des adresses du groupe Cevi.DB d'un Hof. Si tu as plusieurs comptes Cevi.DB, déconnecte-toi dans le menu et reconnecte-toi avec le bon.",
   },
   loadError: {
     de: 'Das Dashboard konnte nicht geladen werden.',
@@ -23,6 +23,7 @@ export const text = {
     fr: "Le tableau de bord n'a pas pu être chargé.",
   },
   retry: { de: 'Erneut versuchen', en: 'Try again', fr: 'Réessayer' },
+  close: { de: 'Schliessen', en: 'Close', fr: 'Fermer' },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
 
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
@@ -77,8 +78,6 @@ export const text = {
   },
   dueOn: { de: 'Frist {date}', en: 'Due {date}', fr: 'Échéance {date}' },
 
-  stateDone: { de: 'Abgegeben', en: 'Handed in', fr: 'Remis' },
-
   gapPlan: { de: 'Planung fehlt', en: 'Plan missing', fr: 'Planification manquante' },
   gapSafetyRiskAnswer: {
     de: 'Frage zum Sicherheitsrisiko offen',
@@ -90,17 +89,12 @@ export const text = {
     en: 'Safety concept missing',
     fr: 'Concept de sécurité manquant',
   },
-  gapRevision: {
-    de: 'Überarbeitung verlangt',
-    en: 'Revision requested',
-    fr: 'Révision demandée',
-  },
 
   upload: { de: 'Hochladen', en: 'Upload', fr: 'Téléverser' },
   uploadNewVersion: {
     de: 'Neue Version hochladen',
     en: 'Upload a new version',
-    fr: 'Téléverser une nouvelle version',
+    fr: 'Nouvelle version',
   },
   uploadDone: { de: 'Datei hochgeladen', en: 'File uploaded', fr: 'Fichier téléversé' },
   uploadFailed: {
@@ -182,6 +176,11 @@ export const text = {
 
   material: { de: 'Material', en: 'Material', fr: 'Matériel' },
   quantity: { de: 'Anzahl', en: 'Quantity', fr: 'Quantité' },
+  quantityHint: {
+    de: 'Ganze Stückzahlen, höchstens {n} pro Material.',
+    en: 'Whole numbers, at most {n} per material.',
+    fr: 'Nombres entiers, au maximum {n} par matériel.',
+  },
   orderableUntil: {
     de: 'Bestellbar bis {date}',
     en: 'Orderable until {date}',
@@ -242,12 +241,6 @@ export const text = {
     fr: "Ton Hof n'a encore déposé aucun fichier.",
   },
   download: { de: 'Herunterladen', en: 'Download', fr: 'Télécharger' },
-  stateInReview: {
-    de: 'In Prüfung beim Ressort',
-    en: 'Being reviewed',
-    fr: 'En cours de vérification',
-  },
-  stateArchived: { de: 'Abgeschlossen', en: 'Completed', fr: 'Terminé' },
   showCriteriaLink: { de: 'Was zählt dazu?', en: 'What counts?', fr: "Qu'est-ce qui compte ?" },
   offline: {
     de: 'Keine Verbindung. Versuche es erneut, sobald du wieder Empfang hast.',
@@ -259,12 +252,17 @@ export const text = {
     en: 'Unsaved changes',
     fr: 'Modifications non enregistrées',
   },
-  uploadingPercent: {
-    de: 'Wird hochgeladen … {n} %',
-    en: 'Uploading … {n} %',
-    fr: 'Téléversement … {n} %',
+  uploadingFile: {
+    de: '{name} wird hochgeladen',
+    en: 'Uploading {name}',
+    fr: 'Téléversement de {name}',
   },
-  replaced: { de: 'ersetzt', en: 'replaced', fr: 'remplacé' },
+  cancel: { de: 'Abbrechen', en: 'Cancel', fr: 'Annuler' },
+  earlierVersions: {
+    de: 'Frühere Versionen ({n})',
+    en: 'Earlier versions ({n})',
+    fr: 'Versions précédentes ({n})',
+  },
   areaDocuments: { de: 'Unterlagen', en: 'Documents', fr: 'Documents' },
 } satisfies Record<string, StaticTranslationString>;
 

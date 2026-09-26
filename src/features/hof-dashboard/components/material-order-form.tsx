@@ -7,6 +7,7 @@ import {
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { HOF_ORDER_MAX_QUANTITY, HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
+import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
@@ -79,6 +80,7 @@ export const MaterialOrderForm: React.FC<{
   const dirty =
     powerConnection !== order.powerConnection ||
     order.items.some((item) => toQuantity(quantities[item.id]) !== item.quantity);
+  useWarnBeforeLeaving(dirty);
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -185,6 +187,13 @@ export const MaterialOrderForm: React.FC<{
                 </tbody>
               ))}
             </table>
+          )}
+          {order.items.length > 0 && (
+            <p className="text-xs text-gray-500">
+              {translate('quantityHint', locale, {
+                n: new Intl.NumberFormat('de-CH').format(HOF_ORDER_MAX_QUANTITY),
+              })}
+            </p>
           )}
 
           {order.retiredItems.length > 0 && (

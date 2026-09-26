@@ -59,6 +59,7 @@ import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/
 import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
+import { SafetyRiskCell as SafetyRiskCell_7bcd50c74d922333dd207c7186e3952f } from '@/features/hof-dashboard/payload-cms/components/safety-risk-cell'
 import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
 import { ResendEmailButton as ResendEmailButton_e62af8aa593181d6540c08021abb9c8b } from '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button'
 import { OverrideStatusButton as OverrideStatusButton_8c304667b297b7e538d558abfba16bf0 } from '@/features/payload-cms/payload-cms/components/override-status/override-status-button'
@@ -189,6 +190,7 @@ export const importMap = {
   "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
+  "@/features/hof-dashboard/payload-cms/components/safety-risk-cell#SafetyRiskCell": SafetyRiskCell_7bcd50c74d922333dd207c7186e3952f,
   "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,
   "@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton": ResendEmailButton_e62af8aa593181d6540c08021abb9c8b,
   "@/features/payload-cms/payload-cms/components/override-status/override-status-button#OverrideStatusButton": OverrideStatusButton_8c304667b297b7e538d558abfba16bf0,

@@ -90,7 +90,7 @@ const useProgress = (
 
 const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ locale, onRetry }) => (
   <Message>
-    <p>{translate('loadError', locale)}</p>
+    <p>{translate(globalThis.navigator.onLine ? 'loadError' : 'offline', locale)}</p>
     <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={onRetry}>
       {translate('retry', locale)}
     </button>
@@ -202,6 +202,8 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
         <h2 className="font-heading text-conveniat-green text-2xl font-extrabold">{hof.name}</h2>
       ) : (
         <div className="space-y-1">
+          {/* the select shows the name; the heading keeps the outline of the page intact */}
+          <h2 className="sr-only">{hof.name}</h2>
           <label htmlFor="hof-dashboard-hof" className="text-sm font-medium text-gray-600">
             {translate('hof', locale)}
           </label>

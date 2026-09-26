@@ -68,13 +68,23 @@ const findGap = (input: SubmissionProgressInput): SubmissionGap | undefined => {
  *
  * A submission is done once its plan is up, the safety question is answered, a safety concept
  * is up when the answer is yes, and the Ressort has not sent it back for a revision.
+ *
+ * Something missing since a deadline that has passed is overdue from that deadline on, even
+ * with a later one ahead: a Hof that missed the first Grobkonzept is late, not early for the
+ * second. A revision the Ressort asks for works towards the next deadline instead.
  */
 export const getSubmissionProgress = (
   input: SubmissionProgressInput,
   now: Date,
 ): SubmissionProgress => {
   const gap = findGap(input);
-  const deadline = nextDeadline(input.deadlines, now);
+  const firstMissed =
+    gap === undefined || gap === 'revision'
+      ? undefined
+      : input.deadlines
+          .filter((candidate) => daysUntil(candidate, now) < 0)
+          .toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
+  const deadline = firstMissed ?? nextDeadline(input.deadlines, now);
   const daysLeft = deadline === undefined ? undefined : daysUntil(deadline, now);
 
   if (gap === undefined) return { state: 'done', gap, deadline, daysLeft };

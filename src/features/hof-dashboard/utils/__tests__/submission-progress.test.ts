@@ -65,10 +65,27 @@ describe('getSubmissionProgress', () => {
     });
   });
 
-  it('is overdue after the last deadline', () => {
+  it('is overdue from a missed deadline on, even with a later one ahead', () => {
+    expect(getSubmissionProgress(input({}), new Date('2027-02-10T10:00:00Z'))).toMatchObject({
+      state: 'overdue',
+      deadline: JANUARY_31,
+      daysLeft: -10,
+    });
+  });
+
+  it('lets a requested revision work towards the next deadline', () => {
+    expect(
+      getSubmissionProgress(
+        input({ hasPlan: true, elevatedSafetyRisk: 'no', status: 'revisionRequired' }),
+        new Date('2027-02-10T10:00:00Z'),
+      ),
+    ).toMatchObject({ state: 'open', deadline: MARCH_31 });
+  });
+
+  it('stays overdue from the first missed deadline once all have passed', () => {
     expect(getSubmissionProgress(input({}), new Date('2027-06-10T10:00:00Z'))).toMatchObject({
       state: 'overdue',
-      deadline: MAY_31,
+      deadline: JANUARY_31,
     });
   });
 

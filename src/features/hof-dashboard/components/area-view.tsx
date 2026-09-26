@@ -5,6 +5,7 @@ import {
   ContactBlock,
   Panel,
   SectionHeading,
+  StatusPill,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
 import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
@@ -19,8 +20,7 @@ import {
 } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 
@@ -53,15 +53,9 @@ const StadtlebenSection: React.FC<{
                 {translate('submittedOn', locale, { date: formatDate(entry.submittedAt, locale) })}
               </p>
             </div>
-            <span
-              className={cn(
-                'flex shrink-0 items-center gap-1 text-xs font-semibold',
-                entry.approved ? 'text-green-600' : 'text-gray-600',
-              )}
-            >
-              {entry.approved && <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
+            <StatusPill tone={entry.approved ? 'done' : 'neutral'}>
               {translate(entry.approved ? 'stadtlebenApproved' : 'stadtlebenPending', locale)}
-            </span>
+            </StatusPill>
           </li>
         ))}
       </ul>
@@ -89,7 +83,7 @@ export const AreaView: React.FC<{
   locale: Locale;
 }> = ({ area, data, progress, locale }) => {
   const utils = trpc.useUtils();
-  const { upload, progress: uploadProgress } = useHofUpload(data.hof.id, locale);
+  const { upload, uploads } = useHofUpload(data.hof.id, locale);
   const updateSafetyRisk = trpc.hofDashboard.updateSafetyRisk.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
@@ -136,7 +130,7 @@ export const AreaView: React.FC<{
             progress={progress[submission.type]}
             criteria={data.safetyRiskCriteria}
             locale={locale}
-            uploadProgress={uploadProgress}
+            uploads={uploads}
             savingSafetyRisk={
               updateSafetyRisk.isPending &&
               updateSafetyRisk.variables.submissionType === submission.type

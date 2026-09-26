@@ -109,6 +109,9 @@ export const HofSubmissionsCollection: CollectionConfig = {
       },
       admin: {
         position: 'sidebar',
+        components: {
+          Cell: '@/features/hof-dashboard/payload-cms/components/safety-risk-cell#SafetyRiskCell',
+        },
         description: {
           en: 'Answered by the Hof. With "Yes" the Hof has to hand in a safety concept as well.',
           de: 'Vom Hof beantwortet. Bei "Ja" muss der Hof zusätzlich ein Sicherheitskonzept abgeben.',
