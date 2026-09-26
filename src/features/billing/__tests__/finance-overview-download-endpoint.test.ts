@@ -71,7 +71,7 @@ describe('billingExportXlsxHandler', () => {
     expect(find).not.toHaveBeenCalled();
   });
 
-  it('serves the bill overview as a workbook named like the finance mail attachment', async () => {
+  it('serves the Banana workbook named like the finance mail attachment', async () => {
     mockCanAccessBilling.mockReturnValue(true);
     const { request } = createRequest();
 
@@ -88,9 +88,8 @@ describe('billingExportXlsxHandler', () => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(await response.arrayBuffer());
     const sheet = workbook.worksheets[0];
-    const values = sheet?.getRow(2).values as unknown[];
-    expect(values).toContain('2027-0001');
-    expect(values).toContain('Max Mustermann');
+    expect(sheet?.getRow(1).getCell(1).value).toBe('Date');
+    expect(sheet?.getRow(2).getCell(2).value).toBe('2027-0001');
   });
 
   it('leaves the weekly send untouched', async () => {

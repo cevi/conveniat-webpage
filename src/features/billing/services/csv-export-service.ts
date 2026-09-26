@@ -10,10 +10,10 @@ interface RolePricingEntry {
 }
 
 /**
- * The column order of the Banana import. Banana matches columns by these exact header
- * names, so they must not be translated or reworded.
+ * The column order of the Banana import, shared by the CSV and the Excel workbook. Banana
+ * matches columns by these exact header names, so they must not be translated or reworded.
  */
-const CSV_HEADERS: (keyof FinanceCsvRow)[] = [
+export const BANANA_COLUMNS: (keyof FinanceCsvRow)[] = [
   'Date',
   'DocInvoice',
   'ExternalReference',
@@ -94,16 +94,16 @@ const escapeCsvValue = (value: string | number): string => {
  */
 export function formatFinanceCsv(rows: FinanceCsvRow[]): string {
   const lines = [
-    CSV_HEADERS.join(','),
-    ...rows.map((row) => CSV_HEADERS.map((header) => escapeCsvValue(row[header])).join(',')),
+    BANANA_COLUMNS.join(','),
+    ...rows.map((row) => BANANA_COLUMNS.map((header) => escapeCsvValue(row[header])).join(',')),
   ];
   return `﻿${lines.join('\r\n')}\r\n`;
 }
 
 /**
- * Generates the accounting import for Banana, one row per raised bill.
+ * Loads every raised bill as a Banana booking, in invoice order.
  */
-export async function generateFinanceCsv(payload: Payload): Promise<string> {
+export async function findFinanceCsvRows(payload: Payload): Promise<FinanceCsvRow[]> {
   const settings = await payload.findGlobal({
     slug: 'bill-settings',
     context: { internal: true },
@@ -120,5 +120,12 @@ export async function generateFinanceCsv(payload: Payload): Promise<string> {
     context: { internal: true },
   });
 
-  return formatFinanceCsv(buildFinanceCsvRows(participants.docs, settings));
+  return buildFinanceCsvRows(participants.docs, settings);
+}
+
+/**
+ * Generates the accounting import for Banana, one row per raised bill.
+ */
+export async function generateFinanceCsv(payload: Payload): Promise<string> {
+  return formatFinanceCsv(await findFinanceCsvRows(payload));
 }

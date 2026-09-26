@@ -21,7 +21,6 @@ jest.mock('@/features/billing/services/render-weekly-report', () => ({
 }));
 
 jest.mock('@/features/billing/services/finance-overview-export', () => ({
-  buildFinanceOverviewRows: jest.fn().mockReturnValue([]),
   buildFinanceOverviewWorkbook: jest.fn().mockResolvedValue(Buffer.from('xlsx')),
 }));
 

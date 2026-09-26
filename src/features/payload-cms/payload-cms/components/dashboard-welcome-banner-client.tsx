@@ -2,6 +2,7 @@
 
 import build from '@/build';
 import { environmentVariables } from '@/config/environment-variables';
+import { FrontendModeLinks } from '@/features/payload-cms/payload-cms/components/frontend-mode-links';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { resetServerData } from '@/features/payload-cms/payload-cms/initialization/deleting/reset-api';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -230,26 +231,29 @@ export const DashboardWelcomeBannerClient: React.FC<DashboardWelcomeBannerClient
           </h1>
           <p className="mt-1 opacity-80">{welcomeMessage[locale]}</p>
         </div>
-        {showActions && (
-          <div className="flex flex-wrap gap-2">
-            {isLocalhost && (
+        <div className="flex flex-wrap gap-2">
+          <FrontendModeLinks locale={locale} />
+          {showActions && (
+            <>
+              {isLocalhost && (
+                <button
+                  type="button"
+                  onClick={() => openModal('reset-instance')}
+                  className="font-heading cursor-pointer rounded-[8px] border border-red-700 px-4 py-2 text-sm font-bold text-red-700 duration-100 hover:bg-red-700 hover:text-white"
+                >
+                  {resetInstanceTitle[locale]}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => openModal('reset-instance')}
-                className="font-heading cursor-pointer rounded-[8px] border border-red-700 px-4 py-2 text-sm font-bold text-red-700 duration-100 hover:bg-red-700 hover:text-white"
+                onClick={() => openModal('flush-cache')}
+                className="font-heading border-conveniat-green text-conveniat-green hover:bg-conveniat-green cursor-pointer rounded-[8px] border px-4 py-2 text-sm font-bold duration-100 hover:text-white"
               >
-                {resetInstanceTitle[locale]}
+                {flushCacheTitle[locale]}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => openModal('flush-cache')}
-              className="font-heading border-conveniat-green text-conveniat-green hover:bg-conveniat-green cursor-pointer rounded-[8px] border px-4 py-2 text-sm font-bold duration-100 hover:text-white"
-            >
-              {flushCacheTitle[locale]}
-            </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

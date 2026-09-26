@@ -1791,6 +1791,13 @@ export interface Form {
         bcc?: string | null;
         replyTo?: string | null;
         emailFrom?: string | null;
+        /**
+         * Only sends this email when the named form field holds the given value. Leave the field name empty to always send it.
+         */
+        sendCondition?: {
+          field?: string | null;
+          value?: string | null;
+        };
         subject: string;
         /**
          * If checked, files uploaded in this form submission will be attached to this email.
@@ -4709,6 +4716,12 @@ export interface PayloadMcpApiKey {
      */
     update?: boolean | null;
   };
+  'payload-mcp-tool'?: {
+    /**
+     * Lets the client put drafts live and take documents offline, one locale at a time. Without it, everything the client writes waits as a draft for an editor.
+     */
+    setPublishingStatus?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -7440,6 +7453,12 @@ export interface FormsSelect<T extends boolean = true> {
         bcc?: T;
         replyTo?: T;
         emailFrom?: T;
+        sendCondition?:
+          | T
+          | {
+              field?: T;
+              value?: T;
+            };
         subject?: T;
         attachFiles?: T;
         message?: T;
@@ -7621,6 +7640,11 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         find?: T;
         create?: T;
         update?: T;
+      };
+  'payload-mcp-tool'?:
+    | T
+    | {
+        setPublishingStatus?: T;
       };
   updatedAt?: T;
   createdAt?: T;

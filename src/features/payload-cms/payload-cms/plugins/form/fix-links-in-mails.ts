@@ -1,5 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
+  type EmailSendCondition,
+  matchesEmailSendCondition,
+} from '@/features/payload-cms/payload-cms/plugins/form/email-send-condition';
+import {
   type CustomAutoLinkNode,
   escapeHTML,
 } from '@/features/payload-cms/payload-cms/utils/html-utils';
@@ -305,14 +309,36 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   };
   // --- Lexical Re-generation end ---
 
-  const finalEmails = emailsToSend.map((email, index) => {
+  const formEmails = formDocument_?.['emails'];
+  const emailConfigs = Array.isArray(formEmails)
+    ? (formEmails as Array<{
+        message?: unknown;
+        attachFiles?: boolean;
+        sendCondition?: EmailSendCondition | null;
+      }>)
+    : [];
+
+  // The plugin formats one email per configured entry, in order, so the position is what pairs
+  // an email with its config. Pair first, then drop the emails whose send condition fails.
+  const emailsToFormat = emailsToSend
+    .map((email, index) => ({ email, originalEmailConfig: emailConfigs[index] }))
+    .filter(({ originalEmailConfig }, index) => {
+      const shouldSend = matchesEmailSendCondition(
+        originalEmailConfig?.sendCondition,
+        submissionDict,
+      );
+      if (!shouldSend) {
+        payload.logger.debug(
+          `Skipping email ${index + 1} of submission ${String(formSubmissionId)}: send condition not met`,
+        );
+      }
+      return shouldSend;
+    });
+
+  const finalEmails = emailsToFormat.map(({ email, originalEmailConfig }) => {
     let updatedHtml = email.html;
 
     // 1. Rebuild HTML if it was Lexical
-    const formEmails = formDocument_?.['emails'];
-    const originalEmailConfig = Array.isArray(formEmails)
-      ? (formEmails as Array<{ message?: unknown; attachFiles?: boolean }>)[index]
-      : undefined;
     if (
       originalEmailConfig !== undefined &&
       originalEmailConfig.message !== null &&

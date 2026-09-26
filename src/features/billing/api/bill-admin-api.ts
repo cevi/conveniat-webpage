@@ -432,8 +432,8 @@ export const billingPreviewPdfHandler: PayloadHandler = async (request) => {
 /**
  * GET /api/confidential/billing/export-xlsx – Finance overview workbook
  *
- * A different report from the CSV next to it: that one is the accounting import, this is
- * the per-bill overview the finance team reads.
+ * The Banana import as an Excel file: the same columns and bookings as the CSV next to it,
+ * and the workbook the weekly finance mail attaches.
  */
 export const billingExportXlsxHandler: PayloadHandler = async (request) => {
   try {
