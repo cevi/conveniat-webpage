@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.17.1](https://github.com/cevi/conveniat-webpage/compare/v1.17.0...v1.17.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **announcements:** require preview access for the announcement preview ([0cca3b2](https://github.com/cevi/conveniat-webpage/commit/0cca3b252df10a192a3e5612b985becf09de199b))
+* **chat:** chat details and single messages only for members ([e1954e3](https://github.com/cevi/conveniat-webpage/commit/e1954e359e05e04d643605d8d29c042f1a75e81f))
+* **chat:** chat details and single messages only for members ([e22ae65](https://github.com/cevi/conveniat-webpage/commit/e22ae655078cb0c370c7a69d8cc2fd1548d05734))
+* **chat:** only admins list the support chats ([99a1fa6](https://github.com/cevi/conveniat-webpage/commit/99a1fa6404e0b272611ca6638ffe3f71f58d5f9d))
+* **chat:** only admins list the support chats ([6995e85](https://github.com/cevi/conveniat-webpage/commit/6995e851fe44dc93f26daa5ec795375f11b2b15f))
+* **cms:** populate only what rendering needs for forms and pages ([28e0aad](https://github.com/cevi/conveniat-webpage/commit/28e0aade74034692158e92db3e5c43de0b87b4f7))
+* **cms:** populate only what rendering needs for forms and pages ([b3f9d83](https://github.com/cevi/conveniat-webpage/commit/b3f9d83fcc83ea51e3555833f2c463c20ef8d5db))
+* **cookie-banner:** render above the desktop side panel ([633f732](https://github.com/cevi/conveniat-webpage/commit/633f732a0e973233f0252121a5bd79802d1a6897))
+* **cookie-banner:** render above the desktop side panel ([cb83651](https://github.com/cevi/conveniat-webpage/commit/cb836515576078d5a0a0836ecc4dc0232d8f01b9))
+* **emergency:** return only the fields emergency cards render ([5912020](https://github.com/cevi/conveniat-webpage/commit/5912020c00a10a039a83eb2893df879ace6f9cd2))
+* **emergency:** return only the fields emergency cards render ([7fabea1](https://github.com/cevi/conveniat-webpage/commit/7fabea150bb002e136aba291e33fa2a99ad3fa23))
+* **forms:** export submissions only to who may read them ([6829b55](https://github.com/cevi/conveniat-webpage/commit/6829b554febc14ef32d140e96b015009c98301ca))
+* **forms:** export submissions only to who may read them ([16d8646](https://github.com/cevi/conveniat-webpage/commit/16d864644f50d65fdbee742d7a543d1598972f6f))
+* **forms:** require an approved submission or editor access for form files ([e9597ec](https://github.com/cevi/conveniat-webpage/commit/e9597ec10a084d3d8e5b0f2fadb0bcbe19397e2e))
+* **forms:** require an approved submission or editor access for form files ([33fe3bd](https://github.com/cevi/conveniat-webpage/commit/33fe3bdec08494277a85b44ab6b0bc51b7e300d9))
+* **forms:** show approved submissions without their private fields ([0dce7d5](https://github.com/cevi/conveniat-webpage/commit/0dce7d58f4b48cc3a005a7f2dbcdf9ee2c3d69b8))
+* **forms:** show approved submissions without their private fields ([24b2641](https://github.com/cevi/conveniat-webpage/commit/24b264192a25b53968a8dca35eb68fba734ad5d1))
+* **helper-shifts:** keep internal notes out of the public API ([a6fb391](https://github.com/cevi/conveniat-webpage/commit/a6fb3914b6040451bdcc44e39d2dcce37c5df7fb))
+* **helper-shifts:** keep internal notes out of the public API ([f902e04](https://github.com/cevi/conveniat-webpage/commit/f902e0473e495d5b2caa27c117e9487d3ce085ed))
+* **map:** load the MapLibre worker from a self-hosted bundle ([304afa6](https://github.com/cevi/conveniat-webpage/commit/304afa66947218e8122572cebe408f74fea6c6fc))
+* **search:** send only permitted results to the browser ([b58eff5](https://github.com/cevi/conveniat-webpage/commit/b58eff5f8c7b92c4b56cf39f8c9e3726a0d952a8))
+* **users:** populate only the name when another document links a user ([3f23f82](https://github.com/cevi/conveniat-webpage/commit/3f23f82459a659cc122d64b51a8db56b9ef07821))
+
 ## [1.17.0](https://github.com/cevi/conveniat-webpage/compare/v1.16.0...v1.17.0) (2026-09-26)
 
 
