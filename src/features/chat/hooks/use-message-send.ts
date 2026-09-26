@@ -7,6 +7,7 @@ import {
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
 } from '@/features/chat/utils';
+import { rememberFailedSend } from '@/features/chat/utils/failed-sends';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -126,6 +127,25 @@ const performOptimisticMessageUpdate = async (
         };
       }
 
+      // a retry reuses the id of the failed bubble: turn that bubble back into a pending
+      // one where it stands instead of adding a second copy
+      const isRetry = data.pages.some((page) =>
+        page.items.some((item) => item.id === optimisticMessage.id),
+      );
+      if (isRetry) {
+        return {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.id === optimisticMessage.id
+                ? { ...optimisticMessage, createdAt: item.createdAt }
+                : item,
+            ),
+          })),
+        };
+      }
+
       return {
         ...data,
         pages: data.pages.map((page, index) => {
@@ -157,6 +177,16 @@ const performOptimisticMessageUpdate = async (
             capabilities: [],
             type: ChatType.ONE_TO_ONE,
             status: ChatStatus.OPEN,
+          };
+        }
+        if (oldData.messages.some((item) => item.id === optimisticMessage.id)) {
+          return {
+            ...oldData,
+            messages: oldData.messages.map((item) =>
+              item.id === optimisticMessage.id
+                ? { ...optimisticMessage, createdAt: item.createdAt }
+                : item,
+            ),
           };
         }
         return {
@@ -223,7 +253,8 @@ export const useMessageSend = (): UseMessageSendMutation => {
       });
     },
 
-    onError: (error, { chatId, parentId, content, quotedMessageId, timestamp }, context) => {
+    onError: (error, variables, context) => {
+      const { chatId, parentId, content, quotedMessageId, timestamp } = variables;
       const isOfflineError =
         !navigator.onLine ||
         error.message === 'Failed to fetch' ||
@@ -275,28 +306,38 @@ export const useMessageSend = (): UseMessageSendMutation => {
         return;
       }
 
-      toast.error('Failed to send message', error);
-      console.error('Failed to send message, rolling back optimistic update:', error);
+      console.error('Failed to send message, keeping it as a failed bubble:', error);
 
-      const optimisticContext = context;
+      // The bubble stays where it is with an inline retry; rolling it back and raising a
+      // toast made the text vanish from the conversation the moment it failed.
+      const failedMessageId = context?.optimisticMessageId;
+      if (failedMessageId === undefined) return;
+      rememberFailedSend(failedMessageId, variables);
+      const markFailed = (item: ChatMessage): ChatMessage =>
+        item.id === failedMessageId ? { ...item, sendFailed: true } : item;
+
+      trpcUtils.chat.infiniteMessages.setInfiniteData(
+        { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
+        (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
+          if (!data) return data;
+          return {
+            ...data,
+            pages: data.pages.map((page) => ({
+              ...page,
+              items: page.items.map((item) => markFailed(item)),
+            })),
+          };
+        },
+      );
 
       if (!parentId) {
-        if (optimisticContext?.previousChatData) {
-          trpcUtils.chat.chatDetails.setData({ chatId }, optimisticContext.previousChatData);
-        } else {
-          trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);
-        }
-      }
-
-      if (optimisticContext?.previousInfiniteData) {
-        trpcUtils.chat.infiniteMessages.setInfiniteData(
-          { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
-          optimisticContext.previousInfiniteData,
+        trpcUtils.chat.chatDetails.setData(
+          { chatId },
+          (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+            if (!oldData) return oldData;
+            return { ...oldData, messages: oldData.messages.map((item) => markFailed(item)) };
+          },
         );
-      } else {
-        trpcUtils.chat.infiniteMessages
-          .invalidate({ chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined })
-          .catch(console.error);
       }
     },
 

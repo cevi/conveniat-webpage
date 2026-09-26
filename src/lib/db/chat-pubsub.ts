@@ -24,7 +24,13 @@ const isBuild =
   process.env['NEXT_PHASE'] === 'phase-production-build';
 
 export interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
+  type:
+    | 'new_message'
+    | 'message_updated'
+    | 'chat_read_by_admin'
+    | 'chat_updated'
+    | 'new_chat'
+    | 'typing';
   chatId: string;
   senderId: string;
   /**
@@ -47,6 +53,11 @@ export interface ChatRealtimeEvent {
   chat?: {
     status: string;
     capabilities: string[];
+  };
+  /** Set on `typing`: who is typing, and in which thread (none for the main list). */
+  typing?: {
+    name: string;
+    parentId?: string | undefined;
   };
 }
 

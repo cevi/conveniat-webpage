@@ -8,6 +8,8 @@ interface ChatScrollManagerProperties {
   sortedMessages: ChatMessage[];
   isFetchingNextPage: boolean;
   currentUserId: string | undefined;
+  /** People typing below the last message; their dots are followed like a new message. */
+  typingCount: number;
 }
 
 const AT_BOTTOM_THRESHOLD_PX = 100;
@@ -23,6 +25,7 @@ export const useChatScrollManager = ({
   sortedMessages,
   isFetchingNextPage,
   currentUserId,
+  typingCount,
 }: ChatScrollManagerProperties): {
   scrollContainerReference: React.RefObject<HTMLDivElement | null>;
   messagesEndReference: React.RefObject<HTMLDivElement | null>;
@@ -38,12 +41,18 @@ export const useChatScrollManager = ({
   const previousScrollHeightReference = useRef<number>(0);
   const previousFirstIdReference = useRef<string | undefined>(undefined);
   const previousLastIdReference = useRef<string | undefined>(undefined);
+  const lastScrollTopReference = useRef(0);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unseenCount, setUnseenCount] = useState(0);
 
   const handleScroll = (): void => {
     const container = scrollContainerReference.current;
     if (!container) return;
+    // Shrinking the list (composer grows, keyboard opens) fires a scroll event without
+    // moving it, and before the resize observer re-pins it. Only a real move decides
+    // whether the reader left the bottom.
+    if (container.scrollTop === lastScrollTopReference.current) return;
+    lastScrollTopReference.current = container.scrollTop;
     const atBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight <
       AT_BOTTOM_THRESHOLD_PX;
@@ -100,6 +109,14 @@ export const useChatScrollManager = ({
     }
     setUnseenCount((count) => count + appended.length);
   }, [sortedMessages, currentUserId]);
+
+  // Dots appearing at the bottom are followed like a message; above the fold they are not
+  // news, so they neither scroll nor count
+  useEffect(() => {
+    if (typingCount > 0 && isAtBottomReference.current) {
+      messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+    }
+  }, [typingCount]);
 
   // Handle container resize (e.g. when text input grows or keyboard appears)
   useEffect(() => {

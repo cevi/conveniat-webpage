@@ -2,10 +2,11 @@ import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-draft';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
+import { useTypingSignal } from '@/features/chat/hooks/use-typing';
 import { generateMessageId } from '@/features/chat/utils';
 import { trpc } from '@/trpc/client';
 import type React from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 interface MessageInputProperties {
   value: string;
@@ -50,9 +51,6 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const [draftKey] = useState(() => getChatDraftKey(chatId, activeThreadId));
   useChatDraft(draftKey, newMessage, setNewMessage);
 
-  // Keep a ref to the pending message so we can restore it on error
-  const pendingMessageReference = useRef<string | undefined>(undefined);
-
   const { data: featureFlags, isLoading: isLoadingFlags } = trpc.chat.getFeatureFlags.useQuery(
     undefined,
     {
@@ -76,9 +74,6 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     // Clear any previous error
     setSendError(undefined);
 
-    // Store the message in case we need to restore it on error
-    pendingMessageReference.current = trimmedMessage;
-
     // Optimistically clear the input
     setNewMessage('');
     resizeTextarea();
@@ -96,8 +91,6 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       },
       {
         onSuccess: () => {
-          // Message sent successfully, clear the pending message ref
-          pendingMessageReference.current = undefined;
           if (quotedMessageId) cancelQuote();
 
           // Clear shared query parameters from the URL
@@ -124,25 +117,12 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             error.message === 'Failed to fetch' ||
             error.message.includes('Network request failed');
 
-          if (isOfflineError) {
-            // Message was successfully queued by the global useMessageSend hook
-            pendingMessageReference.current = undefined;
+          // offline sends are queued by useMessageSend. Any other failed bubble stays in the
+          // list with its own retry, so the text is not put back into the composer. Only a
+          // disabled chat is worth a banner, because retrying cannot help there.
+          if (isOfflineError || error.message !== 'Messaging is disabled in this chat or globally.')
             return;
-          }
-
-          // Restore the message on error so user can retry
-          if (
-            pendingMessageReference.current !== undefined &&
-            pendingMessageReference.current !== ''
-          ) {
-            setNewMessage(pendingMessageReference.current);
-            pendingMessageReference.current = undefined;
-          }
-          // Set a user-friendly error message
-          const errorMessage =
-            error.message === 'Messaging is disabled in this chat or globally.'
-              ? 'Messaging is currently disabled. Please try again later.'
-              : 'Failed to send message. Please try again.';
+          const errorMessage = 'Messaging is currently disabled. Please try again later.';
           setSendError(errorMessage);
         },
       },
@@ -158,9 +138,15 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
     cancelQuote,
   ]);
 
-  const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>): void => {
-    setNewMessage(event.target.value);
-  }, []);
+  const signalTyping = useTypingSignal(chatId, activeThreadId);
+
+  const handleInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLTextAreaElement>): void => {
+      setNewMessage(event.target.value);
+      if (event.target.value.trim() !== '') signalTyping();
+    },
+    [signalTyping],
+  );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLTextAreaElement>): void => {

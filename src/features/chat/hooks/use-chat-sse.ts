@@ -9,13 +9,20 @@ import type {
 } from '@/features/chat/utils/realtime-connection';
 import { createRealtimeConnection } from '@/features/chat/utils/realtime-connection';
 import { notifyRealtimeChatMessage } from '@/features/chat/utils/realtime-message-notification';
+import { clearTyping, recordTyping } from '@/features/chat/utils/typing-store';
 import type { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import superjson from 'superjson';
 
 interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
+  type:
+    | 'new_message'
+    | 'message_updated'
+    | 'chat_read_by_admin'
+    | 'chat_updated'
+    | 'new_chat'
+    | 'typing';
   chatId: string;
   senderId: string;
   /** Delivery channel override (e.g. the user's own uuid for personal events); defaults to chatId. */
@@ -24,6 +31,10 @@ interface ChatRealtimeEvent {
   chat?: {
     status: string;
     capabilities: string[];
+  };
+  typing?: {
+    name: string;
+    parentId?: string | undefined;
   };
 }
 
@@ -206,12 +217,24 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         return;
       }
 
+      if (data.type === 'typing') {
+        if (data.typing && data.senderId !== currentUser) {
+          recordTyping(data.chatId, data.senderId, data.typing.name, data.typing.parentId);
+        }
+        return;
+      }
+
       if (!data.message) {
         return;
       }
       const message = data.message;
 
       if (data.type === 'new_message') {
+        // the message takes the place of its sender's dots
+        if (typeof message.senderId === 'string') {
+          clearTyping(data.chatId, message.senderId, message.parentId);
+        }
+
         // Raise a foreground notification for messages landing in a chat the user
         // is not currently looking at. Inside the native app Firebase does not
         // render anything while the app is open, so this is the only signal the

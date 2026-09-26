@@ -1,6 +1,7 @@
 // hooks/use-message-input-logic.ts
 import { Button } from '@/components/ui/buttons/button';
 import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
+import { useStagedImage } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-staged-image';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -11,6 +12,7 @@ import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType } from '@prisma/client';
 import { Megaphone, Paperclip, Send, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -28,6 +30,24 @@ const enterToSendHint: StaticTranslationString = {
   de: 'Enter zum Senden, Shift + Enter für eine neue Zeile',
   en: 'Enter to send, Shift + Enter for a new line',
   fr: 'Entrée pour envoyer, Maj + Entrée pour un saut de ligne',
+};
+
+const removeAttachmentText: StaticTranslationString = {
+  de: 'Bild entfernen',
+  en: 'Remove image',
+  fr: "Retirer l'image",
+};
+
+const uploadFailedText: StaticTranslationString = {
+  de: 'Hochladen fehlgeschlagen. Nochmals senden?',
+  en: 'Upload failed. Send again?',
+  fr: 'Échec du téléversement. Renvoyer ?',
+};
+
+const attachImageText: StaticTranslationString = {
+  de: 'Bild anhängen',
+  en: 'Attach image',
+  fr: 'Joindre une image',
 };
 
 const chatIsArchivedMessage: StaticTranslationString = {
@@ -151,28 +171,31 @@ export const ChatTextAreaInput: React.FC = () => {
     (chatDetails?.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES) ?? true) &&
     chatDetails?.status !== ChatStatus.CLOSED;
 
-  const { uploadImage } = useImageUpload({
-    chatId,
-    onError: (error) => {
-      // TODO: Show toast
-      console.error('Failed to upload image:', error);
-    },
-  });
+  const { uploadImage, isUploading } = useImageUpload({ chatId });
+  const { stagedImage, stageImage, clearStagedImage } = useStagedImage();
+  const [hasUploadFailed, setHasUploadFailed] = React.useState(false);
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+  // Picking an image only stages it above the text; it is sent together with the text.
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>): void => {
     const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      await uploadImage(file);
-    } catch {
-      // Error handled in hook
+    if (file) {
+      setHasUploadFailed(false);
+      stageImage(file);
     }
+    // reset so picking the same file again still fires a change
+    if (fileInputReference.current) fileInputReference.current.value = '';
+  };
 
-    // Reset input
-    if (fileInputReference.current) {
-      fileInputReference.current.value = '';
+  // The image goes first, then the text as its own message. A failed upload keeps both in
+  // the composer, so nothing typed or picked is lost.
+  const sendWithAttachment = async (): Promise<void> => {
+    if (stagedImage !== undefined) {
+      const isUploaded = await uploadImage(stagedImage.file);
+      setHasUploadFailed(!isUploaded);
+      if (!isUploaded) return;
+      clearStagedImage();
     }
+    handleSendMessage();
   };
 
   const isTooLong = messageLength > MAX_MESSAGE_LENGTH;
@@ -291,63 +314,103 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
       )}
 
-      <div className="flex items-end rounded-[24px] border border-gray-200 bg-white shadow-sm focus-within:border-gray-300 focus-within:ring-0">
-        {canUploadPictures && (
-          <div className="mb-1 ml-1 pb-1">
-            <input
-              type="file"
-              ref={fileInputReference}
-              className="hidden"
-              accept="image/*"
-              onChange={(event) => {
-                void handleFileSelect(event);
-              }}
-            />
-            <Button
-              onClick={() => fileInputReference.current?.click()}
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 shrink-0 cursor-pointer rounded-full text-gray-500 hover:bg-transparent"
-            >
-              <Paperclip size={20} />
-            </Button>
+      <div className="flex flex-col rounded-[24px] border border-gray-200 bg-white shadow-sm focus-within:border-gray-300 focus-within:ring-0">
+        {/* Staged attachment sits above the text it will be sent with */}
+        {stagedImage !== undefined && (
+          <div className="flex items-end gap-3 px-3 pt-3">
+            <div className="relative">
+              <img
+                src={stagedImage.previewUrl}
+                alt=""
+                className={cn(
+                  'h-20 w-20 rounded-xl object-cover ring-1 ring-gray-200',
+                  isUploading && 'opacity-60',
+                  hasUploadFailed && 'ring-2 ring-red-300',
+                )}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setHasUploadFailed(false);
+                  clearStagedImage();
+                }}
+                disabled={isUploading}
+                aria-label={removeAttachmentText[locale]}
+                className="absolute -top-2 -right-2 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-gray-700 text-white shadow-sm ring-2 ring-white"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {hasUploadFailed && (
+              <span className="font-body pb-1 text-xs text-red-600">
+                {uploadFailedText[locale]}
+              </span>
+            )}
           </div>
         )}
-        {/* Input box */}
-        <div className="flex-1">
-          <textarea
-            {...textareaProps}
-            placeholder={messagePlaceholder[locale]}
-            className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:ring-0 focus:outline-none"
-            rows={1}
-            enterKeyHint="send"
-            // five lines, then the textarea scrolls instead of eating the conversation
-            style={{ minHeight: '48px', maxHeight: '144px' }}
-            aria-label={messagePlaceholder[locale]}
-          />
-        </div>
-
-        {/* Send button - sticky at bottom */}
-        <div className="mr-1 mb-1 pb-1">
-          {isTooLong ? (
-            <Button
-              onClick={handleSplitAndSend}
-              size="sm"
-              className="mb-1 h-8 shrink-0 rounded-[16px] bg-orange-500 px-4 text-white shadow-sm hover:bg-orange-600"
-            >
-              {splitAndSendText[locale]}
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSendMessage}
-              size="icon"
-              variant="ghost"
-              className="text-cevi-blue h-10 w-10 shrink-0 rounded-full hover:bg-transparent hover:text-blue-700 disabled:bg-transparent disabled:text-gray-300"
-              disabled={isSendButtonDisabled}
-            >
-              <Send size={20} />
-            </Button>
+        <div className="flex items-end">
+          {canUploadPictures && (
+            <div className="mb-1 ml-1 pb-1">
+              <input
+                type="file"
+                ref={fileInputReference}
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileSelect}
+              />
+              <Button
+                onClick={() => fileInputReference.current?.click()}
+                aria-label={attachImageText[locale]}
+                size="icon"
+                variant="ghost"
+                className="h-10 w-10 shrink-0 cursor-pointer rounded-full text-gray-500 hover:bg-transparent"
+              >
+                <Paperclip size={20} />
+              </Button>
+            </div>
           )}
+          {/* Input box */}
+          <div className="flex-1">
+            <textarea
+              {...textareaProps}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  void sendWithAttachment();
+                }
+              }}
+              placeholder={messagePlaceholder[locale]}
+              className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:ring-0 focus:outline-none"
+              rows={1}
+              enterKeyHint="send"
+              // five lines, then the textarea scrolls instead of eating the conversation
+              style={{ minHeight: '48px', maxHeight: '144px' }}
+              aria-label={messagePlaceholder[locale]}
+            />
+          </div>
+
+          {/* Send button - sticky at bottom */}
+          <div className="mr-1 mb-1 pb-1">
+            {isTooLong ? (
+              <Button
+                onClick={handleSplitAndSend}
+                size="sm"
+                className="mb-1 h-8 shrink-0 rounded-[16px] bg-orange-500 px-4 text-white shadow-sm hover:bg-orange-600"
+              >
+                {splitAndSendText[locale]}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => void sendWithAttachment()}
+                size="icon"
+                variant="ghost"
+                className="text-cevi-blue h-10 w-10 shrink-0 rounded-full hover:bg-transparent hover:text-blue-700 disabled:bg-transparent disabled:text-gray-300"
+                disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
+              >
+                <Send size={20} />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

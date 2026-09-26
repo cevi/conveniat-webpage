@@ -1,6 +1,7 @@
 'use client';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { MessageComponent } from '@/features/chat/components/chat-view/message';
+import { TypingIndicator } from '@/features/chat/components/chat-view/typing-indicator';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { trpc } from '@/trpc/client';
@@ -44,7 +45,13 @@ const emptyChatHintText: StaticTranslationString = {
 import { useChatScrollManager } from '@/features/chat/hooks/use-chat-scroll-manager';
 import { useMessageInfiniteScroll } from '@/features/chat/hooks/use-message-infinite-scroll';
 import { useMessageReadStatus } from '@/features/chat/hooks/use-message-read-status';
-import { formatDayLabel, groupMessagesByDay } from '@/features/chat/utils/message-grouping';
+import { useTypists } from '@/features/chat/hooks/use-typing';
+import {
+  formatDayLabel,
+  groupMessagesByDay,
+  MESSAGE_GROUP_WINDOW_MS,
+} from '@/features/chat/utils/message-grouping';
+import type { Typist } from '@/features/chat/utils/typing-store';
 
 export const MessageList: React.FC<{
   parentId?: string;
@@ -63,6 +70,8 @@ export const MessageList: React.FC<{
     parentMessage: parentMessage ?? undefined,
   });
 
+  const typists = useTypists(chatId, parentId);
+
   useMessageReadStatus({
     chatId,
     currentUser,
@@ -80,6 +89,7 @@ export const MessageList: React.FC<{
     sortedMessages,
     isFetchingNextPage,
     currentUserId: currentUser,
+    typingCount: typists.length,
   });
 
   if (isLoading || currentUser === undefined || chatDetails === undefined) {
@@ -91,6 +101,30 @@ export const MessageList: React.FC<{
   }
 
   const messageDays = groupMessagesByDay(sortedMessages);
+
+  // Dots sit inside the last day, exactly where the typist's message will be inserted, so
+  // the message replaces them without moving anything.
+  const lastMessage = sortedMessages.at(-1);
+  // the dots join the typist's block the same way their message will
+  const continuesBlock = (typist: Typist): boolean =>
+    lastMessage?.senderId === typist.userId &&
+    typist.since - new Date(lastMessage.createdAt).getTime() < MESSAGE_GROUP_WINDOW_MS;
+  // ...and take over the block's end (time, tail, avatar) now rather than when they land
+  const isLastMessageContinued = typists.some((typist) => continuesBlock(typist));
+  const isGroupChat = chatDetails.type === 'GROUP';
+
+  const typingIndicators = typists.map((typist) => {
+    return (
+      <div key={typist.userId} className={continuesBlock(typist) ? 'mt-1' : 'mt-4'}>
+        <TypingIndicator
+          typist={typist}
+          showName={isGroupChat && !continuesBlock(typist)}
+          showAvatar={isGroupChat}
+          locale={locale}
+        />
+      </div>
+    );
+  });
 
   return (
     <div className="relative h-full">
@@ -136,7 +170,8 @@ export const MessageList: React.FC<{
                 const isThreadRoot =
                   typeof parentMessage?.id === 'string' && parentMessage.id === message.id;
                 return (
-                  <div key={message.id} className={isFirstInGroup ? 'mt-3' : 'mt-0.5'}>
+                  // 16 px between blocks, 4 px inside one
+                  <div key={message.id} className={isFirstInGroup ? 'mt-4' : 'mt-1'}>
                     <MessageComponent
                       message={message}
                       isCurrentUser={message.senderId === currentUser}
@@ -144,14 +179,18 @@ export const MessageList: React.FC<{
                       hideReplyCount={hideReplyCount}
                       isThreadRoot={isThreadRoot}
                       isFirstInGroup={isFirstInGroup}
-                      isLastInGroup={isLastInGroup}
+                      isLastInGroup={
+                        isLastInGroup && !(isLastMessageContinued && message.id === lastMessage?.id)
+                      }
                       locale={locale}
                     />
                   </div>
                 );
               })}
+              {day === messageDays.at(-1) && typingIndicators}
             </section>
           ))}
+          {messageDays.length === 0 && typingIndicators}
           <div ref={messagesEndReference} />
         </div>
       </div>
