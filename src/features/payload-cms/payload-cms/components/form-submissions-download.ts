@@ -4,6 +4,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
+import { headers as getRequestHeaders } from 'next/headers';
 import { getPayload, type Payload } from 'payload';
 
 /**
@@ -23,8 +24,13 @@ const escapeCsvValue = (value: string | undefined): string => {
 
 /**
  * Fetches all form submissions for a form ID, paginating through results to prevent silent truncation.
+ *
+ * A server action is a public endpoint: its id ships in the admin bundle and anyone can post to
+ * it. So the query runs as the user behind the request cookies and under the `form-submissions`
+ * read rule, and throws `Forbidden` for anyone that rule turns away - signed out included.
  */
 const fetchAllSubmissions = async (payload: Payload, formId: string): Promise<FormSubmission[]> => {
+  const { user } = await payload.auth({ headers: await getRequestHeaders() });
   const allSubmissions: FormSubmission[] = [];
   let page = 1;
   let hasMore = true;
@@ -40,6 +46,8 @@ const fetchAllSubmissions = async (payload: Payload, formId: string): Promise<Fo
       limit: 250,
       page,
       depth: 0,
+      overrideAccess: false,
+      user,
     });
 
     allSubmissions.push(...result.docs);
