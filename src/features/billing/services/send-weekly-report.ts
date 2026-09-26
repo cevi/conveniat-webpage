@@ -1,8 +1,6 @@
 import { ACCOUNTED_STATUSES } from '@/features/billing/services/billing-status';
-import {
-  buildFinanceOverviewRows,
-  buildFinanceOverviewWorkbook,
-} from '@/features/billing/services/finance-overview-export';
+import { buildFinanceCsvRows } from '@/features/billing/services/csv-export-service';
+import { buildFinanceOverviewWorkbook } from '@/features/billing/services/finance-overview-export';
 import type { WeeklyReport } from '@/features/billing/services/weekly-report';
 import { buildWeeklyReport } from '@/features/billing/services/weekly-report';
 import {
@@ -224,10 +222,10 @@ export async function sendWeeklyReport(
       const billed = participants.filter((participant) =>
         (ACCOUNTED_STATUSES as readonly string[]).includes(participant.status),
       );
-      const rows = buildFinanceOverviewRows(billed, settings);
+      const rows = buildFinanceCsvRows(billed, settings);
       excelAttachment = {
         filename: `rechnungsuebersicht-${stamp}.xlsx`,
-        content: await buildFinanceOverviewWorkbook(rows, settings.currency ?? 'CHF'),
+        content: await buildFinanceOverviewWorkbook(rows),
       };
     }
 
