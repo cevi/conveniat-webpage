@@ -8,8 +8,10 @@ import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { buildDocumentContentDisposition } from '@/features/payload-cms/payload-cms/utils/document-download-name';
+import { isCountedDocumentDownload } from '@/features/payload-cms/payload-cms/utils/document-download-tracking';
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { Document } from '@/features/payload-cms/payload-types';
+import prisma from '@/lib/db/prisma';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { CollectionAfterChangeHook, CollectionConfig, UploadConfig } from 'payload';
@@ -27,16 +29,23 @@ const schedulePdfThumbnail: CollectionAfterChangeHook<Document> = async ({ doc, 
 const isEnabledLocale = (locale: string | undefined): locale is Locale =>
   locale !== undefined && i18nConfig.locales.includes(locale);
 
+const getLoggedInUserId = async (): Promise<string | undefined> => {
+  const { getCachedSession } = await import('@/utils/auth');
+  const { isValidNextAuthUser } = await import('@/utils/auth-helpers');
+  const session = await getCachedSession();
+  const user = session?.user;
+  return isValidNextAuthUser(user) ? user.uuid : undefined;
+};
+
 /**
- * Names the served file after the display name in the requested locale. It only sets a header
- * and returns nothing, so the S3 storage handler registered after it still serves the file.
+ * Names the served file after the display name in the requested locale and records the download.
+ * It only sets a header and returns nothing, so the S3 storage handler registered after it still
+ * serves the file.
  */
-const nameFileAfterDisplayName: NonNullable<UploadConfig['handlers']>[number] = async (
+const nameAndRecordDownload: NonNullable<UploadConfig['handlers']>[number] = async (
   request,
   { headers, params },
 ) => {
-  if (headers === undefined) return;
-
   // the doc Payload hands to handlers is raw (all locales) and absent when access returns true
   const locale = isEnabledLocale(request.locale) ? request.locale : LOCALE.DE;
   try {
@@ -51,8 +60,25 @@ const nameFileAfterDisplayName: NonNullable<UploadConfig['handlers']>[number] = 
       // read access was already checked by Payload before any handler runs
       overrideAccess: true,
     });
-    const contentDisposition = buildDocumentContentDisposition(docs[0]?.title, params.filename);
-    if (contentDisposition !== undefined) {
+    const document = docs[0];
+
+    if (
+      document !== undefined &&
+      isCountedDocumentDownload(request.headers, request.searchParams)
+    ) {
+      const userId = await getLoggedInUserId();
+      // not awaited, the visitor should not wait for the statistics
+      prisma.documentDownload
+        .create({
+          data: { documentId: document.id, locale, ...(userId === undefined ? {} : { userId }) },
+        })
+        .catch((error: unknown) => {
+          request.payload.logger.warn({ err: error, msg: 'Could not record document download' });
+        });
+    }
+
+    const contentDisposition = buildDocumentContentDisposition(document?.title, params.filename);
+    if (headers !== undefined && contentDisposition !== undefined) {
       headers.set('Content-Disposition', contentDisposition);
     }
   } catch (error) {
@@ -132,11 +158,28 @@ export const DocumentsCollection: CollectionConfig = {
         hidden: true,
       },
     },
+    {
+      name: 'downloads',
+      label: {
+        en: 'Downloads',
+        de: 'Downloads',
+        fr: 'Téléchargements',
+      },
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsField',
+          Cell: '@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsCell',
+        },
+      },
+    },
     permissionsField,
     LastEditedByUserField,
   ],
   upload: {
-    handlers: [nameFileAfterDisplayName],
+    handlers: [nameAndRecordDownload],
     adminThumbnail: ({ doc }) =>
       typeof doc['pdfThumbnailUrl'] === 'string' && doc['pdfThumbnailUrl'].length > 0
         ? doc['pdfThumbnailUrl']
