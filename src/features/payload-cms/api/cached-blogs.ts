@@ -20,6 +20,8 @@ export const getRecentBlogPostsCached = cache(
 
       const result = await payload.find({
         collection: 'blog',
+        // A card needs the banner image and nothing below it.
+        depth: 1,
         where: {
           and: [
             {
@@ -56,6 +58,9 @@ export const getBlogArticleBySlugCached = cache(
 
       const result = await payload.find({
         collection: 'blog',
+        // The same depth generic pages render their content blocks at. The default of 2
+        // would also populate what the blocks link to, such as the submissions of a form.
+        depth: 1,
         pagination: false,
         locale: locale,
         fallbackLocale: false,

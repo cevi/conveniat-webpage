@@ -14,10 +14,10 @@ import type { CollectionConfig } from 'payload';
 export const asLocalizedCollection = (config: CollectionConfig): CollectionConfig => {
   return {
     ...config, // we keep most of the original collection configuration
-    defaultPopulate: {
-      ...config.defaultPopulate,
-      versions: false,
-    },
+    // Payload picks include or exclude mode from the first `false` or nested object it
+    // meets in a select (`getSelectMode`). Merging `versions: false` into a collection's
+    // own list of fields to populate would make that list's meaning depend on key order.
+    defaultPopulate: config.defaultPopulate ?? { versions: false },
     admin: {
       defaultColumns: ['id', 'publishingStatus', 'title'],
       ...config.admin,
