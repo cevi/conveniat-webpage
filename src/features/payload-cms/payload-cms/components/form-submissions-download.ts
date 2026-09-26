@@ -137,11 +137,11 @@ export const downloadFormSubmissionsAsCSV = async (formId: string): Promise<stri
   return await withSpan('downloadFormSubmissionsAsCSV', async () => {
     const payload = await getPayload({ config });
 
-    console.log('Downloading form submissions for form ID:', formId);
+    payload.logger.info({ 'form.id': formId }, 'Downloading form submissions as CSV');
     const submissions = await fetchAllSubmissions(payload, formId);
 
     if (submissions.length === 0) {
-      console.log('No submissions found for this form.');
+      payload.logger.debug({ 'form.id': formId }, 'No submissions found for this form');
       return '';
     }
 
@@ -182,11 +182,11 @@ export const downloadFormSubmissionsAsExcel = async (formId: string): Promise<st
   return await withSpan('downloadFormSubmissionsAsExcel', async () => {
     const payload = await getPayload({ config });
 
-    console.log('Downloading form submissions as Excel for form ID:', formId);
+    payload.logger.info({ 'form.id': formId }, 'Downloading form submissions as Excel');
     const submissions = await fetchAllSubmissions(payload, formId);
 
     if (submissions.length === 0) {
-      console.log('No submissions found for this form.');
+      payload.logger.debug({ 'form.id': formId }, 'No submissions found for this form');
       return '';
     }
 

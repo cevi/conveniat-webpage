@@ -169,7 +169,8 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(
+    payload.logger.error(
+      { err: error },
       `[Initialization] Failed to clear stale payload-jobs preferences: ${errorMessage}`,
     );
   }
@@ -179,20 +180,22 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     const { totalDocs: userCount } = await payload.count({ collection: 'users' });
     const { totalDocs: genericPageCount } = await payload.count({ collection: 'generic-page' });
     if (userCount > 0 || genericPageCount > 0) {
-      console.log('[Lock Manager] Database already seeded. Skipping seeding.');
+      payload.logger.info('[Lock Manager] Database already seeded. Skipping seeding.');
       // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
       await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
 
       // Run in the background so index generation doesn't block the first request
       void withSpan('payload.init.ensureIndexes', async () => {
         await ensureIndexes(payload);
-      }).catch(console.error);
+      }).catch((error: unknown) => {
+        payload.logger.error({ err: error }, '[Index Manager] Index verification failed');
+      });
 
       globalForInit.__payloadInitCompleted__ = true;
       return;
     }
-  } catch (error) {
-    console.error('[Lock Manager] Failed to check database seeding status:', error);
+  } catch (error: unknown) {
+    payload.logger.error({ err: error }, '[Lock Manager] Failed to check database seeding status');
   }
 
   // Database is empty. Remove any stale lock file left on host disk from a previous volume wipe.
@@ -207,12 +210,12 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
     acquiredLock = true;
   } catch (error: unknown) {
     if (error !== null && typeof error === 'object' && 'code' in error && error.code !== 'EEXIST') {
-      console.error('[Lock Manager] Failed to create lock file:', error);
+      payload.logger.error({ err: error }, '[Lock Manager] Failed to create lock file');
     }
   }
 
   if (acquiredLock) {
-    console.log(
+    payload.logger.info(
       '[Lock Manager] Acquired database initialization lock. Starting seeding and indexing...',
     );
     try {
@@ -220,38 +223,46 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       try {
         await prisma.$queryRaw`SELECT 1 FROM "public"."User" LIMIT 1`;
       } catch {
-        console.log('[Lock Manager] Prisma tables missing. Pushing Prisma schema to Postgres...');
+        payload.logger.info(
+          '[Lock Manager] Prisma tables missing. Pushing Prisma schema to Postgres...',
+        );
         const { execSync } = await import('node:child_process');
         execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
       }
 
       await withSpan('payload.init.seed', async () => {
         await seedDatabase(payload);
-        console.log('Seeding complete.');
-      }).catch(console.error);
+        payload.logger.info('Seeding complete.');
+      }).catch((error: unknown) => {
+        payload.logger.error({ err: error }, '[Lock Manager] Seeding failed');
+      });
 
       // Run in the background so index generation doesn't block the first request
       void withSpan('payload.init.ensureIndexes', async () => {
         await ensureIndexes(payload);
-      }).catch(console.error);
+      }).catch((error: unknown) => {
+        payload.logger.error({ err: error }, '[Index Manager] Index verification failed');
+      });
 
       // Mark the lock as successfully done
       await fs.writeFile(LOCK_FILE, 'done');
-      console.log('[Lock Manager] Database initialization complete. Lock released.');
+      payload.logger.info('[Lock Manager] Database initialization complete. Lock released.');
       globalForInit.__payloadInitCompleted__ = true;
-    } catch (error) {
-      console.error('[Lock Manager] Database initialization failed:', error);
+    } catch (error: unknown) {
+      payload.logger.error({ err: error }, '[Lock Manager] Database initialization failed');
       // Clean up lock file on crash so initialization can be retried
       await fs.rm(LOCK_FILE, { force: true }).catch(() => {});
     }
   } else {
-    console.log('[Lock Manager] Lock already held by another worker. Waiting for completion...');
+    payload.logger.info(
+      '[Lock Manager] Lock already held by another worker. Waiting for completion...',
+    );
     let retries = 0;
     while (retries < 60) {
       try {
         const content = await fs.readFile(LOCK_FILE, 'utf8');
         if (content === 'done') {
-          console.log(
+          payload.logger.info(
             '[Lock Manager] Database initialization successfully completed by the other worker. Skipping.',
           );
           globalForInit.__payloadInitCompleted__ = true;
@@ -263,12 +274,12 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       retries++;
     }
-    console.warn('[Lock Manager] Timeout waiting for database initialization to complete.');
+    payload.logger.warn('[Lock Manager] Timeout waiting for database initialization to complete.');
   }
 };
 
 export const deleteEverything = async (payload: Payload): Promise<void> => {
-  console.log('########################\n# Deleting everything...\n########################\n');
+  payload.logger.info('Deleting everything...');
 
   // Reset the global initialization completed flag so a reset database re-runs seeding/indexing
   const globalForInit = globalThis as unknown as {
@@ -279,7 +290,9 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
   // Remove the lock file so a manual database reset allows fresh seeding
   await fs.rm(LOCK_FILE, { force: true }).catch(() => {});
 
-  await deleteDatabase(payload).catch(console.error);
+  await deleteDatabase(payload).catch((error: unknown) => {
+    payload.logger.error({ err: error }, 'Failed to delete the Payload database');
+  });
 
   await prisma
     .$transaction([
@@ -290,7 +303,9 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
       prisma.chat.deleteMany(),
       prisma.user.deleteMany(),
     ])
-    .catch(console.error);
+    .catch((error: unknown) => {
+      payload.logger.error({ err: error }, 'Failed to delete the Prisma tables');
+    });
 
-  console.log('Done.');
+  payload.logger.info('Done.');
 };

@@ -25,10 +25,11 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
   hooks: {
     beforeDuplicate: [beforeDuplicateSlug],
     afterChange: [
-      (): void => {
+      ({ req }): void => {
         try {
           revalidateTag('sitemap', 'max');
-          console.log('Slug changed, revalidating sitemap');
+          // fires on every save of every document with a slug
+          req.payload.logger.debug('Slug changed, revalidating sitemap');
         } catch {}
       },
     ],
