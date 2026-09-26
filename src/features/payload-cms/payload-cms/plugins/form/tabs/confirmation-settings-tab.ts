@@ -122,6 +122,49 @@ const formEmailField: Field = {
       ],
     },
     {
+      name: 'sendCondition',
+      type: 'group',
+      label: {
+        en: 'Send Condition',
+        de: 'Versandbedingung',
+        fr: "Condition d'envoi",
+      },
+      admin: {
+        description: {
+          en: 'Only sends this email when the named form field holds the given value. Leave the field name empty to always send it.',
+          de: 'Sendet diese E-Mail nur, wenn das genannte Formularfeld den angegebenen Wert hat. Feldname leer lassen, um sie immer zu senden.',
+          fr: "N'envoie cet e-mail que si le champ nommé du formulaire a la valeur indiquée. Laisser le nom du champ vide pour toujours l'envoyer.",
+        },
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'field',
+              type: 'text',
+              label: {
+                en: 'Field to check',
+                de: 'Zu prüfendes Feld',
+                fr: 'Champ à vérifier',
+              },
+              admin: { width: '50%', placeholder: 'e.g. anmeldeart' },
+            },
+            {
+              name: 'value',
+              type: 'text',
+              label: {
+                en: 'Value to match',
+                de: 'Erwarteter Wert',
+                fr: 'Valeur attendue',
+              },
+              admin: { width: '50%', placeholder: 'e.g. zeitfenster' },
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'subject',
       type: 'text',
       defaultValue: "You've received a new message.",
