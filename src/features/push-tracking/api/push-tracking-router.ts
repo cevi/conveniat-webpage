@@ -1,5 +1,5 @@
 import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
-import { createTRPCRouter, publicProcedure, trpcAdminProcedure } from '@/trpc/init';
+import { createTRPCRouter, publicProcedure, trpcFullAdminProcedure } from '@/trpc/init';
 import { z } from 'zod';
 
 /**
@@ -40,7 +40,7 @@ export const pushTrackingRouter = createTRPCRouter({
     }),
 
   // Admin only: it pushes arbitrary text to any subscription the caller names.
-  sendTestNotification: trpcAdminProcedure
+  sendTestNotification: trpcFullAdminProcedure
     .input(
       z.object({
         subscription: z.union([PushSubscriptionSchema, DatabasePushSubscriptionSchema]),
@@ -61,7 +61,7 @@ export const pushTrackingRouter = createTRPCRouter({
     }),
 
   // Admin only: it returns what any person was sent, for the push subscription admin page.
-  getRecentLogs: trpcAdminProcedure
+  getRecentLogs: trpcFullAdminProcedure
     .input(
       z.object({
         userId: z.string(),

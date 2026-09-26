@@ -52,6 +52,11 @@ const signedOut = undefined as unknown;
 /** A camp participant: signed in through Cevi.DB, in no admin group. */
 const participant = { uuid: 'participant-1', groups: [] };
 
+/** Web core team may edit the site, but not read what any one person was sent. */
+const webCoreTeam = { uuid: 'web-1', groups: [{ id: 542 }] };
+
+const fullAdmin = { uuid: 'admin-1', groups: [{ id: 541 }] };
+
 const testSend = {
   subscription: { endpoint: 'https://push.example/abc', keys: { p256dh: 'p', auth: 'a' } },
   message: 'Hello',
@@ -74,6 +79,29 @@ describe('pushTrackingRouter access', () => {
       code: 'FORBIDDEN',
     });
     expect(mockFindMany).not.toHaveBeenCalled();
+  });
+
+  it('refuses the notification history to the web core team', async () => {
+    await expect(callerAs(webCoreTeam).getRecentLogs({ userId: 'someone' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(mockFindMany).not.toHaveBeenCalled();
+  });
+
+  it('shows the notification history to a full admin', async () => {
+    mockFindMany.mockResolvedValue([{ id: 'log-1' }]);
+
+    await expect(callerAs(fullAdmin).getRecentLogs({ userId: 'someone' })).resolves.toEqual({
+      items: [{ id: 'log-1' }],
+      nextCursor: undefined,
+    });
+  });
+
+  it('refuses a test send to the web core team', async () => {
+    await expect(callerAs(webCoreTeam).sendTestNotification(testSend)).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    expect(mockSendNotificationToSubscription).not.toHaveBeenCalled();
   });
 
   it('refuses a test send to anyone signed out', async () => {

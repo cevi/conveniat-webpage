@@ -82,30 +82,38 @@ const isAuthed = t.middleware(({ ctx, next }) => {
 
 export const trpcBaseProcedure = publicProcedure.use(isAuthed);
 
-const isAdmin = t.middleware(({ ctx, next }) => {
-  // not signed in at all -> 401, see `isAuthed`
-  if (!ctx.user) {
-    throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'User not authenticated.',
-    });
-  }
+/** Lets a request through only if the user belongs to one of `requiredRoles`. */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- tRPC narrows `ctx.user` only through the inferred middleware type
+const requireRoles = (requiredRoles: Roles[]) =>
+  t.middleware(({ ctx, next }) => {
+    // not signed in at all -> 401, see `isAuthed`
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User not authenticated.',
+      });
+    }
 
-  const hasAccess = hasAccessToThisUser({
-    user: ctx.user,
-    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-  });
-
-  // signed in, but lacking the required role -> 403, and no sign out
-  if (!hasAccess) {
-    throw new TRPCError({ code: 'FORBIDDEN' });
-  }
-
-  return next({
-    ctx: {
+    const hasAccess = hasAccessToThisUser({
       user: ctx.user,
-    },
-  });
-});
+      requiredRoles,
+    });
 
-export const trpcAdminProcedure = publicProcedure.use(isAdmin);
+    // signed in, but lacking the required role -> 403, and no sign out
+    if (!hasAccess) {
+      throw new TRPCError({ code: 'FORBIDDEN' });
+    }
+
+    return next({
+      ctx: {
+        user: ctx.user,
+      },
+    });
+  });
+
+export const trpcAdminProcedure = publicProcedure.use(
+  requireRoles([Roles.FullAdmin, Roles.WebCoreTeam]),
+);
+
+/** For data only full admins may see, like what any one person was sent. */
+export const trpcFullAdminProcedure = publicProcedure.use(requireRoles([Roles.FullAdmin]));
