@@ -347,6 +347,25 @@ export function extractNotificationTitleAndBody(payload: Record<string, unknown>
  * Falls back to the push log id, which is at least unique per notification.
  */
 export function extractMessageIdentifier(payload: Record<string, unknown>): string | undefined {
+  return findPayloadString(payload, ['messageId', 'notificationId']);
+}
+
+/**
+ * Extracts the push log id the server put into the FCM `data` payload, which is what
+ * delivery and interaction tracking key on.
+ */
+export function extractNotificationLogId(payload: Record<string, unknown>): string | undefined {
+  return findPayloadString(payload, ['notificationId']);
+}
+
+/**
+ * Returns the first non-empty string found under one of `keys`, trying each key across
+ * all the places the native shell may have put the FCM data before moving to the next.
+ */
+function findPayloadString(
+  payload: Record<string, unknown>,
+  keys: readonly string[],
+): string | undefined {
   const notificationObject = payload['notification'] as Record<string, unknown> | undefined;
   const apsObject = (payload['aps'] ?? notificationObject?.['aps']) as
     Record<string, unknown> | undefined;
@@ -361,7 +380,7 @@ export function extractMessageIdentifier(payload: Record<string, unknown>): stri
     payload,
   ];
 
-  for (const key of ['messageId', 'notificationId']) {
+  for (const key of keys) {
     for (const object_ of candidates) {
       if (!object_ || typeof object_ !== 'object') continue;
 
@@ -459,6 +478,7 @@ export function useNativePush(): {
 
   const { mutateAsync: registerDevice } = trpc.nativePush.registerDevice.useMutation();
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
+  const { mutate: markInteracted } = trpc.pushTracking.markInteracted.useMutation();
 
   // Foreground notifications are raised from non-React code (SSE listener, bridge
   // events), so hand them the client-side router instead of a hard navigation.
@@ -706,6 +726,13 @@ export function useNativePush(): {
           }
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
 
+          // Native pushes never reach the service worker, whose click handler tracks
+          // taps on web pushes, so the tap is recorded here.
+          const notificationLogId = extractNotificationLogId(payload);
+          if (notificationLogId !== undefined) {
+            markInteracted({ id: notificationLogId, type: 'CLICK' });
+          }
+
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
           performReliablePushNavigation(router, targetPath);
           break;
@@ -870,7 +897,7 @@ export function useNativePush(): {
       globalThis.removeEventListener('focus', handleAppResume);
       globalThis.removeEventListener('pageshow', handleAppResume);
     };
-  }, [router, registerDevice, unregisterDevice, trpcUtils]);
+  }, [router, registerDevice, unregisterDevice, markInteracted, trpcUtils]);
 
   const requestPermission = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);

@@ -31,7 +31,6 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
   const { isStarred, toggleStar } = useStar();
 
   const toggleStarHandler = (): void => {
-    console.log(`Toggled star for annotation with id: ${annotation.id}`);
     toggleStar(annotation.id);
   };
 

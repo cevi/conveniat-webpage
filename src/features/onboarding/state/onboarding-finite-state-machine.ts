@@ -71,8 +71,10 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
 
   // Auth check
   const isAuth = authStatus === 'authenticated';
-  // If not authenticated and hasn't skipped login, go to Login
-  if (!isAuth && !hasSkippedLogin) {
+  // If not authenticated and hasn't skipped login, go to Login. Offline, the session request
+  // fails and reports 'unauthenticated' even for a logged-in user, and the Cevi.DB login could
+  // not complete anyway, so let the user through to the cached app instead.
+  if (!isAuth && !hasSkippedLogin && isOnline) {
     return OnboardingStep.Login;
   }
 

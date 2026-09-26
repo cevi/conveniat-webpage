@@ -1,16 +1,23 @@
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { translateAnnouncementHandler } from '@/features/payload-cms/payload-cms/endpoints/translate-announcement';
+import type { LocaleCode } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales, LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import type { AnnouncementLocalePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
 import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
-import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
-import type { CollectionBeforeChangeHook, CollectionConfig, PayloadRequest } from 'payload';
+import type {
+  CollectionBeforeChangeHook,
+  CollectionBeforeOperationHook,
+  CollectionConfig,
+  PayloadRequest,
+} from 'payload';
 
 /**
  * Prisma's `InputJsonValue` only accepts types that carry an implicit index signature,
@@ -108,11 +115,10 @@ export const publishAnnouncementToPostgres = async (
     });
 
   // 7. Trigger Native & Web Push Notifications
+  // One push goes out to everyone, so it carries German, the one language every
+  // published announcement has.
   const defaultText =
-    localizedPayload[request.locale ?? 'de']?.text ??
-    localizedPayload['de']?.text ??
-    localizedPayload['en']?.text ??
-    '';
+    localizedPayload['de']?.text ?? Object.values(localizedPayload)[0]?.text ?? '';
   if (recipientUserIds.length > 0 && defaultText !== '') {
     sendNotification(defaultText, recipientUserIds, chatUuid, createdMessage.uuid).catch(
       (error: unknown) => {
@@ -127,6 +133,29 @@ export const publishAnnouncementToPostgres = async (
   return { messageUuid: createdMessage.uuid, publishedAt };
 };
 
+/** The `req.context` key under which {@link rememberDraftSave} records the `draft` flag. */
+const IS_DRAFT_SAVE = 'announcementIsDraftSave';
+
+/**
+ * Saving a draft and unpublishing both reach `beforeChange` as `_status: 'draft'`. Only
+ * the operation's `draft` argument tells them apart, and `beforeOperation` is the last
+ * hook that sees it. Autosave fires every second while an editor types, so mistaking it
+ * for an unpublish would delete the chat message of a published announcement.
+ */
+const rememberDraftSave: CollectionBeforeOperationHook = ({ args, operation, req }) => {
+  if (operation === 'create' || operation === 'update') {
+    req.context[IS_DRAFT_SAVE] = 'draft' in args && args.draft === true;
+  }
+  return args;
+};
+
+/**
+ * Mirrors the publishing state of an announcement into the chat.
+ *
+ * Every language lives on the same document, so one publish sends one chat message and
+ * one push that already carry every translation. Publishing again after an edit adds a
+ * revision to that message without a second push; unpublishing deletes it.
+ */
 const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async ({
   data,
   req: request,
@@ -142,21 +171,7 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
     data.author = request.user.id;
   }
 
-  const locale = request.locale ?? 'de';
-  const dataAsRecord = data as Record<string, unknown>;
-
-  // Payload CMS creates draft versions on auto-save or when explicitly saving a draft.
-  // We must not push these draft changes to PostgreSQL. The live chat feed should
-  // only be updated when the user explicitly triggers a publish or unpublish action.
-  const internalStatus = dataAsRecord['_status'];
-  if (internalStatus === 'draft') {
-    return data;
-  }
-
-  const localizedStatus = dataAsRecord['_localized_status'] as Record<string, unknown> | undefined;
-  const isPublished = localizedStatus?.['published'] === true;
-
-  if (isPublished) {
+  if (data._status === 'published') {
     if (data.status === 'scheduled') {
       // The user clicked publish, but wants it SCHEDULED.
       // Do not push to Postgres yet; the cron job will handle it at the right time.
@@ -177,27 +192,16 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
         throw new Error('No channel selected for the announcement.');
       }
 
-      // 1. Fetch the full document with all locales to get all translations
-      let documentAll: Record<string, unknown> | undefined;
-      if (originalDoc?.id !== undefined) {
-        const fetchedDocument = await request.payload.findByID({
-          collection: 'announcements',
-          id: originalDoc.id,
-          locale: 'all',
-          draft: true,
-        });
-        documentAll = fetchedDocument as unknown as Record<string, unknown>;
-      }
-
-      // 2. Build the localized payload for all locales
+      // A local API update may send only some fields; the rest is still on the document.
       const localizedPayload = await buildAnnouncementMessagePayload({
         payload: request.payload,
-        documentAll,
-        override: { locale, title: data.title, content: data.content },
-        // `images` is not localized, so the incoming value is authoritative whenever the
-        // field is part of the request at all - including when it was emptied, which a
-        // `??` fallback would silently undo.
-        imageReferences: 'images' in dataAsRecord ? data.images : documentAll?.['images'],
+        announcement: {
+          title: data.title ?? originalDoc?.title,
+          content: data.content ?? originalDoc?.content,
+        },
+        // The incoming value is authoritative whenever the field is part of the request
+        // at all - including when it was emptied, which a `??` fallback would undo.
+        imageReferences: 'images' in data ? data.images : originalDoc?.images,
       });
 
       const chatMessageUuid = data.chatMessageUuid ?? originalDoc?.chatMessageUuid;
@@ -294,89 +298,62 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Publish failed: ${errorMessage}`);
     }
-  } else {
+    return data;
+  }
+
+  if (data._status === 'draft' && request.context[IS_DRAFT_SAVE] !== true) {
+    // Unpublish: take the announcement out of the chat again.
     const chatMessageUuid = data.chatMessageUuid ?? originalDoc?.chatMessageUuid;
     if (chatMessageUuid !== undefined && chatMessageUuid !== null && chatMessageUuid !== '') {
-      let hasAnyPublishedLocale = false;
-      if (originalDoc?.id !== undefined) {
-        try {
-          const fetchedDocument = await request.payload.findByID({
-            collection: 'announcements',
-            id: originalDoc.id,
-            locale: 'all',
-            draft: true,
-          });
-          const allLocalizedStatus = fetchedDocument['_localized_status'] as
-            Record<string, { published?: boolean }> | undefined;
-          if (allLocalizedStatus !== undefined) {
-            for (const lang of ['de', 'en', 'fr']) {
-              if (lang !== locale && allLocalizedStatus[lang]?.published === true) {
-                hasAnyPublishedLocale = true;
-              }
-            }
-          }
-        } catch (error: unknown) {
-          request.payload.logger.error(
-            { error, 'document.id': originalDoc.id },
-            'Failed to read the document status on unpublish',
-          );
-        }
-      }
-
-      if (hasAnyPublishedLocale === false) {
-        try {
-          await prisma.message.delete({
-            where: { uuid: chatMessageUuid },
-          });
-        } catch (error: unknown) {
-          request.payload.logger.error(
-            { error, 'message.id': chatMessageUuid },
-            'Failed to delete the postgres message on unpublish',
-          );
-        }
-        // eslint-disable-next-line unicorn/no-null
-        data.chatMessageUuid = null;
-        // eslint-disable-next-line unicorn/no-null
-        data.publishedAt = null;
-      } else {
-        const latestRevision = await prisma.messageContent.findFirst({
-          where: { messageId: chatMessageUuid },
-          orderBy: { revision: 'desc' },
+      try {
+        await prisma.message.delete({
+          where: { uuid: chatMessageUuid },
         });
-
-        if (latestRevision !== null && latestRevision.payload !== null) {
-          const previousPayload = latestRevision.payload as Record<string, unknown>;
-          const updatedPayload = { ...previousPayload };
-          delete updatedPayload[locale];
-
-          const maxRevisionContent = await prisma.messageContent.findFirst({
-            where: { messageId: chatMessageUuid },
-            orderBy: { revision: 'desc' },
-            select: { revision: true },
-          });
-          const nextRevision = (maxRevisionContent?.revision ?? 0) + 1;
-
-          await prisma.messageContent.create({
-            data: {
-              messageId: chatMessageUuid,
-              revision: nextRevision,
-              payload: updatedPayload as unknown as PrismaJsonPayload,
-            },
-          });
-        }
+      } catch (error: unknown) {
+        request.payload.logger.error(
+          { error, 'message.id': chatMessageUuid },
+          'Failed to delete the postgres message on unpublish',
+        );
       }
+      // eslint-disable-next-line unicorn/no-null
+      data.chatMessageUuid = null;
+      // eslint-disable-next-line unicorn/no-null
+      data.publishedAt = null;
     }
   }
 
   return data;
 };
 
-export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
+/** The label of a language, as the admin panel's locale switcher shows it. */
+const languageLabel = (code: LocaleCode): Record<string, string> | string =>
+  locales.find((locale) => locale.code === code)?.label ?? code;
+
+const germanTitle = (siblingData: Partial<Announcement>): string | undefined =>
+  siblingData.title?.de ?? undefined;
+
+/**
+ * An announcement is not a localized collection: all languages sit on the same document
+ * and are published together. Publishing one locale at a time sent the push with only
+ * the first language, before the others were ready.
+ *
+ * `title` and `content` are groups with one sub-field per language. Mongo stores them as
+ * `{ de, fr, en }`, exactly like the localized fields they replace, so announcements
+ * written before the change read unchanged.
+ */
+export const AnnouncementsCollection: CollectionConfig = {
   slug: 'announcements',
   admin: {
-    useAsTitle: 'title',
+    useAsTitle: 'displayTitle',
     group: AdminPanelDashboardGroups.AppContent.label,
-    defaultColumns: ['title', 'channel', 'status', 'scheduledAt', 'publishedAt'],
+    defaultColumns: ['displayTitle', 'channel', 'status', 'scheduledAt', 'publishedAt'],
+    components: {
+      edit: {
+        beforeDocumentControls: [
+          '@/features/payload-cms/payload-cms/components/live-preview-restorer',
+        ],
+      },
+    },
   },
   labels: {
     singular: {
@@ -397,9 +374,74 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
     delete: hasAdminOrWebAccess,
   },
   hooks: {
+    beforeOperation: [rememberDraftSave],
     beforeChange: [beforeAnnouncementChange],
   },
+  endpoints: [
+    {
+      path: '/translate',
+      method: 'post',
+      handler: translateAnnouncementHandler,
+    },
+  ],
+  versions: {
+    maxPerDoc: 100,
+    drafts: {
+      autosave: {
+        interval: 1000,
+      },
+    },
+  },
   fields: [
+    {
+      name: 'pushSummary',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/announcement-push-summary#AnnouncementPushSummaryField',
+        },
+        disableListColumn: true,
+      },
+    },
+    {
+      // `useAsTitle` has to name a top-level field, and the title is one field per language.
+      name: 'displayTitle',
+      label: {
+        en: 'Title',
+        de: 'Titel',
+        fr: 'Titre',
+      },
+      type: 'text',
+      admin: {
+        readOnly: true,
+        condition: () => false,
+      },
+      hooks: {
+        beforeChange: [({ siblingData }): string | undefined => germanTitle(siblingData)],
+        // Announcements saved before this field existed have no stored value yet.
+        afterRead: [
+          ({ value, siblingData }): string | undefined =>
+            (value as string | undefined) ?? germanTitle(siblingData),
+        ],
+      },
+    },
+    {
+      name: 'translateMissingLanguages',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: {
+            path: '@/features/payload-cms/payload-cms/components/announcement-translate-missing-languages#AnnouncementTranslateMissingLanguages',
+            clientProps: {
+              targetLocales: enabledLocales.filter((locale) => locale !== LOCALE.DE),
+            },
+          },
+        },
+        disableListColumn: true,
+      },
+    },
     {
       name: 'title',
       label: {
@@ -407,9 +449,20 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
         de: 'Titel',
         fr: 'Titre',
       },
-      type: 'text',
-      required: true,
-      localized: true,
+      type: 'group',
+      admin: {
+        description: {
+          en: 'German is required. A language left empty is shown in another language in the app.',
+          de: 'Deutsch ist Pflicht. Eine leer gelassene Sprache wird in der App in einer anderen Sprache angezeigt.',
+          fr: "L'allemand est obligatoire. Une langue laissée vide s'affiche dans une autre langue dans l'app.",
+        },
+      },
+      fields: enabledLocales.map((code) => ({
+        name: code,
+        label: languageLabel(code),
+        type: 'text',
+        required: code === LOCALE.DE,
+      })),
     },
     {
       name: 'content',
@@ -418,12 +471,16 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
         de: 'Ankündigungstext',
         fr: "Texte de l'annonce",
       },
-      type: 'richText',
-      required: true,
-      localized: true,
-      editor: lexicalEditor({
-        features: [...minimalEditorFeatures, UnorderedListFeature(), AlignFeature()],
-      }),
+      type: 'group',
+      fields: enabledLocales.map((code) => ({
+        name: code,
+        label: languageLabel(code),
+        type: 'richText',
+        required: code === LOCALE.DE,
+        editor: lexicalEditor({
+          features: [...minimalEditorFeatures, UnorderedListFeature(), AlignFeature()],
+        }),
+      })),
     },
     {
       name: 'images',
@@ -437,7 +494,6 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       hasMany: true,
       // The images are shared by every translation of the announcement; their alt text
       // and caption are maintained per language on the image document itself.
-      localized: false,
       admin: {
         description: {
           en: 'These images are sent along with the announcement into the chat.',
@@ -505,6 +561,7 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       type: 'date',
       admin: {
         readOnly: true,
+        position: 'sidebar',
         date: {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 5,
@@ -527,7 +584,11 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
     },
     {
       name: 'chatMessageUuid',
-      label: 'Linked Message UUID (PostgreSQL)',
+      label: {
+        en: 'Chat message ID',
+        de: 'Chat-Nachrichten-ID',
+        fr: 'ID du message de chat',
+      },
       type: 'text',
       admin: {
         readOnly: true,
@@ -535,4 +596,4 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       },
     },
   ],
-});
+};

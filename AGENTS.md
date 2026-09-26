@@ -189,11 +189,25 @@ Server code never calls `console.log`, `info`, `debug` or `trace`, and ESLint bl
 `console.error` is not a way to make a debug line reach Loki. Three of them once produced 82% of a
 day's error volume and made the error rate meaningless.
 
+ESLint cannot tell a client file from a server one, so `no-console` covers all of `src`, and the
+browser files that need `console` are listed by name in `eslint.config.mjs`. Add a browser file
+there when it needs one. A server file on that list is the same mistake as widening an import
+boundary.
+
 No hardcoded user-facing strings. Declare a `StaticTranslationString` and index it by locale. Both
 that type and `i18nConfig` come from `@/types/types`.
 
 Style with Tailwind and combine classes with `cn()` from `@/lib/utils`. No template literals for
 class names. Icons come from `lucide-react` and nowhere else.
+
+The admin panel looks like Payload, because editors should not have to learn a second design.
+Wherever `@payloadcms/ui` has a piece for the job, use it: `Button`, `Pill`, `Banner`, `TextInput`,
+`FieldLabel`, `Gutter`, `ShimmerEffect`, `toast`, and its drawers and modals. Colour everything else
+with Payload's theme variables, like `text-(--theme-elevation-500)`, so dark mode follows. shadcn/ui
+belongs to the public site, not to `/admin`. Before you replace an edit view, try a `ui` field, a tab
+or `admin.position: 'sidebar'`. A replaced view loses the document controls, and delete with them.
+Tailwind is fine for layout, but a Payload class that is also a Tailwind utility, like `table`,
+gets the utility's styles instead.
 
 Components are Server Components until they need state, effects or browser APIs. Keep effect logic
 in a named hook instead of inlining `useEffect` in a component.

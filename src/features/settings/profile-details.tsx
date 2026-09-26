@@ -96,7 +96,6 @@ export const ProfileDetails: React.FC = async () => {
   }
   const shouldShowHofAndQuartier = isAuthenticated && !hideHofAndQuartier;
 
-  console.log(hideHofAndQuartier, shouldShowHofAndQuartier);
   return (
     <div className="space-y-6">
       {/* Profile Header */}

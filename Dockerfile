@@ -2,8 +2,9 @@
 # From https://github.com/vercel/next.js/blob/canary/examples/with-docker/Dockerfile
 FROM node:24.15-alpine AS base
 
-# Install curl for healthcheck, libc6-compat for native libs, poppler-utils and vips for sharp
-RUN apk add --no-cache curl libc6-compat poppler-utils vips vips-dev
+# libc6-compat for native libs. sharp needs no system libvips: it ships its own in the
+# prebuilt @img/sharp-libvips-linuxmusl-x64 package.
+RUN apk add --no-cache libc6-compat
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -13,24 +14,16 @@ ENV BUILD_TARGET=production
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* pnpm-workspace.yaml* .npmrc* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY patches ./patches
 
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
 
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
+# Rebuild the source code only when needed. Building on top of deps rather than copying its
+# node_modules over saves a copy of the whole tree, which is several hundred thousand files.
+FROM deps AS builder
 
-ENV BUILD_TARGET=production
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_APP_HOST_URL=https://conveniat27.ch
 ARG NEXT_PUBLIC_POSTHOG_KEY
 ARG NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
@@ -56,7 +49,6 @@ ENV NEXT_PUBLIC_ENABLED_LOCALES=${NEXT_PUBLIC_ENABLED_LOCALES}
 ARG NEXT_PUBLIC_HITOBITO_API_URL=https://db.cevi.ch
 ENV NEXT_PUBLIC_HITOBITO_API_URL=${NEXT_PUBLIC_HITOBITO_API_URL}
 
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Copy the dev icons for the dev build
@@ -73,21 +65,9 @@ RUN sh create_build_info.sh
 
 # generate prisma client
 ENV PRISMA_OUTPUT='src/lib/prisma/client/'
-RUN npx prisma generate --no-hints
+RUN pnpm exec prisma generate --no-hints
 
-RUN \
-  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm; fi && \
-  if [ -f yarn.lock ]; then yarn build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-# Copy full node_modules native bindings into standalone node_modules so Next.js standalone output includes sharp native binaries
-RUN mkdir -p /app/.next/standalone/node_modules/@img && \
-    cp -r /app/node_modules/@img/* /app/.next/standalone/node_modules/@img/ 2>/dev/null || true
-RUN mkdir -p /app/.next/standalone/node_modules/.pnpm && \
-    cp -r /app/node_modules/.pnpm/* /app/.next/standalone/node_modules/.pnpm/ 2>/dev/null || true
+RUN pnpm run build
 
 # Ensure fallback cache directory exists so copy commands don't fail if empty
 RUN mkdir -p .next/cache/fs-fallback
@@ -102,16 +82,14 @@ ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV TZ="Europe/Zurich"
 
-# Uncomment the following line in case you want to disable telemetry during runtime.
-ENV NEXT_TELEMETRY_DISABLED=1
+# curl for the healthcheck, poppler-utils for pdftocairo in the PDF thumbnail task
+RUN apk add --no-cache curl poppler-utils
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+# The .next directory must be writable for the prerender cache
+RUN addgroup --system --gid 1001 nodejs && \
+  adduser --system --uid 1001 nextjs && \
+  mkdir .next && \
+  chown nextjs:nodejs .next
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing

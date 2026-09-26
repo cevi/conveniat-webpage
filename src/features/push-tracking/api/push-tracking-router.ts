@@ -1,7 +1,11 @@
 import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
-import { createTRPCRouter, publicProcedure } from '@/trpc/init';
+import { createTRPCRouter, publicProcedure, trpcFullAdminProcedure } from '@/trpc/init';
 import { z } from 'zod';
 
+/**
+ * `markDelivered` and `markInteracted` stay public: the service worker calls them, possibly
+ * without a session, and a log id is a UUIDv7 with 74 random bits, so it cannot be guessed.
+ */
 export const pushTrackingRouter = createTRPCRouter({
   markDelivered: publicProcedure
     .input(z.object({ id: z.string() }))
@@ -35,7 +39,8 @@ export const pushTrackingRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  sendTestNotification: publicProcedure
+  // Admin only: it pushes arbitrary text to any subscription the caller names.
+  sendTestNotification: trpcFullAdminProcedure
     .input(
       z.object({
         subscription: z.union([PushSubscriptionSchema, DatabasePushSubscriptionSchema]),
@@ -55,7 +60,8 @@ export const pushTrackingRouter = createTRPCRouter({
       );
     }),
 
-  getRecentLogs: publicProcedure
+  // Admin only: it returns what any person was sent, for the push subscription admin page.
+  getRecentLogs: trpcFullAdminProcedure
     .input(
       z.object({
         userId: z.string(),

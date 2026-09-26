@@ -39,6 +39,10 @@ jobs:
 
       - name: 🔧 Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+        with:
+          # The runner is thrown away after the job. Removing the builder first only deletes
+          # its build state, which took 85 seconds per run.
+          cleanup: false
 
       - name: 🚀 Build and Push Docker Image
         uses: docker/build-push-action@v7

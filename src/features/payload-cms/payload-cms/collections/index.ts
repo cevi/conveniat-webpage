@@ -13,6 +13,7 @@ import { FormCollection } from '@/features/payload-cms/payload-cms/collections/f
 import { GenericPage as GenericPageCollection } from '@/features/payload-cms/payload-cms/collections/generic-page';
 import { JobCollection } from '@/features/payload-cms/payload-cms/collections/helper-job-collection';
 import { HelperShiftsCollection } from '@/features/payload-cms/payload-cms/collections/helper-shifts-collection';
+import { HoefeCollection } from '@/features/payload-cms/payload-cms/collections/hoefe-collection';
 import { ImageCollection } from '@/features/payload-cms/payload-cms/collections/image-collection';
 import { OutgoingEmails } from '@/features/payload-cms/payload-cms/collections/outgoing-emails';
 import { PayloadWorkersCollection } from '@/features/payload-cms/payload-cms/collections/payload-workers';
@@ -69,6 +70,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   PresenceLogCollection,
   BillParticipantsCollection,
   BillPdfsCollection,
+  HoefeCollection,
   OutgoingEmails,
   PayloadWorkersCollection,
 

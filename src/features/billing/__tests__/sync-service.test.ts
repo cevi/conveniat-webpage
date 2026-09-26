@@ -163,7 +163,6 @@ describe('Sync Service', () => {
 
     mockSettingsRepo = {
       getBillSettings: jest.fn().mockResolvedValue({
-        events: [mockEvent],
         // A role is only billable if something prices it, so the fixture has to price the
         // roles its participations use.
         rolePricing: [
@@ -177,7 +176,9 @@ describe('Sync Service', () => {
         ],
       }),
       getRegistrationManagement: jest.fn(),
-      updateBillSettingsEvents: jest.fn(),
+      getHoefe: jest.fn(),
+      getHofEvents: jest.fn().mockResolvedValue([mockEvent]),
+      upsertHoefe: jest.fn(),
       updateNextReferenceNumber: jest.fn(),
     };
 
@@ -363,12 +364,12 @@ describe('Sync Service', () => {
   });
 
   it('ignores Aufbau- and Abbaulager events configured in settings and deactivates active participants', async () => {
+    mockSettingsRepo.getHofEvents.mockResolvedValue([
+      { eventId: 'haupt-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
+      { eventId: 'aufbau-1', eventName: 'Aufbaulager conveniat27 - Test', groupId: '1' },
+      { eventId: 'abbau-1', eventName: 'Abbaulager conveniat27 - Test', groupId: '1' },
+    ]);
     mockSettingsRepo.getBillSettings.mockResolvedValue({
-      events: [
-        { eventId: 'haupt-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
-        { eventId: 'aufbau-1', eventName: 'Aufbaulager conveniat27 - Test', groupId: '1' },
-        { eventId: 'abbau-1', eventName: 'Abbaulager conveniat27 - Test', groupId: '1' },
-      ],
       rolePricing: [],
     } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
 
@@ -424,12 +425,12 @@ describe('Sync Service', () => {
   });
 
   it('safely handles malformed settings rows with missing or non-string eventName without throwing', async () => {
+    mockSettingsRepo.getHofEvents.mockResolvedValue([
+      { eventId: 'h-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
+      { eventId: 'malformed-1', eventName: undefined as unknown as string, groupId: '1' },
+      { eventId: 'malformed-2', eventName: null as unknown as string, groupId: '1' },
+    ]);
     mockSettingsRepo.getBillSettings.mockResolvedValue({
-      events: [
-        { eventId: 'h-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
-        { eventId: 'malformed-1', eventName: undefined as unknown as string, groupId: '1' },
-        { eventId: 'malformed-2', eventName: null as unknown as string, groupId: '1' },
-      ],
       rolePricing: [],
     } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
 
@@ -454,9 +455,10 @@ describe('Sync Service', () => {
     ];
 
     beforeEach(() => {
-      mockSettingsRepo.getBillSettings.mockResolvedValue({
-        events: threeEvents,
-      } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+      mockSettingsRepo.getHofEvents.mockResolvedValue(threeEvents);
+      mockSettingsRepo.getBillSettings.mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>,
+      );
       mockHitobitoService.fetchParticipations.mockResolvedValue([]);
     });
 
@@ -521,9 +523,10 @@ describe('Sync Service', () => {
   });
 
   it('points the operator at Registration Management when the browser cookie is missing', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue({
-      events: [],
-    } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
+    mockSettingsRepo.getHofEvents.mockResolvedValue([]);
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>,
+    );
 
     const summary = await syncParticipantsUseCase(
       mockParticipantRepo,
@@ -532,18 +535,21 @@ describe('Sync Service', () => {
       mockLogger,
     );
 
-    // Without configured events the run cannot start, and the settings page that fixes
-    // it has to reach the admin UI as a link rather than as prose.
-    expect(summary.errors).toEqual(['No events configured in Bill Settings.']);
-    expect(summary.relatedDocuments).toEqual(['billSettings']);
+    // Without configured events the run cannot start, and the Höfe list that fixes it has
+    // to reach the admin UI as a link rather than as prose.
+    expect(summary.errors).toEqual(['No events configured on any Hof.']);
+    expect(summary.relatedDocuments).toEqual(['hoefe']);
   });
 
   it('stops the run when the Cevi.DB session is gone instead of emptying every row', async () => {
     // An unreadable participation used to arrive as `{}`, which is indistinguishable from
     // a registration whose Pflichtangaben were all deleted: the sync would have parked
     // every row of every event as incomplete and chased their Adressverwalter.
+    mockSettingsRepo.getHofEvents.mockResolvedValue([
+      mockEvent,
+      { eventId: 'event-2', eventName: 'Second', groupId: 'group-2' },
+    ]);
     mockSettingsRepo.getBillSettings.mockResolvedValue({
-      events: [mockEvent, { eventId: 'event-2', eventName: 'Second', groupId: 'group-2' }],
       rolePricing: [{ roleTypePattern: 'Event::Role::Participant', label: 'TN', amount: 1 }],
     } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
     mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
@@ -570,8 +576,8 @@ describe('Sync Service', () => {
       // The role stops being priced — the settings row was renamed. Before, this wrote
       // `invalid_anmeldeangaben`, and the next sync after the row came back wrote `new`,
       // which is what earned the participant a second invoice.
+      mockSettingsRepo.getHofEvents.mockResolvedValue([mockEvent]);
       mockSettingsRepo.getBillSettings.mockResolvedValue({
-        events: [mockEvent],
         rolePricing: [{ roleTypePattern: 'Event::Role::Leader', label: 'Leitend', amount: 1 }],
       } as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>);
       mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());

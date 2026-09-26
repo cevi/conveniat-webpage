@@ -50,7 +50,10 @@ export const DocumentDownloadsCell = async ({
   rowData,
   i18n,
 }: DefaultServerCellComponentProps): Promise<React.ReactElement> => {
-  const documentId: unknown = rowData['id'];
+  // Payload also renders a ui field's Cell while building the edit view's form state, where there is
+  // no row: its skip list is checked with `key in [...]`, which tests array indices, not names.
+  const row = rowData as DefaultServerCellComponentProps['rowData'] | undefined;
+  const documentId: unknown = row?.['id'];
   if (typeof documentId !== 'string') return <></>;
 
   const { total, uniqueUsers } = await getDownloadStats(documentId);

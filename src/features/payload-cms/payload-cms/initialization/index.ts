@@ -1,5 +1,6 @@
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
+import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
   announceRunningJobsWith,
@@ -184,6 +185,12 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
       await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
 
+      // Awaited, so the billing never reads an empty Höfe collection on a database that still
+      // has its Höfe in the legacy bill settings. Only a seeded database can have those.
+      await withSpan('payload.init.migrateLegacyHoefe', async () => {
+        await migrateLegacyHoefe(payload);
+      });
+
       // Run in the background so index generation doesn't block the first request
       void withSpan('payload.init.ensureIndexes', async () => {
         await ensureIndexes(payload);
@@ -297,6 +304,9 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
   await prisma
     .$transaction([
       prisma.pushNotificationLog.deleteMany(),
+      // material loans and incidents point at users, so they go first
+      prisma.materialIncident.deleteMany(),
+      prisma.materialLoan.deleteMany(),
       prisma.messageEvent.deleteMany(),
       prisma.message.deleteMany(),
       prisma.chatMembership.deleteMany(),

@@ -76,6 +76,7 @@ export interface Config {
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
+    hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
     'payload-workers': PayloadWorker;
     'chat-images': ChatImage;
@@ -141,6 +142,7 @@ export interface Config {
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
+    hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
@@ -3994,33 +3996,61 @@ export interface AnnouncementChannel {
  */
 export interface Announcement {
   id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  title: string;
+  displayTitle?: string | null;
+  /**
+   * German is required. A language left empty is shown in another language in the app.
+   */
+  title: {
+    de: string;
+    fr?: string | null;
+    en?: string | null;
+  };
   content: {
-    root: {
-      type: string;
-      children: {
-        type: any;
+    de: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
         version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
+      };
+      [k: string]: unknown;
     };
-    [k: string]: unknown;
+    fr?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    en?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
   };
   /**
    * These images are sent along with the announcement into the chat.
@@ -4256,19 +4286,19 @@ export interface PiketSchedule {
  */
 export interface PushNotificationSubscription {
   id: string;
-  user?: (string | null) | User;
-  platform: 'web' | 'ios' | 'android';
-  token?: string | null;
   endpoint?: string | null;
-  expirationTime?: number | null;
+  token?: string | null;
   keys?: {
     p256dh?: string | null;
     auth?: string | null;
   };
+  expirationTime?: number | null;
   userAgent?: string | null;
-  deviceId?: string | null;
+  user?: (string | null) | User;
+  platform: 'web' | 'ios' | 'android';
   lastUsedAt?: string | null;
   registrationSource?: ('/entrypoint' | '/app/settings') | null;
+  deviceId?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4456,6 +4486,49 @@ export interface OutgoingEmail {
   createdAt: string;
   lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
+}
+/**
+ * One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hoefe".
+ */
+export interface Hof {
+  id: string;
+  /**
+   * Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.
+   */
+  name: string;
+  /**
+   * Hitobito group ID of this Hof (up to 6 digits)
+   */
+  groupId: string;
+  /**
+   * Configure which Hitobito events should be synced for billing.
+   */
+  events?:
+    | {
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
+        eventId: string;
+        /**
+         * Name of the event in Cevi.DB, refreshed by every sync
+         */
+        eventName: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
+   */
+  addressManagerEmails?: string | null;
+  /**
+   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   */
+  reminderRecipientsOverride?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Registered background worker instances and their activity heartbeats.
@@ -5004,6 +5077,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-pdfs';
         value: string | BillPdf;
+      } | null)
+    | ({
+        relationTo: 'hoefe';
+        value: string | Hof;
       } | null)
     | ({
         relationTo: 'outgoing-emails';
@@ -6621,12 +6698,21 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
  * via the `definition` "announcements_select".
  */
 export interface AnnouncementsSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  title?: T;
-  content?: T;
+  displayTitle?: T;
+  title?:
+    | T
+    | {
+        de?: T;
+        fr?: T;
+        en?: T;
+      };
+  content?:
+    | T
+    | {
+        de?: T;
+        fr?: T;
+        en?: T;
+      };
   images?: T;
   channel?: T;
   status?: T;
@@ -6831,21 +6917,21 @@ export interface PiketSchedulesSelect<T extends boolean = true> {
  * via the `definition` "push-notification-subscriptions_select".
  */
 export interface PushNotificationSubscriptionsSelect<T extends boolean = true> {
-  user?: T;
-  platform?: T;
-  token?: T;
   endpoint?: T;
-  expirationTime?: T;
+  token?: T;
   keys?:
     | T
     | {
         p256dh?: T;
         auth?: T;
       };
+  expirationTime?: T;
   userAgent?: T;
-  deviceId?: T;
+  user?: T;
+  platform?: T;
   lastUsedAt?: T;
   registrationSource?: T;
+  deviceId?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6957,6 +7043,25 @@ export interface BillPdfsSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hoefe_select".
+ */
+export interface HoefeSelect<T extends boolean = true> {
+  name?: T;
+  groupId?: T;
+  events?:
+    | T
+    | {
+        eventId?: T;
+        eventName?: T;
+        id?: T;
+      };
+  addressManagerEmails?: T;
+  reminderRecipientsOverride?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8553,29 +8658,14 @@ export interface AppFeatureFlag {
 export interface BillSetting {
   id: string;
   /**
-   * Configure which Hitobito events should be synced for billing.
+   * Migrated to the Hofs collection; the billing no longer reads it. Will be removed.
    */
   events?:
     | {
-        /**
-         * Hitobito event ID to sync (up to 6 digits)
-         */
-        eventId: string;
-        /**
-         * Display name, e.g. "Hof Süd"
-         */
-        eventName: string;
-        /**
-         * Hitobito group ID this event belongs to (up to 6 digits)
-         */
-        groupId: string;
-        /**
-         * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
-         */
+        eventId?: string | null;
+        eventName?: string | null;
+        groupId?: string | null;
         addressManagerEmails?: string | null;
-        /**
-         * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
-         */
         reminderRecipientsOverride?: string | null;
         id?: string | null;
       }[]
@@ -9646,6 +9736,7 @@ export interface TaskCreateCollectionExport {
       | 'presence-logs'
       | 'bill-participants'
       | 'bill-pdfs'
+      | 'hoefe'
       | 'outgoing-emails'
       | 'payload-workers'
       | 'chat-images'
