@@ -1,5 +1,6 @@
 import { useAutoResizeTextarea } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-auto-resize-textarea';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-draft';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
 import { trpc } from '@/trpc/client';
@@ -43,6 +44,11 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const { textareaRef: messageInputReference, resize: resizeTextarea } =
     useAutoResizeTextarea(newMessage);
   const { activeThreadId, quotedMessageId, cancelQuote } = useChatActions();
+
+  // fixed at mount: the main composer stays mounted under an open thread and must not
+  // take over the draft of the thread composer on top of it
+  const [draftKey] = useState(() => getChatDraftKey(chatId, activeThreadId));
+  useChatDraft(draftKey, newMessage, setNewMessage);
 
   // Keep a ref to the pending message so we can restore it on error
   const pendingMessageReference = useRef<string | undefined>(undefined);

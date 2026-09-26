@@ -24,6 +24,12 @@ const messagePlaceholder: StaticTranslationString = {
   fr: 'Tapez un message...',
 };
 
+const enterToSendHint: StaticTranslationString = {
+  de: 'Enter zum Senden, Shift + Enter für eine neue Zeile',
+  en: 'Enter to send, Shift + Enter for a new line',
+  fr: 'Entrée pour envoyer, Maj + Entrée pour un saut de ligne',
+};
+
 const chatIsArchivedMessage: StaticTranslationString = {
   de: 'Dieser Chat ist archiviert. Du kannst keine Nachrichten senden.',
   en: 'This chat is archived. You cannot send messages.',
@@ -262,7 +268,7 @@ export const ChatTextAreaInput: React.FC = () => {
   const localizedError = getLocalizedError(sendError);
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="group flex flex-col gap-1">
       {/* Error message when sending fails */}
       {localizedError !== undefined && localizedError !== '' && (
         <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
@@ -314,7 +320,9 @@ export const ChatTextAreaInput: React.FC = () => {
             placeholder={messagePlaceholder[locale]}
             className="font-body w-full resize-none border-0 bg-transparent px-3 py-3 text-base placeholder:text-gray-500 focus:ring-0 focus:outline-none"
             rows={1}
-            style={{ minHeight: '48px', maxHeight: '250px' }}
+            enterKeyHint="send"
+            // five lines, then the textarea scrolls instead of eating the conversation
+            style={{ minHeight: '48px', maxHeight: '144px' }}
             aria-label={messagePlaceholder[locale]}
           />
         </div>
@@ -342,6 +350,11 @@ export const ChatTextAreaInput: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* keyboard hint only where there is a keyboard, and only while typing */}
+      <p className="font-body hidden px-4 text-[11px] text-gray-400 pointer-fine:group-focus-within:block">
+        {enterToSendHint[locale]}
+      </p>
     </div>
   );
 };

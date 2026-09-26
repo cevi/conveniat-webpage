@@ -93,6 +93,10 @@ interface MessageProperties {
   chatType: string;
   hideReplyCount?: boolean;
   isThreadRoot?: boolean;
+  /** Opens a block of consecutive messages from one sender; only it shows the sender name. */
+  isFirstInGroup?: boolean;
+  /** Closes such a block; only it gets the bubble tail. */
+  isLastInGroup?: boolean;
   locale: Locale;
 }
 
@@ -110,6 +114,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   chatType,
   hideReplyCount = false,
   isThreadRoot = false,
+  isFirstInGroup = true,
+  isLastInGroup = true,
   locale,
 }) => {
   const activeLocale = locale;
@@ -322,7 +328,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     >
       <div
         className={cn(
-          'relative flex max-w-[85%] flex-col py-1',
+          'relative flex max-w-[85%] flex-col py-0.5',
           isCurrentUser ? 'items-end pr-2' : 'items-start pl-2',
         )}
       >
@@ -435,7 +441,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           </div>
         )}
 
-        {!isCurrentUser && chatType === 'GROUP' && message.senderName && (
+        {!isCurrentUser && isFirstInGroup && chatType === 'GROUP' && message.senderName && (
           <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">
             {message.senderName}
           </span>
@@ -467,8 +473,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               'font-body relative rounded-2xl px-4 py-2.5 shadow-sm transition-transform duration-150',
               'max-w-full min-w-[100px]',
               isCurrentUser
-                ? 'bg-cevi-blue rounded-br-[4px] text-white'
-                : 'rounded-bl-[4px] border border-gray-100 bg-white text-gray-800',
+                ? 'bg-cevi-blue text-white'
+                : 'border border-gray-100 bg-white text-gray-800',
+              isLastInGroup && (isCurrentUser ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'),
               message.status === MessageEventType.CREATED &&
                 !message.isPendingOffline &&
                 'bg-cevi-blue/80 animate-pulse text-white/90',
