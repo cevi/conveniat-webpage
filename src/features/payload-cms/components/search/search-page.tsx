@@ -1,8 +1,8 @@
 import SearchOnlyPagesClient from '@/features/payload-cms/components/search/search-page-client';
-import type { Permission, SearchCollection } from '@/features/payload-cms/payload-types';
+import { toPermittedSearchResults } from '@/features/payload-cms/components/search/search-results';
+import type { SearchCollection } from '@/features/payload-cms/payload-types';
 import type { SearchParameters } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { hasPermissions } from '@/utils/has-permissions';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -74,20 +74,17 @@ const SearchOnlyPages: React.FC<{ searchParameters: SearchParameters }> = async 
       },
     });
 
-    const pagesPermissions = await Promise.all(
-      pages.docs.map((permissionPage) =>
-        hasPermissions(permissionPage.content.permissions as Permission),
-      ),
+    const searchResults = await toPermittedSearchResults(
+      pages,
+      (document) => document.content.pageTitle,
     );
-    const permittedPages = pages.docs.filter((_, index) => pagesPermissions[index] ?? false);
 
     return (
       <SearchOnlyPagesClient
         locale={locale}
         searchQuery={searchQuery}
         page={page}
-        permittedPages={permittedPages}
-        pages={pages}
+        searchResults={searchResults}
       />
     );
   });
