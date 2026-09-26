@@ -56,6 +56,8 @@ import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/
 import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
 import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
+import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
+import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
 import { ResendEmailButton as ResendEmailButton_e62af8aa593181d6540c08021abb9c8b } from '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button'
 import { OverrideStatusButton as OverrideStatusButton_8c304667b297b7e538d558abfba16bf0 } from '@/features/payload-cms/payload-cms/components/override-status/override-status-button'
 import { default as default_30bb34ba732976b67b42694b834628a5 } from '@/features/payload-cms/payload-cms/components/email-preview/email-preview-field'
@@ -102,8 +104,6 @@ import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/
 import { default as default_cd35b3d8d72e9d0e9e863a18826ee991 } from '@/features/presence/payload-cms/components/density-plot-field'
 import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/presence/payload-cms/components/open-people-list-field'
 import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
-import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
-import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { WeeklyReportDownloadButton as WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11 } from '@/features/billing/components/weekly-report-download-button'
 import { FinanceOverviewDownloadButton as FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0 } from '@/features/billing/components/finance-overview-download-button'
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
@@ -182,6 +182,8 @@ export const importMap = {
   "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
   "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
+  "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
+  "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
   "@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton": ResendEmailButton_e62af8aa593181d6540c08021abb9c8b,
   "@/features/payload-cms/payload-cms/components/override-status/override-status-button#OverrideStatusButton": OverrideStatusButton_8c304667b297b7e538d558abfba16bf0,
   "@/features/payload-cms/payload-cms/components/email-preview/email-preview-field#default": default_30bb34ba732976b67b42694b834628a5,
@@ -228,8 +230,6 @@ export const importMap = {
   "@/features/presence/payload-cms/components/density-plot-field#default": default_cd35b3d8d72e9d0e9e863a18826ee991,
   "@/features/presence/payload-cms/components/open-people-list-field#default": default_95aac01a1d24126400a908467acf9d8a,
   "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,
-  "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
-  "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton": WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11,
   "@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton": FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0,
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,

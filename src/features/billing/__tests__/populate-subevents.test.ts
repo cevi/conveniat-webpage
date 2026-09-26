@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/unbound-method, unicorn/no-null */
+/* eslint-disable @typescript-eslint/unbound-method */
 jest.mock('@/features/registration_process/hitobito-api', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
@@ -9,11 +9,11 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { PopulateSubeventsProgress } from '@/features/billing/services/populate-subevents';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
-import type { PopulatedSubevent } from '@/features/billing/types';
-import type { BillSetting } from '@/features/payload-cms/payload-types';
+import type { Hof } from '@/features/payload-cms/payload-types';
 
-const billSettingsWith = (events: PopulatedSubevent[]): BillSetting =>
-  ({ events }) as unknown as BillSetting;
+/** A stored Hof, with only what the merge looks at. */
+const storedHof = (hof: Partial<Hof> & Pick<Hof, 'groupId'>): Hof =>
+  ({ id: `hof-${hof.groupId}`, name: `Hof ${hof.groupId}`, events: [], ...hof }) as Hof;
 
 // Typed rather than bare `jest.fn()`, so that reading an attribute off a recorded call is not
 // an `any` access.
@@ -42,9 +42,11 @@ describe('populateSubeventsUseCase', () => {
     };
 
     mockSettingsRepo = {
-      getBillSettings: jest.fn().mockResolvedValue(billSettingsWith([])),
+      getBillSettings: jest.fn(),
       getRegistrationManagement: jest.fn(),
-      updateBillSettingsEvents: jest.fn(),
+      getHoefe: jest.fn().mockResolvedValue([]),
+      getHofEvents: jest.fn(),
+      upsertHoefe: jest.fn(),
       updateNextReferenceNumber: jest.fn(),
     };
 
@@ -108,18 +110,39 @@ describe('populateSubeventsUseCase', () => {
     expect(mockHitobitoService.fetchAddressManagerEmails.mock.calls.flat()).toEqual(['2', '4']);
   });
 
-  it('keeps existing events and only counts genuinely new ones', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([
-        {
-          eventId: 'e-1',
-          eventName: 'conveniat27 Basel',
-          groupId: '1',
-          addressManagerEmails: 'alt@example.com',
-          reminderRecipientsOverride: 'chef@example.com',
-        },
-      ]),
-    );
+  it('creates one Hof per group, named after its first event', async () => {
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['2']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-2', name: 'Hauptlager conveniat27 - Altstetten & Albisrieden' },
+      { id: 'e-3', name: 'conveniat27 Altstetten Leitende' },
+    ]);
+    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['av@example.com']);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([
+      {
+        groupId: '2',
+        name: 'Altstetten & Albisrieden',
+        events: [
+          { eventId: 'e-3', eventName: 'conveniat27 Altstetten Leitende' },
+          { eventId: 'e-2', eventName: 'Hauptlager conveniat27 - Altstetten & Albisrieden' },
+        ],
+        addressManagerEmails: 'av@example.com',
+      },
+    ]);
+  });
+
+  it('keeps existing Höfe and only counts genuinely new events', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        name: 'Hof Basel',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'alt@example.com',
+        reminderRecipientsOverride: 'chef@example.com',
+      }),
+    ]);
 
     mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1', '2']);
     mockHitobitoService.fetchEventsForGroup.mockImplementation((groupId: string) =>
@@ -143,9 +166,8 @@ describe('populateSubeventsUseCase', () => {
     expect(result.newEvents).toEqual([
       { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2', addressManagerEmails: '' },
     ]);
-    // The form adopts this list without a reload, so it must carry the pre-existing rows
-    // together with the override an editor set by hand.
-    const expectedEvents = [
+    // The flat list the button shows carries the override an editor set on the Hof.
+    expect(result.allEvents).toEqual([
       {
         eventId: 'e-1',
         eventName: 'conveniat27 Basel',
@@ -153,29 +175,65 @@ describe('populateSubeventsUseCase', () => {
         addressManagerEmails: 'neu@example.com, zweite@example.com',
         reminderRecipientsOverride: 'chef@example.com',
       },
-      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2', addressManagerEmails: '' },
-    ];
-    expect(result.allEvents).toEqual(expectedEvents);
-    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
+      { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2' },
+    ]);
+    // Neither the name nor the override of a known Hof is part of what the sync writes.
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([
+      {
+        groupId: '1',
+        name: 'Hof Basel',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'neu@example.com, zweite@example.com',
+      },
+      {
+        groupId: '2',
+        name: 'Chur',
+        events: [{ eventId: 'e-2', eventName: 'conveniat27 Chur' }],
+        addressManagerEmails: '',
+      },
+    ]);
   });
 
-  it('adopts the name and the group of a Hof that was renamed in Cevi.DB', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([
-        {
-          eventId: 'e-1',
-          eventName: 'conveniat27 Seuzach',
-          groupId: '1',
-          addressManagerEmails: 'alt@example.com',
-          reminderRecipientsOverride: 'chef@example.com',
-        },
-      ]),
-    );
-
-    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['7']);
-    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
-      { id: 'e-1', name: 'Hauptlager conveniat27 Seuzach-Welsikon' },
+  it('leaves a Hof the walk did not change unwritten', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+      }),
     ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['av@example.com']);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([]);
+  });
+
+  it('adopts the new name of an event and moves an event Cevi.DB now lists elsewhere', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        name: 'Hof Seuzach',
+        events: [
+          { eventId: 'e-1', eventName: 'conveniat27 Seuzach' },
+          { eventId: 'e-9', eventName: 'conveniat27 Seuzach Leitende' },
+        ],
+        reminderRecipientsOverride: 'chef@example.com',
+      }),
+    ]);
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1', '7']);
+    mockHitobitoService.fetchEventsForGroup.mockImplementation((groupId: string) =>
+      Promise.resolve(
+        groupId === '1'
+          ? [{ id: 'e-9', name: 'Hauptlager conveniat27 Seuzach-Welsikon Leitende' }]
+          : [{ id: 'e-1', name: 'Hauptlager conveniat27 Seuzach-Welsikon' }],
+      ),
+    );
     mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['neu@example.com']);
 
     const result = await populateSubeventsUseCase(
@@ -184,7 +242,7 @@ describe('populateSubeventsUseCase', () => {
       mockLogger,
     );
 
-    // The rename is not a new event, so it must not be counted as one.
+    // Neither the rename nor the move is a new event, so neither is counted as one.
     expect(result.count).toBe(0);
     expect(result.allEvents).toEqual([
       {
@@ -192,26 +250,30 @@ describe('populateSubeventsUseCase', () => {
         eventName: 'Hauptlager conveniat27 Seuzach-Welsikon',
         groupId: '7',
         addressManagerEmails: 'neu@example.com',
+      },
+      {
+        eventId: 'e-9',
+        eventName: 'Hauptlager conveniat27 Seuzach-Welsikon Leitende',
+        groupId: '1',
+        addressManagerEmails: 'neu@example.com',
         reminderRecipientsOverride: 'chef@example.com',
       },
     ]);
   });
 
   it('leaves the stored address managers alone when the Cevi.DB lookup fails', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([
-        {
-          eventId: 'e-1',
-          eventName: 'conveniat27 Basel',
-          groupId: '1',
-          addressManagerEmails: 'bekannt@example.com',
-        },
-      ]),
-    );
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'bekannt@example.com',
+      }),
+    ]);
 
     mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
     mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
       { id: 'e-1', name: 'conveniat27 Basel' },
+      { id: 'e-2', name: 'conveniat27 Basel Leitende' },
     ]);
     mockHitobitoService.fetchAddressManagerEmails.mockRejectedValue(new Error('status 500'));
 
@@ -223,14 +285,13 @@ describe('populateSubeventsUseCase', () => {
 
     // A failed lookup says nothing about who the managers are — emptying the list would
     // silently stop the reminders for this Hof.
-    expect(result.allEvents).toEqual([
-      {
-        eventId: 'e-1',
-        eventName: 'conveniat27 Basel',
-        groupId: '1',
-        addressManagerEmails: 'bekannt@example.com',
-      },
+    expect(result.allEvents.map((event) => event.addressManagerEmails)).toEqual([
+      'bekannt@example.com',
+      'bekannt@example.com',
     ]);
+    const [writes] = mockSettingsRepo.upsertHoefe.mock.calls[0] ?? [];
+    expect(writes?.[0]).not.toHaveProperty('addressManagerEmails');
+
     // The one line a human has to be able to find: which group was skipped, and why.
     const [warning, attributes] = mockLogger.warn.mock.calls[0] ?? [];
     expect(warning).toBe('Giving up on a Cevi.DB lookup');
@@ -274,14 +335,19 @@ describe('populateSubeventsUseCase', () => {
     expect(progress).toEqual([{ processedGroups: 0, totalGroups: 0, foundEvents: [] }]);
     expect(result.count).toBe(0);
   });
-  it('ignores Aufbau- and Abbaulager events and cleans them from existing settings', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([
-        { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
-        { eventId: 'e-old-aufbau', eventName: 'Aufbaulager conveniat27 - Basel', groupId: '1' },
-        { eventId: 'e-old-abbau', eventName: 'Abbaulager conveniat27 - Basel', groupId: '1' },
-      ]),
-    );
+
+  it('ignores Aufbau- and Abbaulager events and cleans them from the stored Höfe', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        name: 'Hof Basel',
+        events: [
+          { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel' },
+          { eventId: 'e-old-aufbau', eventName: 'Aufbaulager conveniat27 - Basel' },
+          { eventId: 'e-old-abbau', eventName: 'Abbaulager conveniat27 - Basel' },
+        ],
+      }),
+    ]);
 
     mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['2']);
     mockHitobitoService.fetchEventsForGroup.mockImplementation((groupId: string) =>
@@ -311,73 +377,22 @@ describe('populateSubeventsUseCase', () => {
         addressManagerEmails: '',
       },
     ]);
-    const expectedEvents = [
+    expect(result.allEvents).toEqual([
       { eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
+      { eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern', groupId: '2' },
+    ]);
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([
       {
-        eventId: 'e-new-haupt',
-        eventName: 'Hauptlager conveniat27 Bern',
+        groupId: '1',
+        name: 'Hof Basel',
+        events: [{ eventId: 'e-existing-haupt', eventName: 'Hauptlager conveniat27 Basel' }],
+      },
+      {
         groupId: '2',
+        name: 'Bern',
+        events: [{ eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern' }],
         addressManagerEmails: '',
       },
-    ];
-    expect(result.allEvents).toEqual(expectedEvents);
-    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
-  });
-
-  it('repairs the escaped names of rows that were stored before the names were decoded', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([
-        {
-          eventId: 'e-1',
-          eventName: 'Hauptlager conveniat27 - Altstetten &amp;amp; Albisrieden',
-          groupId: '1',
-          reminderRecipientsOverride: 'hof@example.org',
-        },
-      ]),
-    );
-    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
-
-    const result = await populateSubeventsUseCase(
-      mockHitobitoService,
-      mockSettingsRepo,
-      mockLogger,
-    );
-
-    expect(result.count).toBe(0);
-    const repaired = [
-      {
-        eventId: 'e-1',
-        eventName: 'Hauptlager conveniat27 - Altstetten & Albisrieden',
-        groupId: '1',
-        reminderRecipientsOverride: 'hof@example.org',
-      },
-    ];
-    expect(result.allEvents).toEqual(repaired);
-    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(repaired);
-  });
-
-  it('safely handles legacy settings rows with missing or non-string eventName without throwing', async () => {
-    mockSettingsRepo.getBillSettings.mockResolvedValue(
-      billSettingsWith([
-        { eventId: 'e-1', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
-        { eventId: 'e-2', eventName: undefined as unknown as string, groupId: '1' },
-        { eventId: 'e-3', eventName: null as unknown as string, groupId: '1' },
-      ]),
-    );
-
-    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
-
-    const result = await populateSubeventsUseCase(
-      mockHitobitoService,
-      mockSettingsRepo,
-      mockLogger,
-    );
-
-    expect(result.count).toBe(0);
-    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith([
-      { eventId: 'e-2', eventName: undefined, groupId: '1' },
-      { eventId: 'e-3', eventName: null, groupId: '1' },
-      { eventId: 'e-1', eventName: 'Hauptlager conveniat27 Basel', groupId: '1' },
     ]);
   });
 });

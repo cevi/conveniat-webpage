@@ -16,6 +16,14 @@ export const BILLING_ADMIN_DOCUMENTS = {
       fr: 'Ouvrir la gestion des inscriptions',
     } satisfies StaticTranslationString,
   },
+  hoefe: {
+    href: '/admin/collections/hoefe',
+    label: {
+      de: 'Höfe öffnen',
+      en: 'Open Hofs',
+      fr: 'Ouvrir les Hofs',
+    } satisfies StaticTranslationString,
+  },
   billSettings: {
     href: '/admin/globals/bill-settings',
     label: {

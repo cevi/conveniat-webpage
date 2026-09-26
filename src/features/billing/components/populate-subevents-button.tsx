@@ -2,11 +2,10 @@
 
 import type { PopulateSubeventsState } from '@/features/billing/hooks/use-populate-subevents';
 import { usePopulateSubevents } from '@/features/billing/hooks/use-populate-subevents';
-import type { PopulatedSubevent } from '@/features/billing/types';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { useDocumentInfo, useForm, useLocale, useServerFunctions } from '@payloadcms/ui';
+import { useAuth, useListQuery, useLocale } from '@payloadcms/ui';
 import { AlertTriangle, CheckCircle2, Download, RefreshCw, Sparkles } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -156,68 +155,45 @@ const computePercentage = (state: PopulateSubeventsState): number => {
 };
 
 /**
- * Custom Payload CMS field component that renders a button to dynamically sync/populate
- * all subevents of group 4337 directly from the Cevi.DB API.
+ * Rendered above the list of the Höfe: a button that walks all subgroups of group 4337 on
+ * the Cevi.DB API and adds the events it finds to their Höfe.
  *
  * The import streams its progress, so the panel shows a progress bar over the walked
- * subgroups and the names of the events as they are discovered.
+ * subgroups and the names of the events as they are discovered. Only shown to those who may
+ * write the Höfe; the endpoint refuses everybody else anyway.
  */
 export const PopulateSubeventsButton: React.FC = () => {
   const { code } = useLocale();
   const locale = resolveAdminLocale(code);
+  const { permissions } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [didRefreshForm, setDidRefreshForm] = useState(true);
+  const [didRefreshList, setDidRefreshList] = useState(true);
 
-  const { getFormState } = useServerFunctions();
-  const { getData, replaceState } = useForm();
-  const { docPermissions, getDocPreferences, globalSlug } = useDocumentInfo();
+  const { query, refineListData } = useListQuery();
 
   /**
-   * Rebuilds the document's form state around the freshly stored event list. The rows
-   * were written server-side, but the array field below renders from client form state,
-   * which would otherwise keep showing yesterday's list until a full page reload.
+   * Reloads the rows of the list below. They were written server-side, but the table renders
+   * from the list query provider, which would otherwise keep showing the Höfe as they were
+   * until a full page reload.
    */
-  const applyEventsToForm = useCallback(
-    async (allEvents: PopulatedSubevent[]): Promise<void> => {
-      if (globalSlug === undefined) {
-        setDidRefreshForm(false);
-        return;
-      }
+  const refreshList = useCallback(async (): Promise<void> => {
+    try {
+      await refineListData(query);
+      setDidRefreshList(true);
+    } catch {
+      setDidRefreshList(false);
+    }
+  }, [query, refineListData]);
 
-      try {
-        const documentPreferences = await getDocPreferences();
-        const result = await getFormState({
-          data: { ...getData(), events: allEvents },
-          docPermissions,
-          docPreferences: documentPreferences,
-          globalSlug,
-          locale: code,
-          operation: 'update',
-          renderAllFields: true,
-          schemaPath: globalSlug,
-        });
-
-        if (result.state === undefined) {
-          setDidRefreshForm(false);
-          return;
-        }
-
-        replaceState(result.state);
-        setDidRefreshForm(true);
-      } catch {
-        setDidRefreshForm(false);
-      }
-    },
-    [code, docPermissions, getData, getDocPreferences, getFormState, globalSlug, replaceState],
-  );
-
-  const { state, isRunning, start } = usePopulateSubevents(applyEventsToForm);
+  const { state, isRunning, start } = usePopulateSubevents(refreshList);
 
   const handleConfirm = async (): Promise<void> => {
     setIsModalOpen(false);
-    setDidRefreshForm(true);
+    setDidRefreshList(true);
     await start();
   };
+
+  if (permissions?.collections?.['hoefe']?.create !== true) return <></>;
 
   const percentage = computePercentage(state);
 
@@ -313,7 +289,7 @@ export const PopulateSubeventsButton: React.FC = () => {
                 <p className="mt-3 mb-0 text-[13px] text-(--theme-elevation-700)">
                   {resultSummary(locale, state.newEventIds.size, state.foundEvents.length)}
                 </p>
-                {!didRefreshForm && (
+                {!didRefreshList && (
                   <>
                     <p className="mt-2 mb-0 text-[13px] text-(--theme-error-600)">
                       {listRefreshFailed[locale]}
