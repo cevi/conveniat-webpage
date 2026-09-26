@@ -192,7 +192,7 @@ test.describe('Hof dashboard', () => {
 
     await page.getByRole('tab', { name: 'Infrastruktur' }).click();
     const card = page.locator('#submission-entrance');
-    await card.getByRole('radio', { name: 'Ja' }).click();
+    await card.getByRole('button', { name: 'Ja', exact: true }).click();
     await expect.poll(() => mutations).toContain('hofDashboard.updateSafetyRisk');
 
     await card.getByRole('button', { name: 'Was zählt dazu?' }).click();
