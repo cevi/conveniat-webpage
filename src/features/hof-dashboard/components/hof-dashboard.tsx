@@ -117,6 +117,8 @@ const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale
     // A Hof kept on the page but not shown does not refetch on every focus and reconnect.
     {
       refetchOnMount: 'always',
+      // a reviewer's answer should reach the Hof within a look away, not after minutes
+      staleTime: 30_000,
       refetchOnWindowFocus: active,
       refetchOnReconnect: active,
       meta: { persist: false },
@@ -189,6 +191,7 @@ const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale
 };
 
 const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const utils = trpc.useUtils();
   const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, {
     meta: { persist: false },
   });
@@ -228,6 +231,8 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
             onValueChange={(hofId) => {
               setOpenedHofIds((opened) => [...new Set([...opened, hof.id, hofId])]);
               setSelectedHofId(hofId);
+              // a Hof shown again may have changed while it was hidden
+              void utils.hofDashboard.getHofDashboard.invalidate({ hofId });
             }}
           >
             <SelectTrigger

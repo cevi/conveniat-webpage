@@ -140,7 +140,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
       // files come from the Hof's uploads only; the collection refuses create
       admin: {
         allowCreate: false,
-        defaultColumns: ['originalFilename', 'kind', 'uploadedBy', 'createdAt'],
+        defaultColumns: ['originalFilename', 'kind', 'uploadedBy', 'createdAt', 'openFile'],
       },
       label: { de: 'Dateien', en: 'Files', fr: 'Fichiers' },
     },

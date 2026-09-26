@@ -7,7 +7,6 @@ import {
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { HOF_ORDER_MAX_QUANTITY, HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
-import { useFollowStored } from '@/features/hof-dashboard/hooks/use-follow-stored';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import {
   formatCountdown,
@@ -16,13 +15,19 @@ import {
   translate,
 } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
+import {
+  followsStoredOrder,
+  type OrderValues,
+  sameOrder,
+  toQuantity,
+} from '@/features/hof-dashboard/utils/order-form-state';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
-import { useCallback, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { toast } from 'sonner';
 
 /** The material list, split under its section headings in the order the settings give them. */
@@ -39,16 +44,24 @@ const groupBySection = (
     [],
   );
 
-/** A typed quantity as a whole number within what can be ordered; anything else counts as none. */
-const toQuantity = (value: string | undefined): number => {
-  const quantity = Math.floor(Number(value));
-  return Number.isFinite(quantity) && quantity > 0 ? Math.min(quantity, HOF_ORDER_MAX_QUANTITY) : 0;
-};
-
 const initialQuantities = (order: HofDashboardOrder): Record<string, string> =>
   Object.fromEntries(
     order.items.map((item) => [item.id, item.quantity > 0 ? String(item.quantity) : '']),
   );
+
+/**
+ * Whether the stored order changed after the Hof last saved it, by a reviewer in the admin.
+ * The Hof's own save moves both times together, a few milliseconds apart.
+ */
+const changedByRessort = (order: HofDashboardOrder): boolean =>
+  order.savedAt !== undefined &&
+  order.revision !== undefined &&
+  new Date(order.revision).getTime() - new Date(order.savedAt).getTime() > 5000;
+
+const storedValues = (order: HofDashboardOrder): OrderValues => ({
+  quantities: Object.fromEntries(order.items.map((item) => [item.id, item.quantity])),
+  powerConnection: order.powerConnection,
+});
 
 /**
  * One material order: a quantity per material, and for Stadtleben whether power is needed.
@@ -66,18 +79,31 @@ export const MaterialOrderForm: React.FC<{
   const id = useId();
   const [quantities, setQuantities] = useState(() => initialQuantities(order));
   const [powerConnection, setPowerConnection] = useState(order.powerConnection);
-  // typed since the last save or take-over; what is stored then no longer replaces it
-  const [edited, setEdited] = useState(false);
-  const takeOver = useCallback((): void => {
-    setQuantities(initialQuantities(order));
-    setPowerConnection(order.powerConnection);
-  }, [order]);
-  useFollowStored(order.revision, edited, takeOver);
+  const shown: OrderValues = {
+    quantities: Object.fromEntries(
+      order.items.map((item) => [item.id, toQuantity(quantities[item.id])]),
+    ),
+    powerConnection,
+  };
+  // A newly stored order, e.g. a reviewer's correction, replaces what the form shows unless
+  // the Hof typed something since. Adjusted while rendering, so the form is never remounted
+  // and nothing flashes as unsaved in between.
+  const [taken, setTaken] = useState(() => ({
+    revision: order.revision,
+    values: storedValues(order),
+  }));
+  if (order.revision !== taken.revision) {
+    const stored = storedValues(order);
+    if (followsStoredOrder(shown, taken.values, stored)) {
+      setQuantities(initialQuantities(order));
+      setPowerConnection(order.powerConnection);
+    }
+    setTaken({ revision: order.revision, values: stored });
+  }
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
     onSuccess: async () => {
-      setEdited(false);
       toast.success(translate('saved', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     },
@@ -93,13 +119,12 @@ export const MaterialOrderForm: React.FC<{
 
   const daysLeft = order.deadline === undefined ? undefined : daysUntil(order.deadline, new Date());
   const closed = daysLeft !== undefined && daysLeft < 0 && !canPassDeadline;
-  const dirty =
-    powerConnection !== order.powerConnection ||
-    order.items.some((item) => toQuantity(quantities[item.id]) !== item.quantity);
+  const dirty = !sameOrder(shown, storedValues(order));
   useWarnBeforeLeaving(dirty);
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault();
+    if (save.isPending || !dirty) return;
     save.mutate({
       hofId,
       orderType: order.type,
@@ -180,13 +205,12 @@ export const MaterialOrderForm: React.FC<{
                           placeholder="0"
                           disabled={closed}
                           value={quantities[item.id] ?? ''}
-                          onChange={(event) => {
-                            setEdited(true);
+                          onChange={(event) =>
                             setQuantities((previous) => ({
                               ...previous,
                               [item.id]: event.target.value,
-                            }));
-                          }}
+                            }))
+                          }
                           onBlur={(event) =>
                             setQuantities((previous) => {
                               const quantity = toQuantity(event.target.value);
@@ -234,10 +258,7 @@ export const MaterialOrderForm: React.FC<{
                 type="checkbox"
                 checked={powerConnection}
                 disabled={closed}
-                onChange={(event) => {
-                  setEdited(true);
-                  setPowerConnection(event.target.checked);
-                }}
+                onChange={(event) => setPowerConnection(event.target.checked)}
                 className="accent-conveniat-green h-5 w-5"
               />
               {translate('powerConnection', locale)}
@@ -249,15 +270,20 @@ export const MaterialOrderForm: React.FC<{
               <p
                 className={cn('text-xs', dirty ? 'font-semibold text-amber-700' : 'text-gray-500')}
               >
-                {dirty
-                  ? translate('unsavedChanges', locale)
-                  : order.savedAt !== undefined &&
-                    translate('lastSaved', locale, { date: formatDate(order.savedAt, locale) })}
+                {dirty && translate('unsavedChanges', locale)}
+                {!dirty &&
+                  order.savedAt !== undefined &&
+                  translate('lastSaved', locale, { date: formatDate(order.savedAt, locale) })}
+                {!dirty && changedByRessort(order) && ` · ${translate('changedByRessort', locale)}`}
               </p>
               <button
                 type="submit"
-                className={cn(PRIMARY_BUTTON_CLASS, 'w-full @lg:w-auto')}
-                disabled={save.isPending || !dirty}
+                // aria-disabled, not disabled: a disabled button drops the focus to the page
+                aria-disabled={save.isPending || !dirty}
+                className={cn(
+                  PRIMARY_BUTTON_CLASS,
+                  'w-full aria-disabled:cursor-not-allowed aria-disabled:opacity-50 @lg:w-auto',
+                )}
               >
                 {save.isPending && <Loader2 className="animate-spin" aria-hidden />}
                 {translate(save.isPending ? 'saving' : 'save', locale)}

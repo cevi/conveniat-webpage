@@ -301,12 +301,17 @@ export const SubmissionCard: React.FC<{
               {translate('safetyConcept', locale)}
             </p>
           )}
-          <FilesWithUpload
-            files={safetyConcepts}
-            upload={uploads[uploadKey(submission.type, 'safetyConcept')]}
-            locale={locale}
-            onFile={(file) => onUpload(file, 'safetyConcept')}
-          />
+          {submission.elevatedSafetyRisk === 'yes' ? (
+            <FilesWithUpload
+              files={safetyConcepts}
+              upload={uploads[uploadKey(submission.type, 'safetyConcept')]}
+              locale={locale}
+              onFile={(file) => onUpload(file, 'safetyConcept')}
+            />
+          ) : (
+            // without an elevated risk no new concept is asked for; the one handed in stays
+            <FileList files={safetyConcepts} locale={locale} />
+          )}
         </div>
       )}
     </article>

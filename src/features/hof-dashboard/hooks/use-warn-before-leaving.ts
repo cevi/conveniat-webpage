@@ -4,7 +4,8 @@ import { useEffect } from 'react';
 
 /**
  * Asks the browser to confirm before the page is closed or reloaded while something would
- * be lost: unsaved quantities, or an upload under way. A link within the site is not caught; the form marks its unsaved state instead.
+ * be lost: unsaved quantities, or an upload under way. A link within the site is not caught;
+ * the form marks its unsaved state instead.
  */
 export const useWarnBeforeLeaving = (unsaved: boolean): void => {
   useEffect(() => {

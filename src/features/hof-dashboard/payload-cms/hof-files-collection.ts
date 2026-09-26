@@ -24,7 +24,7 @@ export const HofFilesCollection: CollectionConfig = {
     // what the Hof named the file; the stored name may carry a suffix against duplicates
     useAsTitle: 'originalFilename',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
-    defaultColumns: ['originalFilename', 'hof', 'kind', 'submission', 'createdAt'],
+    defaultColumns: ['originalFilename', 'hof', 'kind', 'submission', 'createdAt', 'openFile'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'Every file the Höfe handed in on the dashboard, one entry per version. The Hof and the submission are set by the upload and cannot be changed.',
@@ -79,8 +79,13 @@ export const HofFilesCollection: CollectionConfig = {
         en: 'Original file name',
         fr: 'Nom de fichier d’origine',
       },
+      admin: { readOnly: true },
+    },
+    {
+      name: 'openFile',
+      type: 'ui',
+      label: { de: 'Datei', en: 'File', fr: 'Fichier' },
       admin: {
-        readOnly: true,
         components: {
           Cell: '@/features/hof-dashboard/payload-cms/components/file-link-cell#FileLinkCell',
         },

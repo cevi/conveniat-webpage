@@ -30,8 +30,8 @@ const ScrollButton: React.FC<{ direction: 1 | -1; onClick: () => void }> = ({
       className={cn(
         'absolute top-0 z-10 flex h-11 w-10 cursor-pointer items-center text-gray-600 hover:text-gray-900',
         direction === 1
-          ? 'right-0 justify-end bg-linear-to-l from-slate-50 from-60% to-transparent'
-          : 'left-0 justify-start bg-linear-to-r from-slate-50 from-60% to-transparent',
+          ? '-right-1 justify-end bg-linear-to-l from-slate-50 from-60% to-transparent'
+          : '-left-1 justify-start bg-linear-to-r from-slate-50 from-60% to-transparent',
       )}
     >
       <Icon className="h-5 w-5" />
@@ -92,7 +92,7 @@ export const DashboardTabs = <T extends string>({
 
   return (
     <div className="relative">
-      {/* the row is wider than the column on phones and desktops alike, so where tabs are
+      {/* the row can be wider than the column, on a phone and on a narrow desktop, so where tabs are
           hidden an arrow says so and brings them in */}
       {edges.start && <ScrollButton direction={-1} onClick={() => scrollBy(-1)} />}
       {edges.end && <ScrollButton direction={1} onClick={() => scrollBy(1)} />}
