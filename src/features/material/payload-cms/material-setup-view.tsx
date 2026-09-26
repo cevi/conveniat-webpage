@@ -1,6 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { MaterialSetupForms } from '@/features/material/payload-cms/material-setup-forms';
-import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAccessToThis,
+  MATERIAL_DEPOT_ROLES,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import prisma from '@/lib/db/prisma';
 import type { StaticTranslationString } from '@/types/types';
@@ -73,8 +76,8 @@ const disabledWarning: StaticTranslationString = {
 /**
  * Admin view at `/admin/material-setup` for the one-off setup of the material depot. The
  * depot's data lives in Postgres, not in Payload, so this page reads it with Prisma and writes
- * through the server actions next to it. Only full admins open it: the material team does not
- * log into the admin panel, it runs the depot in the app.
+ * through the server actions next to it. The material team and the full admins open it; it is
+ * the only admin page the material team may use, the depot itself runs in the app.
  */
 export default async function MaterialSetupView({
   initPageResult,
@@ -83,7 +86,9 @@ export default async function MaterialSetupView({
 }: AdminViewServerProps): Promise<React.ReactElement> {
   const { req, permissions, visibleEntities, locale: adminLocale } = initPageResult;
   const { payload, i18n, user } = req;
-  if (!(await isFullAdmin({ req }))) redirect(payload.config.routes.admin);
+  if (!hasAccessToThis({ req, requiredRoles: MATERIAL_DEPOT_ROLES })) {
+    redirect(payload.config.routes.admin);
+  }
   const locale = getAdminLocale(i18n);
 
   const [categories, itemCount, hoefe] = await Promise.all([

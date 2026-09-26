@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { mapAnnotationDescriptionLexicalEditorSettings } from '@/features/payload-cms/payload-cms/collections/camp-map-collection';
 import { makeInjectEnrollmentCount } from '@/features/payload-cms/payload-cms/components/filled-status/inject-enrollment-count';
@@ -69,6 +72,7 @@ export const HelperShiftsCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.AppCampsite.label,
+    hidden: shouldHideInAdminPanel,
     defaultColumns: [
       'title',
       'timeslot',

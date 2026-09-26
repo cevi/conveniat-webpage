@@ -110,10 +110,15 @@ export const listAdminEntities = (
 /** A Cevi.DB group column of the access overview, before its login baseline is known. */
 export interface GroupColumn {
   groupIds: number[];
+  /**
+   * The group grants its rights only on top of an admin panel login, like the billing group.
+   * A role is a whole set of rights on its own and never borrows a login.
+   */
+  isAddOnGroup?: boolean;
 }
 
 export interface LoginBaseline<T> {
-  /** True when none of `groupIds` is a login group, so the column grants nothing on its own. */
+  /** True for an add-on group that is no login group, so the column grants nothing on its own. */
   isAddOn: boolean;
   /** Login groups to evaluate on top of `groupIds`. Empty unless `isAddOn`. */
   baselineGroupIds: number[];
@@ -125,13 +130,14 @@ export interface LoginBaseline<T> {
 }
 
 /**
- * Marks the columns that do not let anyone into the admin panel and gives them a login to be
- * evaluated with.
+ * Gives the add-on columns that do not let anyone into the admin panel a login to be evaluated
+ * with.
  *
  * A rule may require an admin panel login *and* a second group — `canAccessBilling` does. A
  * stand-in user holding only the second group fails at the login check, so every operation
  * denies and the column reads as if nobody had access, while the real holders of that group are
- * in a login group as well.
+ * in a login group as well. A role column is left alone even outside the login groups: its
+ * holders have nothing but the role, and a borrowed login would show them rights they lack.
  *
  * The baseline is preferably the set of login groups that are no column of their own, which is
  * the least a logged-in editor can have and grants nothing the add-on group did not. When every
@@ -151,7 +157,7 @@ export const resolveLoginBaseline = <T extends GroupColumn>(
   const lender = columns.findLast((column) => grantsLogin(column));
 
   return columns.map((column) => {
-    if (grantsLogin(column))
+    if (column.isAddOnGroup !== true || grantsLogin(column))
       return { ...column, isAddOn: false, baselineGroupIds: [], borrowedFrom: undefined };
     if (freeGroupIds.length > 0)
       return { ...column, isAddOn: true, baselineGroupIds: freeGroupIds, borrowedFrom: undefined };

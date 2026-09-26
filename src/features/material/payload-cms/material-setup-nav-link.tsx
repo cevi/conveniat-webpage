@@ -1,7 +1,7 @@
 import {
   getUserGroups,
   hasAccessToThisUser,
-  Roles,
+  MATERIAL_DEPOT_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { StaticTranslationString } from '@/types/types';
@@ -16,13 +16,13 @@ const label: StaticTranslationString = {
 };
 
 /**
- * Sidebar link to the depot setup, for full admins. Shown whether or not the app has the
+ * Sidebar link to the depot setup, for the material team and the full admins. Shown whether or not the app has the
  * feature on yet, so the depot can be set up before it goes live; the page says which it is.
  */
 const MaterialSetupNavLink: React.FC<ServerProps> = ({ user, payload, i18n }) => {
   const allowed = hasAccessToThisUser({
     user: { groups: getUserGroups(user) },
-    requiredRoles: [Roles.FullAdmin],
+    requiredRoles: MATERIAL_DEPOT_ROLES,
   });
   // eslint-disable-next-line unicorn/no-null
   if (!allowed) return null;

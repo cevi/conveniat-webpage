@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { GlobalConfig } from 'payload';
@@ -28,6 +31,7 @@ export const DonationBarometerGlobal: GlobalConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.WebpageContent.label,
+    hidden: shouldHideInAdminPanel,
     description: {
       en: 'The goal and the amount raised so far, shared by every Spendenbarometer block on the site.',
       de: 'Das Ziel und der bisher gesammelte Betrag, gemeinsam genutzt von jedem Spendenbarometer-Block der Website.',

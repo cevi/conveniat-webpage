@@ -9,6 +9,7 @@ import type {
   AccessOperation,
   AccessStatus,
   AdminEntity,
+  GroupColumn,
   LoginBaseline,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
@@ -116,11 +117,10 @@ const roleLabels: Record<Roles | 'billing', StaticTranslationString> = {
   billing: { de: 'Rechnungswesen', en: 'Billing', fr: 'Facturation' },
 };
 
-interface ConfiguredColumn {
+interface ConfiguredColumn extends GroupColumn {
   key: Roles | 'billing';
   /** The environment variable that lists the group ids, so admins know where to change it. */
   envName: string;
-  groupIds: number[];
 }
 
 type RoleColumn = ConfiguredColumn & LoginBaseline<ConfiguredColumn>;
@@ -129,10 +129,10 @@ type RoleColumn = ConfiguredColumn & LoginBaseline<ConfiguredColumn>;
  * One column per role, in the order of `roles.ts`, followed by the add-on groups. Roles without
  * a configured group are skipped.
  *
- * A column whose groups are all missing from `GROUPS_WITH_API_ACCESS` cannot log in, and rules
- * that require a login on top of the group — `canAccessBilling` is the one we have — would deny
- * every operation for it. Such a column is an add-on and carries a login baseline, so its cells
- * show what the group adds rather than a column of dashes. See `resolveLoginBaseline`.
+ * The billing group only adds to a login: `canAccessBilling` requires one of
+ * `GROUPS_WITH_API_ACCESS` on top of it, and would deny every operation for the group alone.
+ * Its column carries a login baseline, so its cells show what the group adds rather than a
+ * column of dashes. Role columns show the role alone. See `resolveLoginBaseline`.
  */
 const listRoleColumns = (): RoleColumn[] => {
   const billingGroupId = environmentVariables.BILLING_ADMIN_GROUP_ID;
@@ -166,6 +166,7 @@ const listRoleColumns = (): RoleColumn[] => {
       key: 'billing',
       envName: 'BILLING_ADMIN_GROUP_ID',
       groupIds: billingGroupId === undefined ? [] : [Number(billingGroupId)],
+      isAddOnGroup: true,
     },
   ];
   const columns = configured.filter((column) => column.groupIds.length > 0);
