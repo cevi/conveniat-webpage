@@ -18,6 +18,7 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { ReturnEditor } from '@/features/material/components/return-editor';
+import { RoleGate } from '@/features/material/components/role-gate';
 import {
   MATERIAL_POLL_INTERVAL_MS,
   materialQueryOptions,
@@ -27,7 +28,6 @@ import {
   useNow,
   type MaterialHolderGroup,
 } from '@/features/material/hooks/use-material';
-import { useRoleRoute } from '@/features/material/hooks/use-material-role';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import {
   holderFromSearch,
@@ -358,13 +358,14 @@ const TakeBackScreen: React.FC = () => {
 
 /** The take-back is the material team's; everybody else is sent to their overview. */
 export const TakeBackView: React.FC = () => {
-  const locale = useMaterialLocale();
   const loan = useSearchParams().get('loan');
   // a participant who scanned a loan label sees that loan on their own overview
-  const allowed = useRoleRoute(
-    'team',
-    loan === null ? '/app/material' : `/app/material?loan=${encodeURIComponent(loan)}`,
+  return (
+    <RoleGate
+      role="team"
+      elsewhere={loan === null ? '/app/material' : `/app/material?loan=${encodeURIComponent(loan)}`}
+    >
+      <TakeBackScreen />
+    </RoleGate>
   );
-  if (!allowed) return <LoadingState text={labels.loading[locale]} />;
-  return <TakeBackScreen />;
 };

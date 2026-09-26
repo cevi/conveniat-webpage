@@ -69,6 +69,8 @@ export const createLoanRequest = materialProcedure
     const lines = mergeBasketLines(input.lines.map((line) => ({ ...line, isConsumption: false })));
 
     return await ctx.prisma.$transaction(async (tx) => {
+      // two baskets sent at once would both count the same open requests and pass the cap
+      await tx.$queryRaw`SELECT 1 FROM "User" WHERE uuid = ${ctx.user.uuid} FOR UPDATE`;
       const open = await tx.materialLoan.count({
         where: { createdById: ctx.user.uuid, status: 'REQUESTED' },
       });
@@ -87,7 +89,8 @@ export const createLoanRequest = materialProcedure
         const booking: Booking = {
           item,
           quantity: line.quantity,
-          isConsumption: false,
+          // a consumable is asked for to be used up; the team can still lend it in Anpassen
+          isConsumption: item.isConsumable,
           mode: 'RESERVE',
           startDate: input.startDate,
           endDate: input.endDate,

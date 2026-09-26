@@ -20,6 +20,7 @@ import {
   MaterialButton,
   Panel,
 } from '@/features/material/components/material-ui';
+import { RoleGate } from '@/features/material/components/role-gate';
 import { useDebouncedValue } from '@/features/material/hooks/use-debounced-value';
 import {
   MATERIAL_POLL_INTERVAL_MS,
@@ -29,7 +30,6 @@ import {
   useMaterialLocale,
   type MaterialHolderGroup,
 } from '@/features/material/hooks/use-material';
-import { useRoleRoute } from '@/features/material/hooks/use-material-role';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { summariseBulk } from '@/features/material/utils/list-view';
 import { trpc } from '@/trpc/client';
@@ -569,9 +569,8 @@ const HandOutScreen: React.FC = () => {
 };
 
 /** The hand-out screen is the material team's; everybody else is sent to their overview. */
-export const HandOutView: React.FC = () => {
-  const locale = useMaterialLocale();
-  const allowed = useRoleRoute('team', '/app/material');
-  if (!allowed) return <LoadingState text={labels.loading[locale]} />;
-  return <HandOutScreen />;
-};
+export const HandOutView: React.FC = () => (
+  <RoleGate role="team" elsewhere="/app/material">
+    <HandOutScreen />
+  </RoleGate>
+);

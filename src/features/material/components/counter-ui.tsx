@@ -223,7 +223,7 @@ export const SearchField: React.FC<{
             title={labels.scan[locale]}
             onClick={() => setScanning(true)}
             className={cn(
-              'bg-conveniat-green absolute top-1/2 right-1 flex size-10 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-white',
+              'bg-conveniat-green absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-white',
               focusRing,
             )}
           >

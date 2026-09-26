@@ -43,7 +43,7 @@ export const ItemRow: React.FC<{
           <span className="min-w-0">
             {/* wraps instead of truncating: "Kompass R…" and "Kompass S…" look alike */}
             <span
-              className="line-clamp-2 block font-semibold break-words text-gray-900"
+              className="line-clamp-2 block font-semibold break-words hyphens-auto text-gray-900"
               title={item.name}
             >
               {item.name}

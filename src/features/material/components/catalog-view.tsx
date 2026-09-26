@@ -22,9 +22,9 @@ import {
   Panel,
 } from '@/features/material/components/material-ui';
 import { RequestSheet } from '@/features/material/components/request-sheet';
+import { RoleGate } from '@/features/material/components/role-gate';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import { materialQueryOptions, useMaterialLocale } from '@/features/material/hooks/use-material';
-import { useRoleRoute } from '@/features/material/hooks/use-material-role';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { basketTotals } from '@/features/material/utils/basket';
 import { catalogItemPath, itemPath, parseScan } from '@/features/material/utils/scan';
@@ -448,12 +448,13 @@ const CatalogScreen: React.FC = () => {
 
 /** The catalogue belongs to participants; the material team works with the inventory. */
 export const CatalogPage: React.FC = () => {
-  const locale = useMaterialLocale();
   const code = useSearchParams().get('item');
-  const allowed = useRoleRoute(
-    'participant',
-    code === null || code === '' ? '/app/material/inventar' : itemPath(code),
+  return (
+    <RoleGate
+      role="participant"
+      elsewhere={code === null || code === '' ? '/app/material/inventar' : itemPath(code)}
+    >
+      <CatalogScreen />
+    </RoleGate>
   );
-  if (!allowed) return <LoadingState text={labels.loading[locale]} />;
-  return <CatalogScreen />;
 };

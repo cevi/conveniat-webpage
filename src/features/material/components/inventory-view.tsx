@@ -14,13 +14,13 @@ import {
   MaterialButton,
   Panel,
 } from '@/features/material/components/material-ui';
+import { RoleGate } from '@/features/material/components/role-gate';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import {
   materialQueryOptions,
   useMaterialLocale,
   type MaterialItem,
 } from '@/features/material/hooks/use-material';
-import { useRoleRoute } from '@/features/material/hooks/use-material-role';
 import { catalogItemPath, itemPath, loanPath, parseScan } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
@@ -163,12 +163,12 @@ const InventoryList: React.FC = () => {
  * an article's QR label points to.
  */
 export const InventoryPage: React.FC = () => {
-  const locale = useMaterialLocale();
   const code = useSearchParams().get('item');
   const hasCode = code !== null && code !== '';
   // a participant who scanned an article label reads it in the catalogue
-  const allowed = useRoleRoute('team', hasCode ? catalogItemPath(code) : '/app/material/katalog');
-  if (!allowed) return <LoadingState text={labels.loading[locale]} />;
-  if (hasCode) return <ItemDetailView key={code} code={code} />;
-  return <InventoryList />;
+  return (
+    <RoleGate role="team" elsewhere={hasCode ? catalogItemPath(code) : '/app/material/katalog'}>
+      {hasCode ? <ItemDetailView key={code} code={code} /> : <InventoryList />}
+    </RoleGate>
+  );
 };
