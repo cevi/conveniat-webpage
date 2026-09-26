@@ -28,7 +28,7 @@ const MaterialLayout: React.FC<{
 
   return (
     <div className="min-h-dvh bg-gray-50">
-      <div className="mx-auto max-w-6xl px-4 pt-6 xl:pt-0">
+      <div className="mx-auto max-w-6xl px-4">
         <SetDynamicPageTitle newTitle={labels.pageTitle[locale]} />
         <Suspense>
           <MaterialFeatureGate>

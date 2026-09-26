@@ -38,40 +38,46 @@ export const MaterialNav: React.FC = () => {
   // the locale prefix and the design segment come before `/app`
   const pathname = usePathname().replace(/^.*?(?=\/app\/)/, '');
   const role = useMaterialRole();
-  if (role === undefined) return <></>;
   const tabs = role === 'team' ? TEAM_TABS : PARTICIPANT_TABS;
 
   return (
     <nav
       aria-label={labels.sections[locale]}
-      className="sticky top-[60px] z-30 -mx-4 border-b border-gray-200 bg-gray-50/95 px-4 py-2 backdrop-blur xl:top-16"
+      // on a phone the app's round logo hangs below its 60 px header; the tabs start under it,
+      // also while they stick
+      className="sticky top-[60px] z-30 -mx-4 border-b border-gray-200 bg-gray-50/95 px-4 pt-8 pb-2 backdrop-blur xl:top-16 xl:pt-2"
     >
-      <div
-        className={cn(
-          'mx-auto grid max-w-xl gap-1 rounded-xl bg-gray-200/70 p-1',
-          tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-2',
-        )}
-      >
-        {tabs.map((tab) => {
-          const active = pathname === tab.href;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              aria-current={active ? 'page' : undefined}
-              className={cn(
-                'flex min-h-11 min-w-0 items-center justify-center rounded-lg px-0.5 text-xs font-semibold tracking-tight min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
-                focusRing,
-                active
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:bg-white/60 hover:text-gray-900',
-              )}
-            >
-              <span className="truncate">{tab.label[locale]}</span>
-            </Link>
-          );
-        })}
-      </div>
+      {role === undefined ? (
+        // holds the room until the role is known, so the page does not jump
+        <div className="h-[52px]" aria-hidden />
+      ) : (
+        <div
+          className={cn(
+            'mx-auto grid max-w-xl gap-1 rounded-xl bg-gray-200/70 p-1',
+            tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-2',
+          )}
+        >
+          {tabs.map((tab) => {
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex min-h-11 min-w-0 items-center justify-center rounded-lg px-0.5 text-xs font-semibold tracking-tight min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
+                  focusRing,
+                  active
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:bg-white/60 hover:text-gray-900',
+                )}
+              >
+                <span className="truncate">{tab.label[locale]}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </nav>
   );
 };

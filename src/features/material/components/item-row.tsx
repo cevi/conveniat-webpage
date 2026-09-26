@@ -41,7 +41,11 @@ export const ItemRow: React.FC<{
       <span className="min-w-0 flex-1 space-y-1">
         <span className="flex items-start justify-between gap-2">
           <span className="min-w-0">
-            <span className="block truncate font-semibold text-gray-900" title={item.name}>
+            {/* wraps instead of truncating: "Kompass R…" and "Kompass S…" look alike */}
+            <span
+              className="line-clamp-2 block font-semibold break-words text-gray-900"
+              title={item.name}
+            >
               {item.name}
             </span>
             <span className="block truncate font-mono text-[11px] tracking-wider text-gray-500 uppercase">
