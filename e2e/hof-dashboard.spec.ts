@@ -228,4 +228,24 @@ test.describe('Hof dashboard', () => {
     await expect(card.getByText('Die Statik fehlt noch.')).toBeVisible();
     await expect(card.getByRole('button', { name: 'Neue Version hochladen' })).toBeVisible();
   });
+
+  test('asks before switching Hof loses typed quantities', async ({ page }) => {
+    await mockBackend(page, {
+      hoefe: [DASHBOARD.hof, { id: 'hof-sued', name: 'Hof Süd' }],
+    });
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Material' }).click();
+    await page.getByLabel('Bindestrick').fill('7');
+
+    let asked = '';
+    page.once('dialog', (dialog) => {
+      asked = dialog.message();
+      void dialog.dismiss();
+    });
+    await page.getByRole('combobox', { name: 'Hof' }).click();
+    await page.getByRole('option', { name: 'Hof Süd' }).click();
+
+    expect(asked).toContain('Trotzdem den Hof wechseln?');
+    await expect(page.getByLabel('Bindestrick')).toHaveValue('7');
+  });
 });

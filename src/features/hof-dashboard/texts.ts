@@ -259,6 +259,11 @@ export const text = {
     en: 'No connection. Try again once you have signal.',
     fr: 'Pas de connexion. Réessaie dès que tu as du réseau.',
   },
+  discardUnsaved: {
+    de: 'Nicht gespeicherte Mengen oder ein laufender Upload gehen verloren. Trotzdem den Hof wechseln?',
+    en: 'Unsaved quantities or an upload under way will be lost. Switch the Hof anyway?',
+    fr: 'Des quantités non enregistrées ou un téléversement en cours seront perdus. Changer de Hof quand même ?',
+  },
   unsavedChanges: {
     de: 'Nicht gespeicherte Änderungen',
     en: 'Unsaved changes',

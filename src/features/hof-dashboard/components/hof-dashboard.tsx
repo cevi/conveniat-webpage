@@ -21,6 +21,7 @@ import { MaterialOrderForm } from '@/features/hof-dashboard/components/material-
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useScrollToSubmission } from '@/features/hof-dashboard/hooks/use-scroll-to-submission';
+import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { translate, type TextKey } from '@/features/hof-dashboard/texts';
 import {
   getSubmissionProgress,
@@ -211,7 +212,16 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           <label htmlFor={selectId} className="text-sm font-medium text-gray-600">
             {translate('hof', locale)}
           </label>
-          <Select value={hof.id} onValueChange={setSelectedHofId}>
+          <Select
+            value={hof.id}
+            onValueChange={(hofId) => {
+              // the other Hof's dashboard replaces this one, and with it what was not saved
+              if (hasUnsavedWork() && !globalThis.confirm(translate('discardUnsaved', locale))) {
+                return;
+              }
+              setSelectedHofId(hofId);
+            }}
+          >
             <SelectTrigger
               id={selectId}
               className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold focus-visible:ring-2 focus-visible:ring-green-600"
