@@ -70,7 +70,7 @@ export const SectionHeading: React.FC<{
 );
 
 /** How loud a status reads: done, open, due soon or overdue, as the spec's traffic light. */
-export type StatusTone = 'done' | 'neutral' | 'warning' | 'alert';
+type StatusTone = 'done' | 'neutral' | 'warning' | 'alert';
 
 const TONE_STYLE: Record<
   StatusTone,
