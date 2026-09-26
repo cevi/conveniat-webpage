@@ -69,8 +69,11 @@ export const SectionHeading: React.FC<{
   </h3>
 );
 
-/** How loud a status reads: done, open, due soon or overdue, as the spec's traffic light. */
-type StatusTone = 'done' | 'neutral' | 'warning' | 'alert';
+/**
+ * How loud a status reads: done, open, due soon, sent back for revision or overdue, as the
+ * spec's traffic light.
+ */
+type StatusTone = 'done' | 'neutral' | 'warning' | 'attention' | 'alert';
 
 const TONE_STYLE: Record<
   StatusTone,
@@ -79,6 +82,8 @@ const TONE_STYLE: Record<
   done: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-800 ring-emerald-200' },
   neutral: { icon: Clock, className: 'bg-gray-100 text-gray-700 ring-gray-200' },
   warning: { icon: Clock, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
+  // the Hof has to act: amber like due soon, marked like an alert
+  attention: { icon: AlertCircle, className: 'bg-amber-50 text-amber-800 ring-amber-200' },
   alert: { icon: AlertCircle, className: 'bg-red-50 text-red-800 ring-red-200' },
 };
 
@@ -132,7 +137,14 @@ export const ProgressPill: React.FC<{
   status: HofSubmissionStatus | undefined;
   locale: Locale;
 }> = ({ progress, status, locale }) => (
-  <StatusPill tone={STATE_TONE[progress.state]}>
+  // a revision the Ressort asked for is the Hof's to act on, whatever the deadline says
+  <StatusPill
+    tone={
+      progress.gap === 'revision' && progress.state !== 'overdue'
+        ? 'attention'
+        : STATE_TONE[progress.state]
+    }
+  >
     {progressLabel(progress, status, locale)}
   </StatusPill>
 );

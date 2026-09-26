@@ -121,7 +121,7 @@ export const DashboardTabs = <T extends string>({
               onClick={() => select(tab.id)}
               onKeyDown={(event) => onKeyDown(event, index)}
               className={cn(
-                '-mb-px min-h-11 shrink-0 cursor-pointer border-b-2 px-3 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600',
+                '-mb-px min-h-11 shrink-0 cursor-pointer border-b-2 px-2.5 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600',
                 isSelected
                   ? 'border-conveniat-green text-conveniat-green'
                   : 'border-transparent text-gray-600 hover:text-gray-900',

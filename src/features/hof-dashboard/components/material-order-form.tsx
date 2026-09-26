@@ -7,6 +7,7 @@ import {
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { HOF_ORDER_MAX_QUANTITY, HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
+import { useFollowStored } from '@/features/hof-dashboard/hooks/use-follow-stored';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import {
   formatCountdown,
@@ -21,7 +22,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
-import { useId, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { toast } from 'sonner';
 
 /** The material list, split under its section headings in the order the settings give them. */
@@ -65,10 +66,18 @@ export const MaterialOrderForm: React.FC<{
   const id = useId();
   const [quantities, setQuantities] = useState(() => initialQuantities(order));
   const [powerConnection, setPowerConnection] = useState(order.powerConnection);
+  // typed since the last save or take-over; what is stored then no longer replaces it
+  const [edited, setEdited] = useState(false);
+  const takeOver = useCallback((): void => {
+    setQuantities(initialQuantities(order));
+    setPowerConnection(order.powerConnection);
+  }, [order]);
+  useFollowStored(order.revision, edited, takeOver);
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
     onSuccess: async () => {
+      setEdited(false);
       toast.success(translate('saved', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     },
@@ -171,12 +180,13 @@ export const MaterialOrderForm: React.FC<{
                           placeholder="0"
                           disabled={closed}
                           value={quantities[item.id] ?? ''}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            setEdited(true);
                             setQuantities((previous) => ({
                               ...previous,
                               [item.id]: event.target.value,
-                            }))
-                          }
+                            }));
+                          }}
                           onBlur={(event) =>
                             setQuantities((previous) => {
                               const quantity = toQuantity(event.target.value);
@@ -224,7 +234,10 @@ export const MaterialOrderForm: React.FC<{
                 type="checkbox"
                 checked={powerConnection}
                 disabled={closed}
-                onChange={(event) => setPowerConnection(event.target.checked)}
+                onChange={(event) => {
+                  setEdited(true);
+                  setPowerConnection(event.target.checked);
+                }}
                 className="accent-conveniat-green h-5 w-5"
               />
               {translate('powerConnection', locale)}

@@ -1,10 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { HOF_FILE_TYPES } from '@/features/hof-dashboard/constants';
 import { fileKindOptions } from '@/features/hof-dashboard/payload-cms/options';
-import {
-  canReadHofFiles,
-  canReviewHofDashboard,
-} from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { canReadHofFiles } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
@@ -39,7 +36,8 @@ export const HofFilesCollection: CollectionConfig = {
     read: canReadHofFiles,
     // only the dashboard's tRPC procedures create these, through the local API
     create: () => false,
-    update: canReviewHofDashboard,
+    // what a Hof handed in stays as it handed it in; reviewers answer in the submission
+    update: isFullAdmin,
     delete: isFullAdmin,
   },
   // Payload checks every file's content against these
@@ -81,7 +79,12 @@ export const HofFilesCollection: CollectionConfig = {
         en: 'Original file name',
         fr: 'Nom de fichier d’origine',
       },
-      admin: { readOnly: true },
+      admin: {
+        readOnly: true,
+        components: {
+          Cell: '@/features/hof-dashboard/payload-cms/components/file-link-cell#FileLinkCell',
+        },
+      },
     },
     {
       name: 'uploadedBy',

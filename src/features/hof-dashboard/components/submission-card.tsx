@@ -13,6 +13,7 @@ import type {
   HofDashboardSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
+  PRIMARY_BUTTON_CLASS,
   ProgressLine,
   SECONDARY_BUTTON_CLASS,
 } from '@/features/hof-dashboard/components/dashboard-ui';
@@ -70,9 +71,10 @@ const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = (
 
 const UploadButton: React.FC<{
   label: string;
+  primary: boolean;
   buttonRef: React.RefObject<HTMLButtonElement | null>;
   onFile: (file: File) => void;
-}> = ({ label, buttonRef, onFile }) => {
+}> = ({ label, primary, buttonRef, onFile }) => {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -90,7 +92,7 @@ const UploadButton: React.FC<{
       <button
         ref={buttonRef}
         type="button"
-        className={SECONDARY_BUTTON_CLASS}
+        className={primary ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS}
         onClick={() => input.current?.click()}
       >
         <Upload aria-hidden />
@@ -172,9 +174,11 @@ const SafetyRiskChoice: React.FC<{
 const FilesWithUpload: React.FC<{
   files: HofDashboardFile[];
   upload: UploadInProgress | undefined;
+  /** When the Ressort asked for a new version, adding one is the card's main action. */
+  primary?: boolean;
   locale: Locale;
   onFile: (file: File) => void;
-}> = ({ files, upload, locale, onFile }) => {
+}> = ({ files, upload, primary = false, locale, onFile }) => {
   const button = useRef<HTMLButtonElement>(null);
   // the cancel button goes with the upload; the focus comes back to where it started
   useRefocusWhenDone(upload !== undefined, button);
@@ -188,6 +192,7 @@ const FilesWithUpload: React.FC<{
         <div className="space-y-1">
           <UploadButton
             label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
+            primary={primary}
             buttonRef={button}
             onFile={onFile}
           />
@@ -219,6 +224,7 @@ export const SubmissionCard: React.FC<{
   const safetyConcepts = submission.files.filter((file) => file.kind === 'safetyConcept');
   const id = useId();
   const questionId = `${id}-question`;
+  const revisionRequested = submission.status === 'revisionRequired';
   const titleId = `${id}-title`;
 
   return (
@@ -236,14 +242,25 @@ export const SubmissionCard: React.FC<{
       </header>
 
       {submission.feedback !== undefined && submission.feedback !== '' && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">{translate('feedback', locale)}</p>
+        // amber while it asks for something; once a new version is in, it is only a record
+        <div
+          className={cn(
+            'rounded-lg border px-4 py-3 text-sm',
+            revisionRequested
+              ? 'border-amber-200 bg-amber-50 text-amber-900'
+              : 'border-gray-200 bg-gray-50 text-gray-700',
+          )}
+        >
+          <p className="font-semibold">
+            {translate(revisionRequested ? 'feedback' : 'lastFeedback', locale)}
+          </p>
           <p className="whitespace-pre-line">{submission.feedback}</p>
         </div>
       )}
 
       <FilesWithUpload
         files={plans}
+        primary={revisionRequested}
         upload={uploads[uploadKey(submission.type, 'plan')]}
         locale={locale}
         onFile={(file) => onUpload(file, 'plan')}
@@ -262,21 +279,28 @@ export const SubmissionCard: React.FC<{
         {criteria.length > 0 && <SafetyCriteriaDialog criteria={criteria} locale={locale} />}
       </div>
 
-      {submission.elevatedSafetyRisk === 'yes' && (
+      {/* a concept handed in stays listed even if the answer changes to no */}
+      {(submission.elevatedSafetyRisk === 'yes' || safetyConcepts.length > 0) && (
         <div
           className={cn(
             'space-y-3 rounded-lg border p-4',
-            safetyConcepts.length === 0
+            submission.elevatedSafetyRisk === 'yes' && safetyConcepts.length === 0
               ? 'border-amber-200 bg-amber-50'
               : 'border-gray-100 bg-gray-50',
           )}
         >
-          <div>
+          {safetyConcepts.length === 0 ? (
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {translate('safetyConceptRequired', locale)}
+              </p>
+              <p className="text-sm text-gray-600">{translate('safetyConceptHint', locale)}</p>
+            </div>
+          ) : (
             <p className="text-sm font-semibold text-gray-900">
-              {translate('safetyConceptRequired', locale)}
+              {translate('safetyConcept', locale)}
             </p>
-            <p className="text-sm text-gray-600">{translate('safetyConceptHint', locale)}</p>
-          </div>
+          )}
           <FilesWithUpload
             files={safetyConcepts}
             upload={uploads[uploadKey(submission.type, 'safetyConcept')]}

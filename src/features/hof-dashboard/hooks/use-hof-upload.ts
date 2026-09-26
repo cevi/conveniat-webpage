@@ -154,9 +154,9 @@ export const useHofUpload = (
     } catch (error) {
       if (error instanceof UploadCancelled) return;
       console.error('Hof dashboard upload failed', error);
-      // the server's content check rejects a file whose ending does not match what it is
+      // its ending and first bytes passed here, so a file the server refuses is damaged
       if (error instanceof TRPCClientError && error.message === 'unsupported_file_type') {
-        toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
+        toast.error(translate('fileUnreadable', locale));
       } else {
         notifyFailure(locale, 'uploadFailed');
       }

@@ -29,7 +29,7 @@ export const text = {
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
   tabInfrastructure: { de: 'Infrastruktur', en: 'Infrastructure', fr: 'Infrastructure' },
   tabProgram: { de: 'Programm', en: 'Programme', fr: 'Programme' },
-  tabOrders: { de: 'Bestellungen', en: 'Orders', fr: 'Commandes' },
+  tabOrders: { de: 'Material', en: 'Material', fr: 'Matériel' },
   tabDocuments: { de: 'Dokumente', en: 'Documents', fr: 'Documents' },
 
   contacts: { de: 'Kontakte', en: 'Contacts', fr: 'Contacts' },
@@ -117,6 +117,11 @@ export const text = {
     en: 'This file cannot be read as {type}. Was it renamed?',
     fr: 'Ce fichier ne peut pas être lu comme {type}. A-t-il été renommé ?',
   },
+  fileUnreadable: {
+    de: 'Die Datei lässt sich nicht öffnen. Ist sie vielleicht beschädigt?',
+    en: 'The file cannot be opened. Could it be damaged?',
+    fr: 'Le fichier ne peut pas être ouvert. Serait-il endommagé ?',
+  },
   fileRules: {
     de: 'PDF, Word, Excel, PowerPoint, Bild oder ZIP · bis {n} MB',
     en: 'PDF, Word, Excel, PowerPoint, image or ZIP · up to {n} MB',
@@ -130,6 +135,7 @@ export const text = {
   version: { de: 'Version {n}', en: 'Version {n}', fr: 'Version {n}' },
   uploadedOn: { de: 'hochgeladen am {date}', en: 'uploaded on {date}', fr: 'téléversé le {date}' },
   feedback: { de: 'Rückmeldung', en: 'Feedback', fr: 'Retour' },
+  lastFeedback: { de: 'Letzte Rückmeldung', en: 'Last feedback', fr: 'Dernier retour' },
 
   safetyRiskQuestion: {
     de: 'Erhöhtes Sicherheitsrisiko?',
@@ -143,6 +149,7 @@ export const text = {
     en: 'Criteria for an elevated safety risk',
     fr: 'Critères de risque de sécurité accru',
   },
+  safetyConcept: { de: 'Sicherheitskonzept', en: 'Safety concept', fr: 'Concept de sécurité' },
   safetyConceptRequired: {
     de: 'Sicherheitskonzept erforderlich',
     en: 'Safety concept required',

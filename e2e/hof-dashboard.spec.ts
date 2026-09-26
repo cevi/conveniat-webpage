@@ -179,10 +179,10 @@ test.describe('Hof dashboard', () => {
     await mockBackend(page);
     await page.goto('/hof-dashboard');
 
-    await page.getByRole('tab', { name: 'Bestellungen' }).click();
+    await page.getByRole('tab', { name: 'Material' }).click();
     await page.getByLabel('Bindestrick').fill('7');
     await page.getByRole('tab', { name: 'Übersicht' }).click();
-    await page.getByRole('tab', { name: 'Bestellungen' }).click();
+    await page.getByRole('tab', { name: 'Material' }).click();
 
     await expect(page.getByLabel('Bindestrick')).toHaveValue('7');
     await expect(page.getByText('Nicht gespeicherte Änderungen')).toBeVisible();

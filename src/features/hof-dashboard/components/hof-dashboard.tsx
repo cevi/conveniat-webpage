@@ -152,7 +152,7 @@ const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale
       <div className="space-y-6">
         {[data.orders.infrastructure, data.orders.stadtleben].map((order) => (
           <MaterialOrderForm
-            key={`${order.type}-${order.revision ?? 'new'}`}
+            key={order.type}
             hofId={data.hof.id}
             order={order}
             canPassDeadline={data.canPassDeadlines}
@@ -232,7 +232,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           >
             <SelectTrigger
               id={selectId}
-              className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold"
+              className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold focus-visible:ring-2 focus-visible:ring-green-600"
             >
               <SelectValue />
             </SelectTrigger>
