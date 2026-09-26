@@ -13,6 +13,7 @@ import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { ensureApprovalToken } from '@/features/payload-cms/payload-cms/plugins/form/hooks/ensure-approval-token';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
+import { linkHofSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-hof-submission';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
 import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import { approvalEmailTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/approval-email-tab';
@@ -320,10 +321,30 @@ export const formPluginConfiguration = formBuilderPlugin({
             position: 'sidebar',
           },
         },
+        {
+          name: 'hof',
+          type: 'relationship',
+          relationTo: 'hoefe',
+          index: true,
+          label: { en: 'Hof', de: 'Hof', fr: 'Hof' },
+          admin: {
+            position: 'sidebar',
+            description: {
+              en: 'Set by a "Hof Selection" field. Set it by hand for an older submission, and the Hof finds it on its dashboard.',
+              de: 'Wird von einem Feld "Hof Auswahl" gesetzt. Bei älteren Antworten von Hand setzen, dann findet der Hof sie auf seinem Dashboard.',
+              fr: 'Défini par un champ « Sélection du Hof ». Le définir à la main pour une ancienne réponse, et le Hof la retrouve sur son tableau de bord.',
+            },
+          },
+        },
       ] as Field[];
     },
     hooks: {
-      beforeChange: [ensureApprovalToken, validateFormSubmission, linkJobSubmission],
+      beforeChange: [
+        ensureApprovalToken,
+        validateFormSubmission,
+        linkJobSubmission,
+        linkHofSubmission,
+      ],
       afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent, sendApprovalEmail],
     },
   },

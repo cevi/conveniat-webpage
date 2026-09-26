@@ -1,0 +1,289 @@
+import type { Locale, StaticTranslationString } from '@/types/types';
+
+/** Every string of the Hof dashboard that an editor does not own. */
+export const text = {
+  title: { de: 'Hof-Dashboard', en: 'Hof dashboard', fr: 'Tableau de bord du Hof' },
+  intro: {
+    de: 'Hier gibst du die Planungen deines Hofs ab, bestellst Material und siehst, was noch fehlt.',
+    en: 'Hand in the plans of your Hof, order material and see what is still missing.',
+    fr: 'Dépose ici les planifications de ton Hof, commande du matériel et vois ce qui manque encore.',
+  },
+  loginRequired: {
+    de: 'Melde dich mit deinem Cevi.DB-Konto an, um das Dashboard deines Hofs zu öffnen.',
+    en: 'Sign in with your Cevi.DB account to open the dashboard of your Hof.',
+    fr: 'Connecte-toi avec ton compte Cevi.DB pour ouvrir le tableau de bord de ton Hof.',
+  },
+  login: {
+    de: 'Mit Cevi.DB anmelden',
+    en: 'Sign in with Cevi.DB',
+    fr: 'Se connecter avec Cevi.DB',
+  },
+  noAccess: {
+    de: 'Du hast keinen Zugriff auf ein Hof-Dashboard. Das Dashboard öffnet sich für Personen mit der Rolle «Adressverwaltung» in der Cevi.DB-Gruppe eines Hofs.',
+    en: 'You have no access to a Hof dashboard. It opens for people with the "address administration" role in the Cevi.DB group of a Hof.',
+    fr: "Tu n'as accès à aucun tableau de bord. Il s'ouvre pour les personnes ayant le rôle « Administration des adresses » dans le groupe Cevi.DB d'un Hof.",
+  },
+  loadError: {
+    de: 'Das Dashboard konnte nicht geladen werden.',
+    en: 'The dashboard could not be loaded.',
+    fr: "Le tableau de bord n'a pas pu être chargé.",
+  },
+  retry: { de: 'Erneut versuchen', en: 'Try again', fr: 'Réessayer' },
+  hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
+
+  tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
+  tabInfrastructure: { de: 'Infrastruktur', en: 'Infrastructure', fr: 'Infrastructure' },
+  tabProgram: { de: 'Programm', en: 'Programme', fr: 'Programme' },
+  tabOrders: { de: 'Bestellungen', en: 'Orders', fr: 'Commandes' },
+  tabDocuments: { de: 'Dokumente', en: 'Documents', fr: 'Documents' },
+
+  contacts: { de: 'Kontakte', en: 'Contacts', fr: 'Contacts' },
+  avp: { de: 'AVP', en: 'AVP', fr: 'AVP' },
+  coach: { de: 'Coach', en: 'Coach', fr: 'Coach' },
+  buildingManager: {
+    de: 'Bauverantwortliche/r',
+    en: 'Responsible for buildings',
+    fr: 'Responsable des constructions',
+  },
+  contactMissing: {
+    de: 'Noch nicht erfasst',
+    en: 'Not recorded yet',
+    fr: 'Pas encore saisi',
+  },
+
+  progress: { de: 'Stand der Abgaben', en: 'Progress', fr: 'Avancement' },
+  progressCount: {
+    de: '{done} von {total} abgegeben',
+    en: '{done} of {total} handed in',
+    fr: '{done} sur {total} déposés',
+  },
+  nextUp: { de: 'Als Nächstes', en: 'Up next', fr: 'À faire ensuite' },
+  allDone: {
+    de: 'Alles abgegeben. Danke!',
+    en: 'Everything is handed in. Thank you!',
+    fr: 'Tout est déposé. Merci !',
+  },
+  open: { de: 'Öffnen', en: 'Open', fr: 'Ouvrir' },
+  deadlines: { de: 'Termine', en: 'Deadlines', fr: 'Échéances' },
+  noDeadlines: {
+    de: 'Es sind noch keine Termine erfasst.',
+    en: 'No deadlines recorded yet.',
+    fr: 'Aucune échéance saisie pour le moment.',
+  },
+
+  inDays: { de: 'in {n} Tagen', en: 'in {n} days', fr: 'dans {n} jours' },
+  inOneDay: { de: 'morgen', en: 'tomorrow', fr: 'demain' },
+  today: { de: 'heute', en: 'today', fr: "aujourd'hui" },
+  daysAgo: {
+    de: 'seit {n} Tagen überfällig',
+    en: '{n} days overdue',
+    fr: 'en retard de {n} jours',
+  },
+  dueOn: { de: 'Frist {date}', en: 'Due {date}', fr: 'Échéance {date}' },
+
+  stateDone: { de: 'Abgegeben', en: 'Handed in', fr: 'Déposé' },
+  stateOpen: { de: 'Offen', en: 'Open', fr: 'Ouvert' },
+  stateOverdue: { de: 'Überfällig', en: 'Overdue', fr: 'En retard' },
+
+  gapPlan: { de: 'Planung fehlt', en: 'Plan missing', fr: 'Planification manquante' },
+  gapSafetyRiskAnswer: {
+    de: 'Frage zum Sicherheitsrisiko offen',
+    en: 'Safety risk question unanswered',
+    fr: 'Question sur le risque de sécurité ouverte',
+  },
+  gapSafetyConcept: {
+    de: 'Sicherheitskonzept fehlt',
+    en: 'Safety concept missing',
+    fr: 'Concept de sécurité manquant',
+  },
+  gapRevision: {
+    de: 'Überarbeitung verlangt',
+    en: 'Revision requested',
+    fr: 'Révision demandée',
+  },
+
+  upload: { de: 'Hochladen', en: 'Upload', fr: 'Téléverser' },
+  uploadNewVersion: {
+    de: 'Neue Version hochladen',
+    en: 'Upload a new version',
+    fr: 'Téléverser une nouvelle version',
+  },
+  uploading: { de: 'Wird hochgeladen …', en: 'Uploading …', fr: 'Téléversement …' },
+  uploadDone: { de: 'Datei hochgeladen', en: 'File uploaded', fr: 'Fichier téléversé' },
+  uploadFailed: {
+    de: 'Die Datei konnte nicht hochgeladen werden.',
+    en: 'The file could not be uploaded.',
+    fr: "Le fichier n'a pas pu être téléversé.",
+  },
+  fileTooLarge: {
+    de: 'Die Datei ist grösser als {n} MB.',
+    en: 'The file is larger than {n} MB.',
+    fr: 'Le fichier dépasse {n} Mo.',
+  },
+  fileTypeNotAllowed: {
+    de: 'Dieser Dateityp wird nicht angenommen. Erlaubt: {types}.',
+    en: 'This file type is not accepted. Allowed: {types}.',
+    fr: "Ce type de fichier n'est pas accepté. Autorisés : {types}.",
+  },
+  noFileYet: {
+    de: 'Noch keine Datei abgegeben',
+    en: 'No file handed in yet',
+    fr: 'Aucun fichier déposé',
+  },
+  version: { de: 'Version {n}', en: 'Version {n}', fr: 'Version {n}' },
+  uploadedOn: { de: 'hochgeladen am {date}', en: 'uploaded on {date}', fr: 'téléversé le {date}' },
+  feedback: { de: 'Rückmeldung', en: 'Feedback', fr: 'Retour' },
+
+  safetyRiskQuestion: {
+    de: 'Erhöhtes Sicherheitsrisiko?',
+    en: 'Elevated safety risk?',
+    fr: 'Risque de sécurité accru ?',
+  },
+  yes: { de: 'Ja', en: 'Yes', fr: 'Oui' },
+  no: { de: 'Nein', en: 'No', fr: 'Non' },
+  safetyCriteria: {
+    de: 'Kriterien für erhöhtes Sicherheitsrisiko',
+    en: 'Criteria for an elevated safety risk',
+    fr: 'Critères de risque de sécurité accru',
+  },
+  showCriteria: { de: 'Kriterien anzeigen', en: 'Show criteria', fr: 'Afficher les critères' },
+  safetyConceptRequired: {
+    de: 'Sicherheitskonzept erforderlich',
+    en: 'Safety concept required',
+    fr: 'Concept de sécurité requis',
+  },
+  safetyConceptHint: {
+    de: 'Bei erhöhtem Sicherheitsrisiko gehört ein Sicherheitskonzept zur Abgabe.',
+    en: 'With an elevated safety risk, a safety concept is part of the submission.',
+    fr: 'En cas de risque accru, un concept de sécurité fait partie du dépôt.',
+  },
+  saveFailed: {
+    de: 'Speichern fehlgeschlagen.',
+    en: 'Saving failed.',
+    fr: "L'enregistrement a échoué.",
+  },
+
+  stadtleben: { de: 'Stadtleben', en: 'Stadtleben', fr: 'Stadtleben' },
+  stadtlebenIntro: {
+    de: 'Das Stadtleben-Konzept gibst du über die Standanmeldung ab. Anmeldungen deines Hofs erscheinen hier.',
+    en: 'Hand in the Stadtleben concept through the stand registration. Registrations of your Hof appear here.',
+    fr: "Le concept Stadtleben se dépose via l'inscription de stand. Les inscriptions de ton Hof apparaissent ici.",
+  },
+  stadtlebenNone: {
+    de: 'Noch keine Standanmeldung mit deinem Hof verknüpft.',
+    en: 'No stand registration linked to your Hof yet.',
+    fr: 'Aucune inscription de stand liée à ton Hof pour le moment.',
+  },
+  stadtlebenRegister: {
+    de: 'Stand anmelden',
+    en: 'Register a stand',
+    fr: 'Inscrire un stand',
+  },
+  stadtlebenApproved: { de: 'Freigegeben', en: 'Approved', fr: 'Approuvé' },
+  stadtlebenPending: { de: 'In Prüfung', en: 'In review', fr: 'En cours de vérification' },
+  stadtlebenUntitled: {
+    de: 'Standanmeldung',
+    en: 'Stand registration',
+    fr: 'Inscription de stand',
+  },
+  submittedOn: { de: 'eingereicht am {date}', en: 'submitted on {date}', fr: 'déposé le {date}' },
+
+  material: { de: 'Material', en: 'Material', fr: 'Matériel' },
+  quantity: { de: 'Anzahl', en: 'Quantity', fr: 'Quantité' },
+  orderableUntil: {
+    de: 'Bestellbar bis {date}',
+    en: 'Orderable until {date}',
+    fr: "Commandable jusqu'au {date}",
+  },
+  orderClosed: {
+    de: 'Die Bestellfrist ist abgelaufen. Änderungen nimmt das Ressort entgegen.',
+    en: 'The order deadline has passed. Contact the Ressort for changes.',
+    fr: 'Le délai de commande est passé. Adresse-toi au Ressort pour toute modification.',
+  },
+  orderEmpty: {
+    de: 'Für diese Bestellung ist noch kein Material erfasst.',
+    en: 'No material recorded for this order yet.',
+    fr: 'Aucun matériel saisi pour cette commande.',
+  },
+  powerConnection: {
+    de: 'Stromanschluss benötigt',
+    en: 'Power connection needed',
+    fr: 'Raccordement électrique nécessaire',
+  },
+  retiredItems: {
+    de: 'Nicht mehr auf der Liste, aber bestellt',
+    en: 'No longer listed, but ordered',
+    fr: 'Plus dans la liste, mais commandé',
+  },
+  save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
+  saving: { de: 'Wird gespeichert …', en: 'Saving …', fr: 'Enregistrement …' },
+  saved: { de: 'Gespeichert', en: 'Saved', fr: 'Enregistré' },
+  lastSaved: {
+    de: 'Zuletzt gespeichert am {date}',
+    en: 'Last saved on {date}',
+    fr: 'Enregistré le {date}',
+  },
+
+  officialDocuments: {
+    de: 'Unterlagen & Vorlagen',
+    en: 'Documents & templates',
+    fr: 'Documents et modèles',
+  },
+  noOfficialDocuments: {
+    de: 'Es sind noch keine Unterlagen verfügbar.',
+    en: 'No documents available yet.',
+    fr: 'Aucun document disponible pour le moment.',
+  },
+  submittedDocuments: {
+    de: 'Abgegebene Dateien',
+    en: 'Files handed in',
+    fr: 'Fichiers déposés',
+  },
+  noSubmittedDocuments: {
+    de: 'Dein Hof hat noch keine Dateien abgegeben.',
+    en: 'Your Hof has not handed in any files yet.',
+    fr: "Ton Hof n'a encore déposé aucun fichier.",
+  },
+  download: { de: 'Herunterladen', en: 'Download', fr: 'Télécharger' },
+} satisfies Record<string, StaticTranslationString>;
+
+export type TextKey = keyof typeof text;
+
+/** A translated string with `{name}` placeholders filled in. */
+export const translate = (
+  key: TextKey,
+  locale: Locale,
+  values: Record<string, string | number> = {},
+): string =>
+  Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+    text[key][locale],
+  );
+
+const DATE_LOCALES: Record<Locale, string> = { de: 'de-CH', en: 'en-GB', fr: 'fr-CH' };
+
+/** A day as the camp writes it, e.g. 31.01.2027. */
+export const formatDate = (value: string, locale: Locale): string =>
+  new Intl.DateTimeFormat(DATE_LOCALES[locale], {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Europe/Zurich',
+  }).format(new Date(value));
+
+/** How far away a deadline is, in words: "in 12 days", "today", "3 days overdue". */
+export const formatCountdown = (daysLeft: number, locale: Locale): string => {
+  if (daysLeft === 0) return translate('today', locale);
+  if (daysLeft === 1) return translate('inOneDay', locale);
+  if (daysLeft < 0) return translate('daysAgo', locale, { n: -daysLeft });
+  return translate('inDays', locale, { n: daysLeft });
+};
+
+/** A file size in the unit people read it in. */
+export const formatFileSize = (bytes: number, locale: Locale): string => {
+  const megabytes = bytes / (1024 * 1024);
+  const formatter = new Intl.NumberFormat(DATE_LOCALES[locale], { maximumFractionDigits: 1 });
+  return megabytes >= 1
+    ? `${formatter.format(megabytes)} MB`
+    : `${formatter.format(Math.max(1, Math.round(bytes / 1024)))} KB`;
+};

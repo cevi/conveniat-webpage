@@ -77,6 +77,9 @@ export interface Config {
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
+    'hof-submissions': HofSubmission;
+    'hof-files': HofFile;
+    'hof-material-orders': HofMaterialOrder;
     'outgoing-emails': OutgoingEmail;
     'payload-workers': PayloadWorker;
     'chat-images': ChatImage;
@@ -108,6 +111,9 @@ export interface Config {
     'bill-participants': {
       relatedEmails: 'outgoing-emails';
       reminderEmails: 'outgoing-emails';
+    };
+    'hof-submissions': {
+      files: 'hof-files';
     };
     forms: {
       submissions: 'form-submissions';
@@ -143,6 +149,9 @@ export interface Config {
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
+    'hof-submissions': HofSubmissionsSelect<false> | HofSubmissionsSelect<true>;
+    'hof-files': HofFilesSelect<false> | HofFilesSelect<true>;
+    'hof-material-orders': HofMaterialOrdersSelect<false> | HofMaterialOrdersSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
@@ -180,6 +189,7 @@ export interface Config {
     PWA: PWA;
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
+    'hof-dashboard-settings': HofDashboardSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -197,6 +207,7 @@ export interface Config {
     PWA: PWASelect<false> | PWASelect<true>;
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
+    'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -364,6 +375,7 @@ export interface GenericPage {
           blockType: 'photoCarousel';
         }
       | PhotoContestBlock
+      | HofDashboardBlock
       | {
           image: string | Image;
           /**
@@ -948,6 +960,7 @@ export interface Blog {
           blockType: 'photoCarousel';
         }
       | PhotoContestBlock
+      | HofDashboardBlock
       | {
           image: string | Image;
           /**
@@ -1414,6 +1427,18 @@ export interface Form {
             | {
                 name: string;
                 label: string;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'hofSelection';
+              }
+            | {
+                name: string;
+                label: string;
                 /**
                  * First day a helper can mark.
                  */
@@ -1698,6 +1723,18 @@ export interface Form {
                       | {
                           name: string;
                           label: string;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'hofSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
                           /**
                            * First day a helper can mark.
                            */
@@ -1957,6 +1994,10 @@ export interface FormSubmission {
     | boolean
     | null;
   'helper-jobs'?: (string | HelperJob)[] | null;
+  /**
+   * Set by a "Hof Selection" field. Set it by hand for an older submission, and the Hof finds it on its dashboard.
+   */
+  hof?: (string | null) | Hof;
   updatedAt: string;
   createdAt: string;
 }
@@ -2021,6 +2062,69 @@ export interface HelperJob {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hoefe".
+ */
+export interface Hof {
+  id: string;
+  /**
+   * Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.
+   */
+  name: string;
+  /**
+   * Hitobito group ID of this Hof (up to 6 digits)
+   */
+  groupId: string;
+  /**
+   * Configure which Hitobito events should be synced for billing.
+   */
+  events?:
+    | {
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
+        eventId: string;
+        /**
+         * Name of the event in Cevi.DB, refreshed by every sync
+         */
+        eventName: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Shown at the top of the Hof dashboard. The name reads like "First Last v/o Cevi name".
+   */
+  dashboardContacts?: {
+    avp?: {
+      name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    };
+    coach?: {
+      name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    };
+    buildingManager?: {
+      name?: string | null;
+      email?: string | null;
+      phone?: string | null;
+    };
+  };
+  /**
+   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
+   */
+  addressManagerEmails?: string | null;
+  /**
+   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   */
+  reminderRecipientsOverride?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2088,6 +2192,15 @@ export interface PhotoContestBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'photoContestBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HofDashboardBlock".
+ */
+export interface HofDashboardBlock {
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'hofDashboardBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -4488,45 +4601,77 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
- * One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.
+ * What the Höfe hand in on the Hof dashboard. Set the status and leave feedback here; the Hof sees both on its dashboard.
  *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hoefe".
+ * via the `definition` "hof-submissions".
  */
-export interface Hof {
+export interface HofSubmission {
   id: string;
+  title?: string | null;
+  hof: string | Hof;
+  submissionType: 'flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram';
   /**
-   * Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.
+   * A new upload by the Hof sets this back to "Submitted".
    */
-  name: string;
+  status: 'submitted' | 'inReview' | 'revisionRequired' | 'archived';
   /**
-   * Hitobito group ID of this Hof (up to 6 digits)
+   * Answered by the Hof. With "Yes" the Hof has to hand in a safety concept as well.
    */
-  groupId: string;
+  elevatedSafetyRisk?: ('yes' | 'no') | null;
   /**
-   * Configure which Hitobito events should be synced for billing.
+   * Shown to the Hof on its dashboard, most of all together with "Revision required".
    */
-  events?:
+  feedback?: string | null;
+  files?: {
+    docs?: (string | HofFile)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-files".
+ */
+export interface HofFile {
+  id: string;
+  submission: string | HofSubmission;
+  hof: string | Hof;
+  kind: 'plan' | 'safetyConcept';
+  uploadedBy?: (string | null) | User;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-material-orders".
+ */
+export interface HofMaterialOrder {
+  id: string;
+  hof: string | Hof;
+  orderType: 'infrastructure' | 'stadtleben';
+  items?:
     | {
-        /**
-         * Hitobito event ID to sync (up to 6 digits)
-         */
-        eventId: string;
-        /**
-         * Name of the event in Cevi.DB, refreshed by every sync
-         */
-        eventName: string;
+        itemId: string;
+        name: string;
+        quantity: number;
         id?: string | null;
       }[]
     | null;
-  /**
-   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
-   */
-  addressManagerEmails?: string | null;
-  /**
-   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
-   */
-  reminderRecipientsOverride?: string | null;
+  powerConnection?: boolean | null;
+  lastEditedBy?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -5083,6 +5228,18 @@ export interface PayloadLockedDocument {
         value: string | Hof;
       } | null)
     | ({
+        relationTo: 'hof-submissions';
+        value: string | HofSubmission;
+      } | null)
+    | ({
+        relationTo: 'hof-files';
+        value: string | HofFile;
+      } | null)
+    | ({
+        relationTo: 'hof-material-orders';
+        value: string | HofMaterialOrder;
+      } | null)
+    | ({
         relationTo: 'outgoing-emails';
         value: string | OutgoingEmail;
       } | null)
@@ -5224,6 +5381,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               photoContestBlock?: T | PhotoContestBlockSelect<T>;
+              hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -5455,6 +5613,14 @@ export interface ApprovedFormSubmissionsBlockSelect<T extends boolean = true> {
  */
 export interface PhotoContestBlockSelect<T extends boolean = true> {
   initialContestSlug?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HofDashboardBlock_select".
+ */
+export interface HofDashboardBlockSelect<T extends boolean = true> {
   id?: T;
   blockName?: T;
 }
@@ -6282,6 +6448,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               photoContestBlock?: T | PhotoContestBlockSelect<T>;
+              hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -7058,8 +7225,90 @@ export interface HoefeSelect<T extends boolean = true> {
         eventName?: T;
         id?: T;
       };
+  dashboardContacts?:
+    | T
+    | {
+        avp?:
+          | T
+          | {
+              name?: T;
+              email?: T;
+              phone?: T;
+            };
+        coach?:
+          | T
+          | {
+              name?: T;
+              email?: T;
+              phone?: T;
+            };
+        buildingManager?:
+          | T
+          | {
+              name?: T;
+              email?: T;
+              phone?: T;
+            };
+      };
   addressManagerEmails?: T;
   reminderRecipientsOverride?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-submissions_select".
+ */
+export interface HofSubmissionsSelect<T extends boolean = true> {
+  title?: T;
+  hof?: T;
+  submissionType?: T;
+  status?: T;
+  elevatedSafetyRisk?: T;
+  feedback?: T;
+  files?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-files_select".
+ */
+export interface HofFilesSelect<T extends boolean = true> {
+  submission?: T;
+  hof?: T;
+  kind?: T;
+  uploadedBy?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-material-orders_select".
+ */
+export interface HofMaterialOrdersSelect<T extends boolean = true> {
+  hof?: T;
+  orderType?: T;
+  items?:
+    | T
+    | {
+        itemId?: T;
+        name?: T;
+        quantity?: T;
+        id?: T;
+      };
+  powerConnection?: T;
+  lastEditedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7320,6 +7569,16 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    hofSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     dateSlotSelection?:
                       | T
                       | {
@@ -7502,6 +7761,16 @@ export interface FormsSelect<T extends boolean = true> {
                                       id?: T;
                                       blockName?: T;
                                     };
+                                hofSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
                                 dateSlotSelection?:
                                   | T
                                   | {
@@ -7625,6 +7894,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
   smtpResults?: T;
   workflowResults?: T;
   'helper-jobs'?: T;
+  hof?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8345,6 +8615,7 @@ export interface AppLandingPage {
             blockType: 'photoCarousel';
           }
         | PhotoContestBlock
+        | HofDashboardBlock
         | {
             image: string | Image;
             /**
@@ -8844,6 +9115,97 @@ export interface BillSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-dashboard-settings".
+ */
+export interface HofDashboardSetting {
+  id: string;
+  /**
+   * Each submission works towards the next deadline that lists it. Once the last one has passed, an open submission is overdue.
+   */
+  deadlines?:
+    | {
+        date: string;
+        title: string;
+        area: 'infrastructure' | 'program';
+        submissionTypes?: ('flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram')[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  infrastructureOrder?: {
+    /**
+     * After this day the Höfe can still see their order but no longer change it.
+     */
+    deadline?: string | null;
+    /**
+     * Removing a line keeps it on the orders already placed, under the name it had then.
+     */
+    items?:
+      | {
+          name: string;
+          /**
+           * Optional heading the line is listed under, e.g. "Wood".
+           */
+          section?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * The Höfe are also asked whether they need a power connection.
+   */
+  stadtlebenOrder?: {
+    /**
+     * After this day the Höfe can still see their order but no longer change it.
+     */
+    deadline?: string | null;
+    /**
+     * Removing a line keeps it on the orders already placed, under the name it had then.
+     */
+    items?:
+      | {
+          name: string;
+          /**
+           * Optional heading the line is listed under, e.g. "Wood".
+           */
+          section?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+  };
+  /**
+   * Its submissions are listed on the dashboard of the Hof they are linked to. Link a submission in its sidebar, or let the form ask with a "Hof Selection" field.
+   */
+  stadtlebenForm?: (string | null) | Form;
+  /**
+   * The form field whose answer names a submission on the dashboard, e.g. the name of the stand.
+   */
+  stadtlebenTitleFieldName?: string | null;
+  /**
+   * Relative path, e.g. /stadtleben. The dashboard links to it for a new registration.
+   */
+  stadtlebenFormUrl?: string | null;
+  stadtlebenDeadline?: string | null;
+  documents?:
+    | {
+        document: string | Document;
+        area?: ('infrastructure' | 'program') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Shown when a Hof opens the info next to "Elevated safety risk?".
+   */
+  safetyRiskCriteria?:
+    | {
+        criterion: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -9087,6 +9449,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               blockName?: T;
             };
         photoContestBlock?: T | PhotoContestBlockSelect<T>;
+        hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
         singlePicture?:
           | T
           | {
@@ -9366,6 +9729,65 @@ export interface BillSettingsSelect<T extends boolean = true> {
   financeEmailRecipients?: T;
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-dashboard-settings_select".
+ */
+export interface HofDashboardSettingsSelect<T extends boolean = true> {
+  deadlines?:
+    | T
+    | {
+        date?: T;
+        title?: T;
+        area?: T;
+        submissionTypes?: T;
+        id?: T;
+      };
+  infrastructureOrder?:
+    | T
+    | {
+        deadline?: T;
+        items?:
+          | T
+          | {
+              name?: T;
+              section?: T;
+              id?: T;
+            };
+      };
+  stadtlebenOrder?:
+    | T
+    | {
+        deadline?: T;
+        items?:
+          | T
+          | {
+              name?: T;
+              section?: T;
+              id?: T;
+            };
+      };
+  stadtlebenForm?: T;
+  stadtlebenTitleFieldName?: T;
+  stadtlebenFormUrl?: T;
+  stadtlebenDeadline?: T;
+  documents?:
+    | T
+    | {
+        document?: T;
+        area?: T;
+        id?: T;
+      };
+  safetyRiskCriteria?:
+    | T
+    | {
+        criterion?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -9737,6 +10159,9 @@ export interface TaskCreateCollectionExport {
       | 'bill-participants'
       | 'bill-pdfs'
       | 'hoefe'
+      | 'hof-submissions'
+      | 'hof-files'
+      | 'hof-material-orders'
       | 'outgoing-emails'
       | 'payload-workers'
       | 'chat-images'

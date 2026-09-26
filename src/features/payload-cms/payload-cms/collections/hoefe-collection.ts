@@ -7,7 +7,8 @@ import {
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
+import type { StaticTranslationString } from '@/types/types';
+import type { CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
 
 /** Cevi.DB group and event ids are plain numbers of up to six digits. */
 const HITOBITO_ID = /^\d{1,6}$/;
@@ -24,6 +25,38 @@ const validateHitobitoId: TextFieldSingleValidation = (value, { req }) => {
     fr: "Doit être un nombre d'au plus 6 chiffres.",
   });
 };
+
+/** One person the Hof dashboard lists with name, email and phone. */
+const hofContactField = (name: string, label: StaticTranslationString): Field => ({
+  name,
+  type: 'group',
+  label,
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: { en: 'Name', de: 'Name', fr: 'Nom' },
+          admin: { width: '40%' },
+        },
+        {
+          name: 'email',
+          type: 'email',
+          label: { en: 'Email', de: 'E-Mail', fr: 'E-mail' },
+          admin: { width: '35%' },
+        },
+        {
+          name: 'phone',
+          type: 'text',
+          label: { en: 'Phone', de: 'Telefon', fr: 'Téléphone' },
+          admin: { width: '25%' },
+        },
+      ],
+    },
+  ],
+});
 
 /**
  * The Höfe of the camp, one document per Cevi.DB group.
@@ -143,6 +176,35 @@ export const HoefeCollection: CollectionConfig = {
             },
           },
         },
+      ],
+    },
+    {
+      name: 'dashboardContacts',
+      type: 'group',
+      label: {
+        en: 'Contacts on the Hof dashboard',
+        de: 'Kontakte auf dem Hof-Dashboard',
+        fr: 'Contacts sur le tableau de bord du Hof',
+      },
+      admin: {
+        description: {
+          en: 'Shown at the top of the Hof dashboard. The name reads like "First Last v/o Cevi name".',
+          de: 'Erscheinen zuoberst auf dem Hof-Dashboard. Der Name im Format "Vorname Name v/o Ceviname".',
+          fr: 'Affichés en haut du tableau de bord du Hof. Le nom au format « Prénom Nom v/o nom Cevi ».',
+        },
+      },
+      fields: [
+        hofContactField('avp', {
+          en: 'Person responsible for the Abteilung (AVP)',
+          de: 'Abteilungsverantwortliche Person (AVP)',
+          fr: "Responsable de l'Abteilung (AVP)",
+        }),
+        hofContactField('coach', { en: 'Coach', de: 'Coach', fr: 'Coach' }),
+        hofContactField('buildingManager', {
+          en: 'Person responsible for buildings',
+          de: 'Bauverantwortliche/r',
+          fr: 'Responsable des constructions',
+        }),
       ],
     },
     {

@@ -47,6 +47,7 @@ export const s3StorageConfiguration = s3Storage({
     userSubmittedImages: true,
     'chat-images': true,
     form_collection: true,
+    'hof-files': true,
 
     // The import/export plugin registers these two as upload collections without a staticDir, so
     // Payload defaults it to the collection slug - a *relative* path resolved against the process

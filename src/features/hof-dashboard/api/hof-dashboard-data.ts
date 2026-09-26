@@ -1,0 +1,329 @@
+import {
+  HOF_SUBMISSION_TYPE_AREA,
+  HOF_SUBMISSION_TYPES,
+  type HofDashboardArea,
+  type HofFileKind,
+  type HofOrderType,
+  type HofSubmissionStatus,
+  type HofSubmissionType,
+} from '@/features/hof-dashboard/constants';
+import type { Hof, HofDashboardSetting, HofFile } from '@/features/payload-cms/payload-types';
+import type { Locale } from '@/types/types';
+import config from '@payload-config';
+import { getPayload, type Payload } from 'payload';
+
+/** Most files one Hof hands in over the whole planning, versions included. */
+const MAX_FILES_PER_HOF = 500;
+
+export interface HofContact {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface HofDashboardDeadline {
+  id: string;
+  date: string;
+  title: string;
+  area: HofDashboardArea;
+  submissionTypes: HofSubmissionType[];
+}
+
+export interface HofDashboardFile {
+  id: string;
+  filename: string;
+  url: string | undefined;
+  kind: HofFileKind;
+  uploadedAt: string;
+  /** 1 for the first plan of a submission, counted per kind. */
+  version: number;
+}
+
+export interface HofDashboardSubmission {
+  type: HofSubmissionType;
+  area: HofDashboardArea;
+  status: HofSubmissionStatus | undefined;
+  elevatedSafetyRisk: 'yes' | 'no' | undefined;
+  feedback: string | undefined;
+  files: HofDashboardFile[];
+  deadlines: string[];
+}
+
+export interface HofDashboardOrder {
+  type: HofOrderType;
+  deadline: string | undefined;
+  items: { id: string; name: string; section: string | undefined; quantity: number }[];
+  /** Lines the Hof ordered that are no longer on the list, kept as they were ordered. */
+  retiredItems: { id: string; name: string; quantity: number }[];
+  powerConnection: boolean;
+  updatedAt: string | undefined;
+}
+
+export interface HofDashboardDocument {
+  id: string;
+  title: string;
+  url: string | undefined;
+  filesize: number | undefined;
+  mimeType: string | undefined;
+  area: HofDashboardArea | undefined;
+}
+
+export interface HofDashboardStadtlebenEntry {
+  id: string;
+  title: string | undefined;
+  submittedAt: string;
+  approved: boolean;
+}
+
+export interface HofDashboardData {
+  hof: { id: string; name: string };
+  contacts: { avp: HofContact; coach: HofContact; buildingManager: HofContact };
+  deadlines: HofDashboardDeadline[];
+  submissions: HofDashboardSubmission[];
+  orders: Record<HofOrderType, HofDashboardOrder>;
+  stadtleben: {
+    deadline: string | undefined;
+    formUrl: string | undefined;
+    entries: HofDashboardStadtlebenEntry[];
+  };
+  documents: HofDashboardDocument[];
+  safetyRiskCriteria: string[];
+}
+
+const toContact = (
+  contact: { name?: string | null; email?: string | null; phone?: string | null } | undefined,
+): HofContact => ({
+  name: contact?.name ?? '',
+  email: contact?.email ?? '',
+  phone: contact?.phone ?? '',
+});
+
+const idOf = (reference: string | { id: string } | null | undefined): string | undefined =>
+  typeof reference === 'object' && reference !== null ? reference.id : (reference ?? undefined);
+
+/** The settings every dashboard shares, in the reader's language. */
+export const getHofDashboardSettings = async (
+  payload: Payload,
+  locale: Locale,
+): Promise<HofDashboardSetting> =>
+  await payload.findGlobal({
+    slug: 'hof-dashboard-settings',
+    locale,
+    depth: 1,
+    overrideAccess: true,
+  });
+
+const toFiles = (files: HofFile[]): HofDashboardFile[] => {
+  const counters: Record<HofFileKind, number> = { plan: 0, safetyConcept: 0 };
+  return files
+    .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))
+    .map((file) => {
+      counters[file.kind] += 1;
+      return {
+        id: file.id,
+        filename: file.filename ?? file.id,
+        url: file.url ?? undefined,
+        kind: file.kind,
+        uploadedAt: file.createdAt,
+        version: counters[file.kind],
+      };
+    })
+    .toReversed();
+};
+
+const toOrder = (
+  type: HofOrderType,
+  list: HofDashboardSetting['infrastructureOrder'],
+  stored:
+    | {
+        items?: { itemId: string; name: string; quantity: number }[] | null;
+        powerConnection?: boolean | null;
+        updatedAt: string;
+      }
+    | undefined,
+): HofDashboardOrder => {
+  const quantities = new Map((stored?.items ?? []).map((line) => [line.itemId, line]));
+  const items = (list?.items ?? []).flatMap((item) =>
+    typeof item.id === 'string'
+      ? [
+          {
+            id: item.id,
+            name: item.name,
+            section: item.section ?? undefined,
+            quantity: quantities.get(item.id)?.quantity ?? 0,
+          },
+        ]
+      : [],
+  );
+  const listed = new Set(items.map((item) => item.id));
+  const retiredItems = (stored?.items ?? [])
+    .filter((line) => !listed.has(line.itemId) && line.quantity > 0)
+    .map((line) => ({ id: line.itemId, name: line.name, quantity: line.quantity }));
+  return {
+    type,
+    deadline: list?.deadline ?? undefined,
+    items,
+    retiredItems,
+    powerConnection: stored?.powerConnection === true,
+    updatedAt: stored?.updatedAt,
+  };
+};
+
+/** Names a Stadtleben registration by one of its answers, as the settings say. */
+const answerOf = (
+  submissionData: unknown,
+  fieldName: string | null | undefined,
+): string | undefined => {
+  if (!Array.isArray(submissionData) || typeof fieldName !== 'string' || fieldName === '') {
+    return undefined;
+  }
+  const answer = (submissionData as { field?: unknown; value?: unknown }[]).find(
+    (entry) => entry.field === fieldName,
+  );
+  return typeof answer?.value === 'string' && answer.value !== '' ? answer.value : undefined;
+};
+
+/**
+ * Everything one Hof's dashboard shows. The caller has checked that the user may open the Hof;
+ * everything here reads with `overrideAccess`, narrowed to that Hof.
+ */
+export const getHofDashboardData = async (
+  hofId: string,
+  locale: Locale,
+): Promise<HofDashboardData> => {
+  const payload = await getPayload({ config });
+
+  const [hof, settings, storedSubmissions, storedFiles, storedOrders] = await Promise.all([
+    payload.findByID({
+      collection: 'hoefe',
+      id: hofId,
+      depth: 0,
+      overrideAccess: true,
+      select: { name: true, dashboardContacts: true },
+    }) as Promise<Pick<Hof, 'id' | 'name' | 'dashboardContacts'>>,
+    getHofDashboardSettings(payload, locale),
+    payload.find({
+      collection: 'hof-submissions',
+      where: { hof: { equals: hofId } },
+      depth: 0,
+      limit: HOF_SUBMISSION_TYPES.length,
+      pagination: false,
+      overrideAccess: true,
+      select: { submissionType: true, status: true, elevatedSafetyRisk: true, feedback: true },
+    }),
+    payload.find({
+      collection: 'hof-files',
+      where: { hof: { equals: hofId } },
+      depth: 0,
+      limit: MAX_FILES_PER_HOF,
+      pagination: false,
+      overrideAccess: true,
+    }),
+    payload.find({
+      collection: 'hof-material-orders',
+      where: { hof: { equals: hofId } },
+      depth: 0,
+      limit: 2,
+      pagination: false,
+      overrideAccess: true,
+    }),
+  ]);
+
+  const deadlines: HofDashboardDeadline[] = (settings.deadlines ?? [])
+    .map((deadline, index) => ({
+      id: deadline.id ?? String(index),
+      date: deadline.date,
+      title: deadline.title,
+      area: deadline.area,
+      submissionTypes: deadline.submissionTypes ?? [],
+    }))
+    .toSorted((a, b) => a.date.localeCompare(b.date));
+
+  const submissions: HofDashboardSubmission[] = HOF_SUBMISSION_TYPES.map((type) => {
+    const stored = storedSubmissions.docs.find((candidate) => candidate.submissionType === type);
+    const files =
+      stored === undefined
+        ? []
+        : storedFiles.docs.filter((file) => idOf(file.submission) === stored.id);
+    return {
+      type,
+      area: HOF_SUBMISSION_TYPE_AREA[type],
+      status: stored?.status,
+      elevatedSafetyRisk: stored?.elevatedSafetyRisk ?? undefined,
+      feedback: stored?.feedback ?? undefined,
+      files: toFiles(files),
+      deadlines: deadlines
+        .filter((deadline) => deadline.submissionTypes.includes(type))
+        .map((deadline) => deadline.date),
+    };
+  });
+
+  const orderOf = (type: HofOrderType): (typeof storedOrders.docs)[number] | undefined =>
+    storedOrders.docs.find((order) => order.orderType === type);
+
+  const stadtlebenFormId = idOf(settings.stadtlebenForm);
+  const stadtlebenSubmissions =
+    stadtlebenFormId === undefined
+      ? []
+      : await payload
+          .find({
+            collection: 'form-submissions',
+            where: {
+              and: [{ form: { equals: stadtlebenFormId } }, { hof: { equals: hofId } }],
+            },
+            depth: 0,
+            limit: 100,
+            pagination: false,
+            overrideAccess: true,
+            sort: '-createdAt',
+            select: { submissionData: true, approved: true, createdAt: true },
+          })
+          .then((result) => result.docs);
+  const stadtlebenEntries = stadtlebenSubmissions.map((entry) => ({
+    id: entry.id,
+    title: answerOf(entry.submissionData, settings.stadtlebenTitleFieldName),
+    submittedAt: entry.createdAt,
+    approved: entry.approved === true,
+  }));
+
+  const documents: HofDashboardDocument[] = (settings.documents ?? []).flatMap((entry) => {
+    const document = entry.document;
+    if (typeof document !== 'object') return [];
+    return [
+      {
+        id: document.id,
+        title: document.title ?? document.filename ?? document.id,
+        url: document.url ?? undefined,
+        filesize: document.filesize ?? undefined,
+        mimeType: document.mimeType ?? undefined,
+        area: entry.area ?? undefined,
+      },
+    ];
+  });
+
+  return {
+    hof: { id: hof.id, name: hof.name },
+    contacts: {
+      avp: toContact(hof.dashboardContacts?.avp),
+      coach: toContact(hof.dashboardContacts?.coach),
+      buildingManager: toContact(hof.dashboardContacts?.buildingManager),
+    },
+    deadlines,
+    submissions,
+    orders: {
+      infrastructure: toOrder(
+        'infrastructure',
+        settings.infrastructureOrder,
+        orderOf('infrastructure'),
+      ),
+      stadtleben: toOrder('stadtleben', settings.stadtlebenOrder, orderOf('stadtleben')),
+    },
+    stadtleben: {
+      deadline: settings.stadtlebenDeadline ?? undefined,
+      formUrl: settings.stadtlebenFormUrl ?? undefined,
+      entries: stadtlebenEntries,
+    },
+    documents,
+    safetyRiskCriteria: (settings.safetyRiskCriteria ?? []).map((entry) => entry.criterion),
+  };
+};

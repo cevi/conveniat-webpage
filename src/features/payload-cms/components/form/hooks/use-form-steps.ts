@@ -3,6 +3,7 @@ import type {
   DateSlotSelectionBlock,
   FormFieldBlock,
   FormSection,
+  HofSelectionBlock,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
@@ -43,11 +44,16 @@ const scrollFormTopIntoView = (formId?: string): void => {
   window.scrollTo({ top: top + window.scrollY - STICKY_NAV_OFFSET, behavior: 'smooth' });
 };
 
-type SectionField = FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock;
+type SectionField =
+  | FormFieldBlock
+  | ConditionedBlock
+  | JobSelectionBlock
+  | HofSelectionBlock
+  | DateSlotSelectionBlock;
 
 /** Names of the fields a `dateSlotSelection` block registers — it owns up to two. */
 const getFieldNames = (
-  field: FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock,
+  field: FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock,
 ): string[] => {
   const names: string[] = [];
   if ('name' in field && typeof field.name === 'string' && field.name !== '') {
@@ -182,7 +188,11 @@ export const useFormSteps = (
     // Explicitly define recursive function to avoid "processFields is undefined" issues if declared as const fn
     function processFields(
       fieldsToProcess: (
-        FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock
+        | FormFieldBlock
+        | ConditionedBlock
+        | JobSelectionBlock
+        | HofSelectionBlock
+        | DateSlotSelectionBlock
       )[],
     ): void {
       for (const field of fieldsToProcess) {

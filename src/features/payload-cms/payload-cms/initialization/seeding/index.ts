@@ -28,6 +28,7 @@ import {
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
 import { seedHoefe } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
+import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
@@ -513,6 +514,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   // right after the Höfe it books on, so a later failure in the CMS content does not leave
   // the depot empty
   await seedMaterial(payload, userIds);
+
+  console.log('Seeding: Creating the Hof dashboard...');
+  await seedHofDashboard(payload, publicPermission);
 
   // seed blog articles
   console.log('Seeding: Creating blog articles...');

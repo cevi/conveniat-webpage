@@ -5,6 +5,7 @@ import { Date } from '@/features/payload-cms/components/form/date';
 import { DateSlotSelection } from '@/features/payload-cms/components/form/date-slot-selection';
 import { Email } from '@/features/payload-cms/components/form/email';
 import { FileUpload } from '@/features/payload-cms/components/form/file-upload';
+import { HofSelection } from '@/features/payload-cms/components/form/hof-selection';
 import { JobSelection } from '@/features/payload-cms/components/form/job-selection';
 import { Message } from '@/features/payload-cms/components/form/message';
 import { Number } from '@/features/payload-cms/components/form/number';
@@ -26,6 +27,7 @@ export const fields: Record<string, React.FC<any>> = {
   date: Date,
   ceviDbLogin: CeviDatabaseLogin,
   jobSelection: JobSelection,
+  hofSelection: HofSelection,
   dateSlotSelection: DateSlotSelection,
   fileUpload: FileUpload,
 };

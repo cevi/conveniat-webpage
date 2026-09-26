@@ -5,6 +5,7 @@ import type {
   DateSlotSelectionBlock,
   FormFieldBlock,
   FormSection,
+  HofSelectionBlock,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
@@ -75,7 +76,9 @@ const ConditionedField: React.FC<{
 };
 
 const SingleField: React.FC<{
-  field: (FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock) & { required?: boolean };
+  field: (FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock) & {
+    required?: boolean;
+  };
   currentStepIndex: number;
   formId: string | undefined;
   renderMode: 'all' | 'sidebar' | 'main';

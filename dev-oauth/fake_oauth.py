@@ -96,6 +96,19 @@ FAKE_USERS = [
             {"group_id": 108, "group_name": "Material Team", "role_name": "Material Team", "role_class": "editor"}
         ],
         "comment": "Dieser Benutzer gehört zum Materialteam und führt das Materialdepot in der App."
+    },
+    {
+        "id": "8",
+        "email": "benutzer8@conveniat27.ch",
+        "first_name": "Hof-Adressverwaltung",
+        "last_name": "Nord und Süd",
+        "nickname": "Adressverwaltung",
+        "roles": [
+            {"group_id": 990001, "group_name": "Hof Nord", "role_name": "Adressverwaltung", "role_class": "Group::Ortsgruppe::AdministratorCeviDB"},
+            {"group_id": 990002, "group_name": "Hof Süd", "role_name": "Adressverwaltung", "role_class": "Group::Ortsgruppe::AdministratorCeviDB"},
+            {"group_id": 990003, "group_name": "Hof Ost", "role_name": "Mitglied", "role_class": "Group::Ortsgruppe::Mitglied"}
+        ],
+        "comment": "Adressverwaltung von Hof Nord und Hof Süd, nur Mitglied von Hof Ost: öffnet das Hof-Dashboard der ersten beiden."
     }
 ]
 

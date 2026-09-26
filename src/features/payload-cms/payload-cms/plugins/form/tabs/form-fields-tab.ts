@@ -782,6 +782,50 @@ const formJobSelectionBlock: Block = {
   labels: { plural: 'Job Selection Blocks', singular: 'Job Selection' },
 };
 
+const formHofSelectionBlock: Block = {
+  slug: 'hofSelection',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Hof Selection',
+            de: 'Hof Auswahl',
+            fr: 'Sélection du Hof',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    { name: 'required', type: 'checkbox', label: 'Required' },
+    placementField(),
+  ],
+  labels: { plural: 'Hof Selection Blocks', singular: 'Hof Selection' },
+};
+
 const formDateSlotSelectionBlock: Block = {
   slug: 'dateSlotSelection',
   admin: {
@@ -1067,6 +1111,7 @@ const formBlocks: Block[] = [
   formDateBlock,
   formCeviDatabaseLoginBlock,
   formJobSelectionBlock,
+  formHofSelectionBlock,
   formDateSlotSelectionBlock,
   formFileUploadBlock,
 ];

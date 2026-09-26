@@ -29,6 +29,14 @@ export interface JobSelectionBlock {
   placement?: 'sidebar' | 'main';
 }
 
+export interface HofSelectionBlock {
+  blockType: 'hofSelection';
+  name: string;
+  label?: string;
+  required?: boolean;
+  placement?: 'sidebar' | 'main';
+}
+
 export interface DateSlotSelectionBlock {
   blockType: 'dateSlotSelection';
   name: string;
@@ -56,7 +64,7 @@ export interface ConditionedBlock {
     field: string;
     value: string;
   };
-  fields: (FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock)[];
+  fields: (FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock)[];
   placement?: 'sidebar' | 'main';
 }
 
@@ -72,7 +80,13 @@ export interface FormSection {
     field?: string | null;
     value?: string | null;
   } | null;
-  fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock)[];
+  fields: (
+    | FormFieldBlock
+    | ConditionedBlock
+    | JobSelectionBlock
+    | HofSelectionBlock
+    | DateSlotSelectionBlock
+  )[];
 }
 
 export type ExtendedFormType = PayloadFormType & {

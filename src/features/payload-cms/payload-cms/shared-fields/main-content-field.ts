@@ -13,6 +13,7 @@ import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { heroSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
+import { hofDashboardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hof-dashboard-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { mediaTextBlock } from '@/features/payload-cms/payload-cms/shared-blocks/media-text-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
@@ -45,6 +46,7 @@ export const mainContentBlocks: Block[] = [
   approvedFormSubmissionsBlock,
   photoCarouselBlock,
   photoContestBlock,
+  hofDashboardBlock,
   singlePictureBlock,
   youtubeEmbedBlock,
   instagramEmbedBlock,

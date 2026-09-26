@@ -318,6 +318,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
       }
       // jobSelection, checkbox, country, textarea:
       // no extra type-specific validation needed beyond the required check above
+      // hofSelection: linkHofSubmission rejects a Hof that does not exist
     }
   }
 
