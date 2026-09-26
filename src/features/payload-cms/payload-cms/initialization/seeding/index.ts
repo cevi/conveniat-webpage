@@ -505,6 +505,10 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   }
   console.log('Seeding: Users created.');
 
+  // early, so features that point at a Hof find them even if later CMS seeding fails
+  console.log('Seeding: Creating Höfe...');
+  await seedHoefe(payload);
+
   // seed blog articles
   console.log('Seeding: Creating blog articles...');
   const blogArticles = generateBlogArticles(publicPermission, userIds[0] ?? '', imageIds[0] ?? '');
@@ -732,9 +736,6 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   await seedPushNotifications(payload, userIds);
 
   await seedJobs(payload);
-
-  console.log('Seeding: Creating Höfe...');
-  await seedHoefe(payload);
 
   console.log('Seeding: Seeding complete.');
 
