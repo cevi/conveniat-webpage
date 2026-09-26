@@ -72,6 +72,10 @@ import {
   HeroSectionBlock,
   type HeroSectionType,
 } from '@/features/payload-cms/components/content-blocks/hero-section';
+import {
+  PosterHeroBlock,
+  type PosterHeroType,
+} from '@/features/payload-cms/components/content-blocks/poster-hero';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -103,6 +107,7 @@ export type ContentBlockTypeNames =
   | 'tabsBlock'
   | 'featuredSection'
   | 'heroSection'
+  | 'posterHero'
   | 'mediaText'
   | 'processSteps'
   | 'sectionSeparator';
@@ -1050,6 +1055,32 @@ export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
       locale={locale}
     >
       <HeroSectionBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderPosterHero: SectionRenderer<PosterHeroType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Poster-Hero Block',
+          en: 'poster hero block',
+          fr: 'le bloc héros affiche',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <PosterHeroBlock {...block} />
     </SectionWrapper>
   );
 };
