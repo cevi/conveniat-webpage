@@ -9,6 +9,7 @@ import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
+import { getAppShortName } from '@/utils/get-app-short-name';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import config from '@payload-config';
 import type { Where } from 'payload';
@@ -242,7 +243,7 @@ export async function sendNotificationToSubscription(
   // push goes through - chat messages, announcements, emergency alerts and the CMS
   // test send alike.
   const bodyToSend = stripMarkdownFormatting(message);
-  const titleToSend = stripMarkdownFormatting(options?.title ?? 'conveniat27');
+  const titleToSend = stripMarkdownFormatting(options?.title ?? (await getAppShortName()));
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
