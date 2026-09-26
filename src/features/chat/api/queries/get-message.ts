@@ -8,8 +8,13 @@ export const getMessage = trpcBaseProcedure
   .input(z.object({ messageId: z.string() }))
   .query(async ({ ctx, input }) => {
     const { prisma } = ctx;
-    const message = await prisma.message.findUnique({
-      where: { uuid: input.messageId },
+    // Only messages of a chat the user belongs to, as in `getChatMessages`: anything else
+    // reads as a message that does not exist.
+    const message = await prisma.message.findFirst({
+      where: {
+        uuid: input.messageId,
+        chat: { chatMemberships: { some: { userId: ctx.user.uuid } } },
+      },
       include: {
         messageEvents: {
           where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },

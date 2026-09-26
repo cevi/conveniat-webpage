@@ -1,3 +1,4 @@
+import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatDetails } from '@/features/chat/api/types';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
@@ -41,10 +42,13 @@ export const getChat = trpcBaseProcedure
       },
     });
 
-    if (chat === null) {
+    // A chat the user is not a member of answers exactly like one that does not exist, as in
+    // `getChatMessages`: chat ids are not secret (a course hands out the id of its group chat
+    // to everyone), so the id alone must not unlock the participants and the last messages.
+    if (chat === null || !isUserMemberOfChat(user, chat.chatMemberships)) {
       throw new TRPCError({
         code: 'NOT_FOUND',
-        message: `Chat with ID ${chatId} not found`,
+        message: `Chat with ID ${chatId} not found or access denied`,
       });
     }
 
