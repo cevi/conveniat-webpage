@@ -200,6 +200,15 @@ that type and `i18nConfig` come from `@/types/types`.
 Style with Tailwind and combine classes with `cn()` from `@/lib/utils`. No template literals for
 class names. Icons come from `lucide-react` and nowhere else.
 
+The admin panel looks like Payload, because editors should not have to learn a second design.
+Wherever `@payloadcms/ui` has a piece for the job, use it: `Button`, `Pill`, `Banner`, `TextInput`,
+`FieldLabel`, `Gutter`, `ShimmerEffect`, `toast`, and its drawers and modals. Colour everything else
+with Payload's theme variables, like `text-(--theme-elevation-500)`, so dark mode follows. shadcn/ui
+belongs to the public site, not to `/admin`. Before you replace an edit view, try a `ui` field, a tab
+or `admin.position: 'sidebar'`. A replaced view loses the document controls, and delete with them.
+Tailwind is fine for layout, but a Payload class that is also a Tailwind utility, like `table`,
+gets the utility's styles instead.
+
 Components are Server Components until they need state, effects or browser APIs. Keep effect logic
 in a named hook instead of inlining `useEffect` in a component.
 
