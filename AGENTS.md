@@ -189,6 +189,11 @@ Server code never calls `console.log`, `info`, `debug` or `trace`, and ESLint bl
 `console.error` is not a way to make a debug line reach Loki. Three of them once produced 82% of a
 day's error volume and made the error rate meaningless.
 
+ESLint cannot tell a client file from a server one, so `no-console` covers all of `src`, and the
+browser files that need `console` are listed by name in `eslint.config.mjs`. Add a browser file
+there when it needs one. A server file on that list is the same mistake as widening an import
+boundary.
+
 No hardcoded user-facing strings. Declare a `StaticTranslationString` and index it by locale. Both
 that type and `i18nConfig` come from `@/types/types`.
 
