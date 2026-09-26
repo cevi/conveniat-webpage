@@ -139,7 +139,7 @@ export const hofFileExtensionOf = (filename: string): HofFileExtension | undefin
 /** The `accept` attribute of a file input, from the endings the server takes. */
 export const HOF_FILE_ACCEPT = HOF_FILE_EXTENSIONS.map((extension) => `.${extension}`).join(',');
 
-/** Which upload of a card is meant: the plan or the safety concept of one submission. */
+/** Keys an upload by its card and kind, since a card can upload its plan and its concept at once. */
 export const uploadKey = (submissionType: HofSubmissionType, kind: HofFileKind): string =>
   `${submissionType}:${kind}`;
 

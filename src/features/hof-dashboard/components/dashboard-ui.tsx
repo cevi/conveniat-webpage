@@ -36,11 +36,11 @@ export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
 export const PRIMARY_BUTTON_CLASS =
   'bg-conveniat-green inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-gray-100 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:h-4 [&_svg]:w-4';
 
-/** A secondary action, like an upload next to a file list. */
+/** A secondary action, in the same height as the primary one so rows line up. */
 export const SECONDARY_BUTTON_CLASS =
   'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:h-4 [&_svg]:w-4';
 
-/** A white card with the padding every part of the dashboard uses. */
+/** The card every part of the dashboard sits in, so their edges and padding match. */
 export const Panel: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className,
@@ -211,7 +211,7 @@ export const ContactBlock: React.FC<{
   </div>
 );
 
-/** A thin bar for the share of submissions handed in. */
+/** The share of submissions handed in, labelled for screen readers with its count. */
 export const ProgressBar: React.FC<{ percent: number; area: HofDashboardArea; label: string }> = ({
   percent,
   area,

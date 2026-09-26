@@ -49,15 +49,6 @@ const initialQuantities = (order: HofDashboardOrder): Record<string, string> =>
     order.items.map((item) => [item.id, item.quantity > 0 ? String(item.quantity) : '']),
   );
 
-/**
- * Whether the stored order changed after the Hof last saved it, by a reviewer in the admin.
- * The Hof's own save moves both times together, a few milliseconds apart.
- */
-const changedByRessort = (order: HofDashboardOrder): boolean =>
-  order.savedAt !== undefined &&
-  order.revision !== undefined &&
-  new Date(order.revision).getTime() - new Date(order.savedAt).getTime() > 5000;
-
 const storedValues = (order: HofDashboardOrder): OrderValues => ({
   quantities: Object.fromEntries(order.items.map((item) => [item.id, item.quantity])),
   powerConnection: order.powerConnection,
@@ -89,16 +80,16 @@ export const MaterialOrderForm: React.FC<{
   // the Hof typed something since. Adjusted while rendering, so the form is never remounted
   // and nothing flashes as unsaved in between.
   const [taken, setTaken] = useState(() => ({
-    revision: order.revision,
+    savedAt: order.savedAt,
     values: storedValues(order),
   }));
-  if (order.revision !== taken.revision) {
+  if (order.savedAt !== taken.savedAt) {
     const stored = storedValues(order);
     if (followsStoredOrder(shown, taken.values, stored)) {
       setQuantities(initialQuantities(order));
       setPowerConnection(order.powerConnection);
     }
-    setTaken({ revision: order.revision, values: stored });
+    setTaken({ savedAt: order.savedAt, values: stored });
   }
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
@@ -274,7 +265,6 @@ export const MaterialOrderForm: React.FC<{
                 {!dirty &&
                   order.savedAt !== undefined &&
                   translate('lastSaved', locale, { date: formatDate(order.savedAt, locale) })}
-                {!dirty && changedByRessort(order) && ` · ${translate('changedByRessort', locale)}`}
               </p>
               <button
                 type="submit"

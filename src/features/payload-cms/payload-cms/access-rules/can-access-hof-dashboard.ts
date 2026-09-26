@@ -2,7 +2,7 @@ import {
   hasAccessToThis,
   HOF_DASHBOARD_REVIEWER_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import type { Access, PayloadRequest } from 'payload';
+import type { Access, Payload, PayloadRequest } from 'payload';
 
 /**
  * The Cevi.DB role that opens a Hof's dashboard: the address administrator of the Ortsgruppe
@@ -34,6 +34,34 @@ export const getAdministeredGroupIds = (
   return [...groupIds];
 };
 
+/** A Hof by name, as the dashboard and the forms list it. */
+export interface HofName {
+  id: string;
+  name: string;
+}
+
+/** Most Höfe the camp has; far more than it will ever have. */
+const MAX_HOEFE = 1000;
+
+/** The Höfe of the given Cevi.DB groups, or every Hof without groups, sorted by name. */
+export const findHoefe = async (
+  payload: Pick<Payload, 'find'>,
+  groupIds?: readonly string[],
+): Promise<HofName[]> => {
+  const { docs } = await payload.find({
+    collection: 'hoefe',
+    ...(groupIds === undefined ? {} : { where: { groupId: { in: groupIds } } }),
+    depth: 0,
+    limit: MAX_HOEFE,
+    overrideAccess: true,
+    pagination: false,
+    select: { name: true },
+  });
+  return docs
+    .map((hof) => ({ id: hof.id, name: hof.name }))
+    .toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
+};
+
 /** Who reviews what the Höfe hand in and edits the dashboard's settings. */
 export const canReviewHofDashboard = ({ req }: { req: PayloadRequest }): boolean =>
   hasAccessToThis({ req, requiredRoles: HOF_DASHBOARD_REVIEWER_ROLES });
@@ -53,16 +81,7 @@ export const canReadHofFiles: Access = async ({ req }) => {
   const groupIds = getAdministeredGroupIds(user.groups);
   if (groupIds.length === 0) return false;
 
-  const { docs } = await req.payload.find({
-    collection: 'hoefe',
-    where: { groupId: { in: groupIds } },
-    depth: 0,
-    limit: groupIds.length,
-    pagination: false,
-    overrideAccess: true,
-    select: {},
-    req,
-  });
-  if (docs.length === 0) return false;
-  return { hof: { in: docs.map((hof) => hof.id) } };
+  const hoefe = await findHoefe(req.payload, groupIds);
+  if (hoefe.length === 0) return false;
+  return { hof: { in: hoefe.map((hof) => hof.id) } };
 };

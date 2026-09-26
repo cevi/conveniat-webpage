@@ -142,7 +142,6 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
   </Dialog>
 );
 
-/** Yes or no, as two toggle buttons of which the chosen one is filled. */
 const SafetyRiskChoice: React.FC<{
   value: 'yes' | 'no' | undefined;
   labelledBy: string;

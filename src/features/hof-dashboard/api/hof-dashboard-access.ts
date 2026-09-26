@@ -1,9 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
-  type AccessibleHof,
   isHofDashboardReviewer,
   listAccessibleHoefe,
 } from '@/features/hof-dashboard/api/accessible-hoefe';
+import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { middleware, trpcBaseProcedure } from '@/trpc/init';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
@@ -23,9 +23,9 @@ const hofDashboardEnabled = middleware(({ next }) => {
 export const hofDashboardProcedure = trpcBaseProcedure
   .use(hofDashboardEnabled)
   .use(({ ctx, next }) => {
-    const accessibleHoefe = async (): Promise<AccessibleHof[]> =>
+    const accessibleHoefe = async (): Promise<HofName[]> =>
       await listAccessibleHoefe(await getPayload({ config }), ctx.user);
-    const assertHofAccess = async (hofId: string): Promise<AccessibleHof> => {
+    const assertHofAccess = async (hofId: string): Promise<HofName> => {
       const hoefe = await accessibleHoefe();
       const hof = hoefe.find((candidate) => candidate.id === hofId);
       if (hof === undefined) throw new TRPCError({ code: 'FORBIDDEN' });

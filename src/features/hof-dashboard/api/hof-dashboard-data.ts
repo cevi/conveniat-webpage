@@ -60,13 +60,11 @@ export interface HofDashboardOrder {
   /** Lines the Hof ordered that are no longer on the list, kept as they were ordered. */
   retiredItems: { id: string; name: string; quantity: number }[];
   powerConnection: boolean;
-  /** When the Hof last saved it; a reviewer's edit in the admin does not count. */
-  savedAt: string | undefined;
   /**
-   * Changes whenever the stored order does, also through a reviewer's edit in the admin, so
-   * the form starts over from what is stored instead of keeping numbers that are no longer so.
+   * When the order was last stored, by the Hof or a reviewer; the form takes over what is
+   * stored when this moves.
    */
-  revision: string | undefined;
+  savedAt: string | undefined;
 }
 
 export interface HofDashboardDocument {
@@ -113,8 +111,8 @@ const idOf = (reference: string | { id: string } | null | undefined): string | u
 /**
  * The settings every dashboard shares, in the reader's language. The texts are only required
  * in German, and the site does not fall back on its own, so an untranslated text reads in
- * German instead of blank. Only the documents are populated; of the Stadtleben form the id is
- * enough.
+ * German instead of blank. The Stadtleben form comes trimmed to its title, since only its
+ * id is used.
  */
 export const getHofDashboardSettings = async (
   payload: Payload,
@@ -136,7 +134,6 @@ const toOrder = (
     | {
         items?: { itemId: string; name: string; quantity: number }[] | null;
         powerConnection?: boolean | null;
-        lastEditedAt?: string | null;
         updatedAt: string;
       }
     | undefined,
@@ -164,8 +161,7 @@ const toOrder = (
     items,
     retiredItems,
     powerConnection: stored?.powerConnection === true,
-    savedAt: stored?.lastEditedAt ?? undefined,
-    revision: stored?.updatedAt,
+    savedAt: stored?.updatedAt,
   };
 };
 

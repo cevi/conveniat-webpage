@@ -17,8 +17,8 @@ import type { PayloadRequest } from 'payload';
 
 /** Hof Nord is run by the Cevi.DB group 990001, Hof Süd by 990002. */
 const HOEFE = [
-  { id: 'hof-nord', groupId: '990001' },
-  { id: 'hof-sued', groupId: '990002' },
+  { id: 'hof-nord', name: 'Hof Nord', groupId: '990001' },
+  { id: 'hof-sued', name: 'Hof Süd', groupId: '990002' },
 ];
 
 const requestFor = (groups: { id: number; role_class: string }[]): PayloadRequest => {

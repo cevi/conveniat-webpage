@@ -226,11 +226,6 @@ export const text = {
   save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
   saving: { de: 'Wird gespeichert …', en: 'Saving …', fr: 'Enregistrement …' },
   saved: { de: 'Gespeichert', en: 'Saved', fr: 'Enregistré' },
-  changedByRessort: {
-    de: 'seither vom Ressort angepasst',
-    en: 'since adjusted by the Ressort',
-    fr: 'ajustée depuis par le Ressort',
-  },
   lastSaved: {
     de: 'Zuletzt gespeichert am {date}',
     en: 'Last saved on {date}',

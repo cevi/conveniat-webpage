@@ -259,7 +259,6 @@ export const updateHofMaterialOrder = async ({
     items: lines,
     powerConnection: orderType === 'stadtleben' && powerConnection,
     lastEditedBy: userId,
-    lastEditedAt: new Date().toISOString(),
   };
   const update = async (id: string): Promise<void> => {
     await payload.update({

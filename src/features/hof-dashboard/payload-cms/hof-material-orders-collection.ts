@@ -1,24 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
-import { hofTitle, hofTitleField } from '@/features/hof-dashboard/payload-cms/hof-title';
 import { orderTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { HofMaterialOrder } from '@/features/payload-cms/payload-types';
-import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload';
-
-const setTitle: CollectionBeforeChangeHook<HofMaterialOrder> = async ({
-  data,
-  originalDoc,
-  req,
-}) => {
-  const type = data.orderType ?? originalDoc?.orderType;
-  if (type === undefined) return data;
-  const title = await hofTitle(req, data.hof ?? originalDoc?.hof, HOF_ORDER_TYPE_LABELS[type].de);
-  if (title !== undefined) data.title = title;
-  return data;
-};
+import type { CollectionConfig } from 'payload';
 
 /**
  * The material a Hof orders, one entry per Hof and order. Each line keeps the id of the
@@ -33,9 +18,9 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
     plural: { de: 'Hof-Materialbestellungen', en: 'Hof material orders', fr: 'Commandes des Hofs' },
   },
   admin: {
-    useAsTitle: 'title',
+    useAsTitle: 'orderType',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
-    defaultColumns: ['title', 'lastEditedAt', 'lastEditedBy'],
+    defaultColumns: ['hof', 'orderType', 'updatedAt', 'lastEditedBy'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.',
@@ -51,9 +36,7 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
     delete: isFullAdmin,
   },
   indexes: [{ fields: ['hof', 'orderType'], unique: true }],
-  hooks: { beforeChange: [setTitle] },
   fields: [
-    hofTitleField,
     {
       type: 'row',
       fields: [
@@ -141,17 +124,6 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
         fr: 'Dernière modification par',
       },
       admin: { position: 'sidebar', readOnly: true },
-    },
-    {
-      // the Hof's own last save, which a title refresh or a reviewer's edit leaves alone
-      name: 'lastEditedAt',
-      type: 'date',
-      label: {
-        de: 'Zuletzt gespeichert vom Hof',
-        en: 'Last saved by the Hof',
-        fr: 'Dernier enregistrement par le Hof',
-      },
-      admin: { position: 'sidebar', readOnly: true, date: { pickerAppearance: 'dayAndTime' } },
     },
   ],
 };

@@ -10,7 +10,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import { AreaView } from '@/features/hof-dashboard/components/area-view';
-import { DashboardTabs, tabIds } from '@/features/hof-dashboard/components/dashboard-tabs';
+import { DashboardTabList } from '@/features/hof-dashboard/components/dashboard-tabs';
 import {
   Panel,
   PRIMARY_BUTTON_CLASS,
@@ -29,6 +29,7 @@ import {
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
 import { signIn, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
@@ -97,30 +98,19 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
   </Message>
 );
 
-const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale }> = ({
-  hofId,
-  active,
-  locale,
-}) => {
+const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
   const [tab, setTab] = useState<Tab>('overview');
   const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
   const clearScrollTarget = useCallback(() => setScrollTarget(undefined), []);
   const root = useRef<HTMLDivElement>(null);
-  const idPrefix = useId();
   useScrollToSubmission(root, scrollTarget, clearScrollTarget);
 
   const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
     { hofId },
-    // What the Ressorts write back should show without a reload, and nothing here works
-    // offline, so the dashboard stays out of the persisted cache: a returning user never
-    // renders yesterday's shape of it after a deploy.
-    // A Hof kept on the page but not shown does not refetch on every focus and reconnect.
     {
-      refetchOnMount: 'always',
-      // a reviewer's answer should reach the Hof within a look away, not after minutes
+      // a reviewer's answer should reach the Hof within a look away, not the app's minutes
       staleTime: 30_000,
-      refetchOnWindowFocus: active,
-      refetchOnReconnect: active,
+      // nothing here works offline, and yesterday's shape of it must not render after a deploy
       meta: { persist: false },
     },
   );
@@ -132,8 +122,6 @@ const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale
   }
   const data = dashboard.data;
 
-  // Every panel stays mounted and is only hidden, so what was typed into an order survives a
-  // look at another tab.
   const panels: Record<Tab, React.ReactNode> = {
     overview: (
       <OverviewView
@@ -167,37 +155,34 @@ const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale
   };
 
   return (
-    <div ref={root} className="space-y-6">
-      <DashboardTabs
-        tabs={TABS.map(({ id, label }) => ({ id, label: translate(label, locale) }))}
-        idPrefix={idPrefix}
-        selected={tab}
-        label={translate('hof', locale)}
-        onSelect={setTab}
-      />
-      {TABS.map(({ id }) => (
-        <div
-          key={id}
-          id={tabIds(idPrefix, id).panel}
-          role="tabpanel"
-          aria-labelledby={tabIds(idPrefix, id).tab}
-          hidden={id !== tab}
-        >
-          {panels[id]}
-        </div>
-      ))}
+    <div ref={root}>
+      <TabGroup
+        selectedIndex={TABS.findIndex(({ id }) => id === tab)}
+        onChange={(index) => setTab(TABS[index]?.id ?? 'overview')}
+        className="space-y-6"
+      >
+        <DashboardTabList
+          labels={TABS.map(({ label }) => translate(label, locale))}
+          label={translate('hof', locale)}
+        />
+        {/* kept mounted, so what was typed into an order survives a look at another tab */}
+        <TabPanels>
+          {TABS.map(({ id }) => (
+            <TabPanel key={id} unmount={false}>
+              {panels[id]}
+            </TabPanel>
+          ))}
+        </TabPanels>
+      </TabGroup>
     </div>
   );
 };
 
 const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const utils = trpc.useUtils();
   const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, {
     meta: { persist: false },
   });
   const [selectedHofId, setSelectedHofId] = useState<string>();
-  // every Hof opened so far stays on the page, hidden, so switching back keeps what was typed
-  const [openedHofIds, setOpenedHofIds] = useState<string[]>([]);
   const selectId = useId();
 
   if (hoefe.isLoading) return <LoadingState />;
@@ -226,15 +211,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           <label htmlFor={selectId} className="text-sm font-medium text-gray-600">
             {translate('hof', locale)}
           </label>
-          <Select
-            value={hof.id}
-            onValueChange={(hofId) => {
-              setOpenedHofIds((opened) => [...new Set([...opened, hof.id, hofId])]);
-              setSelectedHofId(hofId);
-              // a Hof shown again may have changed while it was hidden
-              void utils.hofDashboard.getHofDashboard.invalidate({ hofId });
-            }}
-          >
+          <Select value={hof.id} onValueChange={setSelectedHofId}>
             <SelectTrigger
               id={selectId}
               className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold focus-visible:ring-2 focus-visible:ring-green-600"
@@ -251,14 +228,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           </Select>
         </div>
       )}
-      {[...new Set([...openedHofIds, hof.id])]
-        // a Hof the user no longer administers leaves the page
-        .filter((hofId) => hoefe.data.some((candidate) => candidate.id === hofId))
-        .map((hofId) => (
-          <div key={hofId} hidden={hofId !== hof.id}>
-            <DashboardForHof hofId={hofId} active={hofId === hof.id} locale={locale} />
-          </div>
-        ))}
+      <DashboardForHof key={hof.id} hofId={hof.id} locale={locale} />
     </div>
   );
 };

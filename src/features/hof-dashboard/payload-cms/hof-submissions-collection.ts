@@ -1,6 +1,4 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { HOF_SUBMISSION_TYPE_LABELS } from '@/features/hof-dashboard/constants';
-import { hofTitle, hofTitleField } from '@/features/hof-dashboard/payload-cms/hof-title';
 import {
   safetyRiskOptions,
   submissionStatusOptions,
@@ -9,20 +7,7 @@ import {
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { HofSubmission } from '@/features/payload-cms/payload-types';
-import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload';
-
-const setTitle: CollectionBeforeChangeHook<HofSubmission> = async ({ data, originalDoc, req }) => {
-  const type = data.submissionType ?? originalDoc?.submissionType;
-  if (type === undefined) return data;
-  const title = await hofTitle(
-    req,
-    data.hof ?? originalDoc?.hof,
-    HOF_SUBMISSION_TYPE_LABELS[type].de,
-  );
-  if (title !== undefined) data.title = title;
-  return data;
-};
+import type { CollectionConfig } from 'payload';
 
 /**
  * One entry per Hof and kind of plan: what the Hof answered and where the Ressort stands with
@@ -39,9 +24,9 @@ export const HofSubmissionsCollection: CollectionConfig = {
     plural: { de: 'Hof-Abgaben', en: 'Hof submissions', fr: 'Dépôts des Hofs' },
   },
   admin: {
-    useAsTitle: 'title',
+    useAsTitle: 'submissionType',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
-    defaultColumns: ['title', 'status', 'elevatedSafetyRisk', 'updatedAt'],
+    defaultColumns: ['hof', 'submissionType', 'status', 'elevatedSafetyRisk', 'updatedAt'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'What the Höfe hand in on the Hof dashboard. Set the status and leave feedback here; the Hof sees both on its dashboard.',
@@ -58,9 +43,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
     delete: isFullAdmin,
   },
   indexes: [{ fields: ['hof', 'submissionType'], unique: true }],
-  hooks: { beforeChange: [setTitle] },
   fields: [
-    hofTitleField,
     {
       type: 'row',
       fields: [
@@ -140,7 +123,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
       // files come from the Hof's uploads only; the collection refuses create
       admin: {
         allowCreate: false,
-        defaultColumns: ['originalFilename', 'kind', 'uploadedBy', 'createdAt', 'openFile'],
+        defaultColumns: ['originalFilename', 'kind', 'uploadedBy', 'createdAt'],
       },
       label: { de: 'Dateien', en: 'Files', fr: 'Fichiers' },
     },

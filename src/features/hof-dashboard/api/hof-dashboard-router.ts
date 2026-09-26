@@ -12,6 +12,7 @@ import {
   HOF_ORDER_TYPES,
   HOF_SUBMISSION_TYPES,
 } from '@/features/hof-dashboard/constants';
+import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -29,20 +30,7 @@ export const hofDashboardRouter = createTRPCRouter({
    * Every Hof by name, for the Hof selection of a form. Names are public; nothing else of a
    * Hof leaves here. Not behind the dashboard's feature flag, since forms use it without it.
    */
-  getHofList: publicProcedure.query(async () => {
-    const payload = await getPayload({ config });
-    const { docs } = await payload.find({
-      collection: 'hoefe',
-      depth: 0,
-      limit: 1000,
-      overrideAccess: true,
-      pagination: false,
-      select: { name: true },
-    });
-    return docs
-      .map((hof) => ({ id: hof.id, name: hof.name }))
-      .toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
-  }),
+  getHofList: publicProcedure.query(async () => await findHoefe(await getPayload({ config }))),
 
   /** The Höfe whose dashboard the user may open. */
   getMyHofList: hofDashboardProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),

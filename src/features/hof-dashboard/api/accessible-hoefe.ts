@@ -1,4 +1,8 @@
-import { getAdministeredGroupIds } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import {
+  findHoefe,
+  getAdministeredGroupIds,
+  type HofName,
+} from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import {
   hasAccessToThisUser,
   HOF_DASHBOARD_REVIEWER_ROLES,
@@ -13,12 +17,6 @@ const logger = createLogger('hof-dashboard:access');
 export const isHofDashboardReviewer = (user: HitobitoNextAuthUser): boolean =>
   hasAccessToThisUser({ user, requiredRoles: HOF_DASHBOARD_REVIEWER_ROLES });
 
-/** A Hof the user may open, as the Hof selector lists it. */
-export interface AccessibleHof {
-  id: string;
-  name: string;
-}
-
 /**
  * The Höfe whose dashboard the user may open, sorted by name: every Hof for a reviewer, else
  * the Höfe of the Cevi.DB groups the user is address administrator of.
@@ -29,7 +27,7 @@ export interface AccessibleHof {
 export const listAccessibleHoefe = async (
   payload: Pick<Payload, 'find' | 'findByID'>,
   user: HitobitoNextAuthUser,
-): Promise<AccessibleHof[]> => {
+): Promise<HofName[]> => {
   let groupIds: string[] | undefined;
   if (!isHofDashboardReviewer(user)) {
     const payloadUser = await payload.findByID({
@@ -44,18 +42,7 @@ export const listAccessibleHoefe = async (
     if (groupIds.length === 0) return [];
   }
 
-  const { docs } = await payload.find({
-    collection: 'hoefe',
-    ...(groupIds === undefined ? {} : { where: { groupId: { in: groupIds } } }),
-    depth: 0,
-    limit: 1000,
-    overrideAccess: true,
-    pagination: false,
-    select: { name: true },
-  });
-  const hoefe = docs
-    .map((hof) => ({ id: hof.id, name: hof.name }))
-    .toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
+  const hoefe = await findHoefe(payload, groupIds);
 
   logger.debug('Resolved the Höfe of a Hof dashboard user', {
     'hof_dashboard.reviewer': groupIds === undefined,
