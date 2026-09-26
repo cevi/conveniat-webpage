@@ -4,8 +4,9 @@ import {
   shouldHideInAdminPanelIfNotAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { awaitMcpResponse } from '@/features/payload-cms/payload-cms/plugins/mcp/await-mcp-response';
 import { mcpPlugin } from '@payloadcms/plugin-mcp';
-import type { CollectionConfig, DefaultValue } from 'payload';
+import type { CollectionConfig, DefaultValue, Plugin } from 'payload';
 
 /**
  * An MCP API key is a bearer token that lets an external LLM client read and write
@@ -87,7 +88,7 @@ const userFieldDescription = {
  *
  * @see https://payloadcms.com/docs/plugins/mcp
  */
-export const mcpPluginConfiguration = mcpPlugin({
+const configuredMcpPlugin = mcpPlugin({
   collections: {
     'generic-page': {
       description:
@@ -178,3 +179,9 @@ export const mcpPluginConfiguration = mcpPlugin({
     },
   }),
 });
+
+/**
+ * The configured plugin, with its endpoint made to wait for the tool call so cache
+ * revalidation from content hooks is applied. See `awaitMcpResponse`.
+ */
+export const mcpPluginConfiguration: Plugin = awaitMcpResponse(configuredMcpPlugin);
