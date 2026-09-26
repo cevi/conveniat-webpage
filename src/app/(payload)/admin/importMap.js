@@ -33,6 +33,8 @@ import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/
 import { default as default_5c23d4f2c41ff08443297cc41aafe3d1 } from '@/features/payload-cms/payload-cms/components/live-preview-restorer'
 import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/payload-cms/payload-cms/components/auto-translate/auto-translate'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
+import { DocumentDownloadsField as DocumentDownloadsField_9005a834a54ba1652a3f047bde98f7eb } from '@/features/payload-cms/payload-cms/components/document-downloads'
+import { DocumentDownloadsCell as DocumentDownloadsCell_9005a834a54ba1652a3f047bde98f7eb } from '@/features/payload-cms/payload-cms/components/document-downloads'
 import { FolderTableCell as FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { FolderField as FolderField_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 import { default as default_1e95e18ff98032b69bda4bd8327a52ac } from '@/features/payload-cms/payload-cms/components/pdf-report-generator-ui'
@@ -156,6 +158,8 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/live-preview-restorer#default": default_5c23d4f2c41ff08443297cc41aafe3d1,
   "@/features/payload-cms/payload-cms/components/auto-translate/auto-translate#default": default_a13782f3ac0bcff5be1ba175a38107f2,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
+  "@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsField": DocumentDownloadsField_9005a834a54ba1652a3f047bde98f7eb,
+  "@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsCell": DocumentDownloadsCell_9005a834a54ba1652a3f047bde98f7eb,
   "@payloadcms/next/rsc#FolderTableCell": FolderTableCell_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@payloadcms/next/rsc#FolderField": FolderField_f9c02e79a4aed9a3924487c0cd4cafb1,
   "@/features/payload-cms/payload-cms/components/pdf-report-generator-ui#default": default_1e95e18ff98032b69bda4bd8327a52ac,

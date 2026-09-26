@@ -26,6 +26,7 @@ model User {
   presenceLogs         PresenceLog[]
   photoContestImages   PhotoContestImage[]
   photoContestVotes    PhotoContestVote[]
+  documentDownloads    DocumentDownload[]
 
   @@index([name])
 }
@@ -425,3 +426,19 @@ model PhotoContestVote {
   @@index([imageId])
 }
 
+/// one request for a file of the Payload `documents` collection
+model DocumentDownload {
+  id String @id @default(uuid(7))
+
+  /// id of the Payload document, which lives in MongoDB
+  documentId String
+
+  /// absent when the visitor was not logged in
+  userId String?
+  user   User?   @relation(fields: [userId], references: [uuid])
+
+  locale       String
+  downloadedAt DateTime @default(now())
+
+  @@index([documentId])
+}
