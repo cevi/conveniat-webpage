@@ -3996,33 +3996,61 @@ export interface AnnouncementChannel {
  */
 export interface Announcement {
   id: string;
-  publishingStatus?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  _localized_status: LocalizedPublishingStatus;
-  _disable_unpublishing?: boolean | null;
-  _locale: string;
-  title: string;
+  displayTitle?: string | null;
+  /**
+   * German is required. A language left empty is shown in another language in the app.
+   */
+  title: {
+    de: string;
+    fr?: string | null;
+    en?: string | null;
+  };
   content: {
-    root: {
-      type: string;
-      children: {
-        type: any;
+    de: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
         version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
+      };
+      [k: string]: unknown;
     };
-    [k: string]: unknown;
+    fr?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
+    en?: {
+      root: {
+        type: string;
+        children: {
+          type: any;
+          version: number;
+          [k: string]: unknown;
+        }[];
+        direction: ('ltr' | 'rtl') | null;
+        format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+        indent: number;
+        version: number;
+      };
+      [k: string]: unknown;
+    } | null;
   };
   /**
    * These images are sent along with the announcement into the chat.
@@ -6670,12 +6698,21 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
  * via the `definition` "announcements_select".
  */
 export interface AnnouncementsSelect<T extends boolean = true> {
-  publishingStatus?: T;
-  _localized_status?: T;
-  _disable_unpublishing?: T;
-  _locale?: T;
-  title?: T;
-  content?: T;
+  displayTitle?: T;
+  title?:
+    | T
+    | {
+        de?: T;
+        fr?: T;
+        en?: T;
+      };
+  content?:
+    | T
+    | {
+        de?: T;
+        fr?: T;
+        en?: T;
+      };
   images?: T;
   channel?: T;
   status?: T;

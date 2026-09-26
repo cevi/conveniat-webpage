@@ -164,6 +164,12 @@ export default async function AnnouncementPreviewPage({
       typeof image === 'object' && getRelativeImageUrl(image.sizes?.large?.url ?? image.url) !== '',
   );
 
+  // Preview the language the admin panel is set to; one the editor left empty shows German.
+  const previewLocale: Locale =
+    (announcement.title[validatedLocale] ?? '') === '' ? 'de' : validatedLocale;
+  const previewTitle = announcement.title[previewLocale];
+  const previewContent = announcement.content[previewLocale];
+
   const statusColors = {
     draft: 'bg-blue-100 text-blue-800 border-blue-200',
     scheduled: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -382,15 +388,18 @@ export default async function AnnouncementPreviewPage({
 
                     {/* Announcement Title */}
                     <h4 className="mb-2 text-sm leading-snug font-bold text-white">
-                      {announcement.title}
+                      {previewTitle}
                     </h4>
 
                     {/* Rich text body parsed through standard Lexical renderer */}
                     <div className="prose prose-invert prose-xs text-xs leading-relaxed text-slate-200">
-                      <LexicalRichTextSection
-                        richTextSection={announcement.content}
-                        locale={validatedLocale}
-                      />
+                      {/* Drafts skip validation, so the body may still be missing. */}
+                      {previewContent !== undefined && previewContent !== null && (
+                        <LexicalRichTextSection
+                          richTextSection={previewContent}
+                          locale={validatedLocale}
+                        />
+                      )}
                     </div>
 
                     {/* Timestamp & checkmarks */}

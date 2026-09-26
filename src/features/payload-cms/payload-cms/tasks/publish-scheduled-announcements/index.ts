@@ -47,11 +47,13 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
 
     const now = new Date();
 
-    // Query announcements where status is scheduled and scheduledAt is in the past/present
+    // Query announcements where status is scheduled and scheduledAt is in the past/present.
+    // Only published ones: an editor unpublishes a scheduled announcement to call it off.
     const scheduledAnnouncements = await payload.find({
       collection: 'announcements',
       where: {
         and: [
+          { _status: { equals: 'published' } },
           { status: { equals: 'scheduled' } },
           { scheduledAt: { less_than_equal: now.toISOString() } },
         ],
@@ -74,22 +76,14 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
         const channelValue = announcement.channel;
         const channelId = typeof channelValue === 'string' ? channelValue : '';
 
-        const announcementTitle = announcement.title;
+        const announcementTitle = announcement.displayTitle;
 
         logger.info(`Publishing scheduled announcement "${announcementTitle}"...`);
 
-        // 1. Fetch the announcement with all translations
-        const announcementAll = (await payload.findByID({
-          collection: 'announcements',
-          id: announcement.id,
-          locale: 'all',
-          draft: true,
-        })) as unknown as Record<string, unknown>;
-
-        // 2. Build the localized payload for all locales
         const localizedPayload = await buildAnnouncementMessagePayload({
           payload,
-          documentAll: announcementAll,
+          announcement,
+          imageReferences: announcement.images,
         });
 
         const { messageUuid, publishedAt } = await publishAnnouncementToPostgres(

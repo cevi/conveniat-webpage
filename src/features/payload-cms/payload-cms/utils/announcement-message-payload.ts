@@ -116,22 +116,19 @@ export const loadAnnouncementImages = async (
   return imagesPerLocale;
 };
 
+/**
+ * The per-language fields of an announcement. `title` and `content` are groups with one
+ * sub-field per locale, so they are keyed by locale just like a localized field would be.
+ */
+export interface AnnouncementTranslations {
+  title?: Partial<Record<string, string | null>> | null | undefined;
+  content?: Partial<Record<string, unknown>> | null | undefined;
+}
+
 interface BuildAnnouncementPayloadArguments {
   payload: Payload;
-  /** The announcement fetched with `locale: 'all'`, i.e. localized fields keyed by locale. */
-  documentAll?: Record<string, unknown> | undefined;
-  /**
-   * The not-yet-persisted values of the locale currently being saved. They take precedence
-   * over `documentAll`, which still holds the previously stored version of that locale.
-   */
-  override?:
-    | {
-        locale: string;
-        title?: string | undefined;
-        content?: unknown;
-      }
-    | undefined;
-  /** The raw `images` field value, taken from the incoming data when it is present. */
+  announcement: AnnouncementTranslations;
+  /** The raw value of the announcement's `images` field. */
   imageReferences?: unknown;
 }
 
@@ -140,30 +137,23 @@ interface BuildAnnouncementPayloadArguments {
  *
  * The result is stored verbatim as the message content in PostgreSQL and is what the chat
  * renders, so every locale carries the plain-text rendition of the rich text as well as
- * the attached images.
+ * the attached images. A language the editor left empty is left out, and the chat falls
+ * back to another one.
  */
 export const buildAnnouncementMessagePayload = async ({
   payload,
-  documentAll,
-  override,
+  announcement,
   imageReferences,
 }: BuildAnnouncementPayloadArguments): Promise<AnnouncementMessagePayload> => {
-  const images = await loadAnnouncementImages(payload, imageReferences ?? documentAll?.['images']);
-
-  const documentTitle = documentAll?.['title'] as Record<string, string> | undefined;
-  const documentContent = documentAll?.['content'] as Record<string, unknown> | undefined;
+  const images = await loadAnnouncementImages(payload, imageReferences);
 
   const localizedPayload: AnnouncementMessagePayload = {};
   for (const locale of ANNOUNCEMENT_LOCALES) {
-    const isOverriddenLocale = override?.locale === locale;
-    const title =
-      (isOverriddenLocale ? override.title : undefined) ?? documentTitle?.[locale] ?? '';
-    const content =
-      (isOverriddenLocale ? override.content : undefined) ?? documentContent?.[locale];
+    const title = announcement.title?.[locale] ?? '';
+    const formattedContent = getLexicalText(announcement.content?.[locale]);
 
-    if (title === '' && content === undefined) continue;
+    if (title === '' && formattedContent === '') continue;
 
-    const formattedContent = getLexicalText(content);
     const localeImages = images[locale];
     localizedPayload[locale] = {
       text: `*${title}*\n\n${formattedContent}`,
