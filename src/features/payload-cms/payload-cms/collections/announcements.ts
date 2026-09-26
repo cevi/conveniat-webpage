@@ -401,6 +401,18 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
   },
   fields: [
     {
+      name: 'pushSummary',
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/announcement-push-summary#AnnouncementPushSummaryField',
+        },
+        disableListColumn: true,
+      },
+    },
+    {
       name: 'title',
       label: {
         en: 'Title',
@@ -505,6 +517,7 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
       type: 'date',
       admin: {
         readOnly: true,
+        position: 'sidebar',
         date: {
           pickerAppearance: 'dayAndTime',
           timeIntervals: 5,
@@ -527,7 +540,11 @@ export const AnnouncementsCollection: CollectionConfig = asLocalizedCollection({
     },
     {
       name: 'chatMessageUuid',
-      label: 'Linked Message UUID (PostgreSQL)',
+      label: {
+        en: 'Chat message ID',
+        de: 'Chat-Nachrichten-ID',
+        fr: 'ID du message de chat',
+      },
       type: 'text',
       admin: {
         readOnly: true,
