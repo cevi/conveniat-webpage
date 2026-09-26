@@ -3,7 +3,7 @@ import type {
   SerializedEditorState,
   SerializedLexicalNode,
 } from '@payloadcms/richtext-lexical/lexical';
-import type { BasePayload } from 'payload';
+import type { BasePayload, CollectionSlug } from 'payload';
 
 interface LinkNode extends SerializedLexicalNode {
   fields?: {
@@ -65,6 +65,10 @@ export async function resolveRichTextLinks(
           collection: documentInfo.relationTo as never,
           id: documentInfo.value,
           depth: 1,
+          // A direct read ignores `defaultPopulate`, and the resolved rich text reaches the
+          // client through the map router. Select what Payload would have populated.
+          select: payload.collections[documentInfo.relationTo as CollectionSlug].config
+            .defaultPopulate as never,
           locale,
           fallbackLocale: false,
         });

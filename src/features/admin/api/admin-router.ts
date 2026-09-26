@@ -158,7 +158,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   // Support Chats
-  listSupportChats: trpcBaseProcedure
+  listSupportChats: adminProcedure
     .input(
       z
         .object({

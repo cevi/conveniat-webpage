@@ -5,6 +5,7 @@
 const mapConstructor = jest.fn();
 const removeMock = jest.fn();
 const addControlMock = jest.fn();
+const setWorkerUrlMock = jest.fn();
 
 jest.mock('maplibre-gl', () => ({
   Map: jest.fn().mockImplementation((options: unknown) => {
@@ -12,6 +13,9 @@ jest.mock('maplibre-gl', () => ({
     return { addControl: addControlMock, remove: removeMock };
   }),
   AttributionControl: jest.fn().mockImplementation(() => ({})),
+  setWorkerUrl: (url: string): void => {
+    setWorkerUrlMock(url);
+  },
 }));
 
 import { useMapInitialization } from '@/features/map/hooks/use-map-initialization';
@@ -46,6 +50,15 @@ describe('useMapInitialization', () => {
     expect(result.current.initializationFailed).toBe(false);
     expect(result.current.map).toBeDefined();
     expect(addControlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('points MapLibre at the self-hosted worker before creating the map', () => {
+    renderHook(() => useMapInitialization(container, options));
+
+    expect(setWorkerUrlMock).toHaveBeenCalledWith('/maplibre-gl-worker.js');
+    expect(setWorkerUrlMock.mock.invocationCallOrder[0]).toBeLessThan(
+      mapConstructor.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it('reports failure instead of throwing when no WebGL context is available', () => {

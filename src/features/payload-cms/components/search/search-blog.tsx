@@ -1,8 +1,8 @@
 import SearchOnlyBlogsClient from '@/features/payload-cms/components/search/search-blog-client';
-import type { Permission, SearchCollection } from '@/features/payload-cms/payload-types';
+import { toPermittedSearchResults } from '@/features/payload-cms/components/search/search-results';
+import type { SearchCollection } from '@/features/payload-cms/payload-types';
 import type { SearchParameters } from '@/types/types';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { hasPermissions } from '@/utils/has-permissions';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -74,20 +74,17 @@ const SearchOnlyBlog: React.FC<{ searchParameters: SearchParameters }> = async (
       },
     });
 
-    const blogsPermissions = await Promise.all(
-      blogs.docs.map((permissionBlog) =>
-        hasPermissions(permissionBlog.content.permissions as Permission),
-      ),
+    const searchResults = await toPermittedSearchResults(
+      blogs,
+      (document) => document.content.blogH1,
     );
-    const permittedBlogs = blogs.docs.filter((_, index) => blogsPermissions[index] ?? false);
 
     return (
       <SearchOnlyBlogsClient
         locale={locale}
         searchQuery={searchQuery}
         page={page}
-        permittedBlogs={permittedBlogs}
-        blogs={blogs}
+        searchResults={searchResults}
       />
     );
   });

@@ -368,8 +368,17 @@ export const formPluginConfiguration = formBuilderPlugin({
         handler: resendFormSubmissionEmailsHandler,
       },
     ],
+    // A form block on a page populates its form, and the page hands it to the client
+    // FormBlock, so every field listed here ends up in the public HTML. Keep it to what
+    // the form renderer reads. The mail settings, workflows and the submissions join
+    // stay on the server; code that needs them reads the form directly.
     defaultPopulate: {
-      versions: false,
+      _localized_status: true,
+      sections: true,
+      submitButtonLabel: true,
+      confirmationType: true,
+      confirmationMessage: true,
+      redirect: true,
     },
     admin: {
       group: AdminPanelDashboardGroups.WebpageContent.label,

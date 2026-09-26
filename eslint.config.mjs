@@ -365,6 +365,7 @@ const config = defineConfig([
     // service worker
     'public/sw.js',
     'public/sw.js.map',
+    'public/maplibre-gl-worker.js',
     'serwist.config.js',
   ]),
 ]);

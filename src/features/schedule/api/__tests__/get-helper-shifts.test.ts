@@ -247,9 +247,7 @@ describe('getHelperShifts', () => {
 
       const [shift] = await getHelperShifts({}, 'de');
 
-      expect(shift?.organiser).toEqual([
-        { id: 'org-1', fullName: 'Otto Organisator', email: 'otto@example.test' },
-      ]);
+      expect(shift?.organiser).toEqual([{ id: 'org-1', fullName: 'Otto Organisator' }]);
     });
 
     /**
@@ -284,7 +282,6 @@ describe('getHelperShifts', () => {
           id: 'org-1',
           fullName: 'Otto Organisator',
           nickname: 'Otti',
-          email: 'otto@example.test',
         },
       ]);
     });
@@ -326,7 +323,7 @@ describe('getHelperShifts', () => {
 
       const [shift] = await getHelperShifts({}, 'de');
 
-      expect(shift?.organiser).toEqual([{ id: 'org-1', fullName: 'Otto', email: 'o@e.te' }]);
+      expect(shift?.organiser).toEqual([{ id: 'org-1', fullName: 'Otto' }]);
     });
   });
 });

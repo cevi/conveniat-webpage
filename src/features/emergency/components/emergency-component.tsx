@@ -3,6 +3,7 @@
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { ParagraphText } from '@/components/ui/typography/paragraph-text';
+import type { EmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
@@ -172,7 +173,9 @@ export const EmergencyComponent: React.FC = () => {
     };
   }, [status]);
 
-  const cards: EmergencyCard[] = React.useMemo(
+  // A browser may restore a query cache persisted before the procedure returned DTOs, which
+  // still holds the raw Payload card, unpopulated ids included.
+  const cards: (EmergencyCardDto | EmergencyCard)[] = React.useMemo(
     () => emergencyCards ?? directEmergencyCards ?? [],
     [emergencyCards, directEmergencyCards],
   );
@@ -404,10 +407,7 @@ export const EmergencyComponent: React.FC = () => {
                   {alert.documents.map((documentOrId) => {
                     if (typeof documentOrId === 'string') return;
                     const title = (documentOrId.title ?? '').trim();
-                    const displayName =
-                      title === ''
-                        ? documentOrId.internalDescription || documentOrId.filename || 'Document'
-                        : title;
+                    const displayName = title === '' ? documentOrId.filename || 'Document' : title;
                     return (
                       <a
                         key={documentOrId.id}

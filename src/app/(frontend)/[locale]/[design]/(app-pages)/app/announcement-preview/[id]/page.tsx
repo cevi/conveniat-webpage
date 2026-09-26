@@ -12,9 +12,11 @@ import type {
   Image as ImageDocument,
 } from '@/features/payload-cms/payload-types';
 import configPromise from '@/features/payload-cms/payload.config';
-import type { Locale } from '@/types/types';
+import { canAccessPreviewOfCurrentPage } from '@/features/payload-cms/utils/preview/preview-utils';
+import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
+import { createLogger } from '@/utils/server-logger';
 
 import {
   AlertCircle,
@@ -30,6 +32,8 @@ import ImageNode from 'next/image';
 import { notFound } from 'next/navigation';
 import { getPayload } from 'payload';
 import React from 'react';
+
+const logger = createLogger('announcements:preview');
 
 const translations = {
   previewTitle: {
@@ -105,13 +109,27 @@ interface PageProperties {
     locale: Locale;
     design: string;
   }>;
+  searchParams: Promise<SearchParameters>;
 }
 
 export default async function AnnouncementPreviewPage({
   params,
+  searchParams,
 }: PageProperties): Promise<React.JSX.Element> {
   if (await forceDynamicOnBuild()) {
     return <></>;
+  }
+
+  // The app route group is served to anonymous visitors, and this page reads drafts, so it
+  // needs the same gate as every other preview: `?preview=true` and either a valid preview
+  // token or an editor session.
+  const searchParameters = await searchParams;
+  const previewParameter = searchParameters['preview'];
+  const isPreviewRequested =
+    previewParameter === 'true' ||
+    (Array.isArray(previewParameter) && previewParameter[0] === 'true');
+  if (!isPreviewRequested || !(await canAccessPreviewOfCurrentPage(searchParameters))) {
+    notFound();
   }
 
   const { id, locale } = await params;
@@ -124,11 +142,16 @@ export default async function AnnouncementPreviewPage({
     announcement = await payload.findByID({
       collection: 'announcements',
       id,
-      depth: 2,
+      // Populates the channel and the images; nothing below reads a deeper relationship.
+      depth: 1,
       draft: true, // Fetch drafts or autosaved edits to power the live preview
     });
   } catch (error) {
-    console.error('Failed to load announcement for live preview:', error);
+    // A deleted or mistyped id lands here too, so this is not worth an error.
+    logger.warn('Failed to load an announcement for the live preview', {
+      error,
+      'announcement.id': id,
+    });
   }
 
   if (announcement === undefined) {
@@ -157,7 +180,7 @@ export default async function AnnouncementPreviewPage({
       .join(', ')}`;
   }
 
-  // `depth: 2` populates the upload relationship, but an unsaved draft may still carry
+  // `depth: 1` populates the upload relationship, but an unsaved draft may still carry
   // plain ids, and an upload that failed has no file - neither can be rendered.
   const attachedImages = (announcement.images ?? []).filter(
     (image): image is ImageDocument =>

@@ -25,7 +25,6 @@ export interface HelperShiftOrganiser {
    * from a persisted query cache written before this field existed simply has no value here.
    */
   nickname?: string | null | undefined;
-  email: string;
 }
 
 export interface HelperShiftFrontendType {
@@ -61,7 +60,7 @@ const toOrganisers = (organiser: HelperShift['organiser']): HelperShiftOrganiser
   (organiser ?? []).flatMap((entry) =>
     typeof entry === 'string'
       ? []
-      : [{ id: entry.id, fullName: entry.fullName, nickname: entry.nickname, email: entry.email }],
+      : [{ id: entry.id, fullName: entry.fullName, nickname: entry.nickname }],
   );
 
 const getHelperShiftsCached = async (
