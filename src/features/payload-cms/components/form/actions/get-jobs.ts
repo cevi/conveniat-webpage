@@ -5,12 +5,24 @@ import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
-// JobWithQuota extends the generated HelperJob type
-export interface JobWithQuota extends HelperJob {
+/**
+ * What the helper form shows of a job, and nothing more.
+ *
+ * `getJobs` is a server action, so anyone can call it without logging in. A helper job joins its
+ * form submissions, and returning the whole document handed every caller the registrations,
+ * approval tokens and delivery reports of everyone who signed up. Keep this list to fields that
+ * are safe to publish.
+ */
+export type JobWithQuota = Pick<
+  HelperJob,
+  'id' | 'title' | 'description' | 'category' | 'dateRange'
+> & {
   availableQuota?: number | undefined;
-  category: HelperJob['category'];
-}
+};
 
+/**
+ * Lists the published helper jobs of one phase for the helper form, with the spots still free.
+ */
 export const getJobs = async (
   dateRangeCategory: 'setup' | 'main' | 'teardown',
   locale: Locale,
@@ -36,7 +48,14 @@ export const getJobs = async (
     where,
     locale,
     limit: 1000,
-    depth: 1,
+    depth: 0,
+    select: {
+      title: true,
+      description: true,
+      category: true,
+      dateRange: true,
+      maxQuota: true,
+    },
   });
 
   const jobsWithQuota = await Promise.all(
@@ -55,8 +74,13 @@ export const getJobs = async (
         availableQuota = Math.max(0, job.maxQuota - currentSubmissionsCount.totalDocs);
       }
 
+      // built field by field, so a field added to the query later is not published by accident
       return {
-        ...job,
+        id: job.id,
+        title: job.title,
+        description: job.description,
+        category: job.category,
+        dateRange: job.dateRange,
         availableQuota,
       };
     }),
