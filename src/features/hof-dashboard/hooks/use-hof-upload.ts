@@ -99,37 +99,38 @@ export const useHofUpload = (
     kind: HofFileKind,
   ): Promise<void> => {
     const typesText = HOF_FILE_EXTENSIONS.join(', ');
+    // the cheap checks first; reading the file is the one that can fail on its own
     const extension = hofFileExtensionOf(file.name);
-    const head = await readHead(file);
-    if (head === undefined) {
-      notifyFailure(locale, 'uploadFailed');
-      return;
-    }
     if (extension === undefined) {
       toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
-      return;
-    }
-    if (!startsLike(head, extension)) {
-      toast.error(translate('fileContentMismatch', locale, { type: extension.toUpperCase() }));
       return;
     }
     if (file.size > HOF_FILE_MAX_BYTES) {
       toast.error(translate('fileTooLarge', locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) }));
       return;
     }
+    const head = await readHead(file);
+    if (head === undefined) {
+      notifyFailure(locale, 'uploadFailed');
+      return;
+    }
+    if (!startsLike(head, extension)) {
+      toast.error(translate('fileContentMismatch', locale, { type: extension.toUpperCase() }));
+      return;
+    }
 
     const key = uploadKey(submissionType, kind);
     const request = new XMLHttpRequest();
     // an XHR not yet opened ignores abort(), so a cancel before the transfer starts is kept here
-    let cancelled = false;
+    const state = { cancelled: false };
     const cancel = (): void => {
-      cancelled = true;
+      state.cancelled = true;
       request.abort();
       // the card goes back to its button at once, not when the next step notices
       track(key);
     };
     const stopIfCancelled = (): void => {
-      if (cancelled) throw new UploadCancelled();
+      if (state.cancelled) throw new UploadCancelled();
     };
     track(key, { filename: file.name, percent: 0, cancel });
     try {
@@ -160,7 +161,8 @@ export const useHofUpload = (
         notifyFailure(locale, 'uploadFailed');
       }
     } finally {
-      track(key);
+      // a cancelled upload already left the card, which may by now hold the next one
+      if (!state.cancelled) track(key);
     }
   };
 

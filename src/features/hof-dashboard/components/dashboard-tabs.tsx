@@ -1,11 +1,10 @@
 'use client';
 
+import { useScrollEdges } from '@/features/hof-dashboard/hooks/use-scroll-edges';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type React from 'react';
 import { useRef } from 'react';
-
-import { useScrollEdges } from '@/features/hof-dashboard/hooks/use-scroll-edges';
 
 /**
  * The id of a tab's button and of its panel, so each can name the other. `prefix` keeps them

@@ -97,7 +97,11 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
   </Message>
 );
 
-const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
+const DashboardForHof: React.FC<{ hofId: string; active: boolean; locale: Locale }> = ({
+  hofId,
+  active,
+  locale,
+}) => {
   const [tab, setTab] = useState<Tab>('overview');
   const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
   const clearScrollTarget = useCallback(() => setScrollTarget(undefined), []);
@@ -110,7 +114,13 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
     // What the Ressorts write back should show without a reload, and nothing here works
     // offline, so the dashboard stays out of the persisted cache: a returning user never
     // renders yesterday's shape of it after a deploy.
-    { refetchOnMount: 'always', meta: { persist: false } },
+    // A Hof kept on the page but not shown does not refetch on every focus and reconnect.
+    {
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: active,
+      refetchOnReconnect: active,
+      meta: { persist: false },
+    },
   );
   const progress = useProgress(dashboard.data);
 
@@ -142,7 +152,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
       <div className="space-y-6">
         {[data.orders.infrastructure, data.orders.stadtleben].map((order) => (
           <MaterialOrderForm
-            key={`${order.type}-${order.savedAt ?? 'new'}`}
+            key={`${order.type}-${order.revision ?? 'new'}`}
             hofId={data.hof.id}
             order={order}
             canPassDeadline={data.canPassDeadlines}
@@ -185,6 +195,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
   const [selectedHofId, setSelectedHofId] = useState<string>();
   // every Hof opened so far stays on the page, hidden, so switching back keeps what was typed
   const [openedHofIds, setOpenedHofIds] = useState<string[]>([]);
+  const selectId = useId();
 
   if (hoefe.isLoading) return <LoadingState />;
   if (hoefe.data === undefined) {
@@ -209,7 +220,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
         <div className="space-y-1">
           {/* the select shows the name; the heading keeps the outline of the page intact */}
           <h2 className="sr-only">{hof.name}</h2>
-          <label htmlFor="hof-dashboard-hof" className="text-sm font-medium text-gray-600">
+          <label htmlFor={selectId} className="text-sm font-medium text-gray-600">
             {translate('hof', locale)}
           </label>
           <Select
@@ -220,7 +231,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
             }}
           >
             <SelectTrigger
-              id="hof-dashboard-hof"
+              id={selectId}
               className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold"
             >
               <SelectValue />
@@ -235,11 +246,14 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           </Select>
         </div>
       )}
-      {[...new Set([...openedHofIds, hof.id])].map((hofId) => (
-        <div key={hofId} hidden={hofId !== hof.id}>
-          <DashboardForHof hofId={hofId} locale={locale} />
-        </div>
-      ))}
+      {[...new Set([...openedHofIds, hof.id])]
+        // a Hof the user no longer administers leaves the page
+        .filter((hofId) => hoefe.data.some((candidate) => candidate.id === hofId))
+        .map((hofId) => (
+          <div key={hofId} hidden={hofId !== hof.id}>
+            <DashboardForHof hofId={hofId} active={hofId === hof.id} locale={locale} />
+          </div>
+        ))}
     </div>
   );
 };

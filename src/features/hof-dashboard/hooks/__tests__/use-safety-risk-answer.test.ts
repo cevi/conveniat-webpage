@@ -14,6 +14,12 @@ jest.mock('@/trpc/client', () => ({
 }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn() } }));
 
+/** How many other answers of the Hof are still on their way. */
+const mockPending = { count: 0 };
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: (): { isMutating: () => number } => ({ isMutating: () => mockPending.count }),
+}));
+
 interface Cached {
   submissions: { type: string; elevatedSafetyRisk?: 'yes' | 'no' }[];
 }
@@ -22,10 +28,17 @@ interface Options {
     previous: Cached | undefined;
   }>;
   onError: (error: unknown, answer: unknown, context: { previous: Cached | undefined }) => void;
+  onSettled: (data: unknown, error: unknown, answer: unknown) => Promise<void>;
 }
 
 /** The dashboard as the query cache holds it, and the options the hook gave the mutation. */
-const setUp = (): { cache: { data: Cached | undefined }; options: () => Options } => {
+const setUp = (): {
+  cache: { data: Cached | undefined };
+  options: () => Options;
+  invalidate: jest.Mock;
+} => {
+  mockPending.count = 0;
+  const invalidate = jest.fn();
   const cache: { data: Cached | undefined } = {
     data: { submissions: [{ type: 'hofBuildings' }, { type: 'flagpole' }] },
   };
@@ -33,7 +46,7 @@ const setUp = (): { cache: { data: Cached | undefined }; options: () => Options 
     hofDashboard: {
       getHofDashboard: {
         cancel: jest.fn(),
-        invalidate: jest.fn(),
+        invalidate,
         getData: () => cache.data,
         setData: (_input: unknown, update: Cached | ((current: Cached | undefined) => Cached)) => {
           cache.data = typeof update === 'function' ? update(cache.data) : update;
@@ -46,9 +59,10 @@ const setUp = (): { cache: { data: Cached | undefined }; options: () => Options 
     .mockReturnValue({ mutate: jest.fn() } as never);
   renderHook(() => useSafetyRiskAnswer('hof-nord', 'de'));
   const options = (): Options =>
-    jest.mocked(trpc.hofDashboard.updateSafetyRisk.useMutation).mock
-      .calls[0]?.[0] as unknown as Options;
-  return { cache, options };
+    jest
+      .mocked(trpc.hofDashboard.updateSafetyRisk.useMutation)
+      .mock.calls.at(-1)?.[0] as unknown as Options;
+  return { cache, options, invalidate };
 };
 
 describe('useSafetyRiskAnswer', () => {
@@ -69,8 +83,20 @@ describe('useSafetyRiskAnswer', () => {
     expect(cache.data?.submissions[0]?.elevatedSafetyRisk).toBeUndefined();
   });
 
-  it('sends the answers of one Hof one after the other', () => {
-    const { options } = setUp();
-    expect(options()).toMatchObject({ scope: { id: 'hof-safety-risk-hof-nord' } });
+  it('neither reloads nor puts an answer back while a later one is on its way', async () => {
+    const { cache, options, invalidate } = setUp();
+    const first = await options().onMutate({
+      submissionType: 'hofBuildings',
+      elevatedSafetyRisk: 'yes',
+    });
+    await options().onMutate({ submissionType: 'hofBuildings', elevatedSafetyRisk: 'no' });
+    mockPending.count = 1;
+
+    const answer = { hofId: 'hof-nord', submissionType: 'hofBuildings', elevatedSafetyRisk: 'yes' };
+    options().onError(new Error('offline'), answer, first);
+    await options().onSettled({}, new Error('offline'), answer);
+
+    expect(cache.data?.submissions[0]?.elevatedSafetyRisk).toBe('no');
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });

@@ -229,9 +229,9 @@ export const SubmissionCard: React.FC<{
       className="scroll-mt-24 space-y-4 p-5 outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-inset @xl:p-6"
     >
       <header className="space-y-1">
-        <h4 id={titleId} className="text-base font-bold text-gray-900">
+        <h3 id={titleId} className="text-base font-bold text-gray-900">
           {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
-        </h4>
+        </h3>
         <ProgressLine progress={progress} status={submission.status} locale={locale} />
       </header>
 

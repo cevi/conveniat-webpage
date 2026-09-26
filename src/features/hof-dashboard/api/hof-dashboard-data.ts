@@ -63,6 +63,11 @@ export interface HofDashboardOrder {
   powerConnection: boolean;
   /** When the Hof last saved it; a reviewer's edit in the admin does not count. */
   savedAt: string | undefined;
+  /**
+   * Changes whenever the stored order does, also through a reviewer's edit in the admin, so
+   * the form starts over from what is stored instead of keeping numbers that are no longer so.
+   */
+  revision: string | undefined;
 }
 
 export interface HofDashboardDocument {
@@ -161,8 +166,8 @@ const toOrder = (
     items,
     retiredItems,
     powerConnection: stored?.powerConnection === true,
-    // orders saved before the Hof's own save time was kept fall back to their last change
-    savedAt: stored?.lastEditedAt ?? stored?.updatedAt,
+    savedAt: stored?.lastEditedAt ?? undefined,
+    revision: stored?.updatedAt,
   };
 };
 
