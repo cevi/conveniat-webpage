@@ -4709,6 +4709,12 @@ export interface PayloadMcpApiKey {
      */
     update?: boolean | null;
   };
+  'payload-mcp-tool'?: {
+    /**
+     * Lets the client put drafts live and take documents offline, one locale at a time. Without it, everything the client writes waits as a draft for an editor.
+     */
+    setPublishingStatus?: boolean | null;
+  };
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -7621,6 +7627,11 @@ export interface PayloadMcpApiKeysSelect<T extends boolean = true> {
         find?: T;
         create?: T;
         update?: T;
+      };
+  'payload-mcp-tool'?:
+    | T
+    | {
+        setPublishingStatus?: T;
       };
   updatedAt?: T;
   createdAt?: T;

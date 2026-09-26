@@ -5,9 +5,13 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { awaitMcpResponse } from '@/features/payload-cms/payload-cms/plugins/mcp/await-mcp-response';
+import {
+  createPublishingTool,
+  PUBLISHING_TOOL_NAME,
+} from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-publishing-tool';
 import { mcpWritesDraftsOnly } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-writes-drafts-only';
 import { mcpPlugin } from '@payloadcms/plugin-mcp';
-import type { CollectionConfig, DefaultValue, Plugin } from 'payload';
+import type { CollectionConfig, DefaultValue, Field, Plugin } from 'payload';
 
 /**
  * An MCP API key is a bearer token that lets an external LLM client read and write
@@ -74,6 +78,50 @@ const userFieldDescription = {
     'Par défaut, vous-même.',
 };
 
+const publishingToggleLabel = {
+  en: 'Publish and unpublish',
+  de: 'Veröffentlichen und unveröffentlichen',
+  fr: 'Publier et dépublier',
+};
+
+const publishingToggleDescription = {
+  en:
+    'Lets the client put drafts live and take documents offline, one locale at a time. ' +
+    'Without it, everything the client writes waits as a draft for an editor.',
+  de:
+    'Erlaubt dem Client, Entwürfe live zu schalten und Dokumente offline zu nehmen, je ' +
+    'Sprache einzeln. Ohne diese Berechtigung bleibt alles, was der Client schreibt, ein ' +
+    'Entwurf, bis eine redaktionelle Person es veröffentlicht.',
+  fr:
+    'Permet au client de mettre des brouillons en ligne et de retirer des documents, ' +
+    "langue par langue. Sans cette capacité, tout ce que le client écrit reste un brouillon jusqu'à " +
+    "ce qu'une personne de la rédaction le publie.",
+};
+
+/**
+ * The plugin adds one checkbox per custom tool and ticks it by default, which would hand
+ * publishing to every existing key on deploy. Untick it and give it a readable label.
+ *
+ * The checkbox sits inside a collapsible holding the `payload-mcp-tool` group, hence the walk.
+ */
+const publishingToggleOffByDefault = (field: Field): Field => {
+  if (field.type === 'collapsible' || field.type === 'group') {
+    return {
+      ...field,
+      fields: field.fields.map((child) => publishingToggleOffByDefault(child)),
+    };
+  }
+  if (field.type === 'checkbox' && field.name === PUBLISHING_TOOL_NAME) {
+    return {
+      ...field,
+      defaultValue: false,
+      label: publishingToggleLabel,
+      admin: { ...field.admin, description: publishingToggleDescription },
+    };
+  }
+  return field;
+};
+
 /**
  * Configuration for the Payload CMS MCP plugin.
  *
@@ -87,6 +135,9 @@ const userFieldDescription = {
  * client is irreversible and cannot be reviewed like a draft can. Flip the flag here if
  * that is ever wanted; the per-key toggles only appear for capabilities enabled here.
  *
+ * On top of that, `setPublishingStatus` publishes and unpublishes documents of these
+ * collections (see `createPublishingTool`). It is off per key until an admin ticks it.
+ *
  * @see https://payloadcms.com/docs/plugins/mcp
  */
 const configuredMcpPlugin = mcpPlugin({
@@ -94,8 +145,8 @@ const configuredMcpPlugin = mcpPlugin({
     'generic-page': {
       description:
         'Generic content pages of the conveniat27 website. Localized (de/fr/en) and ' +
-        'versioned with drafts: created or updated documents stay unpublished until an ' +
-        'editor publishes them in the admin panel. The page content lives in the ' +
+        'versioned with drafts: created or updated documents stay unpublished until they ' +
+        'are published. The page content lives in the ' +
         '`content` blocks field.',
       enabled: {
         create: true,
@@ -120,9 +171,9 @@ const configuredMcpPlugin = mcpPlugin({
       description:
         'Helper jobs (Helfendenjobs) that people can sign up for through the helper ' +
         'registration forms: title, description, ressort, date range, quota and ' +
-        'prerequisites. Title, description and prerequisites are localized (de/fr/en). ' +
-        'Not draft-enabled: created or updated jobs are live immediately. Does not ' +
-        'expose who signed up.',
+        'prerequisites. Title, description and prerequisites are localized (de/fr/en) and ' +
+        'versioned with drafts: created or updated jobs stay unpublished until they are ' +
+        'published. Does not expose who signed up.',
       enabled: {
         create: true,
         delete: false,
@@ -132,12 +183,15 @@ const configuredMcpPlugin = mcpPlugin({
     },
   },
   mcp: {
+    tools: [createPublishingTool(['generic-page', 'forms', 'helper-jobs'])],
     serverOptions: {
       instructions:
         'This server exposes the content of the conveniat27 website (a Payload CMS). ' +
         'Content is localized: pass an explicit `locale` (de, fr or en) when reading or ' +
-        'writing, otherwise the default locale (de) is used. Pages are draft-enabled — ' +
-        'changes need to be published by an editor before they go live.',
+        'writing, otherwise the default locale (de) is used. Every collection is ' +
+        'draft-enabled: creates and updates are saved as drafts and need to be published ' +
+        `before they go live, either by an editor or, if this key allows it, with the ` +
+        `\`${PUBLISHING_TOOL_NAME}\` tool.`,
       serverInfo: {
         name: 'conveniat27 CMS',
         version: '1.0.0',
@@ -183,7 +237,7 @@ const configuredMcpPlugin = mcpPlugin({
             admin: { description: userFieldDescription },
             defaultValue: defaultToCurrentUser,
           }
-        : field,
+        : publishingToggleOffByDefault(field),
     ),
     access: {
       read: isFullAdmin,
