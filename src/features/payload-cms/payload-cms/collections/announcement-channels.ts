@@ -22,6 +22,7 @@ const ROLE_GROUP_IDS = {
   [Roles.WebCoreTeam]: environmentVariables.CEVIDB_GROUP_WEB_CORE_TEAM,
   [Roles.TranslationTeam]: environmentVariables.CEVIDB_GROUP_TRANSLATION_TEAM,
   [Roles.ProgramTeam]: environmentVariables.CEVIDB_GROUP_PROGRAM_TEAM,
+  [Roles.MaterialTeam]: environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM,
 };
 
 const syncAnnouncementChannelMemberships = async (

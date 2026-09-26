@@ -4,6 +4,7 @@
 - web core team: can create collection entries
 - translation team: can read and update collection entries, but not create or delete
 - program team: only allowed users (field allowsEditsByUser on some collections)
+- material team: runs the material depot in the app (/app/material)
 */
 
 import { environmentVariables } from '@/config/environment-variables';
@@ -13,6 +14,7 @@ const CEVIDB_GROUP_FULL_ADMIN = environmentVariables.CEVIDB_GROUP_FULL_ADMIN;
 const CEVIDB_GROUP_WEB_CORE_TEAM = environmentVariables.CEVIDB_GROUP_WEB_CORE_TEAM;
 const CEVIDB_GROUP_TRANSLATION_TEAM = environmentVariables.CEVIDB_GROUP_TRANSLATION_TEAM;
 const CEVIDB_GROUP_PROGRAM_TEAM = environmentVariables.CEVIDB_GROUP_PROGRAM_TEAM;
+const CEVIDB_GROUP_MATERIAL_TEAM = environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM;
 
 // create enum for roles
 export enum Roles {
@@ -20,6 +22,7 @@ export enum Roles {
   WebCoreTeam = 'web-core-team',
   TranslationTeam = 'translation-team',
   ProgramTeam = 'program-team',
+  MaterialTeam = 'material-team',
 }
 
 /**
@@ -105,6 +108,12 @@ export const hasAccessToThisUser: ({
   ) {
     return true;
   }
+  if (
+    requiredRoles.includes(Roles.MaterialTeam) &&
+    userGroupIds.some((id) => CEVIDB_GROUP_MATERIAL_TEAM.includes(id))
+  ) {
+    return true;
+  }
 
   return false;
 };
@@ -134,6 +143,12 @@ export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean =
     requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
   });
 };
+/**
+ * Who runs the material depot in the app: the material team and the full admins. Checked on
+ * the tRPC side with the session user; the team needs no admin panel login for it.
+ */
+export const MATERIAL_DEPOT_ROLES: Roles[] = [Roles.FullAdmin, Roles.MaterialTeam];
+
 export const hasAccessToThisHelper = ({
   requiredRoles,
 }: {
