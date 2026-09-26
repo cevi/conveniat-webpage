@@ -63,10 +63,12 @@ export const AppShell: React.FC<AppShellProperties> = ({
                 )}
 
                 {/* Main Content Area */}
+                {/* --app-header-height is the height of the fixed header above, for anything
+                    that sticks right below it */}
                 <div
                   className={cn(
-                    'wco-content-wrapper mt-[62px] h-[calc(100dvh-62px)]',
-                    !isTopNavMode && 'xl:ml-[480px]',
+                    'wco-content-wrapper mt-[62px] h-[calc(100dvh-62px)] [--app-header-height:60px]',
+                    isTopNavMode ? 'xl:[--app-header-height:4rem]' : 'xl:ml-[480px]',
                   )}
                 >
                   <main className="flex min-h-full flex-col justify-between">

@@ -43,9 +43,9 @@ export const MaterialNav: React.FC = () => {
   return (
     <nav
       aria-label={labels.sections[locale]}
-      // on a phone the app's round logo hangs below its 60 px header; the tabs start under it,
-      // also while they stick
-      className="sticky top-[60px] z-30 -mx-4 border-b border-gray-200 bg-gray-50/95 px-4 pt-8 pb-2 backdrop-blur xl:top-16 xl:pt-2"
+      // sticks right below whichever header the design shows; on a phone the app's round logo
+      // hangs below that header, so the tabs start under it, also while they stick
+      className="sticky top-(--app-header-height) z-30 -mx-4 border-b border-gray-200 bg-gray-50 px-4 pt-8 pb-2 xl:pt-2"
     >
       {role === undefined ? (
         // holds the room until the role is known, so the page does not jump
