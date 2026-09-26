@@ -310,125 +310,96 @@ const ITEMS: SeedItem[] = [
   },
 ];
 
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
+const DAY = 24 * 60 * 60 * 1000;
+
+type SeedHof = 'Hof Nord' | 'Hof Ost' | 'Hof Süd' | 'Hof West';
 
 interface SeedLoan {
   code: string;
   quantity: number;
   status: MaterialLoanStatus;
-  /** days relative to now */
+  /** days relative to now; `HOURS` turns hours into days */
   start: number;
   end: number;
-  person?: boolean;
+  /** the Hof it is booked on; a person's loan may have one or not */
+  hof?: SeedHof;
+  /** booked on one of the seeded people, by position */
+  person?: number;
   consumption?: boolean;
-  announced?: boolean;
   returned?: { quantity: number; condition: 'OK' | 'LIGHT_DAMAGE' | 'DAMAGED'; note?: string };
 }
 
+/** An hour, in the days `SeedLoan` counts in. */
+const HOURS = 1 / 24;
+
 /**
- * A camp in full swing: some material out, some overdue, requests waiting for the material
- * team and a few returns with damage, so every view has something to show. The loans go to
- * the seeded Höfe in turn.
+ * A camp in full swing, so every screen of the counter has something to show: pickups the
+ * material team prepared for today and later, material out that is due today or overdue with
+ * Höfe and with people, some of them without a Hof, and a few returns with damage.
  */
 const LOANS: SeedLoan[] = [
-  { code: 'JS-ZTUCH', quantity: 60, status: 'ISSUED', start: -5, end: 4 },
-  { code: 'JS-WOLL', quantity: 40, status: 'ISSUED', start: -5, end: 4 },
+  // out, Hof Nord: what the participants of Hof Nord see on their card
+  { code: 'JS-ZTUCH', quantity: 60, status: 'ISSUED', start: -5, end: 4, hof: 'Hof Nord' },
+  { code: 'JS-WOLL', quantity: 40, status: 'ISSUED', start: -5, end: 4, hof: 'Hof Nord' },
+  { code: 'JS-BINDE', quantity: 40, status: 'ISSUED', start: -4, end: 3, hof: 'Hof Nord' },
+  { code: 'WA-SCHAUF', quantity: 6, status: 'ISSUED', start: -2, end: 2 * HOURS, hof: 'Hof Nord' },
+  // due today and overdue
+  { code: 'JS-SILVA', quantity: 12, status: 'ISSUED', start: -3, end: -0.5, hof: 'Hof Süd' },
+  { code: 'JS-RECTA', quantity: 10, status: 'ISSUED', start: -2, end: -1, hof: 'Hof Süd' },
+  { code: 'WA-VORSCHL', quantity: 2, status: 'ISSUED', start: -1, end: HOURS, hof: 'Hof Süd' },
+  { code: 'JS-ZTUCH', quantity: 80, status: 'ISSUED', start: -5, end: 5, hof: 'Hof Ost' },
+  { code: 'JS-ZTASCHE', quantity: 20, status: 'ISSUED', start: -5, end: 5, hof: 'Hof Ost' },
+  { code: 'WA-SAEGE', quantity: 4, status: 'ISSUED', start: -2, end: -1.5, hof: 'Hof Ost' },
+  { code: 'JS-BEACH', quantity: 3, status: 'ISSUED', start: -1, end: 3 * HOURS, hof: 'Hof West' },
+  // out on people, with and without a Hof
   {
     code: 'JS-BEIL',
     quantity: 2,
     status: 'ISSUED',
     start: -3,
-    end: 0.3,
-    person: true,
+    end: 2 * HOURS,
+    hof: 'Hof Ost',
+    person: 0,
   },
-  { code: 'JS-RECTA', quantity: 10, status: 'ISSUED', start: -2, end: -1 },
-  { code: 'JS-SILVA', quantity: 12, status: 'ISSUED', start: -3, end: -0.5 },
-  { code: 'JS-BINDE', quantity: 40, status: 'ISSUED', start: -4, end: 3 },
+  { code: 'JS-FUSS', quantity: 4, status: 'ISSUED', start: -1, end: 1, person: 1 },
+  { code: 'JS-BEACH', quantity: 3, status: 'ISSUED', start: -1, end: -0.3, person: 2 },
+  // prepared for a pickup today
+  { code: 'JS-BADM', quantity: 8, status: 'RESERVED', start: -HOURS, end: 1.3, hof: 'Hof Nord' },
+  { code: 'JS-NETZ', quantity: 2, status: 'RESERVED', start: -HOURS, end: 1.3, hof: 'Hof Nord' },
+  { code: 'WA-PFAHL', quantity: 40, status: 'RESERVED', start: 0, end: 2, hof: 'Hof West' },
+  { code: 'WA-FAEHN', quantity: 30, status: 'RESERVED', start: 0, end: 2, hof: 'Hof West' },
   {
-    code: 'JS-BEACH',
-    quantity: 3,
-    status: 'ISSUED',
-    start: -1,
-    end: 2,
-    person: true,
-  },
-  {
-    code: 'JS-BEACH',
-    quantity: 3,
-    status: 'ISSUED',
-    start: -1,
-    end: 0.2,
-    announced: true,
-  },
-  { code: 'WA-SCHAUF', quantity: 6, status: 'ISSUED', start: -2, end: 1 },
-  { code: 'WA-VORSCHL', quantity: 2, status: 'ISSUED', start: -1, end: 0.4 },
-  { code: 'JS-ZTUCH', quantity: 80, status: 'ISSUED', start: -5, end: 5 },
-  { code: 'JS-ZTASCHE', quantity: 20, status: 'ISSUED', start: -5, end: 5 },
-  { code: 'WA-SAEGE', quantity: 4, status: 'ISSUED', start: -2, end: -1.5 },
-  {
-    code: 'JS-FUSS',
-    quantity: 4,
-    status: 'ISSUED',
-    start: -1,
+    code: 'VM-OHR',
+    quantity: 50,
+    status: 'RESERVED',
+    start: 0,
     end: 1,
-    person: true,
+    hof: 'Hof West',
+    consumption: true,
   },
-  { code: 'JS-BADM', quantity: 8, status: 'RESERVED', start: 0.3, end: 1.3 },
-  { code: 'JS-NETZ', quantity: 2, status: 'RESERVED', start: 0.3, end: 1.3 },
-  { code: 'JS-BEACH', quantity: 4, status: 'RESERVED', start: 2, end: 3 },
-  { code: 'JS-WOLL', quantity: 60, status: 'RESERVED', start: 1, end: 6 },
-  { code: 'JS-ZTUCH', quantity: 100, status: 'RESERVED', start: 1, end: 6 },
-  { code: 'WA-PFAHL', quantity: 40, status: 'RESERVED', start: 0.5, end: 2 },
+  { code: 'JS-HAND', quantity: 3, status: 'RESERVED', start: -HOURS, end: 1, hof: 'Hof Süd' },
+  { code: 'JS-SPATEN', quantity: 4, status: 'RESERVED', start: 0, end: 1, person: 3 },
+  // prepared for later days
+  { code: 'JS-WOLL', quantity: 60, status: 'RESERVED', start: 1, end: 6, hof: 'Hof Süd' },
+  { code: 'JS-ZTUCH', quantity: 100, status: 'RESERVED', start: 1, end: 6, hof: 'Hof West' },
+  { code: 'JS-BEACH', quantity: 4, status: 'RESERVED', start: 2, end: 3, hof: 'Hof Ost' },
   {
     code: 'JS-PICKEL',
     quantity: 5,
     status: 'RESERVED',
     start: 3,
     end: 4,
-    person: true,
+    hof: 'Hof Nord',
+    person: 4,
   },
-  {
-    code: 'JS-SPATEN',
-    quantity: 4,
-    status: 'REQUESTED',
-    start: 1,
-    end: 2,
-    person: true,
-  },
-  { code: 'JS-HAND', quantity: 3, status: 'REQUESTED', start: 1, end: 1.5 },
-  { code: 'WA-FAEHN', quantity: 30, status: 'REQUESTED', start: 2, end: 3 },
-  { code: 'JS-BLITZ', quantity: 3, status: 'REQUESTED', start: 0.5, end: 1 },
-  {
-    code: 'WA-PAMIR',
-    quantity: 4,
-    status: 'REQUESTED',
-    start: 1,
-    end: 2,
-    person: true,
-  },
-  {
-    code: 'VM-ABSP',
-    quantity: 4,
-    status: 'REQUESTED',
-    start: 1,
-    end: 1,
-    consumption: true,
-  },
-  {
-    code: 'VM-OHR',
-    quantity: 50,
-    status: 'RESERVED',
-    start: 0.5,
-    end: 0.5,
-    consumption: true,
-  },
+  // done
   {
     code: 'VM-KLEBE',
     quantity: 6,
     status: 'CONSUMED',
     start: -3,
     end: -3,
+    hof: 'Hof Ost',
     consumption: true,
   },
   {
@@ -437,6 +408,7 @@ const LOANS: SeedLoan[] = [
     status: 'CONSUMED',
     start: -2,
     end: -2,
+    hof: 'Hof Süd',
     consumption: true,
   },
   {
@@ -445,6 +417,7 @@ const LOANS: SeedLoan[] = [
     status: 'RETURNED',
     start: -6,
     end: -2,
+    hof: 'Hof West',
     returned: { quantity: 20, condition: 'OK' },
   },
   {
@@ -453,6 +426,7 @@ const LOANS: SeedLoan[] = [
     status: 'RETURNED',
     start: -6,
     end: -3,
+    hof: 'Hof Süd',
     returned: { quantity: 30, condition: 'DAMAGED', note: 'Zwei Tücher mit Brandlöchern.' },
   },
   {
@@ -461,14 +435,14 @@ const LOANS: SeedLoan[] = [
     status: 'RETURNED',
     start: -4,
     end: -2,
-    person: true,
+    person: 5,
     returned: {
       quantity: 2,
       condition: 'LIGHT_DAMAGE',
       note: 'Ein Ball verloren, einer mit wenig Luft.',
     },
   },
-  { code: 'JS-BINDE', quantity: 30, status: 'CANCELLED', start: 1, end: 3 },
+  { code: 'JS-BINDE', quantity: 30, status: 'CANCELLED', start: 1, end: 3, hof: 'Hof Ost' },
 ];
 
 /**
@@ -526,7 +500,7 @@ const seedHofRegistrations = async (
 
 /**
  * Seeds the material depot: the catalogue from the conveniat27 material list and a mix of
- * loans on the seeded Höfe, which have to exist already. Wipes the material tables first, so
+ * loans on the seeded Höfe, which have to exist already, and on the seeded people. Wipes the material tables first, so
  * it can run again on its own.
  */
 export const seedMaterial = async (payload: Payload, userIds: string[]): Promise<void> => {
@@ -589,9 +563,13 @@ export const seedMaterial = async (payload: Payload, userIds: string[]): Promise
     return;
   }
 
+  const hofIds = new Map(hoefe.map((hof) => [hof.name, hof.id]));
   const now = Date.now();
-  for (const [index, loan] of LOANS.entries()) {
-    const person = loan.person === true ? people[index % people.length] : undefined;
+  for (const loan of LOANS) {
+    const person = loan.person === undefined ? undefined : people[loan.person % people.length];
+    const hofId = loan.hof === undefined ? undefined : hofIds.get(loan.hof);
+    // every loan has a Hof or a person; skip one whose Hof was not seeded
+    if (person === undefined && hofId === undefined) continue;
     const startDate = new Date(now + loan.start * DAY);
     const endDate = new Date(now + loan.end * DAY);
     const handedOut = ['ISSUED', 'RETURNED', 'CONSUMED'].includes(loan.status);
@@ -600,7 +578,7 @@ export const seedMaterial = async (payload: Payload, userIds: string[]): Promise
       data: {
         itemId: itemIds.get(loan.code) ?? '',
         quantity: loan.quantity,
-        hofId: hoefe[index % hoefe.length]?.id ?? '',
+        hofId: hofId ?? null,
         personId: person?.uuid ?? null,
         responsibleName: person?.name ?? faker.person.fullName(),
         comment: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }) ?? null,
@@ -610,7 +588,6 @@ export const seedMaterial = async (payload: Payload, userIds: string[]): Promise
         status: loan.status,
         issuedQuantity: handedOut ? loan.quantity : null,
         issuedAt: handedOut ? startDate : null,
-        returnAnnouncedAt: loan.announced === true ? new Date(now - HOUR) : null,
         returnedQuantity: loan.returned?.quantity ?? null,
         returnedAt: loan.returned ? endDate : null,
         returnCondition: loan.returned?.condition ?? null,

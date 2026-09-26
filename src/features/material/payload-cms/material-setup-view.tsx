@@ -17,9 +17,9 @@ const title: StaticTranslationString = {
 };
 
 const intro: StaticTranslationString = {
-  de: 'Hier wird das Materialdepot einmal eingerichtet: Kategorien und der erste Katalog. Alles, was im Lager passiert – reservieren, ausgeben, zurücknehmen, Schäden, Bestand und neue Artikel – erledigt das Materialteam in der App.',
-  en: 'This is where the material depot is set up once: categories and the first catalogue. Everything that happens at the depot – reserving, handing out, taking back, damage, stock and new items – the material team does in the app.',
-  fr: 'Ici, le dépôt de matériel est configuré une fois : catégories et premier catalogue. Tout ce qui se passe au dépôt – réserver, remettre, reprendre, dégâts, stock et nouveaux articles – l’équipe matériel le fait dans l’app.',
+  de: 'Hier wird das Materialdepot einmal eingerichtet: Kategorien und der erste Katalog. Alles, was im Lager passiert – vorbereiten, ausgeben, zurücknehmen, Schäden, Bestand und neue Artikel – erledigt das Materialteam in der App.',
+  en: 'This is where the material depot is set up once: categories and the first catalogue. Everything that happens at the depot – preparing, handing out, taking back, damage, stock and new items – the material team does in the app.',
+  fr: 'Ici, le dépôt de matériel est configuré une fois : catégories et premier catalogue. Tout ce qui se passe au dépôt – préparer, remettre, reprendre, dégâts, stock et nouveaux articles – l’équipe matériel le fait dans l’app.',
 };
 
 const openApp: StaticTranslationString = {
@@ -59,9 +59,9 @@ const openHoefe: StaticTranslationString = {
 };
 
 const hoefeSource: StaticTranslationString = {
-  de: 'Die Höfe kommen aus dem Cevi.DB-Abgleich («Anlässe automatisch aus Cevi.DB laden» unter Höfe). Leitende eines Hofs und alle, die für seine Anlässe angemeldet sind, sehen seine Ausleihen und können für ihn reservieren.',
-  en: 'The Hofs come from the Cevi.DB sync (“Load events automatically from Cevi.DB” under Hofs). The leaders of a Hof and everyone registered for its events see its loans and can book for it.',
-  fr: 'Les Hofs viennent de la synchronisation Cevi.DB (« Charger les événements automatiquement depuis Cevi.DB » sous Hofs). Les responsables d’un Hof et toutes les personnes inscrites à ses événements voient ses prêts et peuvent réserver pour lui.',
+  de: 'Die Höfe kommen aus dem Cevi.DB-Abgleich («Anlässe automatisch aus Cevi.DB laden» unter Höfe). Leitende eines Hofs und alle, die für seine Anlässe angemeldet sind, sehen in der App, was ihr Hof ausgeliehen hat. Ausgeben und vorbereiten kann nur das Materialteam, am Depot.',
+  en: 'The Hofs come from the Cevi.DB sync (“Load events automatically from Cevi.DB” under Hofs). The leaders of a Hof and everyone registered for its events see in the app what their Hof has borrowed. Only the material team hands out and prepares material, at the depot.',
+  fr: 'Les Hofs viennent de la synchronisation Cevi.DB (« Charger les événements automatiquement depuis Cevi.DB » sous Hofs). Les responsables d’un Hof et toutes les personnes inscrites à ses événements voient dans l’app ce que leur Hof a emprunté. Seule l’équipe matériel remet et prépare le matériel, au dépôt.',
 };
 
 const disabledWarning: StaticTranslationString = {
@@ -120,7 +120,7 @@ export default async function MaterialSetupView({
           <dt className="font-semibold">{itemsLabel[locale]}</dt>
           <dd>
             {itemCount} ·{' '}
-            <a className="underline" href="/app/material/team" target="_blank" rel="noreferrer">
+            <a className="underline" href="/app/material" target="_blank" rel="noreferrer">
               {openApp[locale]}
             </a>
           </dd>

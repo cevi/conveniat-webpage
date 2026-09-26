@@ -1,21 +1,18 @@
 /* eslint-disable unicorn/no-null */
-import {
-  isMaterialTeam,
-  materialProcedure,
-  materialTeamProcedure,
-} from '@/features/material/api/material-access';
-import { listHoefe } from '@/features/material/api/material-hoefe';
+import { materialTeamProcedure } from '@/features/material/api/material-access';
+import { hofExists } from '@/features/material/api/material-hoefe';
 import {
   assertAvailable,
   getInDepotQuantity,
   lockItem,
+  lockItems,
   materialError,
-  visibleLoansWhere,
-  type MaterialPrisma,
 } from '@/features/material/api/material-shared';
-import type { MaterialCondition, MaterialLoanStatus, Prisma } from '@/lib/prisma/client';
+import { mergeBasketLines } from '@/features/material/utils/basket';
+import { holderKey, holderOf } from '@/features/material/utils/holders';
+import { isReturnValid } from '@/features/material/utils/returns';
+import type { MaterialCondition, MaterialItem, Prisma } from '@/lib/prisma/client';
 import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
-import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
@@ -32,24 +29,22 @@ const photoKeySchema = z
   .regex(/^material-incidents\/[\w-]+\.(jpg|jpeg|png|webp|heic|heif)$/)
   .optional();
 
-const PENDING = new Set<MaterialLoanStatus>(['REQUESTED', 'RESERVED']);
+const MAX_QUANTITY = 100_000;
+const quantitySchema = z.number().int().min(1).max(MAX_QUANTITY);
+
+/** A basket is what one Hof takes over the counter, not the whole catalogue. */
+const MAX_LINES = 100;
 
 const minDate = (a: Date, b: Date): Date => new Date(Math.min(a.getTime(), b.getTime()));
 
-/**
- * Finds a loan the user may act on, `visible` being what `visibleLoansWhere` allows them;
- * the material team may act on every loan.
- */
-const findOwnLoan = async (
-  prisma: Prisma.TransactionClient,
+type LoanWithItem = Prisma.MaterialLoanGetPayload<{ include: { item: true } }>;
+
+const findLoan = async (
+  tx: Prisma.TransactionClient,
   id: string,
-  visible: Prisma.MaterialLoanWhereInput,
   locale: Locale,
-): Promise<Prisma.MaterialLoanGetPayload<{ include: { item: true } }>> => {
-  const loan = await prisma.materialLoan.findFirst({
-    where: { AND: [{ id }, visible] },
-    include: { item: true },
-  });
+): Promise<LoanWithItem> => {
+  const loan = await tx.materialLoan.findUnique({ where: { id }, include: { item: true } });
   if (!loan) throw materialError('NOT_FOUND', 'loanNotFound', locale);
   return loan;
 };
@@ -61,335 +56,240 @@ const findOwnLoan = async (
 const lockLoan = async (
   tx: Prisma.TransactionClient,
   id: string,
-  visible: Prisma.MaterialLoanWhereInput,
   locale: Locale,
-): Promise<Prisma.MaterialLoanGetPayload<{ include: { item: true } }>> => {
-  const { itemId } = await findOwnLoan(tx, id, visible, locale);
+): Promise<LoanWithItem> => {
+  const { itemId } = await findLoan(tx, id, locale);
   await lockItem(tx, itemId);
-  return await findOwnLoan(tx, id, visible, locale);
+  return await findLoan(tx, id, locale);
 };
 
-const MAX_QUANTITY = 100_000;
-const quantitySchema = z.number().int().min(1).max(MAX_QUANTITY);
-
-const findPerson = async (
-  prisma: Prisma.TransactionClient,
-  personId: string | null | undefined,
-  locale: Locale,
-): Promise<void> => {
-  if (personId === null || personId === undefined) return;
-  const person = await prisma.user.findUnique({
-    where: { uuid: personId },
-    select: { uuid: true },
-  });
-  if (!person) throw materialError('BAD_REQUEST', 'personNotFound', locale);
-};
-
-/** Open requests one participant may have waiting, so nobody can hold the catalogue. */
-const MAX_OPEN_REQUESTS = 20;
+/** One article going out now or being prepared, as a new loan or a prepared one changed. */
+interface Booking {
+  item: MaterialItem;
+  quantity: number;
+  isConsumption: boolean;
+  mode: 'ISSUE' | 'RESERVE';
+  startDate: Date;
+  endDate: Date;
+  /** the prepared loan this booking changes, which the stock is checked without */
+  loanId?: string;
+}
 
 /**
- * A participant books for a Hof they lead or are registered for, and for themselves as a
- * person. Only the material team books on behalf of anyone else.
+ * Checks a booking against the article's rules and stock: free for the whole period, and for
+ * a hand-out also physically on the shelf, since a promised piece may have been damaged or
+ * lost since. Call it under the article's lock.
  */
-const assertMayBookFor = (
-  user: HitobitoNextAuthUser,
-  hofId: string,
-  personId: string | null,
-  myHofIds: string[],
-  locale: Locale,
-): void => {
-  if (!myHofIds.includes(hofId)) throw materialError('FORBIDDEN', 'notOwnHof', locale);
-  if (personId !== null && personId !== user.uuid) {
-    throw materialError('FORBIDDEN', 'notSelf', locale);
-  }
-};
-
-/** The Hof lives in Payload, so no foreign key checks that it exists. */
-const findHof = async (hofId: string, locale: Locale): Promise<void> => {
-  const hoefe = await listHoefe();
-  if (!hoefe.some((hof) => hof.id === hofId)) {
-    throw materialError('NOT_FOUND', 'hofNotFound', locale);
-  }
-};
-
-export const createLoan = materialProcedure
-  .input(
-    z.object({
-      itemId: z.string(),
-      quantity: quantitySchema,
-      startDate: z.date(),
-      endDate: z.date(),
-      hofId: z.string(),
-      personId: z.string().nullable(),
-      responsibleName: z.string().trim().min(1).max(200),
-      comment: z.string().trim().max(1000).optional(),
-      isConsumption: z.boolean().default(false),
-      /** material team only: hand the material out right away, at the counter */
-      issueNow: z.boolean().default(false),
-    }),
-  )
-  .mutation(async ({ ctx, input }) => {
-    const team = isMaterialTeam(ctx.user);
-    // the Höfe come from Payload, read before the transaction rather than under its lock
-    await findHof(input.hofId, ctx.locale);
-    if (!team) {
-      assertMayBookFor(ctx.user, input.hofId, input.personId, await ctx.myHofIds(), ctx.locale);
-    }
-
-    return await ctx.prisma.$transaction(async (tx) => {
-      await lockItem(tx, input.itemId);
-      const item = await tx.materialItem.findUnique({ where: { id: input.itemId } });
-      if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
-      if (!team && !item.isReservable) {
-        throw materialError('BAD_REQUEST', 'notReservable', ctx.locale);
-      }
-      if (input.isConsumption && !item.isConsumable) {
-        throw materialError('BAD_REQUEST', 'notConsumable', ctx.locale);
-      }
-      await findPerson(tx, input.personId, ctx.locale);
-      if (!team) {
-        const open = await tx.materialLoan.count({
-          where: { createdById: ctx.user.uuid, status: 'REQUESTED' },
-        });
-        if (open >= MAX_OPEN_REQUESTS) {
-          throw materialError('BAD_REQUEST', 'tooManyRequests', ctx.locale, MAX_OPEN_REQUESTS);
-        }
-      }
-      await assertAvailable({ tx, ...input, locale: ctx.locale });
-
-      const issueNow = team && input.issueNow;
-      if (issueNow && input.quantity > (await getInDepotQuantity(tx, item))) {
-        throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
-      }
-      let status: MaterialLoanStatus = team ? 'RESERVED' : 'REQUESTED';
-      if (issueNow) status = input.isConsumption ? 'CONSUMED' : 'ISSUED';
-
-      if (issueNow && input.isConsumption) {
-        await tx.materialItem.update({
-          where: { id: item.id },
-          data: { totalQuantity: { decrement: input.quantity } },
-        });
-      }
-
-      const loan = await tx.materialLoan.create({
-        data: {
-          itemId: item.id,
-          quantity: input.quantity,
-          hofId: input.hofId,
-          personId: input.personId,
-          responsibleName: input.responsibleName,
-          comment: input.comment ?? null,
-          // handed out now, so it holds from now even if the period starts later
-          startDate: issueNow ? minDate(input.startDate, new Date()) : input.startDate,
-          endDate: input.endDate,
-          isConsumption: input.isConsumption,
-          status,
-          issuedQuantity: issueNow ? input.quantity : null,
-          issuedAt: issueNow ? new Date() : null,
-          createdById: ctx.user.uuid,
-        },
-      });
-      logger.debug('Material loan created', {
-        'material.loan.number': loan.number,
-        'material.loan.status': status,
-      });
-      return { id: loan.id, number: loan.number, status };
-    });
-  });
-
-export const updateLoan = materialProcedure
-  .input(
-    z.object({
-      id: z.string(),
-      quantity: quantitySchema.optional(),
-      startDate: z.date().optional(),
-      endDate: z.date().optional(),
-      hofId: z.string().optional(),
-      personId: z.string().nullable().optional(),
-      responsibleName: z.string().trim().min(1).max(200).optional(),
-      comment: z.string().trim().max(1000).nullable().optional(),
-    }),
-  )
-  .mutation(async ({ ctx, input }) => {
-    const team = isMaterialTeam(ctx.user);
-    if (input.hofId !== undefined) await findHof(input.hofId, ctx.locale);
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-
-    return await ctx.prisma.$transaction(async (tx) => {
-      const current = await lockLoan(tx, input.id, visible, ctx.locale);
-
-      // once the material is out, only the material team may move the return date
-      const onlyExtendsIssued =
-        current.status === 'ISSUED' &&
-        team &&
-        input.quantity === undefined &&
-        input.startDate === undefined;
-      if (!PENDING.has(current.status) && !onlyExtendsIssued) {
-        throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
-      }
-      await findPerson(tx, input.personId, ctx.locale);
-      const changesAssignee =
-        (input.hofId !== undefined && input.hofId !== current.hofId) ||
-        (input.personId !== undefined && input.personId !== current.personId);
-      if (!team && changesAssignee) {
-        assertMayBookFor(
-          ctx.user,
-          input.hofId ?? current.hofId,
-          input.personId === undefined ? current.personId : input.personId,
-          // read for the visibility above already, so no second lookup under the lock
-          await ctx.myHofIds(),
-          ctx.locale,
-        );
-      }
-
-      const quantity = input.quantity ?? current.quantity;
-      const startDate = input.startDate ?? current.startDate;
-      const endDate = input.endDate ?? current.endDate;
-      const changesStock =
-        quantity !== current.quantity ||
-        startDate.getTime() !== current.startDate.getTime() ||
-        endDate.getTime() !== current.endDate.getTime();
-
-      if (changesStock) {
-        await assertAvailable({
-          tx,
-          itemId: current.itemId,
-          quantity: current.status === 'ISSUED' ? (current.issuedQuantity ?? quantity) : quantity,
-          startDate,
-          endDate,
-          excludeLoanId: current.id,
-          locale: ctx.locale,
-        });
-      }
-
-      // a participant changing a confirmed reservation needs the material team to confirm again
-      const status: MaterialLoanStatus =
-        !team && (changesStock || changesAssignee) && current.status === 'RESERVED'
-          ? 'REQUESTED'
-          : current.status;
-
-      await tx.materialLoan.update({
-        where: { id: current.id },
-        data: {
-          quantity,
-          startDate,
-          endDate,
-          status,
-          ...(input.hofId === undefined ? {} : { hofId: input.hofId }),
-          ...(input.personId === undefined ? {} : { personId: input.personId }),
-          ...(input.responsibleName === undefined
-            ? {}
-            : { responsibleName: input.responsibleName }),
-          ...(input.comment === undefined ? {} : { comment: input.comment }),
-        },
-      });
-      return { status };
-    });
-  });
-
-export const cancelLoan = materialProcedure
-  .input(z.object({ id: z.string() }))
-  .mutation(async ({ ctx, input }) => {
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-    await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, visible, ctx.locale);
-      if (!PENDING.has(loan.status)) {
-        throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
-      }
-      await tx.materialLoan.update({ where: { id: loan.id }, data: { status: 'CANCELLED' } });
-      logger.debug('Material loan cancelled', { 'material.loan.number': loan.number });
-    });
-  });
-
-/** The borrower says the material is on its way back; the material team still checks it. */
-export const announceReturn = materialProcedure
-  .input(z.object({ id: z.string() }))
-  .mutation(async ({ ctx, input }) => {
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-    const loan = await findOwnLoan(ctx.prisma, input.id, visible, ctx.locale);
-    const { count } = await ctx.prisma.materialLoan.updateMany({
-      where: { id: loan.id, status: 'ISSUED' },
-      data: { returnAnnouncedAt: new Date() },
-    });
-    if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
-  });
-
-/** Confirms one request; anything past `REQUESTED` has been dealt with already. */
-const confirmOne = async (prisma: MaterialPrisma, id: string, locale: Locale): Promise<void> => {
-  const { count } = await prisma.materialLoan.updateMany({
-    where: { id, status: 'REQUESTED' },
-    data: { status: 'RESERVED' },
-  });
-  if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus', locale);
-};
-
-/**
- * Hands out one loan under its article's lock. Without a quantity it hands out what was
- * booked, which is what a bulk hand-out at the counter means.
- */
-const issueOne = async (
+const assertBookable = async (
   tx: Prisma.TransactionClient,
-  id: string,
-  issuedQuantity: number | undefined,
-  visible: Prisma.MaterialLoanWhereInput,
+  booking: Booking,
   locale: Locale,
 ): Promise<void> => {
-  const loan = await lockLoan(tx, id, visible, locale);
-  if (!PENDING.has(loan.status)) {
-    throw materialError('BAD_REQUEST', 'wrongStatus', locale);
+  const { item } = booking;
+  if (booking.isConsumption && !item.isConsumable) {
+    throw materialError('BAD_REQUEST', 'notConsumable', locale, 0, item.name);
   }
-  const quantity = issuedQuantity ?? loan.quantity;
-  // the reservation already holds `quantity`, handing out less is always possible
-  if (quantity > loan.quantity) {
-    throw materialError('BAD_REQUEST', 'quantity', locale);
+  if (booking.mode === 'RESERVE' && !item.isReservable) {
+    throw materialError('BAD_REQUEST', 'notReservable', locale, 0, item.name);
   }
-
-  // what the reservation promised may have been damaged or lost since
-  const onShelf = await getInDepotQuantity(tx, loan.item);
-  if (quantity > onShelf) {
-    throw materialError('CONFLICT', 'notOnShelf', locale, Math.max(onShelf, 0));
-  }
-
-  if (loan.isConsumption) {
-    await tx.materialItem.update({
-      where: { id: loan.itemId },
-      data: { totalQuantity: { decrement: quantity } },
-    });
-  }
-
-  await tx.materialLoan.update({
-    where: { id: loan.id },
-    data: {
-      status: loan.isConsumption ? 'CONSUMED' : 'ISSUED',
-      issuedQuantity: quantity,
-      issuedAt: new Date(),
-      // handed out early, so it holds from now rather than from the planned start
-      startDate: minDate(loan.startDate, new Date()),
-    },
+  await assertAvailable({
+    tx,
+    itemId: item.id,
+    quantity: booking.quantity,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    ...(booking.loanId === undefined ? {} : { excludeLoanId: booking.loanId }),
+    locale,
   });
-  logger.info('Material issued', {
-    'material.loan.number': loan.number,
-    'material.quantity': quantity,
-  });
+  if (booking.mode === 'ISSUE') {
+    const onShelf = await getInDepotQuantity(tx, item);
+    if (booking.quantity > onShelf) {
+      throw materialError('CONFLICT', 'notOnShelf', locale, Math.max(onShelf, 0), item.name);
+    }
+  }
 };
 
-export const confirmLoan = materialTeamProcedure
-  .input(z.object({ id: z.string() }))
-  .mutation(async ({ ctx, input }) => {
-    await confirmOne(ctx.prisma, input.id, ctx.locale);
-  });
+type BookingFields = Pick<
+  Prisma.MaterialLoanUncheckedCreateInput,
+  'quantity' | 'isConsumption' | 'startDate' | 'endDate' | 'status' | 'issuedQuantity' | 'issuedAt'
+>;
 
-export const issueLoan = materialTeamProcedure
-  .input(z.object({ id: z.string(), issuedQuantity: quantitySchema }))
+/**
+ * The loan fields a booking sets. Handing out a consumption also takes its pieces out of the
+ * stock for good, since they do not come back.
+ */
+const applyBooking = async (
+  tx: Prisma.TransactionClient,
+  booking: Booking,
+  now: Date,
+): Promise<BookingFields> => {
+  const issue = booking.mode === 'ISSUE';
+  if (issue && booking.isConsumption) {
+    await tx.materialItem.update({
+      where: { id: booking.item.id },
+      data: { totalQuantity: { decrement: booking.quantity } },
+    });
+  }
+  let status: 'RESERVED' | 'ISSUED' | 'CONSUMED' = 'RESERVED';
+  if (issue) status = booking.isConsumption ? 'CONSUMED' : 'ISSUED';
+  return {
+    quantity: booking.quantity,
+    isConsumption: booking.isConsumption,
+    startDate: booking.startDate,
+    endDate: booking.endDate,
+    status,
+    issuedQuantity: issue ? booking.quantity : null,
+    issuedAt: issue ? now : null,
+  };
+};
+
+/** A loan has a Hof or a person; the Hof is a Payload document, so no foreign key says so. */
+const holderSchema = {
+  hofId: z.string().min(1).optional(),
+  personId: z.string().min(1).optional(),
+};
+
+const hasHolder = (input: { hofId?: string | undefined; personId?: string | undefined }): boolean =>
+  input.hofId !== undefined || input.personId !== undefined;
+
+/**
+ * Books a basket at the counter in one go: every line becomes a loan, handed out now or
+ * prepared for a pickup, and either all of them are booked or none. `preparedLoanIds` are the
+ * holder's prepared loans the basket was opened from: the one of each article carries on with
+ * the basket's quantity, the others and the articles the basket dropped are cancelled.
+ */
+export const createLoanBasket = materialTeamProcedure
+  .input(
+    z
+      .object({
+        ...holderSchema,
+        responsibleName: z.string().trim().max(200).optional(),
+        comment: z.string().trim().max(1000).optional(),
+        mode: z.enum(['ISSUE', 'RESERVE']),
+        /** the first day of a preparation; a hand-out starts now */
+        startDate: z.date().optional(),
+        endDate: z.date(),
+        lines: z
+          .array(
+            z.object({
+              itemId: z.string(),
+              quantity: quantitySchema,
+              isConsumption: z.boolean().default(false),
+            }),
+          )
+          .max(MAX_LINES),
+        preparedLoanIds: z.array(z.string()).max(MAX_LINES).default([]),
+      })
+      .refine(hasHolder, { message: 'A loan needs a Hof or a person.' })
+      .refine((input) => input.mode === 'ISSUE' || input.startDate !== undefined, {
+        message: 'A preparation needs a start date.',
+      })
+      .refine((input) => input.lines.length > 0 || input.preparedLoanIds.length > 0, {
+        message: 'The basket is empty.',
+      }),
+  )
   .mutation(async ({ ctx, input }) => {
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-    await ctx.prisma.$transaction(async (tx) => {
-      await issueOne(tx, input.id, input.issuedQuantity, visible, ctx.locale);
+    // the Höfe come from Payload, read before the transaction rather than under its locks
+    if (input.hofId !== undefined && !(await hofExists(input.hofId))) {
+      throw materialError('NOT_FOUND', 'hofNotFound', ctx.locale);
+    }
+    const holder = holderOf({ hofId: input.hofId ?? null, personId: input.personId ?? null });
+    if (holder === undefined) throw materialError('BAD_REQUEST', 'noHolder', ctx.locale);
+    const lines = mergeBasketLines(input.lines);
+    const now = new Date();
+
+    return await ctx.prisma.$transaction(async (tx) => {
+      const person =
+        input.personId === undefined
+          ? undefined
+          : await tx.user.findUnique({ where: { uuid: input.personId }, select: { name: true } });
+      if (person === null) throw materialError('BAD_REQUEST', 'personNotFound', ctx.locale);
+
+      const planned = await tx.materialLoan.findMany({
+        where: { id: { in: input.preparedLoanIds } },
+        select: { itemId: true },
+      });
+      await lockItems(tx, [...lines.map((line) => line.itemId), ...planned.map((l) => l.itemId)]);
+
+      // read under the locks: another phone may have handed them out meanwhile
+      const prepared = await tx.materialLoan.findMany({
+        where: { id: { in: input.preparedLoanIds } },
+        orderBy: { number: 'asc' },
+      });
+      const foreign = prepared.some((loan) => {
+        const owner = holderOf(loan);
+        return (
+          loan.status !== 'RESERVED' ||
+          owner === undefined ||
+          holderKey(owner) !== holderKey(holder)
+        );
+      });
+      if (foreign || prepared.length !== new Set(input.preparedLoanIds).size) {
+        throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+      }
+
+      // cancelled first, so the pieces they held count as free for the lines below
+      const carriedOn = new Map<string, string>();
+      const cancelled: string[] = [];
+      for (const loan of prepared) {
+        const kept = lines.some((line) => line.itemId === loan.itemId);
+        if (kept && !carriedOn.has(loan.itemId)) carriedOn.set(loan.itemId, loan.id);
+        else cancelled.push(loan.id);
+      }
+      if (cancelled.length > 0) {
+        await tx.materialLoan.updateMany({
+          where: { id: { in: cancelled } },
+          data: { status: 'CANCELLED' },
+        });
+      }
+
+      const numbers: number[] = [];
+      for (const line of lines) {
+        const item = await tx.materialItem.findUnique({ where: { id: line.itemId } });
+        if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+        const loanId = carriedOn.get(item.id);
+        const booking: Booking = {
+          item,
+          quantity: line.quantity,
+          isConsumption: line.isConsumption,
+          mode: input.mode,
+          startDate: input.mode === 'ISSUE' ? now : (input.startDate ?? now),
+          endDate: input.endDate,
+          ...(loanId === undefined ? {} : { loanId }),
+        };
+        await assertBookable(tx, booking, ctx.locale);
+        const data = await applyBooking(tx, booking, now);
+        const loan =
+          loanId === undefined
+            ? await tx.materialLoan.create({
+                data: {
+                  ...data,
+                  itemId: item.id,
+                  hofId: input.hofId ?? null,
+                  personId: input.personId ?? null,
+                  responsibleName:
+                    input.responsibleName === undefined || input.responsibleName === ''
+                      ? (person?.name ?? '')
+                      : input.responsibleName,
+                  comment:
+                    input.comment === undefined || input.comment === '' ? null : input.comment,
+                  createdById: ctx.user.uuid,
+                },
+              })
+            : await tx.materialLoan.update({ where: { id: loanId }, data });
+        numbers.push(loan.number);
+      }
+
+      logger.info('Material basket booked', {
+        'material.basket.mode': input.mode,
+        'material.basket.lines': lines.length,
+        'material.basket.cancelled': cancelled.length,
+      });
+      return { numbers, cancelled: cancelled.length };
     });
   });
 
-/** A bulk selection is one page of the list at most, or everything a filter matched. */
+/** A bulk selection is one pickup, or every pickup of the day. */
 const bulkInput = z.object({ ids: z.array(z.string()).min(1).max(500) });
 
 export interface BulkLoanResult {
@@ -405,57 +305,52 @@ const unexpectedError = {
 } satisfies StaticTranslationString;
 
 /**
- * Runs one step per loan, each on its own so a loan that has moved on meanwhile fails alone
- * instead of rolling back the others. The answer says which loan failed and why.
+ * Hands out prepared loans as they were prepared, each on its own: a loan whose pieces went
+ * missing since fails alone, and the rest of the pickup still goes out. The answer says which
+ * loan failed and why.
  */
-const runForEach = async (
-  ids: string[],
-  locale: Locale,
-  step: (id: string) => Promise<void>,
-): Promise<BulkLoanResult[]> => {
-  const results: BulkLoanResult[] = [];
-  // one after the other: every step locks an article, and two loans may share one
-  for (const id of new Set(ids)) {
-    try {
-      await step(id);
-      results.push({ id, ok: true });
-    } catch (error) {
-      if (error instanceof TRPCError) {
-        results.push({ id, ok: false, error: error.message });
-      } else {
-        logger.error('Material bulk step failed', {
-          'material.loan.id': id,
-          'error.message': error instanceof Error ? error.message : String(error),
-        });
-        results.push({ id, ok: false, error: unexpectedError[locale] });
-      }
-    }
-  }
-  return results;
-};
-
-export const confirmLoanList = materialTeamProcedure
-  .input(bulkInput)
-  .mutation(async ({ ctx, input }) => {
-    const results = await runForEach(input.ids, ctx.locale, (id) =>
-      confirmOne(ctx.prisma, id, ctx.locale),
-    );
-    logger.info('Material loans confirmed in bulk', {
-      'material.bulk.count': results.length,
-      'material.bulk.failed': results.filter((result) => !result.ok).length,
-    });
-    return results;
-  });
-
 export const issueLoanList = materialTeamProcedure
   .input(bulkInput)
   .mutation(async ({ ctx, input }) => {
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-    const results = await runForEach(input.ids, ctx.locale, (id) =>
-      ctx.prisma.$transaction(async (tx) => {
-        await issueOne(tx, id, undefined, visible, ctx.locale);
-      }),
-    );
+    const results: BulkLoanResult[] = [];
+    // one after the other: every step locks an article, and two loans may share one
+    for (const id of new Set(input.ids)) {
+      try {
+        await ctx.prisma.$transaction(async (tx) => {
+          const loan = await lockLoan(tx, id, ctx.locale);
+          if (loan.status !== 'RESERVED') {
+            throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
+          }
+          const now = new Date();
+          const booking: Booking = {
+            item: loan.item,
+            quantity: loan.quantity,
+            isConsumption: loan.isConsumption,
+            mode: 'ISSUE',
+            // handed out early, so it holds from now rather than from the planned start
+            startDate: minDate(loan.startDate, now),
+            endDate: loan.endDate,
+            loanId: loan.id,
+          };
+          await assertBookable(tx, booking, ctx.locale);
+          await tx.materialLoan.update({
+            where: { id: loan.id },
+            data: await applyBooking(tx, booking, now),
+          });
+        });
+        results.push({ id, ok: true });
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          results.push({ id, ok: false, error: error.message });
+        } else {
+          logger.error('Material hand-out failed', {
+            'material.loan.id': id,
+            'error.message': error instanceof Error ? error.message : String(error),
+          });
+          results.push({ id, ok: false, error: unexpectedError[ctx.locale] });
+        }
+      }
+    }
     logger.info('Material loans issued in bulk', {
       'material.bulk.count': results.length,
       'material.bulk.failed': results.filter((result) => !result.ok).length,
@@ -463,108 +358,134 @@ export const issueLoanList = materialTeamProcedure
     return results;
   });
 
+const returnLineSchema = z.object({
+  loanId: z.string(),
+  returnedQuantity: z.number().int().min(0).max(MAX_QUANTITY),
+  condition: conditionSchema,
+  damagedQuantity: z.number().int().min(0).max(MAX_QUANTITY).default(0),
+  note: z.string().trim().max(2000).optional(),
+  photoKey: photoKeySchema,
+});
+
 /**
- * Checks material back in. Pieces that did not come back leave the stock, damaged pieces move
+ * Checks one loan back in. Pieces that did not come back leave the stock, damaged pieces move
  * out of the usable stock, and either one leaves an incident for the material team. Borrowed
  * consumables that do not come back were used up, which is expected and no incident.
  */
-export const returnLoan = materialTeamProcedure
+const checkIn = async (
+  tx: Prisma.TransactionClient,
+  loan: LoanWithItem,
+  line: z.infer<typeof returnLineSchema>,
+  reportedById: string,
+  locale: Locale,
+): Promise<void> => {
+  if (loan.status !== 'ISSUED') throw materialError('CONFLICT', 'wrongStatus', locale);
+  const issued = loan.issuedQuantity ?? loan.quantity;
+  const damaged = line.condition === 'DAMAGED' ? line.damagedQuantity : 0;
+  if (
+    !isReturnValid({ issued, returned: line.returnedQuantity, condition: line.condition, damaged })
+  ) {
+    throw materialError('BAD_REQUEST', 'quantity', locale);
+  }
+  const missing = issued - line.returnedQuantity;
+  const note = line.note ?? '';
+
+  await tx.materialItem.update({
+    where: { id: loan.itemId },
+    data: { totalQuantity: { decrement: missing }, damagedQuantity: { increment: damaged } },
+  });
+
+  const incidents: { condition: MaterialCondition; quantity: number; note: string }[] = [];
+  if (missing > 0 && !loan.item.isConsumable) {
+    incidents.push({ condition: 'MISSING', quantity: missing, note });
+  }
+  if (line.condition === 'DAMAGED' || line.condition === 'LIGHT_DAMAGE') {
+    incidents.push({
+      condition: line.condition,
+      quantity: line.condition === 'DAMAGED' ? damaged : line.returnedQuantity,
+      note,
+    });
+  }
+  if (incidents.length > 0) {
+    await tx.materialIncident.createMany({
+      data: incidents.map((incident, index) => ({
+        ...incident,
+        itemId: loan.itemId,
+        loanId: loan.id,
+        reportedById,
+        // the photo belongs to the damage rather than to what is missing
+        photoKey: index === incidents.length - 1 ? (line.photoKey ?? null) : null,
+      })),
+    });
+  }
+
+  await tx.materialLoan.update({
+    where: { id: loan.id },
+    data: {
+      status: 'RETURNED',
+      returnedQuantity: line.returnedQuantity,
+      returnedAt: new Date(),
+      returnCondition: missing > 0 && line.returnedQuantity === 0 ? 'MISSING' : line.condition,
+      returnNote: line.note ?? null,
+    },
+  });
+};
+
+/**
+ * Takes back what a holder brings in one go: every line checks one loan in, and either all of
+ * them are recorded or none.
+ */
+export const returnLoanBasket = materialTeamProcedure
   .input(
     z
-      .object({
-        id: z.string(),
-        returnedQuantity: z.number().int().min(0).max(MAX_QUANTITY),
-        condition: conditionSchema,
-        damagedQuantity: z.number().int().min(0).max(MAX_QUANTITY).default(0),
-        note: z.string().trim().max(2000).optional(),
-        photoKey: photoKeySchema,
-      })
-      // a damage needs pieces that came back, and at least one of them damaged
+      .object({ lines: z.array(returnLineSchema).min(1).max(MAX_LINES) })
       .refine(
-        (input) =>
-          (input.condition !== 'DAMAGED' && input.condition !== 'LIGHT_DAMAGE') ||
-          input.returnedQuantity > 0,
-      )
-      .refine(
-        (input) =>
-          input.condition !== 'DAMAGED' ||
-          (input.damagedQuantity > 0 && input.damagedQuantity <= input.returnedQuantity),
+        (input) => new Set(input.lines.map((line) => line.loanId)).size === input.lines.length,
+        {
+          message: 'A loan can only be returned once.',
+        },
       ),
   )
   .mutation(async ({ ctx, input }) => {
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-    await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, visible, ctx.locale);
-      if (loan.status !== 'ISSUED') throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
-
-      const issued = loan.issuedQuantity ?? loan.quantity;
-      const damaged = input.condition === 'DAMAGED' ? input.damagedQuantity : 0;
-      if (input.returnedQuantity > issued) {
-        throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
-      }
-      const missing = issued - input.returnedQuantity;
-      const note = input.note ?? '';
-
-      await tx.materialItem.update({
-        where: { id: loan.itemId },
-        data: {
-          totalQuantity: { decrement: missing },
-          damagedQuantity: { increment: damaged },
-        },
+    const ids = input.lines.map((line) => line.loanId);
+    return await ctx.prisma.$transaction(async (tx) => {
+      const planned = await tx.materialLoan.findMany({
+        where: { id: { in: ids } },
+        select: { itemId: true },
       });
-
-      const incidents: { condition: MaterialCondition; quantity: number; note: string }[] = [];
-      if (missing > 0 && !loan.item.isConsumable) {
-        incidents.push({ condition: 'MISSING', quantity: missing, note });
-      }
-      if (input.condition === 'DAMAGED' || input.condition === 'LIGHT_DAMAGE') {
-        incidents.push({
-          condition: input.condition,
-          quantity: input.condition === 'DAMAGED' ? damaged : input.returnedQuantity,
-          note,
-        });
-      }
-      if (incidents.length > 0) {
-        await tx.materialIncident.createMany({
-          data: incidents.map((incident, index) => ({
-            ...incident,
-            itemId: loan.itemId,
-            loanId: loan.id,
-            reportedById: ctx.user.uuid,
-            // the photo belongs to the damage rather than to what is missing
-            photoKey: index === incidents.length - 1 ? (input.photoKey ?? null) : null,
-          })),
-        });
-      }
-
-      await tx.materialLoan.update({
-        where: { id: loan.id },
-        data: {
-          status: 'RETURNED',
-          returnedQuantity: input.returnedQuantity,
-          returnedAt: new Date(),
-          returnCondition:
-            missing > 0 && input.returnedQuantity === 0 ? 'MISSING' : input.condition,
-          returnNote: input.note ?? null,
-        },
+      await lockItems(
+        tx,
+        planned.map((loan) => loan.itemId),
+      );
+      // read under the locks: another phone may have checked them in meanwhile
+      const locked = await tx.materialLoan.findMany({
+        where: { id: { in: ids } },
+        include: { item: true },
       });
-      logger.info('Material returned', {
-        'material.loan.number': loan.number,
-        'material.missing': missing,
-        'material.damaged': damaged,
+      const loans = new Map(locked.map((loan) => [loan.id, loan]));
+      let pieces = 0;
+      for (const line of input.lines) {
+        const loan = loans.get(line.loanId);
+        if (loan === undefined) throw materialError('NOT_FOUND', 'loanNotFound', ctx.locale);
+        await checkIn(tx, loan, line, ctx.user.uuid, ctx.locale);
+        pieces += line.returnedQuantity;
+      }
+      logger.info('Material basket returned', {
+        'material.basket.lines': input.lines.length,
+        'material.basket.deviations': input.lines.filter((line) => line.condition !== 'OK').length,
       });
+      return { count: input.lines.length, pieces };
     });
   });
 
 /**
- * Reports damage or a loss. On a loan that is still out, the stock is settled when it comes
- * back; the material team reporting straight on an article moves the pieces right away.
+ * Damage or a loss noticed on the shelf. The pieces move right away: damaged ones out of the
+ * usable stock, lost ones out of the total. A slight damage is only noted.
  */
-export const reportIncident = materialProcedure
+export const reportIncident = materialTeamProcedure
   .input(
     z.object({
       itemId: z.string(),
-      loanId: z.string().optional(),
       condition: conditionSchema.exclude(['OK']),
       quantity: quantitySchema,
       note: z.string().trim().min(1).max(2000),
@@ -572,21 +493,12 @@ export const reportIncident = materialProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const team = isMaterialTeam(ctx.user);
-    const visible = await visibleLoansWhere(ctx.user, ctx.myHofIds);
-
     await ctx.prisma.$transaction(async (tx) => {
-      if (input.loanId !== undefined) {
-        const loan = await findOwnLoan(tx, input.loanId, visible, ctx.locale);
-        if (loan.itemId !== input.itemId) {
-          throw materialError('BAD_REQUEST', 'itemNotFound', ctx.locale);
-        }
-      }
       await lockItem(tx, input.itemId);
       const item = await tx.materialItem.findUnique({ where: { id: input.itemId } });
       if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
 
-      if (team && input.loanId === undefined && input.condition !== 'LIGHT_DAMAGE') {
+      if (input.condition !== 'LIGHT_DAMAGE') {
         // only pieces on the shelf; what is out is settled when it comes back
         if (input.quantity > (await getInDepotQuantity(tx, item))) {
           throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
@@ -603,7 +515,6 @@ export const reportIncident = materialProcedure
       await tx.materialIncident.create({
         data: {
           itemId: item.id,
-          loanId: input.loanId ?? null,
           condition: input.condition,
           quantity: input.quantity,
           note: input.note,
@@ -619,7 +530,7 @@ export const reportIncident = materialProcedure
   });
 
 /** A presigned upload for the photo of a damage, stored next to the other user uploads. */
-export const createIncidentPhotoUploadUrl = materialProcedure
+export const createIncidentPhotoUploadUrl = materialTeamProcedure
   .input(z.object({ contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/) }))
   .mutation(async ({ input }) => {
     const extension = input.contentType.split('/')[1] ?? 'jpg';

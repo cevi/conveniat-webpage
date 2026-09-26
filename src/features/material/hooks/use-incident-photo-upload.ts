@@ -14,9 +14,12 @@ interface IncidentPhotoUpload {
 
 /**
  * Uploads the photo of a damage straight to the bucket through a presigned URL, so the
- * picture does not travel through the app server on camp wifi.
+ * picture does not travel through the app server on camp wifi. `onKeyChange` hears about a
+ * finished upload and a removed photo, for a form that keeps several lines in one state.
  */
-export const useIncidentPhotoUpload = (): IncidentPhotoUpload => {
+export const useIncidentPhotoUpload = (
+  onKeyChange?: (photoKey?: string) => void,
+): IncidentPhotoUpload => {
   const createUploadUrl = trpc.material.createIncidentPhotoUploadUrl.useMutation();
   const [photoKey, setPhotoKey] = useState<string | undefined>();
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
@@ -34,6 +37,7 @@ export const useIncidentPhotoUpload = (): IncidentPhotoUpload => {
       if (!response.ok) throw new Error(`Upload failed with ${response.status}`);
       setPhotoKey(key);
       setPreviewUrl(URL.createObjectURL(file));
+      onKeyChange?.(key);
     } finally {
       setIsUploading(false);
     }
@@ -43,6 +47,7 @@ export const useIncidentPhotoUpload = (): IncidentPhotoUpload => {
     if (previewUrl !== undefined) URL.revokeObjectURL(previewUrl);
     setPhotoKey(undefined);
     setPreviewUrl(undefined);
+    onKeyChange?.();
   };
 
   return { photoKey, previewUrl, isUploading, upload, clear };

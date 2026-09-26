@@ -31,7 +31,7 @@ export interface LoanHold {
 export interface StockSummary {
   /** pieces that could go out at all: owned minus damaged minus in repair */
   usable: number;
-  /** requested or reserved, not yet handed out */
+  /** prepared for a pickup, not yet handed out */
   reserved: number;
   /** handed out and not back */
   issued: number;
@@ -42,13 +42,12 @@ export interface StockSummary {
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * How many pieces a loan keeps from everybody else. A request already holds its pieces, so
- * two Höfe cannot both be promised the last tent while the material team sleeps.
- * Consumables leave the stock when issued, so an issued consumption holds nothing.
+ * How many pieces a loan keeps from everybody else. A prepared pickup holds its pieces, so two
+ * Höfe cannot both be promised the last tent. Consumables leave the stock when issued, so an
+ * issued consumption holds nothing.
  */
 export const getHeldQuantity = (loan: LoanHold): number => {
   switch (loan.status) {
-    case 'REQUESTED':
     case 'RESERVED': {
       return loan.quantity;
     }
@@ -74,7 +73,7 @@ export const getStockSummary = (item: StockCounts, loans: LoanHold[]): StockSumm
   return { usable, reserved, issued, available: Math.max(0, usable - reserved - issued) };
 };
 
-/** The badge an article shows in the catalogue. */
+/** The badge an article shows in the inventory. */
 export const getItemStatus = (item: StockCounts, stock: StockSummary): MaterialItemStatus => {
   if (item.isDisabled) return 'NOT_AVAILABLE';
   if (stock.usable === 0) {
@@ -89,7 +88,7 @@ export const getItemStatus = (item: StockCounts, stock: StockSummary): MaterialI
 
 /**
  * The most pieces that are held at the same time anywhere inside `[start, end]`. Summing
- * every overlapping loan would refuse a request that fits between two reservations.
+ * every overlapping loan would refuse a loan that fits between two reservations.
  * An overdue loan holds without end: nobody knows when it comes back, so nothing it holds can
  * be promised to anyone until it is checked in.
  */
@@ -139,7 +138,7 @@ export const getAvailableForPeriod = (
   return Math.max(0, usable - getPeakHeldQuantity(loans, period, now));
 };
 
-/** The loan status as the people waiting for the material see it. */
+/** The loan status as the counter and the borrowers see it. */
 export const getLoanDisplayStatus = (
   loan: { status: MaterialLoanStatus; endDate: Date },
   now: Date,

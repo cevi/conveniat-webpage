@@ -5,12 +5,12 @@ import {
   shouldRetryMaterialQuery,
 } from '@/features/material/utils/query-errors';
 import {
-  compareReturnQueue,
-  isInReturnQueue,
+  completeReturn,
   isReturnValid,
+  withCondition,
+  withReturned,
 } from '@/features/material/utils/returns';
-import { resolveScan } from '@/features/material/utils/scan';
-import type { MaterialLoanStatus } from '@/lib/prisma/client';
+import { parseScan, resolveScan } from '@/features/material/utils/scan';
 
 describe('parseNumberDraft', () => {
   it('lets the field be empty while typing', () => {
@@ -33,75 +33,87 @@ describe('parseNumberDraft', () => {
 describe('resolveScan', () => {
   const origin = 'https://conveniat27.ch';
 
-  it('opens a loan by number', () => {
-    expect(resolveScan('#12', origin)).toBe('/app/material/loans?loan=12');
-    expect(resolveScan(' 7 ', origin)).toBe('/app/material/loans?loan=7');
+  it('takes back a loan by number', () => {
+    expect(resolveScan('#12', origin)).toBe('/app/material/zurueck?loan=12');
+    expect(resolveScan(' 7 ', origin)).toBe('/app/material/zurueck?loan=7');
   });
 
-  it('reads anything else as an article code', () => {
-    expect(resolveScan('js-woll', origin)).toBe('/app/material/catalog?item=JS-WOLL');
+  it('opens anything shaped like a code as an article', () => {
+    expect(resolveScan('js-woll', origin)).toBe('/app/material/inventar?item=JS-WOLL');
+    expect(resolveScan('not a code', origin)).toBeUndefined();
   });
 
   it('follows our own label links, also with a locale prefix', () => {
-    expect(resolveScan('https://conveniat27.ch/app/material/catalog?item=ZELT', origin)).toBe(
-      '/app/material/catalog?item=ZELT',
+    expect(resolveScan('https://conveniat27.ch/app/material/inventar?item=ZELT', origin)).toBe(
+      '/app/material/inventar?item=ZELT',
     );
-    expect(resolveScan('https://conveniat27.ch/fr/app/material/loans?loan=3', origin)).toBe(
-      '/fr/app/material/loans?loan=3',
+    expect(resolveScan('https://conveniat27.ch/fr/app/material/zurueck?loan=3', origin)).toBe(
+      '/app/material/zurueck?loan=3',
     );
   });
 
-  it('refuses links that would leave the app', () => {
-    expect(resolveScan('https://example.com/app/material/catalog', origin)).toBeUndefined();
+  it('refuses links that would leave the app or are no label', () => {
+    expect(
+      resolveScan('https://example.com/app/material/inventar?item=A1', origin),
+    ).toBeUndefined();
     expect(resolveScan('https://x//evil.com/app/material/x', origin)).toBeUndefined();
-    expect(resolveScan('https://conveniat27.ch//evil.com/app/material/x', origin)).toBeUndefined();
+    expect(
+      resolveScan('https://conveniat27.ch//evil.com/app/material/inventar?item=A1', origin),
+    ).toBeUndefined();
     expect(resolveScan('https://conveniat27.ch/app/chat', origin)).toBeUndefined();
+    expect(resolveScan('https://conveniat27.ch/app/material/ausgeben', origin)).toBeUndefined();
+    expect(
+      resolveScan('https://conveniat27.ch/app/material/zurueck?loan=x', origin),
+    ).toBeUndefined();
     expect(resolveScan('', origin)).toBeUndefined();
   });
 });
 
-describe('return queue', () => {
-  const now = new Date('2027-07-20T12:00:00Z');
-  const hours = (n: number): Date => new Date(now.getTime() + n * 60 * 60 * 1000);
-  const loan = (
-    id: string,
-    endDate: Date,
-    // eslint-disable-next-line unicorn/no-null -- the column is nullable, as the server sends it
-    returnAnnouncedAt: Date | null = null,
-    status: MaterialLoanStatus = 'ISSUED',
-  ): { id: string; status: MaterialLoanStatus; endDate: Date; returnAnnouncedAt: Date | null } => ({
-    id,
-    status,
-    endDate,
-    returnAnnouncedAt,
+describe('parseScan', () => {
+  const origin = 'https://conveniat27.ch';
+
+  it('tells an article label from a loan label, for the basket and the take-back', () => {
+    expect(parseScan('https://conveniat27.ch/app/material/inventar?item=js-beil', origin)).toEqual({
+      kind: 'item',
+      code: 'JS-BEIL',
+    });
+    expect(parseScan('#0', origin)).toBeUndefined();
+    expect(parseScan('42', origin)).toEqual({ kind: 'loan', number: 42 });
+  });
+});
+
+describe('return lines', () => {
+  it('starts with everything back and in order', () => {
+    expect(completeReturn(5)).toEqual({ issued: 5, returned: 5, condition: 'OK', damaged: 1 });
   });
 
-  it('lists only issued loans that are announced, due within a day, or overdue', () => {
-    expect(isInReturnQueue(loan('later', hours(72)), now)).toBe(false);
-    expect(isInReturnQueue(loan('announced', hours(72), hours(-1)), now)).toBe(true);
-    expect(isInReturnQueue(loan('due', hours(5)), now)).toBe(true);
-    expect(isInReturnQueue(loan('overdue', hours(-5)), now)).toBe(true);
-    // eslint-disable-next-line unicorn/no-null -- the column is nullable, as the server sends it
-    expect(isInReturnQueue(loan('reserved', hours(5), null, 'RESERVED'), now)).toBe(false);
+  it('reads fewer pieces back as missing, and all of them back as fine again', () => {
+    const short = withReturned(completeReturn(5), 3);
+    expect(short).toMatchObject({ returned: 3, condition: 'MISSING' });
+    expect(withReturned(short, 5)).toMatchObject({ returned: 5, condition: 'OK' });
   });
 
-  it('tolerates a cached loan without the announcement field', () => {
-    expect(isInReturnQueue({ status: 'ISSUED', endDate: hours(72) }, now)).toBe(false);
+  it('keeps a damage when some pieces are also missing', () => {
+    const damaged = withCondition(completeReturn(5), 'DAMAGED');
+    expect(withReturned(damaged, 4)).toMatchObject({ condition: 'DAMAGED', returned: 4 });
   });
 
-  it('puts announced first, then overdue, then due', () => {
-    const sorted = [
-      loan('due', hours(5)),
-      loan('overdue-late', hours(-2)),
-      loan('announced', hours(48), hours(-1)),
-      loan('overdue-early', hours(-30)),
-    ].toSorted(compareReturnQueue(now));
-    expect(sorted.map((entry) => entry.id)).toEqual([
-      'announced',
-      'overdue-early',
-      'overdue-late',
-      'due',
-    ]);
+  it('takes one piece off for "missing" and puts everything back for "OK"', () => {
+    const missing = withCondition(completeReturn(5), 'MISSING');
+    expect(missing.returned).toBe(4);
+    expect(isReturnValid(missing)).toBe(true);
+    expect(withCondition(missing, 'OK').returned).toBe(5);
+  });
+
+  it('never damages more pieces than came back, nor none', () => {
+    const damaged = withCondition(
+      { ...completeReturn(5), returned: 0, condition: 'MISSING' },
+      'DAMAGED',
+    );
+    expect(damaged.returned).toBe(5);
+    const fewer = withReturned({ ...damaged, damaged: 5 }, 2);
+    expect(fewer.damaged).toBe(2);
+    expect(isReturnValid(fewer)).toBe(true);
   });
 });
 

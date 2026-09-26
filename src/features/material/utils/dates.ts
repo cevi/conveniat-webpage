@@ -1,5 +1,12 @@
 const pad = (value: number): string => String(value).padStart(2, '0');
 
+/**
+ * The last day of conveniat27, offered as the "until the end of the camp" return date. It is
+ * only a suggestion, the date picker takes any day; once konekta lends material for another
+ * camp, this belongs into an env value.
+ */
+export const CAMP_END = '2027-07-31';
+
 /** A date as the `YYYY-MM-DD` a date input wants, in the reader's time zone. */
 export const toDateInput = (date: Date): string =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -17,9 +24,6 @@ export const fromDateInput = (value: string, edge: 'start' | 'end'): Date | unde
     : new Date(year, month - 1, day, 23, 59, 59, 999);
 };
 
-/** Today and tomorrow, the usual answer to "from when until when". */
-export const defaultPeriod = (): { start: string; end: string } => {
-  const today = new Date();
-  const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-  return { start: toDateInput(today), end: toDateInput(tomorrow) };
-};
+/** The day after `date`, as a date input, the usual answer to "until when". */
+export const nextDayInput = (date: Date): string =>
+  toDateInput(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1));

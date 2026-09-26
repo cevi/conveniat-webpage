@@ -14,9 +14,10 @@ import {
   materialQueryOptions,
   useInvalidateMaterial,
   useMaterialLocale,
-  type MaterialItem,
+  type MaterialItemDetail,
 } from '@/features/material/hooks/use-material';
 import { getItemFormProblems, type ItemFormProblem } from '@/features/material/utils/item-form';
+import { itemPath } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -42,9 +43,9 @@ const text = {
   },
   imageUrl: { de: 'Bild-URL', en: 'Image URL', fr: 'URL de l’image' },
   reservable: {
-    de: 'Kann im Voraus reserviert werden',
-    en: 'Can be reserved ahead',
-    fr: 'Peut être réservé à l’avance',
+    de: 'Kann für eine spätere Abholung vorbereitet werden',
+    en: 'Can be prepared for a later pickup',
+    fr: 'Peut être préparé pour un retrait ultérieur',
   },
   disabled: {
     de: 'Gesperrt (nicht verfügbar)',
@@ -88,7 +89,10 @@ interface FormState {
   isDisabled: boolean;
 }
 
-const fromItem = (item: MaterialItem | undefined): FormState => ({
+/** The fields of an article this form edits, from the inventory list or the article page. */
+type EditableItem = Omit<MaterialItemDetail, 'openLoans'>;
+
+const fromItem = (item: EditableItem | undefined): FormState => ({
   name: item?.name ?? '',
   code: item?.code ?? '',
   categoryId: item?.category.id ?? '',
@@ -111,7 +115,7 @@ const showError = (error: { message: string }): void => {
 
 /** Creates an article, or edits one; every field an article has is on this form. */
 export const ItemEditDialog: React.FC<{
-  item?: MaterialItem;
+  item?: EditableItem;
   onClose: () => void;
 }> = ({ item, onClose }) => {
   const locale = useMaterialLocale();
@@ -157,7 +161,7 @@ export const ItemEditDialog: React.FC<{
       void invalidate();
       // the code is the address of the article page
       if (item?.code !== data.code) {
-        router.replace(`/app/material/catalog?item=${encodeURIComponent(data.code)}`);
+        router.replace(itemPath(data.code));
       }
     };
     const options = { onSuccess, onError: showError };

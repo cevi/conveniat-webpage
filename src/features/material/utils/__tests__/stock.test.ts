@@ -30,7 +30,7 @@ const hold = (overrides: Partial<LoanHold>): LoanHold => ({
 describe('getStockSummary', () => {
   it('keeps damaged and repaired pieces out of what can be lent', () => {
     const stock = getStockSummary(tents, [
-      hold({ status: 'REQUESTED', quantity: 2 }),
+      hold({ status: 'RESERVED', quantity: 2 }),
       hold({ status: 'ISSUED', quantity: 3, issuedQuantity: 2 }),
       hold({ status: 'RETURNED', quantity: 5 }),
     ]);
@@ -72,7 +72,7 @@ describe('getItemStatus', () => {
 describe('getAvailableForPeriod', () => {
   const now = day(1);
 
-  it('lets a request fit between two reservations that do not overlap each other', () => {
+  it('lets a loan fit between two reservations that do not overlap each other', () => {
     const loans = [
       hold({ quantity: 6, startDate: day(10), endDate: day(12) }),
       hold({ quantity: 6, startDate: day(14), endDate: day(16) }),

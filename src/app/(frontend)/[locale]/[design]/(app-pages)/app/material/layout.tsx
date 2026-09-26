@@ -33,8 +33,7 @@ const MaterialLayout: React.FC<{
         <Suspense>
           <MaterialFeatureGate>
             <MaterialNav />
-            {/* room at the end of a page for the scan button a phone shows above the bottom bar */}
-            <div className="pt-4 pb-20 sm:pb-4">{children}</div>
+            <div className="pt-4 pb-6">{children}</div>
           </MaterialFeatureGate>
         </Suspense>
       </div>

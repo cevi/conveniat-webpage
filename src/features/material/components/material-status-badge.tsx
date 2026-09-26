@@ -28,7 +28,6 @@ const itemStatusDot: Record<MaterialItemStatus, string> = {
 };
 
 const loanStatusClass: Record<MaterialLoanDisplayStatus, string> = {
-  REQUESTED: 'bg-amber-50 text-amber-800 ring-amber-600/30',
   RESERVED: 'bg-blue-50 text-blue-800 ring-blue-600/30',
   ISSUED: 'bg-green-50 text-green-800 ring-green-600/30',
   RETURN_DUE: 'bg-orange-50 text-orange-800 ring-orange-600/30',

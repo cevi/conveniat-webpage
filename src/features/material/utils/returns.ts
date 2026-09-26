@@ -1,34 +1,4 @@
-import { getLoanDisplayStatus } from '@/features/material/utils/stock';
-import type { MaterialCondition, MaterialLoanStatus } from '@/lib/prisma/client';
-
-interface ReturnQueueLoan {
-  status: MaterialLoanStatus;
-  endDate: Date;
-  returnAnnouncedAt?: Date | null;
-}
-
-/** Announced first, then overdue, then due; the order the depot works through them. */
-const returnRank = (loan: ReturnQueueLoan, now: Date): number | undefined => {
-  if (loan.status !== 'ISSUED') return undefined;
-  // a blob restored from yesterday's cache may lack the field
-  if (loan.returnAnnouncedAt instanceof Date) return 0;
-  const status = getLoanDisplayStatus(loan, now);
-  if (status === 'OVERDUE') return 1;
-  if (status === 'RETURN_DUE') return 2;
-  return undefined;
-};
-
-/** Material that should come back now: announced, due within a day, or overdue. */
-export const isInReturnQueue = (loan: ReturnQueueLoan, now: Date): boolean =>
-  returnRank(loan, now) !== undefined;
-
-/** Sorts the return queue, and within one group the loan that is due first comes first. */
-export const compareReturnQueue =
-  (now: Date) =>
-  (a: ReturnQueueLoan, b: ReturnQueueLoan): number => {
-    const rank = (returnRank(a, now) ?? 3) - (returnRank(b, now) ?? 3);
-    return rank === 0 ? a.endDate.getTime() - b.endDate.getTime() : rank;
-  };
+import type { MaterialCondition } from '@/lib/prisma/client';
 
 /**
  * Whether a check-in makes sense before it is sent: "missing" needs pieces that did not come
@@ -58,6 +28,58 @@ export const isReturnValid = ({
     }
     default: {
       return true;
+    }
+  }
+};
+
+/** One line of a check-in as the counter edits it. */
+export interface ReturnDraft {
+  issued: number;
+  returned: number;
+  condition: MaterialCondition;
+  /** only read for `DAMAGED` */
+  damaged: number;
+}
+
+/** The default at the counter: everything back, nothing wrong. */
+export const completeReturn = (issued: number): ReturnDraft => ({
+  issued,
+  returned: issued,
+  condition: 'OK',
+  damaged: 1,
+});
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(Math.max(value, min), Math.max(max, min));
+
+/**
+ * Changes how many pieces came back. Fewer than went out reads as "missing" unless the line is
+ * already marked damaged, and all of them back again undoes "missing".
+ */
+export const withReturned = (draft: ReturnDraft, returned: number): ReturnDraft => {
+  const next = clamp(returned, 0, draft.issued);
+  let condition = draft.condition;
+  if (condition === 'OK' && next < draft.issued) condition = 'MISSING';
+  if (condition === 'MISSING' && next === draft.issued) condition = 'OK';
+  return { ...draft, returned: next, condition, damaged: clamp(draft.damaged, 1, next) };
+};
+
+/**
+ * Picks a condition chip. "OK" means everything is back; "missing" takes one piece off when
+ * all were counted back; "damaged" needs at least one piece back to be damaged.
+ */
+export const withCondition = (draft: ReturnDraft, condition: MaterialCondition): ReturnDraft => {
+  switch (condition) {
+    case 'OK': {
+      return { ...draft, condition, returned: draft.issued };
+    }
+    case 'MISSING': {
+      const returned = draft.returned === draft.issued ? draft.issued - 1 : draft.returned;
+      return { ...draft, condition, returned: Math.max(returned, 0) };
+    }
+    default: {
+      const returned = draft.returned === 0 ? draft.issued : draft.returned;
+      return { ...draft, condition, returned, damaged: clamp(draft.damaged, 1, returned) };
     }
   }
 };
