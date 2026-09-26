@@ -456,7 +456,8 @@ export const billingExportXlsxHandler: PayloadHandler = async (request) => {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename="${filename}"`,
-        'Cache-Control': 'no-cache',
+        // Every bill with its amount: the browser must not keep a copy on disk.
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {

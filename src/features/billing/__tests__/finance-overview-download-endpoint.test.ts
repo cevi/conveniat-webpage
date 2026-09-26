@@ -78,6 +78,7 @@ describe('billingExportXlsxHandler', () => {
     const response = await billingExportXlsxHandler(request);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
     // No fake clock to pin the date to: ExcelJS zips the workbook on timers, and it
     // never finishes under Jest's fake ones.
     expect(response.headers.get('Content-Disposition')).toMatch(
