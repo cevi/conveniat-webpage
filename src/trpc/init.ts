@@ -1,5 +1,6 @@
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
+import { traceProcedure } from '@/trpc/middleware/tracing';
 import {
   type HitobitoNextAuthUser,
   HitobitoNextAuthUserSchema,
@@ -7,9 +8,12 @@ import {
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
+import { createLogger } from '@/utils/server-logger';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { cache } from 'react';
 import superjson from 'superjson';
+
+const logger = createLogger('trpc:context');
 
 export const createTRPCContext = cache(async () => {
   const session = await auth();
@@ -21,10 +25,9 @@ export const createTRPCContext = cache(async () => {
     } else {
       const result = HitobitoNextAuthUserSchema.safeParse(session.user);
       if (!result.success) {
-        console.warn(
-          '[createTRPCContext] Session invalid (Schema Mismatch):',
-          JSON.stringify(result.error.format()),
-        );
+        logger.warn('Session rejected, it does not match the expected schema', {
+          'session.schema.error': JSON.stringify(result.error.format()),
+        });
       }
     }
   }
@@ -42,7 +45,18 @@ const t = initTRPC.context<Context>().create({
 export const middleware = t.middleware;
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
-export const publicProcedure = t.procedure;
+
+/**
+ * Applied to the base procedure so that every query and mutation is traced and timed,
+ * including the ones that fail in an auth middleware below — a burst of 403s is worth
+ * seeing, and a procedure that is only slow because the session lookup is slow would
+ * otherwise measure as fast.
+ */
+const tracing = t.middleware(
+  async ({ path, type, next }) => await traceProcedure({ path, type, next }),
+);
+
+export const publicProcedure = t.procedure.use(tracing);
 
 /**
  * `UNAUTHORIZED` (401), not `FORBIDDEN` (403): the request carries no valid
@@ -66,32 +80,40 @@ const isAuthed = t.middleware(({ ctx, next }) => {
   });
 });
 
-export const trpcBaseProcedure = t.procedure.use(isAuthed);
+export const trpcBaseProcedure = publicProcedure.use(isAuthed);
 
-const isAdmin = t.middleware(({ ctx, next }) => {
-  // not signed in at all -> 401, see `isAuthed`
-  if (!ctx.user) {
-    throw new TRPCError({
-      code: 'UNAUTHORIZED',
-      message: 'User not authenticated.',
-    });
-  }
+/** Lets a request through only if the user belongs to one of `requiredRoles`. */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- tRPC narrows `ctx.user` only through the inferred middleware type
+const requireRoles = (requiredRoles: Roles[]) =>
+  t.middleware(({ ctx, next }) => {
+    // not signed in at all -> 401, see `isAuthed`
+    if (!ctx.user) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User not authenticated.',
+      });
+    }
 
-  const hasAccess = hasAccessToThisUser({
-    user: ctx.user,
-    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-  });
-
-  // signed in, but lacking the required role -> 403, and no sign out
-  if (!hasAccess) {
-    throw new TRPCError({ code: 'FORBIDDEN' });
-  }
-
-  return next({
-    ctx: {
+    const hasAccess = hasAccessToThisUser({
       user: ctx.user,
-    },
-  });
-});
+      requiredRoles,
+    });
 
-export const trpcAdminProcedure = t.procedure.use(isAdmin);
+    // signed in, but lacking the required role -> 403, and no sign out
+    if (!hasAccess) {
+      throw new TRPCError({ code: 'FORBIDDEN' });
+    }
+
+    return next({
+      ctx: {
+        user: ctx.user,
+      },
+    });
+  });
+
+export const trpcAdminProcedure = publicProcedure.use(
+  requireRoles([Roles.FullAdmin, Roles.WebCoreTeam]),
+);
+
+/** For data only full admins may see, like what any one person was sent. */
+export const trpcFullAdminProcedure = publicProcedure.use(requireRoles([Roles.FullAdmin]));

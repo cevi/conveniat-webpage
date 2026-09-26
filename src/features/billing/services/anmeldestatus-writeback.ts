@@ -1,4 +1,6 @@
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
+import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 
 /** The answer the Cevi.DB expects once the invoice has gone out. */
 export const ANMELDESTATUS_INVOICED = 'Rechnung gestellt';
@@ -14,6 +16,10 @@ const ANMELDESTATUS_KEYWORDS = ['anmeldestatus'];
 
 export const ANMELDESTATUS_WRITTEN_ACTION = 'anmeldestatus_written_to_cevidb';
 export const ANMELDESTATUS_FAILED_ACTION = 'anmeldestatus_writeback_failed';
+
+/** Both cookie failures read the same to an operator: go to the settings and paste a new one. */
+const MISSING_COOKIE_REASON =
+  'Es ist kein gültiger Browser-Cookie hinterlegt. Bitte trage ihn in den Registrierungs-Einstellungen ein.';
 
 export interface AnmeldestatusHistoryEntry {
   date: string;
@@ -31,6 +37,11 @@ export interface AnmeldestatusWriteBackResult {
   historyEntries: AnmeldestatusHistoryEntry[];
   /** A German sentence for the run summary, set only when the write-back failed. */
   error?: string;
+  /**
+   * The browser cookie is missing or no longer signed in. Nothing but the registration
+   * settings can fix that, so the caller links the operator there.
+   */
+  cookieInvalid?: boolean;
 }
 
 /** Whether the Cevi.DB still has to be told that this registration has been invoiced. */
@@ -66,7 +77,7 @@ export async function writeBackAnmeldestatus(
     return { anmeldestatus: current, historyEntries: [] };
   }
 
-  const fail = (reason: string): AnmeldestatusWriteBackResult => {
+  const fail = (reason: string, cookieInvalid = false): AnmeldestatusWriteBackResult => {
     logger.warn(
       `Anmeldestatus write-back failed for participation ${participation.participationUuid} (${participation.fullName}): ${reason}`,
     );
@@ -80,13 +91,12 @@ export async function writeBackAnmeldestatus(
         },
       ],
       error: `${participation.fullName}: Anmeldestatus konnte in der Cevi.DB nicht auf «${ANMELDESTATUS_INVOICED}» gesetzt werden – ${reason}`,
+      ...(cookieInvalid ? { cookieInvalid: true } : {}),
     };
   };
 
   if (hitobitoService === undefined) {
-    return fail(
-      'Es ist kein gültiger Browser-Cookie hinterlegt. Bitte trage ihn in den Registrierungs-Einstellungen ein.',
-    );
+    return fail(MISSING_COOKIE_REASON, true);
   }
 
   try {
@@ -118,6 +128,9 @@ export async function writeBackAnmeldestatus(
       ],
     };
   } catch (error) {
+    // A dead session reaches here as a login page every scraper fails to read, so it is
+    // named for what it is instead of as whatever the form did not contain.
+    if (error instanceof SessionExpiredError) return fail(CEVIDB_SESSION_EXPIRED_MESSAGE, true);
     return fail(error instanceof Error ? error.message : String(error));
   }
 }

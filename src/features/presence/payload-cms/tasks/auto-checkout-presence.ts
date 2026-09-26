@@ -4,6 +4,10 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleUnlessQueued,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import prisma from '@/lib/db/prisma';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
@@ -37,14 +41,7 @@ export const autoCheckoutPresenceTask: TaskConfig<{
       cron: '*/5 * * * *', // Run every 5 minutes
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{
-          shouldSchedule: boolean;
-          input: Record<string, never>;
-          waitUntil?: Date;
-        }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           await cleanupCompletedScheduledJobs(req, 'autoCheckoutPresence');
           await cleanupStaleScheduledJobs(req, 'autoCheckoutPresence', 30);
 
@@ -55,18 +52,7 @@ export const autoCheckoutPresenceTask: TaskConfig<{
             onlyScheduled: true,
           });
 
-          /**
-           * The cron expression does not hold the job back by itself: the scheduler asks this
-           * hook on every runner tick and the queued job is picked up as soon as it exists.
-           * `queueable.waitUntil` is the next slot of the cron above, and passing it on is what
-           * turns the five minutes into the actual cadence — without it the task ran once per
-           * ten-second tick.
-           */
-          return {
-            shouldSchedule: runnableOrActiveJobsForQueue < 1,
-            input: {},
-            ...(queueable.waitUntil === undefined ? {} : { waitUntil: queueable.waitUntil }),
-          };
+          return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
         },
       },
     },

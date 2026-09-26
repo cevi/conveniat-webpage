@@ -122,6 +122,18 @@ export const hasAccessToThis: ({
 export const hasAdminOrWebAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
   return hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
 };
+
+/**
+ * Admin, web core team and translation team: everyone who may change localized editorial
+ * content. The translation team reaches a page through the same rule that lets the web team
+ * write it, so the three roles share one name instead of a `requiredRoles` list per collection.
+ */
+export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
+  return hasAccessToThis({
+    req,
+    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
+  });
+};
 export const hasAccessToThisHelper = ({
   requiredRoles,
 }: {
@@ -138,14 +150,7 @@ export const ProgramTeamAccessForGenericPage = ({
   // program team has access if the user is in the program team group and the page allows edits by user
 
   // if user is higher privileged, grant access
-  if (
-    hasAccessToThis({
-      req,
-      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.TranslationTeam],
-    })
-  ) {
-    return true;
-  }
+  if (hasEditorialAccess({ req })) return true;
 
   if (!isProgramTeam({ req })) return false;
 

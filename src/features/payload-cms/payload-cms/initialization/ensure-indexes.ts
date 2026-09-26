@@ -2,6 +2,8 @@ import type { MongooseAdapter } from '@payloadcms/db-mongodb';
 import type { IndexSpecification } from 'mongodb';
 import type { Payload } from 'payload';
 
+type Logger = Payload['logger'];
+
 const LOG_PREFIX = '[Index Manager]';
 
 interface IndexTask {
@@ -21,12 +23,12 @@ const createIndexSafe = async (
   collection: SimpleCollection,
   indexSpec: IndexSpecification,
   description: string,
+  logger: Logger,
 ): Promise<void> => {
   try {
     await collection.createIndex(indexSpec);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`${LOG_PREFIX} Failed to ensure index for ${description}: ${message}`);
+    logger.warn({ err: error }, `${LOG_PREFIX} Failed to ensure index for ${description}`);
   }
 };
 
@@ -37,15 +39,19 @@ const processIndexes = async (
   collection: SimpleCollection,
   tasks: IndexTask[],
   collectionName: string,
+  logger: Logger,
 ): Promise<void> => {
   if (tasks.length === 0) return;
 
   // Execute all index creations for this collection in parallel
   await Promise.all(
-    tasks.map((task) => createIndexSafe(collection, task.spec, `${collectionName} (${task.name})`)),
+    tasks.map((task) =>
+      createIndexSafe(collection, task.spec, `${collectionName} (${task.name})`, logger),
+    ),
   );
 
-  console.log(`${LOG_PREFIX} Verified ${tasks.length} indices for ${collectionName}`);
+  // once per collection on every boot of every replica
+  logger.debug(`${LOG_PREFIX} Verified ${tasks.length} indices for ${collectionName}`);
 };
 
 /**
@@ -58,11 +64,13 @@ const processIndexes = async (
  * @param connection The MongoDB connection
  * @param collectionName The name of the collection
  * @param locales The available locales
+ * @param logger The Payload logger
  */
 const ensureCollectionLocalizedIndices = async (
   connection: MongooseAdapter['connection'],
   collectionName: string,
   locales: string[],
+  logger: Logger,
 ): Promise<void> => {
   const collection = connection.collection(collectionName);
 
@@ -71,7 +79,7 @@ const ensureCollectionLocalizedIndices = async (
     spec: { [`_localized_status.${locale}.published`]: 1, updatedAt: -1 },
   }));
 
-  await processIndexes(collection, tasks, collectionName);
+  await processIndexes(collection, tasks, collectionName, logger);
 };
 
 /**
@@ -85,12 +93,14 @@ const ensureCollectionLocalizedIndices = async (
  * @param versionsCollectionName The name of the versions collection
  * @param locales The available locales
  * @param isLocalized Whether the collection is localized
+ * @param logger The Payload logger
  */
 const ensureVersionCollectionIndices = async (
   connection: MongooseAdapter['connection'],
   versionsCollectionName: string,
   locales: string[],
   isLocalized: boolean,
+  logger: Logger,
 ): Promise<void> => {
   const collection = connection.collection(versionsCollectionName);
 
@@ -109,7 +119,7 @@ const ensureVersionCollectionIndices = async (
     );
   }
 
-  await processIndexes(collection, tasks, versionsCollectionName);
+  await processIndexes(collection, tasks, versionsCollectionName, logger);
 };
 
 /**
@@ -118,9 +128,11 @@ const ensureVersionCollectionIndices = async (
  * will cause index creation to fail on MongoDB. This cleans them up beforehand.
  *
  * @param connection The MongoDB connection
+ * @param logger The Payload logger
  */
 const deduplicatePushSubscriptions = async (
   connection: MongooseAdapter['connection'],
+  logger: Logger,
 ): Promise<void> => {
   const collection = connection.collection('push-notification-subscriptions');
 
@@ -133,7 +145,7 @@ const deduplicatePushSubscriptions = async (
       .toArray();
 
     if (duplicates.length > 0) {
-      console.log(`${LOG_PREFIX} Found ${duplicates.length} duplicate push tokens to clean up`);
+      logger.info(`${LOG_PREFIX} Found ${duplicates.length} duplicate push tokens to clean up`);
       let deletedCount = 0;
 
       for (const document_ of duplicates) {
@@ -150,20 +162,19 @@ const deduplicatePushSubscriptions = async (
         }
       }
 
-      console.log(`${LOG_PREFIX} Deleted ${deletedCount} duplicate push subscription records`);
+      logger.info(`${LOG_PREFIX} Deleted ${deletedCount} duplicate push subscription records`);
     }
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`${LOG_PREFIX} Failed to deduplicate push subscriptions: ${message}`);
+    logger.warn({ err: error }, `${LOG_PREFIX} Failed to deduplicate push subscriptions`);
   }
 };
 
 export const ensureIndexes = async (payload: Payload): Promise<void> => {
-  const { db, config } = payload;
+  const { db, config, logger } = payload;
 
   if (db.name !== 'mongoose') return;
 
-  console.log(`${LOG_PREFIX} Starting index verification...`);
+  logger.info(`${LOG_PREFIX} Starting index verification...`);
 
   const connection = (db as MongooseAdapter).connection;
   const localization = config.localization;
@@ -185,7 +196,7 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
 
   // Run Deduplication for Push Notification Subscriptions BEFORE index creation
   // to ensure the unique index on `token` can be created.
-  await deduplicatePushSubscriptions(connection);
+  await deduplicatePushSubscriptions(connection, logger);
 
   // Kick off Entity Processing (Promise)
   interface EntityMinimal {
@@ -202,13 +213,19 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
 
     // Main Collection Indices
     if (isLocalized && entity.type === 'collection') {
-      entityTasks.push(ensureCollectionLocalizedIndices(connection, entity.slug, locales));
+      entityTasks.push(ensureCollectionLocalizedIndices(connection, entity.slug, locales, logger));
     }
 
     // Version Collection Indices
     if (Boolean(entity.versions?.drafts)) {
       entityTasks.push(
-        ensureVersionCollectionIndices(connection, versionsCollectionName, locales, isLocalized),
+        ensureVersionCollectionIndices(
+          connection,
+          versionsCollectionName,
+          locales,
+          isLocalized,
+          logger,
+        ),
       );
     }
 
@@ -217,5 +234,5 @@ export const ensureIndexes = async (payload: Payload): Promise<void> => {
 
   await Promise.all(entityPromises);
 
-  console.log(`${LOG_PREFIX} Finished ensuring indices.`);
+  logger.info(`${LOG_PREFIX} Finished ensuring indices.`);
 };

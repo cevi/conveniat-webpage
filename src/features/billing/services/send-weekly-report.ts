@@ -1,11 +1,12 @@
 import { ACCOUNTED_STATUSES } from '@/features/billing/services/billing-status';
-import {
-  buildFinanceOverviewRows,
-  buildFinanceOverviewWorkbook,
-} from '@/features/billing/services/finance-overview-export';
-import { renderWeeklyReportPdf } from '@/features/billing/services/render-weekly-report';
+import { buildFinanceCsvRows } from '@/features/billing/services/csv-export-service';
+import { buildFinanceOverviewWorkbook } from '@/features/billing/services/finance-overview-export';
 import type { WeeklyReport } from '@/features/billing/services/weekly-report';
 import { buildWeeklyReport } from '@/features/billing/services/weekly-report';
+import {
+  buildWeeklyReportAttachment,
+  findWeeklyReportParticipants,
+} from '@/features/billing/services/weekly-report-document';
 import type { Payload } from 'payload';
 
 /**
@@ -204,35 +205,27 @@ export async function sendWeeklyReport(
   }
 
   try {
-    const participants = await payload.find({
-      collection: 'bill-participants',
-      where: {},
-      limit: 10_000,
-      context: { internal: true },
-    });
+    const participants = await findWeeklyReportParticipants(payload);
 
-    const report = buildWeeklyReport(participants.docs, now);
+    const report = buildWeeklyReport(participants, now);
     const stamp = now.toISOString().slice(0, 10);
 
     // 1. Prepare PDF attachment if enabled
     let pdfAttachment: { filename: string; content: Buffer } | undefined;
     if (config?.attachPdf !== false) {
-      pdfAttachment = {
-        filename: `anmeldestand-${stamp}.pdf`,
-        content: await renderWeeklyReportPdf(report),
-      };
+      pdfAttachment = await buildWeeklyReportAttachment(report);
     }
 
     // 2. Prepare Excel attachment if enabled and finance recipients exist
     let excelAttachment: { filename: string; content: Buffer } | undefined;
     if (config?.attachExcel !== false && financeRecipients.length > 0) {
-      const billed = participants.docs.filter((participant) =>
+      const billed = participants.filter((participant) =>
         (ACCOUNTED_STATUSES as readonly string[]).includes(participant.status),
       );
-      const rows = buildFinanceOverviewRows(billed, settings);
+      const rows = buildFinanceCsvRows(billed, settings);
       excelAttachment = {
         filename: `rechnungsuebersicht-${stamp}.xlsx`,
-        content: await buildFinanceOverviewWorkbook(rows, settings.currency ?? 'CHF'),
+        content: await buildFinanceOverviewWorkbook(rows),
       };
     }
 

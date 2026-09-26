@@ -3,6 +3,11 @@ import {
   cleanupStaleScheduledJobs,
   DEFAULT_QUEUE,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import {
+  scheduleAt,
+  skipSchedule,
+  type ScheduleDecision,
+} from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
 import { redis } from '@/lib/db/redis';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
@@ -32,10 +37,7 @@ export const sendWeeklyReportTask: TaskConfig = {
       cron: '0 5 * * * *',
       queue: DEFAULT_QUEUE,
       hooks: {
-        beforeSchedule: async ({
-          queueable,
-          req,
-        }): Promise<{ shouldSchedule: boolean; input: Record<string, never> }> => {
+        beforeSchedule: async ({ queueable, req }): Promise<ScheduleDecision> => {
           // 1. Calculate the 1-hour slot lock to ensure only one instance schedules the job per slot in a cluster
           const periodMs = 60 * 60 * 1000;
           const currentSlot = Math.floor(Date.now() / periodMs) * periodMs;
@@ -58,10 +60,7 @@ export const sendWeeklyReportTask: TaskConfig = {
             req.payload.logger.debug(
               `sendWeeklyReport: slot ${currentSlot} already locked/scheduled for this 1h window. Skipping.`,
             );
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
           await cleanupCompletedScheduledJobs(req, 'sendWeeklyReport');
@@ -84,26 +83,17 @@ export const sendWeeklyReportTask: TaskConfig = {
             // We already hold the 1-hour Redis slot lock for this window, and sendWeeklyReport
             // enforces an execution-level run lock. Suppressing scheduling on a transient DB error
             // would cause the entire weekly report to be skipped for the week.
-            return {
-              shouldSchedule: true,
-              input: {},
-            };
+            return scheduleAt(queueable.waitUntil);
           }
 
           if (runnableOrActiveJobs > 0) {
             req.payload.logger.info(
               `sendWeeklyReport: ${runnableOrActiveJobs} active or runnable jobs already exist. Skipping scheduling.`,
             );
-            return {
-              shouldSchedule: false,
-              input: {},
-            };
+            return skipSchedule();
           }
 
-          return {
-            shouldSchedule: true,
-            input: {},
-          };
+          return scheduleAt(queueable.waitUntil);
         },
       },
     },

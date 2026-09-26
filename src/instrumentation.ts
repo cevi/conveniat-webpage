@@ -11,6 +11,12 @@ export const register = async (): Promise<void> => {
 
   const { registerNodeInstrumentation } = await import('./instrumentation-node');
   registerNodeInstrumentation();
+
+  // Not awaited: initializing Payload reaches the database and, on an empty one, seeds it. The
+  // server must accept requests while that happens, as it did when the first admin request
+  // triggered it.
+  const { startJobsRunner } = await import('./instrumentation-jobs');
+  void startJobsRunner();
 };
 
 /**
@@ -65,6 +71,11 @@ export const onRequestError = async (
 ): Promise<void> => {
   // eslint-disable-next-line n/no-process-env
   if (process.env['NEXT_RUNTIME'] === 'nodejs') {
+    // Imported lazily for the same reason the tracing setup is: this module is compiled
+    // for the Edge runtime too, and the logger reaches for `node:os` at import time.
+    const { createLogger } = await import('./utils/server-logger');
+    const logger = createLogger('instrumentation');
+
     const { getPostHogServer } = await import('./lib/posthog-server');
     const posthog = getPostHogServer();
     let distinctId: string | undefined;
@@ -86,7 +97,7 @@ export const onRequestError = async (
             }
           }
         } catch (error_) {
-          console.error('Error parsing PostHog cookie:', error_);
+          logger.warn('Could not parse the PostHog cookie', { error: error_ });
         }
       }
     }
@@ -105,6 +116,22 @@ export const onRequestError = async (
         properties['user-agent'] = request.headers['user-agent'];
       if (request.headers['x-forwarded-for'] !== undefined)
         properties['x-forwarded-for'] = request.headers['x-forwarded-for'];
+
+      // Joins the PostHog issue to the Tempo trace and to the Loki lines of the same request.
+      // Next.js invokes `onRequestError` inside the request's span context (its tracer enters
+      // every span through `context.with(trace.setSpan(...))`), so these are the ids the failing
+      // render was recorded under. They are named `trace_id` / `span_id` rather than
+      // `$exception_*` so PostHog keeps them as plain, filterable event properties, and to match
+      // what the log pipeline already writes in `otel-log-destination.ts`.
+      //
+      // Both are best effort: without a registered SDK, or for an error that escapes the span,
+      // `getActiveSpan()` is undefined and the report goes out without them.
+      const { trace, INVALID_TRACEID } = await import('@opentelemetry/api');
+      const spanContext = trace.getActiveSpan()?.spanContext();
+      if (spanContext !== undefined && spanContext.traceId !== INVALID_TRACEID) {
+        properties['trace_id'] = spanContext.traceId;
+        properties['span_id'] = spanContext.spanId;
+      }
 
       let errorMessage = '';
       let digest: string | undefined;
@@ -145,7 +172,7 @@ export const onRequestError = async (
       try {
         await posthog.flush();
       } catch (flushError) {
-        console.error('Error flushing PostHog events:', flushError);
+        logger.error('Failed to flush the PostHog events', { error: flushError });
       }
     }
   }

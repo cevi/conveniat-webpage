@@ -7,6 +7,7 @@ import { cardGridBlock } from '@/features/payload-cms/payload-cms/shared-blocks/
 import { contactPersonBlock } from '@/features/payload-cms/payload-cms/shared-blocks/contact-person-block';
 import { countdownBlock } from '@/features/payload-cms/payload-cms/shared-blocks/countdown-block';
 import { detailsTable } from '@/features/payload-cms/payload-cms/shared-blocks/details-table';
+import { donationBarometerBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-barometer-block';
 import { donationCtaBlock } from '@/features/payload-cms/payload-cms/shared-blocks/donation-cta-block';
 import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/featured-section-block';
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
@@ -17,6 +18,7 @@ import { mediaTextBlock } from '@/features/payload-cms/payload-cms/shared-blocks
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
 import { photoCarouselBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-carousel-block';
 import { photoContestBlock } from '@/features/payload-cms/payload-cms/shared-blocks/photo-contest-block';
+import { posterHeroBlock } from '@/features/payload-cms/payload-cms/shared-blocks/poster-hero-block';
 import { processStepsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/process-steps-block';
 import { richTextArticleBlock } from '@/features/payload-cms/payload-cms/shared-blocks/rich-text-article-block';
 import { sectionSeparatorBlock } from '@/features/payload-cms/payload-cms/shared-blocks/section-separator-block';
@@ -33,6 +35,7 @@ import type { Block, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
   heroSectionBlock,
+  posterHeroBlock,
   sectionSeparatorBlock,
   richTextArticleBlock,
   mediaTextBlock,
@@ -55,6 +58,7 @@ export const mainContentBlocks: Block[] = [
   whiteSpaceBlock,
   callToActionBlock,
   donationCtaBlock,
+  donationBarometerBlock,
   newsCardBlock,
   campScheduleEntryBlock,
   cardGridBlock,

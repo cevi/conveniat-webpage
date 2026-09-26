@@ -1,11 +1,14 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { manifestIconDefinitions } from '@/utils/icon-definitions';
+import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import type { MetadataRoute } from 'next';
 import { cacheLife, cacheTag } from 'next/cache';
 import { getPayload } from 'payload';
+
+const logger = createLogger('manifest');
 
 /**
  *
@@ -21,10 +24,9 @@ export const cachedManifestGenerator = async (): Promise<MetadataRoute.Manifest>
   cacheTag('payload', 'PWA-v12');
 
   return await withSpan('cachedManifestGenerator', async () => {
-    console.log('[Manifest] Generating manifest...');
+    logger.debug('Generating manifest');
     const payload = await getPayload({ config });
 
-    console.log('[Manifest] Fetching PWA globals...');
     const pwaGlobal = await payload.findGlobal({
       slug: 'PWA',
     });

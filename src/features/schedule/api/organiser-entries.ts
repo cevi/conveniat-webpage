@@ -1,7 +1,10 @@
 import type { PrismaClient } from '@/lib/prisma';
 import { CourseType } from '@/lib/prisma';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { getPayload } from 'payload';
+
+const logger = createLogger('schedule:organiser-entries');
 
 /**
  * Organisers are a handful of people per entry and nobody organises the whole camp, so a
@@ -75,7 +78,7 @@ export const ensureOrganiserStars = async (
     return courseIds;
   } catch (error) {
     // a failure here must not take the star sync down with it
-    console.warn('[ensureOrganiserStars] Could not star organised courses:', error);
+    logger.warn('Could not star the organised courses', { error, 'user.id': userId });
     return [];
   }
 };

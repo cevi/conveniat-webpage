@@ -5,6 +5,7 @@ import {
   sendWeeklyReport,
 } from '@/features/billing/services/send-weekly-report';
 import { buildWeeklyReport, shortenEventName } from '@/features/billing/services/weekly-report';
+import { buildWeeklyReportAttachment } from '@/features/billing/services/weekly-report-document';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
@@ -20,7 +21,6 @@ jest.mock('@/features/billing/services/render-weekly-report', () => ({
 }));
 
 jest.mock('@/features/billing/services/finance-overview-export', () => ({
-  buildFinanceOverviewRows: jest.fn().mockReturnValue([]),
   buildFinanceOverviewWorkbook: jest.fn().mockResolvedValue(Buffer.from('xlsx')),
 }));
 
@@ -235,6 +235,18 @@ describe('applyReportPlaceholders', () => {
       NOW,
     );
     expect(applyReportPlaceholders('{{total}} / {{blocked}}', report)).toBe('2 / 1');
+  });
+});
+
+describe('buildWeeklyReportAttachment', () => {
+  it('names the file after the day the report covers', async () => {
+    const report = buildWeeklyReport([participant({})], NOW);
+    const attachment = await buildWeeklyReportAttachment(report);
+
+    // The same name the weekly mail attaches, so a downloaded report and a mailed one
+    // are recognisably the same document.
+    expect(attachment.filename).toBe('anmeldestand-2026-08-31.pdf');
+    expect(attachment.content).toEqual(Buffer.from('pdf'));
   });
 });
 

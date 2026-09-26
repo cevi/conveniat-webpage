@@ -1,13 +1,14 @@
 import { environmentVariables as env } from '@/config/environment-variables';
 import { billingEndpoints } from '@/features/billing/api/billing-endpoints';
 import { buildSecureConfig } from '@/features/payload-cms/payload-cms/access-rules/build-secure-config';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { collectionsConfig } from '@/features/payload-cms/payload-cms/collections';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { emailSettings } from '@/features/payload-cms/payload-cms/email-settings';
 import { autoTranslateHandler } from '@/features/payload-cms/payload-cms/endpoints/auto-translate';
 import { dropRouteInfo } from '@/features/payload-cms/payload-cms/global-routes';
 import { globalConfig } from '@/features/payload-cms/payload-cms/globals';
-import { onPayloadInit, workerId } from '@/features/payload-cms/payload-cms/initialization';
+import { onPayloadInit } from '@/features/payload-cms/payload-cms/initialization';
 import { LOCALE, locales } from '@/features/payload-cms/payload-cms/locales';
 import { formPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/form/form-plugin-configuration';
 import { importExportConfiguration } from '@/features/payload-cms/payload-cms/plugins/import-export-plugin-configuration';
@@ -16,6 +17,10 @@ import { mcpPluginConfiguration } from '@/features/payload-cms/payload-cms/plugi
 import { redirectsPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/redirects/redirects-plugin-configuration';
 import { s3StoragePlugins } from '@/features/payload-cms/payload-cms/plugins/s3-storage-plugin-configuration';
 import { searchPluginConfiguration } from '@/features/payload-cms/payload-cms/plugins/search/search-plugin-configuration';
+import {
+  withActiveJobTracking,
+  withActiveWorkflowTracking,
+} from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
 import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import {
   DEFAULT_QUEUE,
@@ -50,6 +55,7 @@ import { fileURLToPath } from 'node:url';
 
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
 import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
   setQueriedJobSlugs,
@@ -59,13 +65,7 @@ import {
   widgetDefaultLayout,
 } from '@/features/payload-cms/payload-cms/widgets/widget-configuration';
 import { dbConfig } from '@/lib/db/mongodb';
-import type {
-  CollectionAfterOperationHook,
-  CollectionBeforeChangeHook,
-  Endpoint,
-  JobsConfig,
-  MetaConfig,
-} from 'payload';
+import type { CollectionAfterOperationHook, Endpoint, JobsConfig, MetaConfig } from 'payload';
 import { de } from 'payload/i18n/de';
 import { en } from 'payload/i18n/en';
 import { fr } from 'payload/i18n/fr';
@@ -117,8 +117,17 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
       },
     ],
+    afterNavLinks: [
+      {
+        path: '@/features/payload-cms/payload-cms/components/access-overview-nav-link',
+      },
+    ],
     views: {
-      // Custom views can be added here
+      accessOverview: {
+        Component: '@/features/payload-cms/payload-cms/views/access-overview-view#default',
+        path: '/access-overview',
+        exact: true,
+      },
     },
   },
   user: UserCollection.slug,
@@ -175,7 +184,21 @@ const jobsConfig: JobsConfig = {
    * deletion locally within its own `onSuccess` hook instead.
    */
   deleteJobOnComplete: false,
-  runHooks: true,
+  /**
+   * IMPORTANT: Leave `jobs.runHooks` off.
+   *
+   * Payload appends a task log entry with `updateJob({ log: { $push: entry } })`. The database
+   * path understands that operator; `payload.update()` does not, and its field validation only
+   * accepts an array for an array field. With `runHooks` on, every job therefore failed its own
+   * final bookkeeping write with "Das folgende Feld ist nicht korrekt: Status > Log", around
+   * 1600 times an hour, and stayed marked as processing. Payload deprecates the setting and
+   * warns that it "drastically" slows the queue down.
+   *
+   * The read hooks below are unaffected: they run on `payload.find`, which the admin panel uses
+   * either way. Only writes from inside the queue skip the hooks, and the one write hook that
+   * depended on them now lives in `active-job-tracking.ts`.
+   */
+  runHooks: false,
   jobsCollectionOverrides: ({ defaultJobsCollection }) => {
     const fields = defaultJobsCollection.fields.map((field) => {
       if (
@@ -226,6 +249,7 @@ const jobsConfig: JobsConfig = {
       admin: {
         ...defaultJobsCollection.admin,
         hidden: shouldHideInAdminPanel,
+        group: AdminPanelDashboardGroups.BackofficeSystem.label,
         groupBy: false,
         defaultColumns: ['id', 'workflowSlug', 'taskSlug', 'processing', 'createdAt', 'updatedAt'],
         components: {
@@ -315,75 +339,39 @@ const jobsConfig: JobsConfig = {
           },
           ...(defaultJobsCollection.hooks?.beforeOperation ?? []),
         ],
-        beforeChange: [
-          (async ({ data, originalDoc, req }) => {
-            const originalJobDocument = originalDoc as Record<string, unknown> | undefined;
-            if (data['processing'] === true && originalJobDocument?.['processing'] !== true) {
-              try {
-                await req.payload.update({
-                  collection: 'payload-workers',
-                  where: { workerId: { equals: workerId } },
-                  data: { activeJobId: String(data['id'] || originalJobDocument?.['id'] || '') },
-                  context: { internal: true },
-                });
-              } catch (error) {
-                req.payload.logger.error(
-                  `[Jobs Hook] Failed to set activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
-                );
-              }
-            }
-            if (
-              ((typeof data['completedAt'] === 'string' && data['completedAt'].length > 0) ||
-                data['processing'] === false) &&
-              originalJobDocument?.['processing'] === true
-            ) {
-              try {
-                await req.payload.update({
-                  collection: 'payload-workers',
-                  where: { workerId: { equals: workerId } },
-                  data: {
-                    // eslint-disable-next-line unicorn/no-null
-                    activeJobId: null,
-                  },
-                  context: { internal: true },
-                });
-              } catch (error) {
-                req.payload.logger.error(
-                  `[Jobs Hook] Failed to clear activeJobId on worker: ${error instanceof Error ? error.message : String(error)}`,
-                );
-              }
-            }
-            return data;
-          }) as CollectionBeforeChangeHook,
-          ...(defaultJobsCollection.hooks?.beforeChange ?? []),
-        ],
       },
       fields,
     };
   },
-  tasks: [
-    resolveUserStep,
-    createUserStep,
-    blockJobStep,
-    cleanupTemporaryRolesStep,
-    ensureGroupMembershipStep,
-    ensureEventMembershipStep,
-    confirmationMessageStep,
-    fetchSmtpBouncesTask,
-    checkHitobitoApprovalsTask,
-    generatePdfThumbnailTask,
-    publishScheduledAnnouncementsTask,
-    syncActivePiketMembersTask,
-    syncNewUserAnnouncementChatsTask,
-    syncParticipantsTask,
-    generateBillsTask,
-    sendBillsTask,
-    sendWeeklyReportTask,
-    sendPflichtangabenRemindersTask,
-    cleanupTemporaryFormFilesTask,
-    autoCheckoutPresenceTask,
-  ],
-  workflows: [registrationWorkflow, brevoContactWorkflow],
+  // `withActiveJobTracking` sits inside the span so the worker publishes the id of a job it
+  // is running; `instrumentTasks` wraps the whole run, so the span covers both.
+  tasks: instrumentTasks(
+    [
+      resolveUserStep,
+      createUserStep,
+      blockJobStep,
+      cleanupTemporaryRolesStep,
+      ensureGroupMembershipStep,
+      ensureEventMembershipStep,
+      confirmationMessageStep,
+      fetchSmtpBouncesTask,
+      checkHitobitoApprovalsTask,
+      generatePdfThumbnailTask,
+      publishScheduledAnnouncementsTask,
+      syncActivePiketMembersTask,
+      syncNewUserAnnouncementChatsTask,
+      syncParticipantsTask,
+      generateBillsTask,
+      sendBillsTask,
+      sendWeeklyReportTask,
+      sendPflichtangabenRemindersTask,
+      cleanupTemporaryFormFilesTask,
+      autoCheckoutPresenceTask,
+    ].map((task) => withActiveJobTracking(task)),
+  ),
+  workflows: [registrationWorkflow, brevoContactWorkflow].map((workflow) =>
+    withActiveWorkflowTracking(workflow),
+  ),
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
     ? [
         {

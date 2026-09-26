@@ -117,7 +117,7 @@ const config = defineConfig([
     ],
   },
 
-  // 3b. Logging: prefer the shared logger over console.* — see #1525.
+  // 3b. Logging: prefer the shared logger over console.*
   //
   // `console.log`/`info`/`debug`/`trace` are not bridged into Loki (see
   // `src/utils/otel-console-bridge.ts`), so they are invisible in Grafana and
@@ -135,51 +135,32 @@ const config = defineConfig([
       'src/utils/service-worker-utils.ts', // browser context
       'src/scripts/**', // CLI scripts — stdout is the user interface
       'src/utils/startup-banner.ts', // prints a banner, not log records
+      // Builds the OpenTelemetry pipeline the server logger writes into, so it cannot log through it.
+      'src/tracing.ts',
+      'src/instrumentation-node.ts',
+      // Developer progress output; seedDatabase returns early unless NODE_ENV is development.
+      'src/features/payload-cms/payload-cms/initialization/seeding/**',
       '**/__tests__/**',
 
-      // Temporary: not yet migrated. This list shrinks per area as #1525
-      // progresses; do not add to it.
-      // Bracketed route segments are glob character classes, so these are matched by directory.
-      'src/app/(frontend)/**/app/chat/new-chat-with-user/**',
-      'src/app/(frontend)/**/(payload-pages)/**',
+      // Browser code: no server logger runs there, so it keeps console.*. A glob cannot tell a
+      // client file from a server one, so each is listed by name. Add a browser file here when
+      // it needs console; never a server file.
       'src/app/(onboarding)/entrypoint/page.tsx',
-      'src/app/(payload)/api/flush-cache/route.ts',
       'src/app/global-error.tsx',
-      'src/features/billing/services/sync-service.ts',
-      'src/features/chat/api/mutations/create-chat.ts',
-      'src/features/chat/api/mutations/create-message.ts',
-      'src/features/chat/api/utils/send-push-notifications.ts',
       'src/features/chat/components/chat-view/message/index.tsx',
       'src/features/chat/hooks/use-archive-chat-mutation.ts',
-      'src/features/chat/hooks/use-chat-sse.ts',
       'src/features/chat/hooks/use-chats.ts',
       'src/features/chat/hooks/use-offline-queue-processor.ts',
       'src/features/chat/hooks/use-update-chat-mutation.ts',
-      'src/features/emergency/api/emergency-router.ts',
       'src/features/emergency/components/emergency-component.tsx',
-      'src/features/map/components/map-annotations/drawer-header.tsx',
-      'src/features/native-push/api/native-push-router.ts',
-      'src/features/next-auth/utils/next-auth-config.ts',
       'src/features/onboarding/hooks/use-onboarding.ts',
-      'src/features/payload-cms/page-layouts/generic-page.tsx',
-      'src/features/payload-cms/payload-cms/components/form-submissions-download.ts',
       'src/features/payload-cms/payload-cms/components/live-preview-restorer.tsx',
-      'src/features/payload-cms/payload-cms/initialization/**',
       'src/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field.tsx',
-      'src/features/payload-cms/payload-cms/shared-fields/slug-field.ts',
-      'src/features/payload-cms/payload-cms/utils/flush-page-cache-on-change.ts',
-      'src/features/payload-cms/utils/preview/preview-utils.tsx',
-      'src/features/settings/profile-details.tsx',
       'src/hooks/use-native-push.ts',
-      'src/instrumentation-node.ts',
       'src/lib/chat-sync.ts',
       'src/lib/toast.ts',
       'src/providers/post-hog-provider.tsx',
-      'src/proxy/design-rewrite-proxy.ts',
-      'src/tracing.ts',
-      'src/utils/generate-manifest.ts',
       'src/utils/login-handler.ts',
-      'src/utils/push-notification-api.ts',
     ],
   },
 

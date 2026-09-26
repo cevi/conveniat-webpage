@@ -5,6 +5,7 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { ParagraphText } from '@/components/ui/typography/paragraph-text';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
@@ -402,12 +403,19 @@ export const EmergencyComponent: React.FC = () => {
                 <div className="flex flex-wrap gap-2">
                   {alert.documents.map((documentOrId) => {
                     if (typeof documentOrId === 'string') return;
+                    const title = (documentOrId.title ?? '').trim();
                     const displayName =
-                      documentOrId.internalDescription || documentOrId.filename || 'Document';
+                      title === ''
+                        ? documentOrId.internalDescription || documentOrId.filename || 'Document'
+                        : title;
                     return (
                       <a
                         key={documentOrId.id}
-                        href={documentOrId.url ?? undefined}
+                        href={
+                          typeof documentOrId.url === 'string'
+                            ? withLocaleParameter(documentOrId.url, locale)
+                            : undefined
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"

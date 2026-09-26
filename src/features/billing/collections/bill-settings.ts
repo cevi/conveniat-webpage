@@ -1,4 +1,6 @@
+import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
 import { z } from 'zod';
 
@@ -45,11 +47,7 @@ export const BillSettingsGlobal: GlobalConfig = {
   },
   admin: {
     hideAPIURL: true,
-    group: {
-      en: 'Billing',
-      de: 'Rechnungen',
-      fr: 'Facturation',
-    },
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
   },
   access: {
     read: canAccessBilling,
@@ -126,6 +124,7 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'eventName',
                   type: 'text',
                   required: true,
+                  hooks: { afterRead: [decodeStoredEventName] },
                   label: {
                     en: 'Event Name',
                     de: 'Anlass-Name',
@@ -572,9 +571,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Text on page 1, above the registration details.',
-                  de: 'Text auf Seite 1, oberhalb der Anmeldedaten.',
-                  fr: 'Texte en page 1, au-dessus des données d’inscription.',
+                  en: 'Text on page 1, above the registration details. Web addresses such as con27.ch/agbs are printed as clickable links.',
+                  de: 'Text auf Seite 1, oberhalb der Anmeldedaten. Webadressen wie con27.ch/agbs werden als anklickbare Links gedruckt.',
+                  fr: 'Texte en page 1, au-dessus des données d’inscription. Les adresses web telles que con27.ch/agbs sont imprimées comme des liens cliquables.',
                 },
               },
             },
@@ -588,9 +587,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}.',
-                  de: 'Text auf Seite 1, unterhalb der Anmeldedaten und des Hinweises zu deren Korrektur. Leer lassen, um nichts zu drucken. Gleiche Platzhalter wie oben: {{firstName}}, {{amount}}, {{reference}}.',
-                  fr: 'Texte en page 1, sous les données d’inscription. Laissez vide pour ne rien imprimer.',
+                  en: 'Text on page 1, below the registration details and the note about correcting them. Leave empty to print nothing. Same placeholders as above: {{firstName}}, {{amount}}, {{reference}}. Web addresses such as con27.ch/agbs are printed as clickable links.',
+                  de: 'Text auf Seite 1, unterhalb der Anmeldedaten und des Hinweises zu deren Korrektur. Leer lassen, um nichts zu drucken. Gleiche Platzhalter wie oben: {{firstName}}, {{amount}}, {{reference}}. Webadressen wie con27.ch/agbs werden als anklickbare Links gedruckt.',
+                  fr: 'Texte en page 1, sous les données d’inscription. Laissez vide pour ne rien imprimer. Les adresses web telles que con27.ch/agbs sont imprimées comme des liens cliquables.',
                 },
               },
             },
@@ -1105,6 +1104,26 @@ export const BillSettingsGlobal: GlobalConfig = {
                       en: 'Written by the scheduler. Also what stops a second send in the same week.',
                       de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Versand in derselben Woche.',
                       fr: 'Écrit par le planificateur; empêche un second envoi la même semaine.',
+                    },
+                  },
+                },
+                {
+                  name: 'weeklyReportDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton',
+                    },
+                  },
+                },
+                {
+                  name: 'financeOverviewDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton',
                     },
                   },
                 },

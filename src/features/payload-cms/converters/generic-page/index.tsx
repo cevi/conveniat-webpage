@@ -12,14 +12,17 @@ export const GenericPageConverter: React.FC<{
   renderInPreviewMode?: boolean;
 }> = ({ page, locale, renderInPreviewMode = false }) => {
   const mainContent = page.content.mainContent;
-  const hasHeroSection =
+  const hasOpenerBlock =
     Array.isArray(mainContent) &&
-    mainContent.some((block) => (block as { blockType?: string }).blockType === 'heroSection');
+    mainContent.some((block) => {
+      const blockType = (block as { blockType?: string }).blockType;
+      return blockType === 'heroSection' || blockType === 'posterHero';
+    });
 
   return (
     <>
-      <article className={cn('w-full', hasHeroSection ? 'mb-8' : 'my-8')}>
-        {!hasHeroSection && (
+      <article className={cn('w-full', hasOpenerBlock ? 'mb-8' : 'my-8')}>
+        {!hasOpenerBlock && (
           <div className="mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16">
             <HeadlineH1>{page.content.pageTitle}</HeadlineH1>
           </div>

@@ -77,6 +77,11 @@ protected anyway.
 **Widening an import boundary to silence ESLint.** A failing `import/no-restricted-paths` means the
 code is in the wrong place. Move the shared part. Do not add an exception.
 
+**Leaving a Payload access operation undeclared.** Payload fills in whatever you omit with
+`Boolean(user)`, and a user here is every camp participant who has logged in through Cevi.DB, not
+an editor. An omitted `create` is a collection any participant can write over the REST API, and it
+reads as an intentional blank in the config. Declare all four.
+
 ## Environment
 
 Use pnpm. Never npm, yarn or bun. Node 24.
@@ -184,14 +189,48 @@ Server code never calls `console.log`, `info`, `debug` or `trace`, and ESLint bl
 `console.error` is not a way to make a debug line reach Loki. Three of them once produced 82% of a
 day's error volume and made the error rate meaningless.
 
+ESLint cannot tell a client file from a server one, so `no-console` covers all of `src`, and the
+browser files that need `console` are listed by name in `eslint.config.mjs`. Add a browser file
+there when it needs one. A server file on that list is the same mistake as widening an import
+boundary.
+
 No hardcoded user-facing strings. Declare a `StaticTranslationString` and index it by locale. Both
 that type and `i18nConfig` come from `@/types/types`.
 
 Style with Tailwind and combine classes with `cn()` from `@/lib/utils`. No template literals for
 class names. Icons come from `lucide-react` and nowhere else.
 
+The admin panel looks like Payload, because editors should not have to learn a second design.
+Wherever `@payloadcms/ui` has a piece for the job, use it: `Button`, `Pill`, `Banner`, `TextInput`,
+`FieldLabel`, `Gutter`, `ShimmerEffect`, `toast`, and its drawers and modals. Colour everything else
+with Payload's theme variables, like `text-(--theme-elevation-500)`, so dark mode follows. shadcn/ui
+belongs to the public site, not to `/admin`. Before you replace an edit view, try a `ui` field, a tab
+or `admin.position: 'sidebar'`. A replaced view loses the document controls, and delete with them.
+Tailwind is fine for layout, but a Payload class that is also a Tailwind utility, like `table`,
+gets the utility's styles instead.
+
 Components are Server Components until they need state, effects or browser APIs. Keep effect logic
 in a named hook instead of inlining `useEffect` in a component.
+
+Declare access on a collection or global for every operation — `read`, `create`, `update` and
+`delete`, or `read` and `update` on a global. There is no safe default to fall back on, see above.
+Write `() => false` where nothing but the local API should write, and `() => true` where the answer
+really is everybody.
+
+Say who with a named rule from `access-rules/`, not an inline group check: `isFullAdmin`,
+`hasAdminOrWebAccess`, `hasEditorialAccess` for admin, web core team and translation team,
+`canAccessBilling`, `canAccessAdminPanel` for any editor. `hasAccessToThisHelper({ requiredRoles })`
+is for a combination that has no name yet; the second time you write the same list, name it in
+`roles.ts` instead. A rule may return a `Where` to narrow to single documents, which is how
+`ProgramTeamAccessForGenericPage` lets the program team reach the pages it was named on.
+
+A rule that reads two things at once — `canAccessBilling` wants an admin panel login _and_ the
+billing group — is a role plus an add-on group, not a role. `/admin/access-overview` renders the
+matrix by running the real rules, so open it after you change one and check the column you meant to
+change, and no other.
+
+`admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
+the entry a real rule as well and keep the two saying the same thing.
 
 Client components fetch and mutate through tRPC. Do not add new Server Actions. This is about
 data flowing to and from the client: server components still read Payload directly, which is what
@@ -210,7 +249,9 @@ open release pull request that release-please keeps up to date. Its version come
 titles since the last tag: `feat:` a minor, `fix:`, `perf:` and `chore(deps):` a patch, a `!` or a
 `BREAKING CHANGE:` footer a major. Other types release nothing and stay out of the changelog.
 Merging that pull request tags the release and builds production. A merge into `main` on its own
-builds nothing. Afterwards merge `main` back into `dev`, so `dev` carries the new version.
+builds nothing. The release then opens a pull request that merges `main` back into `dev`, so `dev`
+carries the new version and the next release pull request is not out of date with its base. It
+auto-merges once the checks are green and only wants you when the merge conflicts.
 
 Write conventional commit titles in plain language, like `fix(chat): unread badge clears on
 reopen`.

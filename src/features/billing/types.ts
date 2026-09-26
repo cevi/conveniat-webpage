@@ -105,18 +105,17 @@ export interface RolePricing {
 }
 
 /**
- * CSV row matching the provisorisches Format for the finance team.
+ * One booking in the Banana import. The keys are Banana's column names.
  */
 export interface FinanceCsvRow {
   Date: string;
   DocInvoice: string;
   ExternalReference: string;
-  AccountDebit: string;
-  AccountCredit: string;
   Amount: number;
-  VatCode: string;
   DateExpiration: string;
   Description: string;
+  AccountDebit: string;
+  AccountCredit: string;
 }
 
 /**

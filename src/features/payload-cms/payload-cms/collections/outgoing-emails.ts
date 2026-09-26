@@ -1,8 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import {
-  hasAccessToThisHelper,
-  Roles,
-} from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { overrideOutgoingEmailStatusHandler } from '@/features/payload-cms/payload-cms/endpoints/override-outgoing-email';
 import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
@@ -25,7 +22,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   admin: {
     useAsTitle: 'subject',
-    group: AdminPanelDashboardGroups.GlobalSettings,
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
     groupBy: true,
     defaultColumns: [
       'subject',
@@ -40,7 +37,7 @@ export const OutgoingEmails: CollectionConfig = {
   },
   access: {
     // read only for admins, only access programmatically
-    read: hasAccessToThisHelper({ requiredRoles: [Roles.FullAdmin] }),
+    read: isFullAdmin,
     create: () => false,
     update: () => false,
     delete: () => false,
@@ -290,7 +287,10 @@ export const OutgoingEmails: CollectionConfig = {
                   : (formValue as string);
               }
             } catch (error) {
-              console.error('Error fetching form submission inside form afterRead hook:', error);
+              req.payload.logger.error(
+                { error, 'form.submission.id': formSubmissionId },
+                'Failed to read the form submission inside the form afterRead hook',
+              );
             }
             return undefined;
           }) as FieldHook,

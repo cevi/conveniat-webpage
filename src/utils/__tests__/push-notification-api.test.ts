@@ -8,9 +8,10 @@
 jest.mock('@payload-config', () => ({}), { virtual: true });
 
 jest.mock('payload', () => ({
-  getPayload: (): { update: jest.Mock; delete: jest.Mock } => ({
+  getPayload: (): { update: jest.Mock; delete: jest.Mock; findGlobal: jest.Mock } => ({
     update: jest.fn(),
     delete: jest.fn(),
+    findGlobal: jest.fn().mockResolvedValue({ appShortName: 'Konekta' }),
   }),
 }));
 
@@ -113,5 +114,13 @@ describe('sendNotificationToSubscription native handover', () => {
     const payload = lastFcmPayload();
     expect(payload.title).toBe('Lagerinfo');
     expect(payload.body).toBe('Znacht verschoben\n\nWir essen um 19:30.');
+  });
+
+  // Without an explicit title the notification is named after the app the user
+  // installed, which differs between conveniat27 and konekta (#1855).
+  it("falls back to this deployment's app name when no title is given", async () => {
+    await sendNotificationToSubscription(nativeSubscription, 'Hallo');
+
+    expect(lastFcmPayload().title).toBe('Konekta');
   });
 });

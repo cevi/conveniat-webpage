@@ -15,10 +15,20 @@ import type { BillSetting } from '@/features/payload-cms/payload-types';
 const billSettingsWith = (events: PopulatedSubevent[]): BillSetting =>
   ({ events }) as unknown as BillSetting;
 
+// Typed rather than bare `jest.fn()`, so that reading an attribute off a recorded call is not
+// an `any` access.
+const logLevel = (): jest.Mock<void, [string, Record<string, unknown>?]> =>
+  jest.fn<void, [string, Record<string, unknown>?]>();
+
 describe('populateSubeventsUseCase', () => {
   let mockHitobitoService: jest.Mocked<HitobitoServicePort>;
   let mockSettingsRepo: jest.Mocked<SettingsPort>;
-  const mockLogger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const mockLogger = {
+    debug: logLevel(),
+    info: logLevel(),
+    warn: logLevel(),
+    error: logLevel(),
+  };
 
   beforeEach(() => {
     mockHitobitoService = {
@@ -149,6 +159,44 @@ describe('populateSubeventsUseCase', () => {
     expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
   });
 
+  it('adopts the name and the group of a Hof that was renamed in Cevi.DB', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        {
+          eventId: 'e-1',
+          eventName: 'conveniat27 Seuzach',
+          groupId: '1',
+          addressManagerEmails: 'alt@example.com',
+          reminderRecipientsOverride: 'chef@example.com',
+        },
+      ]),
+    );
+
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['7']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'Hauptlager conveniat27 Seuzach-Welsikon' },
+    ]);
+    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['neu@example.com']);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    // The rename is not a new event, so it must not be counted as one.
+    expect(result.count).toBe(0);
+    expect(result.allEvents).toEqual([
+      {
+        eventId: 'e-1',
+        eventName: 'Hauptlager conveniat27 Seuzach-Welsikon',
+        groupId: '7',
+        addressManagerEmails: 'neu@example.com',
+        reminderRecipientsOverride: 'chef@example.com',
+      },
+    ]);
+  });
+
   it('leaves the stored address managers alone when the Cevi.DB lookup fails', async () => {
     mockSettingsRepo.getBillSettings.mockResolvedValue(
       billSettingsWith([
@@ -183,7 +231,31 @@ describe('populateSubeventsUseCase', () => {
         addressManagerEmails: 'bekannt@example.com',
       },
     ]);
-    expect(mockLogger.warn).toHaveBeenCalled();
+    // The one line a human has to be able to find: which group was skipped, and why.
+    const [warning, attributes] = mockLogger.warn.mock.calls[0] ?? [];
+    expect(warning).toBe('Giving up on a Cevi.DB lookup');
+    expect(attributes).toMatchObject({
+      'billing.lookup': 'address managers',
+      'billing.group_id': '1',
+    });
+    expect(attributes?.['error']).toBeInstanceOf(Error);
+  });
+
+  it('records how far the walk got after every batch', async () => {
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1', '2', '3', '4']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    // A run cut off mid-walk — by the browser, or by the replica being replaced — leaves
+    // these behind, which is how far it got. Without them it looks like it never started.
+    const walked = mockLogger.debug.mock.calls.filter(
+      ([message]) => message === 'Walked a batch of subgroups',
+    );
+    expect(walked.map(([, attributes]) => attributes?.['billing.processed_groups'])).toEqual([
+      3, 4,
+    ]);
+    expect(walked.every(([, attributes]) => attributes?.['billing.total_groups'] === 4)).toBe(true);
   });
 
   it('still reports a total of zero subgroups without dividing by zero downstream', async () => {
@@ -250,6 +322,38 @@ describe('populateSubeventsUseCase', () => {
     ];
     expect(result.allEvents).toEqual(expectedEvents);
     expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(expectedEvents);
+  });
+
+  it('repairs the escaped names of rows that were stored before the names were decoded', async () => {
+    mockSettingsRepo.getBillSettings.mockResolvedValue(
+      billSettingsWith([
+        {
+          eventId: 'e-1',
+          eventName: 'Hauptlager conveniat27 - Altstetten &amp;amp; Albisrieden',
+          groupId: '1',
+          reminderRecipientsOverride: 'hof@example.org',
+        },
+      ]),
+    );
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(result.count).toBe(0);
+    const repaired = [
+      {
+        eventId: 'e-1',
+        eventName: 'Hauptlager conveniat27 - Altstetten & Albisrieden',
+        groupId: '1',
+        reminderRecipientsOverride: 'hof@example.org',
+      },
+    ];
+    expect(result.allEvents).toEqual(repaired);
+    expect(mockSettingsRepo.updateBillSettingsEvents).toHaveBeenCalledWith(repaired);
   });
 
   it('safely handles legacy settings rows with missing or non-string eventName without throwing', async () => {

@@ -2,54 +2,57 @@ import 'server-only';
 
 import { environmentVariables } from '@/config/environment-variables';
 import type { NotificationType } from '@/lib/notification-type';
+import { createLogger } from '@/utils/server-logger';
 import * as admin from 'firebase-admin';
 import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
+
+const logger = createLogger('firebase-admin');
 
 /**
  * Android notification channels a push can be addressed to.
  *
  * Both must match a channel the native shell actually creates - today
- * `LocalNotificationsModule.ensureChannels()` in cevi/konekta-app, which registers
- * `konekta-push` (regular chat pushes) and `konekta-emergency` (siren sound plus its
- * own vibration pattern, cevi/konekta-app#47) at `IMPORTANCE_HIGH` on every app start.
+ * `LocalNotificationsModule.ensureChannels()` in cevi/conveniat27-app, which registers
+ * `conveniat27-push` (regular chat pushes) and `conveniat27-emergency` (siren sound
+ * plus its own vibration pattern) at `IMPORTANCE_HIGH` on every app start; the ids
+ * themselves live in that repo's `strings.xml`.
  *
  * Naming the channel explicitly is what makes background and killed-state pushes work:
  * Android renders those itself without running any app code, so the channel id on the
  * message is the only thing deciding which sound and importance the notification gets.
  *
- * Keeping these in sync with the shell is not optional, because the shell has drifted
- * out from under them before (#1583): the app really did create `konekta-default`
- * until cevi/konekta-app@29d3af24 renamed it to `konekta-push`, and this file kept
- * naming the old id.
+ * Keeping these in sync with the shell is not optional, because this constant has
+ * drifted out from under the shell before (#1583): it named `konekta-push`, copied
+ * from cevi/konekta-app, while the shell only ever created `conveniat27-push`.
  *
  * What happens to a channel id the device does not know is the documented FCM chain,
- * and it is also why no version check guards `konekta-emergency` here. FCM tries, in
- * order: the id on the message, then the manifest's `default_notification_channel_id`,
+ * and it is also why no version check guards `conveniat27-emergency` here. FCM tries,
+ * in order: the id on the message, then the manifest's `default_notification_channel_id`,
  * then a channel it auto-creates itself at `IMPORTANCE_DEFAULT` (no heads-up banner).
- * The manifest points at `konekta-push`, which `MainApplication.onCreate()` has created
- * at `IMPORTANCE_HIGH` on every app start since cevi/konekta-app@29d3af24 - so a build
- * predating the emergency channel lands on the regular channel by itself: no siren, but
- * a heads-up banner, which is exactly what an old build should get. Only the second hop
- * failing drops a notification to default importance, and that needs an app so old it
- * creates no channel at all.
+ * The manifest points at `conveniat27-push`, which `LocalNotificationsModule` creates
+ * at `IMPORTANCE_HIGH` on every app start - so a build predating the emergency channel
+ * lands on the regular channel by itself: no siren, but a heads-up banner, which is
+ * exactly what an old build should get. Only the second hop failing drops a
+ * notification to default importance, and that needs an app so old it creates no
+ * channel at all.
  *
- * The alternative - having the server decide from a reported app version - was tried and
- * removed: the shell's version info is captured at bundle time and release builds ship
- * stale values (cevi/konekta-app#51), so it would have silently downgraded up-to-date
- * devices. There is nothing on the bridge to feature-detect the channel with either;
- * cevi/konekta-app#50 added no observable command, event, or status field.
+ * The alternative - having the server decide from a reported app version - was tried
+ * (on konekta-app) and removed: the shell's version info is captured at bundle time
+ * and release builds ship stale values, so it would have silently downgraded
+ * up-to-date devices. There is nothing on the bridge to feature-detect the channel
+ * with either.
  *
  * Ignored by Android below API 26, and irrelevant on iOS, which has no channels.
  */
-const ANDROID_NOTIFICATION_CHANNEL_ID = 'konekta-push';
-const ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID = 'konekta-emergency';
+const ANDROID_NOTIFICATION_CHANNEL_ID = 'conveniat27-push';
+const ANDROID_EMERGENCY_NOTIFICATION_CHANNEL_ID = 'conveniat27-emergency';
 
 /**
  * Emergency siren shipped with the native app, named per platform because each OS
  * resolves it differently: Android by the bare resource name, without the extension,
  * of the file in `res/raw` (`emergency_siren.mp3`); iOS by the full file name in the
- * app bundle (`KonektaLocalNotifications.emergencySoundName`).
+ * app bundle (`emergency_siren.caf`).
  *
  * Only used for notifications the OS renders on its own; while the app is in the
  * foreground the shell picks the siren itself from `data.notificationType`.
@@ -83,7 +86,7 @@ export function getFirebaseAdmin(): typeof admin | undefined {
     firebaseAdminInitialized = true;
     return admin;
   } catch (error) {
-    console.warn('Failed to initialize Firebase Admin SDK:', error);
+    logger.warn('Failed to initialize the Firebase Admin SDK', { error });
     return undefined;
   }
 }
@@ -112,7 +115,7 @@ export async function sendFcmNotification(
   const adminInstance = getFirebaseAdmin();
 
   if (!adminInstance) {
-    console.warn('Firebase Admin not initialized, skipping FCM send');
+    logger.debug('Firebase Admin is not initialized, skipping the FCM send');
     return { success: false, error: 'Firebase Admin not configured' };
   }
 
@@ -235,7 +238,7 @@ export async function sendFcmNotification(
     // to be returned, which left the caller string-matching on text like `NotRegistered` and
     // unable to tell a permanently dead token from a transient failure.
     const errorCode = (error as { errorInfo?: { code?: unknown } } | undefined)?.errorInfo?.code;
-    console.error('Failed to send FCM notification:', error);
+    logger.error('Failed to send the FCM notification', { error, 'error.code': errorCode });
     return {
       success: false,
       error: errorMessage,

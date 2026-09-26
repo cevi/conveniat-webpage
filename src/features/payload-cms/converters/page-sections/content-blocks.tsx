@@ -3,6 +3,7 @@ import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import type { NewsCardType } from '@/components/news-card';
 import { NewsCardBlock } from '@/components/news-card';
+import { getDonationBarometerCached } from '@/features/payload-cms/api/cached-globals';
 import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
 import type { CallToActionType } from '@/features/payload-cms/components/content-blocks/call-to-action';
@@ -15,6 +16,8 @@ import type { ContactPersonType } from '@/features/payload-cms/components/conten
 import { ContactPersonBlock } from '@/features/payload-cms/components/content-blocks/contact-person';
 import type { CountdownType } from '@/features/payload-cms/components/content-blocks/countdown';
 import { Countdown } from '@/features/payload-cms/components/content-blocks/countdown';
+import type { DonationBarometerType } from '@/features/payload-cms/components/content-blocks/donation-barometer';
+import { DonationBarometer } from '@/features/payload-cms/components/content-blocks/donation-barometer';
 import type { DonationCtaType } from '@/features/payload-cms/components/content-blocks/donation-cta';
 import { DonationCta } from '@/features/payload-cms/components/content-blocks/donation-cta';
 import { FeaturedSection } from '@/features/payload-cms/components/content-blocks/featured-section';
@@ -69,6 +72,10 @@ import {
   HeroSectionBlock,
   type HeroSectionType,
 } from '@/features/payload-cms/components/content-blocks/hero-section';
+import {
+  PosterHeroBlock,
+  type PosterHeroType,
+} from '@/features/payload-cms/components/content-blocks/poster-hero';
 
 export type ContentBlockTypeNames =
   | 'blogPostsOverview'
@@ -90,6 +97,7 @@ export type ContentBlockTypeNames =
   | 'whiteSpace'
   | 'callToAction'
   | 'donationCta'
+  | 'donationBarometer'
   | 'newsCard'
   | 'campScheduleEntryBlock'
   | 'twoColumnBlock'
@@ -99,6 +107,7 @@ export type ContentBlockTypeNames =
   | 'tabsBlock'
   | 'featuredSection'
   | 'heroSection'
+  | 'posterHero'
   | 'mediaText'
   | 'processSteps'
   | 'sectionSeparator';
@@ -700,6 +709,37 @@ export const RenderDonationCta: SectionRenderer<DonationCtaType> = ({
   );
 };
 
+export const RenderDonationBarometer: SectionRenderer<DonationBarometerType> = async ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  // The figures live on the `donation-barometer` global rather than on the
+  // block, so every placement shows the same amount and a later automatic
+  // update has exactly one field to write.
+  const figures = await getDonationBarometerCached(locale);
+
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Das Spendenbarometer',
+          en: 'donation barometer',
+          fr: 'le baromètre des dons',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <DonationBarometer {...block} figures={figures} locale={locale} />
+    </SectionWrapper>
+  );
+};
+
 export const RenderNewsCard: SectionRenderer<NewsCardType> = ({
   block,
   sectionClassName,
@@ -1015,6 +1055,32 @@ export const RenderHeroSection: SectionRenderer<HeroSectionType> = ({
       locale={locale}
     >
       <HeroSectionBlock {...block} />
+    </SectionWrapper>
+  );
+};
+
+export const RenderPosterHero: SectionRenderer<PosterHeroType> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        {
+          de: 'Der Poster-Hero Block',
+          en: 'poster hero block',
+          fr: 'le bloc héros affiche',
+        },
+        locale,
+      )}
+      locale={locale}
+    >
+      <PosterHeroBlock {...block} />
     </SectionWrapper>
   );
 };

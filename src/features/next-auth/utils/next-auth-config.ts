@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
+import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
 import type { User } from '@/features/payload-cms/payload-types';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
@@ -362,7 +363,7 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
     try {
       refreshedTokens = JSON.parse(responseText) as TokenResponse;
     } catch {
-      console.error('Failed to parse refresh token response as JSON:', responseText);
+      logger.error('The token refresh endpoint did not answer with JSON');
       throw new Error(
         `Invalid JSON response from token refresh endpoint: ${responseText.slice(0, 100)}...`,
       );
@@ -488,6 +489,7 @@ export const authOptions: NextAuthConfig = {
     },
   ],
   debug: false,
+  logger: createAuthJsLogger(logger),
   session: {
     strategy: 'jwt',
   },

@@ -48,6 +48,30 @@ function decodeEntities(value: string): string {
     .replaceAll('&amp;', '&');
 }
 
+/** How often a Cevi.DB value may be escaped before we stop unwrapping it. */
+const MAX_DECODE_PASSES = 5;
+
+/**
+ * Decodes a Cevi.DB value that is only ever displayed, never posted back.
+ *
+ * Names entered through the Cevi.DB web forms are stored already escaped and escaped
+ * again on the way out, so a Hof called `Altstetten & Albisrieden` reaches us as
+ * `Altstetten &amp;amp; Albisrieden`. One pass is not enough for those, so this repeats
+ * until the value stops changing.
+ *
+ * Use {@link decodeEntities} instead for anything that goes back to Cevi.DB: a form value
+ * is escaped exactly once, and unwrapping it twice would post back a different string.
+ */
+export function decodeDisplayText(value: string): string {
+  let current = value;
+  for (let pass = 0; pass < MAX_DECODE_PASSES; pass++) {
+    const decoded = decodeEntities(current);
+    if (decoded === current) return current;
+    current = decoded;
+  }
+  return current;
+}
+
 /** The value a browser would submit for a `<select>`, given its inner HTML. */
 function selectedOptionValue(optionsHtml: string): string {
   const selected = optionsHtml.match(/<option[^>]*\sselected(?:="[^"]*")?[^>]*>/i);

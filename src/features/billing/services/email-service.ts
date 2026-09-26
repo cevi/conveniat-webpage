@@ -302,8 +302,8 @@ async function sendBillsLocked(
 
       if (writeBack.error !== undefined) {
         summary.errors.push(writeBack.error);
-        // The operator can only fix a missing cookie in one place, so link them to it.
-        if (hitobitoService === undefined) summary.relatedDocuments = ['registrationManagement'];
+        // The operator can only fix a cookie in one place, so link them to it.
+        if (writeBack.cookieInvalid === true) summary.relatedDocuments = ['registrationManagement'];
       }
 
       if (

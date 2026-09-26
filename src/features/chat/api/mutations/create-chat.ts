@@ -5,8 +5,11 @@ import { createNewChat } from '@/features/chat/api/database-interactions/create-
 import { findChatWithMembers } from '@/features/chat/api/database-interactions/find-chat-with-members';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+
+const logger = createLogger('chat:mutations');
 
 const contactSchema = z.object({
   userId: z.string().regex(/^[0-9a-f]{24}$/, 'Invalid chat ID format.'),
@@ -68,7 +71,9 @@ export const createChat = trpcBaseProcedure
           });
         }
 
-        console.log(`Duplicate creation for chat ${chatId} ignored, returning stored copy.`);
+        logger.debug('Duplicate chat creation ignored, returning the stored copy', {
+          'chat.id': chatId,
+        });
         return alreadyCreated.uuid;
       }
     }
@@ -79,7 +84,7 @@ export const createChat = trpcBaseProcedure
 
       const existingChat = await findChatWithMembers(requestedMemberUuids, prisma, false);
       if (existingChat?.chatMemberships.length === 2) {
-        console.log('Found existing private chat:', existingChat.uuid);
+        logger.debug('Reusing the existing private chat', { 'chat.id': existingChat.uuid });
         return existingChat.uuid; // Return the ID of the existing chat
       }
     }

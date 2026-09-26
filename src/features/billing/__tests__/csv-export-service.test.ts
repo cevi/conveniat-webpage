@@ -1,98 +1,90 @@
-import { buildBookingLines } from '@/features/billing/services/csv-export-service';
+import {
+  buildFinanceCsvRows,
+  formatFinanceCsv,
+} from '@/features/billing/services/csv-export-service';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 
 const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
   ({
-    fullName: 'Max Mustermann',
-    invoiceNumber: '2027-0001',
-    referenceNumber: '96 12345 67890',
-    invoiceAmount: 349.64,
-    roleType: 'Event::Role::Participant',
+    fullName: 'Susanna Läuchli',
+    eventName: 'Hauptlager conveniat27 - Züri 11',
+    invoiceNumber: '2026-001',
+    referenceNumber: '21 00000 00031 39471 430',
+    invoiceAmount: 1500,
+    roleType: 'Event::Camp::Role::Leader',
+    billCreatedDate: '2026-05-20T08:00:00.000Z',
     status: 'bill_sent',
     ...overrides,
   }) as unknown as BillParticipant;
 
-const SPLIT_PRICING = [
-  {
-    roleTypePattern: 'Participant',
-    label: 'Teilnehmendenbeitrag',
-    amount: 330,
-    vatCode: '8.1%',
-    vatSplits: [
-      { label: 'Beherbergung', share: 50, vatCode: '3.8%' },
-      { label: 'Übrige Leistungen', share: 50, vatCode: '8.1%' },
-    ],
-  },
-];
+const SETTINGS = {
+  accountDebit: '11000',
+  accountCredit: '[CA]',
+  paymentDeadlineDays: 31,
+  rolePricing: [
+    { roleTypePattern: 'Participant', label: 'Teilnehmendenbeitrag', amount: 300 },
+    { roleTypePattern: 'Leader', label: 'Leitendenbeitrag u18', amount: 240 },
+  ],
+};
 
-const SINGLE_RATE_PRICING = [
-  {
-    roleTypePattern: 'Participant',
-    label: 'Teilnehmendenbeitrag',
-    amount: 330,
-    vatCode: '8.1%',
-  },
-];
+describe('buildFinanceCsvRows', () => {
+  it('fills every Banana column from the bill', () => {
+    const [row] = buildFinanceCsvRows([participant({})], SETTINGS);
 
-describe('buildBookingLines', () => {
-  it('books a single-rate bill as one line, as the export always did', () => {
-    const lines = buildBookingLines(participant({ invoiceAmount: 356.73 }), SINGLE_RATE_PRICING);
-
-    expect(lines).toEqual([{ amount: 356.73, vatCode: '8.1%', label: '' }]);
+    expect(row).toEqual({
+      Date: '2026-05-20',
+      DocInvoice: '2026-001',
+      ExternalReference: '21000000003139471430',
+      Amount: 1500,
+      DateExpiration: '2026-06-20',
+      Description: 'Leitendenbeitrag u18, Susanna Läuchli, Züri 11',
+      AccountDebit: '11000',
+      AccountCredit: '[CA]',
+    });
   });
 
-  it('books one line per rate from the breakdown stored on the bill', () => {
-    const lines = buildBookingLines(
-      participant({
-        vatBreakdown: [
-          { label: 'Beherbergung', share: 50, netAmount: 165, vatCode: '3.8%', vatAmount: 6.27 },
-          {
-            label: 'Übrige Leistungen',
-            share: 50,
-            netAmount: 165,
-            vatCode: '8.1%',
-            vatAmount: 13.37,
-          },
-        ],
-      }),
-      SPLIT_PRICING,
+  it('books a bill split across VAT rates as a single line', () => {
+    const rows = buildFinanceCsvRows(
+      [
+        participant({
+          invoiceAmount: 349.64,
+          vatBreakdown: [
+            { label: 'Beherbergung', share: 50, netAmount: 165, vatCode: '3.8%', vatAmount: 6.27 },
+            { label: 'Übrige', share: 50, netAmount: 165, vatCode: '8.1%', vatAmount: 13.37 },
+          ],
+        }),
+      ],
+      SETTINGS,
     );
 
-    expect(lines).toEqual([
-      { amount: 171.27, vatCode: '3.8%', label: 'Beherbergung' },
-      { amount: 178.37, vatCode: '8.1%', label: 'Übrige Leistungen' },
-    ]);
-    expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBeCloseTo(349.64, 2);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.Amount).toBe(349.64);
   });
 
-  it('prefers the stored breakdown over the current settings', () => {
-    // The role has since been re-priced, but the bill in the participant's hands has not.
-    const lines = buildBookingLines(
-      participant({
-        invoiceAmount: 356.73,
-        vatBreakdown: [
-          { label: '', share: 100, netAmount: 330, vatCode: '8.1%', vatAmount: 26.73 },
-        ],
-      }),
-      SPLIT_PRICING,
+  it('dates the bill in Swiss time', () => {
+    // 23:30 UTC on the 19th is already the 20th in Zurich.
+    const [row] = buildFinanceCsvRows(
+      [participant({ billCreatedDate: '2026-05-19T23:30:00.000Z' })],
+      SETTINGS,
     );
 
-    expect(lines).toEqual([{ amount: 356.73, vatCode: '8.1%', label: '' }]);
+    expect(row?.Date).toBe('2026-05-20');
   });
+});
 
-  it('re-derives the split for bills raised before the breakdown was stored', () => {
-    const lines = buildBookingLines(participant({ invoiceAmount: 349.64 }), SPLIT_PRICING);
+describe('formatFinanceCsv', () => {
+  it('writes the header and quotes only values that need it', () => {
+    const csv = formatFinanceCsv(buildFinanceCsvRows([participant({})], SETTINGS));
 
-    expect(lines.map((line) => line.vatCode)).toEqual(['3.8%', '8.1%']);
-    expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBeCloseTo(349.64, 2);
-  });
-
-  it('falls back to the first pricing entry for an unknown role', () => {
-    const lines = buildBookingLines(
-      participant({ roleType: 'Event::Role::Cook', invoiceAmount: 100 }),
-      SINGLE_RATE_PRICING,
+    expect(csv).toBe(
+      '﻿Date,DocInvoice,ExternalReference,Amount,DateExpiration,Description,AccountDebit,AccountCredit\r\n' +
+        '2026-05-20,2026-001,21000000003139471430,1500.00,2026-06-20,"Leitendenbeitrag u18, Susanna Läuchli, Züri 11",11000,[CA]\r\n',
     );
+  });
 
-    expect(lines).toEqual([{ amount: 100, vatCode: '8.1%', label: '' }]);
+  it('writes only the header when nothing has been billed', () => {
+    expect(formatFinanceCsv([])).toBe(
+      '﻿Date,DocInvoice,ExternalReference,Amount,DateExpiration,Description,AccountDebit,AccountCredit\r\n',
+    );
   });
 });

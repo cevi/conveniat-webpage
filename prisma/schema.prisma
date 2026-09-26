@@ -425,3 +425,19 @@ model PhotoContestVote {
   @@index([imageId])
 }
 
+/// one request for a file of the Payload `documents` collection
+model DocumentDownload {
+  id String @id @default(uuid(7))
+
+  /// id of the Payload document, which lives in MongoDB
+  documentId String
+
+  /// id of the Payload user, absent when the visitor was not logged in. Deliberately no relation
+  /// to User: that mirror can lag behind Payload, and a missing row must not lose the download.
+  userId String?
+
+  locale       String
+  downloadedAt DateTime @default(now())
+
+  @@index([documentId])
+}

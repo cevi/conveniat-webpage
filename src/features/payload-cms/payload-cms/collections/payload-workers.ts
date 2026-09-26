@@ -6,8 +6,8 @@ export const PayloadWorkersCollection: CollectionConfig = {
   slug: 'payload-workers',
   admin: {
     useAsTitle: 'workerId',
-    group: AdminPanelDashboardGroups.GlobalSettings,
-    defaultColumns: ['workerId', 'hostname', 'queues', 'lastHeartbeat', 'activeJobId'],
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
+    defaultColumns: ['workerId', 'hostname', 'queues', 'lastHeartbeat', 'activeJobIds'],
     description: {
       en: 'Registered background worker instances and their activity heartbeats.',
       de: 'Registrierte Hintergrund-Worker-Instanzen und deren Aktivitäts-Heartbeats.',
@@ -28,6 +28,10 @@ export const PayloadWorkersCollection: CollectionConfig = {
   },
   access: {
     read: hasAdminOrWebAccess,
+    // Written by the worker runtime through the local API, never by a person.
+    create: () => false,
+    update: () => false,
+    delete: () => false,
   },
   fields: [
     {
@@ -72,11 +76,29 @@ export const PayloadWorkersCollection: CollectionConfig = {
       },
     },
     {
+      // Superseded by `activeJobIds`, and only still written so that a replica of the previous
+      // release can read a claim during a rolling deploy. Drop it once every replica runs a
+      // release that has `activeJobIds`.
       name: 'activeJobId',
       type: 'text',
       admin: {
         readOnly: true,
+        hidden: true,
       },
+    },
+    {
+      name: 'activeJobIds',
+      type: 'array',
+      admin: {
+        readOnly: true,
+      },
+      fields: [
+        {
+          name: 'jobId',
+          type: 'text',
+          required: true,
+        },
+      ],
     },
   ],
 };

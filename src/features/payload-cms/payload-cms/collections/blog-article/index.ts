@@ -1,3 +1,7 @@
+import {
+  hasAdminOrWebAccess,
+  hasEditorialAccess,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import {
   bannerImage,
@@ -21,6 +25,12 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   // Unique, URL-friendly string that will act as an identifier for this Collection.
   slug: 'blog',
   trash: true,
+  access: {
+    read: hasEditorialAccess,
+    create: hasAdminOrWebAccess,
+    update: hasEditorialAccess,
+    delete: hasAdminOrWebAccess,
+  },
   hooks: { beforeChange: [trackSlugHistory], afterChange: [flushPageCacheOnChange] },
 
   labels: {
@@ -37,7 +47,7 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
   },
 
   admin: {
-    group: AdminPanelDashboardGroups.PagesAndContent,
+    group: AdminPanelDashboardGroups.WebpageContent.label,
     groupBy: true,
     /** this is broken with our localized versions */
     disableCopyToLocale: true,

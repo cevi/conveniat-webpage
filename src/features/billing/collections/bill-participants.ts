@@ -1,3 +1,4 @@
+import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
   canTransition,
   describeRefusedTransition,
@@ -7,6 +8,7 @@ import {
   canAccessBillingField,
   canUserAccessBilling,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
 /**
@@ -32,11 +34,7 @@ export const BillParticipantsCollection: CollectionConfig = {
   admin: {
     hidden: ({ user }): boolean => !canUserAccessBilling(user),
     hideAPIURL: true,
-    group: {
-      en: 'Billing',
-      de: 'Rechnungen',
-      fr: 'Facturation',
-    },
+    group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'fullName',
     groupBy: true,
     defaultColumns: [
@@ -164,6 +162,7 @@ export const BillParticipantsCollection: CollectionConfig = {
       name: 'eventName',
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'text',
+      hooks: { afterRead: [decodeStoredEventName] },
       label: {
         en: 'Event Name',
         de: 'Anlass-Name',
