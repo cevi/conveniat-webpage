@@ -143,6 +143,17 @@ export const UserCollection: CollectionConfig = {
     delete: () => false,
     update: hasAdminOrWebAccess,
   },
+  /**
+   * What a user becomes when another document populates it. The local API skips access checks,
+   * so without this every `depth >= 1` read of an `organiser`, `authors` or `lastEditedByUser`
+   * field carried the whole user, email, Cevi.DB id and groups included, into props and tRPC
+   * responses that reach the browser, for anonymous visitors too. Code that needs more of a
+   * user should read it from `users` directly, not through a relationship.
+   */
+  defaultPopulate: {
+    fullName: true,
+    nickname: true,
+  },
   admin: {
     description:
       'Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.',

@@ -346,9 +346,6 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                         <div className="font-body truncate text-sm font-semibold text-gray-900">
                           {displayName}
                         </div>
-                        <div className="font-body truncate text-xs text-gray-500">
-                          {organiser.email}
-                        </div>
                       </div>
                     </div>
                     <div className="shrink-0">

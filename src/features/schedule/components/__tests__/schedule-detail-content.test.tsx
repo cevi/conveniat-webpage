@@ -96,7 +96,22 @@ describe('ScheduleDetailContent organisers', () => {
     );
 
     expect(screen.getByText('Anna Muster v/o Ameise')).toBeInTheDocument();
-    expect(screen.getByText('anna@example.org')).toBeInTheDocument();
+  });
+
+  /**
+   * The schedule is public and cached in the browser, so an organiser's address must not be shown
+   * even when an entry still carries one, as a query cache persisted before the fix does. The chat
+   * button is how participants reach an organiser.
+   */
+  it('does not show the email of an organiser', () => {
+    render(
+      <ScheduleDetailContent
+        entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster', email: 'anna@example.org' }])}
+        locale="de"
+      />,
+    );
+
+    expect(screen.queryByText('anna@example.org')).toBeNull();
   });
 
   it('falls back to the plain name when no Ceviname is set', () => {
