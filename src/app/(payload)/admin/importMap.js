@@ -105,6 +105,7 @@ import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { WeeklyReportDownloadButton as WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11 } from '@/features/billing/components/weekly-report-download-button'
+import { FinanceOverviewDownloadButton as FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0 } from '@/features/billing/components/finance-overview-download-button'
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
@@ -230,6 +231,7 @@ export const importMap = {
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton": WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11,
+  "@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton": FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0,
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,

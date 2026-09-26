@@ -447,6 +447,10 @@ export const billingExportXlsxHandler: PayloadHandler = async (request) => {
     const workbook = await generateFinanceOverviewWorkbook(request.payload);
     const filename = `rechnungsuebersicht-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
+    request.payload.logger.info(
+      `Finance overview workbook generated on demand by ${describeActor(request.user)}.`,
+    );
+
     return new Response(new Uint8Array(workbook), {
       status: 200,
       headers: {
