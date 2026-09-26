@@ -10,6 +10,7 @@ import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAppShortName } from '@/utils/get-app-short-name';
+import { createLogger } from '@/utils/server-logger';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import config from '@payload-config';
 import type { Where } from 'payload';
@@ -17,6 +18,8 @@ import { getPayload } from 'payload';
 import type webpush from 'web-push';
 
 type WebPushSubscription = webpush.PushSubscription;
+
+const logger = createLogger('push:api');
 
 const NEXT_PUBLIC_APP_HOST_URL = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;
 
@@ -447,7 +450,7 @@ export async function sendNotificationToSubscription(
       normalizedMessage.includes('gone');
 
     if (isExpired) {
-      console.log('[PushNotification:API] Auto-pruning expired push subscription');
+      logger.info('Auto-pruning expired push subscription');
       try {
         const payload = await getPayload({ config });
         if (
