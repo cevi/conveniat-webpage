@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { getMyHofIds } from '@/features/material/api/material-hoefe';
 import {
   hasAccessToThisUser,
   MATERIAL_DEPOT_ROLES,
@@ -19,10 +20,18 @@ const materialEnabled = middleware(({ next }) => {
   return next();
 });
 
-/** Every signed-in participant; loans link to them, so their `User` row has to exist. */
+/**
+ * Every signed-in participant; loans link to them, so their `User` row has to exist.
+ * `ctx.myHofIds()` answers which Höfe they belong to, read on first use and then kept, since
+ * most calls never ask.
+ */
 export const materialProcedure = trpcBaseProcedure
   .use(materialEnabled)
-  .use(ensureUserExistsMiddleware);
+  .use(ensureUserExistsMiddleware)
+  .use(({ ctx, next }) => {
+    let mine: Promise<string[]> | undefined;
+    return next({ ctx: { myHofIds: (): Promise<string[]> => (mine ??= getMyHofIds(ctx.user)) } });
+  });
 
 export const materialTeamProcedure = materialProcedure.use(
   middleware(({ ctx, next }) => {

@@ -17,9 +17,9 @@ const title: StaticTranslationString = {
 };
 
 const intro: StaticTranslationString = {
-  de: 'Hier wird das Materialdepot einmal eingerichtet: Kategorien, Abteilungen und der erste Katalog. Alles, was im Lager passiert – reservieren, ausgeben, zurücknehmen, Schäden, Bestand und neue Artikel – erledigt das Materialteam in der App.',
-  en: 'This is where the material depot is set up once: categories, departments and the first catalogue. Everything that happens at the depot – reserving, handing out, taking back, damage, stock and new items – the material team does in the app.',
-  fr: 'Ici, le dépôt de matériel est configuré une fois : catégories, groupes et premier catalogue. Tout ce qui se passe au dépôt – réserver, remettre, reprendre, dégâts, stock et nouveaux articles – l’équipe matériel le fait dans l’app.',
+  de: 'Hier wird das Materialdepot einmal eingerichtet: Kategorien und der erste Katalog. Alles, was im Lager passiert – reservieren, ausgeben, zurücknehmen, Schäden, Bestand und neue Artikel – erledigt das Materialteam in der App.',
+  en: 'This is where the material depot is set up once: categories and the first catalogue. Everything that happens at the depot – reserving, handing out, taking back, damage, stock and new items – the material team does in the app.',
+  fr: 'Ici, le dépôt de matériel est configuré une fois : catégories et premier catalogue. Tout ce qui se passe au dépôt – réserver, remettre, reprendre, dégâts, stock et nouveaux articles – l’équipe matériel le fait dans l’app.',
 };
 
 const openApp: StaticTranslationString = {
@@ -46,6 +46,24 @@ const itemsLabel: StaticTranslationString = {
   fr: 'Articles au catalogue',
 };
 
+const hoefeLabel: StaticTranslationString = {
+  de: 'Höfe, auf die ausgeliehen wird',
+  en: 'Hofs that borrow material',
+  fr: 'Hofs qui empruntent du matériel',
+};
+
+const openHoefe: StaticTranslationString = {
+  de: 'Höfe verwalten',
+  en: 'Manage the Hofs',
+  fr: 'Gérer les Hofs',
+};
+
+const hoefeSource: StaticTranslationString = {
+  de: 'Die Höfe kommen aus dem Cevi.DB-Abgleich («Anlässe automatisch aus Cevi.DB laden» unter Höfe). Leitende eines Hofs und alle, die für seine Anlässe angemeldet sind, sehen seine Ausleihen und können für ihn reservieren.',
+  en: 'The Hofs come from the Cevi.DB sync (“Load events automatically from Cevi.DB” under Hofs). The leaders of a Hof and everyone registered for its events see its loans and can book for it.',
+  fr: 'Les Hofs viennent de la synchronisation Cevi.DB (« Charger les événements automatiquement depuis Cevi.DB » sous Hofs). Les responsables d’un Hof et toutes les personnes inscrites à ses événements voient ses prêts et peuvent réserver pour lui.',
+};
+
 const disabledWarning: StaticTranslationString = {
   de: 'FEATURE_ENABLE_MATERIAL_MANAGEMENT ist auf dieser Instanz aus: die App zeigt das Materialdepot noch nicht.',
   en: 'FEATURE_ENABLE_MATERIAL_MANAGEMENT is off on this instance: the app does not show the material depot yet.',
@@ -68,16 +86,13 @@ export default async function MaterialSetupView({
   if (!(await isFullAdmin({ req }))) redirect(payload.config.routes.admin);
   const locale = getAdminLocale(i18n);
 
-  const [categories, departments, itemCount] = await Promise.all([
+  const [categories, itemCount, hoefe] = await Promise.all([
     prisma.materialCategory.findMany({
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       include: { _count: { select: { items: true } } },
     }),
-    prisma.materialDepartment.findMany({
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { loans: true } } },
-    }),
     prisma.materialItem.count(),
+    payload.count({ collection: 'hoefe', overrideAccess: true }),
   ]);
   const teamGroups = environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM;
 
@@ -99,7 +114,7 @@ export default async function MaterialSetupView({
         {!environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT && (
           <Banner type="warning">{disabledWarning[locale]}</Banner>
         )}
-        <dl className="mb-6 grid gap-x-6 gap-y-1 text-sm md:grid-cols-[auto_1fr]">
+        <dl className="mb-2 grid gap-x-6 gap-y-1 text-sm md:grid-cols-[auto_1fr]">
           <dt className="font-semibold">{teamLabel[locale]}</dt>
           <dd>{teamGroups.length === 0 ? noTeamGroup[locale] : teamGroups.join(', ')}</dd>
           <dt className="font-semibold">{itemsLabel[locale]}</dt>
@@ -109,7 +124,15 @@ export default async function MaterialSetupView({
               {openApp[locale]}
             </a>
           </dd>
+          <dt className="font-semibold">{hoefeLabel[locale]}</dt>
+          <dd>
+            {hoefe.totalDocs} ·{' '}
+            <a className="underline" href={`${payload.config.routes.admin}/collections/hoefe`}>
+              {openHoefe[locale]}
+            </a>
+          </dd>
         </dl>
+        <p className="mb-6 max-w-3xl text-sm opacity-70">{hoefeSource[locale]}</p>
         <MaterialSetupForms
           locale={locale}
           categories={categories.map((category) => ({
@@ -117,14 +140,6 @@ export default async function MaterialSetupView({
             name: category.name,
             sortOrder: category.sortOrder,
             itemCount: category._count.items,
-          }))}
-          departments={departments.map((department) => ({
-            id: department.id,
-            name: department.name,
-            shortName: department.shortName,
-            contactName: department.contactName,
-            hitobitoGroupId: department.hitobitoGroupId,
-            loanCount: department._count.loans,
           }))}
         />
       </Gutter>

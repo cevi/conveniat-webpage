@@ -2,7 +2,7 @@
 
 import {
   AssigneeToggle,
-  DepartmentSelect,
+  HofSelect,
   PersonPicker,
   type Assignee,
   type PickedPerson,
@@ -18,6 +18,7 @@ import {
   SheetFooter,
 } from '@/features/material/components/material-ui';
 import {
+  getMyHoefe,
   materialQueryOptions,
   useInvalidateMaterial,
   useMaterialLocale,
@@ -72,9 +73,9 @@ const text = {
     fr: 'Prêt n° {n} enregistré.',
   },
   fillIn: {
-    de: 'Bitte Abteilung, Zeitraum und Menge angeben.',
-    en: 'Please fill in department, period and quantity.',
-    fr: 'Merci d’indiquer groupe, période et quantité.',
+    de: 'Bitte Hof, Zeitraum und Menge angeben.',
+    en: 'Please fill in Hof, period and quantity.',
+    fr: 'Merci d’indiquer Hof, période et quantité.',
   },
 } satisfies Record<string, StaticTranslationString>;
 
@@ -94,16 +95,16 @@ export const LoanRequestDialog: React.FC<{
 
   const [quantity, setQuantity] = useState(1);
   const [period, setPeriod] = useState(defaultPeriod);
-  const [assignee, setAssignee] = useState<Assignee>('DEPARTMENT');
-  // `undefined` until the reader picks something, so their own department and name can fill in
-  const [pickedDepartmentId, setPickedDepartmentId] = useState<string | undefined>();
+  const [assignee, setAssignee] = useState<Assignee>('HOF');
+  // `undefined` until the reader picks something, so their own Hof and name can fill in
+  const [pickedHofId, setPickedHofId] = useState<string | undefined>();
   const [person, setPerson] = useState<PickedPerson | undefined>();
   const [typedResponsibleName, setTypedResponsibleName] = useState<string | undefined>();
   const [comment, setComment] = useState('');
   const [isConsumption, setIsConsumption] = useState(item.isConsumable);
   const [issueNow, setIssueNow] = useState(false);
 
-  const departmentId = pickedDepartmentId ?? me.data?.departments[0]?.id ?? '';
+  const hofId = pickedHofId ?? getMyHoefe(me.data)[0]?.id ?? '';
   const responsibleName = typedResponsibleName ?? me.data?.name ?? '';
 
   const startDate = fromDateInput(period.start, 'start');
@@ -122,7 +123,7 @@ export const LoanRequestDialog: React.FC<{
   const createLoan = trpc.material.createLoan.useMutation();
 
   const submit = (): void => {
-    if (!periodValid || departmentId === '' || quantity < 1) {
+    if (!periodValid || hofId === '' || quantity < 1) {
       toast.error(text.fillIn[locale]);
       return;
     }
@@ -132,7 +133,7 @@ export const LoanRequestDialog: React.FC<{
         quantity,
         startDate,
         endDate,
-        departmentId,
+        hofId,
         // eslint-disable-next-line unicorn/no-null
         personId: assignee === 'PERSON' ? (person?.uuid ?? null) : null,
         responsibleName:
@@ -223,7 +224,7 @@ export const LoanRequestDialog: React.FC<{
 
       <AssigneeToggle value={assignee} onChange={setAssignee} />
 
-      <DepartmentSelect value={departmentId} onChange={setPickedDepartmentId} />
+      <HofSelect value={hofId} onChange={setPickedHofId} />
 
       {assignee === 'PERSON' ? (
         <PersonPicker value={person} onChange={setPerson} />
@@ -274,7 +275,7 @@ export const LoanRequestDialog: React.FC<{
           loading={createLoan.isPending}
           disabled={
             !periodValid ||
-            departmentId === '' ||
+            hofId === '' ||
             quantity > limit ||
             (assignee === 'PERSON' && person === undefined)
           }

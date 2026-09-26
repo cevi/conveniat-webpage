@@ -2,10 +2,8 @@
 
 import {
   deleteMaterialCategory,
-  deleteMaterialDepartment,
   importMaterialCatalogue,
   saveMaterialCategory,
-  saveMaterialDepartment,
 } from '@/features/material/payload-cms/material-setup-actions';
 import {
   setupMessages,
@@ -24,30 +22,12 @@ export interface SetupCategory {
   itemCount: number;
 }
 
-export interface SetupDepartment {
-  id: string;
-  name: string;
-  shortName: string;
-  contactName: string | null;
-  hitobitoGroupId: number | null;
-  loanCount: number;
-}
-
 const text = {
   categories: { de: 'Kategorien', en: 'Categories', fr: 'Catégories' },
-  departments: { de: 'Abteilungen', en: 'Departments', fr: 'Groupes' },
   catalogue: { de: 'Katalog importieren', en: 'Import catalogue', fr: 'Importer le catalogue' },
   name: { de: 'Name', en: 'Name', fr: 'Nom' },
   order: { de: 'Reihenfolge', en: 'Order', fr: 'Ordre' },
   items: { de: 'Artikel', en: 'Items', fr: 'Articles' },
-  shortName: { de: 'Kürzel', en: 'Short name', fr: 'Abréviation' },
-  contact: {
-    de: 'Materialverantwortliche Person',
-    en: 'Material contact',
-    fr: 'Responsable matériel',
-  },
-  groupId: { de: 'Cevi.DB-Gruppe', en: 'Cevi.DB group', fr: 'Groupe Cevi.DB' },
-  loans: { de: 'Ausleihen', en: 'Loans', fr: 'Prêts' },
   add: { de: 'Hinzufügen', en: 'Add', fr: 'Ajouter' },
   save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
   remove: { de: 'Löschen', en: 'Delete', fr: 'Supprimer' },
@@ -55,11 +35,6 @@ const text = {
     de: '«{name}» wirklich löschen?',
     en: 'Really delete “{name}”?',
     fr: 'Vraiment supprimer « {name} » ?',
-  },
-  groupHint: {
-    de: 'Mitglieder dieser Cevi.DB-Gruppe sehen die Ausleihen der Abteilung in der App.',
-    en: 'Members of this Cevi.DB group see the department’s loans in the app.',
-    fr: 'Les membres de ce groupe Cevi.DB voient les prêts du groupe dans l’app.',
   },
   importHint: {
     de: 'Zeilen aus einer Tabelle einfügen, getrennt durch Tabulator oder Semikolon. Spalten: code; name; category; total; max; unit; consumable (ja/nein); reservable (ja/nein); description; returnInstructions; imageUrl. Ein bestehender Code wird aktualisiert, Schäden und Reparaturen bleiben erhalten. Fehlende Kategorien werden angelegt.',
@@ -220,182 +195,6 @@ const CategorySection: React.FC<{ categories: SetupCategory[]; locale: Locale }>
   );
 };
 
-interface DepartmentDraft {
-  name: string;
-  shortName: string;
-  contactName: string;
-  hitobitoGroupId: string;
-}
-
-const toDraft = (department?: SetupDepartment): DepartmentDraft => ({
-  name: department?.name ?? '',
-  shortName: department?.shortName ?? '',
-  contactName: department?.contactName ?? '',
-  hitobitoGroupId:
-    department?.hitobitoGroupId === null || department?.hitobitoGroupId === undefined
-      ? ''
-      : String(department.hitobitoGroupId),
-});
-
-/* eslint-disable unicorn/no-null -- the actions take null to clear a column */
-const fromDraft = (
-  draft: DepartmentDraft,
-): {
-  name: string;
-  shortName: string;
-  contactName: string | null;
-  hitobitoGroupId: number | null;
-} => ({
-  name: draft.name,
-  shortName: draft.shortName,
-  contactName: draft.contactName.trim() === '' ? null : draft.contactName,
-  hitobitoGroupId: draft.hitobitoGroupId === '' ? null : Number(draft.hitobitoGroupId),
-});
-/* eslint-enable unicorn/no-null */
-
-const DepartmentFields: React.FC<{
-  draft: DepartmentDraft;
-  onChange: (draft: DepartmentDraft) => void;
-  locale: Locale;
-}> = ({ draft, onChange, locale }) => (
-  <>
-    <td className="py-1 pr-2">
-      <input
-        className={inputClass}
-        aria-label={text.name[locale]}
-        placeholder={text.name[locale]}
-        value={draft.name}
-        onChange={(event) => onChange({ ...draft, name: event.target.value })}
-      />
-    </td>
-    <td className="w-28 py-1 pr-2">
-      <input
-        className={inputClass}
-        aria-label={text.shortName[locale]}
-        placeholder={text.shortName[locale]}
-        value={draft.shortName}
-        onChange={(event) => onChange({ ...draft, shortName: event.target.value })}
-      />
-    </td>
-    <td className="py-1 pr-2">
-      <input
-        className={inputClass}
-        aria-label={text.contact[locale]}
-        placeholder={text.contact[locale]}
-        value={draft.contactName}
-        onChange={(event) => onChange({ ...draft, contactName: event.target.value })}
-      />
-    </td>
-    <td className="w-32 py-1 pr-2">
-      <input
-        className={inputClass}
-        aria-label={text.groupId[locale]}
-        placeholder={text.groupId[locale]}
-        inputMode="numeric"
-        value={draft.hitobitoGroupId}
-        onChange={(event) =>
-          onChange({ ...draft, hitobitoGroupId: event.target.value.replaceAll(/\D/g, '') })
-        }
-      />
-    </td>
-  </>
-);
-
-const DepartmentRow: React.FC<{
-  department: SetupDepartment;
-  locale: Locale;
-  run: (action: () => Promise<SetupResult>) => void;
-  pending: boolean;
-}> = ({ department, locale, run, pending }) => {
-  const [draft, setDraft] = useState(() => toDraft(department));
-  return (
-    <tr className="border-b border-[var(--theme-elevation-100)]">
-      <DepartmentFields draft={draft} onChange={setDraft} locale={locale} />
-      <td className="py-1 pr-2 text-right tabular-nums">{department.loanCount}</td>
-      <td className="flex justify-end gap-2 py-1">
-        <Button
-          size="small"
-          buttonStyle="secondary"
-          disabled={pending}
-          onClick={() =>
-            run(() => saveMaterialDepartment({ id: department.id, ...fromDraft(draft) }))
-          }
-        >
-          {text.save[locale]}
-        </Button>
-        <Button
-          size="small"
-          buttonStyle="error"
-          disabled={pending || department.loanCount > 0}
-          onClick={() => {
-            if (globalThis.confirm(fill(text.confirmRemove[locale], { name: department.name }))) {
-              run(() => deleteMaterialDepartment(department.id));
-            }
-          }}
-        >
-          {text.remove[locale]}
-        </Button>
-      </td>
-    </tr>
-  );
-};
-
-const DepartmentSection: React.FC<{ departments: SetupDepartment[]; locale: Locale }> = ({
-  departments,
-  locale,
-}) => {
-  const { run, pending, banner } = useSetupAction(locale);
-  const [draft, setDraft] = useState(() => toDraft());
-  return (
-    <section className="mb-10">
-      <h2 className="mb-1 text-xl font-bold">{text.departments[locale]}</h2>
-      <p className="mb-2 text-sm opacity-70">{text.groupHint[locale]}</p>
-      {banner}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-[var(--theme-elevation-150)] text-left">
-              <th className="py-2 pr-2 font-semibold">{text.name[locale]}</th>
-              <th className="py-2 pr-2 font-semibold">{text.shortName[locale]}</th>
-              <th className="py-2 pr-2 font-semibold">{text.contact[locale]}</th>
-              <th className="py-2 pr-2 font-semibold">{text.groupId[locale]}</th>
-              <th className="py-2 pr-2 text-right font-semibold">{text.loans[locale]}</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {departments.map((department) => (
-              <DepartmentRow
-                key={JSON.stringify(department)}
-                department={department}
-                locale={locale}
-                run={run}
-                pending={pending}
-              />
-            ))}
-            <tr>
-              <DepartmentFields draft={draft} onChange={setDraft} locale={locale} />
-              <td />
-              <td className="flex justify-end py-1">
-                <Button
-                  size="small"
-                  disabled={pending || draft.name.trim() === '' || draft.shortName.trim() === ''}
-                  onClick={() => {
-                    run(() => saveMaterialDepartment(fromDraft(draft)));
-                    setDraft(toDraft());
-                  }}
-                >
-                  {text.add[locale]}
-                </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-};
-
 const CatalogueImport: React.FC<{ locale: Locale }> = ({ locale }) => {
   const { run, pending, banner } = useSetupAction(locale);
   const [rows, setRows] = useState('');
@@ -424,12 +223,10 @@ const CatalogueImport: React.FC<{ locale: Locale }> = ({ locale }) => {
 /** The editable parts of the depot setup page; the page itself is a server component. */
 export const MaterialSetupForms: React.FC<{
   categories: SetupCategory[];
-  departments: SetupDepartment[];
   locale: Locale;
-}> = ({ categories, departments, locale }) => (
+}> = ({ categories, locale }) => (
   <>
     <CategorySection categories={categories} locale={locale} />
-    <DepartmentSection departments={departments} locale={locale} />
     <CatalogueImport locale={locale} />
   </>
 );

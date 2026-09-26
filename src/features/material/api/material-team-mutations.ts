@@ -125,38 +125,6 @@ export const resolveIncident = materialTeamProcedure
     });
   });
 
-const departmentFields = z.object({
-  name: z.string().trim().min(2).max(200),
-  shortName: z.string().trim().min(1).max(20),
-  contactName: z.string().trim().max(200).nullable(),
-  hitobitoGroupId: z.number().int().positive().nullable(),
-});
-
-export const createDepartment = materialTeamProcedure
-  .input(departmentFields)
-  .mutation(async ({ ctx, input }) => {
-    try {
-      const department = await ctx.prisma.materialDepartment.create({ data: input });
-      return { id: department.id };
-    } catch (error) {
-      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate', ctx.locale);
-      throw error;
-    }
-  });
-
-/** A department's name, contact or Cevi.DB group changes during camp, too. */
-export const updateDepartment = materialTeamProcedure
-  .input(departmentFields.extend({ id: z.string() }))
-  .mutation(async ({ ctx, input }) => {
-    const { id, ...data } = input;
-    try {
-      await ctx.prisma.materialDepartment.update({ where: { id }, data });
-    } catch (error) {
-      if (isUniqueViolation(error)) throw materialError('CONFLICT', 'duplicate', ctx.locale);
-      throw error;
-    }
-  });
-
 const categoryFields = z.object({
   name: z.string().trim().min(1).max(100),
   sortOrder: z.number().int().min(0).max(10_000),

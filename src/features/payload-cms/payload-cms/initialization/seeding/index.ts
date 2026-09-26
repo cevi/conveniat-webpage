@@ -510,8 +510,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   console.log('Seeding: Creating Höfe...');
   await seedHoefe(payload);
 
-  // Prisma only, so a later failure in the CMS content does not leave the depot empty
-  await seedMaterial(userIds);
+  // right after the Höfe it books on, so a later failure in the CMS content does not leave
+  // the depot empty
+  await seedMaterial(payload, userIds);
 
   // seed blog articles
   console.log('Seeding: Creating blog articles...');

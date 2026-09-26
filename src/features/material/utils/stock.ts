@@ -43,7 +43,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * How many pieces a loan keeps from everybody else. A request already holds its pieces, so
- * two departments cannot both be promised the last tent while the material team sleeps.
+ * two Höfe cannot both be promised the last tent while the material team sleeps.
  * Consumables leave the stock when issued, so an issued consumption holds nothing.
  */
 export const getHeldQuantity = (loan: LoanHold): number => {

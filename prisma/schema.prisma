@@ -495,19 +495,6 @@ model MaterialItem {
   @@index([categoryId])
 }
 
-/// a department (Abteilung) that borrows material
-model MaterialDepartment {
-  id              String  @id @default(uuid(7))
-  name            String  @unique
-  shortName       String  @unique
-  /// the person who looks after the department's material
-  contactName     String?
-  /// Cevi.DB group of the department; its members see the department's loans in the app
-  hitobitoGroupId Int?    @unique
-
-  loans MaterialLoan[]
-}
-
 enum MaterialLoanStatus {
   /// asked for, not yet confirmed by the material team
   REQUESTED
@@ -541,10 +528,10 @@ model MaterialLoan {
 
   quantity Int
 
-  departmentId String
-  department   MaterialDepartment @relation(fields: [departmentId], references: [id])
+  /// id of the Hof in Payload's `hoefe` collection; no foreign key, the Hof lives in MongoDB
+  hofId String
 
-  /// set when the material is lent to one person instead of the whole department
+  /// set when the material is lent to one person instead of the whole Hof
   personId String?
   person   User?   @relation("MaterialLoanPerson", fields: [personId], references: [uuid])
 
@@ -578,7 +565,7 @@ model MaterialLoan {
   incidents MaterialIncident[]
 
   @@index([itemId, status])
-  @@index([departmentId])
+  @@index([hofId])
   @@index([personId])
   @@index([createdById])
   @@index([status, endDate])

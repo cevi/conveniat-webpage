@@ -25,7 +25,7 @@ const TABS: Tab[] = [
   { href: '/app/material/loans', label: labels.navLoans },
   { href: '/app/material/reservations', label: labels.navReservations },
   { href: '/app/material/returns', label: labels.navReturns },
-  { href: '/app/material/departments', label: labels.navDepartments },
+  { href: '/app/material/hoefe', label: labels.navHoefe },
   { href: '/app/material/people', label: labels.navPeople, teamOnly: true },
   { href: '/app/material/team', label: labels.navTeam, teamOnly: true },
 ];

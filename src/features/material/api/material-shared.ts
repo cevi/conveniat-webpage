@@ -39,7 +39,6 @@ export const loanInclude = {
       maxLoanQuantity: true,
     },
   },
-  department: { select: { id: true, name: true, shortName: true } },
   person: { select: { uuid: true, name: true } },
   createdBy: { select: { uuid: true, name: true } },
 } satisfies Prisma.MaterialLoanInclude;
@@ -94,10 +93,10 @@ const errors = {
     en: 'This action is not possible in the current status.',
     fr: 'Cette action n’est pas possible dans le statut actuel.',
   },
-  notOwnDepartment: {
-    de: 'Du kannst nur für deine eigene Abteilung reservieren. Für andere wende dich ans Materialteam.',
-    en: 'You can only book for your own department. Ask the material team for others.',
-    fr: 'Tu ne peux réserver que pour ton propre groupe. Pour les autres, adresse-toi à l’équipe matériel.',
+  notOwnHof: {
+    de: 'Du kannst nur für deinen eigenen Hof reservieren. Für andere wende dich ans Materialteam.',
+    en: 'You can only book for your own Hof. Ask the material team for others.',
+    fr: 'Tu ne peux réserver que pour ton propre Hof. Pour les autres, adresse-toi à l’équipe matériel.',
   },
   notSelf: {
     de: 'Als Einzelperson kannst du nur auf dich selbst reservieren.',
@@ -119,10 +118,10 @@ const errors = {
     en: 'Person not found.',
     fr: 'Personne introuvable.',
   },
-  departmentNotFound: {
-    de: 'Abteilung nicht gefunden.',
-    en: 'Department not found.',
-    fr: 'Groupe introuvable.',
+  hofNotFound: {
+    de: 'Hof nicht gefunden.',
+    en: 'Hof not found.',
+    fr: 'Hof introuvable.',
   },
   quantity: {
     de: 'Die Menge passt nicht zum Bestand.',
@@ -156,15 +155,21 @@ export const lockItem = async (tx: Prisma.TransactionClient, itemId: string): Pr
   await tx.$queryRaw`SELECT 1 FROM "MaterialItem" WHERE id = ${itemId} FOR UPDATE`;
 };
 
-/** Loans the user may see: all of them for the material team, otherwise their own. */
-export const visibleLoansWhere = (user: HitobitoNextAuthUser): Prisma.MaterialLoanWhereInput =>
+/**
+ * Loans the user may see: all of them for the material team, otherwise the ones they booked,
+ * the ones booked on them and the ones of their Höfe. The Höfe are only read when needed.
+ */
+export const visibleLoansWhere = async (
+  user: HitobitoNextAuthUser,
+  myHofIds: () => Promise<string[]>,
+): Promise<Prisma.MaterialLoanWhereInput> =>
   isMaterialTeam(user)
     ? {}
     : {
         OR: [
           { createdById: user.uuid },
           { personId: user.uuid },
-          { department: { hitobitoGroupId: { in: user.group_ids } } },
+          { hofId: { in: await myHofIds() } },
         ],
       };
 

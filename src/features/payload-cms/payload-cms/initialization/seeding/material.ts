@@ -1,7 +1,9 @@
 /* eslint-disable unicorn/no-null */
+import type { Hof } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import type { MaterialLoanStatus } from '@/lib/prisma/client';
 import { fakerDE as faker } from '@faker-js/faker';
+import type { Payload } from 'payload';
 
 const JS_IMAGE_BASE = 'https://prod-jugdsport-hcms-sdweb.imgix.net/dam/de/sd-web/';
 const jsImage = (path: string): string => `${JS_IMAGE_BASE}${path}?w=480&auto=format`;
@@ -308,21 +310,6 @@ const ITEMS: SeedItem[] = [
   },
 ];
 
-/**
- * Departments of the demo. `hitobitoGroupId` matches the groups of the fake OAuth users, so
- * the "NoAccess" users see the AVP loans and the translation team those of Cevi Bern.
- */
-const DEPARTMENTS = [
-  { name: 'Cevi Alpnach-Vorderthal-Plöschberg', shortName: 'AVP', hitobitoGroupId: 102 },
-  { name: 'Cevi Bern', shortName: 'BE', hitobitoGroupId: 106 },
-  { name: 'Cevi Zürich 11', shortName: 'Z11', hitobitoGroupId: null },
-  { name: 'Cevi Wetzikon', shortName: 'WET', hitobitoGroupId: null },
-  { name: 'Cevi Uster', shortName: 'UST', hitobitoGroupId: null },
-  { name: 'Cevi Basel', shortName: 'BS', hitobitoGroupId: null },
-  { name: 'Cevi Winterthur', shortName: 'WIN', hitobitoGroupId: null },
-  { name: 'UCJG Genève', shortName: 'GE', hitobitoGroupId: null },
-];
-
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
@@ -333,7 +320,6 @@ interface SeedLoan {
   /** days relative to now */
   start: number;
   end: number;
-  department: number;
   person?: boolean;
   consumption?: boolean;
   announced?: boolean;
@@ -342,30 +328,29 @@ interface SeedLoan {
 
 /**
  * A camp in full swing: some material out, some overdue, requests waiting for the material
- * team and a few returns with damage, so every view has something to show.
+ * team and a few returns with damage, so every view has something to show. The loans go to
+ * the seeded Höfe in turn.
  */
 const LOANS: SeedLoan[] = [
-  { code: 'JS-ZTUCH', quantity: 60, status: 'ISSUED', start: -5, end: 4, department: 0 },
-  { code: 'JS-WOLL', quantity: 40, status: 'ISSUED', start: -5, end: 4, department: 0 },
+  { code: 'JS-ZTUCH', quantity: 60, status: 'ISSUED', start: -5, end: 4 },
+  { code: 'JS-WOLL', quantity: 40, status: 'ISSUED', start: -5, end: 4 },
   {
     code: 'JS-BEIL',
     quantity: 2,
     status: 'ISSUED',
     start: -3,
     end: 0.3,
-    department: 0,
     person: true,
   },
-  { code: 'JS-RECTA', quantity: 10, status: 'ISSUED', start: -2, end: -1, department: 1 },
-  { code: 'JS-SILVA', quantity: 12, status: 'ISSUED', start: -3, end: -0.5, department: 2 },
-  { code: 'JS-BINDE', quantity: 40, status: 'ISSUED', start: -4, end: 3, department: 3 },
+  { code: 'JS-RECTA', quantity: 10, status: 'ISSUED', start: -2, end: -1 },
+  { code: 'JS-SILVA', quantity: 12, status: 'ISSUED', start: -3, end: -0.5 },
+  { code: 'JS-BINDE', quantity: 40, status: 'ISSUED', start: -4, end: 3 },
   {
     code: 'JS-BEACH',
     quantity: 3,
     status: 'ISSUED',
     start: -1,
     end: 2,
-    department: 4,
     person: true,
   },
   {
@@ -374,36 +359,33 @@ const LOANS: SeedLoan[] = [
     status: 'ISSUED',
     start: -1,
     end: 0.2,
-    department: 5,
     announced: true,
   },
-  { code: 'WA-SCHAUF', quantity: 6, status: 'ISSUED', start: -2, end: 1, department: 1 },
-  { code: 'WA-VORSCHL', quantity: 2, status: 'ISSUED', start: -1, end: 0.4, department: 6 },
-  { code: 'JS-ZTUCH', quantity: 80, status: 'ISSUED', start: -5, end: 5, department: 2 },
-  { code: 'JS-ZTASCHE', quantity: 20, status: 'ISSUED', start: -5, end: 5, department: 2 },
-  { code: 'WA-SAEGE', quantity: 4, status: 'ISSUED', start: -2, end: -1.5, department: 7 },
+  { code: 'WA-SCHAUF', quantity: 6, status: 'ISSUED', start: -2, end: 1 },
+  { code: 'WA-VORSCHL', quantity: 2, status: 'ISSUED', start: -1, end: 0.4 },
+  { code: 'JS-ZTUCH', quantity: 80, status: 'ISSUED', start: -5, end: 5 },
+  { code: 'JS-ZTASCHE', quantity: 20, status: 'ISSUED', start: -5, end: 5 },
+  { code: 'WA-SAEGE', quantity: 4, status: 'ISSUED', start: -2, end: -1.5 },
   {
     code: 'JS-FUSS',
     quantity: 4,
     status: 'ISSUED',
     start: -1,
     end: 1,
-    department: 3,
     person: true,
   },
-  { code: 'JS-BADM', quantity: 8, status: 'RESERVED', start: 0.3, end: 1.3, department: 0 },
-  { code: 'JS-NETZ', quantity: 2, status: 'RESERVED', start: 0.3, end: 1.3, department: 0 },
-  { code: 'JS-BEACH', quantity: 4, status: 'RESERVED', start: 2, end: 3, department: 1 },
-  { code: 'JS-WOLL', quantity: 60, status: 'RESERVED', start: 1, end: 6, department: 4 },
-  { code: 'JS-ZTUCH', quantity: 100, status: 'RESERVED', start: 1, end: 6, department: 5 },
-  { code: 'WA-PFAHL', quantity: 40, status: 'RESERVED', start: 0.5, end: 2, department: 6 },
+  { code: 'JS-BADM', quantity: 8, status: 'RESERVED', start: 0.3, end: 1.3 },
+  { code: 'JS-NETZ', quantity: 2, status: 'RESERVED', start: 0.3, end: 1.3 },
+  { code: 'JS-BEACH', quantity: 4, status: 'RESERVED', start: 2, end: 3 },
+  { code: 'JS-WOLL', quantity: 60, status: 'RESERVED', start: 1, end: 6 },
+  { code: 'JS-ZTUCH', quantity: 100, status: 'RESERVED', start: 1, end: 6 },
+  { code: 'WA-PFAHL', quantity: 40, status: 'RESERVED', start: 0.5, end: 2 },
   {
     code: 'JS-PICKEL',
     quantity: 5,
     status: 'RESERVED',
     start: 3,
     end: 4,
-    department: 7,
     person: true,
   },
   {
@@ -412,19 +394,17 @@ const LOANS: SeedLoan[] = [
     status: 'REQUESTED',
     start: 1,
     end: 2,
-    department: 0,
     person: true,
   },
-  { code: 'JS-HAND', quantity: 3, status: 'REQUESTED', start: 1, end: 1.5, department: 1 },
-  { code: 'WA-FAEHN', quantity: 30, status: 'REQUESTED', start: 2, end: 3, department: 2 },
-  { code: 'JS-BLITZ', quantity: 3, status: 'REQUESTED', start: 0.5, end: 1, department: 3 },
+  { code: 'JS-HAND', quantity: 3, status: 'REQUESTED', start: 1, end: 1.5 },
+  { code: 'WA-FAEHN', quantity: 30, status: 'REQUESTED', start: 2, end: 3 },
+  { code: 'JS-BLITZ', quantity: 3, status: 'REQUESTED', start: 0.5, end: 1 },
   {
     code: 'WA-PAMIR',
     quantity: 4,
     status: 'REQUESTED',
     start: 1,
     end: 2,
-    department: 5,
     person: true,
   },
   {
@@ -433,7 +413,6 @@ const LOANS: SeedLoan[] = [
     status: 'REQUESTED',
     start: 1,
     end: 1,
-    department: 6,
     consumption: true,
   },
   {
@@ -442,7 +421,6 @@ const LOANS: SeedLoan[] = [
     status: 'RESERVED',
     start: 0.5,
     end: 0.5,
-    department: 7,
     consumption: true,
   },
   {
@@ -451,7 +429,6 @@ const LOANS: SeedLoan[] = [
     status: 'CONSUMED',
     start: -3,
     end: -3,
-    department: 0,
     consumption: true,
   },
   {
@@ -460,7 +437,6 @@ const LOANS: SeedLoan[] = [
     status: 'CONSUMED',
     start: -2,
     end: -2,
-    department: 4,
     consumption: true,
   },
   {
@@ -469,7 +445,6 @@ const LOANS: SeedLoan[] = [
     status: 'RETURNED',
     start: -6,
     end: -2,
-    department: 3,
     returned: { quantity: 20, condition: 'OK' },
   },
   {
@@ -478,7 +453,6 @@ const LOANS: SeedLoan[] = [
     status: 'RETURNED',
     start: -6,
     end: -3,
-    department: 6,
     returned: { quantity: 30, condition: 'DAMAGED', note: 'Zwei Tücher mit Brandlöchern.' },
   },
   {
@@ -487,7 +461,6 @@ const LOANS: SeedLoan[] = [
     status: 'RETURNED',
     start: -4,
     end: -2,
-    department: 1,
     person: true,
     returned: {
       quantity: 2,
@@ -495,21 +468,84 @@ const LOANS: SeedLoan[] = [
       note: 'Ein Ball verloren, einer mit wenig Luft.',
     },
   },
-  { code: 'JS-BINDE', quantity: 30, status: 'CANCELLED', start: 1, end: 3, department: 7 },
+  { code: 'JS-BINDE', quantity: 30, status: 'CANCELLED', start: 1, end: 3 },
 ];
 
 /**
- * Seeds the material depot: the catalogue from the conveniat27 material list, the departments
- * and a mix of loans. Wipes the material tables first, so it can run again on its own.
+ * Fake OAuth logins registered for a Hof's camp, so "my Hof" works locally: the two
+ * "NoAccess" users in Hof Nord, the translation team in Hof Süd. The ids are the Cevi.DB
+ * person ids of `dev-oauth/fake_oauth.py`, which next-auth stores as `cevi_db_uuid`.
  */
-export const seedMaterial = async (userIds: string[]): Promise<void> => {
+const REGISTRATIONS = [
+  { personId: '3', firstName: 'Benutzer Nr. 3', nickname: 'NoAccess', hof: 'Hof Nord' },
+  { personId: '4', firstName: 'Benutzer Nr. 4', nickname: 'NoAccess', hof: 'Hof Nord' },
+  {
+    personId: '5',
+    firstName: 'TranslationTeam User',
+    nickname: 'TranslationTeam',
+    hof: 'Hof Süd',
+  },
+];
+
+/**
+ * Registers the fake logins for the camp of their Hof, the way the billing's Cevi.DB sync
+ * would. Skipped where the billing collection is not part of the config.
+ */
+const seedHofRegistrations = async (
+  payload: Payload,
+  hoefe: Pick<Hof, 'name' | 'groupId' | 'events'>[],
+): Promise<void> => {
+  if (!payload.config.collections.some(({ slug }) => slug === 'bill-participants')) return;
+  for (const registration of REGISTRATIONS) {
+    const hof = hoefe.find(({ name }) => name === registration.hof);
+    const event = hof?.events?.[0];
+    if (hof === undefined || event === undefined) continue;
+    const lastName = 'Conveniat';
+    await payload.create({
+      collection: 'bill-participants',
+      context: { internal: true },
+      data: {
+        participationUuid: faker.string.uuid(),
+        userId: registration.personId,
+        eventId: event.eventId,
+        eventName: event.eventName,
+        groupId: hof.groupId,
+        firstName: registration.firstName,
+        lastName,
+        nickname: registration.nickname,
+        fullName: `${registration.firstName} ${lastName} / ${registration.nickname}`,
+        roleType: 'Event::Camp::Role::Participant',
+        email: `benutzer${registration.personId}@conveniat27.ch`,
+        active: true,
+        status: 'new',
+        enrollmentDate: faker.date.recent({ days: 60 }).toISOString(),
+      },
+    });
+  }
+};
+
+/**
+ * Seeds the material depot: the catalogue from the conveniat27 material list and a mix of
+ * loans on the seeded Höfe, which have to exist already. Wipes the material tables first, so
+ * it can run again on its own.
+ */
+export const seedMaterial = async (payload: Payload, userIds: string[]): Promise<void> => {
   console.log('Seeding: Creating material catalogue and loans...');
 
   await prisma.materialIncident.deleteMany();
   await prisma.materialLoan.deleteMany();
   await prisma.materialItem.deleteMany();
   await prisma.materialCategory.deleteMany();
-  await prisma.materialDepartment.deleteMany();
+
+  const { docs: hoefe } = await payload.find({
+    collection: 'hoefe',
+    depth: 0,
+    limit: 100,
+    pagination: false,
+    sort: 'name',
+    select: { name: true, groupId: true, events: true },
+  });
+  await seedHofRegistrations(payload, hoefe);
 
   const categories = {
     js: await prisma.materialCategory.create({ data: { name: 'J+S-Material', sortOrder: 0 } }),
@@ -543,21 +579,13 @@ export const seedMaterial = async (userIds: string[]): Promise<void> => {
     itemIds.set(item.code, created.id);
   }
 
-  const departmentIds: string[] = [];
-  for (const department of DEPARTMENTS) {
-    const created = await prisma.materialDepartment.create({
-      data: { ...department, contactName: faker.person.fullName() },
-    });
-    departmentIds.push(created.id);
-  }
-
   const people = await prisma.user.findMany({
     where: { uuid: { in: userIds } },
     select: { uuid: true, name: true },
   });
   const creator = people[0];
-  if (!creator) {
-    console.warn('Seeding: No users in Postgres, skipping material loans.');
+  if (!creator || hoefe.length === 0) {
+    console.warn('Seeding: No users in Postgres or no Höfe, skipping material loans.');
     return;
   }
 
@@ -572,7 +600,7 @@ export const seedMaterial = async (userIds: string[]): Promise<void> => {
       data: {
         itemId: itemIds.get(loan.code) ?? '',
         quantity: loan.quantity,
-        departmentId: departmentIds[loan.department] ?? '',
+        hofId: hoefe[index % hoefe.length]?.id ?? '',
         personId: person?.uuid ?? null,
         responsibleName: person?.name ?? faker.person.fullName(),
         comment: faker.helpers.maybe(() => faker.lorem.sentence(), { probability: 0.3 }) ?? null,

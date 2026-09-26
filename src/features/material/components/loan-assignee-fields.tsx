@@ -18,12 +18,12 @@ import { useState } from 'react';
 
 const text = {
   assignTo: { de: 'Verbuchen auf', en: 'Book to', fr: 'Attribuer à' },
-  wholeDepartment: { de: 'Abteilung', en: 'Department', fr: 'Groupe' },
+  wholeHof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
   singlePerson: { de: 'Einzelperson', en: 'Single person', fr: 'Personne' },
-  chooseDepartment: {
-    de: 'Abteilung wählen …',
-    en: 'Choose department …',
-    fr: 'Choisir le groupe …',
+  chooseHof: {
+    de: 'Hof wählen …',
+    en: 'Choose Hof …',
+    fr: 'Choisir le Hof …',
   },
   searchPerson: { de: 'Name suchen …', en: 'Search name …', fr: 'Chercher un nom …' },
   selectedPerson: { de: 'Ausgewählt: {name}', en: 'Selected: {name}', fr: 'Choisi : {name}' },
@@ -32,14 +32,14 @@ const text = {
     en: 'Book on me ({name})',
     fr: 'À mon nom ({name})',
   },
-  noOwnDepartment: {
-    de: 'Du bist über die Cevi.DB keiner Abteilung zugeordnet. Das Materialteam kann für dich reservieren.',
-    en: 'Cevi.DB does not link you to a department. The material team can book for you.',
-    fr: 'La Cevi.DB ne te rattache à aucun groupe. L’équipe matériel peut réserver pour toi.',
+  noOwnHof: {
+    de: 'Du bist über deine Anmeldung keinem Hof zugeordnet. Das Materialteam kann für dich reservieren.',
+    en: 'Your registration does not link you to a Hof. The material team can book for you.',
+    fr: 'Ton inscription ne te rattache à aucun Hof. L’équipe matériel peut réserver pour toi.',
   },
 } satisfies Record<string, StaticTranslationString>;
 
-export type Assignee = 'DEPARTMENT' | 'PERSON';
+export type Assignee = 'HOF' | 'PERSON';
 
 export interface PickedPerson {
   uuid: string;
@@ -48,7 +48,7 @@ export interface PickedPerson {
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-/** Whether a loan is booked on a whole department or on one person in it. */
+/** Whether a loan is booked on a whole Hof or on one person in it. */
 export const AssigneeToggle: React.FC<{
   value: Assignee;
   onChange: (value: Assignee) => void;
@@ -59,7 +59,7 @@ export const AssigneeToggle: React.FC<{
       <div className="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1" role="radiogroup">
         {(
           [
-            ['DEPARTMENT', Building2, text.wholeDepartment[locale]],
+            ['HOF', Building2, text.wholeHof[locale]],
             ['PERSON', User, text.singlePerson[locale]],
           ] as const
         ).map(([option, Icon, label]) => (
@@ -84,32 +84,33 @@ export const AssigneeToggle: React.FC<{
 };
 
 /**
- * The department the loan is booked on. The material team picks any; a participant only the
- * departments Cevi.DB links them to, which is what the server accepts.
+ * The Hof the loan is booked on. The material team picks any; a participant only the Höfe
+ * they lead or are registered for, which is what the server accepts. The Hof a loan already
+ * has stays in the list, so editing someone else's loan does not blank it.
  */
-export const DepartmentSelect: React.FC<{
+export const HofSelect: React.FC<{
   value: string;
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => {
   const locale = useMaterialLocale();
-  const departments = trpc.material.getDepartmentList.useQuery(undefined, materialQueryOptions);
+  const hoefe = trpc.material.getHofList.useQuery(undefined, materialQueryOptions);
   const me = trpc.material.getMe.useQuery(undefined, materialQueryOptions);
   const isMaterialTeam = me.data?.isMaterialTeam ?? false;
-  const choices = (departments.data ?? []).filter(
-    (department) => isMaterialTeam || department.isMine,
+  const choices = (hoefe.data ?? []).filter(
+    (hof) => isMaterialTeam || hof.isMine || hof.id === value,
   );
   return (
     <Field
-      label={labels.department[locale]}
-      {...(departments.data !== undefined && me.data !== undefined && choices.length === 0
-        ? { error: text.noOwnDepartment[locale] }
+      label={labels.hof[locale]}
+      {...(hoefe.data !== undefined && me.data !== undefined && choices.length === 0
+        ? { error: text.noOwnHof[locale] }
         : {})}
     >
       <NativeSelect value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">{text.chooseDepartment[locale]}</option>
-        {choices.map((department) => (
-          <option key={department.id} value={department.id}>
-            {department.shortName} · {department.name}
+        <option value="">{text.chooseHof[locale]}</option>
+        {choices.map((hof) => (
+          <option key={hof.id} value={hof.id}>
+            {hof.name}
           </option>
         ))}
       </NativeSelect>

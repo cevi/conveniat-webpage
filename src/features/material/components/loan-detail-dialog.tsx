@@ -3,12 +3,12 @@
 import { IncidentPhotoField } from '@/features/material/components/incident-photo-field';
 import {
   AssigneeToggle,
-  DepartmentSelect,
+  HofSelect,
   PersonPicker,
   type Assignee,
   type PickedPerson,
 } from '@/features/material/components/loan-assignee-fields';
-import { loanQuantity } from '@/features/material/components/loan-card';
+import { loanHofName, loanQuantity } from '@/features/material/components/loan-card';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import {
   conditionLabel,
@@ -364,9 +364,9 @@ const EditForm: React.FC<{
   const [quantity, setQuantity] = useState(loan.quantity);
   const [start, setStart] = useState(toDateInput(loan.startDate));
   const [end, setEnd] = useState(toDateInput(loan.endDate));
-  const [departmentId, setDepartmentId] = useState(loan.department.id);
+  const [hofId, setHofId] = useState(loan.hofId);
   // a restored cache entry may lack the person field altogether
-  const [assignee, setAssignee] = useState<Assignee>(loan.person ? 'PERSON' : 'DEPARTMENT');
+  const [assignee, setAssignee] = useState<Assignee>(loan.person ? 'PERSON' : 'HOF');
   const [person, setPerson] = useState<PickedPerson | undefined>(loan.person ?? undefined);
   const [responsibleName, setResponsibleName] = useState(loan.responsibleName);
   const [comment, setComment] = useState(loan.comment ?? '');
@@ -402,7 +402,7 @@ const EditForm: React.FC<{
         quantity,
         startDate,
         endDate,
-        departmentId,
+        hofId,
         // eslint-disable-next-line unicorn/no-null -- null takes the person off the loan
         personId: byPerson ? (person?.uuid ?? null) : null,
         responsibleName: byPerson && person !== undefined ? person.name : responsibleName,
@@ -451,7 +451,7 @@ const EditForm: React.FC<{
       {!onlyEndDate && (
         <>
           <AssigneeToggle value={assignee} onChange={setAssignee} />
-          <DepartmentSelect value={departmentId} onChange={setDepartmentId} />
+          <HofSelect value={hofId} onChange={setHofId} />
           {byPerson ? (
             <PersonPicker value={person} onChange={setPerson} />
           ) : (
@@ -480,7 +480,7 @@ const EditForm: React.FC<{
             startDate === undefined ||
             endDate === undefined ||
             periodReversed ||
-            (!onlyEndDate && (departmentId === '' || assigneeMissing))
+            (!onlyEndDate && (hofId === '' || assigneeMissing))
           }
           onClick={save}
         >
@@ -647,8 +647,8 @@ export const LoanDetailDialog: React.FC<{
             </div>
           </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-            <dt className="text-gray-500">{labels.department[locale]}</dt>
-            <dd className="font-medium text-gray-900">{loan.department.name}</dd>
+            <dt className="text-gray-500">{labels.hof[locale]}</dt>
+            <dd className="font-medium text-gray-900">{loanHofName(loan, locale)}</dd>
             {loan.person?.name !== undefined && (
               <>
                 <dt className="text-gray-500">{labels.person[locale]}</dt>
@@ -814,7 +814,7 @@ export const LoanDetailDialog: React.FC<{
       {mode === 'qr' && (
         <MaterialQrCode
           path={`/app/material/loans?loan=${loan.number}`}
-          caption={`#${loan.number} · ${loanQuantity(loan)} × ${loan.item.name} · ${loan.department.shortName}`}
+          caption={`#${loan.number} · ${loanQuantity(loan)} × ${loan.item.name} · ${loanHofName(loan, locale)}`}
         />
       )}
       {mode !== 'view' && (
