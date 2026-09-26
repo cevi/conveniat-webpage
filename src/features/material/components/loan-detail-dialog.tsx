@@ -25,6 +25,7 @@ import {
   MaterialButton,
   MaterialSheet,
   NumberInput,
+  SheetFooter,
 } from '@/features/material/components/material-ui';
 import { useIncidentPhotoUpload } from '@/features/material/hooks/use-incident-photo-upload';
 import {
@@ -234,19 +235,21 @@ const IssueForm: React.FC<{ loan: MaterialLoan; onDone: () => void; locale: Loca
         max={loan.quantity}
         onChange={setQuantity}
       />
-      <MaterialButton
-        className="w-full"
-        loading={issue.isPending}
-        onClick={() =>
-          issue.mutate(
-            { id: loan.id, issuedQuantity: quantity },
-            { onSuccess: onDone, onError: showError },
-          )
-        }
-      >
-        <PackageOpen aria-hidden />
-        {text.issue[locale]} · {quantity} {loan.item.unit}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={issue.isPending}
+          onClick={() =>
+            issue.mutate(
+              { id: loan.id, issuedQuantity: quantity },
+              { onSuccess: onDone, onError: showError },
+            )
+          }
+        >
+          <PackageOpen aria-hidden />
+          {text.issue[locale]} · {quantity} {loan.item.unit}
+        </MaterialButton>
+      </SheetFooter>
     </div>
   );
 };
@@ -321,27 +324,29 @@ const ReturnForm: React.FC<{ loan: MaterialLoan; onDone: () => void; locale: Loc
         />
       </Field>
       {condition !== 'OK' && <IncidentPhotoField upload={photo} />}
-      <MaterialButton
-        className="w-full"
-        loading={returnLoan.isPending || photo.isUploading}
-        disabled={!valid}
-        onClick={() =>
-          returnLoan.mutate(
-            {
-              id: loan.id,
-              returnedQuantity: returned,
-              condition,
-              damagedQuantity: condition === 'DAMAGED' ? damaged : 0,
-              ...(note.trim() === '' ? {} : { note }),
-              ...(photo.photoKey === undefined ? {} : { photoKey: photo.photoKey }),
-            },
-            { onSuccess: onDone, onError: showError },
-          )
-        }
-      >
-        <PackageCheck aria-hidden />
-        {text.recordReturn[locale]}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={returnLoan.isPending || photo.isUploading}
+          disabled={!valid}
+          onClick={() =>
+            returnLoan.mutate(
+              {
+                id: loan.id,
+                returnedQuantity: returned,
+                condition,
+                damagedQuantity: condition === 'DAMAGED' ? damaged : 0,
+                ...(note.trim() === '' ? {} : { note }),
+                ...(photo.photoKey === undefined ? {} : { photoKey: photo.photoKey }),
+              },
+              { onSuccess: onDone, onError: showError },
+            )
+          }
+        >
+          <PackageCheck aria-hidden />
+          {text.recordReturn[locale]}
+        </MaterialButton>
+      </SheetFooter>
     </div>
   );
 };
@@ -467,19 +472,21 @@ const EditForm: React.FC<{
           </Field>
         </>
       )}
-      <MaterialButton
-        className="w-full"
-        loading={update.isPending}
-        disabled={
-          startDate === undefined ||
-          endDate === undefined ||
-          periodReversed ||
-          (!onlyEndDate && (departmentId === '' || assigneeMissing))
-        }
-        onClick={save}
-      >
-        {labels.save[locale]}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={update.isPending}
+          disabled={
+            startDate === undefined ||
+            endDate === undefined ||
+            periodReversed ||
+            (!onlyEndDate && (departmentId === '' || assigneeMissing))
+          }
+          onClick={save}
+        >
+          {labels.save[locale]}
+        </MaterialButton>
+      </SheetFooter>
     </div>
   );
 };
@@ -523,34 +530,36 @@ export const IncidentForm: React.FC<{
         />
       </Field>
       <IncidentPhotoField upload={photo} />
-      <MaterialButton
-        className="w-full"
-        variant="danger"
-        loading={report.isPending || photo.isUploading}
-        disabled={note.trim() === ''}
-        onClick={() =>
-          report.mutate(
-            {
-              itemId,
-              ...(loanId === undefined ? {} : { loanId }),
-              condition: condition === 'OK' ? 'DAMAGED' : condition,
-              quantity,
-              note,
-              ...(photo.photoKey === undefined ? {} : { photoKey: photo.photoKey }),
-            },
-            {
-              onSuccess: () => {
-                toast.success(text.reported[locale]);
-                onDone();
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          variant="danger"
+          loading={report.isPending || photo.isUploading}
+          disabled={note.trim() === ''}
+          onClick={() =>
+            report.mutate(
+              {
+                itemId,
+                ...(loanId === undefined ? {} : { loanId }),
+                condition: condition === 'OK' ? 'DAMAGED' : condition,
+                quantity,
+                note,
+                ...(photo.photoKey === undefined ? {} : { photoKey: photo.photoKey }),
               },
-              onError: (error) => toast.error(error.message),
-            },
-          )
-        }
-      >
-        <AlertTriangle aria-hidden />
-        {text.reportDamage[locale]}
-      </MaterialButton>
+              {
+                onSuccess: () => {
+                  toast.success(text.reported[locale]);
+                  onDone();
+                },
+                onError: (error) => toast.error(error.message),
+              },
+            )
+          }
+        >
+          <AlertTriangle aria-hidden />
+          {text.reportDamage[locale]}
+        </MaterialButton>
+      </SheetFooter>
     </div>
   );
 };
@@ -592,6 +601,10 @@ export const LoanDetailDialog: React.FC<{
   // a cache entry restored from before the field existed has no value at all
   const returnAnnouncedAt =
     loan.returnAnnouncedAt instanceof Date ? loan.returnAnnouncedAt : undefined;
+  // the next step of the loan sits at the bottom of the sheet, where the thumb is
+  const hasCounterStep = isMaterialTeam
+    ? isPending || isOut
+    : isOut && returnAnnouncedAt === undefined;
 
   const done = (): void => {
     toast.success(labels.saved[locale]);
@@ -711,40 +724,6 @@ export const LoanDetailDialog: React.FC<{
           )}
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {isMaterialTeam && loan.status === 'REQUESTED' && (
-              <MaterialButton
-                loading={confirm.isPending}
-                onClick={() =>
-                  confirm.mutate({ id: loan.id }, { onSuccess: done, onError: showError })
-                }
-              >
-                <Check aria-hidden />
-                {text.confirm[locale]}
-              </MaterialButton>
-            )}
-            {isMaterialTeam && isPending && (
-              <MaterialButton onClick={() => setRequestedMode('issue')}>
-                <PackageOpen aria-hidden />
-                {text.issue[locale]}
-              </MaterialButton>
-            )}
-            {isMaterialTeam && isOut && (
-              <MaterialButton onClick={() => setRequestedMode('return')}>
-                <PackageCheck aria-hidden />
-                {text.recordReturn[locale]}
-              </MaterialButton>
-            )}
-            {!isMaterialTeam && isOut && returnAnnouncedAt === undefined && (
-              <MaterialButton
-                loading={announce.isPending}
-                onClick={() =>
-                  announce.mutate({ id: loan.id }, { onSuccess: done, onError: showError })
-                }
-              >
-                <CornerDownLeft aria-hidden />
-                {text.announceReturn[locale]}
-              </MaterialButton>
-            )}
             {(isPending || (isMaterialTeam && isOut)) && (
               <MaterialButton variant="secondary" onClick={() => setRequestedMode('edit')}>
                 <Pencil aria-hidden />
@@ -777,6 +756,44 @@ export const LoanDetailDialog: React.FC<{
               </MaterialButton>
             )}
           </div>
+          {hasCounterStep && (
+            <SheetFooter className="grid auto-cols-fr grid-flow-col gap-2">
+              {isMaterialTeam && loan.status === 'REQUESTED' && (
+                <MaterialButton
+                  loading={confirm.isPending}
+                  onClick={() =>
+                    confirm.mutate({ id: loan.id }, { onSuccess: done, onError: showError })
+                  }
+                >
+                  <Check aria-hidden />
+                  {text.confirm[locale]}
+                </MaterialButton>
+              )}
+              {isMaterialTeam && isPending && (
+                <MaterialButton onClick={() => setRequestedMode('issue')}>
+                  <PackageOpen aria-hidden />
+                  {text.issue[locale]}
+                </MaterialButton>
+              )}
+              {isMaterialTeam && isOut && (
+                <MaterialButton onClick={() => setRequestedMode('return')}>
+                  <PackageCheck aria-hidden />
+                  {text.recordReturn[locale]}
+                </MaterialButton>
+              )}
+              {!isMaterialTeam && isOut && returnAnnouncedAt === undefined && (
+                <MaterialButton
+                  loading={announce.isPending}
+                  onClick={() =>
+                    announce.mutate({ id: loan.id }, { onSuccess: done, onError: showError })
+                  }
+                >
+                  <CornerDownLeft aria-hidden />
+                  {text.announceReturn[locale]}
+                </MaterialButton>
+              )}
+            </SheetFooter>
+          )}
         </>
       )}
 

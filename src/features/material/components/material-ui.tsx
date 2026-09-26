@@ -1,11 +1,12 @@
 'use client';
 
-import { labels } from '@/features/material/components/material-labels';
+import { formatDay, labels } from '@/features/material/components/material-labels';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
+import { fromDateInput } from '@/features/material/utils/dates';
 import { parseNumberDraft } from '@/features/material/utils/number-input';
 import { cn } from '@/utils/tailwindcss-override';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { Loader2, X } from 'lucide-react';
+import { CalendarDays, Loader2, X } from 'lucide-react';
 import type React from 'react';
 import { useId, useState } from 'react';
 
@@ -26,8 +27,12 @@ export const MaterialSheet: React.FC<{
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[99999] bg-black/40" />
-        <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-[99999] grid max-h-[92dvh] gap-5 overflow-y-auto rounded-t-2xl bg-white p-5 shadow-2xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl">
-          <div className="pr-8">
+        <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-[99999] grid max-h-[90dvh] gap-5 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5">
+          {/* the grip says "this slides up from the bottom"; Radix closes it on a tap outside */}
+          <div className="-mt-2 -mb-3 flex justify-center sm:hidden" aria-hidden>
+            <span className="h-1.5 w-10 rounded-full bg-gray-300" />
+          </div>
+          <div className="pr-10">
             <DialogPrimitive.Title className="text-conveniat-green text-lg font-bold">
               {title}
             </DialogPrimitive.Title>
@@ -41,7 +46,7 @@ export const MaterialSheet: React.FC<{
           </div>
           {children}
           <DialogPrimitive.Close
-            className="absolute top-4 right-4 cursor-pointer rounded-md p-1 text-gray-500 hover:bg-gray-100"
+            className="focus-visible:ring-conveniat-green absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 focus-visible:ring-2 focus-visible:outline-none"
             aria-label={labels.close[locale]}
           >
             <X className="size-5" aria-hidden />
@@ -51,6 +56,25 @@ export const MaterialSheet: React.FC<{
     </DialogPrimitive.Root>
   );
 };
+
+/**
+ * The bottom of a sheet, where the thumb is: holds the step's main button in view while the
+ * form above it scrolls. Sticks to the sheet's scroll area, so it has to be the last element
+ * of whatever wraps it.
+ */
+export const SheetFooter: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className,
+}) => (
+  <div
+    className={cn(
+      'sticky bottom-0 z-10 -mx-5 -mb-5 border-t border-gray-100 bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5',
+      className,
+    )}
+  >
+    {children}
+  </div>
+);
 
 /**
  * A labelled form field. The default wraps one control in a `<label>`, so tapping the label
@@ -90,6 +114,89 @@ export const Field: React.FC<{
 
 export const inputClass =
   'block h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-base text-gray-900 focus:border-conveniat-green focus:ring-2 focus:ring-conveniat-green/30 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500';
+
+/** The focus ring of everything tappable that is not a text field. */
+export const focusRing =
+  'focus-visible:ring-2 focus-visible:ring-conveniat-green focus-visible:ring-offset-1 focus-visible:outline-none';
+
+/** Opens the browser's own date picker where it can, which a covered input does not do alone. */
+const showPicker = (input: HTMLInputElement): void => {
+  try {
+    input.showPicker();
+  } catch {
+    // older browsers, or already open: the input still takes focus and typing
+  }
+};
+
+/**
+ * A date field that shows the day in the reader's language, "Sa., 26. Sept.", instead of the
+ * browser's own pattern. A transparent native input lies on top, so a phone still opens its
+ * own date wheel and a keyboard can still type the date.
+ */
+export const DateInput: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  placeholder?: string;
+  min?: string;
+  disabled?: boolean;
+  clearable?: boolean;
+  className?: string;
+}> = ({
+  value,
+  onChange,
+  label,
+  placeholder,
+  min,
+  disabled = false,
+  clearable = false,
+  className,
+}) => {
+  const locale = useMaterialLocale();
+  const day = fromDateInput(value, 'start');
+  const showClear = clearable && value !== '' && !disabled;
+  return (
+    <div className={cn('relative', className)}>
+      <input
+        type="date"
+        aria-label={label}
+        value={value}
+        {...(min === undefined ? {} : { min })}
+        disabled={disabled}
+        className="peer absolute inset-0 z-[1] size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+        onClick={(event) => showPicker(event.currentTarget)}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <div
+        aria-hidden
+        className={cn(
+          inputClass,
+          'peer-focus-visible:border-conveniat-green peer-focus-visible:ring-conveniat-green/30 flex items-center gap-2 peer-focus-visible:ring-2',
+          disabled && 'bg-gray-50 text-gray-500',
+          showClear && 'pr-12',
+        )}
+      >
+        <CalendarDays className="size-4 shrink-0 text-gray-500" />
+        <span className={cn('truncate', day === undefined && 'text-gray-400')}>
+          {day === undefined ? (placeholder ?? label) : formatDay(day, locale)}
+        </span>
+      </div>
+      {showClear && (
+        <button
+          type="button"
+          aria-label={labels.clearDate[locale]}
+          onClick={() => onChange('')}
+          className={cn(
+            'absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:text-gray-900',
+            focusRing,
+          )}
+        >
+          <X className="size-4" aria-hidden />
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const NativeSelect: React.FC<React.SelectHTMLAttributes<HTMLSelectElement>> = ({
   className,
@@ -170,7 +277,8 @@ export const MaterialButton: React.FC<
     type="button"
     {...properties}
     className={cn(
-      'inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4',
+      'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg font-semibold whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
+      focusRing,
       size === 'md' ? 'h-11 px-4 text-sm' : 'h-9 px-3 text-xs',
       buttonVariant[variant],
       className,
@@ -200,16 +308,19 @@ export const Panel: React.FC<{
   </section>
 );
 
+/** A key figure. Compact on a phone, where four of them should not push the list off screen. */
 export const StatTile: React.FC<{
   label: string;
   value: number | string;
   hint?: string;
   tone?: 'default' | 'green' | 'orange' | 'red' | 'blue';
 }> = ({ label, value, hint, tone = 'default' }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-4">
-    <div className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">{label}</div>
+  <div className="min-w-0 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 sm:p-4">
+    <div className="text-[11px] font-semibold tracking-widest break-words hyphens-auto text-gray-500 uppercase">
+      {label}
+    </div>
     <div
-      className={cn('mt-1 text-3xl font-bold tabular-nums', {
+      className={cn('mt-0.5 text-2xl font-bold tabular-nums sm:mt-1 sm:text-3xl', {
         'text-gray-900': tone === 'default',
         'text-green-700': tone === 'green',
         'text-orange-600': tone === 'orange',
@@ -219,7 +330,7 @@ export const StatTile: React.FC<{
     >
       {value}
     </div>
-    {hint !== undefined && <div className="mt-0.5 text-xs text-gray-500">{hint}</div>}
+    {hint !== undefined && <div className="mt-0.5 truncate text-xs text-gray-500">{hint}</div>}
   </div>
 );
 

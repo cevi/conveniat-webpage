@@ -26,8 +26,7 @@ export const IncidentPhotoField: React.FC<{
         <img src={upload.previewUrl} alt={text.photo[locale]} className="h-28 rounded-lg" />
         <MaterialButton
           variant="secondary"
-          size="sm"
-          className="absolute top-1 right-1 size-8 p-0"
+          className="absolute top-1 right-1 size-11 p-0"
           aria-label={labels.cancel[locale]}
           onClick={upload.clear}
         >

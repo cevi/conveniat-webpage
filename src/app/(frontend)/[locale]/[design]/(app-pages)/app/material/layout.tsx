@@ -28,12 +28,13 @@ const MaterialLayout: React.FC<{
 
   return (
     <div className="min-h-dvh bg-gray-50">
-      <div className="mx-auto max-w-6xl px-4">
+      <div className="mx-auto max-w-6xl px-4 pt-6 xl:pt-0">
         <SetDynamicPageTitle newTitle={labels.pageTitle[locale]} />
         <Suspense>
           <MaterialFeatureGate>
             <MaterialNav />
-            <div className="py-4">{children}</div>
+            {/* room at the end of a page for the scan button a phone shows above the bottom bar */}
+            <div className="pt-4 pb-20 sm:pb-4">{children}</div>
           </MaterialFeatureGate>
         </Suspense>
       </div>

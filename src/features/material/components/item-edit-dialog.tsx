@@ -8,6 +8,7 @@ import {
   MaterialSheet,
   NativeSelect,
   NumberInput,
+  SheetFooter,
 } from '@/features/material/components/material-ui';
 import {
   materialQueryOptions,
@@ -268,19 +269,21 @@ export const ItemEditDialog: React.FC<{
           </label>
         ))}
       </div>
-      <MaterialButton
-        className="w-full"
-        loading={create.isPending || update.isPending}
-        disabled={
-          form.name.trim() === '' ||
-          form.categoryId === '' ||
-          form.unit.trim() === '' ||
-          problems.size > 0
-        }
-        onClick={save}
-      >
-        {labels.save[locale]}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={create.isPending || update.isPending}
+          disabled={
+            form.name.trim() === '' ||
+            form.categoryId === '' ||
+            form.unit.trim() === '' ||
+            problems.size > 0
+          }
+          onClick={save}
+        >
+          {labels.save[locale]}
+        </MaterialButton>
+      </SheetFooter>
     </MaterialSheet>
   );
 };

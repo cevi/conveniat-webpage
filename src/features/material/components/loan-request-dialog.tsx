@@ -9,11 +9,13 @@ import {
 } from '@/features/material/components/loan-assignee-fields';
 import { format, labels } from '@/features/material/components/material-labels';
 import {
+  DateInput,
   Field,
   inputClass,
   MaterialButton,
   MaterialSheet,
   NumberInput,
+  SheetFooter,
 } from '@/features/material/components/material-ui';
 import {
   materialQueryOptions,
@@ -172,22 +174,20 @@ export const LoanRequestDialog: React.FC<{
       description={isMaterialTeam ? text.descriptionTeam[locale] : text.descriptionRequest[locale]}
     >
       <div className="grid grid-cols-2 gap-3">
-        <Field label={labels.startDate[locale]}>
-          <input
-            type="date"
-            className={inputClass}
+        <Field as="group" label={labels.startDate[locale]}>
+          <DateInput
+            label={labels.startDate[locale]}
             value={period.start}
             min={toDateInput(new Date())}
-            onChange={(event) => setPeriod((p) => ({ ...p, start: event.target.value }))}
+            onChange={(start) => setPeriod((p) => ({ ...p, start }))}
           />
         </Field>
-        <Field label={labels.endDate[locale]}>
-          <input
-            type="date"
-            className={inputClass}
+        <Field as="group" label={labels.endDate[locale]}>
+          <DateInput
+            label={labels.endDate[locale]}
             value={period.end}
             min={period.start}
-            onChange={(event) => setPeriod((p) => ({ ...p, end: event.target.value }))}
+            onChange={(end) => setPeriod((p) => ({ ...p, end }))}
           />
         </Field>
       </div>
@@ -196,6 +196,7 @@ export const LoanRequestDialog: React.FC<{
         <div className="flex items-center gap-2">
           <MaterialButton
             variant="secondary"
+            className="w-12 px-0"
             aria-label="-1"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
           >
@@ -211,6 +212,7 @@ export const LoanRequestDialog: React.FC<{
           />
           <MaterialButton
             variant="secondary"
+            className="w-12 px-0"
             aria-label="+1"
             onClick={() => setQuantity((q) => Math.min(inputMax, q + 1))}
           >
@@ -266,19 +268,21 @@ export const LoanRequestDialog: React.FC<{
         </label>
       )}
 
-      <MaterialButton
-        className="w-full"
-        loading={createLoan.isPending}
-        disabled={
-          !periodValid ||
-          departmentId === '' ||
-          quantity > limit ||
-          (assignee === 'PERSON' && person === undefined)
-        }
-        onClick={submit}
-      >
-        {submitLabel} · {quantity} {item.unit}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={createLoan.isPending}
+          disabled={
+            !periodValid ||
+            departmentId === '' ||
+            quantity > limit ||
+            (assignee === 'PERSON' && person === undefined)
+          }
+          onClick={submit}
+        >
+          {submitLabel} · {quantity} {item.unit}
+        </MaterialButton>
+      </SheetFooter>
     </MaterialSheet>
   );
 };
