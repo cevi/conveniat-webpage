@@ -51,7 +51,8 @@ export const HofSubmissionsCollection: CollectionConfig = {
   },
   access: {
     read: canReviewHofDashboard,
-    create: canReviewHofDashboard,
+    // only the dashboard's tRPC procedures create these, through the local API
+    create: () => false,
     update: canReviewHofDashboard,
     // the files point at the entry, so removing one is left to the admins
     delete: isFullAdmin,
@@ -121,9 +122,9 @@ export const HofSubmissionsCollection: CollectionConfig = {
       label: { de: 'Rückmeldung an den Hof', en: 'Feedback to the Hof', fr: 'Retour au Hof' },
       admin: {
         description: {
-          en: 'Shown to the Hof on its dashboard, most of all together with "Revision required".',
-          de: 'Wird dem Hof auf seinem Dashboard angezeigt, vor allem zusammen mit "Überarbeitung erforderlich".',
-          fr: 'Affiché au Hof sur son tableau de bord, surtout avec « Révision nécessaire ».',
+          en: 'Shown to the Hof on its dashboard for as long as it is filled in. Empty it once it no longer applies.',
+          de: 'Wird dem Hof auf seinem Dashboard angezeigt, solange es ausgefüllt ist. Leeren, sobald es nicht mehr gilt.',
+          fr: 'Affiché au Hof sur son tableau de bord tant qu’il est rempli. À vider dès qu’il ne s’applique plus.',
         },
       },
     },

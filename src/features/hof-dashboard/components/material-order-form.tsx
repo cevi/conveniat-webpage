@@ -6,9 +6,9 @@ import {
   PRIMARY_BUTTON_CLASS,
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
-import { notifyFailure } from '@/features/hof-dashboard/components/notify-failure';
-import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/components/texts';
-import { HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
+import { HOF_ORDER_MAX_QUANTITY, HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
+import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
+import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -32,10 +32,10 @@ const groupBySection = (
     [],
   );
 
-/** A typed quantity as a whole number of at least zero; anything else counts as none. */
+/** A typed quantity as a whole number within what can be ordered; anything else counts as none. */
 const toQuantity = (value: string | undefined): number => {
   const quantity = Math.floor(Number(value));
-  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+  return Number.isFinite(quantity) && quantity > 0 ? Math.min(quantity, HOF_ORDER_MAX_QUANTITY) : 0;
 };
 
 const initialQuantities = (order: HofDashboardOrder): Record<string, string> =>
@@ -102,7 +102,10 @@ export const MaterialOrderForm: React.FC<{
         {order.deadline !== undefined && daysLeft !== undefined && (
           <p className="text-sm text-gray-600">
             {translate('orderableUntil', locale, { date: formatDate(order.deadline, locale) })}
-            {daysLeft >= 0 && ` · ${formatCountdown(daysLeft, locale)}`}
+            {' · '}
+            {daysLeft >= 0
+              ? formatCountdown(daysLeft, locale)
+              : translate('deadlinePassed', locale)}
           </p>
         )}
       </div>
@@ -113,66 +116,76 @@ export const MaterialOrderForm: React.FC<{
         </p>
       )}
 
-      {order.items.length === 0 ? (
+      {/* a Stadtleben order still asks for power when the list has no material yet */}
+      {order.items.length === 0 && order.type !== 'stadtleben' ? (
         <p className="text-sm text-gray-500">{translate('orderEmpty', locale)}</p>
       ) : (
         <form onSubmit={submit} noValidate className="space-y-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-xs font-semibold tracking-wider text-gray-500 uppercase">
-                <th className="py-2 font-semibold">{translate('material', locale)}</th>
-                <th className="w-28 py-2 text-right font-semibold">
-                  {translate('quantity', locale)}
-                </th>
-              </tr>
-            </thead>
-            {groupBySection(order.items).map((group, index) => (
-              <tbody key={group.section ?? `group-${index}`} className="divide-y divide-gray-100">
-                {group.section !== undefined && (
-                  <tr>
-                    <th
-                      colSpan={2}
-                      className="pt-4 pb-1 text-left text-xs font-semibold tracking-wider text-gray-500 uppercase"
-                    >
-                      {group.section}
-                    </th>
-                  </tr>
-                )}
-                {group.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="py-2 pr-3 text-gray-900">
-                      <label htmlFor={`order-${order.type}-${item.id}`}>{item.name}</label>
-                    </td>
-                    <td className="py-1.5 text-right">
-                      <input
-                        id={`order-${order.type}-${item.id}`}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        step={1}
-                        placeholder="0"
-                        disabled={closed}
-                        value={quantities[item.id] ?? ''}
-                        onChange={(event) =>
-                          setQuantities((previous) => ({
-                            ...previous,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                        onBlur={(event) =>
-                          setQuantities((previous) => {
-                            const quantity = toQuantity(event.target.value);
-                            return { ...previous, [item.id]: quantity > 0 ? String(quantity) : '' };
-                          })
-                        }
-                        className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            ))}
-          </table>
+          {order.items.length === 0 && (
+            <p className="text-sm text-gray-500">{translate('orderEmpty', locale)}</p>
+          )}
+          {order.items.length > 0 && (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-left text-xs font-semibold tracking-wider text-gray-500 uppercase">
+                  <th className="py-2 font-semibold">{translate('material', locale)}</th>
+                  <th className="w-28 py-2 text-right font-semibold">
+                    {translate('quantity', locale)}
+                  </th>
+                </tr>
+              </thead>
+              {groupBySection(order.items).map((group, index) => (
+                <tbody key={group.section ?? `group-${index}`} className="divide-y divide-gray-100">
+                  {group.section !== undefined && (
+                    <tr>
+                      <th
+                        colSpan={2}
+                        className="pt-4 pb-1 text-left text-xs font-semibold tracking-wider text-gray-500 uppercase"
+                      >
+                        {group.section}
+                      </th>
+                    </tr>
+                  )}
+                  {group.items.map((item) => (
+                    <tr key={item.id}>
+                      <td className="py-2 pr-3 text-gray-900">
+                        <label htmlFor={`order-${order.type}-${item.id}`}>{item.name}</label>
+                      </td>
+                      <td className="py-1.5 text-right">
+                        <input
+                          id={`order-${order.type}-${item.id}`}
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={HOF_ORDER_MAX_QUANTITY}
+                          step={1}
+                          placeholder="0"
+                          disabled={closed}
+                          value={quantities[item.id] ?? ''}
+                          onChange={(event) =>
+                            setQuantities((previous) => ({
+                              ...previous,
+                              [item.id]: event.target.value,
+                            }))
+                          }
+                          onBlur={(event) =>
+                            setQuantities((previous) => {
+                              const quantity = toQuantity(event.target.value);
+                              return {
+                                ...previous,
+                                [item.id]: quantity > 0 ? String(quantity) : '',
+                              };
+                            })
+                          }
+                          className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          )}
 
           {order.retiredItems.length > 0 && (
             <div className="space-y-1 text-sm text-gray-600">

@@ -36,7 +36,8 @@ export const HofFilesCollection: CollectionConfig = {
   },
   access: {
     read: canReadHofFiles,
-    create: canReviewHofDashboard,
+    // only the dashboard's tRPC procedures create these, through the local API
+    create: () => false,
     update: canReviewHofDashboard,
     delete: isFullAdmin,
   },

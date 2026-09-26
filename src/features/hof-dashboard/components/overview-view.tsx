@@ -9,7 +9,6 @@ import {
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
-import { translate } from '@/features/hof-dashboard/components/texts';
 import {
   HOF_DASHBOARD_AREA_LABELS,
   HOF_DASHBOARD_AREAS,
@@ -17,6 +16,7 @@ import {
   type HofDashboardArea,
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
+import { translate } from '@/features/hof-dashboard/texts';
 import {
   percentDone,
   type SubmissionProgress,

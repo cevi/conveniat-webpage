@@ -1,5 +1,5 @@
 import type { HofDashboardDocument } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { formatFileSize, translate } from '@/features/hof-dashboard/components/texts';
+import { formatFileSize, translate } from '@/features/hof-dashboard/texts';
 import type { Locale } from '@/types/types';
 import { Download, FileText } from 'lucide-react';
 import type React from 'react';

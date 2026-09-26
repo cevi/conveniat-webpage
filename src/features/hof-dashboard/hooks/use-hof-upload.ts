@@ -1,26 +1,20 @@
 'use client';
 
-import { notifyFailure } from '@/features/hof-dashboard/components/notify-failure';
-import { translate } from '@/features/hof-dashboard/components/texts';
 import {
   HOF_FILE_EXTENSIONS,
   HOF_FILE_MAX_BYTES,
   hofFileExtensionOf,
+  uploadKey,
   type HofFileKind,
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
+import { translate } from '@/features/hof-dashboard/texts';
+import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { TRPCClientError } from '@trpc/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
-
-/** The `accept` attribute of the file input, from the endings the server takes. */
-export const HOF_FILE_ACCEPT = HOF_FILE_EXTENSIONS.map((extension) => `.${extension}`).join(',');
-
-/** Which upload of a card is meant: the plan or the safety concept of one submission. */
-export const uploadKey = (submissionType: HofSubmissionType, kind: HofFileKind): string =>
-  `${submissionType}:${kind}`;
 
 /**
  * Puts the file to storage with the progress reported as it goes. `fetch` cannot report the

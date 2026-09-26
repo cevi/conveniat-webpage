@@ -3,13 +3,14 @@
 import { useRowLabel } from '@payloadcms/ui';
 import type React from 'react';
 
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}T/;
+/** How Payload hands over a date field: an ISO date and time. */
+const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T/;
 
 /** A date field's value as the Höfe read it, any other value as it is. */
 const show = (value: unknown): string | undefined => {
   if (typeof value === 'number') return String(value);
   if (typeof value !== 'string' || value === '') return undefined;
-  if (!DATE_ONLY.test(value)) return value;
+  if (!ISO_DATE_TIME.test(value)) return value;
   return new Intl.DateTimeFormat('de-CH', { timeZone: 'Europe/Zurich' }).format(new Date(value));
 };
 

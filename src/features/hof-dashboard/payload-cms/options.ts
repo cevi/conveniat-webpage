@@ -18,6 +18,7 @@ const toOptions = <T extends string>(
   labels: Record<T, StaticTranslationString>,
 ): OptionObject[] => values.map((value) => ({ value, label: labels[value] }));
 
+/** The choices of the dashboard's select fields, labelled in the admin's three languages. */
 export const submissionTypeOptions = toOptions(HOF_SUBMISSION_TYPES, HOF_SUBMISSION_TYPE_LABELS);
 export const submissionStatusOptions = toOptions(
   HOF_SUBMISSION_STATUSES,

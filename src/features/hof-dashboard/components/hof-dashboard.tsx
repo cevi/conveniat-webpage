@@ -19,9 +19,9 @@ import {
 import { DocumentsView } from '@/features/hof-dashboard/components/documents-view';
 import { MaterialOrderForm } from '@/features/hof-dashboard/components/material-order-form';
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
-import { translate, type TextKey } from '@/features/hof-dashboard/components/texts';
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useScrollToSubmission } from '@/features/hof-dashboard/hooks/use-scroll-to-submission';
+import { translate, type TextKey } from '@/features/hof-dashboard/texts';
 import {
   getSubmissionProgress,
   type SubmissionProgress,
@@ -29,7 +29,7 @@ import {
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
@@ -62,12 +62,6 @@ const signInWithCeviDatabase = async (): Promise<void> => {
     callbackUrl: globalThis.location.href,
   });
   if (typeof response.url === 'string') globalThis.location.href = response.url;
-};
-
-/** Signs out and straight back in, for someone whose other Cevi.DB account has the role. */
-const switchAccount = async (): Promise<void> => {
-  await signOut({ redirect: false });
-  await signInWithCeviDatabase();
 };
 
 /** Where every submission stands today. */
@@ -195,13 +189,6 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
     return (
       <Message>
         <p>{translate('noAccess', locale)}</p>
-        <button
-          type="button"
-          className={SECONDARY_BUTTON_CLASS}
-          onClick={() => void switchAccount()}
-        >
-          {translate('switchAccount', locale)}
-        </button>
       </Message>
     );
   }

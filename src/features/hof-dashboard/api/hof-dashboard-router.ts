@@ -8,6 +8,7 @@ import {
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 import {
   HOF_FILE_KINDS,
+  HOF_ORDER_MAX_QUANTITY,
   HOF_ORDER_TYPES,
   HOF_SUBMISSION_TYPES,
 } from '@/features/hof-dashboard/constants';
@@ -19,6 +20,10 @@ import { z } from 'zod';
 const hofIdInput = z.object({ hofId: z.string().min(1).max(64) });
 const submissionTypeSchema = z.enum(HOF_SUBMISSION_TYPES);
 
+/**
+ * The Hof dashboard: every procedure but the Hof list checks that the user may open the Hof
+ * it names before it reads or writes anything of it.
+ */
 export const hofDashboardRouter = createTRPCRouter({
   /**
    * Every Hof by name, for the Hof selection of a form. Names are public; nothing else of a
@@ -42,6 +47,7 @@ export const hofDashboardRouter = createTRPCRouter({
   /** The Höfe whose dashboard the user may open. */
   getMyHofList: hofDashboardProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),
 
+  /** Everything one Hof's dashboard shows. */
   getHofDashboard: hofDashboardProcedure.input(hofIdInput).query(async ({ ctx, input }) => {
     await ctx.assertHofAccess(input.hofId);
     const data = await getHofDashboardData(input.hofId, ctx.locale);
@@ -49,6 +55,7 @@ export const hofDashboardRouter = createTRPCRouter({
     return { ...data, canPassDeadlines: ctx.isReviewer };
   }),
 
+  /** Where the browser puts a file before `completeUpload` files it. */
   createUploadUrl: hofDashboardProcedure
     .input(hofIdInput.extend({ filename: z.string().min(1).max(200) }))
     .mutation(async ({ ctx, input }) => {
@@ -90,7 +97,7 @@ export const hofDashboardRouter = createTRPCRouter({
           .array(
             z.object({
               itemId: z.string().min(1).max(64),
-              quantity: z.number().int().min(0).max(10_000),
+              quantity: z.number().int().min(0).max(HOF_ORDER_MAX_QUANTITY),
             }),
           )
           .max(200),

@@ -129,6 +129,19 @@ export const HOF_FILE_EXTENSIONS = Object.keys(HOF_FILE_TYPES) as HofFileExtensi
 
 /** The ending of a file name, if the dashboard takes files of that kind. */
 export const hofFileExtensionOf = (filename: string): HofFileExtension | undefined => {
-  const extension = filename.split('.').pop()?.toLowerCase() ?? '';
-  return extension in HOF_FILE_TYPES ? (extension as HofFileExtension) : undefined;
+  const dot = filename.lastIndexOf('.');
+  if (dot <= 0) return undefined;
+  const extension = filename.slice(dot + 1).toLowerCase();
+  // own keys only: "x.constructor" must not find Object's constructor
+  return Object.hasOwn(HOF_FILE_TYPES, extension) ? (extension as HofFileExtension) : undefined;
 };
+
+/** The `accept` attribute of a file input, from the endings the server takes. */
+export const HOF_FILE_ACCEPT = HOF_FILE_EXTENSIONS.map((extension) => `.${extension}`).join(',');
+
+/** Which upload of a card is meant: the plan or the safety concept of one submission. */
+export const uploadKey = (submissionType: HofSubmissionType, kind: HofFileKind): string =>
+  `${submissionType}:${kind}`;
+
+/** Most of one material a Hof can order; the order form and the server both hold to it. */
+export const HOF_ORDER_MAX_QUANTITY = 10_000;

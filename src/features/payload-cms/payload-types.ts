@@ -4620,7 +4620,7 @@ export interface HofSubmission {
    */
   elevatedSafetyRisk?: ('yes' | 'no') | null;
   /**
-   * Shown to the Hof on its dashboard, most of all together with "Revision required".
+   * Shown to the Hof on its dashboard for as long as it is filled in. Empty it once it no longer applies.
    */
   feedback?: string | null;
   files?: {

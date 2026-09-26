@@ -1,5 +1,5 @@
 import type { HofDashboardDeadline } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/components/texts';
+import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';

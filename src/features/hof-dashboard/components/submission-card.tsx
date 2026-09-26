@@ -15,13 +15,18 @@ import {
   ProgressLine,
   SECONDARY_BUTTON_CLASS,
 } from '@/features/hof-dashboard/components/dashboard-ui';
-import { formatDate, translate } from '@/features/hof-dashboard/components/texts';
-import { HOF_SUBMISSION_TYPE_LABELS, type HofFileKind } from '@/features/hof-dashboard/constants';
-import { HOF_FILE_ACCEPT, uploadKey } from '@/features/hof-dashboard/hooks/use-hof-upload';
+import { FileList } from '@/features/hof-dashboard/components/file-list';
+import {
+  HOF_FILE_ACCEPT,
+  HOF_SUBMISSION_TYPE_LABELS,
+  type HofFileKind,
+  uploadKey,
+} from '@/features/hof-dashboard/constants';
+import { translate } from '@/features/hof-dashboard/texts';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { FileText, Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import type React from 'react';
 import { useRef } from 'react';
 
@@ -59,37 +64,6 @@ const UploadButton: React.FC<{
   );
 };
 
-const FileList: React.FC<{ files: HofDashboardFile[]; locale: Locale }> = ({ files, locale }) => (
-  <ul className="min-w-0 space-y-2">
-    {files.map((file, index) => (
-      <li key={file.id} className="flex items-start gap-2 text-sm">
-        <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-        <div className="min-w-0">
-          {file.url === undefined ? (
-            <span className="break-all text-gray-900">{file.filename}</span>
-          ) : (
-            <a
-              href={file.url}
-              target="_blank"
-              rel="noreferrer"
-              className={cn(
-                'break-all hover:underline',
-                index === 0 ? 'text-conveniat-green font-semibold' : 'text-gray-600',
-              )}
-            >
-              {file.filename}
-            </a>
-          )}
-          <p className="text-xs text-gray-500">
-            {translate('version', locale, { n: file.version })} ·{' '}
-            {translate('uploadedOn', locale, { date: formatDate(file.uploadedAt, locale) })}
-          </p>
-        </div>
-      </li>
-    ))}
-  </ul>
-);
-
 /** The criteria behind "elevated safety risk", opened from a link next to the question. */
 const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = ({
   criteria,
@@ -119,7 +93,7 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
   </Dialog>
 );
 
-/** Yes or no, as two buttons of which the chosen one is filled. */
+/** Yes or no, as two toggle buttons of which the chosen one is filled. */
 const SafetyRiskChoice: React.FC<{
   value: 'yes' | 'no' | undefined;
   disabled: boolean;
@@ -129,15 +103,14 @@ const SafetyRiskChoice: React.FC<{
 }> = ({ value, disabled, labelledBy, locale, onChange }) => (
   <div
     className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5"
-    role="radiogroup"
+    role="group"
     aria-labelledby={labelledBy}
   >
     {(['yes', 'no'] as const).map((option) => (
       <button
         key={option}
         type="button"
-        role="radio"
-        aria-checked={value === option}
+        aria-pressed={value === option}
         disabled={disabled}
         onClick={() => onChange(option)}
         className={cn(
@@ -207,7 +180,7 @@ export const SubmissionCard: React.FC<{
       id={`submission-${submission.type}`}
       tabIndex={-1}
       aria-labelledby={`submission-title-${submission.type}`}
-      className="scroll-mt-24 space-y-4 p-5 outline-none @xl:p-6"
+      className="scroll-mt-24 space-y-4 p-5 outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-inset @xl:p-6"
     >
       <header className="space-y-1">
         <h4
@@ -219,7 +192,7 @@ export const SubmissionCard: React.FC<{
         <ProgressLine progress={progress} status={submission.status} locale={locale} />
       </header>
 
-      {submission.status === 'revisionRequired' && submission.feedback !== undefined && (
+      {submission.feedback !== undefined && submission.feedback !== '' && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">{translate('feedback', locale)}</p>
           <p className="whitespace-pre-line">{submission.feedback}</p>

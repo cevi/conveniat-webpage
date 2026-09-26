@@ -45,7 +45,8 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
   },
   access: {
     read: canReviewHofDashboard,
-    create: canReviewHofDashboard,
+    // only the dashboard's tRPC procedures create these, through the local API
+    create: () => false,
     update: canReviewHofDashboard,
     delete: isFullAdmin,
   },

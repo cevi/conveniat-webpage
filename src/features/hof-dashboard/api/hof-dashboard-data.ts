@@ -11,8 +11,11 @@ import { toFiles } from '@/features/hof-dashboard/utils/file-versions';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Hof, HofDashboardSetting } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { getPayload, type Payload } from 'payload';
+
+const logger = createLogger('hof-dashboard:data');
 
 /** Most files one Hof hands in over the whole planning, versions included. */
 const MAX_FILES_PER_HOF = 500;
@@ -206,8 +209,9 @@ export const getHofDashboardData = async (
       collection: 'hof-files',
       where: { hof: { equals: hofId } },
       depth: 0,
+      // oldest first, so a cut at the limit keeps the version numbers of what it shows
+      sort: 'createdAt',
       limit: MAX_FILES_PER_HOF,
-      pagination: false,
       overrideAccess: true,
     }),
     payload.find({
@@ -219,6 +223,13 @@ export const getHofDashboardData = async (
       overrideAccess: true,
     }),
   ]);
+
+  if (storedFiles.totalDocs > storedFiles.docs.length) {
+    logger.warn('A Hof has more files than its dashboard shows', {
+      'hof_dashboard.hof_id': hofId,
+      'hof_dashboard.files': storedFiles.totalDocs,
+    });
+  }
 
   const deadlines: HofDashboardDeadline[] = (settings.deadlines ?? [])
     .map((deadline, index) => ({

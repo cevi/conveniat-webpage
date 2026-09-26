@@ -1,11 +1,11 @@
 import type { HofContact } from '@/features/hof-dashboard/api/hof-dashboard-data';
+import type { HofDashboardArea, HofSubmissionStatus } from '@/features/hof-dashboard/constants';
 import {
   formatCountdown,
   formatDate,
   translate,
   type TextKey,
-} from '@/features/hof-dashboard/components/texts';
-import type { HofDashboardArea, HofSubmissionStatus } from '@/features/hof-dashboard/constants';
+} from '@/features/hof-dashboard/texts';
 import type {
   SubmissionGap,
   SubmissionProgress,
@@ -47,6 +47,7 @@ export const Panel: React.FC<{ children: React.ReactNode; className?: string }> 
   </section>
 );
 
+/** The heading of a panel, in the area's colour or the camp's green. */
 export const SectionHeading: React.FC<{
   children: React.ReactNode;
   area?: HofDashboardArea;

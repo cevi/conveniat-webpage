@@ -5,8 +5,18 @@ import { expect, test, type Page } from '@playwright/test';
  * the page `/hof-dashboard` of the dev seed and `FEATURE_ENABLE_HOF_DASHBOARD=true`.
  */
 
-const inDays = (days: number): string =>
-  new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+/**
+ * A day from today (in Zurich) at noon UTC, the way Payload stores a date; counted in calendar
+ * days, so a change to or from summer time in between does not shift it.
+ */
+const inDays = (days: number): string => {
+  // today as the dashboard counts it, in Zurich
+  const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Zurich' })
+    .format(new Date())
+    .split('-')
+    .map(Number);
+  return new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, (day ?? 1) + days, 12)).toISOString();
+};
 
 const emptyContact = { name: '', email: '', phone: '' };
 
@@ -129,7 +139,6 @@ test.describe('Hof dashboard', () => {
     await mockBackend(page, { hoefe: [] });
     await page.goto('/hof-dashboard');
     await expect(page.getByText('Du hast keinen Zugriff auf ein Hof-Dashboard.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Mit anderem Konto anmelden' })).toBeVisible();
   });
 
   test('leads with what is due and opens it on its tab', async ({ page }) => {

@@ -68,6 +68,8 @@ export const text = {
   inDays: { de: 'in {n} Tagen', en: 'in {n} days', fr: 'dans {n} jours' },
   inOneDay: { de: 'morgen', en: 'tomorrow', fr: 'demain' },
   today: { de: 'heute', en: 'today', fr: "aujourd'hui" },
+  oneDayAgo: { de: 'seit 1 Tag überfällig', en: '1 day overdue', fr: 'en retard d’1 jour' },
+  deadlinePassed: { de: 'Frist abgelaufen', en: 'Deadline passed', fr: 'Délai dépassé' },
   daysAgo: {
     de: 'seit {n} Tagen überfällig',
     en: '{n} days overdue',
@@ -76,8 +78,6 @@ export const text = {
   dueOn: { de: 'Frist {date}', en: 'Due {date}', fr: 'Échéance {date}' },
 
   stateDone: { de: 'Abgegeben', en: 'Handed in', fr: 'Remis' },
-  stateOpen: { de: 'Offen', en: 'Open', fr: 'Ouvert' },
-  stateOverdue: { de: 'Überfällig', en: 'Overdue', fr: 'En retard' },
 
   gapPlan: { de: 'Planung fehlt', en: 'Plan missing', fr: 'Planification manquante' },
   gapSafetyRiskAnswer: {
@@ -102,7 +102,6 @@ export const text = {
     en: 'Upload a new version',
     fr: 'Téléverser une nouvelle version',
   },
-  uploading: { de: 'Wird hochgeladen …', en: 'Uploading …', fr: 'Téléversement …' },
   uploadDone: { de: 'Datei hochgeladen', en: 'File uploaded', fr: 'Fichier téléversé' },
   uploadFailed: {
     de: 'Die Datei konnte nicht hochgeladen werden.',
@@ -140,7 +139,6 @@ export const text = {
     en: 'Criteria for an elevated safety risk',
     fr: 'Critères de risque de sécurité accru',
   },
-  showCriteria: { de: 'Kriterien anzeigen', en: 'Show criteria', fr: 'Afficher les critères' },
   safetyConceptRequired: {
     de: 'Sicherheitskonzept erforderlich',
     en: 'Safety concept required',
@@ -261,11 +259,6 @@ export const text = {
     en: 'Unsaved changes',
     fr: 'Modifications non enregistrées',
   },
-  switchAccount: {
-    de: 'Mit anderem Konto anmelden',
-    en: 'Sign in with another account',
-    fr: 'Se connecter avec un autre compte',
-  },
   uploadingPercent: {
     de: 'Wird hochgeladen … {n} %',
     en: 'Uploading … {n} %',
@@ -303,6 +296,7 @@ export const formatDate = (value: string, locale: Locale): string =>
 export const formatCountdown = (daysLeft: number, locale: Locale): string => {
   if (daysLeft === 0) return translate('today', locale);
   if (daysLeft === 1) return translate('inOneDay', locale);
+  if (daysLeft === -1) return translate('oneDayAgo', locale);
   if (daysLeft < 0) return translate('daysAgo', locale, { n: -daysLeft });
   return translate('inDays', locale, { n: daysLeft });
 };

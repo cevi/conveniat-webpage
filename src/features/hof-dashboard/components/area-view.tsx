@@ -8,11 +8,11 @@ import {
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
 import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
-import { notifyFailure } from '@/features/hof-dashboard/components/notify-failure';
 import { SubmissionCard } from '@/features/hof-dashboard/components/submission-card';
-import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/components/texts';
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
+import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
+import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import {
   daysUntil,
   type SubmissionProgress,

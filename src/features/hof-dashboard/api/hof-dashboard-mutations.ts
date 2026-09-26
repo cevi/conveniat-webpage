@@ -91,8 +91,13 @@ const findOrCreateSubmission = async (
 const readUpload = async (key: string): Promise<Uint8Array> => {
   const object = await s3Client
     .send(new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key }))
-    .catch(() => {
-      throw new TRPCError({ code: 'NOT_FOUND', message: 'upload_missing' });
+    .catch((error: unknown) => {
+      // an upload that never arrived is the browser's problem; anything else is ours
+      if (error instanceof Error && error.name === 'NoSuchKey') {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'upload_missing' });
+      }
+      logger.warn('Could not read back the temporary upload of a Hof file', { error });
+      throw error;
     });
   if ((object.ContentLength ?? 0) > HOF_FILE_MAX_BYTES) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'file_too_large' });
@@ -152,7 +157,7 @@ export const completeHofUpload = async ({
     });
   } catch (error) {
     // Payload checks the content against the file type; a renamed file ends up here
-    if (error instanceof ValidationError) {
+    if (error instanceof ValidationError && error.data.errors.some(({ path }) => path === 'file')) {
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
     }
     throw error;
