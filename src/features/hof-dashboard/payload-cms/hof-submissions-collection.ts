@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { HOF_SUBMISSION_TYPE_LABELS } from '@/features/hof-dashboard/constants';
+import { hofTitle, hofTitleField } from '@/features/hof-dashboard/payload-cms/hof-title';
 import {
   safetyRiskOptions,
   submissionStatusOptions,
@@ -11,23 +12,15 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import type { HofSubmission } from '@/features/payload-cms/payload-types';
 import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload';
 
-/** Names the entry after its Hof and what it is, so the list and relationship pickers read. */
 const setTitle: CollectionBeforeChangeHook<HofSubmission> = async ({ data, originalDoc, req }) => {
-  const hofReference = data.hof ?? originalDoc?.hof;
-  const hofId = typeof hofReference === 'object' ? hofReference.id : hofReference;
   const type = data.submissionType ?? originalDoc?.submissionType;
-  if (hofId === undefined || type === undefined) return data;
-  const hof = await req.payload.findByID({
-    collection: 'hoefe',
-    id: hofId,
-    depth: 0,
-    disableErrors: true,
-    overrideAccess: true,
-    select: { name: true },
+  if (type === undefined) return data;
+  const title = await hofTitle(
     req,
-  });
-  const typeLabel = HOF_SUBMISSION_TYPE_LABELS[type].de;
-  data.title = `${hof?.name ?? hofId} · ${typeLabel}`;
+    data.hof ?? originalDoc?.hof,
+    HOF_SUBMISSION_TYPE_LABELS[type].de,
+  );
+  if (title !== undefined) data.title = title;
   return data;
 };
 
@@ -66,11 +59,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
   indexes: [{ fields: ['hof', 'submissionType'], unique: true }],
   hooks: { beforeChange: [setTitle] },
   fields: [
-    {
-      name: 'title',
-      type: 'text',
-      admin: { hidden: true },
-    },
+    hofTitleField,
     {
       type: 'row',
       fields: [
@@ -144,6 +133,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
       collection: 'hof-files',
       on: 'submission',
       defaultSort: '-createdAt',
+      admin: { defaultColumns: ['filename', 'kind', 'uploadedBy', 'createdAt'] },
       label: { de: 'Dateien', en: 'Files', fr: 'Fichiers' },
     },
   ],

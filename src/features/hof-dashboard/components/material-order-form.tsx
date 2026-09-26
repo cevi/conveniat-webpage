@@ -1,14 +1,18 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
-import { Card } from '@/components/ui/card';
 import type { HofDashboardOrder } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { SectionHeading } from '@/features/hof-dashboard/components/dashboard-ui';
+import {
+  Panel,
+  PRIMARY_BUTTON_CLASS,
+  SectionHeading,
+} from '@/features/hof-dashboard/components/dashboard-ui';
+import { notifyFailure } from '@/features/hof-dashboard/components/notify-failure';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/components/texts';
 import { HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
@@ -28,6 +32,17 @@ const groupBySection = (
     [],
   );
 
+/** A typed quantity as a whole number of at least zero; anything else counts as none. */
+const toQuantity = (value: string | undefined): number => {
+  const quantity = Math.floor(Number(value));
+  return Number.isFinite(quantity) && quantity > 0 ? quantity : 0;
+};
+
+const initialQuantities = (order: HofDashboardOrder): Record<string, string> =>
+  Object.fromEntries(
+    order.items.map((item) => [item.id, item.quantity > 0 ? String(item.quantity) : '']),
+  );
+
 /**
  * One material order: a quantity per material, and for Stadtleben whether power is needed.
  * Editable until the order's deadline; the reviewers can still change it after.
@@ -40,13 +55,11 @@ export const MaterialOrderForm: React.FC<{
   locale: Locale;
 }> = ({ hofId, order, canPassDeadline, locale }) => {
   const utils = trpc.useUtils();
-  const [quantities, setQuantities] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      order.items.map((item) => [item.id, item.quantity > 0 ? String(item.quantity) : '']),
-    ),
-  );
+  const [quantities, setQuantities] = useState(() => initialQuantities(order));
   const [powerConnection, setPowerConnection] = useState(order.powerConnection);
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
+    // fail right away without signal instead of waiting paused for it
+    networkMode: 'always',
     onSuccess: async () => {
       toast.success(translate('saved', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
@@ -57,14 +70,15 @@ export const MaterialOrderForm: React.FC<{
         void utils.hofDashboard.getHofDashboard.invalidate({ hofId });
         return;
       }
-      toast.error(
-        translate(error.message === 'order_closed' ? 'orderClosed' : 'saveFailed', locale),
-      );
+      notifyFailure(locale, error.message === 'order_closed' ? 'orderClosed' : 'saveFailed');
     },
   });
 
   const daysLeft = order.deadline === undefined ? undefined : daysUntil(order.deadline, new Date());
   const closed = daysLeft !== undefined && daysLeft < 0 && !canPassDeadline;
+  const dirty =
+    powerConnection !== order.powerConnection ||
+    order.items.some((item) => toQuantity(quantities[item.id]) !== item.quantity);
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -73,20 +87,20 @@ export const MaterialOrderForm: React.FC<{
       orderType: order.type,
       quantities: order.items.map((item) => ({
         itemId: item.id,
-        quantity: Math.max(0, Number.parseInt(quantities[item.id] ?? '', 10) || 0),
+        quantity: toQuantity(quantities[item.id]),
       })),
       powerConnection,
     });
   };
 
   return (
-    <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
+    <Panel className="space-y-4">
       <div className="space-y-1">
         <SectionHeading area={order.type === 'infrastructure' ? 'infrastructure' : 'program'}>
           {HOF_ORDER_TYPE_LABELS[order.type][locale]}
         </SectionHeading>
         {order.deadline !== undefined && daysLeft !== undefined && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             {translate('orderableUntil', locale, { date: formatDate(order.deadline, locale) })}
             {daysLeft >= 0 && ` · ${formatCountdown(daysLeft, locale)}`}
           </p>
@@ -94,7 +108,7 @@ export const MaterialOrderForm: React.FC<{
       </div>
 
       {closed && (
-        <p className="rounded-md bg-gray-50 px-4 py-3 text-sm text-gray-700">
+        <p className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
           {translate('orderClosed', locale)}
         </p>
       )}
@@ -102,7 +116,7 @@ export const MaterialOrderForm: React.FC<{
       {order.items.length === 0 ? (
         <p className="text-sm text-gray-500">{translate('orderEmpty', locale)}</p>
       ) : (
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} noValidate className="space-y-4">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-left text-xs font-semibold tracking-wider text-gray-500 uppercase">
@@ -145,7 +159,13 @@ export const MaterialOrderForm: React.FC<{
                             [item.id]: event.target.value,
                           }))
                         }
-                        className="focus:border-conveniat-green focus:ring-conveniat-green/20 w-24 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-right tabular-nums focus:ring-2 focus:outline-hidden disabled:bg-gray-50 disabled:text-gray-500"
+                        onBlur={(event) =>
+                          setQuantities((previous) => {
+                            const quantity = toQuantity(event.target.value);
+                            return { ...previous, [item.id]: quantity > 0 ? String(quantity) : '' };
+                          })
+                        }
+                        className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                       />
                     </td>
                   </tr>
@@ -155,8 +175,8 @@ export const MaterialOrderForm: React.FC<{
           </table>
 
           {order.retiredItems.length > 0 && (
-            <div className="space-y-1 text-sm text-gray-500">
-              <p className="text-xs font-semibold tracking-wider uppercase">
+            <div className="space-y-1 text-sm text-gray-600">
+              <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
                 {translate('retiredItems', locale)}
               </p>
               <ul>
@@ -170,32 +190,40 @@ export const MaterialOrderForm: React.FC<{
           )}
 
           {order.type === 'stadtleben' && (
-            <label className="flex items-center gap-2 text-sm text-gray-900">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-gray-900">
               <input
                 type="checkbox"
                 checked={powerConnection}
                 disabled={closed}
                 onChange={(event) => setPowerConnection(event.target.checked)}
-                className="accent-conveniat-green h-4 w-4"
+                className="accent-conveniat-green h-5 w-5"
               />
               {translate('powerConnection', locale)}
             </label>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-gray-500">
-              {order.updatedAt !== undefined &&
-                translate('lastSaved', locale, { date: formatDate(order.updatedAt, locale) })}
-            </p>
-            {!closed && (
-              <Button type="submit" disabled={save.isPending}>
+          {!closed && (
+            <div className="flex flex-col gap-3 @lg:flex-row @lg:items-center @lg:justify-between">
+              <p
+                className={cn('text-xs', dirty ? 'font-semibold text-amber-700' : 'text-gray-500')}
+              >
+                {dirty
+                  ? translate('unsavedChanges', locale)
+                  : order.updatedAt !== undefined &&
+                    translate('lastSaved', locale, { date: formatDate(order.updatedAt, locale) })}
+              </p>
+              <button
+                type="submit"
+                className={cn(PRIMARY_BUTTON_CLASS, 'w-full @lg:w-auto')}
+                disabled={save.isPending || !dirty}
+              >
                 {save.isPending && <Loader2 className="animate-spin" aria-hidden />}
                 {translate(save.isPending ? 'saving' : 'save', locale)}
-              </Button>
-            )}
-          </div>
+              </button>
+            </div>
+          )}
         </form>
       )}
-    </Card>
+    </Panel>
   );
 };

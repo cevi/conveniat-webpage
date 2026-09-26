@@ -1,9 +1,24 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
+import { hofTitle, hofTitleField } from '@/features/hof-dashboard/payload-cms/hof-title';
 import { orderTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { CollectionConfig } from 'payload';
+import type { HofMaterialOrder } from '@/features/payload-cms/payload-types';
+import type { CollectionBeforeChangeHook, CollectionConfig } from 'payload';
+
+const setTitle: CollectionBeforeChangeHook<HofMaterialOrder> = async ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const type = data.orderType ?? originalDoc?.orderType;
+  if (type === undefined) return data;
+  const title = await hofTitle(req, data.hof ?? originalDoc?.hof, HOF_ORDER_TYPE_LABELS[type].de);
+  if (title !== undefined) data.title = title;
+  return data;
+};
 
 /**
  * The material a Hof orders, one entry per Hof and order. Each line keeps the id of the
@@ -18,8 +33,9 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
     plural: { de: 'Hof-Materialbestellungen', en: 'Hof material orders', fr: 'Commandes des Hofs' },
   },
   admin: {
+    useAsTitle: 'title',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
-    defaultColumns: ['hof', 'orderType', 'updatedAt'],
+    defaultColumns: ['title', 'updatedAt', 'lastEditedBy'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.',
@@ -34,7 +50,9 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
     delete: isFullAdmin,
   },
   indexes: [{ fields: ['hof', 'orderType'], unique: true }],
+  hooks: { beforeChange: [setTitle] },
   fields: [
+    hofTitleField,
     {
       type: 'row',
       fields: [
@@ -61,6 +79,18 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
       name: 'items',
       type: 'array',
       label: { de: 'Positionen', en: 'Lines', fr: 'Lignes' },
+      labels: {
+        singular: { de: 'Position', en: 'Line', fr: 'Ligne' },
+        plural: { de: 'Positionen', en: 'Lines', fr: 'Lignes' },
+      },
+      admin: {
+        components: {
+          RowLabel: {
+            path: '@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel',
+            clientProps: { fields: ['quantity', 'name'] },
+          },
+        },
+      },
       fields: [
         {
           type: 'row',
@@ -70,14 +100,15 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
               type: 'text',
               required: true,
               label: { de: 'Material-ID', en: 'Material ID', fr: 'ID du matériel' },
-              admin: { width: '25%', readOnly: true },
+              // links the line to the list in the settings; nothing an editor needs to see
+              admin: { hidden: true },
             },
             {
               name: 'name',
               type: 'text',
               required: true,
               label: { de: 'Material', en: 'Material', fr: 'Matériel' },
-              admin: { width: '50%' },
+              admin: { width: '70%' },
             },
             {
               name: 'quantity',
@@ -85,7 +116,7 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
               required: true,
               min: 0,
               label: { de: 'Anzahl', en: 'Quantity', fr: 'Quantité' },
-              admin: { width: '25%' },
+              admin: { width: '30%' },
             },
           ],
         },

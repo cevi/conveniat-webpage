@@ -64,7 +64,7 @@ export interface HofDashboardOrder {
 export interface HofDashboardDocument {
   id: string;
   title: string;
-  url: string | undefined;
+  url: string;
   filesize: number | undefined;
   mimeType: string | undefined;
   area: HofDashboardArea | undefined;
@@ -279,12 +279,13 @@ export const getHofDashboardData = async (
 
   const documents: HofDashboardDocument[] = (settings.documents ?? []).flatMap((entry) => {
     const document = entry.document;
-    if (typeof document !== 'object') return [];
+    // a document without a file behind it has nothing to download
+    if (typeof document !== 'object' || typeof document.url !== 'string') return [];
     return [
       {
         id: document.id,
         title: document.title ?? document.filename ?? document.id,
-        url: document.url ?? undefined,
+        url: document.url,
         filesize: document.filesize ?? undefined,
         mimeType: document.mimeType ?? undefined,
         area: entry.area ?? undefined,

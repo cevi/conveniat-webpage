@@ -1,7 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
-import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -12,6 +10,12 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import { AreaView } from '@/features/hof-dashboard/components/area-view';
+import { DashboardTabs, tabIds } from '@/features/hof-dashboard/components/dashboard-tabs';
+import {
+  Panel,
+  PRIMARY_BUTTON_CLASS,
+  SECONDARY_BUTTON_CLASS,
+} from '@/features/hof-dashboard/components/dashboard-ui';
 import { DocumentsView } from '@/features/hof-dashboard/components/documents-view';
 import { MaterialOrderForm } from '@/features/hof-dashboard/components/material-order-form';
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
@@ -25,34 +29,31 @@ import {
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 
 type Tab = 'overview' | HofDashboardArea | 'orders' | 'documents';
 
-const TABS: { tab: Tab; label: TextKey }[] = [
-  { tab: 'overview', label: 'tabOverview' },
-  { tab: 'infrastructure', label: 'tabInfrastructure' },
-  { tab: 'program', label: 'tabProgram' },
-  { tab: 'orders', label: 'tabOrders' },
-  { tab: 'documents', label: 'tabDocuments' },
+const TABS: { id: Tab; label: TextKey }[] = [
+  { id: 'overview', label: 'tabOverview' },
+  { id: 'infrastructure', label: 'tabInfrastructure' },
+  { id: 'program', label: 'tabProgram' },
+  { id: 'orders', label: 'tabOrders' },
+  { id: 'documents', label: 'tabDocuments' },
 ];
 
 const LoadingState: React.FC = () => (
   <div className="space-y-4" aria-busy>
-    <Skeleton className="h-10 w-full max-w-md rounded-full" />
-    <Skeleton className="h-32 w-full rounded-xl" />
-    <Skeleton className="h-48 w-full rounded-xl" />
+    <Skeleton className="h-11 w-full bg-gray-200" />
+    <Skeleton className="h-32 w-full rounded-xl bg-gray-200" />
+    <Skeleton className="h-48 w-full rounded-xl bg-gray-200" />
   </div>
 );
 
 const Message: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Card className="border border-gray-100" contentClassName="space-y-4 p-6 text-sm text-gray-600">
-    {children}
-  </Card>
+  <Panel className="space-y-4 text-sm text-gray-700">{children}</Panel>
 );
 
 const signInWithCeviDatabase = async (): Promise<void> => {
@@ -61,6 +62,12 @@ const signInWithCeviDatabase = async (): Promise<void> => {
     callbackUrl: globalThis.location.href,
   });
   if (typeof response.url === 'string') globalThis.location.href = response.url;
+};
+
+/** Signs out and straight back in, for someone whose other Cevi.DB account has the role. */
+const switchAccount = async (): Promise<void> => {
+  await signOut({ redirect: false });
+  await signInWithCeviDatabase();
 };
 
 /** Where every submission stands today. */
@@ -87,6 +94,15 @@ const useProgress = (
     ) as Record<HofSubmissionType, SubmissionProgress>;
   }, [data]);
 
+const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ locale, onRetry }) => (
+  <Message>
+    <p>{translate('loadError', locale)}</p>
+    <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={onRetry}>
+      {translate('retry', locale)}
+    </button>
+  </Message>
+);
+
 const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
   const [tab, setTab] = useState<Tab>('overview');
   const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
@@ -104,99 +120,88 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
 
   if (dashboard.isLoading) return <LoadingState />;
   if (dashboard.data === undefined || progress === undefined) {
-    return (
-      <Message>
-        <p>{translate('loadError', locale)}</p>
-        <Button type="button" variant="outline" onClick={() => void dashboard.refetch()}>
-          {translate('retry', locale)}
-        </Button>
-      </Message>
-    );
+    return <RetryMessage locale={locale} onRetry={() => void dashboard.refetch()} />;
   }
   const data = dashboard.data;
 
+  // Every panel stays mounted and is only hidden, so what was typed into an order survives a
+  // look at another tab.
+  const panels: Record<Tab, React.ReactNode> = {
+    overview: (
+      <OverviewView
+        data={data}
+        progress={progress}
+        locale={locale}
+        onOpen={(area, type) => {
+          setTab(area);
+          setScrollTarget(type);
+        }}
+      />
+    ),
+    infrastructure: (
+      <AreaView area="infrastructure" data={data} progress={progress} locale={locale} />
+    ),
+    program: <AreaView area="program" data={data} progress={progress} locale={locale} />,
+    orders: (
+      <div className="space-y-6">
+        {[data.orders.infrastructure, data.orders.stadtleben].map((order) => (
+          <MaterialOrderForm
+            key={`${order.type}-${order.updatedAt ?? 'new'}`}
+            hofId={data.hof.id}
+            order={order}
+            canPassDeadline={data.canPassDeadlines}
+            locale={locale}
+          />
+        ))}
+      </div>
+    ),
+    documents: <DocumentsView data={data} locale={locale} />,
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <div className="inline-flex flex-wrap gap-y-1 rounded-3xl bg-gray-100 p-1" role="tablist">
-          {TABS.map(({ tab: candidate, label }) => (
-            <button
-              key={candidate}
-              type="button"
-              role="tab"
-              aria-selected={tab === candidate}
-              onClick={() => setTab(candidate)}
-              className={cn(
-                'cursor-pointer rounded-full px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 @xl:px-5',
-                tab === candidate
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900',
-              )}
-            >
-              {translate(label, locale)}
-            </button>
-          ))}
+      <DashboardTabs
+        tabs={TABS.map(({ id, label }) => ({ id, label: translate(label, locale) }))}
+        selected={tab}
+        label={translate('hof', locale)}
+        onSelect={setTab}
+      />
+      {TABS.map(({ id }) => (
+        <div
+          key={id}
+          id={tabIds(id).panel}
+          role="tabpanel"
+          aria-labelledby={tabIds(id).tab}
+          hidden={id !== tab}
+        >
+          {panels[id]}
         </div>
-      </div>
-
-      <div role="tabpanel">
-        {tab === 'overview' && (
-          <OverviewView
-            data={data}
-            progress={progress}
-            locale={locale}
-            onOpen={(area, type) => {
-              setTab(area);
-              setScrollTarget(type);
-            }}
-          />
-        )}
-        {(tab === 'infrastructure' || tab === 'program') && (
-          <AreaView area={tab} data={data} progress={progress} locale={locale} />
-        )}
-        {tab === 'orders' && (
-          <div className="space-y-6">
-            <MaterialOrderForm
-              key={`infrastructure-${data.orders.infrastructure.updatedAt ?? 'new'}`}
-              hofId={data.hof.id}
-              order={data.orders.infrastructure}
-              canPassDeadline={data.canPassDeadlines}
-              locale={locale}
-            />
-            <MaterialOrderForm
-              key={`stadtleben-${data.orders.stadtleben.updatedAt ?? 'new'}`}
-              hofId={data.hof.id}
-              order={data.orders.stadtleben}
-              canPassDeadline={data.canPassDeadlines}
-              locale={locale}
-            />
-          </div>
-        )}
-        {tab === 'documents' && <DocumentsView data={data} locale={locale} />}
-      </div>
+      ))}
     </div>
   );
 };
 
 const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, { meta: { persist: false } });
+  const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, {
+    meta: { persist: false },
+  });
   const [selectedHofId, setSelectedHofId] = useState<string>();
 
   if (hoefe.isLoading) return <LoadingState />;
   if (hoefe.data === undefined) {
-    return (
-      <Message>
-        <p>{translate('loadError', locale)}</p>
-        <Button type="button" variant="outline" onClick={() => void hoefe.refetch()}>
-          {translate('retry', locale)}
-        </Button>
-      </Message>
-    );
+    return <RetryMessage locale={locale} onRetry={() => void hoefe.refetch()} />;
   }
   if (hoefe.data.length === 0) {
     return (
       <Message>
         <p>{translate('noAccess', locale)}</p>
+        <button
+          type="button"
+          className={SECONDARY_BUTTON_CLASS}
+          onClick={() => void switchAccount()}
+        >
+          {translate('switchAccount', locale)}
+        </button>
       </Message>
     );
   }
@@ -206,26 +211,30 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-gray-100 pb-4">
-        <div>
-          <p className="text-sm text-gray-500">{translate('hof', locale)}</p>
-          <h2 className="font-heading text-conveniat-green text-2xl font-extrabold">{hof.name}</h2>
-        </div>
-        {hoefe.data.length > 1 && (
+      {hoefe.data.length === 1 ? (
+        <h2 className="font-heading text-conveniat-green text-2xl font-extrabold">{hof.name}</h2>
+      ) : (
+        <div className="space-y-1">
+          <label htmlFor="hof-dashboard-hof" className="text-sm font-medium text-gray-600">
+            {translate('hof', locale)}
+          </label>
           <Select value={hof.id} onValueChange={setSelectedHofId}>
-            <SelectTrigger className="w-64 bg-white" aria-label={translate('hof', locale)}>
+            <SelectTrigger
+              id="hof-dashboard-hof"
+              className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white">
               {hoefe.data.map((candidate) => (
-                <SelectItem key={candidate.id} value={candidate.id}>
+                <SelectItem key={candidate.id} value={candidate.id} className="min-h-11">
                   {candidate.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-      </div>
+        </div>
+      )}
       <DashboardForHof key={hof.id} hofId={hof.id} locale={locale} />
     </div>
   );
@@ -240,9 +249,13 @@ const HofDashboardContent: React.FC = () => {
     return (
       <Message>
         <p>{translate('loginRequired', locale)}</p>
-        <Button type="button" onClick={() => void signInWithCeviDatabase()}>
+        <button
+          type="button"
+          className={PRIMARY_BUTTON_CLASS}
+          onClick={() => void signInWithCeviDatabase()}
+        >
           {translate('login', locale)}
-        </Button>
+        </button>
       </Message>
     );
   }

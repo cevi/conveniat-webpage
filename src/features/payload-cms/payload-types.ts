@@ -4665,6 +4665,7 @@ export interface HofFile {
  */
 export interface HofMaterialOrder {
   id: string;
+  title?: string | null;
   hof: string | Hof;
   orderType: 'infrastructure' | 'stadtleben';
   items?:
@@ -7303,6 +7304,7 @@ export interface HofFilesSelect<T extends boolean = true> {
  * via the `definition` "hof-material-orders_select".
  */
 export interface HofMaterialOrdersSelect<T extends boolean = true> {
+  title?: T;
   hof?: T;
   orderType?: T;
   items?:

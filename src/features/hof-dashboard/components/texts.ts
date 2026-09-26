@@ -75,7 +75,7 @@ export const text = {
   },
   dueOn: { de: 'Frist {date}', en: 'Due {date}', fr: 'Échéance {date}' },
 
-  stateDone: { de: 'Abgegeben', en: 'Handed in', fr: 'Déposé' },
+  stateDone: { de: 'Abgegeben', en: 'Handed in', fr: 'Remis' },
   stateOpen: { de: 'Offen', en: 'Open', fr: 'Ouvert' },
   stateOverdue: { de: 'Überfällig', en: 'Overdue', fr: 'En retard' },
 
@@ -244,6 +244,35 @@ export const text = {
     fr: "Ton Hof n'a encore déposé aucun fichier.",
   },
   download: { de: 'Herunterladen', en: 'Download', fr: 'Télécharger' },
+  stateInReview: {
+    de: 'In Prüfung beim Ressort',
+    en: 'Being reviewed',
+    fr: 'En cours de vérification',
+  },
+  stateArchived: { de: 'Abgeschlossen', en: 'Completed', fr: 'Terminé' },
+  showCriteriaLink: { de: 'Was zählt dazu?', en: 'What counts?', fr: "Qu'est-ce qui compte ?" },
+  offline: {
+    de: 'Keine Verbindung. Versuche es erneut, sobald du wieder Empfang hast.',
+    en: 'No connection. Try again once you have signal.',
+    fr: 'Pas de connexion. Réessaie dès que tu as du réseau.',
+  },
+  unsavedChanges: {
+    de: 'Nicht gespeicherte Änderungen',
+    en: 'Unsaved changes',
+    fr: 'Modifications non enregistrées',
+  },
+  switchAccount: {
+    de: 'Mit anderem Konto anmelden',
+    en: 'Sign in with another account',
+    fr: 'Se connecter avec un autre compte',
+  },
+  uploadingPercent: {
+    de: 'Wird hochgeladen … {n} %',
+    en: 'Uploading … {n} %',
+    fr: 'Téléversement … {n} %',
+  },
+  replaced: { de: 'ersetzt', en: 'replaced', fr: 'remplacé' },
+  areaDocuments: { de: 'Unterlagen', en: 'Documents', fr: 'Documents' },
 } satisfies Record<string, StaticTranslationString>;
 
 export type TextKey = keyof typeof text;

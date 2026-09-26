@@ -1,11 +1,14 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
-import type {
-  HofDashboardData,
-  HofDashboardDeadline,
-} from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { ContactBlock, SectionHeading } from '@/features/hof-dashboard/components/dashboard-ui';
+import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
+import {
+  ContactBlock,
+  Panel,
+  SectionHeading,
+} from '@/features/hof-dashboard/components/dashboard-ui';
+import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
+import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
+import { notifyFailure } from '@/features/hof-dashboard/components/notify-failure';
 import { SubmissionCard } from '@/features/hof-dashboard/components/submission-card';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/components/texts';
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
@@ -20,59 +23,22 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
-import { toast } from 'sonner';
-
-/** The deadlines of one area, oldest first, with the passed ones greyed out. */
-export const DeadlineList: React.FC<{
-  deadlines: Pick<HofDashboardDeadline, 'id' | 'date' | 'title'>[];
-  locale: Locale;
-}> = ({ deadlines, locale }) => {
-  const now = new Date();
-  if (deadlines.length === 0) {
-    return <p className="text-sm text-gray-500">{translate('noDeadlines', locale)}</p>;
-  }
-  return (
-    <ol className="space-y-3">
-      {deadlines.map((deadline) => {
-        const daysLeft = daysUntil(deadline.date, now);
-        return (
-          <li
-            key={deadline.id}
-            className={cn('flex gap-4 text-sm', daysLeft < 0 && 'text-gray-400')}
-          >
-            <span className="w-24 shrink-0 font-semibold tabular-nums">
-              {formatDate(deadline.date, locale)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className={cn('block', daysLeft >= 0 && 'text-gray-900')}>
-                {deadline.title}
-              </span>
-              {daysLeft >= 0 && (
-                <span className="text-xs text-gray-500">{formatCountdown(daysLeft, locale)}</span>
-              )}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-};
 
 const StadtlebenSection: React.FC<{
   stadtleben: HofDashboardData['stadtleben'];
   locale: Locale;
 }> = ({ stadtleben, locale }) => (
-  <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
+  <Panel className="space-y-4">
     <div className="flex flex-wrap items-baseline justify-between gap-2">
       <SectionHeading area="program">{translate('stadtleben', locale)}</SectionHeading>
       {stadtleben.deadline !== undefined && (
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-600">
           {translate('dueOn', locale, { date: formatDate(stadtleben.deadline, locale) })} ·{' '}
           {formatCountdown(daysUntil(stadtleben.deadline, new Date()), locale)}
         </span>
       )}
     </div>
-    <p className="text-sm text-gray-500">{translate('stadtlebenIntro', locale)}</p>
+    <p className="text-sm text-gray-600">{translate('stadtlebenIntro', locale)}</p>
     {stadtleben.entries.length === 0 ? (
       <p className="text-sm text-gray-500">{translate('stadtlebenNone', locale)}</p>
     ) : (
@@ -90,7 +56,7 @@ const StadtlebenSection: React.FC<{
             <span
               className={cn(
                 'flex shrink-0 items-center gap-1 text-xs font-semibold',
-                entry.approved ? 'text-green-600' : 'text-gray-500',
+                entry.approved ? 'text-green-600' : 'text-gray-600',
               )}
             >
               {entry.approved && <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />}
@@ -103,18 +69,18 @@ const StadtlebenSection: React.FC<{
     {stadtleben.formUrl !== undefined && stadtleben.formUrl !== '' && (
       <Link
         href={stadtleben.formUrl}
-        className="text-cevi-red inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+        className="text-cevi-red inline-flex min-h-11 items-center gap-1 text-sm font-semibold hover:underline"
       >
         {translate('stadtlebenRegister', locale)}
         <ArrowUpRight className="h-4 w-4" aria-hidden />
       </Link>
     )}
-  </Card>
+  </Panel>
 );
 
 /**
- * The submissions of one area: its contact person, its deadlines and one card per plan. The
- * programme area adds the Stadtleben registrations.
+ * The submissions of one area: its contact person, deadlines and documents, and one card per
+ * plan. The programme area adds the Stadtleben registrations.
  */
 export const AreaView: React.FC<{
   area: HofDashboardArea;
@@ -123,22 +89,22 @@ export const AreaView: React.FC<{
   locale: Locale;
 }> = ({ area, data, progress, locale }) => {
   const utils = trpc.useUtils();
-  const { upload, uploadingKey } = useHofUpload(data.hof.id, locale);
+  const { upload, progress: uploadProgress } = useHofUpload(data.hof.id, locale);
   const updateSafetyRisk = trpc.hofDashboard.updateSafetyRisk.useMutation({
+    // fail right away without signal instead of waiting paused for it
+    networkMode: 'always',
     onSuccess: () => utils.hofDashboard.getHofDashboard.invalidate({ hofId: data.hof.id }),
-    onError: () => toast.error(translate('saveFailed', locale)),
+    onError: () => notifyFailure(locale, 'saveFailed'),
   });
 
   const submissions = data.submissions.filter((submission) => submission.area === area);
   const deadlines = data.deadlines.filter((deadline) => deadline.area === area);
+  const documents = data.documents.filter((document) => document.area === area);
   const contact = area === 'infrastructure' ? data.contacts.buildingManager : data.contacts.coach;
 
   return (
     <div className="space-y-6">
-      <Card
-        className="border border-gray-100"
-        contentClassName="grid gap-6 p-5 @3xl:grid-cols-2 @xl:p-6"
-      >
+      <Panel className="grid gap-6 @3xl:grid-cols-2">
         <dl>
           <ContactBlock
             label={translate(area === 'infrastructure' ? 'buildingManager' : 'coach', locale)}
@@ -152,9 +118,17 @@ export const AreaView: React.FC<{
           </p>
           <DeadlineList deadlines={deadlines} locale={locale} />
         </div>
-      </Card>
+        {documents.length > 0 && (
+          <div className="space-y-1 @3xl:col-span-2">
+            <p className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+              {translate('areaDocuments', locale)}
+            </p>
+            <DocumentLinks documents={documents} locale={locale} />
+          </div>
+        )}
+      </Panel>
 
-      <Card className="border border-gray-100" divided>
+      <div className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm">
         {submissions.map((submission) => (
           <SubmissionCard
             key={submission.type}
@@ -162,7 +136,7 @@ export const AreaView: React.FC<{
             progress={progress[submission.type]}
             criteria={data.safetyRiskCriteria}
             locale={locale}
-            uploadingKey={uploadingKey}
+            uploadProgress={uploadProgress}
             savingSafetyRisk={
               updateSafetyRisk.isPending &&
               updateSafetyRisk.variables.submissionType === submission.type
@@ -177,7 +151,7 @@ export const AreaView: React.FC<{
             }
           />
         ))}
-      </Card>
+      </div>
 
       {area === 'program' && <StadtlebenSection stadtleben={data.stadtleben} locale={locale} />}
     </div>

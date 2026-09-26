@@ -1,14 +1,14 @@
-import { Button } from '@/components/ui/buttons/button';
-import { Card } from '@/components/ui/card';
 import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { DeadlineList } from '@/features/hof-dashboard/components/area-view';
 import {
   AREA_TEXT_CLASS,
   ContactBlock,
+  Panel,
   ProgressBar,
   ProgressLine,
+  SECONDARY_BUTTON_CLASS,
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
+import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
 import { translate } from '@/features/hof-dashboard/components/texts';
 import {
   HOF_DASHBOARD_AREA_LABELS,
@@ -31,7 +31,8 @@ const byDeadline = (a: SubmissionProgress, b: SubmissionProgress): number =>
   (a.deadline ?? '9999').localeCompare(b.deadline ?? '9999');
 
 /**
- * What the Hof sees first: whom to ask, how far it is, what is due next and when.
+ * What the Hof sees first: what is due next, how far it is, when the deadlines are and whom
+ * to ask, in that order, so the first screen of a phone answers "what is missing?".
  */
 export const OverviewView: React.FC<{
   data: HofDashboardData;
@@ -45,60 +46,7 @@ export const OverviewView: React.FC<{
 
   return (
     <div className="space-y-6">
-      <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
-        <SectionHeading>{translate('contacts', locale)}</SectionHeading>
-        <dl className="grid gap-6 @2xl:grid-cols-3">
-          <ContactBlock
-            label={translate('avp', locale)}
-            contact={data.contacts.avp}
-            locale={locale}
-          />
-          <ContactBlock
-            label={translate('coach', locale)}
-            contact={data.contacts.coach}
-            locale={locale}
-          />
-          <ContactBlock
-            label={translate('buildingManager', locale)}
-            contact={data.contacts.buildingManager}
-            locale={locale}
-          />
-        </dl>
-      </Card>
-
-      <div className="grid gap-6 @3xl:grid-cols-2">
-        <Card className="border border-gray-100" contentClassName="space-y-5 p-5 @xl:p-6">
-          <SectionHeading>{translate('progress', locale)}</SectionHeading>
-          {HOF_DASHBOARD_AREAS.map((area) => {
-            const states = data.submissions
-              .filter((submission) => submission.area === area)
-              .map((submission) => progress[submission.type].state);
-            return (
-              <div key={area} className="space-y-1.5">
-                <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className={cn('font-semibold', AREA_TEXT_CLASS[area])}>
-                    {HOF_DASHBOARD_AREA_LABELS[area][locale]}
-                  </span>
-                  <span className="text-gray-500 tabular-nums">
-                    {translate('progressCount', locale, {
-                      done: states.filter((state) => state === 'done').length,
-                      total: states.length,
-                    })}
-                  </span>
-                </div>
-                <ProgressBar percent={percentDone(states)} area={area} />
-              </div>
-            );
-          })}
-        </Card>
-
-        <Card className="border border-gray-100" contentClassName="space-y-4 p-5 @xl:p-6">
-          <SectionHeading>{translate('deadlines', locale)}</SectionHeading>
-          <DeadlineList deadlines={data.deadlines} locale={locale} />
-        </Card>
-      </div>
-
-      <Card className="border border-gray-100" contentClassName="p-5 @xl:p-6">
+      <Panel>
         <SectionHeading className="mb-2">{translate('nextUp', locale)}</SectionHeading>
         {open.length === 0 ? (
           <p className="flex items-center gap-2 text-sm text-green-600">
@@ -121,22 +69,80 @@ export const OverviewView: React.FC<{
                       {HOF_DASHBOARD_AREA_LABELS[submission.area][locale]}
                     </span>
                   </p>
-                  <ProgressLine progress={progress[submission.type]} locale={locale} />
+                  <ProgressLine
+                    progress={progress[submission.type]}
+                    status={submission.status}
+                    locale={locale}
+                  />
                 </div>
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="self-start @lg:self-center"
+                  className={cn(SECONDARY_BUTTON_CLASS, 'self-start @lg:self-center')}
                   onClick={() => onOpen(submission.area, submission.type)}
                 >
                   {translate('open', locale)}
-                </Button>
+                </button>
               </li>
             ))}
           </ul>
         )}
-      </Card>
+      </Panel>
+
+      <div className="grid gap-6 @3xl:grid-cols-2">
+        <Panel className="space-y-5">
+          <SectionHeading>{translate('progress', locale)}</SectionHeading>
+          {HOF_DASHBOARD_AREAS.map((area) => {
+            const states = data.submissions
+              .filter((submission) => submission.area === area)
+              .map((submission) => progress[submission.type].state);
+            const count = translate('progressCount', locale, {
+              done: states.filter((state) => state === 'done').length,
+              total: states.length,
+            });
+            return (
+              <div key={area} className="space-y-1.5">
+                <div className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className={cn('font-semibold', AREA_TEXT_CLASS[area])}>
+                    {HOF_DASHBOARD_AREA_LABELS[area][locale]}
+                  </span>
+                  <span className="text-gray-600 tabular-nums">{count}</span>
+                </div>
+                <ProgressBar
+                  percent={percentDone(states)}
+                  area={area}
+                  label={`${HOF_DASHBOARD_AREA_LABELS[area][locale]}: ${count}`}
+                />
+              </div>
+            );
+          })}
+        </Panel>
+
+        <Panel className="space-y-4">
+          <SectionHeading>{translate('deadlines', locale)}</SectionHeading>
+          <DeadlineList deadlines={data.deadlines} locale={locale} />
+        </Panel>
+      </div>
+
+      <Panel className="space-y-4">
+        <SectionHeading>{translate('contacts', locale)}</SectionHeading>
+        <dl className="grid gap-5 @2xl:grid-cols-3">
+          <ContactBlock
+            label={translate('avp', locale)}
+            contact={data.contacts.avp}
+            locale={locale}
+          />
+          <ContactBlock
+            label={translate('coach', locale)}
+            contact={data.contacts.coach}
+            locale={locale}
+          />
+          <ContactBlock
+            label={translate('buildingManager', locale)}
+            contact={data.contacts.buildingManager}
+            locale={locale}
+          />
+        </dl>
+      </Panel>
     </div>
   );
 };

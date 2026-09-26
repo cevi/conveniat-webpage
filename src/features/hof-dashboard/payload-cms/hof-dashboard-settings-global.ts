@@ -2,7 +2,31 @@ import { environmentVariables } from '@/config/environment-variables';
 import { areaOptions, submissionTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import type { Field, GlobalConfig } from 'payload';
+import type { StaticTranslationString } from '@/types/types';
+import type { ArrayField, Field, GlobalConfig } from 'payload';
+
+/**
+ * Collapsed rows named after their own fields, and buttons that say what they add, for the
+ * long lists of these settings.
+ */
+const arrayAdmin = (
+  fields: string[],
+  singular: StaticTranslationString,
+  plural: StaticTranslationString,
+  description?: StaticTranslationString,
+): Pick<ArrayField, 'labels' | 'admin'> => ({
+  labels: { singular, plural },
+  admin: {
+    initCollapsed: true,
+    ...(description === undefined ? {} : { description }),
+    components: {
+      RowLabel: {
+        path: '@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel',
+        clientProps: { fields },
+      },
+    },
+  },
+});
 
 const materialListFields = (): Field[] => [
   {
@@ -22,13 +46,16 @@ const materialListFields = (): Field[] => [
     name: 'items',
     type: 'array',
     label: { de: 'Material', en: 'Material', fr: 'Matériel' },
-    admin: {
-      description: {
+    ...arrayAdmin(
+      ['name', 'section'],
+      { de: 'Material', en: 'Material', fr: 'Matériel' },
+      { de: 'Material', en: 'Material', fr: 'Matériel' },
+      {
         en: 'Removing a line keeps it on the orders already placed, under the name it had then.',
         de: 'Eine gelöschte Zeile bleibt in bereits abgegebenen Bestellungen unter ihrem damaligen Namen erhalten.',
         fr: 'Une ligne supprimée reste dans les commandes déjà passées, sous le nom qu’elle avait alors.',
       },
-    },
+    ),
     fields: [
       {
         type: 'row',
@@ -98,13 +125,16 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
               name: 'deadlines',
               type: 'array',
               label: { de: 'Termine', en: 'Deadlines', fr: 'Échéances' },
-              admin: {
-                description: {
+              ...arrayAdmin(
+                ['date', 'title'],
+                { de: 'Termin', en: 'Deadline', fr: 'Échéance' },
+                { de: 'Termine', en: 'Deadlines', fr: 'Échéances' },
+                {
                   en: 'Each submission works towards the next deadline that lists it. Once the last one has passed, an open submission is overdue.',
                   de: 'Jede Abgabe richtet sich nach dem nächsten Termin, der sie aufführt. Ist der letzte vorbei, ist eine offene Abgabe überfällig.',
                   fr: 'Chaque dépôt vise la prochaine échéance qui le mentionne. Une fois la dernière passée, un dépôt ouvert est en retard.',
                 },
-              },
+              ),
               fields: [
                 {
                   type: 'row',
@@ -256,6 +286,10 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
             {
               name: 'documents',
               type: 'array',
+              labels: {
+                singular: { de: 'Dokument', en: 'Document', fr: 'Document' },
+                plural: { de: 'Dokumente', en: 'Documents', fr: 'Documents' },
+              },
               label: {
                 de: 'Offizielle Unterlagen & Vorlagen',
                 en: 'Official documents & templates',
@@ -297,13 +331,16 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                 en: 'Criteria for an elevated safety risk',
                 fr: 'Critères de risque de sécurité accru',
               },
-              admin: {
-                description: {
+              ...arrayAdmin(
+                ['criterion'],
+                { de: 'Kriterium', en: 'Criterion', fr: 'Critère' },
+                { de: 'Kriterien', en: 'Criteria', fr: 'Critères' },
+                {
                   en: 'Shown when a Hof opens the info next to "Elevated safety risk?".',
                   de: 'Erscheinen, wenn ein Hof die Info neben "Erhöhtes Sicherheitsrisiko?" öffnet.',
                   fr: 'Affichés lorsqu’un Hof ouvre l’info à côté de « Risque de sécurité accru ? ».',
                 },
-              },
+              ),
               fields: [
                 {
                   name: 'criterion',
