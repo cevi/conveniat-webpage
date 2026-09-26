@@ -35,8 +35,10 @@ const groupBySection = (
 export const MaterialOrderForm: React.FC<{
   hofId: string;
   order: HofDashboardOrder;
+  /** The reviewers may still change an order after its deadline. */
+  canPassDeadline: boolean;
   locale: Locale;
-}> = ({ hofId, order, locale }) => {
+}> = ({ hofId, order, canPassDeadline, locale }) => {
   const utils = trpc.useUtils();
   const [quantities, setQuantities] = useState<Record<string, string>>(() =>
     Object.fromEntries(
@@ -49,16 +51,20 @@ export const MaterialOrderForm: React.FC<{
       toast.success(translate('saved', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     },
-    onError: (error) =>
+    onError: (error) => {
+      if (error.message === 'order_list_changed') {
+        toast.error(translate('orderListChanged', locale));
+        void utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+        return;
+      }
       toast.error(
-        error.message === 'order_closed'
-          ? translate('orderClosed', locale)
-          : translate('saveFailed', locale),
-      ),
+        translate(error.message === 'order_closed' ? 'orderClosed' : 'saveFailed', locale),
+      );
+    },
   });
 
   const daysLeft = order.deadline === undefined ? undefined : daysUntil(order.deadline, new Date());
-  const closed = daysLeft !== undefined && daysLeft < 0;
+  const closed = daysLeft !== undefined && daysLeft < 0 && !canPassDeadline;
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault();
@@ -82,7 +88,7 @@ export const MaterialOrderForm: React.FC<{
         {order.deadline !== undefined && daysLeft !== undefined && (
           <p className="text-sm text-gray-500">
             {translate('orderableUntil', locale, { date: formatDate(order.deadline, locale) })}
-            {!closed && ` · ${formatCountdown(daysLeft, locale)}`}
+            {daysLeft >= 0 && ` · ${formatCountdown(daysLeft, locale)}`}
           </p>
         )}
       </div>

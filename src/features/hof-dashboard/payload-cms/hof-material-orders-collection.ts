@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { orderTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
@@ -19,6 +20,12 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
   admin: {
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
     defaultColumns: ['hof', 'orderType', 'updatedAt'],
+    hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
+    description: {
+      en: 'The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.',
+      de: 'Das Material, das die Höfe auf dem Dashboard bestellen. Die Namen stehen auf Deutsch, so wie sie bei der Bestellung hiessen.',
+      fr: 'Le matériel commandé par les Hofs sur le tableau de bord. Les noms sont conservés en allemand, tels qu’ils étaient lors de la commande.',
+    },
   },
   access: {
     read: canReviewHofDashboard,
@@ -38,7 +45,7 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
           required: true,
           index: true,
           label: { de: 'Hof', en: 'Hof', fr: 'Hof' },
-          admin: { width: '50%' },
+          admin: { width: '50%', readOnly: true },
         },
         {
           name: 'orderType',
@@ -46,7 +53,7 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
           required: true,
           options: orderTypeOptions,
           label: { de: 'Bestellung', en: 'Order', fr: 'Commande' },
-          admin: { width: '50%' },
+          admin: { width: '50%', readOnly: true },
         },
       ],
     },

@@ -22,7 +22,7 @@ export const AREA_TEXT_CLASS: Record<HofDashboardArea, string> = {
   program: 'text-cevi-red',
 };
 
-export const AREA_BAR_CLASS: Record<HofDashboardArea, string> = {
+const AREA_BAR_CLASS: Record<HofDashboardArea, string> = {
   infrastructure: 'bg-conveniat-green',
   program: 'bg-cevi-red',
 };

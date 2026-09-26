@@ -100,11 +100,13 @@ export const DocumentsView: React.FC<{ data: HofDashboardData; locale: Locale }>
                   {translate('uploadedOn', locale, { date: formatDate(file.uploadedAt, locale) })}
                 </p>
               </div>
-              {submission.status !== undefined && (
-                <span className="shrink-0 text-xs font-semibold text-gray-500">
-                  {HOF_SUBMISSION_STATUS_LABELS[submission.status][locale]}
-                </span>
-              )}
+              {/* the Ressort's status is about the newest version of each kind */}
+              {submission.status !== undefined &&
+                submission.files.find((candidate) => candidate.kind === file.kind) === file && (
+                  <span className="shrink-0 text-xs font-semibold text-gray-500">
+                    {HOF_SUBMISSION_STATUS_LABELS[submission.status][locale]}
+                  </span>
+                )}
             </div>
           ))
         )}

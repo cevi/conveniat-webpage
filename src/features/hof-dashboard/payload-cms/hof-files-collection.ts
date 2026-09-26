@@ -1,3 +1,5 @@
+import { environmentVariables } from '@/config/environment-variables';
+import { HOF_FILE_TYPES } from '@/features/hof-dashboard/constants';
 import { fileKindOptions } from '@/features/hof-dashboard/payload-cms/options';
 import {
   canReadHofFiles,
@@ -6,21 +8,6 @@ import {
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
-
-/** The file types of `HOF_FILE_EXTENSIONS`, for Payload's own check on upload. */
-const HOF_FILE_MIME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'image/jpeg',
-  'image/png',
-  'application/zip',
-  'application/x-zip-compressed',
-];
 
 /**
  * Every file a Hof hands in on the dashboard, one entry per upload, so an earlier version stays
@@ -40,6 +27,12 @@ export const HofFilesCollection: CollectionConfig = {
     useAsTitle: 'filename',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
     defaultColumns: ['filename', 'hof', 'kind', 'submission', 'createdAt'],
+    hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
+    description: {
+      en: 'Every file the Höfe handed in on the dashboard, one entry per version. The Hof and the submission are set by the upload and cannot be changed.',
+      de: 'Jede Datei, die ein Hof auf dem Dashboard abgegeben hat, ein Eintrag pro Version. Hof und Abgabe setzt der Upload, sie lassen sich nicht ändern.',
+      fr: 'Chaque fichier déposé par un Hof sur le tableau de bord, une entrée par version. Le Hof et le dépôt sont fixés au téléversement et ne peuvent pas être modifiés.',
+    },
   },
   access: {
     read: canReadHofFiles,
@@ -47,7 +40,8 @@ export const HofFilesCollection: CollectionConfig = {
     update: canReviewHofDashboard,
     delete: isFullAdmin,
   },
-  upload: { mimeTypes: HOF_FILE_MIME_TYPES },
+  // Payload checks every file's content against these
+  upload: { mimeTypes: [...new Set(Object.values(HOF_FILE_TYPES))] },
   fields: [
     {
       name: 'submission',
@@ -56,6 +50,7 @@ export const HofFilesCollection: CollectionConfig = {
       required: true,
       index: true,
       label: { de: 'Abgabe', en: 'Submission', fr: 'Dépôt' },
+      admin: { readOnly: true },
     },
     {
       name: 'hof',
@@ -64,6 +59,7 @@ export const HofFilesCollection: CollectionConfig = {
       required: true,
       index: true,
       label: { de: 'Hof', en: 'Hof', fr: 'Hof' },
+      admin: { readOnly: true },
     },
     {
       name: 'kind',

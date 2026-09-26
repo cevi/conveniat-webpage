@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { HOF_SUBMISSION_TYPE_LABELS } from '@/features/hof-dashboard/constants';
 import {
   safetyRiskOptions,
@@ -48,6 +49,7 @@ export const HofSubmissionsCollection: CollectionConfig = {
     useAsTitle: 'title',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
     defaultColumns: ['title', 'status', 'elevatedSafetyRisk', 'updatedAt'],
+    hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'What the Höfe hand in on the Hof dashboard. Set the status and leave feedback here; the Hof sees both on its dashboard.',
       de: 'Was die Höfe auf dem Hof-Dashboard abgeben. Status und Rückmeldung werden hier gesetzt und erscheinen auf dem Dashboard des Hofs.',
@@ -79,7 +81,8 @@ export const HofSubmissionsCollection: CollectionConfig = {
           required: true,
           index: true,
           label: { de: 'Hof', en: 'Hof', fr: 'Hof' },
-          admin: { width: '50%' },
+          // set by the dashboard; moving an entry would strand its files at the old Hof
+          admin: { width: '50%', readOnly: true },
         },
         {
           name: 'submissionType',
@@ -87,23 +90,21 @@ export const HofSubmissionsCollection: CollectionConfig = {
           required: true,
           options: submissionTypeOptions,
           label: { de: 'Abgabe', en: 'Submission', fr: 'Dépôt' },
-          admin: { width: '50%' },
+          admin: { width: '50%', readOnly: true },
         },
       ],
     },
     {
       name: 'status',
       type: 'select',
-      required: true,
-      defaultValue: 'submitted',
       options: submissionStatusOptions,
       label: { de: 'Status', en: 'Status', fr: 'Statut' },
       admin: {
         position: 'sidebar',
         description: {
-          en: 'A new upload by the Hof sets this back to "Submitted".',
-          de: 'Lädt der Hof eine neue Version hoch, springt der Status auf "Eingereicht" zurück.',
-          fr: 'Un nouveau téléversement du Hof remet le statut sur « Déposé ».',
+          en: 'Empty until the Hof hands in a file. Every new file sets it back to "Submitted".',
+          de: 'Leer, bis der Hof eine Datei abgibt. Jede neue Datei setzt den Status auf "Eingereicht" zurück.',
+          fr: 'Vide tant que le Hof n’a déposé aucun fichier. Chaque nouveau fichier le remet sur « Déposé ».',
         },
       },
     },

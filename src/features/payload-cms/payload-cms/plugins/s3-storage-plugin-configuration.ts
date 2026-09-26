@@ -47,7 +47,9 @@ export const s3StorageConfiguration = s3Storage({
     userSubmittedImages: true,
     'chat-images': true,
     form_collection: true,
-    'hof-files': true,
+    // Hofs pick their file names, so their files get a folder of their own: at the bucket root
+    // a Hof's plan could replace a public document of the same name, or the other way round
+    'hof-files': { prefix: 'hof-files' },
 
     // The import/export plugin registers these two as upload collections without a staticDir, so
     // Payload defaults it to the collection slug - a *relative* path resolved against the process

@@ -1,3 +1,4 @@
+import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { CollectionBeforeChangeHook } from 'payload';
@@ -14,33 +15,26 @@ const selectedHofNotFoundMessage: StaticTranslationString = {
   fr: "Le Hof sélectionné n'existe pas.",
 };
 
-/** The names of every Hof selection in the form, including those inside a conditioned block. */
-const getHofSelectionNames = (fields: unknown[] | null | undefined): string[] => {
-  if (!Array.isArray(fields)) return [];
-  return fields.flatMap((field): string[] => {
-    if (field === null || typeof field !== 'object') return [];
-    const block = field as { blockType?: string; name?: string; fields?: unknown[] | null };
-    if (block.blockType === 'hofSelection' && typeof block.name === 'string') return [block.name];
-    if (block.blockType === 'conditionedBlock') return getHofSelectionNames(block.fields);
-    return [];
-  });
-};
-
 /**
  * Links a new submission to the Hof picked in its Hof selection, so the Hof finds it on its
  * dashboard, and writes the Hof's name into the answer so the emails and the admin read it.
+ * A new submission gets no other Hof.
  */
 export const linkHofSubmission: CollectionBeforeChangeHook<FormSubmission> = async ({
   data,
   req,
   operation,
 }) => {
-  if (operation !== 'create' || data.form === undefined) return data;
+  if (operation !== 'create') return data;
+  // Anyone may create a submission, so a Hof sent along with it is not taken at its word: only
+  // the Hof picked in the form links it. Editors link older submissions afterwards, by update.
+  delete data.hof;
+  if (data.form === undefined) return data;
 
   const formId = typeof data.form === 'object' ? data.form.id : data.form;
   const form = await req.payload.findByID({ collection: 'forms', id: formId, depth: 0, req });
   const names = form.sections.flatMap((section) =>
-    getHofSelectionNames(section.formSection.fields as unknown[] | null | undefined),
+    getFormBlockNames(section.formSection.fields as unknown[] | null | undefined, 'hofSelection'),
   );
   if (names.length === 0) return data;
 

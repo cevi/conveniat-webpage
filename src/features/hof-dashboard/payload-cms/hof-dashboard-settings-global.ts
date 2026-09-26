@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { areaOptions, submissionTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -75,6 +76,12 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
   },
   admin: {
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
+    hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
+    description: {
+      en: 'Texts are only required in German; French and English fall back to it.',
+      de: 'Texte sind nur auf Deutsch nötig; Französisch und Englisch fallen darauf zurück.',
+      fr: 'Les textes ne sont requis qu’en allemand ; le français et l’anglais s’y rabattent.',
+    },
   },
   access: {
     read: canReviewHofDashboard,

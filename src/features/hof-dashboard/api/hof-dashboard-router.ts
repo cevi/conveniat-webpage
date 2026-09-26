@@ -44,14 +44,16 @@ export const hofDashboardRouter = createTRPCRouter({
 
   getHofDashboard: hofDashboardProcedure.input(hofIdInput).query(async ({ ctx, input }) => {
     await ctx.assertHofAccess(input.hofId);
-    return await getHofDashboardData(input.hofId, ctx.locale);
+    const data = await getHofDashboardData(input.hofId, ctx.locale);
+    // reviewers may still change an order after its deadline
+    return { ...data, canPassDeadlines: ctx.isReviewer };
   }),
 
   createUploadUrl: hofDashboardProcedure
     .input(hofIdInput.extend({ filename: z.string().min(1).max(200) }))
     .mutation(async ({ ctx, input }) => {
       await ctx.assertHofAccess(input.hofId);
-      return await createHofUploadUrl(input.filename);
+      return await createHofUploadUrl(input.hofId, input.filename);
     }),
 
   completeUpload: hofDashboardProcedure
@@ -100,7 +102,6 @@ export const hofDashboardRouter = createTRPCRouter({
       await updateHofMaterialOrder({
         ...input,
         userId: ctx.user.uuid,
-        locale: ctx.locale,
         mayPassDeadline: ctx.isReviewer,
       });
     }),

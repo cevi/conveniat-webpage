@@ -30,13 +30,14 @@ const HOEFE: Record<string, { id: string; name: string }> = {
 const run = async (
   submissionData: { field: string; value: string }[],
   operation: 'create' | 'update' = 'create',
+  extra: Partial<FormSubmission> = {},
 ): Promise<Partial<FormSubmission>> => {
   const findByID = jest.fn(({ collection, id }: { collection: string; id: string }) =>
     // eslint-disable-next-line unicorn/no-null -- findByID with disableErrors answers a missing document with null
     Promise.resolve(collection === 'forms' ? form : (HOEFE[id] ?? null)),
   );
   const hookArguments = {
-    data: { form: 'form-1', submissionData },
+    data: { form: 'form-1', submissionData, ...extra },
     operation,
     req: { payload: { findByID }, locale: 'de' },
   } as unknown as Parameters<CollectionBeforeChangeHook<FormSubmission>>[0];
@@ -60,6 +61,13 @@ describe('linkHofSubmission', () => {
     await expect(run([{ field: 'hof', value: 'hof-unbekannt' }])).rejects.toThrow(
       'Der ausgewählte Hof existiert nicht.',
     );
+  });
+
+  it('ignores a Hof sent along with the submission instead of picked in the form', async () => {
+    const data = await run([{ field: 'standname', value: 'Büchsenschiessen' }], 'create', {
+      hof: 'hof-nord',
+    });
+    expect(data.hof).toBeUndefined();
   });
 
   it('leaves a submission without a chosen Hof unlinked', async () => {

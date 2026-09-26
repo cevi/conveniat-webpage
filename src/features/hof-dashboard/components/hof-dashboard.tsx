@@ -95,8 +95,10 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
 
   const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
     { hofId },
-    // what the Ressorts write back should show without a reload
-    { refetchOnMount: 'always' },
+    // What the Ressorts write back should show without a reload, and nothing here works
+    // offline, so the dashboard stays out of the persisted cache: a returning user never
+    // renders yesterday's shape of it after a deploy.
+    { refetchOnMount: 'always', meta: { persist: false } },
   );
   const progress = useProgress(dashboard.data);
 
@@ -158,12 +160,14 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
               key={`infrastructure-${data.orders.infrastructure.updatedAt ?? 'new'}`}
               hofId={data.hof.id}
               order={data.orders.infrastructure}
+              canPassDeadline={data.canPassDeadlines}
               locale={locale}
             />
             <MaterialOrderForm
               key={`stadtleben-${data.orders.stadtleben.updatedAt ?? 'new'}`}
               hofId={data.hof.id}
               order={data.orders.stadtleben}
+              canPassDeadline={data.canPassDeadlines}
               locale={locale}
             />
           </div>
@@ -175,7 +179,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
 };
 
 const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
-  const hoefe = trpc.hofDashboard.getMyHofList.useQuery();
+  const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, { meta: { persist: false } });
   const [selectedHofId, setSelectedHofId] = useState<string>();
 
   if (hoefe.isLoading) return <LoadingState />;

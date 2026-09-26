@@ -2,12 +2,6 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 
 /** Every string of the Hof dashboard that an editor does not own. */
 export const text = {
-  title: { de: 'Hof-Dashboard', en: 'Hof dashboard', fr: 'Tableau de bord du Hof' },
-  intro: {
-    de: 'Hier gibst du die Planungen deines Hofs ab, bestellst Material und siehst, was noch fehlt.',
-    en: 'Hand in the plans of your Hof, order material and see what is still missing.',
-    fr: 'Dépose ici les planifications de ton Hof, commande du matériel et vois ce qui manque encore.',
-  },
   loginRequired: {
     de: 'Melde dich mit deinem Cevi.DB-Konto an, um das Dashboard deines Hofs zu öffnen.',
     en: 'Sign in with your Cevi.DB account to open the dashboard of your Hof.',
@@ -214,6 +208,11 @@ export const text = {
     de: 'Nicht mehr auf der Liste, aber bestellt',
     en: 'No longer listed, but ordered',
     fr: 'Plus dans la liste, mais commandé',
+  },
+  orderListChanged: {
+    de: 'Die Materialliste wurde in der Zwischenzeit geändert. Prüfe deine Mengen und speichere erneut.',
+    en: 'The material list changed in the meantime. Check your quantities and save again.',
+    fr: 'La liste du matériel a changé entre-temps. Vérifie tes quantités et enregistre à nouveau.',
   },
   save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
   saving: { de: 'Wird gespeichert …', en: 'Saving …', fr: 'Enregistrement …' },

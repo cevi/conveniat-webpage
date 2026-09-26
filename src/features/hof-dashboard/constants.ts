@@ -1,11 +1,5 @@
 import type { StaticTranslationString } from '@/types/types';
 
-/**
- * The Cevi.DB role that opens a Hof's dashboard: the address administrator of the Ortsgruppe
- * the Hof belongs to. The role is read per group, so it opens that one Hof and no other.
- */
-export const HOF_ADMINISTRATOR_ROLE_CLASS = 'Group::Ortsgruppe::AdministratorCeviDB';
-
 /** Where a submission belongs on the dashboard, and which colour it carries there. */
 export type HofDashboardArea = 'infrastructure' | 'program';
 
@@ -113,17 +107,28 @@ export const DUE_SOON_DAYS = 14;
 /** Largest file a Hof can hand in, in bytes. */
 export const HOF_FILE_MAX_BYTES = 25 * 1024 * 1024;
 
-/** File endings a Hof can hand in: plans, documents and pictures of them. */
-export const HOF_FILE_EXTENSIONS = [
-  'pdf',
-  'doc',
-  'docx',
-  'xls',
-  'xlsx',
-  'ppt',
-  'pptx',
-  'jpg',
-  'jpeg',
-  'png',
-  'zip',
-] as const;
+/**
+ * The files a Hof can hand in, by ending: plans, documents and pictures of them. The legacy
+ * Office formats (.doc, .xls, .ppt) are left out, since Payload's content check reads them as
+ * a generic container and rejects them.
+ */
+export const HOF_FILE_TYPES = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  zip: 'application/zip',
+} as const;
+
+export type HofFileExtension = keyof typeof HOF_FILE_TYPES;
+
+export const HOF_FILE_EXTENSIONS = Object.keys(HOF_FILE_TYPES) as HofFileExtension[];
+
+/** The ending of a file name, if the dashboard takes files of that kind. */
+export const hofFileExtensionOf = (filename: string): HofFileExtension | undefined => {
+  const extension = filename.split('.').pop()?.toLowerCase() ?? '';
+  return extension in HOF_FILE_TYPES ? (extension as HofFileExtension) : undefined;
+};

@@ -4612,9 +4612,9 @@ export interface HofSubmission {
   hof: string | Hof;
   submissionType: 'flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram';
   /**
-   * A new upload by the Hof sets this back to "Submitted".
+   * Empty until the Hof hands in a file. Every new file sets it back to "Submitted".
    */
-  status: 'submitted' | 'inReview' | 'revisionRequired' | 'archived';
+  status?: ('submitted' | 'inReview' | 'revisionRequired' | 'archived') | null;
   /**
    * Answered by the Hof. With "Yes" the Hof has to hand in a safety concept as well.
    */
@@ -4632,6 +4632,8 @@ export interface HofSubmission {
   createdAt: string;
 }
 /**
+ * Every file the Höfe handed in on the dashboard, one entry per version. The Hof and the submission are set by the upload and cannot be changed.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "hof-files".
  */
@@ -4641,6 +4643,7 @@ export interface HofFile {
   hof: string | Hof;
   kind: 'plan' | 'safetyConcept';
   uploadedBy?: (string | null) | User;
+  prefix?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -4655,6 +4658,8 @@ export interface HofFile {
   focalY?: number | null;
 }
 /**
+ * The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "hof-material-orders".
  */
@@ -7279,6 +7284,7 @@ export interface HofFilesSelect<T extends boolean = true> {
   hof?: T;
   kind?: T;
   uploadedBy?: T;
+  prefix?: T;
   _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -9114,6 +9120,8 @@ export interface BillSetting {
   createdAt?: string | null;
 }
 /**
+ * Texts are only required in German; French and English fall back to it.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "hof-dashboard-settings".
  */

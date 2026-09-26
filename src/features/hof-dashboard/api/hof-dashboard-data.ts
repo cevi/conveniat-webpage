@@ -7,7 +7,9 @@ import {
   type HofSubmissionStatus,
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
-import type { Hof, HofDashboardSetting, HofFile } from '@/features/payload-cms/payload-types';
+import { toFiles } from '@/features/hof-dashboard/utils/file-versions';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import type { Hof, HofDashboardSetting } from '@/features/payload-cms/payload-types';
 import type { Locale } from '@/types/types';
 import config from '@payload-config';
 import { getPayload, type Payload } from 'payload';
@@ -101,7 +103,12 @@ const toContact = (
 const idOf = (reference: string | { id: string } | null | undefined): string | undefined =>
   typeof reference === 'object' && reference !== null ? reference.id : (reference ?? undefined);
 
-/** The settings every dashboard shares, in the reader's language. */
+/**
+ * The settings every dashboard shares, in the reader's language. The texts are only required
+ * in German, and the site does not fall back on its own, so an untranslated text reads in
+ * German instead of blank. Only the documents are populated; of the Stadtleben form the id is
+ * enough.
+ */
 export const getHofDashboardSettings = async (
   payload: Payload,
   locale: Locale,
@@ -109,27 +116,11 @@ export const getHofDashboardSettings = async (
   await payload.findGlobal({
     slug: 'hof-dashboard-settings',
     locale,
+    fallbackLocale: LOCALE.DE,
     depth: 1,
+    populate: { forms: { title: true } },
     overrideAccess: true,
   });
-
-const toFiles = (files: HofFile[]): HofDashboardFile[] => {
-  const counters: Record<HofFileKind, number> = { plan: 0, safetyConcept: 0 };
-  return files
-    .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))
-    .map((file) => {
-      counters[file.kind] += 1;
-      return {
-        id: file.id,
-        filename: file.filename ?? file.id,
-        url: file.url ?? undefined,
-        kind: file.kind,
-        uploadedAt: file.createdAt,
-        version: counters[file.kind],
-      };
-    })
-    .toReversed();
-};
 
 const toOrder = (
   type: HofOrderType,
@@ -248,7 +239,7 @@ export const getHofDashboardData = async (
     return {
       type,
       area: HOF_SUBMISSION_TYPE_AREA[type],
-      status: stored?.status,
+      status: stored?.status ?? undefined,
       elevatedSafetyRisk: stored?.elevatedSafetyRisk ?? undefined,
       feedback: stored?.feedback ?? undefined,
       files: toFiles(files),

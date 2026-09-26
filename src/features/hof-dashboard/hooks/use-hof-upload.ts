@@ -4,21 +4,18 @@ import { translate } from '@/features/hof-dashboard/components/texts';
 import {
   HOF_FILE_EXTENSIONS,
   HOF_FILE_MAX_BYTES,
+  hofFileExtensionOf,
   type HofFileKind,
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
+import { TRPCClientError } from '@trpc/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 /** The `accept` attribute of the file input, from the endings the server takes. */
 export const HOF_FILE_ACCEPT = HOF_FILE_EXTENSIONS.map((extension) => `.${extension}`).join(',');
-
-const hasAllowedExtension = (filename: string): boolean => {
-  const extension = filename.split('.').pop()?.toLowerCase() ?? '';
-  return (HOF_FILE_EXTENSIONS as readonly string[]).includes(extension);
-};
 
 /**
  * Uploads one file for a submission: the browser puts it straight into storage through a
@@ -41,7 +38,7 @@ export const useHofUpload = (
     submissionType: HofSubmissionType,
     kind: HofFileKind,
   ): Promise<void> => {
-    if (!hasAllowedExtension(file.name)) {
+    if (hofFileExtensionOf(file.name) === undefined) {
       toast.error(
         translate('fileTypeNotAllowed', locale, { types: HOF_FILE_EXTENSIONS.join(', ') }),
       );
@@ -75,7 +72,14 @@ export const useHofUpload = (
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     } catch (error) {
       console.error('Hof dashboard upload failed', error);
-      toast.error(translate('uploadFailed', locale));
+      // the server's content check rejects a file whose ending does not match what it is
+      const rejected =
+        error instanceof TRPCClientError && error.message === 'unsupported_file_type';
+      toast.error(
+        rejected
+          ? translate('fileTypeNotAllowed', locale, { types: HOF_FILE_EXTENSIONS.join(', ') })
+          : translate('uploadFailed', locale),
+      );
     } finally {
       setUploadingKey(undefined);
     }
