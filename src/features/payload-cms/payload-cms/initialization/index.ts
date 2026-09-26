@@ -1,5 +1,6 @@
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
+import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
   announceRunningJobsWith,
@@ -183,6 +184,12 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       payload.logger.info('[Lock Manager] Database already seeded. Skipping seeding.');
       // If the database is already seeded, make sure the lock file is marked as 'done' so other workers skip waiting
       await fs.writeFile(LOCK_FILE, 'done').catch(() => {});
+
+      // Awaited, so the billing never reads an empty Höfe collection on a database that still
+      // has its Höfe in the legacy bill settings. Only a seeded database can have those.
+      await withSpan('payload.init.migrateLegacyHoefe', async () => {
+        await migrateLegacyHoefe(payload);
+      });
 
       // Run in the background so index generation doesn't block the first request
       void withSpan('payload.init.ensureIndexes', async () => {

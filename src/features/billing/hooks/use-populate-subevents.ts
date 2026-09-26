@@ -1,13 +1,13 @@
 'use client';
 
-import type { PopulateSubeventsStreamMessage, PopulatedSubevent } from '@/features/billing/types';
+import type { HofEventRow, PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const POPULATE_SUBEVENTS_ENDPOINT = '/api/confidential/billing/populate-subevents';
 
 /**
  * `idle` before the first run, `walking` while the subgroups of Cevi.DB are queried,
- * `saving` once the walk finished and the merged list is being written, and `done` /
+ * `saving` once the walk finished and the Höfe are being written, and `done` /
  * `error` once the stream closed.
  */
 export type PopulateSubeventsPhase = 'idle' | 'walking' | 'saving' | 'done' | 'error';
@@ -17,8 +17,8 @@ export interface PopulateSubeventsState {
   processedGroups: number;
   totalGroups: number;
   /** Every event discovered so far, in discovery order. */
-  foundEvents: PopulatedSubevent[];
-  /** Event ids that were not in the settings before this run. Only filled on `done`. */
+  foundEvents: HofEventRow[];
+  /** Event ids that no Hof held before this run. Only filled on `done`. */
   newEventIds: Set<string>;
   /** Server-provided error message, if any. Undefined means "show a generic message". */
   error: string | undefined;
@@ -70,10 +70,10 @@ async function* readNdjsonLines(body: ReadableStream<Uint8Array>): AsyncGenerato
  */
 export const usePopulateSubevents = (
   /**
-   * Called once the settings were written, with the complete stored event list. Used to
-   * push the result into the admin form so the array field updates without a reload.
+   * Called once the Höfe were written, with every stored event. Used to reload the admin
+   * list so it shows the result without a page reload.
    */
-  onCompleted?: (allEvents: PopulatedSubevent[]) => void | Promise<void>,
+  onCompleted?: (allEvents: HofEventRow[]) => void | Promise<void>,
 ): {
   state: PopulateSubeventsState;
   isRunning: boolean;
@@ -119,7 +119,7 @@ export const usePopulateSubevents = (
           const { processedGroups, totalGroups, foundEvents } = message;
           setState((previous) => ({
             ...previous,
-            // The server writes the settings once the last group is walked; the UI
+            // The server writes the Höfe once the last group is walked; the UI
             // stays on that step until `done` arrives.
             phase: totalGroups > 0 && processedGroups >= totalGroups ? 'saving' : 'walking',
             processedGroups,

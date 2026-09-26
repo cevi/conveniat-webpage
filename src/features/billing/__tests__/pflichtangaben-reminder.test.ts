@@ -185,6 +185,23 @@ interface MockedPayload {
   info: jest.Mock;
 }
 
+/** The Höfe the reminders read their recipients from; Hof Schlatt has none. */
+const HOEFE = [
+  {
+    id: 'hof-zueri',
+    name: 'Hof Züri 11',
+    groupId: '22',
+    events: [{ eventId: '11', eventName: 'Hof Züri 11' }],
+    addressManagerEmails: 'av@zueri11.ch',
+  },
+  {
+    id: 'hof-schlatt',
+    name: 'Hof Schlatt',
+    groupId: '23',
+    events: [{ eventId: '12', eventName: 'Hof Schlatt' }],
+  },
+];
+
 const mockPayload = (
   settings: Record<string, unknown>,
   participants: BillParticipant[],
@@ -202,7 +219,11 @@ const mockPayload = (
   const info = jest.fn();
   const payload = {
     findGlobal: jest.fn().mockResolvedValue(settings),
-    find: jest.fn().mockResolvedValue({ docs: participants }),
+    find: jest
+      .fn()
+      .mockImplementation(({ collection }: { collection: string }) =>
+        Promise.resolve({ docs: collection === 'hoefe' ? HOEFE : participants }),
+      ),
     findByID,
     update,
     updateGlobal,
@@ -265,10 +286,6 @@ describe('sendPflichtangabenReminders', () => {
   });
 
   const settings = {
-    events: [
-      { eventId: '11', eventName: 'Hof Züri 11', addressManagerEmails: 'av@zueri11.ch' },
-      { eventId: '12', eventName: 'Hof Schlatt' },
-    ],
     pflichtangabenReminder: { enabled: true, minDaysMissing: 7 },
   };
 
@@ -313,7 +330,8 @@ describe('sendPflichtangabenReminders', () => {
     expect(sendTrackedEmail).not.toHaveBeenCalled();
     expect(summary.sent).toBe(false);
     expect(summary.errors[0]).toContain('Hof Schlatt');
-    expect(summary.relatedDocuments).toEqual(['billSettings']);
+    // The recipients are set on the Hof, so that is the page the operator is sent to.
+    expect(summary.relatedDocuments).toEqual(['hoefe']);
   });
 
   it('skips the run outside the configured slot', async () => {

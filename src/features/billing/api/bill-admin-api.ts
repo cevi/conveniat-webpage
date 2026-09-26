@@ -510,7 +510,7 @@ export const billingWeeklyReportPdfHandler: PayloadHandler = async (request) => 
 
 /**
  * POST /api/confidential/billing/populate-subevents – Dynamically fetch subevents of group
- * 4337 and save them to the bill settings.
+ * 4337 and save them to the Höfe.
  *
  * The walk over every subgroup takes roughly 45 seconds, so the response is a stream of
  * newline-delimited {@link PopulateSubeventsStreamMessage} frames rather than a single
@@ -538,7 +538,7 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
   let processedGroups = 0;
   let totalGroups = 0;
   // Set by `cancel` below. The walk keeps running after the reader goes away — it is most of
-  // the way through a Cevi.DB pass and the settings write is worth finishing — but nothing may
+  // the way through a Cevi.DB pass and the Höfe write is worth finishing — but nothing may
   // be enqueued on a cancelled controller, and doing so throws.
   let cancelled = false;
 
@@ -602,7 +602,7 @@ export const billingPopulateSubeventsHandler: PayloadHandler = async (request) =
       }
     },
 
-    // Reached when the reader goes away: the editor navigated off the settings page, or the
+    // Reached when the reader goes away: the editor navigated off the Höfe list, or the
     // browser dropped the request. Recorded so that a run which produced no result can be told
     // apart from one that failed on our side — the difference the admin panel cannot show,
     // because the error it renders is whatever the browser called the truncated body.
@@ -794,6 +794,7 @@ export const billingSyncStatusHandler: PayloadHandler = async (request) => {
         // rendering where the page exists.
         availableDocuments: [
           'billSettings',
+          'hoefe',
           ...(environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT
             ? ['registrationManagement']
             : []),

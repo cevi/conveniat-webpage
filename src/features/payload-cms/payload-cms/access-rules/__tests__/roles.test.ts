@@ -9,7 +9,10 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import {
+  canAccessBilling,
+  hasBillingOrAdminOrWebAccess,
+} from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
 import {
   hasAdminOrWebAccess,
   hasEditorialAccess,
@@ -71,6 +74,18 @@ describe('canAccessBilling', () => {
 
   it('denies a participant who somehow holds the billing group', () => {
     expect(canAccessBilling({ req: requestFor(PARTICIPANT, BILLING) })).toBe(false);
+  });
+});
+
+describe('hasBillingOrAdminOrWebAccess', () => {
+  it('lets the billing team, the admins and the web core team in, and nobody else', () => {
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(TRANSLATION_TEAM, BILLING) })).toBe(true);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(FULL_ADMIN) })).toBe(true);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(WEB_CORE_TEAM) })).toBe(true);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(TRANSLATION_TEAM) })).toBe(false);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PROGRAM_TEAM) })).toBe(false);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PARTICIPANT, BILLING) })).toBe(false);
+    expect(hasBillingOrAdminOrWebAccess({ req: anonymous })).toBe(false);
   });
 });
 

@@ -17,6 +17,7 @@ export const deleteDatabase = async (payload: Payload): Promise<void> => {
     'timelineCategory',
     'users',
     'go',
+    'hoefe',
   ];
 
   for (const slug of slugs_to_delete) {
