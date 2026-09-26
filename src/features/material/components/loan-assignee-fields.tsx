@@ -181,7 +181,7 @@ export const PersonPicker: React.FC<{
       ) : (
         <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
           {format(text.selectedPerson, locale, { name: value.name })}
-          <MaterialButton variant="ghost" size="sm" onClick={() => onChange()}>
+          <MaterialButton variant="ghost" onClick={() => onChange()}>
             {labels.cancel[locale]}
           </MaterialButton>
         </div>

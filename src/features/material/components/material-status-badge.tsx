@@ -39,7 +39,7 @@ const loanStatusClass: Record<MaterialLoanDisplayStatus, string> = {
 };
 
 const pill =
-  'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset';
+  'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ring-1 ring-inset';
 
 export const ItemStatusBadge: React.FC<{ status: MaterialItemStatus; locale: Locale }> = ({
   status,

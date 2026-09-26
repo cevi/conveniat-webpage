@@ -8,6 +8,7 @@ import {
   MaterialButton,
   MaterialSheet,
   Panel,
+  SheetFooter,
 } from '@/features/material/components/material-ui';
 import {
   materialQueryOptions,
@@ -139,14 +140,16 @@ const DepartmentDialog: React.FC<{ department?: MaterialDepartment; onClose: () 
           onChange={(event) => setGroupId(event.target.value.replaceAll(/\D/g, ''))}
         />
       </Field>
-      <MaterialButton
-        className="w-full"
-        loading={create.isPending || update.isPending}
-        disabled={name.trim().length < 2 || shortName.trim() === ''}
-        onClick={save}
-      >
-        {labels.save[locale]}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={create.isPending || update.isPending}
+          disabled={name.trim().length < 2 || shortName.trim() === ''}
+          onClick={save}
+        >
+          {labels.save[locale]}
+        </MaterialButton>
+      </SheetFooter>
     </MaterialSheet>
   );
 };
@@ -205,14 +208,16 @@ const CategoryDialog: React.FC<{
           onChange={(event) => setOrder(event.target.value.replaceAll(/\D/g, ''))}
         />
       </Field>
-      <MaterialButton
-        className="w-full"
-        loading={create.isPending || update.isPending}
-        disabled={name.trim() === ''}
-        onClick={save}
-      >
-        {labels.save[locale]}
-      </MaterialButton>
+      <SheetFooter>
+        <MaterialButton
+          className="w-full"
+          loading={create.isPending || update.isPending}
+          disabled={name.trim() === ''}
+          onClick={save}
+        >
+          {labels.save[locale]}
+        </MaterialButton>
+      </SheetFooter>
     </MaterialSheet>
   );
 };
@@ -236,14 +241,10 @@ export const DepotStructurePanel: React.FC = () => {
   return (
     <Panel title={text.title[locale]}>
       <div className="grid gap-4 p-4 lg:grid-cols-2">
-        <section>
-          <div className="mb-2 flex items-center justify-between gap-2">
+        <section className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-gray-800">{text.categories[locale]}</h3>
-            <MaterialButton
-              size="sm"
-              variant="secondary"
-              onClick={() => setEditing({ kind: 'category' })}
-            >
+            <MaterialButton variant="secondary" onClick={() => setEditing({ kind: 'category' })}>
               <Plus aria-hidden />
               {text.newCategory[locale]}
             </MaterialButton>
@@ -251,12 +252,14 @@ export const DepotStructurePanel: React.FC = () => {
           {categoryList.length === 0 && <EmptyState text={labels.empty[locale]} />}
           <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
             {categoryList.map((category) => (
-              <li key={category.id} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <li key={category.id} className="flex items-center gap-2 py-0.5 pr-1 pl-3 text-sm">
                 <span className="w-8 font-mono text-xs text-gray-400">{category.sortOrder}</span>
-                <span className="flex-1 font-semibold text-gray-900">{category.name}</span>
+                <span className="min-w-0 flex-1 truncate font-semibold text-gray-900">
+                  {category.name}
+                </span>
                 <MaterialButton
-                  size="sm"
                   variant="ghost"
+                  className="w-11 px-0"
                   aria-label={`${labels.edit[locale]} ${category.name}`}
                   onClick={() => setEditing({ kind: 'category', category })}
                 >
@@ -266,14 +269,10 @@ export const DepotStructurePanel: React.FC = () => {
             ))}
           </ul>
         </section>
-        <section>
-          <div className="mb-2 flex items-center justify-between gap-2">
+        <section className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-bold text-gray-800">{text.departments[locale]}</h3>
-            <MaterialButton
-              size="sm"
-              variant="secondary"
-              onClick={() => setEditing({ kind: 'department' })}
-            >
+            <MaterialButton variant="secondary" onClick={() => setEditing({ kind: 'department' })}>
               <Plus aria-hidden />
               {text.newDepartment[locale]}
             </MaterialButton>
@@ -281,7 +280,7 @@ export const DepotStructurePanel: React.FC = () => {
           {departmentList.length === 0 && <EmptyState text={labels.empty[locale]} />}
           <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
             {departmentList.map((department) => (
-              <li key={department.id} className="flex items-center gap-2 px-3 py-1.5 text-sm">
+              <li key={department.id} className="flex items-center gap-2 py-0.5 pr-1 pl-3 text-sm">
                 <span className="w-12 font-bold text-gray-900">{department.shortName}</span>
                 <span className="min-w-0 flex-1 truncate text-gray-700">
                   {department.name}
@@ -293,8 +292,8 @@ export const DepotStructurePanel: React.FC = () => {
                   </span>
                 </span>
                 <MaterialButton
-                  size="sm"
                   variant="ghost"
+                  className="w-11 px-0"
                   aria-label={`${labels.edit[locale]} ${department.shortName}`}
                   onClick={() => setEditing({ kind: 'department', department })}
                 >

@@ -107,7 +107,7 @@ const StockActions: React.FC<{
           aria-label={labels.quantity[locale]}
           min={1}
           max={Math.max(damaged, inRepair, 1)}
-          className="h-9 w-20"
+          className="w-24"
           value={quantity}
           onChange={setQuantity}
         />
@@ -117,7 +117,6 @@ const StockActions: React.FC<{
           <MaterialButton
             key={action}
             variant="secondary"
-            size="sm"
             disabled={source < quantity}
             loading={adjust.isPending && adjust.variables.action === action}
             onClick={() =>
@@ -222,28 +221,34 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
             </div>
           </Panel>
 
-          <MaterialButton
-            className="h-12 w-full text-base"
-            disabled={!canRequest}
-            onClick={() => setReserving(true)}
+          {/* on a phone the main action rides above the app's bottom bar, in thumb reach */}
+          <div
+            data-material-thumb-action
+            className="sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-10 sm:static"
           >
-            {labels.reserveLong[locale]}
-          </MaterialButton>
+            <MaterialButton
+              className="h-12 w-full text-base shadow-lg sm:shadow-none"
+              disabled={!canRequest}
+              onClick={() => setReserving(true)}
+            >
+              {labels.reserveLong[locale]}
+            </MaterialButton>
+          </div>
           {!data.isReservable && (
             <p className="text-center text-xs text-gray-500">{text.counterOnlyHint[locale]}</p>
           )}
           <div className="flex flex-wrap gap-2">
-            <MaterialButton variant="danger" size="sm" onClick={() => setReporting(true)}>
+            <MaterialButton variant="danger" onClick={() => setReporting(true)}>
               <AlertTriangle aria-hidden />
               {labels.reportDamage[locale]}
             </MaterialButton>
             {isMaterialTeam && (
               <>
-                <MaterialButton variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                <MaterialButton variant="secondary" onClick={() => setEditing(true)}>
                   <Pencil aria-hidden />
                   {labels.edit[locale]}
                 </MaterialButton>
-                <MaterialButton variant="secondary" size="sm" onClick={() => setShowQr(true)}>
+                <MaterialButton variant="secondary" onClick={() => setShowQr(true)}>
                   <QrCode aria-hidden />
                   QR
                 </MaterialButton>

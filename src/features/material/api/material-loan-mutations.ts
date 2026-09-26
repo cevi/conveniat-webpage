@@ -10,14 +10,16 @@ import {
   lockItem,
   materialError,
   visibleLoansWhere,
+  type MaterialPrisma,
 } from '@/features/material/api/material-shared';
 import type { MaterialCondition, MaterialLoanStatus, Prisma } from '@/lib/prisma/client';
 import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
@@ -312,57 +314,150 @@ export const announceReturn = materialProcedure
     if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
   });
 
+/** Confirms one request; anything past `REQUESTED` has been dealt with already. */
+const confirmOne = async (prisma: MaterialPrisma, id: string, locale: Locale): Promise<void> => {
+  const { count } = await prisma.materialLoan.updateMany({
+    where: { id, status: 'REQUESTED' },
+    data: { status: 'RESERVED' },
+  });
+  if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus', locale);
+};
+
+/**
+ * Hands out one loan under its article's lock. Without a quantity it hands out what was
+ * booked, which is what a bulk hand-out at the counter means.
+ */
+const issueOne = async (
+  tx: Prisma.TransactionClient,
+  id: string,
+  issuedQuantity: number | undefined,
+  user: HitobitoNextAuthUser,
+  locale: Locale,
+): Promise<void> => {
+  const loan = await lockLoan(tx, id, user, locale);
+  if (!PENDING.has(loan.status)) {
+    throw materialError('BAD_REQUEST', 'wrongStatus', locale);
+  }
+  const quantity = issuedQuantity ?? loan.quantity;
+  // the reservation already holds `quantity`, handing out less is always possible
+  if (quantity > loan.quantity) {
+    throw materialError('BAD_REQUEST', 'quantity', locale);
+  }
+
+  // what the reservation promised may have been damaged or lost since
+  const onShelf = await getInDepotQuantity(tx, loan.item);
+  if (quantity > onShelf) {
+    throw materialError('CONFLICT', 'notOnShelf', locale, Math.max(onShelf, 0));
+  }
+
+  if (loan.isConsumption) {
+    await tx.materialItem.update({
+      where: { id: loan.itemId },
+      data: { totalQuantity: { decrement: quantity } },
+    });
+  }
+
+  await tx.materialLoan.update({
+    where: { id: loan.id },
+    data: {
+      status: loan.isConsumption ? 'CONSUMED' : 'ISSUED',
+      issuedQuantity: quantity,
+      issuedAt: new Date(),
+      // handed out early, so it holds from now rather than from the planned start
+      startDate: minDate(loan.startDate, new Date()),
+    },
+  });
+  logger.info('Material issued', {
+    'material.loan.number': loan.number,
+    'material.quantity': quantity,
+  });
+};
+
 export const confirmLoan = materialTeamProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
-    const { count } = await ctx.prisma.materialLoan.updateMany({
-      where: { id: input.id, status: 'REQUESTED' },
-      data: { status: 'RESERVED' },
-    });
-    if (count === 0) throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
+    await confirmOne(ctx.prisma, input.id, ctx.locale);
   });
 
 export const issueLoan = materialTeamProcedure
   .input(z.object({ id: z.string(), issuedQuantity: quantitySchema }))
   .mutation(async ({ ctx, input }) => {
     await ctx.prisma.$transaction(async (tx) => {
-      const loan = await lockLoan(tx, input.id, ctx.user, ctx.locale);
-      if (!PENDING.has(loan.status)) {
-        throw materialError('BAD_REQUEST', 'wrongStatus', ctx.locale);
-      }
-      // the reservation already holds `quantity`, handing out less is always possible
-      if (input.issuedQuantity > loan.quantity) {
-        throw materialError('BAD_REQUEST', 'quantity', ctx.locale);
-      }
-
-      // what the reservation promised may have been damaged or lost since
-      const onShelf = await getInDepotQuantity(tx, loan.item);
-      if (input.issuedQuantity > onShelf) {
-        throw materialError('CONFLICT', 'notOnShelf', ctx.locale, Math.max(onShelf, 0));
-      }
-
-      if (loan.isConsumption) {
-        await tx.materialItem.update({
-          where: { id: loan.itemId },
-          data: { totalQuantity: { decrement: input.issuedQuantity } },
-        });
-      }
-
-      await tx.materialLoan.update({
-        where: { id: loan.id },
-        data: {
-          status: loan.isConsumption ? 'CONSUMED' : 'ISSUED',
-          issuedQuantity: input.issuedQuantity,
-          issuedAt: new Date(),
-          // handed out early, so it holds from now rather than from the planned start
-          startDate: minDate(loan.startDate, new Date()),
-        },
-      });
-      logger.info('Material issued', {
-        'material.loan.number': loan.number,
-        'material.quantity': input.issuedQuantity,
-      });
+      await issueOne(tx, input.id, input.issuedQuantity, ctx.user, ctx.locale);
     });
+  });
+
+/** A bulk selection is one page of the list at most, or everything a filter matched. */
+const bulkInput = z.object({ ids: z.array(z.string()).min(1).max(500) });
+
+export interface BulkLoanResult {
+  id: string;
+  ok: boolean;
+  error?: string;
+}
+
+const unexpectedError = {
+  de: 'Unerwarteter Fehler.',
+  en: 'Unexpected error.',
+  fr: 'Erreur inattendue.',
+} satisfies StaticTranslationString;
+
+/**
+ * Runs one step per loan, each on its own so a loan that has moved on meanwhile fails alone
+ * instead of rolling back the others. The answer says which loan failed and why.
+ */
+const runForEach = async (
+  ids: string[],
+  locale: Locale,
+  step: (id: string) => Promise<void>,
+): Promise<BulkLoanResult[]> => {
+  const results: BulkLoanResult[] = [];
+  // one after the other: every step locks an article, and two loans may share one
+  for (const id of new Set(ids)) {
+    try {
+      await step(id);
+      results.push({ id, ok: true });
+    } catch (error) {
+      if (error instanceof TRPCError) {
+        results.push({ id, ok: false, error: error.message });
+      } else {
+        logger.error('Material bulk step failed', {
+          'material.loan.id': id,
+          'error.message': error instanceof Error ? error.message : String(error),
+        });
+        results.push({ id, ok: false, error: unexpectedError[locale] });
+      }
+    }
+  }
+  return results;
+};
+
+export const confirmLoanList = materialTeamProcedure
+  .input(bulkInput)
+  .mutation(async ({ ctx, input }) => {
+    const results = await runForEach(input.ids, ctx.locale, (id) =>
+      confirmOne(ctx.prisma, id, ctx.locale),
+    );
+    logger.info('Material loans confirmed in bulk', {
+      'material.bulk.count': results.length,
+      'material.bulk.failed': results.filter((result) => !result.ok).length,
+    });
+    return results;
+  });
+
+export const issueLoanList = materialTeamProcedure
+  .input(bulkInput)
+  .mutation(async ({ ctx, input }) => {
+    const results = await runForEach(input.ids, ctx.locale, (id) =>
+      ctx.prisma.$transaction(async (tx) => {
+        await issueOne(tx, id, undefined, ctx.user, ctx.locale);
+      }),
+    );
+    logger.info('Material loans issued in bulk', {
+      'material.bulk.count': results.length,
+      'material.bulk.failed': results.filter((result) => !result.ok).length,
+    });
+    return results;
   });
 
 /**
