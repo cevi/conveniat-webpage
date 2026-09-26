@@ -1117,6 +1117,16 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                 },
+                {
+                  name: 'financeOverviewDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton',
+                    },
+                  },
+                },
               ],
             },
             {
