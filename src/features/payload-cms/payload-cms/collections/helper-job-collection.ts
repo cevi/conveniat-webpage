@@ -201,6 +201,11 @@ export const JobCollection: CollectionConfig = asLocalizedCollection({
       type: 'join',
       collection: 'form-submissions',
       on: 'helper-jobs',
+      // The sign-ups are personal data, and the MCP server exposes the jobs but not who
+      // signed up for them. Without this a `depth` on a find would populate them anyway.
+      access: {
+        read: ({ req }): boolean => req.payloadAPI !== 'MCP',
+      },
       admin: {
         allowCreate: false,
       },
