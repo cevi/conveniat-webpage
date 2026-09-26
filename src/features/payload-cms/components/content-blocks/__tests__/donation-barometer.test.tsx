@@ -25,11 +25,15 @@ const renderBarometer = (figures: DonationBarometerFigures, locale: Locale = 'de
  * Swiss locales group thousands with an apostrophe, but which apostrophe is an
  * ICU detail that moves between Node builds. Composing the expected text the
  * same way keeps these tests about the sentence and the amount.
+ *
+ * Before ICU 78, fr-CH groups with a narrow no-break space. Testing Library
+ * collapses whitespace in the rendered text to a plain space but compares the
+ * expected string as given, so the expected text is collapsed the same way.
  */
 const amount = (value: number, locale: Locale = 'de'): string =>
-  new Intl.NumberFormat(locale === 'fr' ? 'fr-CH' : 'de-CH', { maximumFractionDigits: 0 }).format(
-    value,
-  );
+  new Intl.NumberFormat(locale === 'fr' ? 'fr-CH' : 'de-CH', { maximumFractionDigits: 0 })
+    .format(value)
+    .replaceAll(/\s+/g, ' ');
 
 describe('DonationBarometer', () => {
   it('names the gap to the next milestone the campaign has not funded yet', (): void => {
