@@ -5,6 +5,7 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { awaitMcpResponse } from '@/features/payload-cms/payload-cms/plugins/mcp/await-mcp-response';
+import { mcpWritesDraftsOnly } from '@/features/payload-cms/payload-cms/plugins/mcp/mcp-writes-drafts-only';
 import { mcpPlugin } from '@payloadcms/plugin-mcp';
 import type { CollectionConfig, DefaultValue, Plugin } from 'payload';
 
@@ -182,6 +183,9 @@ const configuredMcpPlugin = mcpPlugin({
 
 /**
  * The configured plugin, with its endpoint made to wait for the tool call so cache
- * revalidation from content hooks is applied. See `awaitMcpResponse`.
+ * revalidation from content hooks is applied (see `awaitMcpResponse`), and with every write
+ * saved as a draft (see `mcpWritesDraftsOnly`).
  */
-export const mcpPluginConfiguration: Plugin = awaitMcpResponse(configuredMcpPlugin);
+export const mcpPluginConfiguration: Plugin = mcpWritesDraftsOnly(
+  awaitMcpResponse(configuredMcpPlugin),
+);
