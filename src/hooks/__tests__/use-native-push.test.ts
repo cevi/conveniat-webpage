@@ -4,6 +4,7 @@
 
 import {
   extractMessageIdentifier,
+  extractNotificationLogId,
   extractNotificationTitleAndBody,
   extractNotificationType,
   useNativePush,
@@ -28,6 +29,7 @@ jest.mock('sonner', () => ({
 
 const mockPush = jest.fn();
 const mockNotification = jest.fn();
+const mockMarkInteracted = jest.fn();
 
 beforeAll(() => {
   // @ts-expect-error Mocking global Notification constructor
@@ -55,6 +57,11 @@ jest.mock('@/trpc/client', () => ({
       },
       unregisterDevice: {
         useMutation: jest.fn().mockReturnValue({ mutateAsync: jest.fn() }),
+      },
+    },
+    pushTracking: {
+      markInteracted: {
+        useMutation: (): { mutate: jest.Mock } => ({ mutate: mockMarkInteracted }),
       },
     },
   },
@@ -126,6 +133,36 @@ describe('useNativePush', () => {
     });
 
     expect(mockPush).toHaveBeenCalledWith('/app/chat/123');
+  });
+
+  it('records a tap on a native notification against its push log entry', () => {
+    renderHook(() => useNativePush());
+
+    act(() => {
+      globalThis.dispatchEvent(
+        new CustomEvent('app-webview-native-push-event', {
+          detail: {
+            type: 'native-push-open',
+            payload: {
+              messageId: 'fcm-delivery-id',
+              data: { url: '/app/dashboard', notificationId: 'log-123' },
+            },
+          },
+        }),
+      );
+    });
+
+    expect(mockMarkInteracted).toHaveBeenCalledWith({ id: 'log-123', type: 'CLICK' });
+  });
+
+  it('records nothing when a native notification carries no push log id', () => {
+    renderHook(() => useNativePush());
+
+    act(() => {
+      globalThis.dispatchEvent(openEvent('/app/chat/123', false));
+    });
+
+    expect(mockMarkInteracted).not.toHaveBeenCalled();
   });
 
   it('parses absolute URL and navigates to target path on native-push-open event', () => {
@@ -328,6 +365,18 @@ describe('useNativePush', () => {
 
       expect(navigationsPerDelivery).toBeGreaterThan(0);
       expect(mockPush).toHaveBeenCalledTimes(navigationsPerDelivery);
+    });
+  });
+
+  describe('extractNotificationLogId', () => {
+    it('ignores the chat message id and returns the push log id', () => {
+      expect(
+        extractNotificationLogId({ data: { messageId: 'message-1', notificationId: 'log-1' } }),
+      ).toBe('log-1');
+    });
+
+    it('returns undefined without a push log id', () => {
+      expect(extractNotificationLogId({ data: { messageId: 'message-1' } })).toBeUndefined();
     });
   });
 
