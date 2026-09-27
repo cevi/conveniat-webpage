@@ -1,5 +1,6 @@
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
@@ -339,9 +340,11 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                     className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div className="bg-conveniat-green font-heading flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
-                        {organiser.fullName.charAt(0).toUpperCase()}
-                      </div>
+                      <PersonAvatar
+                        seed={organiser.id}
+                        name={organiser.fullName}
+                        className="h-10 w-10 text-sm font-bold shadow-xs"
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="font-body truncate text-sm font-semibold text-gray-900">
                           {displayName}
