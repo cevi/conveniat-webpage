@@ -9,6 +9,7 @@ export const FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED = 'check_hitobito_app
 export const FEATURE_FLAG_FORUM_ENABLED = 'forum_enabled';
 export const FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED = 'redesigned_main_menu_enabled';
 export const FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS = 'hide_full_helper_shifts';
+export const FEATURE_FLAG_RESTRICT_CONTACT_LIST = 'restrict_contact_list';
 
 export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_FLAG_SEND_MESSAGES]: true,
@@ -22,4 +23,5 @@ export const FEATURE_FLAG_DEFAULTS: Record<string, boolean> = {
   [FEATURE_FLAG_FORUM_ENABLED]: true,
   [FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED]: false,
   [FEATURE_FLAG_HIDE_FULL_HELPER_SHIFTS]: true,
+  [FEATURE_FLAG_RESTRICT_CONTACT_LIST]: true,
 };

@@ -8997,6 +8997,10 @@ export interface AppFeatureFlag {
    */
   createChatsEnabled?: boolean | null;
   /**
+   * When on, the contact list for new chats shows only people from the same Hof, people whose chat QR code was scanned (or who scanned yours), and people with a leader function or an AVP role. When off, it shows everyone.
+   */
+  restrictContactList?: boolean | null;
+  /**
    * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
    */
   hideHofAndQuartier?: boolean | null;
@@ -9676,6 +9680,7 @@ export interface PWASelect<T extends boolean = true> {
 export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
+  restrictContactList?: T;
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
   hideFullHelperShifts?: T;

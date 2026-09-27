@@ -1,3 +1,5 @@
+import { addToAddressBooks } from '@/features/chat/api/database-interactions/add-to-address-books';
+import prisma from '@/lib/db/prisma';
 import { trpc } from '@/trpc/server';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
@@ -105,6 +107,9 @@ const NewChatWithUserPage: React.FC<{
           result = { type: 'failedToCreate', userId };
         } else {
           logger.debug('Chat created', { 'chat.id': chatId });
+          await addToAddressBooks(prisma, user.uuid, userId).catch((error: unknown) => {
+            logger.warn('Could not add the scanned contact to the address books', { error });
+          });
           result = { type: 'redirect', url: `/app/chat/${chatId}` };
         }
       } else {

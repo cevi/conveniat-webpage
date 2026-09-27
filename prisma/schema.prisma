@@ -37,6 +37,8 @@ model User {
   materialLoans        MaterialLoan[]        @relation("MaterialLoanPerson")
   createdMaterialLoans MaterialLoan[]        @relation("MaterialLoanCreatedBy")
   materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
+  addressBook          AddressBookEntry[]    @relation("AddressBookOwner")
+  inAddressBooksOf     AddressBookEntry[]    @relation("AddressBookContact")
 
   @@index([name])
 }
@@ -131,6 +133,20 @@ enum ChatMembershipPermission {
   MEMBER
   /// can read messages, but cannot send messages
   GUEST
+}
+
+/// The people a user met in person by scanning a chat QR code, one entry per direction. When the
+/// contact list is restricted, it shows these on top of the user's Hof and the camp leaders.
+model AddressBookEntry {
+  ownerId String
+  owner   User   @relation("AddressBookOwner", fields: [ownerId], references: [uuid])
+
+  contactId String
+  contact   User   @relation("AddressBookContact", fields: [contactId], references: [uuid])
+
+  createdAt DateTime @default(now())
+
+  @@id([ownerId, contactId])
 }
 
 model ChatMembership {
