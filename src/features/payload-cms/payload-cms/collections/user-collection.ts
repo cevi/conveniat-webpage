@@ -215,7 +215,7 @@ export const UserCollection: CollectionConfig = {
   },
   admin: {
     description:
-      'Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.',
+      'Represents a user. Data gets automatically synced from Cevi.DB whenever the user logs in. Users can also be created manually or imported via CSV.',
     useAsTitle: 'displayName',
     group: AdminPanelDashboardGroups.BackofficePeople.label,
     groupBy: true,
@@ -309,7 +309,7 @@ export const UserCollection: CollectionConfig = {
     },
     {
       name: 'cevi_db_uuid',
-      label: 'UserID inside CeviDB',
+      label: 'UserID inside Cevi.DB',
       type: 'number',
       required: false,
       access: {
@@ -318,7 +318,7 @@ export const UserCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          'The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.',
+          'The ID of the user in Cevi.DB. Set automatically when the user logs in via Cevi.DB. Leave empty for manually created users.',
       },
       unique: true,
     },
@@ -355,7 +355,7 @@ export const UserCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         description:
-          'The email address of the user. Used for matching when the user logs in via Hitobito.',
+          'The email address of the user. Used for matching when the user logs in via Cevi.DB.',
       },
       unique: true,
     },
@@ -396,7 +396,7 @@ export const UserCollection: CollectionConfig = {
       },
       admin: {
         readOnly: true,
-        description: 'The groups the user is in. Updated automatically from Hitobito on login.',
+        description: 'The groups the user is in. Updated automatically from Cevi.DB on login.',
       },
       jsonSchema: {
         schema: {
@@ -407,11 +407,11 @@ export const UserCollection: CollectionConfig = {
               id: {
                 type: 'integer',
                 title: 'The ID of the group',
-                description: 'The ID of the group as used in the CeviDB.',
+                description: 'The ID of the group as used in Cevi.DB.',
               },
               name: {
                 title: 'The name of the group',
-                description: 'The name of the group as used in the CeviDB.',
+                description: 'The name of the group as used in Cevi.DB.',
                 type: 'string',
               },
               role_name: {
@@ -428,7 +428,7 @@ export const UserCollection: CollectionConfig = {
             required: ['id', 'name', 'role_class', 'role_name'],
           },
           title: 'Groups of the User',
-          description: 'The groups the user is in as extracted from the CeviDB profile.',
+          description: 'The groups the user is in as extracted from the Cevi.DB profile.',
         },
         // the following are random but unique identifiers for the schema
         uri: 'https://conveniat27.ch/hitobito-groups.schema.json',

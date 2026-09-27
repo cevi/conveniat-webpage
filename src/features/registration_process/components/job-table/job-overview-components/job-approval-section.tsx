@@ -6,6 +6,10 @@ import type {
   Candidate,
   RegistrationJob,
 } from '@/features/registration_process/components/job-table/types';
+import {
+  isManualApprovalReason,
+  MANUAL_APPROVAL_REASON,
+} from '@/features/registration_process/manual-approval-reason';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
@@ -85,11 +89,11 @@ export const JobApprovalSection: React.FC<JobApprovalSectionProperties> = ({
       </div>
       <div className="p-6">
         <div className="mb-6 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          {job.blockedReason === 'Manuelle Freigabe in Hitobito ausstehend durch die Gruppe' &&
+          {isManualApprovalReason(job.blockedReason) &&
           typeof ensureGroupOutput?.approvalGroupUrl === 'string' &&
           ensureGroupOutput.approvalGroupUrl.length > 0 ? (
             <>
-              Manuelle Freigabe in Hitobito ausstehend durch die Gruppe:{' '}
+              {MANUAL_APPROVAL_REASON}:{' '}
               <a
                 href={`${environmentVariables.NEXT_PUBLIC_HITOBITO_API_URL ?? ''}${ensureGroupOutput.approvalGroupUrl}`}
                 target="_blank"

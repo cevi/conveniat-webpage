@@ -88,7 +88,7 @@ export const seedPermissionAdminsOnly = async (payload: Payload): Promise<Permis
       permissions: [
         {
           group_id: 541,
-          note: 'CeviDB Group ID',
+          note: 'Cevi.DB Group ID',
         },
       ],
     },
