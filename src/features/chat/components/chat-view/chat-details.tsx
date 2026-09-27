@@ -18,7 +18,7 @@ import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
-import { matchesContactSearch } from '@/features/chat/utils/contact-search';
+import { describeContactHof, matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -53,6 +53,14 @@ export const ChatDetails: React.FC = () => {
         !participantIds.has(contact.userId) && matchesContactSearch(contact, searchQuery),
     );
   }, [allContacts, chatDetails, searchQuery]);
+
+  // The participants come without their Hof; the contacts, already loaded for adding people,
+  // carry it. Your own row stays without one, the contacts leave you out.
+  const hofLineByUserId = useMemo(
+    () =>
+      new Map((allContacts ?? []).map((contact) => [contact.userId, describeContactHof(contact)])),
+    [allContacts],
+  );
 
   if (isLoading || chatDetails === undefined) {
     return <ChatDetailsPageSkeleton />;
@@ -120,7 +128,10 @@ export const ChatDetails: React.FC = () => {
           {/* --- Participants Section --- */}
           {!isAnnouncement && (
             <ParticipantsList
-              participants={chatDetails.participants}
+              participants={chatDetails.participants.map((participant) => ({
+                ...participant,
+                hofLine: hofLineByUserId.get(participant.id) ?? '',
+              }))}
               currentUser={currentUser ?? ''}
               isGroupChat={isGroupChat}
               isManaging={isManagingParticipants}
