@@ -112,7 +112,7 @@ describe('resolveLoginBaseline', () => {
   const columns = [
     { key: 'admin', groupIds: [541] },
     { key: 'web', groupIds: [105] },
-    { key: 'billing', groupIds: [900] },
+    { key: 'billing', groupIds: [900], isAddOnGroup: true },
   ];
 
   it('leaves a column that is a login group on its own', () => {
@@ -126,11 +126,23 @@ describe('resolveLoginBaseline', () => {
     });
   });
 
+  it('never lends a login to a role outside the login groups', () => {
+    const material = { key: 'material', groupIds: [108] };
+    const resolved = resolveLoginBaseline([...columns, material], [541, 105]);
+    expect(resolved[3]).toEqual({
+      ...material,
+      isAddOn: false,
+      baselineGroupIds: [],
+      borrowedFrom: undefined,
+    });
+  });
+
   it('gives an add-on column the login groups that are no column of their own', () => {
     const resolved = resolveLoginBaseline(columns, [541, 105, 700]);
     expect(resolved[2]).toEqual({
       key: 'billing',
       groupIds: [900],
+      isAddOnGroup: true,
       isAddOn: true,
       baselineGroupIds: [700],
       borrowedFrom: undefined,
@@ -142,6 +154,7 @@ describe('resolveLoginBaseline', () => {
     expect(resolved[2]).toEqual({
       key: 'billing',
       groupIds: [900],
+      isAddOnGroup: true,
       isAddOn: true,
       baselineGroupIds: [105],
       borrowedFrom: { key: 'web', groupIds: [105] },

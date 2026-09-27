@@ -1,4 +1,7 @@
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedDefaultValue } from '@/features/payload-cms/payload-cms/utils/localized-default-value';
@@ -40,6 +43,7 @@ export const SeoGlobal: GlobalConfig = {
 
   admin: {
     group: AdminPanelDashboardGroups.WebpageContent.label,
+    hidden: shouldHideInAdminPanel,
     description: {
       en: 'Settings for the search engine optimization',
       de: 'Einstellungen für die Suchmaschinenoptimierung',
