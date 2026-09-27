@@ -1,5 +1,5 @@
 /** One line of a stored material order. */
-export interface OrderLine {
+interface OrderLine {
   itemId: string;
   name: string;
   quantity: number;

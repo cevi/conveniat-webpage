@@ -13,7 +13,7 @@ import { SubmissionCard } from '@/features/hof-dashboard/components/submission-c
 import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
 import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
-import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
+import { formatDate, formatTimeLeft, translate } from '@/features/hof-dashboard/texts';
 import {
   daysUntil,
   type SubmissionProgress,
@@ -33,7 +33,7 @@ const StadtlebenSection: React.FC<{
       {stadtleben.deadline !== undefined && (
         <span className="text-sm text-gray-600">
           {translate('dueOn', locale, { date: formatDate(stadtleben.deadline, locale) })} ·{' '}
-          {formatCountdown(daysUntil(stadtleben.deadline, new Date()), locale)}
+          {formatTimeLeft(daysUntil(stadtleben.deadline, new Date()), locale)}
         </span>
       )}
     </div>

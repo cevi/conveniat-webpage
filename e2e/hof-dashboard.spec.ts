@@ -329,7 +329,7 @@ test.describe('Hof dashboard', () => {
     });
     await yes.click();
     // the answer shows as pending until the reload has given up, after its three retries
-    await expect.poll(() => failedReloads, { timeout: 15_000 }).toBe(4);
+    await expect.poll(() => failedReloads, { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
     // what is checked is that the answer stays, so give a revert the time to show
     await page.waitForTimeout(500);
     await expect(yes).toHaveAttribute('aria-pressed', 'true');

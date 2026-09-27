@@ -1,12 +1,12 @@
 'use client';
 
+import { SAFETY_RISK_LABELS } from '@/features/hof-dashboard/constants';
 import type { StaticTranslationString } from '@/types/types';
 import { Pill, useTranslation } from '@payloadcms/ui';
 import type React from 'react';
 
 const LABELS: Record<'yes' | 'no' | 'open', StaticTranslationString> = {
-  yes: { de: 'Ja', en: 'Yes', fr: 'Oui' },
-  no: { de: 'Nein', en: 'No', fr: 'Non' },
+  ...SAFETY_RISK_LABELS,
   open: { de: 'Offen', en: 'Open', fr: 'Ouvert' },
 };
 

@@ -1,5 +1,5 @@
 import type { HofDashboardDeadline } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
+import { formatDate, formatTimeLeft, translate } from '@/features/hof-dashboard/texts';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -33,9 +33,7 @@ export const DeadlineList: React.FC<{
               <span className={cn('block', passed ? 'text-gray-500' : 'text-gray-900')}>
                 {deadline.title}
               </span>
-              <span className="text-xs text-gray-600">
-                {passed ? translate('deadlinePassed', locale) : formatCountdown(daysLeft, locale)}
-              </span>
+              <span className="text-xs text-gray-600">{formatTimeLeft(daysLeft, locale)}</span>
             </span>
           </li>
         );

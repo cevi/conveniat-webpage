@@ -19,16 +19,20 @@ import {
 import { DocumentsView } from '@/features/hof-dashboard/components/documents-view';
 import { MaterialOrderForm } from '@/features/hof-dashboard/components/material-order-form';
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
-import type { HofDashboardArea, HofSubmissionType } from '@/features/hof-dashboard/constants';
+import {
+  HOF_DASHBOARD_AREA_LABELS,
+  type HofDashboardArea,
+  type HofSubmissionType,
+} from '@/features/hof-dashboard/constants';
 import { useScrollToSubmission } from '@/features/hof-dashboard/hooks/use-scroll-to-submission';
 import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
-import { translate, type TextKey } from '@/features/hof-dashboard/texts';
+import { text, translate } from '@/features/hof-dashboard/texts';
 import {
   getSubmissionProgress,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
 import { signIn, useSession } from 'next-auth/react';
@@ -38,12 +42,12 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react';
 
 type Tab = 'overview' | HofDashboardArea | 'orders' | 'documents';
 
-const TABS: { id: Tab; label: TextKey }[] = [
-  { id: 'overview', label: 'tabOverview' },
-  { id: 'infrastructure', label: 'tabInfrastructure' },
-  { id: 'program', label: 'tabProgram' },
-  { id: 'orders', label: 'tabOrders' },
-  { id: 'documents', label: 'tabDocuments' },
+const TABS: { id: Tab; label: StaticTranslationString }[] = [
+  { id: 'overview', label: text.tabOverview },
+  { id: 'infrastructure', label: HOF_DASHBOARD_AREA_LABELS.infrastructure },
+  { id: 'program', label: HOF_DASHBOARD_AREA_LABELS.program },
+  { id: 'orders', label: text.tabOrders },
+  { id: 'documents', label: text.tabDocuments },
 ];
 
 const LoadingState: React.FC<{ locale: Locale }> = ({ locale }) => (
@@ -167,7 +171,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
         className="space-y-6"
       >
         <DashboardTabList
-          labels={TABS.map(({ label }) => translate(label, locale))}
+          labels={TABS.map(({ label }) => label[locale])}
           label={translate('tabs', locale)}
         />
         {/* kept mounted, so what was typed into an order survives a look at another tab */}

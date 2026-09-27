@@ -113,7 +113,7 @@ const paragraph = (text: string): NonNullable<Form['confirmationMessage']> => ({
   },
 });
 
-/** A short stand registration that asks for the Hof, as the real one should after this change. */
+/** A short stand registration that asks for the Hof, like the real Stadtleben form once it has a Hof selection. */
 const stadtlebenForm = {
   title: 'Standanmeldung fürs Stadtleben',
   confirmationType: 'message',

@@ -3,8 +3,8 @@ import { getHofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-
 import {
   completeHofUpload,
   createHofUploadUrl,
-  setHofSafetyRisk,
   updateHofMaterialOrder,
+  updateHofSafetyRisk,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 import {
   HOF_FILE_KINDS,
@@ -22,7 +22,7 @@ const hofIdInput = z.object({ hofId: z.string().min(1).max(64) });
 const submissionTypeSchema = z.enum(HOF_SUBMISSION_TYPES);
 
 /**
- * The Hof dashboard: every procedure but the Hof list checks that the user may open the Hof
+ * The Hof dashboard: every procedure but the two Hof lists checks that the user may open the Hof
  * it names before it reads or writes anything of it.
  */
 export const hofDashboardRouter = createTRPCRouter({
@@ -74,7 +74,7 @@ export const hofDashboardRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const hof = await ctx.assertHofAccess(input.hofId);
-      await setHofSafetyRisk(hof, input.submissionType, input.elevatedSafetyRisk);
+      await updateHofSafetyRisk(hof, input.submissionType, input.elevatedSafetyRisk);
     }),
 
   updateMaterialOrder: hofDashboardProcedure

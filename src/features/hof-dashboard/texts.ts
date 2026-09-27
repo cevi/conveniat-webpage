@@ -29,8 +29,6 @@ export const text = {
 
   tabs: { de: 'Bereiche', en: 'Sections', fr: 'Rubriques' },
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
-  tabInfrastructure: { de: 'Infrastruktur', en: 'Infrastructure', fr: 'Infrastructure' },
-  tabProgram: { de: 'Programm', en: 'Programme', fr: 'Programme' },
   tabOrders: { de: 'Material', en: 'Material', fr: 'Matériel' },
   tabDocuments: { de: 'Dokumente', en: 'Documents', fr: 'Documents' },
 
@@ -138,8 +136,6 @@ export const text = {
     en: 'Elevated safety risk?',
     fr: 'Risque de sécurité accru ?',
   },
-  yes: { de: 'Ja', en: 'Yes', fr: 'Oui' },
-  no: { de: 'Nein', en: 'No', fr: 'Non' },
   safetyCriteria: {
     de: 'Kriterien für erhöhtes Sicherheitsrisiko',
     en: 'Criteria for an elevated safety risk',
@@ -297,11 +293,11 @@ export const translate = (
     text[key][locale],
   );
 
-const DATE_LOCALES: Record<Locale, string> = { de: 'de-CH', en: 'en-GB', fr: 'fr-CH' };
+const INTL_LOCALES: Record<Locale, string> = { de: 'de-CH', en: 'en-GB', fr: 'fr-CH' };
 
 /** A day as the camp writes it, e.g. 31.01.2027. */
 export const formatDate = (value: string, locale: Locale): string =>
-  new Intl.DateTimeFormat(DATE_LOCALES[locale], {
+  new Intl.DateTimeFormat(INTL_LOCALES[locale], {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -317,16 +313,23 @@ export const formatCountdown = (daysLeft: number, locale: Locale): string => {
   return translate('inDays', locale, { n: daysLeft });
 };
 
+/**
+ * How much time is left to act before a deadline, in words; once it has passed, only that it
+ * has. Unlike a submission that is overdue, a passed deadline asks nothing of the reader.
+ */
+export const formatTimeLeft = (daysLeft: number, locale: Locale): string =>
+  daysLeft < 0 ? translate('deadlinePassed', locale) : formatCountdown(daysLeft, locale);
+
 /** A number as the reader writes it, e.g. 10'000 in Swiss German. */
 export const formatNumber = (value: number, locale: Locale): string =>
-  new Intl.NumberFormat(DATE_LOCALES[locale]).format(value);
+  new Intl.NumberFormat(INTL_LOCALES[locale]).format(value);
 
 /** A file size in the unit people read it in. */
 export const formatFileSize = (bytes: number, locale: Locale): string => {
   const megabytes = bytes / (1024 * 1024);
   // the unit in the reader's words: Mo and ko in French
   const format = (value: number, unit: 'megabyte' | 'kilobyte'): string =>
-    new Intl.NumberFormat(DATE_LOCALES[locale], {
+    new Intl.NumberFormat(INTL_LOCALES[locale], {
       style: 'unit',
       unit,
       unitDisplay: 'short',

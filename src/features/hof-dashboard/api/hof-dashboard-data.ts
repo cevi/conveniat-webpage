@@ -75,7 +75,7 @@ export interface HofDashboardDocument {
   area: HofDashboardArea | undefined;
 }
 
-export interface HofDashboardStadtlebenEntry {
+interface HofDashboardStadtlebenEntry {
   id: string;
   title: string | undefined;
   submittedAt: string;

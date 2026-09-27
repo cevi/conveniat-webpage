@@ -145,7 +145,8 @@ export const useHofUpload = (
       if (!state.cancelled) toast.success(translate('uploadDone', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     } catch (error) {
-      if (error instanceof UploadCancelled) return;
+      // called off, or its Hof left meanwhile: its failure is not the one shown now
+      if (error instanceof UploadCancelled || state.cancelled) return;
       console.error('Hof dashboard upload failed', error);
       // its ending passed here, so a file whose content the server refuses is damaged
       if (error instanceof TRPCClientError && error.message === 'unsupported_file_type') {

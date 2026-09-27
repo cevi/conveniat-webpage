@@ -5,6 +5,7 @@
 import { useHofUpload } from '@/features/hof-dashboard/hooks/use-hof-upload';
 import { trpc } from '@/trpc/client';
 import { act, renderHook } from '@testing-library/react';
+import { toast } from 'sonner';
 
 jest.mock('@/trpc/client', () => ({
   trpc: {
@@ -107,5 +108,24 @@ describe('useHofUpload', () => {
       await first;
     });
     expect(result.current.uploads['hofBuildings:plan']).toBeDefined();
+  });
+
+  it('says nothing of a failure once the user has left the Hof', async () => {
+    createUploadUrl.mockResolvedValue({ url: 'https://s3/put', key: 'k', contentType: 'x' });
+    const filing = Promise.withResolvers<unknown>();
+    completeUpload.mockReturnValue(filing.promise);
+    const { result, unmount } = renderHook(() => useHofUpload('hof-nord', 'de'));
+
+    let running: Promise<void> = Promise.resolve();
+    act(() => {
+      running = result.current.upload(pdf, 'hofBuildings', 'plan');
+    });
+    await act(() => new Promise((done) => setTimeout(done, 0)));
+    expect(completeUpload).toHaveBeenCalled();
+    unmount();
+
+    filing.reject(new Error('Upload failed'));
+    await running;
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

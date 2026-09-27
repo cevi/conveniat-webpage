@@ -203,7 +203,7 @@ export const completeHofUpload = async ({
 };
 
 /** Records the Hof's answer to "elevated safety risk?" for one kind of plan. */
-export const setHofSafetyRisk = async (
+export const updateHofSafetyRisk = async (
   hof: HofName,
   submissionType: HofSubmissionType,
   elevatedSafetyRisk: 'yes' | 'no',

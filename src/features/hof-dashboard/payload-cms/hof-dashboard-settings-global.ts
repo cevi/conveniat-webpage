@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
 import { areaOptions, submissionTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -206,21 +207,13 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
             {
               name: 'infrastructureOrder',
               type: 'group',
-              label: {
-                de: 'Materialbestellung Hof-Infrastruktur',
-                en: 'Material order Hof infrastructure',
-                fr: "Commande de matériel pour l'infrastructure du Hof",
-              },
+              label: HOF_ORDER_TYPE_LABELS.infrastructure,
               fields: materialListFields(),
             },
             {
               name: 'stadtlebenOrder',
               type: 'group',
-              label: {
-                de: 'Materialbestellung Stadtleben',
-                en: 'Material order Stadtleben',
-                fr: 'Commande de matériel Stadtleben',
-              },
+              label: HOF_ORDER_TYPE_LABELS.stadtleben,
               admin: {
                 description: {
                   en: 'The Höfe are also asked whether they need a power connection.',

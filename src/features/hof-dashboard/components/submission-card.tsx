@@ -23,6 +23,8 @@ import {
   HOF_FILE_MAX_BYTES,
   HOF_SUBMISSION_TYPE_LABELS,
   type HofFileKind,
+  SAFETY_RISK_ANSWERS,
+  SAFETY_RISK_LABELS,
   uploadKey,
 } from '@/features/hof-dashboard/constants';
 import type { UploadInProgress } from '@/features/hof-dashboard/hooks/use-hof-upload';
@@ -170,7 +172,7 @@ const SafetyRiskChoice: React.FC<{
     role="group"
     aria-labelledby={labelledBy}
   >
-    {(['yes', 'no'] as const).map((option) => (
+    {SAFETY_RISK_ANSWERS.map((option) => (
       <button
         key={option}
         type="button"
@@ -181,7 +183,7 @@ const SafetyRiskChoice: React.FC<{
           value === option ? 'bg-conveniat-green text-white' : 'text-gray-700 hover:bg-gray-50',
         )}
       >
-        {translate(option, locale)}
+        {SAFETY_RISK_LABELS[option][locale]}
       </button>
     ))}
   </div>

@@ -25,9 +25,12 @@ const dayStart = (date: Date): number => {
 export const daysUntil = (deadline: string, now: Date): number =>
   Math.round((dayStart(new Date(deadline)) - dayStart(now)) / DAY_MS);
 
+const soonestFirst = (deadlines: readonly string[]): string[] =>
+  deadlines.toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
 /** The deadline a submission works towards: the next one still ahead, else the last one. */
 export const nextDeadline = (deadlines: readonly string[], now: Date): string | undefined => {
-  const sorted = deadlines.toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const sorted = soonestFirst(deadlines);
   return sorted.find((deadline) => daysUntil(deadline, now) >= 0) ?? sorted.at(-1);
 };
 
@@ -76,12 +79,10 @@ export const getSubmissionProgress = (
   now: Date,
 ): SubmissionProgress => {
   const gap = findGap(input);
+  const earliest = soonestFirst(input.deadlines)[0];
+  const missedEarliest = earliest !== undefined && daysUntil(earliest, now) < 0;
   const firstMissed =
-    gap === undefined || gap === 'revision'
-      ? undefined
-      : input.deadlines
-          .filter((candidate) => daysUntil(candidate, now) < 0)
-          .toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
+    gap === undefined || gap === 'revision' || !missedEarliest ? undefined : earliest;
   const deadline = firstMissed ?? nextDeadline(input.deadlines, now);
   const daysLeft = deadline === undefined ? undefined : daysUntil(deadline, now);
 

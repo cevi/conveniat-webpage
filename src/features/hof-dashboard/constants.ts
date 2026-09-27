@@ -83,6 +83,17 @@ export const HOF_FILE_KIND_LABELS: Record<HofFileKind, StaticTranslationString> 
   safetyConcept: { de: 'Sicherheitskonzept', en: 'Safety concept', fr: 'Concept de sécurité' },
 };
 
+/** The Hof's answers to "elevated safety risk?". */
+export const SAFETY_RISK_ANSWERS = ['yes', 'no'] as const;
+
+export const SAFETY_RISK_LABELS: Record<
+  (typeof SAFETY_RISK_ANSWERS)[number],
+  StaticTranslationString
+> = {
+  yes: { de: 'Ja', en: 'Yes', fr: 'Oui' },
+  no: { de: 'Nein', en: 'No', fr: 'Non' },
+};
+
 /** The two material orders a Hof places. */
 export const HOF_ORDER_TYPES = ['infrastructure', 'stadtleben'] as const;
 
@@ -123,7 +134,7 @@ export const HOF_FILE_TYPES = {
   zip: 'application/zip',
 } as const;
 
-export type HofFileExtension = keyof typeof HOF_FILE_TYPES;
+type HofFileExtension = keyof typeof HOF_FILE_TYPES;
 
 export const HOF_FILE_EXTENSIONS = Object.keys(HOF_FILE_TYPES) as HofFileExtension[];
 

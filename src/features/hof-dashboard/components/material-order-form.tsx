@@ -9,9 +9,9 @@ import {
 import { HOF_ORDER_MAX_QUANTITY, HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import {
-  formatCountdown,
   formatDate,
   formatNumber,
+  formatTimeLeft,
   translate,
 } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
@@ -66,7 +66,7 @@ export const MaterialOrderForm: React.FC<{
   locale: Locale;
 }> = ({ hofId, order, isReviewer, locale }) => {
   const utils = trpc.useUtils();
-  // unique per form, since the orders of several Höfe can be on the page
+  // unique per form, since both orders of a Hof are on the page
   const id = useId();
   const [quantities, setQuantities] = useState(() => initialQuantities(order));
   const [powerConnection, setPowerConnection] = useState(order.powerConnection);
@@ -137,9 +137,7 @@ export const MaterialOrderForm: React.FC<{
           <p className="text-sm text-gray-600">
             {translate('orderableUntil', locale, { date: formatDate(order.deadline, locale) })}
             {' · '}
-            {daysLeft >= 0
-              ? formatCountdown(daysLeft, locale)
-              : translate('deadlinePassed', locale)}
+            {formatTimeLeft(daysLeft, locale)}
           </p>
         )}
       </div>
