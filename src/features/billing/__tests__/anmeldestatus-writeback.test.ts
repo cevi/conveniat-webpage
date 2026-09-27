@@ -4,8 +4,8 @@ import {
   needsAnmeldestatusWriteBack,
   writeBackAnmeldestatus,
 } from '@/features/billing/services/anmeldestatus-writeback';
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import type { HitobitoClient } from '@/lib/hitobito/client';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 
 /** The participation edit form, with the Anmeldestatus option given by the test. */
 const editForm = (selected: string): string => `

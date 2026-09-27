@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method, unicorn/no-null */
-jest.mock('@/features/registration_process/hitobito-api', () => ({
+jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
 jest.mock('@/features/billing/adapters/hitobito-service.adapter', () => ({}));
@@ -21,7 +21,7 @@ import type {
 } from '@/features/billing/services/job-progress-reporter';
 import { syncParticipantsUseCase } from '@/features/billing/services/sync-service';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 
 /**
  * A reporter that records what the use case published, so a test can assert on the frames

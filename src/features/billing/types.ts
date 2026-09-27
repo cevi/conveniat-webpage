@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import type {
   EventParticipationResourceSchema,
   EventParticipationWithPersonSchema,
-} from '@/features/registration_process/hitobito-api/event-participation-schemas';
+} from '@/lib/hitobito/event-participation-schemas';
 
 export type EventParticipationResource = z.infer<typeof EventParticipationResourceSchema>;
 export type EventParticipationWithPerson = z.infer<typeof EventParticipationWithPersonSchema>;

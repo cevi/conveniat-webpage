@@ -7,7 +7,7 @@ import type { JobProgressReporter } from '@/features/billing/services/job-progre
 import type { SendSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { BILL_PDF_BUCKET_NAME } from '@/lib/s3';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { randomUUID } from 'node:crypto';

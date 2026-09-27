@@ -1,8 +1,8 @@
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import type { Hitobito } from '@/features/registration_process/hitobito-api/index';
-import type { ResolveUserInput } from '@/features/registration_process/hitobito-api/schemas';
-import type { MatchCandidateResult } from '@/features/registration_process/hitobito-api/services/matcher.service';
-import type { Logger, PersonResource } from '@/features/registration_process/hitobito-api/types';
+import { HITOBITO_CONFIG } from '@/lib/hitobito';
+import type { Hitobito } from '@/lib/hitobito/index';
+import type { ResolveUserInput } from '@/lib/hitobito/schemas';
+import type { MatchCandidateResult } from '@/lib/hitobito/services/matcher.service';
+import type { Logger, PersonResource } from '@/lib/hitobito/types';
 
 export interface StrategyContext {
   logger: Logger;

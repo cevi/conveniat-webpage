@@ -1,9 +1,5 @@
-import {
-  EXTERNAL_ROLE_TYPE,
-  HITOBITO_CONFIG,
-  getHitobito,
-} from '@/features/registration_process/hitobito-api';
-import { ApprovalRequiredError } from '@/features/registration_process/hitobito-api/errors';
+import { EXTERNAL_ROLE_TYPE, HITOBITO_CONFIG, getHitobito } from '@/lib/hitobito';
+import { ApprovalRequiredError } from '@/lib/hitobito/errors';
 import type { TaskConfig } from 'payload';
 
 export const ensureGroupMembershipStep: TaskConfig<{

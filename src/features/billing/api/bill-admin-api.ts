@@ -12,7 +12,7 @@ import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
 import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { randomUUID } from 'node:crypto';
 import type { PayloadHandler } from 'payload';
 import { z } from 'zod';

@@ -1,5 +1,5 @@
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import type { Logger, RoleResource } from '@/features/registration_process/hitobito-api/types';
+import type { HitobitoClient } from '@/lib/hitobito/client';
+import type { Logger, RoleResource } from '@/lib/hitobito/types';
 
 export interface GetPersonRolesParameters {
   personId: string;
@@ -137,16 +137,14 @@ export class GroupService {
         throw new Error(`Frontend returned ${response.status} ${response.statusText}.${details}`);
       }
 
-      const { extractPendingApprovalGroup } =
-        await import('@/features/registration_process/hitobito-api/html-parser');
+      const { extractPendingApprovalGroup } = await import('@/lib/hitobito/html-parser');
       const pendingApproval = extractPendingApprovalGroup(body);
 
       if (pendingApproval !== undefined) {
         this.logger?.info(
           `Detected pending manual approval for user ${personId} in group ${pendingApproval.groupName}`,
         );
-        const { ApprovalRequiredError } =
-          await import('@/features/registration_process/hitobito-api/errors');
+        const { ApprovalRequiredError } = await import('@/lib/hitobito/errors');
         throw new ApprovalRequiredError(
           `Manual approval required.`,
           pendingApproval.groupName,

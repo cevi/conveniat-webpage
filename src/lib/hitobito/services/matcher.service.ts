@@ -1,8 +1,8 @@
-import { EXTERNAL_ROLE_TYPE, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import type { Hitobito } from '@/features/registration_process/hitobito-api/index';
-import type { Logger, PersonAttributes } from '@/features/registration_process/hitobito-api/types';
-import type { MismatchDetail } from '@/features/registration_process/hitobito-api/utils';
-import { poll, verifyUserData } from '@/features/registration_process/hitobito-api/utils';
+import { EXTERNAL_ROLE_TYPE, HITOBITO_CONFIG } from '@/lib/hitobito';
+import type { Hitobito } from '@/lib/hitobito/index';
+import type { Logger, PersonAttributes } from '@/lib/hitobito/types';
+import type { MismatchDetail } from '@/lib/hitobito/utils';
+import { poll, verifyUserData } from '@/lib/hitobito/utils';
 
 export interface MatchCandidateParameters {
   candidate: { id: string; label: string };

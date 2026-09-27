@@ -1,7 +1,4 @@
-import type {
-  ResolveUserInput,
-  ResolveUserOutput,
-} from '@/features/registration_process/hitobito-api/schemas';
+import type { ResolveUserInput, ResolveUserOutput } from '@/lib/hitobito/schemas';
 
 export interface RegistrationWorkflowTasks {
   resolveUser: (taskId: string, input: ResolveUserInput) => Promise<ResolveUserOutput>;

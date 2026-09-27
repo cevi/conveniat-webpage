@@ -2,7 +2,7 @@ import type {
   PersonAttributesSchema,
   PersonResourceSchema,
   SearchCandidateSchema,
-} from '@/features/registration_process/hitobito-api/schemas';
+} from '@/lib/hitobito/schemas';
 import type { z } from 'zod';
 
 export interface Logger {

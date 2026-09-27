@@ -21,8 +21,8 @@ import { isRoleAllowed, validateParticipant } from '@/features/billing/services/
 import type { SyncSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { HITOBITO_CONFIG } from '@/lib/hitobito';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 import { traceFunction, withSpan } from '@/utils/tracing-helpers';
 import { randomUUID } from 'node:crypto';
 import type { Payload } from 'payload';

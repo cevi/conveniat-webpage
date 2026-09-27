@@ -1,6 +1,6 @@
-import { getHitobito } from '@/features/registration_process/hitobito-api';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api/config';
-import { poll } from '@/features/registration_process/hitobito-api/utils';
+import { getHitobito } from '@/lib/hitobito';
+import { HITOBITO_CONFIG } from '@/lib/hitobito/config';
+import { poll } from '@/lib/hitobito/utils';
 import type { TaskConfig } from 'payload';
 
 export const ensureEventMembershipStep: TaskConfig<{

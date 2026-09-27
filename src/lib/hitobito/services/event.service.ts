@@ -1,12 +1,12 @@
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import type { HitobitoClient } from '@/lib/hitobito/client';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 import {
   EventParticipationListResponseSchema,
   type EventParticipationWithPersonSchema,
   type IncludedPersonSchema,
-} from '@/features/registration_process/hitobito-api/event-participation-schemas';
-import { parseParticipationAnswerFields } from '@/features/registration_process/hitobito-api/html-parser';
-import type { Logger, RoleResource } from '@/features/registration_process/hitobito-api/types';
+} from '@/lib/hitobito/event-participation-schemas';
+import { parseParticipationAnswerFields } from '@/lib/hitobito/html-parser';
+import type { Logger, RoleResource } from '@/lib/hitobito/types';
 import { traceMethod, withRetries, withSpan } from '@/utils/tracing-helpers';
 import type { z } from 'zod';
 

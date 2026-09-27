@@ -1,14 +1,11 @@
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import {
-  PersonResourceSchema,
-  SearchResponseSchema,
-} from '@/features/registration_process/hitobito-api/schemas';
+import type { HitobitoClient } from '@/lib/hitobito/client';
+import { PersonResourceSchema, SearchResponseSchema } from '@/lib/hitobito/schemas';
 import type {
   Logger,
   PersonAttributes,
   PersonResource,
   SearchCandidate,
-} from '@/features/registration_process/hitobito-api/types';
+} from '@/lib/hitobito/types';
 import { z } from 'zod';
 
 export interface GetPersonDetailsParameters {

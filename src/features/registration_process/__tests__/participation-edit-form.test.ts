@@ -1,7 +1,4 @@
-import {
-  extractFormFields,
-  parseParticipationAnswerFields,
-} from '@/features/registration_process/hitobito-api/html-parser';
+import { extractFormFields, parseParticipationAnswerFields } from '@/lib/hitobito/html-parser';
 
 /**
  * The participation edit page as today's Cevi.DB renders it: nested attributes, the

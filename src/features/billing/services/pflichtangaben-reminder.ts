@@ -5,7 +5,7 @@ import { isWeeklySlotDue, parseRecipients } from '@/features/billing/services/se
 import { BillingTaskSlug } from '@/features/billing/types';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
-import { HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
+import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { randomUUID } from 'node:crypto';
 import type { Payload } from 'payload';
 
