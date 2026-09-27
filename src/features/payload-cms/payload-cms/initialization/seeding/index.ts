@@ -27,7 +27,10 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
-import { seedHoefe } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
+import {
+  seedHoefe,
+  seedRandomUserRegistrations,
+} from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
 import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
 import { seedQuartiere } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-quartiere';
@@ -515,6 +518,9 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   // right after the Höfe it books on, so a later failure in the CMS content does not leave
   // the depot empty
   await seedMaterial(payload, userIds);
+
+  // after the Höfe, so the registration hooks find the Höfe of the random users
+  await seedRandomUserRegistrations(payload, userIds);
 
   console.log('Seeding: Creating the Hof dashboard...');
   await seedHofDashboard(payload, publicPermission);

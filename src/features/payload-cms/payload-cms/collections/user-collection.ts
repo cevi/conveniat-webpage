@@ -6,6 +6,10 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
+import {
+  findRegisteredHofIds,
+  toHofIds,
+} from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { User } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
@@ -29,6 +33,8 @@ const syncUserToPostgres: NonNullable<
   const description = doc.description as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const presentAtCamp = (doc.presentAtCamp as boolean | undefined | null) ?? false;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const hofIds = toHofIds(doc.hoefe);
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -55,6 +61,7 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        hofIds,
       },
       create: {
         uuid: uuid,
@@ -62,6 +69,7 @@ const syncUserToPostgres: NonNullable<
         // eslint-disable-next-line unicorn/no-null
         description: description ?? null,
         hidden: hidden ?? false,
+        hofIds,
         presentAtCamp: presentAtCamp,
         // set date to 1970-01-01 to avoid null values
         lastSeen: new Date('1970-01-01T00:00:00Z'),
@@ -113,6 +121,21 @@ const syncUserToPostgres: NonNullable<
   }
 };
 
+/**
+ * Looks up the Höfe of a person the moment the user learns their Cevi.DB id, on the first
+ * login or when a manually created user is linked. Later changes come from the registrations
+ * and the Höfe, whose hooks refresh the users they touch.
+ */
+const fillHoefeOfNewPerson: NonNullable<
+  NonNullable<CollectionConfig['hooks']>['beforeChange']
+>[number] = async ({ data, originalDoc, req }): Promise<Partial<User>> => {
+  const next = data as Partial<User>;
+  const ceviId = next.cevi_db_uuid;
+  if (typeof ceviId !== 'number') return next;
+  if ((originalDoc as Partial<User> | undefined)?.cevi_db_uuid === ceviId) return next;
+  return { ...next, hoefe: await findRegisteredHofIds(req.payload, ceviId, req) };
+};
+
 export const UserCollection: CollectionConfig = {
   slug: 'users',
   trash: true,
@@ -130,6 +153,7 @@ export const UserCollection: CollectionConfig = {
   },
 
   hooks: {
+    beforeChange: [fillHoefeOfNewPerson],
     afterChange: [syncUserToPostgres],
   },
 
@@ -384,29 +408,21 @@ export const UserCollection: CollectionConfig = {
       },
     },
     {
-      name: 'hof',
-      label: 'Hof of the user',
-      type: 'number',
-      required: false,
+      name: 'hoefe',
+      type: 'relationship',
+      relationTo: 'hoefe',
+      hasMany: true,
+      label: { en: 'Höfe', de: 'Höfe', fr: 'Hofs' },
       access: {
         update: () => false,
       },
       admin: {
         readOnly: true,
-        description: 'The Hof of the user.',
-      },
-    },
-    {
-      name: 'quartier',
-      label: 'Quartier of the user',
-      type: 'number',
-      required: false,
-      access: {
-        update: () => false,
-      },
-      admin: {
-        readOnly: true,
-        description: 'The Quartier of the user.',
+        description: {
+          en: 'The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.',
+          de: 'Die Höfe, an denen diese Person angemeldet ist, aus den von der Cevi.DB abgeglichenen Anmeldungen. Wird automatisch nachgeführt; das Quartier ergibt sich aus dem Hof.',
+          fr: "Les Hofs auxquels cette personne est inscrite, d'après les inscriptions synchronisées depuis Cevi.DB. Mis à jour automatiquement ; le quartier découle du Hof.",
+        },
       },
     },
     {

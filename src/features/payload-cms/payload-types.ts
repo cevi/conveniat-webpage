@@ -591,13 +591,9 @@ export interface User {
   nickname?: string | null;
   groups?: GroupsOfTheUser;
   /**
-   * The Hof of the user.
+   * The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.
    */
-  hof?: number | null;
-  /**
-   * The Quartier of the user.
-   */
-  quartier?: number | null;
+  hoefe?: (string | Hof)[] | null;
   /**
    * An additional description of the user shown in the chat.
    */
@@ -625,66 +621,174 @@ export interface User {
   collection: 'users';
 }
 /**
+ * One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "presence-logs".
+ * via the `definition` "hoefe".
  */
-export interface PresenceLog {
-  id: string;
-  user: string | User;
-  isPresent: boolean;
-  timestamp: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "permissions".
- */
-export interface Permission {
+export interface Hof {
   id: string;
   /**
-   * The name of the permission.
+   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
    */
-  permissionName: string;
+  name: string;
   /**
-   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
+   * The Quartier of the campsite this Hof lies in.
    */
-  permissions?:
+  quartier?: (string | null) | Quartier;
+  /**
+   * Hitobito group ID of this Hof (up to 6 digits)
+   */
+  groupId: string;
+  /**
+   * The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.
+   */
+  events?:
     | {
-        group_id: number;
-        note?: string | null;
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
+        eventId: string;
+        /**
+         * Name of the event in Cevi.DB, refreshed by every sync
+         */
+        eventName: string;
         id?: string | null;
       }[]
     | null;
   /**
-   * These permissions are special and disable group checking for CeviDB groups.
+   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
    */
-  special_permissions?: {
-    public?: boolean | null;
-    logged_in?: boolean | null;
+  addressManagerEmails?: string | null;
+  /**
+   * Written by the subgroup sync button; the Hof dashboard lists them as the responsible people of the Hof.
+   */
+  addressManagers?:
+    | {
+        name?: string | null;
+        email: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   */
+  reminderRecipientsOverride?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The Quartiere of the campsite. Assign a Hof to its Quartier on the Hof.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quartiere".
+ */
+export interface Quartier {
+  id: string;
+  /**
+   * Shown next to the Hof, e.g. "Quartier 3".
+   */
+  name: string;
+  /**
+   * The area of this Quartier, drawn as a polygon on the camp map.
+   */
+  mapAnnotation?: (string | null) | CampMapAnnotation;
+  /**
+   * The Höfe in this Quartier. Change it on the Hof.
+   */
+  hoefe?: {
+    docs?: (string | Hof)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-map-annotations".
+ */
+export interface CampMapAnnotation {
+  id: string;
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
+  annotationType: 'marker' | 'polygon';
+  icon?:
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
+    | null;
+  /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
+   */
+  showLabel?: boolean | null;
+  /**
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
+   */
+  isInteractive?: boolean | null;
+  /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "HeroSectionBlock".
- */
-export interface HeroSectionBlock {
-  badge?: string | null;
-  title: string;
-  description?: string | null;
-  primaryCtaLabel?: string | null;
-  primaryCtaLink?: string | null;
-  secondaryCtaLabel?: string | null;
-  secondaryCtaLink?: string | null;
-  deadlineText?: string | null;
-  image?: (string | null) | Image;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'heroSection';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -755,6 +859,68 @@ export interface Image {
       filename?: string | null;
     };
   };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs".
+ */
+export interface PresenceLog {
+  id: string;
+  user: string | User;
+  isPresent: boolean;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "permissions".
+ */
+export interface Permission {
+  id: string;
+  /**
+   * The name of the permission.
+   */
+  permissionName: string;
+  /**
+   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
+   */
+  permissions?:
+    | {
+        group_id: number;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * These permissions are special and disable group checking for CeviDB groups.
+   */
+  special_permissions?: {
+    public?: boolean | null;
+    logged_in?: boolean | null;
+  };
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock".
+ */
+export interface HeroSectionBlock {
+  badge?: string | null;
+  title: string;
+  description?: string | null;
+  primaryCtaLabel?: string | null;
+  primaryCtaLink?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  deadlineText?: string | null;
+  image?: (string | null) | Image;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroSection';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2168,176 +2334,6 @@ export interface HelperJob {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
-}
-/**
- * One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hoefe".
- */
-export interface Hof {
-  id: string;
-  /**
-   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
-   */
-  name: string;
-  /**
-   * The Quartier of the campsite this Hof lies in.
-   */
-  quartier?: (string | null) | Quartier;
-  /**
-   * Hitobito group ID of this Hof (up to 6 digits)
-   */
-  groupId: string;
-  /**
-   * The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.
-   */
-  events?:
-    | {
-        /**
-         * Hitobito event ID to sync (up to 6 digits)
-         */
-        eventId: string;
-        /**
-         * Name of the event in Cevi.DB, refreshed by every sync
-         */
-        eventName: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
-   */
-  addressManagerEmails?: string | null;
-  /**
-   * Written by the subgroup sync button; the Hof dashboard lists them as the responsible people of the Hof.
-   */
-  addressManagers?:
-    | {
-        name?: string | null;
-        email: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
-   */
-  reminderRecipientsOverride?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * The Quartiere of the campsite. Assign a Hof to its Quartier on the Hof.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "quartiere".
- */
-export interface Quartier {
-  id: string;
-  /**
-   * Shown next to the Hof, e.g. "Quartier 3".
-   */
-  name: string;
-  /**
-   * The area of this Quartier, drawn as a polygon on the camp map.
-   */
-  mapAnnotation?: (string | null) | CampMapAnnotation;
-  /**
-   * The Höfe in this Quartier. Change it on the Hof.
-   */
-  hoefe?: {
-    docs?: (string | Hof)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-map-annotations".
- */
-export interface CampMapAnnotation {
-  id: string;
-  /**
-   * The title of the annotation.
-   */
-  title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
-  annotationType: 'marker' | 'polygon';
-  icon?:
-    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
-    | null;
-  /**
-   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
-   */
-  importance: 'high' | 'medium' | 'low';
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  geometry?: [number, number] | null;
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
-   */
-  showLabel?: boolean | null;
-  /**
-   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
-   */
-  isInteractive?: boolean | null;
-  /**
-   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
-   */
-  hiddenOnDefaultMap?: boolean | null;
-  /**
-   * If checked, users will be able to report issues and start a support chat from this location.
-   */
-  enableSupportChat?: boolean | null;
-  /**
-   * A detailed description of the annotation.
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  openingHours?:
-    | {
-        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
-        /**
-         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
-         */
-        time: string;
-        id?: string | null;
-      }[]
-    | null;
-  images?: (string | Image)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7171,8 +7167,7 @@ export interface UsersSelect<T extends boolean = true> {
   fullName?: T;
   nickname?: T;
   groups?: T;
-  hof?: T;
-  quartier?: T;
+  hoefe?: T;
   description?: T;
   hidden?: T;
   presentAtCamp?: T;

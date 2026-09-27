@@ -13,8 +13,8 @@ const translations = {
   de: {
     title: 'Mitglied hinzufügen',
     searchPlaceholder: 'Nach Name, Ceviname oder E-Mail suchen...',
-    hofLabel: 'Hof (Filter)',
-    quartierLabel: 'Quartier (Filter)',
+    allHoefe: 'Alle Höfe',
+    allQuartiere: 'Alle Quartiere',
     roleLabel: 'Cevi-Rolle (Filter)',
     allRoles: 'Alle Rollen',
     fullAdmin: 'Full Admin',
@@ -36,8 +36,8 @@ const translations = {
   en: {
     title: 'Add Member',
     searchPlaceholder: 'Search by name, nickname, or email...',
-    hofLabel: 'Hof (Filter)',
-    quartierLabel: 'Quartier (Filter)',
+    allHoefe: 'All Höfe',
+    allQuartiere: 'All Quartiere',
     roleLabel: 'Cevi Role (Filter)',
     allRoles: 'All Roles',
     fullAdmin: 'Full Admin',
@@ -69,8 +69,8 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [hof, setHof] = useState<string>('');
-  const [quartier, setQuartier] = useState<string>('');
+  const [hofId, setHofId] = useState<string>('');
+  const [quartierId, setQuartierId] = useState<string>('');
   const [role, setRole] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>();
   const [errorMessage, setErrorMessage] = useState<string>();
@@ -86,15 +86,19 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
     return (): void => clearTimeout(timer);
   }, [search, startTransition]);
 
-  const parsedHof = hof === '' ? undefined : Number.parseInt(hof, 10);
-  const parsedQuartier = quartier === '' ? undefined : Number.parseInt(quartier, 10);
+  const { data: hoefe = [] } = trpc.admin.getHofList.useQuery(undefined, { enabled: isOpen });
+  const quartiere = [
+    ...new Map(
+      hoefe.flatMap((hof) => (hof.quartier === undefined ? [] : [[hof.quartier.id, hof.quartier]])),
+    ).values(),
+  ].toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
 
   // Query users from tRPC
   const { data: users = [], isLoading } = trpc.admin.searchUsers.useQuery(
     {
       search: debouncedSearch === '' ? undefined : debouncedSearch,
-      hof: Number.isNaN(parsedHof) ? undefined : parsedHof,
-      quartier: Number.isNaN(parsedQuartier) ? undefined : parsedQuartier,
+      hofId: hofId === '' ? undefined : hofId,
+      quartierId: quartierId === '' ? undefined : quartierId,
       role: role === '' ? undefined : role,
     },
     {
@@ -178,10 +182,18 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">{item.email}</td>
                 <td className="px-4 py-3 text-center">
-                  {item.hof ?? <span className="text-(--theme-elevation-300)">—</span>}
+                  {item.hoefe.length === 0 ? (
+                    <span className="text-(--theme-elevation-300)">—</span>
+                  ) : (
+                    item.hoefe.join(', ')
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  {item.quartier ?? <span className="text-(--theme-elevation-300)">—</span>}
+                  {item.quartiere.length === 0 ? (
+                    <span className="text-(--theme-elevation-300)">—</span>
+                  ) : (
+                    item.quartiere.join(', ')
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
@@ -246,22 +258,32 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
             />
           </div>
           <div>
-            <input
-              type="number"
-              value={hof}
-              onChange={(event): void => setHof(event.target.value)}
-              placeholder={t.hofLabel}
-              className="w-full rounded border border-(--theme-border-color) bg-(--theme-elevation-50) px-3 py-2 text-sm text-(--theme-elevation-900) placeholder-(--theme-elevation-400) focus:ring-1 focus:ring-(--theme-success-500) focus:outline-none"
-            />
+            <select
+              value={hofId}
+              onChange={(event): void => setHofId(event.target.value)}
+              className="w-full cursor-pointer rounded border border-(--theme-border-color) bg-(--theme-elevation-50) px-3 py-2 text-sm text-(--theme-elevation-900) focus:ring-1 focus:ring-(--theme-success-500) focus:outline-none"
+            >
+              <option value="">{t.allHoefe}</option>
+              {hoefe.map((hof) => (
+                <option key={hof.id} value={hof.id}>
+                  {hof.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
-            <input
-              type="number"
-              value={quartier}
-              onChange={(event): void => setQuartier(event.target.value)}
-              placeholder={t.quartierLabel}
-              className="w-full rounded border border-(--theme-border-color) bg-(--theme-elevation-50) px-3 py-2 text-sm text-(--theme-elevation-900) placeholder-(--theme-elevation-400) focus:ring-1 focus:ring-(--theme-success-500) focus:outline-none"
-            />
+            <select
+              value={quartierId}
+              onChange={(event): void => setQuartierId(event.target.value)}
+              className="w-full cursor-pointer rounded border border-(--theme-border-color) bg-(--theme-elevation-50) px-3 py-2 text-sm text-(--theme-elevation-900) focus:ring-1 focus:ring-(--theme-success-500) focus:outline-none"
+            >
+              <option value="">{t.allQuartiere}</option>
+              {quartiere.map((quartier) => (
+                <option key={quartier.id} value={quartier.id}>
+                  {quartier.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
