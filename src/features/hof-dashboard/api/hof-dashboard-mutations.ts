@@ -294,15 +294,17 @@ export const updateHofSafetyRisk = async (
 export const updateHofMaterialOrder = async ({
   hof,
   orderType,
-  quantities,
+  changes,
   powerConnection,
   userId,
   isReviewer,
 }: {
   hof: HofName;
   orderType: HofOrderType;
-  quantities: { itemId: string; quantity: number }[];
-  powerConnection: boolean;
+  /** Only what the Hof changed; the rest of the order stays as stored. */
+  changes: { itemId: string; quantity: number }[];
+  /** Left out when the Hof did not change it. */
+  powerConnection?: boolean | undefined;
   userId: string;
   isReviewer: boolean;
 }): Promise<void> => {
@@ -332,7 +334,7 @@ export const updateHofMaterialOrder = async ({
     ),
   );
   const existing = await find();
-  const { lines, unknownItemIds } = buildOrderLines(listNames, existing?.items ?? [], quantities);
+  const { lines, unknownItemIds } = buildOrderLines(listNames, existing?.items ?? [], changes);
   if (unknownItemIds.length > 0) {
     // the list changed while the Hof had the form open; a reload shows the new one
     throw new TRPCError({ code: 'CONFLICT', message: 'order_list_changed' });
@@ -340,7 +342,8 @@ export const updateHofMaterialOrder = async ({
 
   const data = {
     items: lines,
-    powerConnection: orderType === 'stadtleben' && powerConnection,
+    powerConnection:
+      orderType === 'stadtleben' && (powerConnection ?? existing?.powerConnection === true),
     lastEditedBy: userId,
   };
   const update = async (id: string): Promise<void> => {

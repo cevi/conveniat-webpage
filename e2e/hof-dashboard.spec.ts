@@ -344,7 +344,8 @@ test.describe('Hof dashboard', () => {
     const quantity = page.getByLabel('Bindestrick');
     await quantity.pressSequentially('2.');
     await expect(quantity).toHaveValue('2');
-    await expect(page.getByText(/Ganze Stückzahlen/)).toHaveClass(/text-amber-800/);
+    // said right below the field, not only under a long list
+    await expect(page.getByRole('status').filter({ hasText: 'Ganze Stückzahlen' })).toBeVisible();
   });
 
   test('keeps a saved order in view when the reload after it fails', async ({ page }) => {
@@ -361,7 +362,7 @@ test.describe('Hof dashboard', () => {
     await quantity.fill('7');
     await page.getByRole('button', { name: 'Speichern' }).first().click();
 
-    await expect(page.getByText('Gespeichert')).toBeVisible();
+    await expect(page.getByText('Gespeichert', { exact: true })).toBeVisible();
     // the typed value decides once the reload has given up, after its three retries
     await expect.poll(() => failedReloads, { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
     // what is checked is that the value stays, so give a reset the time to show

@@ -26,7 +26,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
-import { useId, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 import { toast } from 'sonner';
 
 /** The material list, split under its section headings in the order the settings give them. */
@@ -67,7 +67,8 @@ export const MaterialOrderForm: React.FC<{
   // lost to one.
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [powerEdit, setPowerEdit] = useState<boolean>();
-  const [refused, setRefused] = useState(false);
+  // the material whose field just refused a key, to say why right below it
+  const [refusedItemId, setRefusedItemId] = useState<string>();
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
@@ -110,6 +111,9 @@ export const MaterialOrderForm: React.FC<{
     powerConnection,
   };
   const dirty = !sameOrder(shown, storedValues(order));
+  const hint = translate('quantityHint', locale, {
+    n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
+  });
   useWarnBeforeLeaving(dirty);
 
   const submit = (event: React.FormEvent): void => {
@@ -118,11 +122,11 @@ export const MaterialOrderForm: React.FC<{
     save.mutate({
       hofId,
       orderType: order.type,
-      quantities: order.items.map((item) => ({
-        itemId: item.id,
-        quantity: shown.quantities[item.id] ?? 0,
-      })),
-      powerConnection,
+      // only what the Hof changed, so a reviewer's correction saved meanwhile is not undone
+      changes: order.items
+        .filter((item) => item.id in edits)
+        .map((item) => ({ itemId: item.id, quantity: shown.quantities[item.id] ?? 0 })),
+      ...(powerEdit === undefined ? {} : { powerConnection: powerEdit }),
     });
   };
 
@@ -178,60 +182,69 @@ export const MaterialOrderForm: React.FC<{
                     </tr>
                   )}
                   {group.items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="py-2 pr-3 text-gray-900">
-                        <label htmlFor={`${id}-${item.id}`}>{item.name}</label>
-                      </td>
-                      <td className="py-1.5 text-right">
-                        <input
-                          id={`${id}-${item.id}`}
-                          // text, not number: a number field reports "2." as empty and takes
-                          // "2.5" or "-4", which would then be corrected without a word
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          aria-describedby={`${id}-hint`}
-                          autoComplete="off"
-                          placeholder="0"
-                          disabled={closed}
-                          value={quantityText(item)}
-                          onChange={(event) => {
-                            const typed = event.target.value;
-                            // only whole numbers up to the most that can be ordered get in
-                            if (!/^\d*$/.test(typed) || Number(typed) > HOF_ORDER_MAX_QUANTITY) {
-                              // the key does nothing, so the rule below says why
-                              setRefused(true);
-                              return;
-                            }
-                            setRefused(false);
-                            setEdits((previous) => ({ ...previous, [item.id]: typed }));
-                          }}
-                          // "007" reads as 7 and "0" as nothing once the Hof moves on
-                          onBlur={(event) => {
-                            if (!(item.id in edits)) return;
-                            const quantity = toQuantity(event.target.value);
-                            setEdits((previous) => ({
-                              ...previous,
-                              [item.id]: quantity > 0 ? String(quantity) : '',
-                            }));
-                          }}
-                          className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
-                        />
-                      </td>
-                    </tr>
+                    <Fragment key={item.id}>
+                      <tr>
+                        <td className="py-2 pr-3 text-gray-900">
+                          <label htmlFor={`${id}-${item.id}`}>{item.name}</label>
+                        </td>
+                        <td className="py-1.5 text-right">
+                          <input
+                            id={`${id}-${item.id}`}
+                            // text, not number: a number field reports "2." as empty and takes
+                            // "2.5" or "-4", which would then be corrected without a word
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            aria-describedby={`${id}-hint`}
+                            autoComplete="off"
+                            placeholder="0"
+                            disabled={closed}
+                            value={quantityText(item)}
+                            onChange={(event) => {
+                              const typed = event.target.value;
+                              // only whole numbers up to the most that can be ordered get in
+                              if (!/^\d*$/.test(typed) || Number(typed) > HOF_ORDER_MAX_QUANTITY) {
+                                // the key does nothing, so the rule shows below the field
+                                setRefusedItemId(item.id);
+                                return;
+                              }
+                              setRefusedItemId(undefined);
+                              setEdits((previous) => ({ ...previous, [item.id]: typed }));
+                            }}
+                            // "007" reads as 7 and "0" as nothing once the Hof moves on
+                            onBlur={(event) => {
+                              setRefusedItemId(undefined);
+                              if (!(item.id in edits)) return;
+                              const quantity = toQuantity(event.target.value);
+                              setEdits((previous) => ({
+                                ...previous,
+                                [item.id]: quantity > 0 ? String(quantity) : '',
+                              }));
+                            }}
+                            className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                          />
+                        </td>
+                      </tr>
+                      {refusedItemId === item.id && (
+                        <tr>
+                          <td
+                            colSpan={2}
+                            className="pb-2 text-right text-xs font-semibold text-amber-800"
+                            role="status"
+                          >
+                            {hint}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               ))}
             </table>
           )}
           {order.items.length > 0 && (
-            <p
-              id={`${id}-hint`}
-              className={cn('text-xs', refused ? 'font-semibold text-amber-800' : 'text-gray-500')}
-            >
-              {translate('quantityHint', locale, {
-                n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
-              })}
+            <p id={`${id}-hint`} className="text-xs text-gray-500">
+              {hint}
             </p>
           )}
 

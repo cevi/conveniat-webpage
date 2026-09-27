@@ -86,7 +86,8 @@ export const hofDashboardRouter = createTRPCRouter({
     .input(
       hofIdInput.extend({
         orderType: z.enum(HOF_ORDER_TYPES),
-        quantities: z
+        // only what the Hof changed, so a correction saved meanwhile is not undone
+        changes: z
           .array(
             z.object({
               itemId: z.string().min(1).max(64),
@@ -94,7 +95,7 @@ export const hofDashboardRouter = createTRPCRouter({
             }),
           )
           .max(200),
-        powerConnection: z.boolean(),
+        powerConnection: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

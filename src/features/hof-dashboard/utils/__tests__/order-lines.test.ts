@@ -44,4 +44,14 @@ describe('buildOrderLines', () => {
       'spade',
     ]);
   });
+
+  it('keeps what the Hof did not change, as stored, and drops what it set to none', () => {
+    const stored = [
+      { itemId: 'rope', name: 'Bindestrick', quantity: 4 },
+      { itemId: 'axe', name: 'Handbeil', quantity: 2 },
+    ];
+    expect(buildOrderLines(LIST, stored, [{ itemId: 'axe', quantity: 0 }]).lines).toEqual([
+      { itemId: 'rope', name: 'Bindestrick', quantity: 4 },
+    ]);
+  });
 });

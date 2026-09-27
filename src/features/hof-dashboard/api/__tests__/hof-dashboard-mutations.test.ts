@@ -59,7 +59,7 @@ const order = (
   updateHofMaterialOrder({
     hof: { id: 'hof-nord', name: 'Hof Nord' },
     orderType: 'infrastructure',
-    quantities: [{ itemId: 'rope', quantity: 3 }],
+    changes: [{ itemId: 'rope', quantity: 3 }],
     powerConnection: false,
     userId: 'user-8',
     isReviewer: false,
@@ -182,8 +182,33 @@ describe('updateHofMaterialOrder', () => {
     await expect(order({ isReviewer: true })).resolves.toBeUndefined();
   });
 
+  it('keeps a correction saved meanwhile on material the Hof did not change', async () => {
+    mockSettings.mockResolvedValue({
+      infrastructureOrder: {
+        deadline: '2999-01-31T12:00:00.000Z',
+        items: [
+          { id: 'rope', name: 'Bindestrick' },
+          { id: 'axe', name: 'Handbeil' },
+        ],
+      },
+    });
+    mockPayload.find.mockResolvedValue({
+      docs: [{ id: 'order-1', items: [{ itemId: 'axe', name: 'Handbeil', quantity: 8 }] }],
+    });
+    await order({ changes: [{ itemId: 'rope', quantity: 3 }] });
+    expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
+      id: 'order-1',
+      data: {
+        items: [
+          { itemId: 'axe', name: 'Handbeil', quantity: 8 },
+          { itemId: 'rope', name: 'Bindestrick', quantity: 3 },
+        ],
+      },
+    });
+  });
+
   it('refuses material the list no longer has, instead of dropping it', async () => {
-    await expect(order({ quantities: [{ itemId: 'spade', quantity: 1 }] })).rejects.toMatchObject({
+    await expect(order({ changes: [{ itemId: 'spade', quantity: 1 }] })).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'order_list_changed',
     });

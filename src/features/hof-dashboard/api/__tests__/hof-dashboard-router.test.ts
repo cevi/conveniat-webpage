@@ -98,7 +98,7 @@ const writesToSued = (
     caller.updateMaterialOrder({
       hofId: 'hof-sued',
       orderType: 'infrastructure',
-      quantities: [{ itemId: 'rope', quantity: 3 }],
+      changes: [{ itemId: 'rope', quantity: 3 }],
       powerConnection: false,
     }),
 });
