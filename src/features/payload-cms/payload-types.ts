@@ -67,6 +67,7 @@ export interface Config {
     'emergency-cards': EmergencyCard;
     'photo-contests': PhotoContest;
     'camp-map-annotations': CampMapAnnotation;
+    quartiere: Quartier;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
     'helper-shifts': HelperShift;
@@ -102,6 +103,9 @@ export interface Config {
     'helper-jobs': {
       submissions: 'form-submissions';
     };
+    quartiere: {
+      hoefe: 'hoefe';
+    };
     users: {
       presenceLogs: 'presence-logs';
     };
@@ -133,6 +137,7 @@ export interface Config {
     'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
+    quartiere: QuartiereSelect<false> | QuartiereSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
@@ -2177,6 +2182,10 @@ export interface Hof {
    */
   name: string;
   /**
+   * The Quartier of the campsite this Hof lies in.
+   */
+  quartier?: (string | null) | Quartier;
+  /**
    * Hitobito group ID of this Hof (up to 6 digits)
    */
   groupId: string;
@@ -2216,6 +2225,119 @@ export interface Hof {
   reminderRecipientsOverride?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * The Quartiere of the campsite. Assign a Hof to its Quartier on the Hof.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quartiere".
+ */
+export interface Quartier {
+  id: string;
+  /**
+   * Shown next to the Hof, e.g. "Quartier 3".
+   */
+  name: string;
+  /**
+   * The area of this Quartier, drawn as a polygon on the camp map.
+   */
+  mapAnnotation?: (string | null) | CampMapAnnotation;
+  /**
+   * The Höfe in this Quartier. Change it on the Hof.
+   */
+  hoefe?: {
+    docs?: (string | Hof)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-map-annotations".
+ */
+export interface CampMapAnnotation {
+  id: string;
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
+  annotationType: 'marker' | 'polygon';
+  icon?:
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
+    | null;
+  /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
+   */
+  showLabel?: boolean | null;
+  /**
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
+   */
+  isInteractive?: boolean | null;
+  /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2599,92 +2721,6 @@ export interface TeamMembersBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTeamMembersBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-map-annotations".
- */
-export interface CampMapAnnotation {
-  id: string;
-  /**
-   * The title of the annotation.
-   */
-  title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
-  annotationType: 'marker' | 'polygon';
-  icon?:
-    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
-    | null;
-  /**
-   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
-   */
-  importance: 'high' | 'medium' | 'low';
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  geometry?: [number, number] | null;
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
-   */
-  showLabel?: boolean | null;
-  /**
-   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
-   */
-  isInteractive?: boolean | null;
-  /**
-   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
-   */
-  hiddenOnDefaultMap?: boolean | null;
-  /**
-   * If checked, users will be able to report issues and start a support chat from this location.
-   */
-  enableSupportChat?: boolean | null;
-  /**
-   * A detailed description of the annotation.
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  openingHours?:
-    | {
-        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
-        /**
-         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
-         */
-        time: string;
-        id?: string | null;
-      }[]
-    | null;
-  images?: (string | Image)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5205,6 +5241,10 @@ export interface PayloadLockedDocument {
         value: string | CampMapAnnotation;
       } | null)
     | ({
+        relationTo: 'quartiere';
+        value: string | Quartier;
+      } | null)
+    | ({
         relationTo: 'camp-categories';
         value: string | CampCategory;
       } | null)
@@ -6974,6 +7014,17 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quartiere_select".
+ */
+export interface QuartiereSelect<T extends boolean = true> {
+  name?: T;
+  mapAnnotation?: T;
+  hoefe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "camp-categories_select".
  */
 export interface CampCategoriesSelect<T extends boolean = true> {
@@ -7223,6 +7274,7 @@ export interface BillPdfsSelect<T extends boolean = true> {
  */
 export interface HoefeSelect<T extends boolean = true> {
   name?: T;
+  quartier?: T;
   groupId?: T;
   events?:
     | T
@@ -10047,6 +10099,7 @@ export interface TaskCreateCollectionExport {
       | 'emergency-cards'
       | 'photo-contests'
       | 'camp-map-annotations'
+      | 'quartiere'
       | 'camp-categories'
       | 'camp-schedule-entry'
       | 'helper-shifts'

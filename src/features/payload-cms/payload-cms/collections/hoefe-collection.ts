@@ -1,13 +1,15 @@
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
-  canAccessBilling,
   canAccessBillingField,
   hasBillingOrAdminOrWebAccess,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
-import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  isFullAdmin,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
+import type { CollectionConfig, FieldAccess, TextFieldSingleValidation } from 'payload';
 
 /** Cevi.DB group and event ids are plain numbers of up to six digits. */
 const HITOBITO_ID = /^\d{1,6}$/;
@@ -32,12 +34,16 @@ const validateHitobitoId: TextFieldSingleValidation = (value, { req }) => {
  */
 const syncedFromCeviDatabase = { create: (): boolean => false, update: (): boolean => false };
 
+/** Who may place a Hof in its Quartier: the same people who may open a Hof at all. */
+const canPlaceHofInQuartier: FieldAccess = (args) =>
+  hasAdminOrWebAccess({ req: args.req }) || canAccessBillingField(args);
+
 /**
  * The Höfe of the camp, one document per Cevi.DB group.
  *
  * Filled by the subgroup sync of the billing ("Anlässe automatisch aus Cevi.DB laden"), which
- * adds the conveniat27 events a group runs to its Hof. Read-only in the admin panel: a change
- * is made in Cevi.DB and then synced. The billing reads the events to know
+ * adds the conveniat27 events a group runs to its Hof. Read-only in the admin panel but for
+ * its Quartier and the reminder override: a change is made in Cevi.DB and then synced. The billing reads the events to know
  * which participations to sync and whom to remind; other areas reference a Hof by its
  * document id.
  */
@@ -51,7 +57,7 @@ export const HoefeCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
-    defaultColumns: ['name', 'groupId', 'events'],
+    defaultColumns: ['name', 'quartier', 'groupId', 'events'],
     description: {
       en: 'One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.',
       de: 'Ein Eintrag pro Cevi.DB-Gruppe, die ein conveniat27-Lager durchführt. Aus der Cevi.DB abgeglichen und hier schreibgeschützt: Einen Hof in der Cevi.DB ändern und dann "Anlässe automatisch aus Cevi.DB laden" erneut ausführen.',
@@ -67,9 +73,10 @@ export const HoefeCollection: CollectionConfig = {
     // Name, group and events are not confidential, and other areas build on them. The two
     // address fields below are narrowed to the billing team on the field.
     read: hasBillingOrAdminOrWebAccess,
-    // only the sync creates a Hof; the billing may still set the reminder override on one
+    // only the sync creates a Hof. What stays writable is narrowed on the field: the reminder
+    // override to the billing team, the Quartier to admin and web as well.
     create: (): boolean => false,
-    update: canAccessBilling,
+    update: hasBillingOrAdminOrWebAccess,
     // Other collections point at a Hof, so removing one is left to the admins.
     delete: isFullAdmin,
   },
@@ -86,6 +93,22 @@ export const HoefeCollection: CollectionConfig = {
           en: 'Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.',
           de: 'Anzeigename, z.B. "Hof Süd", bei jedem Abgleich aus den Namen seiner Anlässe in der Cevi.DB übernommen.',
           fr: "Nom d'affichage, par ex. « Hof Süd », repris à chaque synchronisation des noms de ses événements dans Cevi.DB.",
+        },
+      },
+    },
+    {
+      name: 'quartier',
+      type: 'relationship',
+      relationTo: 'quartiere',
+      label: { en: 'Quartier', de: 'Quartier', fr: 'Quartier' },
+      // not from Cevi.DB: the camp assigns it, and the sync leaves it alone
+      access: { update: canPlaceHofInQuartier },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'The Quartier of the campsite this Hof lies in.',
+          de: 'Das Quartier des Lagerplatzes, in dem dieser Hof liegt.',
+          fr: 'Le quartier du terrain de camp dans lequel se trouve ce Hof.',
         },
       },
     },
