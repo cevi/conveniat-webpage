@@ -1,10 +1,7 @@
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { trpcBaseProcedure } from '@/trpc/init';
-import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-
-const logger = createLogger('chat:mutations');
 
 const markChatAsReadInputSchema = z.object({
   chatId: z.string().uuid(),
@@ -23,7 +20,7 @@ export const markChatAsRead = trpcBaseProcedure
         uuid: lastMessageId,
         chatId: chatId,
       },
-      select: { uuid: true, createdAt: true },
+      select: { uuid: true },
     });
 
     if (!message) {
@@ -33,58 +30,36 @@ export const markChatAsRead = trpcBaseProcedure
       });
     }
 
-    // 2. Retrieve current chat membership to check current lastReadMessageId and enforce permissions
-    const membership = await prisma.chatMembership.findUnique({
-      where: {
-        userId_chatId: {
-          userId: user.uuid,
-          chatId: chatId,
-        },
-      },
-      select: {
-        lastReadMessageId: true,
-      },
-    });
+    // 2. Advance the high-water mark in one statement, so concurrent calls cannot move it
+    // backwards: it only moves when unset or when the stored message is not newer than this one
+    // (a stored id pointing at a deleted message counts as unset).
+    const updatedRows = await prisma.$executeRaw`
+      UPDATE "ChatMembership" AS membership
+      SET "lastReadMessageId" = ${lastMessageId}
+      WHERE membership."userId" = ${user.uuid}
+        AND membership."chatId" = ${chatId}
+        AND NOT EXISTS (
+          SELECT 1 FROM "Message" AS current
+          WHERE current."uuid" = membership."lastReadMessageId"
+            AND current."createdAt" > (SELECT "createdAt" FROM "Message" WHERE "uuid" = ${lastMessageId})
+        )
+    `;
 
-    if (!membership) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'You are not a member of this chat.',
-      });
-    }
-
-    // 3. Update the high-water mark if watermark is not set or target message creation date >= current last read message creation date
-    let shouldUpdate = false;
-    if (!membership.lastReadMessageId) {
-      shouldUpdate = true;
-    } else if (membership.lastReadMessageId === lastMessageId) {
-      shouldUpdate = false;
-    } else {
-      const currentReadMessage = await prisma.message.findUnique({
-        where: { uuid: membership.lastReadMessageId },
-        select: { createdAt: true },
+    if (updatedRows === 0) {
+      const membership = await prisma.chatMembership.findUnique({
+        where: { userId_chatId: { userId: user.uuid, chatId: chatId } },
+        select: { userId: true },
       });
 
-      if (!currentReadMessage || message.createdAt >= currentReadMessage.createdAt) {
-        shouldUpdate = true;
+      if (!membership) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: 'You are not a member of this chat.',
+        });
       }
     }
 
-    if (shouldUpdate) {
-      await prisma.chatMembership.update({
-        where: {
-          userId_chatId: {
-            userId: user.uuid,
-            chatId: chatId,
-          },
-        },
-        data: {
-          lastReadMessageId: lastMessageId,
-        },
-      });
-    }
-
-    // 4. Backward compatibility: Create a READ event only for small chats (< LARGE_CHAT_THRESHOLD)
+    // 3. Backward compatibility: Create a READ event only for small chats (< LARGE_CHAT_THRESHOLD)
     const chat = await prisma.chat.findUnique({
       where: { uuid: chatId },
       select: {
@@ -97,21 +72,9 @@ export const markChatAsRead = trpcBaseProcedure
     });
 
     if (chat && chat.chatMemberships.length < LARGE_CHAT_THRESHOLD) {
-      await prisma.messageEvent
-        .create({
-          data: {
-            messageId: lastMessageId,
-            userId: user.uuid,
-            type: 'READ',
-          },
-        })
-        .catch((error: unknown) => {
-          // Ignore if already exists, log other issues
-          logger.debug('Could not create the READ message event, it may already exist', {
-            error,
-            'chat.id': chatId,
-            'message.id': lastMessageId,
-          });
-        });
+      await prisma.messageEvent.createMany({
+        data: [{ messageId: lastMessageId, userId: user.uuid, type: 'READ' }],
+        skipDuplicates: true,
+      });
     }
   });
