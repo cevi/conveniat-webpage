@@ -70,6 +70,8 @@ export const hofDashboardRouter = createTRPCRouter({
         submissionId: input.submissionId,
         status: input.status,
         feedback: input.feedback,
+        // the session's name already reads "First Last v/o Cevi name"
+        reviewer: { id: ctx.user.uuid, name: ctx.user.name },
       });
     }),
 });

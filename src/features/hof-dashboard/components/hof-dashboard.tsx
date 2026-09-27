@@ -29,6 +29,7 @@ import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-l
 import { text, translate } from '@/features/hof-dashboard/texts';
 import {
   getSubmissionProgress,
+  isOpen,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
 import { flushPersonalData } from '@/lib/flush-personal-data';
@@ -90,6 +91,7 @@ const useProgress = (
             mode: form.mode,
             deadline: form.deadline,
             statuses: form.entries.map((entry) => entry.status),
+            closed: form.closed,
           },
           now,
         ),
@@ -163,9 +165,10 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
         <DashboardTabList
           tabs={TABS.map(({ id, label }) => {
             // what the Hof still has to hand in or revise behind an area's tab
-            const open = data.forms.filter(
-              (form) => form.area === id && progress[form.id]?.state !== 'done',
-            ).length;
+            const open = data.forms.filter((form) => {
+              const formProgress = progress[form.id];
+              return form.area === id && formProgress !== undefined && isOpen(formProgress);
+            }).length;
             return {
               label: label[locale],
               open,

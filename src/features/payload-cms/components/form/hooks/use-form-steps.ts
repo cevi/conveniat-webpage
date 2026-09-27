@@ -80,6 +80,8 @@ export const useFormSteps = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formMethods: UseFormReturn<any>,
   formId?: string,
+  /** Off for an embedded form, which starts from its presets rather than a stored step. */
+  persistStep = true,
 ): UseFormStepsReturn => {
   /*
    * A section can be gated on an answer from an earlier step, so the list of steps is
@@ -146,7 +148,12 @@ export const useFormSteps = (
    * and "setState during render" lint errors.
    */
   const [currentStepIndex, setCurrentStepIndex] = useState(() => {
-    if (typeof globalThis !== 'undefined' && typeof formId === 'string' && formId !== '') {
+    if (
+      persistStep &&
+      typeof globalThis !== 'undefined' &&
+      typeof formId === 'string' &&
+      formId !== ''
+    ) {
       const savedStep = sessionStorage.getItem(getFormStorageKey(formId, 'step'));
       if (savedStep !== null) {
         return Number(savedStep);
@@ -167,10 +174,10 @@ export const useFormSteps = (
 
   // Save step to sessionStorage whenever it changes
   useEffect(() => {
-    if (typeof formId === 'string' && formId !== '') {
+    if (persistStep && typeof formId === 'string' && formId !== '') {
       sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(clampedStepIndex));
     }
-  }, [formId, clampedStepIndex]);
+  }, [formId, clampedStepIndex, persistStep]);
 
   const currentActualStep = steps[clampedStepIndex];
   const isFirstStep = clampedStepIndex === 0;

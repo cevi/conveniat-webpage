@@ -1,5 +1,6 @@
 import { idOf } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import type { HofReviewStatus } from '@/features/hof-dashboard/constants';
+import type { HofReviewer } from '@/features/hof-dashboard/payload-cms/hooks/record-hof-review';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -83,11 +84,14 @@ export const reviewHofSubmission = async ({
   submissionId,
   status,
   feedback,
+  reviewer,
 }: {
   hof: HofName;
   submissionId: string;
   status: HofReviewStatus | undefined;
   feedback: string;
+  /** Who answers, for the review history and the name next to the feedback. */
+  reviewer: HofReviewer;
 }): Promise<void> => {
   const payload = await getPayload({ config });
   const submission = await payload.findByID({
@@ -120,6 +124,7 @@ export const reviewHofSubmission = async ({
     data: { hofReviewStatus: status ?? null, hofFeedback: feedback },
     depth: 0,
     overrideAccess: true,
+    context: { hofReviewer: reviewer },
   });
 
   logger.info('A reviewer answered a Hof submission', {

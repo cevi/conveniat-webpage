@@ -393,7 +393,19 @@ const createSubmission = async (payload: Payload, seed: SubmissionSeed): Promise
       approved: seed.approved ?? false,
       ...(seed.review === undefined
         ? {}
-        : { hofReviewStatus: seed.review.status, hofFeedback: seed.review.feedback }),
+        : {
+            hofReviewStatus: seed.review.status,
+            hofFeedback: seed.review.feedback,
+            // a day after it came in, by the building manager of the seed's contacts
+            hofReviewLog: [
+              {
+                changedAt: daysAgo(seed.daysAgo - 1),
+                reviewerName: 'Sara Keller v/o Biber',
+                status: seed.review.status,
+                feedback: seed.review.feedback ?? '',
+              },
+            ],
+          }),
       submissionData: Object.entries(answers).map(([field, value]) => ({ field, value })),
       createdAt,
       updatedAt: createdAt,

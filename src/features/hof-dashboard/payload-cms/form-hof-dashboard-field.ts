@@ -2,7 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { areaOptions, entryModeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { Field, SelectFieldSingleValidation } from 'payload';
+import type { Field, SelectFieldSingleValidation, TextFieldSingleValidation } from 'payload';
 
 /** Whether a form asks for the Hof, which is what links a submission to a Hof's dashboard. */
 const asksForHof = (sections: unknown): boolean =>
@@ -19,6 +19,33 @@ const requiresHofSelection: SelectFieldSingleValidation = (value, { data, req })
     en: 'Add a "Hof Selection" field to the form first: it tells which Hof a submission belongs to.',
     de: 'Zuerst ein Feld "Hof Auswahl" ins Formular einfügen: Es sagt, zu welchem Hof eine Antwort gehört.',
     fr: 'Ajoute d’abord un champ « Sélection du Hof » au formulaire : il indique à quel Hof une réponse appartient.',
+  });
+
+/** Every field name of a form, conditioned fields included. */
+const fieldNamesOf = (sections: unknown): string[] => {
+  const collect = (fields: unknown): string[] =>
+    Array.isArray(fields)
+      ? fields.flatMap((field: { name?: unknown; fields?: unknown } | null) => [
+          ...(typeof field?.name === 'string' ? [field.name] : []),
+          ...collect(field?.fields),
+        ])
+      : [];
+  return Array.isArray(sections)
+    ? sections.flatMap((section: { formSection?: { fields?: unknown } } | null) =>
+        collect(section?.formSection?.fields),
+      )
+    : [];
+};
+
+const isFieldOfForm: TextFieldSingleValidation = (value, { data, req }) =>
+  value === null ||
+  value === undefined ||
+  value === '' ||
+  fieldNamesOf((data as { sections?: unknown }).sections).includes(value) ||
+  getValidationMessage(req.i18n.language, {
+    en: 'No field of this form has this name. Use the name of a field, e.g. "name".',
+    de: 'Kein Feld dieses Formulars hat diesen Namen. Den Namen eines Feldes angeben, z.B. "name".',
+    fr: 'Aucun champ de ce formulaire ne porte ce nom. Indique le nom d’un champ, p. ex. « name ».',
   });
 
 const isOnDashboard = (_: unknown, siblingData: Record<string, unknown>): boolean =>
@@ -132,6 +159,7 @@ export const formHofDashboardField: Field = {
         {
           name: 'titleField',
           type: 'text',
+          validate: isFieldOfForm,
           label: {
             en: 'Field that names an entry',
             de: 'Feld, das einen Eintrag benennt',
@@ -160,9 +188,9 @@ export const formHofDashboardField: Field = {
             width: '50%',
             condition: isOnDashboard,
             description: {
-              en: 'Off for a form everyone of a Hof may fill in, like the Stadtleben stand registration.',
-              de: 'Aus für ein Formular, das alle eines Hofs ausfüllen dürfen, wie die Standanmeldung fürs Stadtleben.',
-              fr: 'Désactivé pour un formulaire que chacun d’un Hof peut remplir, comme l’inscription des stands du Stadtleben.',
+              en: 'Off: anyone signed in can hand it in for any Hof, as the Stadtleben stand registration always allowed. Leave it on for plans and orders.',
+              de: 'Aus: Alle Angemeldeten können es für jeden Hof abgeben, wie bisher die Standanmeldung fürs Stadtleben. Für Planungen und Bestellungen eingeschaltet lassen.',
+              fr: 'Désactivé : toute personne connectée peut le déposer pour n’importe quel Hof, comme l’inscription des stands du Stadtleben jusqu’ici. Le laisser activé pour les plans et les commandes.',
             },
           },
         },

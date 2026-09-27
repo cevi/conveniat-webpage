@@ -44,7 +44,8 @@ export const nameMaterialLines: CollectionBeforeChangeHook<FormSubmission> = asy
     depth: 0,
     locale: LOCALE.DE,
     select: { sections: true },
-    req,
+    // without req: the local API would switch the request, and every hook after this one and
+    // the confirmation emails, to German
   });
   const lists = form.sections.flatMap((section) =>
     materialLists(section.formSection.fields as unknown[] | null | undefined),

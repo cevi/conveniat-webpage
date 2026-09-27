@@ -1,9 +1,10 @@
 import type { HofContact } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import { HOF_ENTRY_STATUS_LABELS, type HofDashboardArea } from '@/features/hof-dashboard/constants';
 import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
-import type {
-  SubmissionProgress,
-  SubmissionState,
+import {
+  isOpen,
+  type SubmissionProgress,
+  type SubmissionState,
 } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -106,10 +107,12 @@ const STATE_TONE: Record<SubmissionState, StatusTone> = {
   open: 'neutral',
   dueSoon: 'warning',
   overdue: 'alert',
+  closed: 'neutral',
 };
 
 /** The Ressort's status once handed in, else that it is still missing. */
 const progressLabel = (progress: SubmissionProgress, locale: Locale): string => {
+  if (progress.state === 'closed') return translate('gapClosed', locale);
   if (progress.gap === 'missing') return translate('gapMissing', locale);
   if (progress.gap === 'revision') return HOF_ENTRY_STATUS_LABELS.revisionRequired[locale];
   return HOF_ENTRY_STATUS_LABELS[progress.status ?? 'submitted'][locale];
@@ -141,10 +144,10 @@ export const ProgressLine: React.FC<{ progress: SubmissionProgress; locale: Loca
   locale,
 }) => {
   const due: string[] = [];
-  if (progress.state !== 'done' && progress.deadline !== undefined) {
+  if (isOpen(progress) && progress.deadline !== undefined) {
     due.push(translate('dueOn', locale, { date: formatDate(progress.deadline, locale) }));
   }
-  if (progress.state !== 'done' && progress.daysLeft !== undefined) {
+  if (isOpen(progress) && progress.daysLeft !== undefined) {
     due.push(formatCountdown(progress.daysLeft, locale));
   }
   return (

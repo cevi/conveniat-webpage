@@ -112,7 +112,7 @@ export const FormBlock: React.FC<
     next,
     prev,
     currentActualStep,
-  } = useFormSteps(formSections, formMethods, config.id);
+  } = useFormSteps(formSections, formMethods, config.id, presetValues === undefined);
 
   const {
     submit,

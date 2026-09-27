@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 
 /**
- * The open tab, kept in the address as `#orders` and the like, so a reload opens it again and
+ * The open tab, kept in the address as `#material` and the like, so a reload opens it again and
  * a link can point at it. Replacing the entry keeps the back button for leaving the page.
  */
 export const useTabInAddress = <T extends string>(

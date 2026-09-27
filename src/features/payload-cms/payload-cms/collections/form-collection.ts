@@ -75,6 +75,16 @@ export const FormCollection: CollectionConfig = {
       },
     },
     {
+      // A temporary upload is claimed by a submission through its id alone, and ids are
+      // guessable: only the person who uploaded a file may attach it.
+      name: 'uploadedBy',
+      type: 'relationship',
+      relationTo: 'users',
+      index: true,
+      label: { en: 'Uploaded by', de: 'Hochgeladen von', fr: 'Téléversé par' },
+      admin: { readOnly: true },
+    },
+    {
       name: 'originalFilename',
       type: 'text',
       required: false,

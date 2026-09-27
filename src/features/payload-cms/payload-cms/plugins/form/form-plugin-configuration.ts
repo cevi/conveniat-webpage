@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { formHofDashboardField } from '@/features/hof-dashboard/payload-cms/form-hof-dashboard-field';
 import { formSubmissionReviewFields } from '@/features/hof-dashboard/payload-cms/form-submission-review-fields';
 import { checkHofDashboardSubmission } from '@/features/hof-dashboard/payload-cms/hooks/check-hof-dashboard-submission';
+import { recordHofReview } from '@/features/hof-dashboard/payload-cms/hooks/record-hof-review';
 import {
   hasAccessToThisHelper,
   hasAdminOrWebAccess,
@@ -370,6 +371,7 @@ export const formPluginConfiguration = formBuilderPlugin({
         linkJobSubmission,
         linkHofSubmission,
         checkHofDashboardSubmission,
+        recordHofReview,
       ],
       afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent, sendApprovalEmail],
     },

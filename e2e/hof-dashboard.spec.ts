@@ -72,6 +72,8 @@ const entry = (id: string, overrides: Record<string, unknown> = {}): Record<stri
   reviewStatus: ['inReview', 'revisionRequired', 'accepted'].includes(String(overrides['status']))
     ? overrides['status']
     : undefined,
+  feedbackBy: undefined,
+  reviewLog: [],
   ...overrides,
 });
 
@@ -110,6 +112,7 @@ const PLAN = dashboardForm('form-plan', {
     entry('plan-2', {
       status: 'revisionRequired',
       feedback: 'Die Statik fehlt noch.',
+      feedbackBy: { name: 'Sara Keller v/o Biber', at: '2026-09-20T08:30:00.000Z' },
       answers: [
         { field: 'beschreibung', label: 'Beschreibung', kind: 'text', text: 'Zweiter Entwurf' },
         {
@@ -351,6 +354,18 @@ const forReviewer = (form: Record<string, unknown>): Record<string, unknown> => 
   entries: (form['entries'] as Record<string, unknown>[]).map((submitted) => ({
     ...submitted,
     withdrawable: false,
+    // the history the server keeps for the reviewers
+    reviewLog:
+      submitted['feedbackBy'] === undefined
+        ? []
+        : [
+            {
+              at: (submitted['feedbackBy'] as { at: string }).at,
+              by: (submitted['feedbackBy'] as { name: string }).name,
+              status: submitted['status'],
+              feedback: submitted['feedback'],
+            },
+          ],
   })),
 });
 
@@ -392,9 +407,10 @@ test.describe('Hof dashboard', () => {
     await expect(overview.getByText('Hofprogramm')).toHaveCount(0);
 
     // two open behind Infrastruktur, none behind Programm and Material
-    await expect(
-      page.getByRole('tab', { name: /^Infrastruktur/ }).getByLabel('2 offen'),
-    ).toHaveText('2');
+    // the count is read out as words, the badge itself is only for the eye
+    await expect(page.getByRole('tab', { name: /^Infrastruktur/ })).toHaveAccessibleName(
+      /^Infrastruktur\s*2 offen$/,
+    );
     await expect(page.getByRole('tab', { name: /^Programm/ })).toHaveText('Programm');
     await expect(page.getByRole('tab', { name: /^Material/ })).toHaveText('Material');
 
@@ -424,6 +440,9 @@ test.describe('Hof dashboard', () => {
     await expect(card.getByRole('heading', { name: 'Version 2' })).toBeVisible();
     await expect(card.getByText('Rückmeldung', { exact: true })).toBeVisible();
     await expect(card.getByText('Die Statik fehlt noch.')).toBeVisible();
+    // who wrote it and when, but not the Ressort's history of it
+    await expect(card.getByText('Sara Keller v/o Biber, 20.09.2026')).toBeVisible();
+    await expect(card.getByText(/Verlauf/)).toHaveCount(0);
     await expect(card.getByText('Zweiter Entwurf')).toBeVisible();
     const file = card.getByRole('link', { name: /Hofplan\.pdf/ });
     await expect(file).toHaveAttribute('href', '/api/form-file/file-1');
@@ -633,7 +652,7 @@ test.describe('Hof dashboard', () => {
     await expect(card.getByRole('button')).toHaveCount(0);
   });
 
-  test('lets a reviewer answer instead of hand in', async ({ page }) => {
+  test('lets a reviewer answer instead of hand in, saved as it is given', async ({ page }) => {
     const backend = await mockBackend(page, {
       dashboards: {
         [HOF_NORD.id]: {
@@ -664,10 +683,12 @@ test.describe('Hof dashboard', () => {
       'true',
     );
     await expect(plan.getByLabel('Rückmeldung an den Hof')).toHaveValue('Die Statik fehlt noch.');
-    const savePlan = plan.getByRole('button', { name: 'Speichern' });
-    await expect(savePlan).toHaveAttribute('aria-disabled', 'true');
+    // the reviewers see who changed what, and when
+    await plan.getByText('Verlauf (1)').click();
+    await expect(plan.getByText(/20\.09\.2026, \d\d:\d\d · Sara Keller v\/o Biber/)).toBeVisible();
+    // no save button: a status is saved the moment it is chosen
+    await expect(plan.getByRole('button', { name: 'Speichern' })).toHaveCount(0);
     await plan.getByRole('radio', { name: 'Eingereicht' }).click();
-    await savePlan.click();
     await expect.poll(reviews).toHaveLength(1);
     expect(reviews()[0]).toEqual({
       hofId: 'hof-nord',
@@ -683,16 +704,23 @@ test.describe('Hof dashboard', () => {
     await expect(program.getByRole('button', { name: 'Zurückziehen' })).toHaveCount(0);
     const loadsBefore = backend.loads(HOF_NORD.id);
     await program.getByRole('radio', { name: 'Freigegeben' }).click();
-    await program.getByLabel('Rückmeldung an den Hof').fill('Danke, passt so.');
-    await program.getByRole('button', { name: 'Speichern' }).click();
     await expect.poll(reviews).toHaveLength(2);
-    expect(reviews()[1]).toEqual({
+    // typed feedback goes out once, after the typing pauses, not per key
+    await program
+      .getByLabel('Rückmeldung an den Hof')
+      .pressSequentially('Danke, passt so.', { delay: 20 });
+    await expect.poll(reviews).toHaveLength(3);
+    await page.waitForTimeout(1200);
+    expect(reviews()).toHaveLength(3);
+    expect(reviews()[2]).toEqual({
       hofId: 'hof-nord',
       submissionId: 'program-1',
       status: 'accepted',
       feedback: 'Danke, passt so.',
     });
-    await expect(page.getByText('Gespeichert', { exact: true }).first()).toBeVisible();
+    // the pill beside the title says so, no toast
+    await expect(program.getByText('Gespeichert', { exact: true })).toBeVisible();
+    await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
     await expect.poll(() => backend.loads(HOF_NORD.id)).toBeGreaterThan(loadsBefore);
   });
 });

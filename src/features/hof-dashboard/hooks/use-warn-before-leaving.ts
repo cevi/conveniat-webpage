@@ -8,12 +8,12 @@ import { useEffect } from 'react';
  */
 let unsavedParts = 0;
 
-/** Whether leaving the current Hof would lose unsaved quantities or an upload under way. */
+/** Whether leaving the current Hof would lose a form that is open, with what was typed. */
 export const hasUnsavedWork = (): boolean => unsavedParts > 0;
 
 /**
  * Asks the browser to confirm before the page is closed or reloaded while something would
- * be lost: unsaved quantities, or an upload under way. The Hof select asks `hasUnsavedWork`
+ * be lost: a form opened on the dashboard, with its answers and uploads. The Hof select asks `hasUnsavedWork`
  * the same before it swaps the dashboard; a link within the site is not caught.
  */
 export const useWarnBeforeLeaving = (unsaved: boolean): void => {

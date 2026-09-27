@@ -163,6 +163,16 @@ export const beforeEmailChangeHook: BeforeEmail = async (
           fileSubmissionId = (fileSubmissionRaw as { id: string }).id;
         }
 
+        // A temporary file goes only with the submission of the person who uploaded it: its
+        // id is all an answer names, and the ids of other people's uploads can be guessed.
+        const uploader = fileDocument.uploadedBy;
+        const uploaderId =
+          typeof uploader === 'object' && uploader !== null ? uploader.id : uploader;
+        const senderId = (beforeChangeParameters as { req?: PayloadRequest }).req?.user?.id;
+        if (fileDocument.isTemporary && (uploaderId == undefined || uploaderId !== senderId)) {
+          continue;
+        }
+
         // If file already belongs to another non-temporary submission, skip it
         if (
           !fileDocument.isTemporary &&
@@ -273,12 +283,15 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
   const submissionDataArray =
     (formSubmissionDocument as { submissionData?: unknown[] }).submissionData ?? [];
-  const submissionDict: Record<string, string> = {
+  // Filled in after the answers: an answer named like one of these must not replace the link
+  // the approver clicks.
+  const reservedPlaceholders: Record<string, string> = {
     formSubmissionID: String(formSubmissionId),
     approvalLink: approvalUrl,
     approvalUrl: approvalUrl,
     'approval-link': approvalUrl,
   };
+  const submissionDict: Record<string, string> = {};
 
   const extractStringValue = (val: unknown): string => {
     if (typeof val === 'string') return val;
@@ -308,6 +321,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }
   }
   wildcardHtmlTable += '</table>';
+  Object.assign(submissionDict, reservedPlaceholders);
 
   interface MinimalLexicalNode {
     type: string;

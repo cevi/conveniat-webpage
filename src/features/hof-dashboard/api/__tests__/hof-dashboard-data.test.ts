@@ -81,7 +81,12 @@ const materialForm = {
       formSection: {
         fields: [
           { blockType: 'hofSelection', name: 'hof', label: 'Hof' },
-          { blockType: 'materialList', name: 'holz', label: 'Holz' },
+          {
+            blockType: 'materialList',
+            name: 'holz',
+            label: 'Holz',
+            items: [{ id: 'latte' }, { id: 'brett' }],
+          },
         ],
       },
     },
@@ -109,7 +114,8 @@ const SUBMISSIONS = [
     submissionData: [
       { field: 'hof', value: 'Hof Nord' },
       { field: 'bemerkungen', value: 'Neu mit Dach' },
-      { field: 'plan', value: 'file-a, file-gone' },
+      // file-foreign belongs to a submission of another Hof, and anyone can write its id here
+      { field: 'plan', value: 'file-a, file-gone, file-foreign' },
       { field: 'strom', value: 'true' },
       { field: 'dach', value: 'holz' },
     ],
@@ -130,6 +136,27 @@ const SUBMISSIONS = [
     submissionData: [{ field: 'holz', value: materialAnswer(12) }],
     hofReviewStatus: 'revisionRequired',
     hofFeedback: 'Zu viele Latten',
+    // Sara asked first, Tom replaced her feedback, then Sara only changed the status
+    hofReviewLog: [
+      {
+        changedAt: '2026-09-18T12:00:00.000Z',
+        reviewerName: 'Sara Keller v/o Biber',
+        status: 'inReview',
+        feedback: 'Bitte Latten zählen',
+      },
+      {
+        changedAt: '2026-09-19T12:00:00.000Z',
+        reviewerName: 'Tom Frei v/o Dachs',
+        status: 'inReview',
+        feedback: 'Zu viele Latten',
+      },
+      {
+        changedAt: '2026-09-20T12:00:00.000Z',
+        reviewerName: 'Sara Keller v/o Biber',
+        status: 'revisionRequired',
+        feedback: 'Zu viele Latten',
+      },
+    ],
   },
   {
     id: 'stand-a',
@@ -141,7 +168,11 @@ const SUBMISSIONS = [
     id: 'plan-1',
     form: 'form-plan',
     createdAt: '2026-09-10T10:00:00.000Z',
-    submissionData: [{ field: 'bemerkungen', value: 'Erster Entwurf' }],
+    submissionData: [
+      { field: 'bemerkungen', value: 'Erster Entwurf' },
+      // names a file of the newer version: it shows there, not here
+      { field: 'plan', value: 'file-a' },
+    ],
   },
   {
     id: 'material-1',
@@ -149,27 +180,68 @@ const SUBMISSIONS = [
     createdAt: '2026-09-01T10:00:00.000Z',
     submissionData: [{ field: 'holz', value: materialAnswer(4) }],
     hofReviewStatus: 'inReview',
+    // feedback written and taken back again: nobody's feedback shows
+    hofReviewLog: [
+      {
+        changedAt: '2026-09-02T12:00:00.000Z',
+        reviewerName: 'Tom Frei v/o Dachs',
+        status: 'inReview',
+        feedback: 'Fehlt da nicht etwas?',
+      },
+      {
+        changedAt: '2026-09-03T12:00:00.000Z',
+        reviewerName: 'Tom Frei v/o Dachs',
+        // eslint-disable-next-line unicorn/no-null -- Payload stores a cleared select as null
+        status: null,
+        feedback: '',
+      },
+    ],
   },
 ];
 
 const STORED_FILES = [
-  { id: 'file-a', originalFilename: 'Plan.pdf', filename: 'Plan-1a2b.pdf', filesize: 2048 },
+  {
+    id: 'file-a',
+    originalFilename: 'Plan.pdf',
+    filename: 'Plan-1a2b.pdf',
+    filesize: 2048,
+    formSubmission: 'plan-2',
+  },
+  {
+    id: 'file-foreign',
+    originalFilename: 'Fremd.pdf',
+    filename: 'Fremd.pdf',
+    filesize: 1024,
+    formSubmission: 'other-hof-plan',
+  },
 ];
 
+interface FileQuery {
+  and: [{ id: { in: string[] } }, { formSubmission: { in: string[] } }];
+}
+
 let mockForms: unknown[] = [];
+/** The forms as read in German, when that differs from the reader's language. */
+let mockGermanForms: unknown[] | undefined;
 
 const mockPayload = {
   find: jest.fn(
-    ({ collection, where }: { collection: string; where?: { id?: { in: string[] } } }) => {
+    ({ collection, where, locale }: { collection: string; where?: FileQuery; locale?: string }) => {
       switch (collection) {
         case 'forms': {
-          return Promise.resolve({ docs: mockForms, totalDocs: mockForms.length });
+          const forms = locale === 'de' ? (mockGermanForms ?? mockForms) : mockForms;
+          return Promise.resolve({ docs: forms, totalDocs: forms.length });
         }
         case 'form-submissions': {
           return Promise.resolve({ docs: SUBMISSIONS, totalDocs: SUBMISSIONS.length });
         }
         case 'form_collection': {
-          const files = STORED_FILES.filter((file) => where?.id?.in.includes(file.id) === true);
+          const [ids, submissions] = where?.and ?? [];
+          const files = STORED_FILES.filter(
+            (file) =>
+              ids?.id.in.includes(file.id) === true &&
+              submissions?.formSubmission.in.includes(file.formSubmission) === true,
+          );
           return Promise.resolve({ docs: files, totalDocs: files.length });
         }
         default: {
@@ -234,6 +306,7 @@ const closedOf = async (formId: string, isReviewer = false): Promise<boolean> =>
 beforeEach(() => {
   jest.clearAllMocks();
   mockForms = [planForm, standForm, materialForm, draftForm];
+  mockGermanForms = undefined;
 });
 
 describe('getHofDashboardData', () => {
@@ -349,6 +422,7 @@ describe('getHofDashboardData', () => {
   it('serves the handed-in files through the route that checks the Hof', async () => {
     const plan = await formOf('form-plan');
     const files = plan.entries[0]?.answers.find((answer) => answer.field === 'plan');
+    // another Hof's file, named by its id, is not listed
     expect(files).toEqual({
       field: 'plan',
       label: 'Plan',
@@ -364,6 +438,12 @@ describe('getHofDashboardData', () => {
         },
       ],
     });
+  });
+
+  it('shows a file only on the submission it was handed in with', async () => {
+    const plan = await formOf('form-plan');
+    const older = plan.entries.find((entry) => entry.id === 'plan-1');
+    expect(older?.answers.map((answer) => answer.field)).toEqual(['bemerkungen']);
   });
 
   it('shows ordered material by the name it was ordered under', async () => {
@@ -386,12 +466,88 @@ describe('getHofDashboardData', () => {
     expect(plan.initialValues).toEqual({});
   });
 
+  it('leaves a line the list no longer offers out of a new order', async () => {
+    mockForms = [
+      {
+        ...materialForm,
+        sections: [
+          {
+            formSection: {
+              fields: [
+                { blockType: 'hofSelection', name: 'hof', label: 'Hof' },
+                {
+                  blockType: 'materialList',
+                  name: 'holz',
+                  label: 'Holz',
+                  items: [{ id: 'brett' }],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ];
+    const material = await formOf('form-material');
+    expect(material.initialValues).toEqual({});
+  });
+
+  it('offers a form published only in German to a French reader', async () => {
+    const untranslated = { ...standForm, _localized_status: { published: false } };
+    mockForms = [untranslated, draftForm];
+    mockGermanForms = [standForm, draftForm];
+    const { forms } = await getHofDashboardData('hof-nord', 'fr', false);
+    expect(forms.map((form) => form.id)).toEqual(['form-stand']);
+  });
+
   it('closes a form at its due date', async () => {
     await expect(closedOf('form-plan')).resolves.toBe(true);
     // past its date, but set to stay open
     await expect(closedOf('form-material')).resolves.toBe(false);
     // no due date at all
     await expect(closedOf('form-stand')).resolves.toBe(false);
+  });
+
+  it('names who wrote the current feedback, not who last changed the status', async () => {
+    const material = await formOf('form-material');
+    expect(material.entries.map((entry) => [entry.id, entry.feedbackBy])).toEqual([
+      ['material-2', { name: 'Tom Frei v/o Dachs', at: '2026-09-19T12:00:00.000Z' }],
+      // no feedback, so nobody wrote it
+      ['material-1', undefined],
+    ]);
+  });
+
+  it('names nobody for feedback the history does not record', async () => {
+    const stand = await formOf('form-stand');
+    expect(stand.entries.every((entry) => entry.feedbackBy === undefined)).toBe(true);
+  });
+
+  it("keeps the review history from a Hof: it is the Ressort's working record", async () => {
+    const material = await formOf('form-material');
+    expect(material.entries.map((entry) => entry.reviewLog)).toEqual([[], []]);
+  });
+
+  it('shows a reviewer the review history, newest first', async () => {
+    const material = await formOf('form-material', true);
+    expect(material.entries.find((entry) => entry.id === 'material-1')?.reviewLog).toEqual([
+      // a cleared status reads as handed in
+      {
+        at: '2026-09-03T12:00:00.000Z',
+        by: 'Tom Frei v/o Dachs',
+        status: 'submitted',
+        feedback: '',
+      },
+      {
+        at: '2026-09-02T12:00:00.000Z',
+        by: 'Tom Frei v/o Dachs',
+        status: 'inReview',
+        feedback: 'Fehlt da nicht etwas?',
+      },
+    ]);
+    expect(
+      material.entries
+        .find((entry) => entry.id === 'material-2')
+        ?.reviewLog.map((change) => change.at),
+    ).toEqual(['2026-09-20T12:00:00.000Z', '2026-09-19T12:00:00.000Z', '2026-09-18T12:00:00.000Z']);
   });
 
   it('lists the deadlines by date and only documents with a file', async () => {

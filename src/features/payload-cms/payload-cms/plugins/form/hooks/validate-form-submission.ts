@@ -110,6 +110,19 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
 
   if (typeof form !== 'object') return data;
 
+  // A field answered twice would be checked by its last answer and stored with both, so an
+  // invalid first answer would slip through.
+  const answeredFields = data.submissionData.map((item) => item.field);
+  const repeated = answeredFields.find((field, index) => answeredFields.indexOf(field) !== index);
+  if (repeated !== undefined) {
+    throw new APIError(
+      'Validation Error',
+      400,
+      [{ field: repeated, message: 'invalid_selection' }],
+      true,
+    );
+  }
+
   // Build a map of submitted values for quick lookup
   const submissionDataMap = new Map<string, string>();
   for (const item of data.submissionData) {
@@ -316,6 +329,33 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
           ranges === undefined ||
           !areRangesAllowed(ranges, selectable)
         ) {
+          fieldErrors.push({ field: fieldName, message: 'invalid_selection' });
+        }
+        break;
+      }
+      case 'fileUpload': {
+        // Only files the sender uploaded to this form and no submission claimed yet: an id is
+        // all a submission names, and ids of other people's uploads can be guessed.
+        const fileIds = value
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id !== '');
+        const { totalDocs: ownUploads } =
+          !req.user || fileIds.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))
+            ? { totalDocs: 0 }
+            : await req.payload.count({
+                collection: 'form_collection',
+                where: {
+                  and: [
+                    { id: { in: fileIds } },
+                    { form: { equals: formId } },
+                    { isTemporary: { equals: true } },
+                    { uploadedBy: { equals: req.user.id } },
+                  ],
+                },
+                overrideAccess: true,
+              });
+        if (ownUploads !== new Set(fileIds).size) {
           fieldErrors.push({ field: fieldName, message: 'invalid_selection' });
         }
         break;

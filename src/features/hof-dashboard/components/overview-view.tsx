@@ -16,6 +16,7 @@ import {
 } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
 import {
+  isOpen,
   percentDone,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
@@ -49,7 +50,7 @@ export const OverviewView: React.FC<{
   const open = data.forms
     .flatMap((form) => {
       const formProgress = progress[form.id];
-      return formProgress === undefined || formProgress.state === 'done'
+      return formProgress === undefined || !isOpen(formProgress)
         ? []
         : [{ form, progress: formProgress }];
     })

@@ -6,7 +6,10 @@ import {
 } from '@/features/hof-dashboard/constants';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
-import { parseMaterialAnswer } from '@/features/payload-cms/components/form/utils/material-list';
+import {
+  parseMaterialAnswer,
+  serializeMaterialAnswer,
+} from '@/features/payload-cms/components/form/utils/material-list';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Form, Hof } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -68,6 +71,18 @@ export interface HofDashboardEntry {
   withdrawable: boolean;
   /** The Ressort's own status, without the website approval that also reads as accepted. */
   reviewStatus: HofReviewStatus | undefined;
+  /** Who wrote the current feedback, and when. */
+  feedbackBy: { name: string; at: string } | undefined;
+  /** Every change of status or feedback, newest first; for the reviewers only, else empty. */
+  reviewLog: HofReviewLogEntry[];
+}
+
+/** One change of a submission's review: when, by whom, and what it was set to. */
+export interface HofReviewLogEntry {
+  at: string;
+  by: string;
+  status: HofEntryStatus;
+  feedback: string;
 }
 
 /** A form linked to the dashboard, with the Hof's submissions of it, newest first. */
@@ -119,12 +134,18 @@ const toContact = (
 export const idOf = (reference: string | { id: string } | null | undefined): string | undefined =>
   typeof reference === 'object' && reference !== null ? reference.id : (reference ?? undefined);
 
+/** Whether a form is published in the language it was read in. */
+const isPublished = (form: { _localized_status?: unknown }): boolean =>
+  (form._localized_status as { published?: boolean } | undefined)?.published === true;
+
 /** A field of a form, as far as showing its answer needs it. */
 interface FormField {
   blockType: string;
   name: string;
   label: string;
   options?: { value: string; label: string }[];
+  /** The lines of a material list. */
+  items?: { id?: string | null }[];
 }
 
 /** Every named field of a form in the order it asks them, conditioned ones included. */
@@ -141,6 +162,7 @@ const fieldsOf = (form: Pick<Form, 'sections'>): FormField[] => {
           name: block.name,
           label: typeof block.label === 'string' ? block.label : block.name,
           ...(Array.isArray(block.options) ? { options: block.options } : {}),
+          ...(Array.isArray(block.items) ? { items: block.items } : {}),
         },
       ];
     });
@@ -159,7 +181,7 @@ const UNSHOWN_FIELDS = new Set(['hofSelection', 'message', 'ceviDbLogin']);
 const toAnswers = (
   fields: FormField[],
   values: Map<string, string>,
-  files: Map<string, HofDashboardFile>,
+  files: ReadonlyMap<string, HofDashboardFile>,
   locale: Locale,
 ): HofDashboardAnswer[] =>
   fields.flatMap((field): HofDashboardAnswer[] => {
@@ -214,9 +236,35 @@ interface StoredSubmission {
   submissionData?: { field: string; value: string }[] | null;
   hofReviewStatus?: 'inReview' | 'revisionRequired' | 'accepted' | null;
   hofFeedback?: string | null;
+  hofReviewLog?:
+    | {
+        changedAt: string;
+        reviewerName?: string | null;
+        status?: HofReviewStatus | null;
+        feedback?: string | null;
+      }[]
+    | null;
   approved?: boolean | null;
   createdAt: string;
 }
+
+/**
+ * Who wrote the feedback a submission shows now, and when: the change that set it, which is the
+ * first of the latest changes that all kept it.
+ */
+const feedbackAuthor = (submission: StoredSubmission): { name: string; at: string } | undefined => {
+  const feedback = submission.hofFeedback ?? '';
+  const log = submission.hofReviewLog ?? [];
+  if (feedback === '' || log.length === 0) return undefined;
+  let setBy: (typeof log)[number] | undefined;
+  for (const change of log.toReversed()) {
+    if ((change.feedback ?? '') !== feedback) break;
+    setBy = change;
+  }
+  return setBy === undefined || (setBy.reviewerName ?? '') === ''
+    ? undefined
+    : { name: setBy.reviewerName ?? '', at: setBy.changedAt };
+};
 
 /** Where a submission stands: approved for the website counts as accepted. */
 const statusOf = (submission: StoredSubmission): HofEntryStatus =>
@@ -249,7 +297,7 @@ export const getHofDashboardData = async (
 ): Promise<HofDashboardData> => {
   const payload = await getPayload({ config });
 
-  const [hof, settings, linkedForms] = await Promise.all([
+  const [hof, settings, linkedForms, publishedInGerman] = await Promise.all([
     payload.findByID({
       collection: 'hoefe',
       id: hofId,
@@ -275,13 +323,26 @@ export const getHofDashboardData = async (
       pagination: false,
       overrideAccess: true,
     }),
+    // German is the fallback: a form not yet translated reads in German, as the settings do,
+    // rather than vanishing with the Hof's submissions of it
+    payload.find({
+      collection: 'forms',
+      where: { 'hofDashboard.area': { exists: true } },
+      locale: LOCALE.DE,
+      depth: 0,
+      limit: MAX_FORMS,
+      pagination: false,
+      overrideAccess: true,
+      select: { _localized_status: true },
+    }),
   ]);
 
-  // a form not published in this language renders nothing, so it is not offered either
+  const germanIds = new Set(
+    publishedInGerman.docs.filter((form) => isPublished(form)).map((form) => form.id),
+  );
   const forms = linkedForms.docs.filter(
     (form) =>
-      typeof form.hofDashboard?.area === 'string' &&
-      (form._localized_status as { published?: boolean } | undefined)?.published === true,
+      typeof form.hofDashboard?.area === 'string' && (isPublished(form) || germanIds.has(form.id)),
   );
 
   const submissions = (
@@ -301,6 +362,7 @@ export const getHofDashboardData = async (
             submissionData: true,
             hofReviewStatus: true,
             hofFeedback: true,
+            hofReviewLog: true,
             approved: true,
             createdAt: true,
           },
@@ -329,26 +391,42 @@ export const getHofDashboardData = async (
       ? { docs: [] }
       : await payload.find({
           collection: 'form_collection',
-          where: { id: { in: fileIds } },
+          // An answer names its files by id, and anyone can write any id into it: only a file
+          // that belongs to one of these submissions shows, so no other Hof's file is listed.
+          where: {
+            and: [
+              { id: { in: fileIds } },
+              { formSubmission: { in: submissions.docs.map((submission) => submission.id) } },
+            ],
+          },
           depth: 0,
           limit: fileIds.length,
           pagination: false,
           overrideAccess: true,
-          select: { originalFilename: true, filename: true, filesize: true, mimeType: true },
+          select: {
+            originalFilename: true,
+            filename: true,
+            filesize: true,
+            mimeType: true,
+            formSubmission: true,
+          },
         });
-  const files = new Map(
-    storedFiles.map((file) => [
-      file.id,
-      {
-        id: file.id,
-        name: file.originalFilename ?? file.filename ?? file.id,
-        // served by the route that checks the Hof, not by Payload's own file URL
-        url: `/api/form-file/${file.id}`,
-        size: file.filesize ?? undefined,
-        mimeType: file.mimeType ?? undefined,
-      },
-    ]),
-  );
+  // by submission, so an answer only finds the files of its own submission
+  const filesBySubmission = new Map<string, Map<string, HofDashboardFile>>();
+  for (const file of storedFiles) {
+    const submissionId = idOf(file.formSubmission);
+    if (submissionId === undefined) continue;
+    const ofSubmission = filesBySubmission.get(submissionId) ?? new Map<string, HofDashboardFile>();
+    ofSubmission.set(file.id, {
+      id: file.id,
+      name: file.originalFilename ?? file.filename ?? file.id,
+      // served by the route that checks the Hof, not by Payload's own file URL
+      url: `/api/form-file/${file.id}`,
+      size: file.filesize ?? undefined,
+      mimeType: file.mimeType ?? undefined,
+    });
+    filesBySubmission.set(submissionId, ofSubmission);
+  }
 
   const now = new Date();
   // an editor's order first; forms without a position after those with one
@@ -378,8 +456,25 @@ export const getHofDashboardData = async (
           title: title === '' ? undefined : title,
           status,
           feedback: submission.hofFeedback ?? undefined,
-          answers: toAnswers(fields, values, files, locale),
+          answers: toAnswers(
+            fields,
+            values,
+            filesBySubmission.get(submission.id) ?? new Map<string, HofDashboardFile>(),
+            locale,
+          ),
           reviewStatus: submission.hofReviewStatus ?? undefined,
+          feedbackBy: feedbackAuthor(submission),
+          // the history is the Ressort's working record, not the Hof's
+          reviewLog: isReviewer
+            ? (submission.hofReviewLog ?? [])
+                .map((change): HofReviewLogEntry => ({
+                  at: change.changedAt,
+                  by: change.reviewerName ?? '',
+                  status: change.status ?? 'submitted',
+                  feedback: change.feedback ?? '',
+                }))
+                .toReversed()
+            : [],
           // only the version that counts; an earlier one is what the Ressort answered on.
           // A reviewer answers a submission; taking it back is the Hof's.
           withdrawable:
@@ -392,8 +487,13 @@ export const getHofDashboardData = async (
         fields
           .filter((field) => field.blockType === 'materialList')
           .flatMap((field) => {
-            const value = newest?.submissionData?.find((answer) => answer.field === field.name);
-            return value === undefined || value.value === '' ? [] : [[field.name, value.value]];
+            const stored = newest?.submissionData?.find((answer) => answer.field === field.name);
+            // only lines the list still offers: a removed one would be refused on sending
+            const listed = new Set(field.items?.map((item) => item.id));
+            const lines = (parseMaterialAnswer(stored?.value) ?? []).filter((line) =>
+              listed.has(line.id),
+            );
+            return lines.length === 0 ? [] : [[field.name, serializeMaterialAnswer(lines)]];
           }),
       );
       const deadline = settingsOfForm?.deadline ?? undefined;

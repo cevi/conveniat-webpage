@@ -29,7 +29,11 @@ const dayStart = (date: Date): number => {
 export const daysUntil = (deadline: string, now: Date): number =>
   Math.round((dayStart(new Date(deadline)) - dayStart(now)) / DAY_MS);
 
-export type SubmissionState = 'done' | 'open' | 'dueSoon' | 'overdue';
+/**
+ * Where a form stands. `closed` is a form still missing whose submissions closed at the due
+ * date: nothing the Hof can do anymore, so it is not counted as open.
+ */
+export type SubmissionState = 'done' | 'open' | 'dueSoon' | 'overdue' | 'closed';
 
 /** What the Hof still has to do for a form: hand it in, or revise what it handed in. */
 export type SubmissionGap = 'missing' | 'revision';
@@ -39,6 +43,8 @@ export interface SubmissionProgressInput {
   deadline: string | undefined;
   /** The statuses of the Hof's submissions of the form, newest first. */
   statuses: readonly HofEntryStatus[];
+  /** Closed at its due date, so it takes nothing anymore. */
+  closed?: boolean;
 }
 
 export interface SubmissionProgress {
@@ -75,11 +81,16 @@ export const getSubmissionProgress = (
   const base = { gap, status: input.statuses[0], deadline, daysLeft };
 
   if (gap === undefined) return { state: 'done', ...base };
+  if (input.closed === true) return { state: 'closed', ...base };
   if (daysLeft === undefined) return { state: 'open', ...base };
   if (daysLeft < 0) return { state: 'overdue', ...base };
   if (daysLeft <= DUE_SOON_DAYS) return { state: 'dueSoon', ...base };
   return { state: 'open', ...base };
 };
+
+/** Whether a form still asks something of the Hof: counted in the tabs and "Als Nächstes". */
+export const isOpen = (progress: SubmissionProgress): boolean =>
+  progress.state !== 'done' && progress.state !== 'closed';
 
 /** Share of done items, as a whole percentage; an empty list is not progress. */
 export const percentDone = (states: readonly SubmissionState[]): number =>

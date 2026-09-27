@@ -117,9 +117,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     const accessRequest = await createLocalReq({ user }, payload);
 
     // Editors read through the collection's own access rules, as over REST. Anyone else is a
-    // participant restoring the files they just attached to a form they are still filling in.
-    // form_collection does not record who uploaded a file, so the closest we can narrow that is
-    // to files that are still temporary: once a submission claims a file, it is out of reach.
+    // participant restoring the files they just attached to a form they are still filling in:
+    // their own uploads, while still temporary. Once a submission claims a file, it is out of
+    // reach here.
     const result = hasAdminOrWebAccess({ req: accessRequest })
       ? await payload.find({
           collection: 'form_collection',
@@ -131,7 +131,13 @@ export async function GET(request: Request): Promise<NextResponse> {
         })
       : await payload.find({
           collection: 'form_collection',
-          where: { and: [{ id: { in: ids } }, { isTemporary: { equals: true } }] },
+          where: {
+            and: [
+              { id: { in: ids } },
+              { isTemporary: { equals: true } },
+              { uploadedBy: { equals: user.id } },
+            ],
+          },
           limit: ids.length,
           depth: 0,
           overrideAccess: true,
@@ -245,6 +251,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         isTemporary: true,
         form: formId,
         originalFilename: file.name,
+        uploadedBy: user.id,
       },
       file: {
         data: buffer,

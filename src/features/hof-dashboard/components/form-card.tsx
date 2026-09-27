@@ -25,7 +25,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Trash2 } from 'lucide-react';
 import type React from 'react';
-import { useId, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 const ENTRY_TONE: Record<HofEntryStatus, 'done' | 'neutral' | 'attention'> = {
@@ -42,6 +42,8 @@ const WithdrawAction: React.FC<{ locale: Locale; onWithdraw: () => Promise<void>
 }) => {
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
+  // stable, so the focus moves once when the question appears and not on every render
+  const focusOnMount = useCallback((button: HTMLButtonElement | null) => button?.focus(), []);
   if (!asking) {
     return (
       <button
@@ -82,7 +84,7 @@ const WithdrawAction: React.FC<{ locale: Locale; onWithdraw: () => Promise<void>
           className={SECONDARY_BUTTON_CLASS}
           onClick={() => setAsking(false)}
           // the button that asked is gone, so the focus lands on the safe answer
-          ref={(button) => button?.focus()}
+          ref={focusOnMount}
         >
           {translate('cancel', locale)}
         </button>
@@ -128,18 +130,18 @@ const EntryBlock: React.FC<{
           {translate(entry.status === 'revisionRequired' ? 'feedback' : 'lastFeedback', locale)}
         </p>
         <p className="whitespace-pre-line">{entry.feedback}</p>
+        {entry.feedbackBy !== undefined && (
+          <p className="mt-1 text-xs opacity-80">
+            {translate('feedbackBy', locale, {
+              name: entry.feedbackBy.name,
+              date: formatDate(entry.feedbackBy.at, locale),
+            })}
+          </p>
+        )}
       </div>
     )}
     <EntryAnswers answers={entry.answers} locale={locale} />
-    {reviewFor !== undefined && (
-      // starts over from what is stored once it changes, e.g. saved by another reviewer
-      <ReviewPanel
-        key={`${entry.reviewStatus ?? ''}:${entry.feedback ?? ''}`}
-        entry={entry}
-        hofId={reviewFor}
-        locale={locale}
-      />
-    )}
+    {reviewFor !== undefined && <ReviewPanel entry={entry} hofId={reviewFor} locale={locale} />}
     {/* taking it back is the Hof's; a reviewer answers it above instead */}
     {entry.withdrawable && reviewFor === undefined && (
       <WithdrawAction locale={locale} onWithdraw={() => onWithdraw(entry.id)} />

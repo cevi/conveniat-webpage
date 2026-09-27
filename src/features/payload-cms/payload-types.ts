@@ -1991,7 +1991,7 @@ export interface Form {
      */
     titleField?: string | null;
     /**
-     * Off for a form everyone of a Hof may fill in, like the Stadtleben stand registration.
+     * Off: anyone signed in can hand it in for any Hof, as the Stadtleben stand registration always allowed. Leave it on for plans and orders.
      */
     onlyHofAdministrators?: boolean | null;
     /**
@@ -2081,6 +2081,19 @@ export interface FormSubmission {
   hofReviewStatus?: ('inReview' | 'revisionRequired' | 'accepted') | null;
   hofFeedback?: string | null;
   submittedBy?: (string | null) | User;
+  /**
+   * Who changed the status or the feedback, and when. Written on every save.
+   */
+  hofReviewLog?:
+    | {
+        changedAt: string;
+        reviewerName?: string | null;
+        status?: ('inReview' | 'revisionRequired' | 'accepted') | null;
+        feedback?: string | null;
+        reviewer?: (string | null) | User;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4102,6 +4115,7 @@ export interface FormCollection {
   isTemporary: boolean;
   form?: (string | null) | Form;
   formSubmission?: (string | null) | FormSubmission;
+  uploadedBy?: (string | null) | User;
   originalFilename?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
@@ -6779,6 +6793,7 @@ export interface FormCollectionSelect<T extends boolean = true> {
   isTemporary?: T;
   form?: T;
   formSubmission?: T;
+  uploadedBy?: T;
   originalFilename?: T;
   _objectKey?: T;
   updatedAt?: T;
@@ -7886,6 +7901,16 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
   hofReviewStatus?: T;
   hofFeedback?: T;
   submittedBy?: T;
+  hofReviewLog?:
+    | T
+    | {
+        changedAt?: T;
+        reviewerName?: T;
+        status?: T;
+        feedback?: T;
+        reviewer?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

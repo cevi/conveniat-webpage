@@ -113,11 +113,11 @@ const fileType = (name: string): string | undefined => {
  * the progress of a request body, and a plan of 20 MB takes minutes on camp wifi.
  */
 const postWithProgress = (
+  request: XMLHttpRequest,
   body: FormData,
   onProgress: (loaded: number, total: number) => void,
 ): Promise<{ ok: boolean; result: { docId?: string; error?: string } }> =>
   new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
     request.open('POST', '/api/form-upload');
     request.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable) onProgress(event.loaded, event.total);
@@ -132,6 +132,7 @@ const postWithProgress = (
       resolve({ ok: request.status >= 200 && request.status < 300, result });
     });
     request.addEventListener('error', () => reject(new Error('Upload failed')));
+    request.addEventListener('abort', () => reject(new Error('Upload cancelled')));
     request.send(body);
   });
 
@@ -140,6 +141,24 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/**
+ * The uploads under way, by file, called off when the field goes away, e.g. when a form
+ * opened on the Hof dashboard is closed: an upload nobody waits for only uses camp wifi.
+ */
+const useRunningUploads = (): React.RefObject<Map<string, XMLHttpRequest>> => {
+  const running = useRef(new Map<string, XMLHttpRequest>());
+  useEffect(() => {
+    const uploads = running.current;
+    return (): void => {
+      const requests = [...uploads.values()];
+      // forgotten first, so the aborted uploads report nothing to a field that is gone
+      uploads.clear();
+      for (const request of requests) request.abort();
+    };
+  }, []);
+  return running;
+};
 
 export const FileUpload: React.FC<
   {
@@ -177,6 +196,7 @@ export const FileUpload: React.FC<
   const [isDragOver, setIsDragOver] = useState(false);
 
   const hasInteractedReference = useRef(false);
+  const runningUploads = useRunningUploads();
   const fetchedIdsReference = useRef<string>('');
 
   const isDisabled =
@@ -312,11 +332,13 @@ export const FileUpload: React.FC<
       formData.append('formId', formId);
       formData.append('fieldName', name);
 
+      const request = new XMLHttpRequest();
+      runningUploads.current.set(item.id, request);
       const startedAt = Date.now();
       // the browser reports many times a percent; a render each would stall a cheap phone
       let reported = -1;
       try {
-        const { ok, result } = await postWithProgress(formData, (loaded, total) => {
+        const { ok, result } = await postWithProgress(request, formData, (loaded, total) => {
           const percent = Math.round((loaded / total) * 100);
           if (percent === reported) return;
           reported = percent;
@@ -336,11 +358,15 @@ export const FileUpload: React.FC<
         }
         updateItem(item.id, { status: 'success', docId: result.docId });
       } catch {
+        // removed meanwhile: nothing left to report on
+        if (!runningUploads.current.has(item.id)) return;
         // no signal, usually: the file stays, so one tap sends it again
         updateItem(item.id, { status: 'error', error: fileUploadTexts.uploadErrorText[locale] });
+      } finally {
+        runningUploads.current.delete(item.id);
       }
     },
-    [formId, name, locale, updateItem],
+    [formId, name, locale, updateItem, runningUploads],
   );
 
   const retryUpload = (item: FileUploadItem): void => {
@@ -418,6 +444,10 @@ export const FileUpload: React.FC<
 
   const removeFile = (id: string): void => {
     hasInteractedReference.current = true;
+    // a file taken out stops using the connection at once
+    const running = runningUploads.current.get(id);
+    runningUploads.current.delete(id);
+    running?.abort();
     setFilesList((previous) => previous.filter((item) => item.id !== id));
   };
 

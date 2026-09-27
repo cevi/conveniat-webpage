@@ -24,7 +24,6 @@ export const text = {
   },
   loading: { de: 'Wird geladen …', en: 'Loading …', fr: 'Chargement …' },
   retry: { de: 'Erneut versuchen', en: 'Try again', fr: 'Réessayer' },
-  close: { de: 'Schliessen', en: 'Close', fr: 'Fermer' },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
   tabs: { de: 'Bereiche', en: 'Sections', fr: 'Rubriques' },
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
@@ -107,6 +106,11 @@ export const text = {
   },
   areaDocuments: { de: 'Unterlagen', en: 'Documents', fr: 'Documents' },
   version: { de: 'Version {n}', en: 'Version {n}', fr: 'Version {n}' },
+  gapClosed: {
+    de: 'Abgabe geschlossen',
+    en: 'Closed',
+    fr: 'Dépôt fermé',
+  },
   gapMissing: { de: 'Noch nicht abgegeben', en: 'Not handed in yet', fr: 'Pas encore déposé' },
   handIn: { de: 'Abgeben', en: 'Hand in', fr: 'Déposer' },
   handInNewVersion: {
@@ -172,6 +176,18 @@ export const text = {
     en: 'The Ressort’s answer',
     fr: 'Réponse du Ressort',
   },
+  approvedOnSite: {
+    de: 'Für die Website freigegeben: Das gilt als "Freigegeben", was immer hier steht.',
+    en: 'Approved for the website: that counts as "Accepted", whatever is set here.',
+    fr: 'Approuvé pour le site web : cela vaut « Validé », quoi qu’il soit indiqué ici.',
+  },
+  feedbackBy: { de: '{name}, {date}', en: '{name}, {date}', fr: '{name}, {date}' },
+  reviewHistory: {
+    de: 'Verlauf ({n})',
+    en: 'History ({n})',
+    fr: 'Historique ({n})',
+  },
+  reviewerUnknown: { de: 'Unbekannt', en: 'Unknown', fr: 'Inconnu' },
   reviewStatus: { de: 'Status', en: 'Status', fr: 'Statut' },
   reviewFeedback: {
     de: 'Rückmeldung an den Hof',
@@ -179,18 +195,23 @@ export const text = {
     fr: 'Retour au Hof',
   },
   reviewHint: {
-    de: 'Der Hof sieht Status und Rückmeldung, sobald du speicherst.',
-    en: 'The Hof sees the status and feedback as soon as you save.',
-    fr: 'Le Hof voit le statut et le retour dès que tu enregistres.',
+    de: 'Wird automatisch gespeichert. Der Hof sieht Status und Rückmeldung mit deinem Namen.',
+    en: 'Saved automatically. The Hof sees the status and feedback with your name.',
+    fr: 'Enregistré automatiquement. Le Hof voit le statut et le retour avec ton nom.',
   },
-  save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
+  autosaveTyping: { de: 'Änderungen …', en: 'Editing …', fr: 'Modification …' },
+  autosaveOffline: {
+    de: 'Offline – wird gespeichert, sobald du wieder Empfang hast',
+    en: 'Offline – saves once you have signal',
+    fr: 'Hors ligne – enregistré dès que tu as du réseau',
+  },
+  autosaveError: {
+    de: 'Nicht gespeichert',
+    en: 'Not saved',
+    fr: 'Non enregistré',
+  },
   saving: { de: 'Wird gespeichert …', en: 'Saving …', fr: 'Enregistrement …' },
   saved: { de: 'Gespeichert', en: 'Saved', fr: 'Enregistré' },
-  saveFailed: {
-    de: 'Speichern fehlgeschlagen.',
-    en: 'Saving failed.',
-    fr: "L'enregistrement a échoué.",
-  },
   openCount: { de: '{n} offen', en: '{n} open', fr: '{n} en attente' },
   signOut: { de: 'Abmelden', en: 'Sign out', fr: 'Se déconnecter' },
 } satisfies Record<string, StaticTranslationString>;
@@ -216,6 +237,17 @@ export const formatDate = (value: string, locale: Locale): string =>
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: 'Europe/Zurich',
+  }).format(new Date(value));
+
+/** A moment as the camp writes it, e.g. 31.01.2027, 14:05. */
+export const formatDateTime = (value: string, locale: Locale): string =>
+  new Intl.DateTimeFormat(INTL_LOCALES[locale], {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
     timeZone: 'Europe/Zurich',
   }).format(new Date(value));
 

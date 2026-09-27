@@ -116,18 +116,24 @@ describe('withdrawHofSubmission', () => {
 });
 
 describe('reviewHofSubmission', () => {
-  it('stores the status and the feedback the Hof reads', async () => {
+  /** A web core team member answering on the dashboard. */
+  const REVIEWER = { id: 'web-1', name: 'Sara Keller v/o Biber' };
+
+  it('stores the status and the feedback the Hof reads, naming who wrote them', async () => {
     await reviewHofSubmission({
       hof: HOF_NORD,
       submissionId: 'plan-2',
       status: 'revisionRequired',
       feedback: 'Masthöhe fehlt',
+      reviewer: REVIEWER,
     });
     expect(mockPayload.update).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'form-submissions',
         id: 'plan-2',
         data: { hofReviewStatus: 'revisionRequired', hofFeedback: 'Masthöhe fehlt' },
+        // the local API has no user, so the review history learns the reviewer from here
+        context: { hofReviewer: REVIEWER },
       }),
     );
   });
@@ -138,6 +144,7 @@ describe('reviewHofSubmission', () => {
       submissionId: 'plan-reviewed',
       status: undefined,
       feedback: '',
+      reviewer: REVIEWER,
     });
     expect(mockPayload.update).toHaveBeenCalledWith(
       // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
@@ -150,7 +157,13 @@ describe('reviewHofSubmission', () => {
     ['a submission of a form off the dashboard', 'unlinked-entry'],
   ])('does not answer %s', async (_description, submissionId) => {
     await expect(
-      reviewHofSubmission({ hof: HOF_NORD, submissionId, status: 'accepted', feedback: '' }),
+      reviewHofSubmission({
+        hof: HOF_NORD,
+        submissionId,
+        status: 'accepted',
+        feedback: '',
+        reviewer: REVIEWER,
+      }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });
     expect(mockPayload.update).not.toHaveBeenCalled();
   });

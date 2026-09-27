@@ -71,7 +71,8 @@ const callerAs = (user?: unknown): ReturnType<typeof createCaller> =>
   createCaller({ user, prisma: {}, locale: 'de' } as unknown as Context);
 
 const hofNordAdmin = callerAs({ uuid: 'user-8', group_ids: [990_001] });
-const reviewer = callerAs({ uuid: 'web-1', group_ids: [542] });
+// the session's name already reads "First Last v/o Cevi name"
+const reviewer = callerAs({ uuid: 'web-1', name: 'Sara Keller v/o Biber', group_ids: [542] });
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -132,7 +133,7 @@ describe('hofDashboardRouter', () => {
     expect(mockWithdraw).not.toHaveBeenCalled();
   });
 
-  it("stores a reviewer's status and feedback", async () => {
+  it("stores a reviewer's status and feedback, signed with their name", async () => {
     await reviewer.updateSubmissionReview({
       hofId: 'hof-sued',
       submissionId: 'sued-plan',
@@ -144,6 +145,7 @@ describe('hofDashboardRouter', () => {
       submissionId: 'sued-plan',
       status: 'revisionRequired',
       feedback: 'Bitte ergänzen',
+      reviewer: { id: 'web-1', name: 'Sara Keller v/o Biber' },
     });
   });
 

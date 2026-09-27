@@ -1,6 +1,7 @@
 import {
   daysUntil,
   getSubmissionProgress,
+  isOpen,
   percentDone,
   type SubmissionProgressInput,
 } from '@/features/hof-dashboard/utils/submission-progress';
@@ -74,6 +75,29 @@ describe('getSubmissionProgress', () => {
 
   it('stays open without a deadline', () => {
     expect(getSubmissionProgress(input({ deadline: undefined }), autumn).state).toBe('open');
+  });
+
+  it('is closed, not overdue, when its submissions closed with nothing handed in', () => {
+    const progress = getSubmissionProgress(
+      input({ closed: true }),
+      new Date('2027-02-10T10:00:00Z'),
+    );
+    expect(progress).toMatchObject({ state: 'closed', gap: 'missing' });
+    // nothing the Hof can do anymore, so the tabs do not count it
+    expect(isOpen(progress)).toBe(false);
+  });
+
+  it('stays done when a handed-in form closes', () => {
+    const progress = getSubmissionProgress(
+      input({ closed: true, statuses: ['accepted'] }),
+      new Date('2027-02-10T10:00:00Z'),
+    );
+    expect(progress.state).toBe('done');
+    expect(isOpen(progress)).toBe(false);
+  });
+
+  it('still asks for what is missing while a form takes submissions', () => {
+    expect(isOpen(getSubmissionProgress(input({}), new Date('2027-02-10T10:00:00Z')))).toBe(true);
   });
 });
 

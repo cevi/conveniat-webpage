@@ -38,6 +38,9 @@ const texts = {
   more: { de: 'Mehr {name}', en: 'More {name}', fr: 'Plus de {name}' },
 } satisfies Record<string, StaticTranslationString>;
 
+/** How each language writes a large number, e.g. 10'000 in Swiss German. */
+const NUMBER_LOCALES: Record<Locale, string> = { de: 'de-CH', fr: 'fr-CH', en: 'en-GB' };
+
 const fill = (template: string, values: Record<string, string | number>): string =>
   template.replaceAll(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ''));
 
@@ -214,7 +217,7 @@ export const MaterialList: React.FC<MaterialListBlock & { error?: FieldError }> 
                     {invalid && (
                       <p id={hintId} className="mt-1 text-right text-xs text-red-600">
                         {fill(texts.invalidQuantity[locale], {
-                          max: MATERIAL_LIST_MAX_QUANTITY.toLocaleString('de-CH'),
+                          max: MATERIAL_LIST_MAX_QUANTITY.toLocaleString(NUMBER_LOCALES[locale]),
                         })}
                       </p>
                     )}

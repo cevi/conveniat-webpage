@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
   canAccessBilling,
@@ -187,6 +188,8 @@ export const HoefeCollection: CollectionConfig = {
         fr: 'Contacts sur le tableau de bord du Hof',
       },
       admin: {
+        // only the Hof dashboard shows them; a deployment without it has nothing to show them on
+        hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
         description: {
           en: 'Shown at the top of the Hof dashboard. The name reads like "First Last v/o Cevi name".',
           de: 'Erscheinen zuoberst auf dem Hof-Dashboard. Der Name im Format "Vorname Name v/o Ceviname".',
