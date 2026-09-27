@@ -23,16 +23,17 @@ export const HofMaterialOrdersCollection: CollectionConfig = {
     defaultColumns: ['hof', 'orderType', 'updatedAt', 'lastEditedBy'],
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
-      en: 'The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.',
-      de: 'Das Material, das die Höfe auf dem Dashboard bestellen. Die Namen stehen auf Deutsch, so wie sie bei der Bestellung hiessen.',
-      fr: 'Le matériel commandé par les Hofs sur le tableau de bord. Les noms sont conservés en allemand, tels qu’ils étaient lors de la commande.',
+      en: 'The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered. To change an order, open the Hof on the Hof dashboard: reviewers can pick any Hof there and may still order after the deadline.',
+      de: 'Das Material, das die Höfe auf dem Dashboard bestellen. Die Namen stehen auf Deutsch, so wie sie bei der Bestellung hiessen. Um eine Bestellung zu ändern, den Hof auf dem Hof-Dashboard öffnen: Dort kann das Ressort jeden Hof wählen und auch nach der Frist noch bestellen.',
+      fr: 'Le matériel commandé par les Hofs sur le tableau de bord. Les noms sont conservés en allemand, tels qu’ils étaient lors de la commande. Pour modifier une commande, ouvrir le Hof sur le tableau de bord du Hof : le Ressort peut y choisir chaque Hof et commander même après le délai.',
     },
   },
   access: {
     read: canReviewHofDashboard,
-    // only the dashboard's tRPC procedures create these, through the local API
+    // Only the dashboard's tRPC procedures write these, through the local API: they know the
+    // material list, which a line added here could not be linked to.
     create: () => false,
-    update: canReviewHofDashboard,
+    update: () => false,
     delete: isFullAdmin,
   },
   indexes: [{ fields: ['hof', 'orderType'], unique: true }],

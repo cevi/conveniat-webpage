@@ -45,10 +45,15 @@ export const hofDashboardRouter = createTRPCRouter({
 
   /** Where the browser puts a file before `completeUpload` files it. */
   createUploadUrl: hofDashboardProcedure
-    .input(hofIdInput.extend({ filename: z.string().min(1).max(200) }))
+    .input(
+      hofIdInput.extend({
+        filename: z.string().min(1).max(200),
+        size: z.number().int().positive(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       await ctx.assertHofAccess(input.hofId);
-      return await createHofUploadUrl(input.hofId, input.filename);
+      return await createHofUploadUrl(input.hofId, input.filename, input.size);
     }),
 
   completeUpload: hofDashboardProcedure

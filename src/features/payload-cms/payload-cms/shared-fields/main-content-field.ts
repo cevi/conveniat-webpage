@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { approvedFormSubmissionsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/approved-form-submissions-block';
 import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
@@ -32,7 +33,7 @@ import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-block
 import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
-import type { Block, Field } from 'payload';
+import type { Block, BlocksField, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
   heroSectionBlock,
@@ -70,6 +71,14 @@ export const mainContentBlocks: Block[] = [
   featuredSectionBlock,
   tabsBlock,
 ];
+
+/** The content blocks an editor is offered: the Hof dashboard only where it is switched on. */
+export const mainContentBlockOptions: NonNullable<BlocksField['filterOptions']> = () =>
+  environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
+    ? true
+    : mainContentBlocks
+        .map((block) => block.slug)
+        .filter((slug) => slug !== hofDashboardBlock.slug);
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -120,4 +129,5 @@ export const mainContentField: Field = {
     },
   ],
   blocks: mainContentBlocks,
+  filterOptions: mainContentBlockOptions,
 };

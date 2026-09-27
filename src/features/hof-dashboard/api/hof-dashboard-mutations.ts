@@ -2,6 +2,7 @@ import { getHofDashboardSettings } from '@/features/hof-dashboard/api/hof-dashbo
 import {
   HOF_FILE_MAX_BYTES,
   HOF_FILE_TYPES,
+  HOF_FILES_MAX_COUNT,
   HOF_ORDER_TYPE_LABELS,
   HOF_SUBMISSION_TYPE_LABELS,
   hofFileExtensionOf,
@@ -40,17 +41,30 @@ const uploadPrefix = (hofId: string): string => `temp/hof-dashboard/${hofId}/`;
 export const createHofUploadUrl = async (
   hofId: string,
   filename: string,
+  size: number,
 ): Promise<{ url: string; key: string; contentType: string }> => {
   const extension = hofFileExtensionOf(filename);
   if (extension === undefined) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
   }
+  if (size > HOF_FILE_MAX_BYTES) {
+    throw new TRPCError({ code: 'BAD_REQUEST', message: 'file_too_large' });
+  }
   const contentType = HOF_FILE_TYPES[extension];
   const key = `${uploadPrefix(hofId)}${randomUUID()}-${filename.replaceAll(/[^\w.-]/g, '_')}`;
   const url = await getSignedUrl(
     s3ClientPublic,
-    new PutObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key, ContentType: contentType }),
-    { expiresIn: PRESIGNED_UPLOAD_SECONDS },
+    new PutObjectCommand({
+      Bucket: S3_BUCKET_NAME,
+      Key: key,
+      ContentType: contentType,
+      ContentLength: size,
+    }),
+    // signed, so storage refuses a body of any other size than the one checked above
+    {
+      expiresIn: PRESIGNED_UPLOAD_SECONDS,
+      signableHeaders: new Set(['content-type', 'content-length']),
+    },
   );
   return { url, key, contentType };
 };
@@ -144,9 +158,21 @@ export const completeHofUpload = async ({
   }
   // the temporary copy goes whether the file is filed or refused
   try {
+    const payload = await getPayload({ config });
+    const { totalDocs } = await payload.count({
+      collection: 'hof-files',
+      where: { hof: { equals: hofId } },
+      overrideAccess: true,
+    });
+    if (totalDocs >= HOF_FILES_MAX_COUNT) {
+      logger.warn('A Hof reached the most files it may hand in', {
+        'hof_dashboard.hof_id': hofId,
+        'hof_dashboard.files': totalDocs,
+      });
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'too_many_files' });
+    }
     const body = await readUpload(key);
 
-    const payload = await getPayload({ config });
     const submission = await findOrCreateSubmission(payload, hof, submissionType);
     try {
       await payload.create({
@@ -161,7 +187,9 @@ export const completeHofUpload = async ({
         file: {
           data: Buffer.from(body),
           mimetype: HOF_FILE_TYPES[extension],
-          name: filename,
+          // not the Hof's own name, which would be guessable and show which names other Höfe
+          // used; originalFilename keeps it for the dashboard
+          name: `${randomUUID()}.${extension}`,
           size: body.length,
         },
         depth: 0,

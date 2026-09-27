@@ -225,6 +225,13 @@ export const formPluginConfiguration = formBuilderPlugin({
           name: 'approved',
           type: 'checkbox',
           defaultValue: false,
+          // Anyone may hand in a form, but an approved answer shows on the website and on a
+          // Hof's dashboard, so only the reviewers may set it. The approval link writes it
+          // with overrideAccess.
+          access: {
+            create: hasAdminOrWebAccess,
+            update: hasAdminOrWebAccess,
+          },
           label: {
             en: 'Approved',
             de: 'Freigegeben',
@@ -247,6 +254,8 @@ export const formPluginConfiguration = formBuilderPlugin({
           name: 'approvalToken',
           type: 'text',
           index: true,
+          // it approves the submission, so it must not come back to whoever sent it
+          access: { read: hasAdminOrWebAccess },
           admin: {
             position: 'sidebar' as const,
             readOnly: true,

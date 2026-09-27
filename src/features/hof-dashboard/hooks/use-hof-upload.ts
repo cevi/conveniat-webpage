@@ -126,7 +126,11 @@ export const useHofUpload = (
     track(key, { filename: file.name, percent: 0, cancel });
     running.current.add(cancel);
     try {
-      const target = await createUploadUrl.mutateAsync({ hofId, filename: file.name });
+      const target = await createUploadUrl.mutateAsync({
+        hofId,
+        filename: file.name,
+        size: file.size,
+      });
       stopIfCancelled();
       await putWithProgress(request, target.url, file, target.contentType, (percent) =>
         track(key, { filename: file.name, percent, cancel }),
@@ -151,6 +155,8 @@ export const useHofUpload = (
       // its ending passed here, so a file whose content the server refuses is damaged
       if (error instanceof TRPCClientError && error.message === 'unsupported_file_type') {
         toast.error(translate('fileUnreadable', locale));
+      } else if (error instanceof TRPCClientError && error.message === 'too_many_files') {
+        toast.error(translate('tooManyFiles', locale));
       } else {
         notifyFailure(locale, 'uploadFailed');
       }

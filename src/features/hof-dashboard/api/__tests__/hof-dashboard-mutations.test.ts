@@ -2,6 +2,7 @@ const mockPayload = {
   find: jest.fn<Promise<unknown>, [unknown]>(),
   create: jest.fn<Promise<unknown>, [unknown]>(),
   update: jest.fn<Promise<unknown>, [unknown]>(),
+  count: jest.fn<Promise<{ totalDocs: number }>, [unknown]>(),
 };
 const mockSend = jest.fn();
 const mockSettings = jest.fn();
@@ -37,6 +38,7 @@ import {
   completeHofUpload,
   updateHofMaterialOrder,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
+import { DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { ValidationError } from 'payload';
 
 const PDF_BYTES = new TextEncoder().encode('%PDF-1.4');
@@ -68,6 +70,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockPayload.find.mockResolvedValue({ docs: [] });
   mockPayload.create.mockResolvedValue({ id: 'created' });
+  mockPayload.count.mockResolvedValue({ totalDocs: 0 });
   mockSend.mockResolvedValue({
     ContentLength: PDF_BYTES.length,
     Body: { transformToByteArray: (): Promise<Uint8Array> => Promise.resolve(PDF_BYTES) },
@@ -100,10 +103,22 @@ describe('completeHofUpload', () => {
     expect(fileCreate).toMatchObject({
       data: { hof: 'hof-nord', originalFilename: 'Plan.pdf' },
     });
+    // stored under a name of its own, so other Höfe can neither guess it nor learn of it
+    expect((fileCreate as { file: { name: string } }).file.name).toMatch(/^[\da-f-]{36}\.pdf$/);
     expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
       collection: 'hof-submissions',
       data: { status: 'submitted' },
     });
+  });
+
+  it('refuses a file once the Hof has handed in the most files it may', async () => {
+    mockPayload.count.mockResolvedValue({ totalDocs: 500 });
+    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
+      message: 'too_many_files',
+    });
+    expect(mockPayload.create).not.toHaveBeenCalled();
+    // the temporary copy still goes
+    expect(mockSend).toHaveBeenCalledWith(expect.any(DeleteObjectCommand));
   });
 
   it('reports an upload that never arrived as missing', async () => {

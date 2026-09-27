@@ -4612,7 +4612,7 @@ export interface HofSubmission {
   hof: string | Hof;
   submissionType: 'flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram';
   /**
-   * Empty until the Hof hands in a file. Every new file sets it back to "Submitted".
+   * Empty until the Hof hands in a file. Every new file sets it back to "Submitted". The Hof sees the status on its dashboard; only "Revision required" asks it for a new version, together with the feedback.
    */
   status?: ('submitted' | 'inReview' | 'revisionRequired' | 'archived') | null;
   /**
@@ -4659,7 +4659,7 @@ export interface HofFile {
   focalY?: number | null;
 }
 /**
- * The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered.
+ * The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered. To change an order, open the Hof on the Hof dashboard: reviewers can pick any Hof there and may still order after the deadline.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "hof-material-orders".

@@ -1,7 +1,14 @@
 'use client';
 
-import { useRowLabel } from '@payloadcms/ui';
+import type { StaticTranslationString } from '@/types/types';
+import { Pill, useLocale, useRowLabel, useTranslation } from '@payloadcms/ui';
 import type React from 'react';
+
+const NOT_TRANSLATED: StaticTranslationString = {
+  de: 'nicht übersetzt',
+  en: 'not translated',
+  fr: 'non traduit',
+};
 
 /** How Payload hands over a date field: an ISO date and time. */
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T/;
@@ -20,10 +27,21 @@ const show = (value: unknown): string | undefined => {
  */
 export const FieldsRowLabel: React.FC<{ fields: string[] }> = ({ fields }) => {
   const { data, rowNumber } = useRowLabel<Record<string, unknown>>();
+  const locale = useLocale();
+  const { i18n } = useTranslation();
   const parts = fields.map((field) => show(data[field])).filter((part) => part !== undefined);
+  if (parts.length > 0) return <span>{parts.join(' · ')}</span>;
+
+  const number = String((rowNumber ?? 0) + 1).padStart(2, '0');
+  // in French or English, an empty row is one still waiting for its translation
+  if (locale.code === 'de') return <span>{number}</span>;
+  const language = i18n.language as keyof StaticTranslationString;
   return (
-    <span>
-      {parts.length > 0 ? parts.join(' · ') : String((rowNumber ?? 0) + 1).padStart(2, '0')}
+    <span className="flex items-center gap-2">
+      {number}
+      <Pill pillStyle="warning" size="small">
+        {(NOT_TRANSLATED[language] as string | undefined) ?? NOT_TRANSLATED.de}
+      </Pill>
     </span>
   );
 };

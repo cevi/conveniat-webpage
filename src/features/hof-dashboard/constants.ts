@@ -83,6 +83,9 @@ export const HOF_FILE_KIND_LABELS: Record<HofFileKind, StaticTranslationString> 
   safetyConcept: { de: 'Sicherheitskonzept', en: 'Safety concept', fr: 'Concept de sécurité' },
 };
 
+/** Most files one Hof hands in over the whole planning, versions included. */
+export const HOF_FILES_MAX_COUNT = 500;
+
 /** The Hof's answers to "elevated safety risk?". */
 export const SAFETY_RISK_ANSWERS = ['yes', 'no'] as const;
 

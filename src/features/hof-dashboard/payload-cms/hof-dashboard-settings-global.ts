@@ -6,24 +6,82 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { StaticTranslationString } from '@/types/types';
-import type { ArrayField, Field, GlobalConfig, TextFieldSingleValidation } from 'payload';
+import type {
+  ArrayField,
+  Field,
+  GlobalConfig,
+  PayloadRequest,
+  TextFieldSingleValidation,
+} from 'payload';
+
+/** Every row of the settings as stored in German, by its id, read once per request. */
+const germanRows = (request: PayloadRequest): Promise<Map<string, Record<string, unknown>>> => {
+  const cached = request.context['hofSettingsGermanRows'];
+  if (cached instanceof Promise) return cached as Promise<Map<string, Record<string, unknown>>>;
+  const rows = request.payload
+    // without req: the local API would switch the request being validated to German
+    .findGlobal({ slug: 'hof-dashboard-settings', locale: LOCALE.DE, depth: 0 })
+    .then((settings) => {
+      const byId = new Map<string, Record<string, unknown>>();
+      const collect = (value: unknown): void => {
+        if (Array.isArray(value)) {
+          for (const row of value as unknown[]) {
+            if (typeof row === 'object' && row !== null) {
+              const rowId = (row as { id?: unknown }).id;
+              if (typeof rowId === 'string') byId.set(rowId, row as Record<string, unknown>);
+            }
+            collect(row);
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          for (const nested of Object.values(value)) collect(nested);
+        }
+      };
+      collect(settings);
+      return byId;
+    });
+  request.context['hofSettingsGermanRows'] = rows;
+  return rows;
+};
+
+const hasText = (value: unknown): boolean => typeof value === 'string' && value.trim() !== '';
 
 /**
  * Required in German only. The texts fall back to German for French and English readers, and
  * the site does not fall back on its own, so Payload's own check would ask for every text in
  * every language before anything could be saved in French. A custom validate replaces it.
+ *
+ * In French or English, a row still without its German text is refused as well: it would show
+ * German readers an empty line, and block the next German save of anything else.
  */
-const requiredInGerman: TextFieldSingleValidation = (value, { req }) => {
-  if (req.locale !== LOCALE.DE || (typeof value === 'string' && value.trim() !== '')) return true;
-  return getValidationMessage(req.i18n.language, {
-    en: 'Required in German.',
-    de: 'Auf Deutsch erforderlich.',
-    fr: 'Obligatoire en allemand.',
-  });
+const requiredInGerman: TextFieldSingleValidation = async (value, { req, siblingData, path }) => {
+  if (req.locale === LOCALE.DE) {
+    return (
+      hasText(value) ||
+      getValidationMessage(req.i18n.language, {
+        en: 'Required in German.',
+        de: 'Auf Deutsch erforderlich.',
+        fr: 'Obligatoire en allemand.',
+      })
+    );
+  }
+
+  const rowId = (siblingData as { id?: unknown }).id;
+  const field = path.at(-1);
+  if (typeof rowId !== 'string' || typeof field !== 'string') return true;
+  const rows = await germanRows(req);
+  const germanRow = rows.get(rowId);
+  return (
+    hasText(germanRow?.[field]) ||
+    getValidationMessage(req.i18n.language, {
+      en: 'Missing in German. Add new entries in German first, then translate them.',
+      de: 'Fehlt auf Deutsch. Neue Einträge zuerst auf Deutsch erfassen, dann übersetzen.',
+      fr: "Manque en allemand. Crée d'abord les nouvelles entrées en allemand, puis traduis-les.",
+    })
+  );
 };
 
 /**
- * Collapsed rows named after their own fields, and buttons that say what they add, for the
+ * Rows named after their own fields, and buttons that say what they add, for the
  * long lists of these settings.
  */
 const arrayAdmin = (
@@ -34,7 +92,6 @@ const arrayAdmin = (
 ): Pick<ArrayField, 'labels' | 'admin'> => ({
   labels: { singular, plural },
   admin: {
-    initCollapsed: true,
     ...(description === undefined ? {} : { description }),
     components: {
       RowLabel: {

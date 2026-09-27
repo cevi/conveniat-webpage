@@ -116,6 +116,11 @@ export const text = {
     en: 'The file cannot be opened. Could it be damaged?',
     fr: 'Le fichier ne peut pas être ouvert. Serait-il endommagé ?',
   },
+  tooManyFiles: {
+    de: 'Dieser Hof hat die höchste Zahl an Dateien erreicht. Melde dich beim Ressort.',
+    en: 'This Hof has reached the most files it can hand in. Please contact the Ressort.',
+    fr: 'Ce Hof a atteint le nombre maximal de fichiers. Contacte le Ressort.',
+  },
   fileRules: {
     de: 'PDF, Word, Excel, PowerPoint, Bild oder ZIP · bis {n} MB',
     en: 'PDF, Word, Excel, PowerPoint, image or ZIP · up to {n} MB',

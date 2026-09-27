@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import {
   DEFAULT_MAXIMUM_RANGES,
   DEFAULT_MINIMUM_DAYS,
@@ -7,7 +8,7 @@ import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugin
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { defaultEditorLexicalConfig, lexicalEditor } from '@payloadcms/richtext-lexical';
-import type { Block, Field, Tab, TextFieldSingleValidation } from 'payload';
+import type { Block, BlocksField, Field, Tab, TextFieldSingleValidation } from 'payload';
 
 /**
  * validate that the field name is lowercase, no special characters, and not empty
@@ -1116,6 +1117,14 @@ const formBlocks: Block[] = [
   formFileUploadBlock,
 ];
 
+/** The form fields an editor is offered: the Hof selection only where the dashboard is on. */
+const formBlockOptions: NonNullable<BlocksField['filterOptions']> = () =>
+  environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
+    ? true
+    : [...formBlocks, conditionedBlock]
+        .map((block) => block.slug)
+        .filter((slug) => slug !== formHofSelectionBlock.slug);
+
 const conditionedBlock: Block = {
   slug: 'conditionedBlock',
   fields: [
@@ -1147,6 +1156,7 @@ const conditionedBlock: Block = {
         fr: 'Champs du formulaire',
       },
       blocks: formBlocks,
+      filterOptions: formBlockOptions,
     },
     placementField(),
   ],
@@ -1235,6 +1245,7 @@ const formSection: Field = {
         fr: 'Champs du formulaire',
       },
       blocks: formBlocksAndConditionedBlock,
+      filterOptions: formBlockOptions,
     },
   ],
 };

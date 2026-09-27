@@ -1,4 +1,5 @@
 import {
+  HOF_FILES_MAX_COUNT,
   HOF_SUBMISSION_TYPE_AREA,
   HOF_SUBMISSION_TYPES,
   type HofDashboardArea,
@@ -16,9 +17,6 @@ import config from '@payload-config';
 import { getPayload, type Payload } from 'payload';
 
 const logger = createLogger('hof-dashboard:data');
-
-/** Most files one Hof hands in over the whole planning, versions included. */
-const MAX_FILES_PER_HOF = 500;
 
 export interface HofContact {
   name: string;
@@ -216,7 +214,7 @@ export const getHofDashboardData = async (
       depth: 0,
       // oldest first, so a cut at the limit keeps the version numbers of what it shows
       sort: 'createdAt',
-      limit: MAX_FILES_PER_HOF,
+      limit: HOF_FILES_MAX_COUNT,
       overrideAccess: true,
       select: {
         submission: true,

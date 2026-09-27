@@ -82,9 +82,9 @@ export const HofSubmissionsCollection: CollectionConfig = {
       admin: {
         position: 'sidebar',
         description: {
-          en: 'Empty until the Hof hands in a file. Every new file sets it back to "Submitted".',
-          de: 'Leer, bis der Hof eine Datei abgibt. Jede neue Datei setzt den Status auf "Eingereicht" zurück.',
-          fr: 'Vide tant que le Hof n’a déposé aucun fichier. Chaque nouveau fichier le remet sur « Déposé ».',
+          en: 'Empty until the Hof hands in a file. Every new file sets it back to "Submitted". The Hof sees the status on its dashboard; only "Revision required" asks it for a new version, together with the feedback.',
+          de: 'Leer, bis der Hof eine Datei abgibt. Jede neue Datei setzt den Status auf "Eingereicht" zurück. Der Hof sieht den Status auf seinem Dashboard; nur "Überarbeitung erforderlich" verlangt von ihm eine neue Version, zusammen mit der Rückmeldung.',
+          fr: 'Vide tant que le Hof n’a déposé aucun fichier. Chaque nouveau fichier le remet sur « Déposé ». Le Hof voit le statut sur son tableau de bord ; seul « Révision nécessaire » lui demande une nouvelle version, avec le retour.',
         },
       },
     },

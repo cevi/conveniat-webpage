@@ -37,7 +37,7 @@ export const HofFilesCollection: CollectionConfig = {
     // only the dashboard's tRPC procedures create these, through the local API
     create: () => false,
     // what a Hof handed in stays as it handed it in; reviewers answer in the submission
-    update: isFullAdmin,
+    update: () => false,
     delete: isFullAdmin,
   },
   // Payload checks every file's content against these
