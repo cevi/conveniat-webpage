@@ -161,6 +161,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
         type: ChatType.ANNOUNCEMENT,
         status: ChatStatus.OPEN,
         capabilities: capabilities,
+        pinned: doc.pinned === true,
         messages: {
           create: {
             contentVersions: {
@@ -211,6 +212,7 @@ const afterChannelChange: CollectionAfterChangeHook<AnnouncementChannel> = async
         name,
         description: description ?? '',
         capabilities: capabilities,
+        pinned: doc.pinned === true,
         lastUpdate: new Date(),
       },
     });
@@ -250,7 +252,7 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     group: AdminPanelDashboardGroups.AppContent.label,
-    defaultColumns: ['name', 'targetType', 'chatUuid'],
+    defaultColumns: ['name', 'targetType', 'pinned', 'chatUuid'],
   },
   labels: {
     singular: {
@@ -395,6 +397,24 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
       defaultValue: false,
       admin: {
         condition: (data) => !!data['allowThreads'],
+      },
+    },
+    {
+      name: 'pinned',
+      label: {
+        en: 'Pin in the chat overview',
+        de: 'In der Chatübersicht anheften',
+        fr: 'Épingler dans la liste des discussions',
+      },
+      type: 'checkbox',
+      defaultValue: false,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Pinned channels stay at the top of the chat overview, above all other chats.',
+          de: 'Angeheftete Kanäle stehen in der Chatübersicht immer zuoberst, über allen anderen Chats.',
+          fr: 'Les canaux épinglés restent en haut de la liste des discussions, au-dessus de toutes les autres.',
+        },
       },
     },
     {

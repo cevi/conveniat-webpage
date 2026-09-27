@@ -4267,6 +4267,10 @@ export interface AnnouncementChannel {
   allowEmojiReactions?: boolean | null;
   allowThreads?: boolean | null;
   allowThreadReplies?: boolean | null;
+  /**
+   * Pinned channels stay at the top of the chat overview, above all other chats.
+   */
+  pinned?: boolean | null;
   chatUuid?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -6948,6 +6952,7 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
   allowEmojiReactions?: T;
   allowThreads?: T;
   allowThreadReplies?: T;
+  pinned?: T;
   chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;

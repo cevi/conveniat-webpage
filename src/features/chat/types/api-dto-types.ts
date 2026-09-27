@@ -24,4 +24,6 @@ export interface ChatWithMessagePreview {
   unreadCount: number;
   messageCount: number;
   userChatPermission: ChatMembershipPermission;
+  /** Optional because chat lists persisted before this field existed are restored without it. */
+  isPinned?: boolean;
 }
