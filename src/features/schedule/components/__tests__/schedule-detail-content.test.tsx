@@ -100,9 +100,7 @@ describe('ScheduleDetailContent organisers', () => {
   it('spells out the Ceviname of an organiser who has one', () => {
     render(
       <ScheduleDetailContent
-        entry={entryWith([
-          { id: 'org-1', fullName: 'Anna Muster', nickname: 'Ameise', email: 'anna@example.org' },
-        ])}
+        entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster', nickname: 'Ameise' }])}
         locale="de"
       />,
     );
@@ -116,12 +114,8 @@ describe('ScheduleDetailContent organisers', () => {
    * button is how participants reach an organiser.
    */
   it('does not show the email of an organiser', () => {
-    render(
-      <ScheduleDetailContent
-        entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster', email: 'anna@example.org' }])}
-        locale="de"
-      />,
-    );
+    const staleOrganiser = { id: 'org-1', fullName: 'Anna Muster', email: 'anna@example.org' };
+    render(<ScheduleDetailContent entry={entryWith([staleOrganiser])} locale="de" />);
 
     expect(screen.queryByText('anna@example.org')).toBeNull();
   });
@@ -129,7 +123,7 @@ describe('ScheduleDetailContent organisers', () => {
   it('falls back to the plain name when no Ceviname is set', () => {
     render(
       <ScheduleDetailContent
-        entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster', email: 'anna@example.org' }])}
+        entry={entryWith([{ id: 'org-1', fullName: 'Anna Muster' }])}
         locale="de"
       />,
     );
