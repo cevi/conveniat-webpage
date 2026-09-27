@@ -164,7 +164,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
       >
         <DashboardTabList
           labels={TABS.map(({ label }) => translate(label, locale))}
-          label={translate('hof', locale)}
+          label={translate('tabs', locale)}
         />
         {/* kept mounted, so what was typed into an order survives a look at another tab */}
         <TabPanels>

@@ -142,57 +142,64 @@ export const completeHofUpload = async ({
   if (!key.startsWith(uploadPrefix(hofId)) || key.includes('..') || extension === undefined) {
     throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
   }
-  const body = await readUpload(key);
-
-  const payload = await getPayload({ config });
-  const submission = await findOrCreateSubmission(payload, hof, submissionType);
+  // the temporary copy goes whether the file is filed or refused
   try {
-    await payload.create({
-      collection: 'hof-files',
-      data: {
-        submission: submission.id,
-        hof: hofId,
-        kind,
-        uploadedBy: userId,
-        originalFilename: filename,
-      },
-      file: {
-        data: Buffer.from(body),
-        mimetype: HOF_FILE_TYPES[extension],
-        name: filename,
-        size: body.length,
-      },
-      depth: 0,
-      overrideAccess: true,
-    });
-  } catch (error) {
-    // Payload checks the content against the file type; a renamed file ends up here
-    if (error instanceof ValidationError && error.data.errors.some(({ path }) => path === 'file')) {
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
-    }
-    throw error;
-  }
-  if (submission.status !== 'submitted') {
-    await payload.update({
-      collection: 'hof-submissions',
-      id: submission.id,
-      data: { status: 'submitted' },
-      depth: 0,
-      overrideAccess: true,
-    });
-  }
+    const body = await readUpload(key);
 
-  await s3Client
-    .send(new DeleteObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key }))
-    .catch((error: unknown) => {
-      logger.warn('Could not remove the temporary upload of a Hof file', { error });
+    const payload = await getPayload({ config });
+    const submission = await findOrCreateSubmission(payload, hof, submissionType);
+    try {
+      await payload.create({
+        collection: 'hof-files',
+        data: {
+          submission: submission.id,
+          hof: hofId,
+          kind,
+          uploadedBy: userId,
+          originalFilename: filename,
+        },
+        file: {
+          data: Buffer.from(body),
+          mimetype: HOF_FILE_TYPES[extension],
+          name: filename,
+          size: body.length,
+        },
+        depth: 0,
+        overrideAccess: true,
+      });
+    } catch (error) {
+      // Payload checks the content against the file type; a renamed file ends up here
+      if (
+        error instanceof ValidationError &&
+        error.data.errors.some(({ path }) => path === 'file')
+      ) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
+      }
+      throw error;
+    }
+    if (submission.status !== 'submitted') {
+      await payload.update({
+        collection: 'hof-submissions',
+        id: submission.id,
+        data: { status: 'submitted' },
+        depth: 0,
+        overrideAccess: true,
+      });
+    }
+
+    logger.info('A Hof handed in a file', {
+      'hof_dashboard.hof_id': hofId,
+      'hof_dashboard.submission_type': submissionType,
+      'hof_dashboard.file_kind': kind,
+      'hof_dashboard.file_bytes': body.length,
     });
-  logger.info('A Hof handed in a file', {
-    'hof_dashboard.hof_id': hofId,
-    'hof_dashboard.submission_type': submissionType,
-    'hof_dashboard.file_kind': kind,
-    'hof_dashboard.file_bytes': body.length,
-  });
+  } finally {
+    await s3Client
+      .send(new DeleteObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key }))
+      .catch((error: unknown) => {
+        logger.warn('Could not remove the temporary upload of a Hof file', { error });
+      });
+  }
 };
 
 /** Records the Hof's answer to "elevated safety risk?" for one kind of plan. */

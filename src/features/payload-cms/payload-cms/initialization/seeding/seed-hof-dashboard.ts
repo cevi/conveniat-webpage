@@ -1,13 +1,11 @@
+import { HOF_SUBMISSION_TYPE_AREA, HOF_SUBMISSION_TYPES } from '@/features/hof-dashboard/constants';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Form, GenericPage, Permission } from '@/features/payload-cms/payload-types';
 import type { Payload, RequiredDataFromCollectionSlug } from 'payload';
 
-const INFRASTRUCTURE_SUBMISSIONS = [
-  'flagpole',
-  'entrance',
-  'hofBuildings',
-  'sleepingTent',
-] as const;
+const INFRASTRUCTURE_SUBMISSIONS = HOF_SUBMISSION_TYPES.filter(
+  (type) => HOF_SUBMISSION_TYPE_AREA[type] === 'infrastructure',
+);
 
 /** The deadlines, material lists and safety criteria from the Ressorts' concept for the dashboard. */
 const settings = {

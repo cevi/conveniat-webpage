@@ -72,8 +72,8 @@ export const useHofUpload = (
   const createUploadUrl = trpc.hofDashboard.createUploadUrl.useMutation({ networkMode: 'always' });
   const completeUpload = trpc.hofDashboard.completeUpload.useMutation({ networkMode: 'always' });
   const [uploads, setUploads] = useState<Record<string, UploadInProgress>>({});
-  // Leaving the dashboard, e.g. for another Hof, calls the uploads off: filed under a Hof no
-  // longer shown, they would report a success the user cannot place.
+  // Leaving the dashboard, e.g. for another Hof, calls the uploads off. One already being filed
+  // still is, but no longer reports it, since the user no longer sees that Hof.
   const running = useRef(new Set<() => void>());
   useEffect(() => {
     const cancels = running.current;
@@ -135,7 +135,8 @@ export const useHofUpload = (
         key: target.key,
         filename: file.name,
       });
-      toast.success(translate('uploadDone', locale));
+      // called off meanwhile, e.g. by a switch to another Hof: its success is not this one's
+      if (!state.cancelled) toast.success(translate('uploadDone', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     } catch (error) {
       if (error instanceof UploadCancelled) return;

@@ -2,8 +2,24 @@ import { environmentVariables } from '@/config/environment-variables';
 import { areaOptions, submissionTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { StaticTranslationString } from '@/types/types';
-import type { ArrayField, Field, GlobalConfig } from 'payload';
+import type { ArrayField, Field, GlobalConfig, TextFieldSingleValidation } from 'payload';
+
+/**
+ * Required in German only. The texts fall back to German for French and English readers, and
+ * the site does not fall back on its own, so Payload's own check would ask for every text in
+ * every language before anything could be saved in French. A custom validate replaces it.
+ */
+const requiredInGerman: TextFieldSingleValidation = (value, { req }) => {
+  if (req.locale !== LOCALE.DE || (typeof value === 'string' && value.trim() !== '')) return true;
+  return getValidationMessage(req.i18n.language, {
+    en: 'Required in German.',
+    de: 'Auf Deutsch erforderlich.',
+    fr: 'Obligatoire en allemand.',
+  });
+};
 
 /**
  * Collapsed rows named after their own fields, and buttons that say what they add, for the
@@ -64,6 +80,7 @@ const materialListFields = (): Field[] => [
             name: 'name',
             type: 'text',
             required: true,
+            validate: requiredInGerman,
             localized: true,
             label: { de: 'Material', en: 'Material', fr: 'Matériel' },
             admin: { width: '60%' },
@@ -153,6 +170,7 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                       name: 'title',
                       type: 'text',
                       required: true,
+                      validate: requiredInGerman,
                       localized: true,
                       label: { de: 'Titel', en: 'Title', fr: 'Titre' },
                       admin: { width: '50%' },
@@ -346,6 +364,7 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                   name: 'criterion',
                   type: 'text',
                   required: true,
+                  validate: requiredInGerman,
                   localized: true,
                   label: { de: 'Kriterium', en: 'Criterion', fr: 'Critère' },
                 },

@@ -93,6 +93,10 @@ describe('completeHofUpload', () => {
     const fileCreate = mockPayload.create.mock.calls
       .map(([options]) => options)
       .find((options) => (options as { collection?: string }).collection === 'hof-files');
+    expect(mockPayload.create.mock.calls[0]?.[0]).toMatchObject({
+      collection: 'hof-submissions',
+      data: { title: 'Hof Nord · Hofbauten' },
+    });
     expect(fileCreate).toMatchObject({
       data: { hof: 'hof-nord', originalFilename: 'Plan.pdf' },
     });
@@ -133,7 +137,10 @@ describe('updateHofMaterialOrder', () => {
     await order();
     expect(mockSettings).toHaveBeenCalledWith(mockPayload, 'de');
     expect(mockPayload.create.mock.calls[0]?.[0]).toMatchObject({
-      data: { items: [{ itemId: 'rope', name: 'Bindestrick', quantity: 3 }] },
+      data: {
+        title: 'Hof Nord · Materialbestellung Hof-Infrastruktur',
+        items: [{ itemId: 'rope', name: 'Bindestrick', quantity: 3 }],
+      },
     });
   });
 

@@ -26,6 +26,7 @@ export const text = {
   close: { de: 'Schliessen', en: 'Close', fr: 'Fermer' },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
 
+  tabs: { de: 'Bereiche', en: 'Sections', fr: 'Rubriques' },
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
   tabInfrastructure: { de: 'Infrastruktur', en: 'Infrastructure', fr: 'Infrastructure' },
   tabProgram: { de: 'Programm', en: 'Programme', fr: 'Programme' },
@@ -322,8 +323,15 @@ export const formatNumber = (value: number, locale: Locale): string =>
 /** A file size in the unit people read it in. */
 export const formatFileSize = (bytes: number, locale: Locale): string => {
   const megabytes = bytes / (1024 * 1024);
-  const formatter = new Intl.NumberFormat(DATE_LOCALES[locale], { maximumFractionDigits: 1 });
+  // the unit in the reader's words: Mo and ko in French
+  const format = (value: number, unit: 'megabyte' | 'kilobyte'): string =>
+    new Intl.NumberFormat(DATE_LOCALES[locale], {
+      style: 'unit',
+      unit,
+      unitDisplay: 'short',
+      maximumFractionDigits: 1,
+    }).format(value);
   return megabytes >= 1
-    ? `${formatter.format(megabytes)} MB`
-    : `${formatter.format(Math.max(1, Math.round(bytes / 1024)))} KB`;
+    ? format(megabytes, 'megabyte')
+    : format(Math.max(1, Math.round(bytes / 1024)), 'kilobyte');
 };
