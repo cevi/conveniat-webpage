@@ -62,7 +62,7 @@ const StadtlebenSection: React.FC<{
     {stadtleben.formUrl !== undefined && stadtleben.formUrl !== '' && (
       <Link
         href={stadtleben.formUrl}
-        className="text-cevi-red inline-flex min-h-11 items-center gap-1 text-sm font-semibold hover:underline"
+        className="text-cevi-blue inline-flex min-h-11 items-center gap-1 text-sm font-semibold hover:underline"
       >
         {translate('stadtlebenRegister', locale)}
         <ArrowUpRight className="h-4 w-4" aria-hidden />

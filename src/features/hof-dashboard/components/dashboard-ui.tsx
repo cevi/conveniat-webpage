@@ -20,16 +20,19 @@ import { cn } from '@/utils/tailwindcss-override';
 import { AlertCircle, CheckCircle2, Clock, Mail, Phone } from 'lucide-react';
 import type React from 'react';
 
-/** Infrastructure reads in the camp's green, the programme in Cevi red. */
+/**
+ * Infrastructure reads in the camp's green, the programme in Cevi blue. Not in Cevi red, which
+ * the dashboard keeps for what is overdue.
+ */
 export const AREA_TEXT_CLASS: Record<HofDashboardArea, string> = {
   infrastructure: 'text-conveniat-green',
-  program: 'text-cevi-red',
+  program: 'text-cevi-blue',
 };
 
 /** The area's colour as a fill, for progress bars and dots. */
 export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
   infrastructure: 'bg-conveniat-green',
-  program: 'bg-cevi-red',
+  program: 'bg-cevi-blue',
 };
 
 /** The main action of a card, styled like the submit button of the site's forms. */

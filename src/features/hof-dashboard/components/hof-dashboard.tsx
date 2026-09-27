@@ -234,9 +234,13 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-white">
+            <SelectContent className="max-w-(--radix-select-content-available-width) bg-white">
               {hoefe.data.map((candidate) => (
-                <SelectItem key={candidate.id} value={candidate.id} className="min-h-11">
+                <SelectItem
+                  key={candidate.id}
+                  value={candidate.id}
+                  className="min-h-11 whitespace-normal"
+                >
                   {candidate.name}
                 </SelectItem>
               ))}

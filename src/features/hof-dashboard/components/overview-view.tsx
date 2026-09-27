@@ -28,7 +28,7 @@ import type React from 'react';
 
 /** Which area a submission belongs to, marked by the area's colour but read as plain text. */
 const AreaTag: React.FC<{ area: HofDashboardArea; locale: Locale }> = ({ area, locale }) => (
-  <span className="flex items-center gap-1 text-xs font-medium text-gray-600">
+  <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-600">
     <span className={cn('h-2 w-2 rounded-full', AREA_DOT_CLASS[area])} aria-hidden />
     {HOF_DASHBOARD_AREA_LABELS[area][locale]}
   </span>
@@ -71,10 +71,13 @@ export const OverviewView: React.FC<{
                   onClick={() => onOpen(submission.area, submission.type)}
                 >
                   <span className="min-w-0 space-y-1">
-                    <span className="block text-sm font-semibold text-gray-900">
-                      {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
+                    {/* the area beside the title, so more of what is due fits on a phone screen */}
+                    <span className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="text-sm font-semibold text-gray-900">
+                        {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
+                      </span>
+                      <AreaTag area={submission.area} locale={locale} />
                     </span>
-                    <AreaTag area={submission.area} locale={locale} />
                     <ProgressLine
                       progress={progress[submission.type]}
                       status={submission.status}

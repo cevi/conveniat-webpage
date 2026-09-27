@@ -23,8 +23,8 @@ const ScrollButton: React.FC<{ direction: 1 | -1; onClick: () => void }> = ({
       className={cn(
         'absolute top-0 z-10 flex h-11 w-10 cursor-pointer items-center text-gray-600 hover:text-gray-900',
         direction === 1
-          ? '-right-1 justify-end bg-linear-to-l from-slate-50 from-60% to-transparent'
-          : '-left-1 justify-start bg-linear-to-r from-slate-50 from-60% to-transparent',
+          ? 'right-0 justify-end bg-linear-to-l from-slate-50 from-60% to-transparent'
+          : 'left-0 justify-start bg-linear-to-r from-slate-50 from-60% to-transparent',
       )}
     >
       <Icon className="h-5 w-5" />
@@ -53,7 +53,7 @@ export const DashboardTabList: React.FC<{ labels: string[]; label: string }> = (
       <TabList
         ref={row}
         aria-label={label}
-        className="-mx-1 flex scroll-px-10 [scrollbar-width:none] overflow-x-auto border-b border-gray-200 px-1"
+        className="flex scroll-px-10 [scrollbar-width:none] overflow-x-auto border-b border-gray-200"
       >
         {labels.map((tabLabel) => (
           <Tab
@@ -62,7 +62,7 @@ export const DashboardTabList: React.FC<{ labels: string[]; label: string }> = (
             onFocus={(event: React.FocusEvent<HTMLButtonElement>) =>
               event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
             }
-            className="data-selected:border-conveniat-green data-selected:text-conveniat-green -mb-px min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-2.5 text-sm font-semibold whitespace-nowrap text-gray-600 transition-colors hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600"
+            className="data-selected:border-conveniat-green data-selected:text-conveniat-green -mb-px min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-1 text-sm font-semibold whitespace-nowrap text-gray-600 outline-hidden transition-colors hover:text-gray-900 data-focus:outline-2 data-focus:outline-offset-[-2px] data-focus:outline-green-600 data-focus:outline-solid"
           >
             {tabLabel}
           </Tab>

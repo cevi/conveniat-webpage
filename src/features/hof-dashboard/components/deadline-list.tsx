@@ -33,9 +33,9 @@ export const DeadlineList: React.FC<{
               <span className={cn('block', passed ? 'text-gray-500' : 'text-gray-900')}>
                 {deadline.title}
               </span>
-              {!passed && (
-                <span className="text-xs text-gray-600">{formatCountdown(daysLeft, locale)}</span>
-              )}
+              <span className="text-xs text-gray-600">
+                {passed ? translate('deadlinePassed', locale) : formatCountdown(daysLeft, locale)}
+              </span>
             </span>
           </li>
         );
