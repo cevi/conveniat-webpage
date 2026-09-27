@@ -270,6 +270,11 @@ export const text = {
     en: 'Unsaved quantities or an upload under way will be lost. Switch the Hof anyway?',
     fr: 'Des quantités non enregistrées ou un téléversement en cours seront perdus. Changer de Hof quand même ?',
   },
+  savedNotShown: {
+    de: 'Gespeichert. Die Anzeige wird aktualisiert, sobald du wieder Empfang hast.',
+    en: 'Saved. The view updates once you have signal again.',
+    fr: "Enregistré. L'affichage se met à jour dès que tu as du réseau.",
+  },
   unsavedChanges: {
     de: 'Nicht gespeicherte Änderungen',
     en: 'Unsaved changes',

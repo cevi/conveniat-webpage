@@ -400,6 +400,8 @@ test.describe('Hof dashboard', () => {
     // what is checked is that the value stays, so give a reset the time to show
     await page.waitForTimeout(500);
     await expect(quantity).toHaveValue('7');
+    // and says it is saved, not that it is not
+    await expect(page.getByText(/Gespeichert\. Die Anzeige wird aktualisiert/)).toBeVisible();
   });
 
   test('keeps a saved answer when the reload after it fails', async ({ page }) => {

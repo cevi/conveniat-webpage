@@ -67,16 +67,20 @@ export const MaterialOrderForm: React.FC<{
   // lost to one.
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [powerEdit, setPowerEdit] = useState<boolean>();
+  // the stored order a save could not replace on screen, as the reload after it failed
+  const [savedNotShown, setSavedNotShown] = useState<string>();
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
     onSuccess: async () => {
       toast.success(translate('saved', locale));
+      const before = order.savedAt ?? '';
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
       // Typed values give way once the reloaded order holds them; if the reload did not get
       // through, they stay, rather than the order from before the save showing as if unsaved.
       const reloaded = utils.hofDashboard.getHofDashboard.getData({ hofId })?.orders[order.type];
       if (reloaded === undefined) return;
+      if ((reloaded.savedAt ?? '') === before) setSavedNotShown(before);
       const stored = storedValues(reloaded);
       setEdits((current) =>
         Object.fromEntries(
@@ -224,6 +228,7 @@ export const MaterialOrderForm: React.FC<{
                             value={quantityText(item)}
                             onChange={(event) => {
                               const typed = event.target.value.trim();
+                              setSavedNotShown(undefined);
                               setEdits((previous) => ({ ...previous, [item.id]: typed }));
                             }}
                             // once the Hof moves on, "007" reads as 7, and a quantity back at
@@ -241,7 +246,7 @@ export const MaterialOrderForm: React.FC<{
                                   : { ...rest, [item.id]: quantity > 0 ? String(quantity) : '' };
                               });
                             }}
-                            className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 aria-invalid:bg-white aria-invalid:ring-2 aria-invalid:ring-amber-700"
+                            className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-transparent disabled:text-gray-500 disabled:ring-gray-200 aria-invalid:bg-white aria-invalid:ring-2 aria-invalid:ring-amber-700"
                           />
                         </td>
                       </tr>
@@ -250,7 +255,7 @@ export const MaterialOrderForm: React.FC<{
                           <td
                             id={`${id}-${item.id}-hint`}
                             colSpan={2}
-                            className="pb-2 text-right text-xs font-semibold text-amber-800"
+                            className="pb-2 text-left text-xs font-semibold text-amber-800"
                           >
                             {hint}
                           </td>
@@ -292,6 +297,7 @@ export const MaterialOrderForm: React.FC<{
                 disabled={closed}
                 onChange={(event) => {
                   const checked = event.target.checked;
+                  setSavedNotShown(undefined);
                   // back at what is stored is no edit, so a later correction shows
                   setPowerEdit(checked === order.powerConnection ? undefined : checked);
                 }}
@@ -304,9 +310,18 @@ export const MaterialOrderForm: React.FC<{
           {!closed && (
             <div className="flex flex-col gap-3 @lg:flex-row @lg:items-center @lg:justify-between">
               <p
-                className={cn('text-xs', dirty ? 'font-semibold text-amber-700' : 'text-gray-500')}
+                className={cn(
+                  'text-xs',
+                  dirty && savedNotShown !== (order.savedAt ?? '')
+                    ? 'font-semibold text-amber-700'
+                    : 'text-gray-500',
+                )}
               >
-                {dirty && translate('unsavedChanges', locale)}
+                {dirty &&
+                  translate(
+                    savedNotShown === (order.savedAt ?? '') ? 'savedNotShown' : 'unsavedChanges',
+                    locale,
+                  )}
                 {!dirty &&
                   order.savedAt !== undefined &&
                   translate('lastSaved', locale, { date: formatDate(order.savedAt, locale) })}
