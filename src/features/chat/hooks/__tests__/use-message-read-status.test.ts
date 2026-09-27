@@ -1,53 +1,49 @@
+import type { ChatMessage } from '@/features/chat/api/types';
+import { findLatestMessageToRead } from '@/features/chat/hooks/use-message-read-status';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { MessageType } from '@/lib/prisma';
 
-interface TestMessage {
-  id: string;
-  type: string;
-  senderId?: string | undefined;
-}
+jest.mock('@/trpc/client', () => ({ trpc: {} }));
 
-describe('useMessageReadStatus target message logic', () => {
-  it('correctly identifies system messages and non-current-user messages', () => {
-    const currentUser = 'user-uuid-1';
+const CURRENT_USER = 'user-uuid-1';
 
-    const messages: TestMessage[] = [
-      { id: 'msg-1', type: MessageType.SYSTEM_MSG, senderId: undefined },
-      { id: 'msg-2', type: MessageType.TEXT_MSG, senderId: 'user-uuid-1' },
-      { id: 'msg-3', type: MessageType.TEXT_MSG, senderId: 'user-uuid-2' },
-      { id: 'msg-4', type: MessageType.TEXT_MSG, senderId: SYSTEM_SENDER_ID },
-      { id: 'msg-5', type: MessageType.SYSTEM_MSG, senderId: 'user-uuid-1' },
+const message = (id: string, overrides: Partial<ChatMessage> = {}): ChatMessage => ({
+  id,
+  type: MessageType.TEXT_MSG,
+  senderId: 'user-uuid-2',
+  createdAt: new Date(),
+  messagePayload: { text: id },
+  status: 'STORED',
+  ...overrides,
+});
+
+describe('findLatestMessageToRead', () => {
+  it('picks the latest system message or message from someone else', () => {
+    const messages = [
+      message('msg-1', { type: MessageType.SYSTEM_MSG, senderId: undefined }),
+      message('msg-2', { senderId: CURRENT_USER }),
+      message('msg-3'),
+      message('msg-4', { senderId: SYSTEM_SENDER_ID }),
+      message('msg-5', { type: MessageType.SYSTEM_MSG, senderId: CURRENT_USER }),
+      message('msg-6', { senderId: CURRENT_USER }),
     ];
 
-    const isNotSentByCurrentUser = (message: TestMessage): boolean => {
-      if (message.type === MessageType.SYSTEM_MSG) return true;
-      if (message.senderId === SYSTEM_SENDER_ID) return true;
-      if (typeof message.senderId !== 'string') return true;
-      return message.senderId !== currentUser;
-    };
-
-    const latestMessageToRead = [...messages].reverse().find((m) => isNotSentByCurrentUser(m));
-
-    // msg-5 is a system message so it should be picked as the latest message to read
-    expect(latestMessageToRead?.id).toBe('msg-5');
+    expect(findLatestMessageToRead(messages, CURRENT_USER)?.id).toBe('msg-5');
   });
 
-  it('correctly identifies messages with undefined senderId as non-current-user', () => {
-    const currentUser = 'user-uuid-1';
+  it('treats a message without a sender as someone else', () => {
+    expect(
+      findLatestMessageToRead([message('msg-1', { senderId: undefined })], CURRENT_USER)?.id,
+    ).toBe('msg-1');
+  });
 
-    const messages: TestMessage[] = [
-      { id: 'msg-1', type: MessageType.TEXT_MSG, senderId: undefined },
+  it('skips queued and failed bubbles, which the server has never stored', () => {
+    const messages = [
+      message('msg-1'),
+      message('msg-2', { isPendingOffline: true, senderId: 'offline-user' }),
+      message('msg-3', { sendFailed: true, senderId: undefined }),
     ];
 
-    const isNotSentByCurrentUser = (message: TestMessage): boolean => {
-      if (message.type === MessageType.SYSTEM_MSG) return true;
-      if (message.senderId === SYSTEM_SENDER_ID) return true;
-      if (typeof message.senderId !== 'string') return true;
-      return message.senderId !== currentUser;
-    };
-
-    const latestMessageToRead = [...messages].reverse().find((m) => isNotSentByCurrentUser(m));
-
-    expect(latestMessageToRead?.id).toBe('msg-1');
+    expect(findLatestMessageToRead(messages, CURRENT_USER)?.id).toBe('msg-1');
   });
 });

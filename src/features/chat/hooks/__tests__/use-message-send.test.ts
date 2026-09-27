@@ -100,6 +100,8 @@ const runOptimisticUpdate = async (content: string): Promise<ChatWithMessagePrev
 interface SendMutationOptions {
   onMutate: (input: Record<string, unknown>) => Promise<unknown>;
   onError: (error: Error, input: Record<string, unknown>, context: unknown) => void;
+  onSuccess: (data: unknown, input: Record<string, unknown>, context: unknown) => void;
+  onSettled: (data: unknown, error: unknown, input: Record<string, unknown>) => void;
 }
 
 /**
@@ -114,7 +116,7 @@ const renderSendMutation = (): SendMutationOptions => {
         getInfiniteData: jest.fn(),
         setInfiniteData: jest.fn(),
       },
-      chats: { setData: jest.fn() },
+      chats: { setData: jest.fn(), invalidate: jest.fn(async () => {}) },
     },
   });
   (trpc.chat.user.useQuery as unknown as jest.Mock).mockReturnValue({ data: 'user-1' });
@@ -198,5 +200,66 @@ describe('useMessageSend message identity', () => {
     expect(getOfflineOutbox()).toStrictEqual([
       expect.objectContaining({ type: 'MESSAGE', id: MESSAGE_ID, chatId: CHAT_ID }),
     ]);
+  });
+});
+
+/**
+ * The composer is emptied the moment the user presses send. If the PWA is suspended or
+ * killed before the request settles, the outbox holds the only copy of the text.
+ */
+describe('useMessageSend outbox while the request is open', () => {
+  const MESSAGE_ID = '22222222-2222-4222-8222-222222222222';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it('queues the whole send, with its author, before the request settles', async () => {
+    const { onMutate } = renderSendMutation();
+    await onMutate({
+      chatId: CHAT_ID,
+      content: 'written just before the app was closed',
+      parentId: 'thread-1',
+      messageId: MESSAGE_ID,
+      timestamp: new Date('2026-07-25T08:00:00.000Z'),
+    });
+
+    expect(getOfflineOutbox()).toStrictEqual([
+      expect.objectContaining({
+        id: MESSAGE_ID,
+        chatId: CHAT_ID,
+        content: 'written just before the app was closed',
+        messageType: 'TEXT_MSG',
+        parentId: 'thread-1',
+        createdAt: '2026-07-25T08:00:00.000Z',
+        userId: 'user-1',
+      }),
+    ]);
+  });
+
+  it('queues an image as an image', async () => {
+    const { onMutate } = renderSendMutation();
+    await onMutate({
+      chatId: CHAT_ID,
+      content: 'chat-images/chat-1/photo.jpg',
+      type: 'IMAGE_MSG',
+      messageId: MESSAGE_ID,
+    });
+
+    expect(getOfflineOutbox()).toStrictEqual([
+      expect.objectContaining({ id: MESSAGE_ID, messageType: 'IMAGE_MSG' }),
+    ]);
+  });
+
+  it('leaves the outbox once the server stored the message', async () => {
+    const { onMutate, onSuccess, onSettled } = renderSendMutation();
+    const input = { chatId: CHAT_ID, content: 'hello', messageId: MESSAGE_ID };
+    const context = await onMutate(input);
+
+    onSuccess({ id: MESSAGE_ID, createdAt: new Date(), messagePayload: {} }, input, context);
+    onSettled(undefined, undefined, input);
+
+    expect(getOfflineOutbox()).toEqual([]);
   });
 });
