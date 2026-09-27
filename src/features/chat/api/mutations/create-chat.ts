@@ -2,7 +2,7 @@ import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-d
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat';
-import { findChatWithMembers } from '@/features/chat/api/database-interactions/find-chat-with-members';
+import { findOrCreatePrivateChat } from '@/features/chat/api/database-interactions/find-or-create-private-chat';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -78,15 +78,16 @@ export const createChat = trpcBaseProcedure
       }
     }
 
-    // If it's a private chat, check if there is already a chat with the same members
-    if (members.length === 1) {
-      const requestedMemberUuids = [user.uuid, ...members.map((member) => member.userId)].sort();
-
-      const existingChat = await findChatWithMembers(requestedMemberUuids, prisma, false);
-      if (existingChat?.chatMemberships.length === 2) {
-        logger.debug('Reusing the existing private chat', { 'chat.id': existingChat.uuid });
-        return existingChat.uuid; // Return the ID of the existing chat
-      }
+    const firstMember = members[0];
+    if (members.length === 1 && firstMember !== undefined) {
+      return await findOrCreatePrivateChat({
+        user,
+        otherUserId: firstMember.userId,
+        locale,
+        prisma,
+        chatId,
+        afterCommit: ctx.afterTransactionCommit,
+      });
     }
 
     const { checkCapability } = await import('@/lib/capabilities');

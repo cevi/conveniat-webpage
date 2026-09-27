@@ -37,6 +37,8 @@ model User {
   materialLoans        MaterialLoan[]        @relation("MaterialLoanPerson")
   createdMaterialLoans MaterialLoan[]        @relation("MaterialLoanCreatedBy")
   materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
+  issuedChatInvites    ChatInvite[]          @relation("ChatInviteIssuer")
+  redeemedChatInvites  ChatInvite[]          @relation("ChatInviteRedeemer")
 
   @@index([name])
 }
@@ -131,6 +133,28 @@ enum ChatMembershipPermission {
   MEMBER
   /// can read messages, but cannot send messages
   GUEST
+}
+
+/// A single-use code behind the QR code a user shows to start a chat with them. The code
+/// stands in for the user id, so a QR code cannot be printed and scanned by everyone.
+model ChatInvite {
+  token String @id
+
+  issuerId String
+  issuer   User   @relation("ChatInviteIssuer", fields: [issuerId], references: [uuid])
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  /// the user who scanned the code, null until it is redeemed
+  redeemedById String?
+  redeemedBy   User?     @relation("ChatInviteRedeemer", fields: [redeemedById], references: [uuid])
+  redeemedAt   DateTime?
+
+  /// the chat the redemption opened, answered again when the same user replays the link
+  chatId String?
+
+  @@index([issuerId])
 }
 
 model ChatMembership {
