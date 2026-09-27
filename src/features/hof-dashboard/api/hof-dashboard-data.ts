@@ -166,6 +166,22 @@ const findResponsible = async (
     overrideAccess: true,
     select: { fullName: true, nickname: true, email: true, groups: true },
   });
+  // a Hof not synced since the names were kept has only the addresses
+  const synced: HofContact[] =
+    hof.addressManagers === undefined || hof.addressManagers === null
+      ? (hof.addressManagerEmails ?? '')
+          .split(',')
+          .map((email) => ({ name: undefined, email: email.trim() }))
+          .filter(({ email }) => email !== '')
+      : hof.addressManagers.map(({ name, email }) => ({
+          name: name === undefined || name === null || name === '' ? undefined : name,
+          email,
+        }));
+  const syncedNames = new Map(
+    synced.flatMap(({ name, email }) =>
+      name === undefined ? [] : [[email.toLowerCase(), name] as const],
+    ),
+  );
   const signedIn = users
     // the role in this very group, not one role here and another elsewhere
     .filter((user) =>
@@ -174,24 +190,14 @@ const findResponsible = async (
       ).includes(hof.groupId),
     )
     .map((user) => ({
-      name: formatUserFullName(user.fullName, user.nickname),
+      // named as Cevi.DB names them, so a person reads the same before and after signing in
+      name:
+        syncedNames.get(user.email.toLowerCase()) ??
+        formatUserFullName(user.fullName, user.nickname),
       email: user.email,
     }));
   const known = new Set(signedIn.map((contact) => contact.email.toLowerCase()));
-  // a Hof not synced since the names were kept has only the addresses
-  const synced: HofContact[] =
-    hof.addressManagers === undefined || hof.addressManagers === null
-      ? (hof.addressManagerEmails ?? '')
-          .split(',')
-          .map((email) => ({ name: undefined, email: email.trim() }))
-      : hof.addressManagers.map(({ name, email }) => ({
-          name: name === undefined || name === null || name === '' ? undefined : name,
-          email,
-        }));
-  return [
-    ...signedIn,
-    ...synced.filter(({ email }) => email !== '' && !known.has(email.toLowerCase())),
-  ];
+  return [...signedIn, ...synced.filter(({ email }) => !known.has(email.toLowerCase()))];
 };
 
 /** The id of a relationship, whether Payload returned it populated or not. */

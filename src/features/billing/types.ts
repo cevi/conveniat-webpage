@@ -138,13 +138,6 @@ export enum BillingJobStatus {
   Success = 'success',
 }
 
-/**
- * One Cevi.DB event of a Hof, flattened: the event carries its Hof's group and addresses.
- *
- * The `hoefe` collection stores one document per group with its events nested; the billing
- * services work on this flat shape, one row per event, which is what the event list of the
- * bill settings used to hold. See `flattenHofEvents`.
- */
 /** Someone holding the Adressverwalter role of a Hof's group in Cevi.DB. */
 export interface HofAddressManager {
   /** Formatted like a signed-in user's name: first and last name, then the v/o. */
@@ -153,6 +146,13 @@ export interface HofAddressManager {
   email: string;
 }
 
+/**
+ * One Cevi.DB event of a Hof, flattened: the event carries its Hof's group and addresses.
+ *
+ * The `hoefe` collection stores one document per group with its events nested; the billing
+ * services work on this flat shape, one row per event, which is what the event list of the
+ * bill settings used to hold. See `flattenHofEvents`.
+ */
 export interface HofEventRow {
   eventId: string;
   eventName: string;

@@ -678,8 +678,8 @@ describe('getHofDashboardData', () => {
     const { responsible } = await getHofDashboardData('hof-nord', 'de', false);
     expect(responsible).toEqual([
       { name: 'Anna Beispiel v/o Fuchs', email: 'anna@example.com' },
-      // signed in: named from the login, and listed once
-      { name: 'Lea Roth', email: 'lea@example.com' },
+      // signed in, listed once and named as Cevi.DB names her
+      { name: 'Lea Roth v/o Alt', email: 'lea@example.com' },
       { name: 'Ben Bau v/o Hammer', email: 'bau@hof-nord.example.com' },
       { name: undefined, email: 'ohne-name@hof-nord.example.com' },
     ]);

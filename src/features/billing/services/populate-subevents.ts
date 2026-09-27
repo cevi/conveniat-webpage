@@ -36,6 +36,10 @@ export interface WalkedEventRow extends HofEventRow {
   addressManagers?: HofAddressManager[];
 }
 
+/** The Pflichtangaben reminder's recipients: the address managers' addresses, comma-separated. */
+const joinEmails = (managers: readonly HofAddressManager[]): string =>
+  managers.map(({ email }) => email).join(', ');
+
 /** The row as callers see it: the names go to the Hof, not into the button's event list. */
 const toEventRow = (row: WalkedEventRow): HofEventRow => {
   const { eventId, eventName, groupId, addressManagerEmails } = row;
@@ -138,7 +142,7 @@ export function mergeWalkIntoHoefe(
 
     // Left undefined by the walk when the lookup failed, which keeps the stored list.
     if (row.addressManagers !== undefined) {
-      hof.addressManagerEmails = row.addressManagers.map(({ email }) => email).join(', ');
+      hof.addressManagerEmails = joinEmails(row.addressManagers);
       hof.addressManagers = row.addressManagers;
       refreshedAddresses.set(row.groupId, row.addressManagers);
     }
@@ -157,7 +161,7 @@ export function mergeWalkIntoHoefe(
       ...(addressManagers === undefined
         ? {}
         : {
-            addressManagerEmails: addressManagers.map(({ email }) => email).join(', '),
+            addressManagerEmails: joinEmails(addressManagers),
             addressManagers,
           }),
     });
@@ -294,7 +298,7 @@ export async function populateSubeventsUseCase(
             ...(addressManagers === undefined
               ? {}
               : {
-                  addressManagerEmails: addressManagers.map(({ email }) => email).join(', '),
+                  addressManagerEmails: joinEmails(addressManagers),
                   addressManagers,
                 }),
           });

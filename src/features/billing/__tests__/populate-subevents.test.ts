@@ -223,6 +223,52 @@ describe('populateSubeventsUseCase', () => {
     expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([]);
   });
 
+  it('writes a Hof whose address manager changed their name in Cevi.DB', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+        addressManagers: [{ id: 'row-1', name: 'Alter Name', email: 'av@example.com' }],
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([manager('av@example.com')]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    const [writes] = mockSettingsRepo.upsertHoefe.mock.calls[0] ?? [];
+    expect(writes?.map((write) => write.addressManagers)).toEqual([[manager('av@example.com')]]);
+  });
+
+  it('leaves a Hof unwritten whose address manager has no name on either side', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+        addressManagers: [
+          // eslint-disable-next-line unicorn/no-null -- what Mongo holds for a name never set
+          { id: 'row-1', name: null, email: 'av@example.com' },
+        ],
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([
+      { name: '', email: 'av@example.com' },
+    ]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([]);
+  });
+
   it('writes the names to a Hof synced before they were kept', async () => {
     mockSettingsRepo.getHoefe.mockResolvedValue([
       storedHof({
