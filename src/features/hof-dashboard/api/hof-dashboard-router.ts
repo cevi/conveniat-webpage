@@ -15,6 +15,7 @@ import {
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import config from '@payload-config';
+import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
@@ -32,16 +33,27 @@ export const hofDashboardRouter = createTRPCRouter({
    */
   getHofList: publicProcedure.query(async () => await findHoefe(await getPayload({ config }))),
 
-  /** The Höfe whose dashboard the user may open. */
-  getMyHofList: hofDashboardProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),
-
-  /** Everything one Hof's dashboard shows. */
-  getHofDashboard: hofDashboardProcedure.input(hofIdInput).query(async ({ ctx, input }) => {
-    await ctx.assertHofAccess(input.hofId);
-    const data = await getHofDashboardData(input.hofId, ctx.locale);
-    // reviewers may still change an order after its deadline
-    return { ...data, isReviewer: ctx.isReviewer };
-  }),
+  /**
+   * The Höfe the user may open, and the dashboard of one of them: the one asked for, else
+   * the first. One request, so a first visit on camp wifi waits for one round trip, not two.
+   * Without any Hof to open, the list is empty and there is no dashboard.
+   */
+  getHofDashboard: hofDashboardProcedure
+    .input(z.object({ hofId: z.string().min(1).max(64).optional() }))
+    .query(async ({ ctx, input }) => {
+      const hoefe = await ctx.accessibleHoefe();
+      const hof =
+        input.hofId === undefined
+          ? hoefe[0]
+          : hoefe.find((candidate) => candidate.id === input.hofId);
+      if (hof === undefined) {
+        if (input.hofId !== undefined) throw new TRPCError({ code: 'FORBIDDEN' });
+        return { hoefe, dashboard: undefined };
+      }
+      const data = await getHofDashboardData(hof.id, ctx.locale);
+      // reviewers may still change an order after its deadline
+      return { hoefe, dashboard: { ...data, isReviewer: ctx.isReviewer } };
+    }),
 
   /** Where the browser puts a file before `completeUpload` files it. */
   createUploadUrl: hofDashboardProcedure

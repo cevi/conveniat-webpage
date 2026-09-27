@@ -96,12 +96,12 @@ export const MaterialOrderForm: React.FC<{
     networkMode: 'always',
     onSuccess: async () => {
       toast.success(translate('saved', locale));
-      await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+      await utils.hofDashboard.getHofDashboard.invalidate();
     },
     onError: (error) => {
       if (error.message === 'order_list_changed') {
         toast.error(translate('orderListChanged', locale));
-        void utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+        void utils.hofDashboard.getHofDashboard.invalidate();
         return;
       }
       notifyFailure(locale, error.message === 'order_closed' ? 'orderClosed' : 'saveFailed');

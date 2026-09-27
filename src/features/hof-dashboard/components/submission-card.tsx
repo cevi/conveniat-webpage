@@ -26,7 +26,7 @@ import {
   uploadKey,
 } from '@/features/hof-dashboard/constants';
 import type { UploadInProgress } from '@/features/hof-dashboard/hooks/use-hof-upload';
-import { useRefocusWhenDone } from '@/features/hof-dashboard/hooks/use-refocus-when-done';
+import { useKeepFocus } from '@/features/hof-dashboard/hooks/use-keep-focus';
 import { useSafetyRiskAnswer } from '@/features/hof-dashboard/hooks/use-safety-risk-answer';
 import { translate } from '@/features/hof-dashboard/texts';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
@@ -37,10 +37,11 @@ import type React from 'react';
 import { useId, useRef } from 'react';
 
 /** A file on its way up: its name, how far it is, and a way to call it off. */
-const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = ({
-  upload,
-  locale,
-}) => (
+const UploadProgress: React.FC<{
+  upload: UploadInProgress;
+  focusRef: React.RefObject<HTMLButtonElement | null>;
+  locale: Locale;
+}> = ({ upload, focusRef, locale }) => (
   <div className="w-full space-y-2 rounded-lg bg-gray-50 p-3">
     <div className="flex items-center justify-between gap-3 text-sm">
       <span className="min-w-0 truncate font-semibold text-gray-900">{upload.filename}</span>
@@ -55,27 +56,38 @@ const UploadProgress: React.FC<{ upload: UploadInProgress; locale: Locale }> = (
       aria-valuemax={100}
     >
       <div
-        className="bg-conveniat-green h-full rounded-full transition-[width]"
+        className="bg-conveniat-green h-full rounded-full transition-[width] motion-reduce:transition-none"
         style={{ width: `${upload.percent}%` }}
       />
     </div>
-    {upload.cancel === undefined ? (
-      <p className="text-sm text-gray-600">{translate('saving', locale)}</p>
-    ) : (
-      <button type="button" className={SECONDARY_BUTTON_CLASS} onClick={upload.cancel}>
+    <div className="flex flex-wrap items-center gap-3">
+      {/* stays while the file is filed, too late to cancel by then, so the focus has a place */}
+      <button
+        ref={focusRef}
+        type="button"
+        aria-disabled={upload.cancel === undefined}
+        className={cn(
+          SECONDARY_BUTTON_CLASS,
+          'aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
+        )}
+        onClick={upload.cancel}
+      >
         <X aria-hidden />
         {translate('cancel', locale)}
       </button>
-    )}
+      {upload.cancel === undefined && (
+        <p className="text-sm text-gray-600">{translate('saving', locale)}</p>
+      )}
+    </div>
   </div>
 );
 
 const UploadButton: React.FC<{
   label: string;
   primary: boolean;
-  buttonRef: React.RefObject<HTMLButtonElement | null>;
+  focusRef: React.RefObject<HTMLButtonElement | null>;
   onFile: (file: File) => void;
-}> = ({ label, primary, buttonRef, onFile }) => {
+}> = ({ label, primary, focusRef, onFile }) => {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -91,7 +103,7 @@ const UploadButton: React.FC<{
         }}
       />
       <button
-        ref={buttonRef}
+        ref={focusRef}
         type="button"
         className={primary ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS}
         onClick={() => input.current?.click()}
@@ -121,7 +133,12 @@ const SafetyCriteriaDialog: React.FC<{ criteria: string[]; locale: Locale }> = (
       closeLabel={translate('close', locale)}
       // the title says it all; without this Radix warns about a missing description
       aria-describedby={undefined}
-      className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-gray-200"
+      // opens on the title and list rather than on the close button in the corner
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        (event.currentTarget as HTMLElement).focus();
+      }}
+      className="max-h-[85vh] w-[calc(100%-2rem)] overflow-y-auto rounded-xl border-gray-200 focus:outline-none"
     >
       <DialogHeader>
         <DialogTitle className="font-heading text-conveniat-green pr-8 text-left leading-snug">
@@ -179,9 +196,9 @@ const FilesWithUpload: React.FC<{
   locale: Locale;
   onFile: (file: File) => void;
 }> = ({ files, upload, primary = false, locale, onFile }) => {
-  const button = useRef<HTMLButtonElement>(null);
-  // the cancel button goes with the upload; the focus comes back to where it started
-  useRefocusWhenDone(upload !== undefined, button);
+  // the upload button, or the cancel button while the upload runs
+  const focusTarget = useRef<HTMLButtonElement>(null);
+  useKeepFocus(upload === undefined ? 'idle' : 'uploading', focusTarget);
   return (
     <div className="space-y-3">
       {files.length > 0 && <FileList files={files} locale={locale} />}
@@ -193,7 +210,7 @@ const FilesWithUpload: React.FC<{
           <UploadButton
             label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
             primary={primary}
-            buttonRef={button}
+            focusRef={focusTarget}
             onFile={onFile}
           />
           <p className="text-xs text-gray-500">
@@ -201,7 +218,7 @@ const FilesWithUpload: React.FC<{
           </p>
         </div>
       ) : (
-        <UploadProgress upload={upload} locale={locale} />
+        <UploadProgress upload={upload} focusRef={focusTarget} locale={locale} />
       )}
     </div>
   );

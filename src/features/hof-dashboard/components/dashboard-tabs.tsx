@@ -1,6 +1,7 @@
 'use client';
 
 import { useScrollEdges } from '@/features/hof-dashboard/hooks/use-scroll-edges';
+import { scrollBehavior } from '@/features/hof-dashboard/utils/scroll-behavior';
 import { cn } from '@/utils/tailwindcss-override';
 import { Tab, TabList } from '@headlessui/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -43,7 +44,7 @@ export const DashboardTabList: React.FC<{ labels: string[]; label: string }> = (
   const row = useRef<HTMLDivElement>(null);
   const edges = useScrollEdges(row);
   const scrollBy = (direction: 1 | -1): void =>
-    row.current?.scrollBy({ left: direction * 120, behavior: 'smooth' });
+    row.current?.scrollBy({ left: direction * 120, behavior: scrollBehavior() });
 
   return (
     <div className="relative">

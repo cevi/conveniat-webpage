@@ -3,7 +3,9 @@ import type { HofFileKind } from '@/features/hof-dashboard/constants';
 import type { HofFile } from '@/features/payload-cms/payload-types';
 
 /** A submission's files, newest first, numbered per kind in the order they came in. */
-export const toFiles = (files: HofFile[]): HofDashboardFile[] => {
+export const toFiles = (
+  files: Pick<HofFile, 'id' | 'kind' | 'originalFilename' | 'filename' | 'url' | 'createdAt'>[],
+): HofDashboardFile[] => {
   const counters: Record<HofFileKind, number> = { plan: 0, safetyConcept: 0 };
   return files
     .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt))

@@ -23,22 +23,8 @@ export const useSafetyRiskAnswer = (
     networkMode: 'always',
     scope: { id: `hof-safety-risk-${hofId}-${submissionType}` },
     onError: () => notifyFailure(locale, 'saveFailed'),
-    // stored now, so it stays even if the reload below does not get through
-    onSuccess: (_result, answer) =>
-      utils.hofDashboard.getHofDashboard.setData({ hofId }, (current) =>
-        current === undefined
-          ? current
-          : {
-              ...current,
-              submissions: current.submissions.map((submission) =>
-                submission.type === answer.submissionType
-                  ? { ...submission, elevatedSafetyRisk: answer.elevatedSafetyRisk }
-                  : submission,
-              ),
-            },
-      ),
     // awaited, so the answer stays pending until the reloaded dashboard has it
-    onSettled: () => utils.hofDashboard.getHofDashboard.invalidate({ hofId }),
+    onSettled: () => utils.hofDashboard.getHofDashboard.invalidate(),
   });
   const shown = mutation.isPending ? mutation.variables.elevatedSafetyRisk : stored;
   return [

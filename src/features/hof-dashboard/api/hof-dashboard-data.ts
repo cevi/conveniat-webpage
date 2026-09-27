@@ -123,7 +123,10 @@ export const getHofDashboardSettings = async (
     locale,
     fallbackLocale: LOCALE.DE,
     depth: 1,
-    populate: { forms: { title: true } },
+    populate: {
+      forms: { title: true },
+      documents: { title: true, filename: true, url: true, filesize: true },
+    },
     overrideAccess: true,
   });
 
@@ -215,6 +218,14 @@ export const getHofDashboardData = async (
       sort: 'createdAt',
       limit: MAX_FILES_PER_HOF,
       overrideAccess: true,
+      select: {
+        submission: true,
+        kind: true,
+        originalFilename: true,
+        filename: true,
+        url: true,
+        createdAt: true,
+      },
     }),
     payload.find({
       collection: 'hof-material-orders',
@@ -223,6 +234,7 @@ export const getHofDashboardData = async (
       limit: 2,
       pagination: false,
       overrideAccess: true,
+      select: { orderType: true, items: true, powerConnection: true, updatedAt: true },
     }),
   ]);
 

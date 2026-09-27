@@ -22,6 +22,7 @@ export const text = {
     en: 'The dashboard could not be loaded.',
     fr: "Le tableau de bord n'a pas pu être chargé.",
   },
+  loading: { de: 'Wird geladen …', en: 'Loading …', fr: 'Chargement …' },
   retry: { de: 'Erneut versuchen', en: 'Try again', fr: 'Réessayer' },
   close: { de: 'Schliessen', en: 'Close', fr: 'Fermer' },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },

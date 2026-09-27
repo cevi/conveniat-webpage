@@ -43,8 +43,14 @@ const putWithProgress = (
   new Promise((resolve, reject) => {
     request.open('PUT', url);
     request.setRequestHeader('Content-Type', contentType);
+    // the browser reports many times a percent; a render each would stall a cheap phone
+    let reported = -1;
     request.upload.addEventListener('progress', (event) => {
-      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+      if (!event.lengthComputable) return;
+      const percent = Math.round((event.loaded / event.total) * 100);
+      if (percent === reported) return;
+      reported = percent;
+      onProgress(percent);
     });
     request.addEventListener('load', () => {
       if (request.status >= 200 && request.status < 300) resolve();
@@ -137,7 +143,7 @@ export const useHofUpload = (
       });
       // called off meanwhile, e.g. by a switch to another Hof: its success is not this one's
       if (!state.cancelled) toast.success(translate('uploadDone', locale));
-      await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+      await utils.hofDashboard.getHofDashboard.invalidate();
     } catch (error) {
       if (error instanceof UploadCancelled) return;
       console.error('Hof dashboard upload failed', error);

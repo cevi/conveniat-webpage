@@ -1,6 +1,7 @@
 'use client';
 
 import type { HofSubmissionType } from '@/features/hof-dashboard/constants';
+import { scrollBehavior } from '@/features/hof-dashboard/utils/scroll-behavior';
 import { useEffect, type RefObject } from 'react';
 
 /**
@@ -19,7 +20,7 @@ export const useScrollToSubmission = (
     // the tab shows its panel in a render of its own, so the card is visible a frame later
     const frame = requestAnimationFrame(() => {
       const card = container.current?.querySelector<HTMLElement>(`[data-submission="${target}"]`);
-      card?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      card?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
       card?.focus({ preventScroll: true });
       clearTarget();
     });

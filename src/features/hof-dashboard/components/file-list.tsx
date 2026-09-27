@@ -17,25 +17,37 @@ const FileRow: React.FC<{
     translate('version', locale, { n: file.version }),
     translate('uploadedOn', locale, { date: formatDate(file.uploadedAt, locale) }),
   ].filter((part) => part !== undefined);
-  const name = cn('break-all', current ? 'text-conveniat-green font-semibold' : 'text-gray-600');
-  return (
-    <li className="flex min-w-0 items-start gap-2 text-sm">
+  const content = (
+    <>
       <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-      <div className="min-w-0">
-        {file.url === undefined ? (
-          <span className={name}>{file.filename}</span>
-        ) : (
-          <a
-            href={file.url}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(name, 'hover:underline')}
-          >
-            {file.filename}
-          </a>
-        )}
-        <p className="text-xs text-gray-500">{details.join(' · ')}</p>
-      </div>
+      <span className="min-w-0">
+        <span
+          className={cn(
+            'block break-all group-hover:underline',
+            current ? 'text-conveniat-green font-semibold' : 'text-gray-600',
+          )}
+        >
+          {file.filename}
+        </span>
+        <span className="block text-xs text-gray-500">{details.join(' · ')}</span>
+      </span>
+    </>
+  );
+  return (
+    <li className="min-w-0 text-sm">
+      {file.url === undefined ? (
+        <div className="flex items-start gap-2 py-1">{content}</div>
+      ) : (
+        // the whole row opens the file, so a thumb finds it without aiming for the name
+        <a
+          href={file.url}
+          target="_blank"
+          rel="noreferrer"
+          className="group -mx-2 flex items-start gap-2 rounded-md px-2 py-1 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600"
+        >
+          {content}
+        </a>
+      )}
     </li>
   );
 };
@@ -56,7 +68,7 @@ export const FileList: React.FC<{
   const earlier = files.filter((file) => !current.includes(file));
   return (
     <div className="min-w-0 space-y-2">
-      <ul className="space-y-2">
+      <ul className="space-y-1">
         {current.map((file) => (
           <FileRow key={file.id} file={file} current showKind={showKind} locale={locale} />
         ))}
@@ -66,7 +78,7 @@ export const FileList: React.FC<{
           <summary className="min-h-9 cursor-pointer py-2 font-semibold text-gray-600 hover:text-gray-900">
             {translate('earlierVersions', locale, { n: earlier.length })}
           </summary>
-          <ul className="space-y-2 pb-1">
+          <ul className="space-y-1 pb-1">
             {earlier.map((file) => (
               <FileRow
                 key={file.id}

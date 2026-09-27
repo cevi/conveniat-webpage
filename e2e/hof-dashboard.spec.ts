@@ -117,8 +117,9 @@ const mockBackend = async (
   await page.route('**/api/trpc/**', async (route) => {
     const procedures = new URL(route.request().url()).pathname.split('/api/trpc/')[1]?.split(',');
     const answers = (procedures ?? []).map((procedure) => {
-      if (procedure === 'hofDashboard.getMyHofList') return hoefe;
-      if (procedure === 'hofDashboard.getHofDashboard') return dashboard;
+      if (procedure === 'hofDashboard.getHofDashboard') {
+        return { hoefe, dashboard: hoefe.length === 0 ? undefined : dashboard };
+      }
       if (procedure.startsWith('hofDashboard.')) mutations.push(procedure);
       // eslint-disable-next-line unicorn/no-null -- tRPC answers "nothing" with null
       return null;
