@@ -145,6 +145,14 @@ export enum BillingJobStatus {
  * services work on this flat shape, one row per event, which is what the event list of the
  * bill settings used to hold. See `flattenHofEvents`.
  */
+/** Someone holding the Adressverwalter role of a Hof's group in Cevi.DB. */
+export interface HofAddressManager {
+  /** Formatted like a signed-in user's name: first and last name, then the v/o. */
+  name: string;
+  /** Lowercased, which is what the addresses are matched on. */
+  email: string;
+}
+
 export interface HofEventRow {
   eventId: string;
   eventName: string;

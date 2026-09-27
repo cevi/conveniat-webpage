@@ -179,6 +179,38 @@ export const HoefeCollection: CollectionConfig = {
       },
     },
     {
+      // the same people with their names, which the Hof dashboard shows as the Hof's contacts
+      name: 'addressManagers',
+      type: 'array',
+      access: { read: canAccessBillingField, ...syncedFromCeviDatabase },
+      label: {
+        en: 'Address managers with names (from Cevi.DB)',
+        de: 'Adressverwalter/-innen mit Namen (aus Cevi.DB)',
+        fr: "Gestionnaires d'adresses avec noms (Cevi.DB)",
+      },
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'Written by the subgroup sync button; the Hof dashboard lists them as the responsible people of the Hof.',
+          de: 'Wird vom Subgruppen-Abgleich geschrieben; das Hof-Dashboard zeigt sie als Verantwortliche des Hofs.',
+          fr: 'Écrits par la synchronisation des sous-groupes ; le tableau de bord du Hof les affiche comme responsables du Hof.',
+        },
+      },
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: { en: 'Name', de: 'Name', fr: 'Nom' },
+        },
+        {
+          name: 'email',
+          type: 'text',
+          required: true,
+          label: { en: 'Email', de: 'E-Mail', fr: 'E-mail' },
+        },
+      ],
+    },
+    {
       name: 'reminderRecipientsOverride',
       type: 'text',
       access: { read: canAccessBillingField, update: canAccessBillingField },

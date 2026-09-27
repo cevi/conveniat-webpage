@@ -261,6 +261,7 @@ let mockSubmissions: Record<string, unknown>[] = SUBMISSIONS;
 let mockUsers: unknown[] = USERS;
 /** The Hof's addresses the billing sync copied from its Cevi.DB group. */
 let mockAddressManagerEmails: string | undefined;
+let mockAddressManagers: Array<{ name?: string | null; email: string }> | undefined;
 /** The forms as read in German, when that differs from the reader's language. */
 let mockGermanForms: unknown[] | undefined;
 
@@ -299,6 +300,7 @@ const mockPayload = {
       name: 'Hof Nord',
       groupId: '990001',
       addressManagerEmails: mockAddressManagerEmails,
+      addressManagers: mockAddressManagers,
     }),
   ),
   findGlobal: jest.fn(() =>
@@ -358,6 +360,7 @@ beforeEach(() => {
   mockSubmissions = SUBMISSIONS;
   mockUsers = USERS;
   mockAddressManagerEmails = undefined;
+  mockAddressManagers = undefined;
 });
 
 /** The Hof's submissions with one of them changed. */
@@ -665,7 +668,24 @@ describe('getHofDashboardData', () => {
     ]);
   });
 
-  it("lists the Hof's address managers from Cevi.DB, named once they signed in", async () => {
+  it("names the Hof's address managers as Cevi.DB does, before they ever signed in", async () => {
+    mockAddressManagerEmails = 'lea@example.com, bau@hof-nord.example.com';
+    mockAddressManagers = [
+      { name: 'Lea Roth v/o Alt', email: 'lea@example.com' },
+      { name: 'Ben Bau v/o Hammer', email: 'bau@hof-nord.example.com' },
+      { name: '', email: 'ohne-name@hof-nord.example.com' },
+    ];
+    const { responsible } = await getHofDashboardData('hof-nord', 'de', false);
+    expect(responsible).toEqual([
+      { name: 'Anna Beispiel v/o Fuchs', email: 'anna@example.com' },
+      // signed in: named from the login, and listed once
+      { name: 'Lea Roth', email: 'lea@example.com' },
+      { name: 'Ben Bau v/o Hammer', email: 'bau@hof-nord.example.com' },
+      { name: undefined, email: 'ohne-name@hof-nord.example.com' },
+    ]);
+  });
+
+  it("lists a Hof's addresses alone until a sync kept the names, named once they signed in", async () => {
     mockAddressManagerEmails = 'LEA@example.com, bau@hof-nord.example.com, ';
     const { responsible } = await getHofDashboardData('hof-nord', 'de', false);
     expect(responsible).toEqual([

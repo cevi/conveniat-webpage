@@ -31,7 +31,7 @@ const MAX_FORMS = 100;
 
 /** The Hof's responsible person (AVP), as Cevi.DB knows them. */
 export interface HofContact {
-  /** Missing until they signed in once: the sync only knows the address. */
+  /** Missing for a Hof not synced since the names were kept, unless they signed in once. */
   name: string | undefined;
   email: string;
 }
@@ -144,13 +144,13 @@ export interface HofDashboardData {
 const MAX_RESPONSIBLE = 200;
 
 /**
- * The Hof's responsible people, lazily from what Cevi.DB already told us: the addresses the
- * billing sync copies from the group's address managers, named by those of them who signed
- * in, since the login keeps their roles. Nothing here is edited by hand.
+ * The Hof's responsible people, from what Cevi.DB already told us: the group's address
+ * managers as the billing sync copies them, with their names, and those of them who signed in,
+ * since the login keeps their roles even before the next sync. Nothing here is edited by hand.
  */
 const findResponsible = async (
   payload: Payload,
-  hof: Pick<Hof, 'groupId' | 'addressManagerEmails'>,
+  hof: Pick<Hof, 'groupId' | 'addressManagerEmails' | 'addressManagers'>,
 ): Promise<HofContact[]> => {
   const { docs: users } = await payload.find({
     collection: 'users',
@@ -178,12 +178,20 @@ const findResponsible = async (
       email: user.email,
     }));
   const known = new Set(signedIn.map((contact) => contact.email.toLowerCase()));
-  const synced = (hof.addressManagerEmails ?? '')
-    .split(',')
-    .map((email) => email.trim())
-    .filter((email) => email !== '' && !known.has(email.toLowerCase()))
-    .map((email) => ({ name: undefined, email }));
-  return [...signedIn, ...synced];
+  // a Hof not synced since the names were kept has only the addresses
+  const synced: HofContact[] =
+    hof.addressManagers === undefined || hof.addressManagers === null
+      ? (hof.addressManagerEmails ?? '')
+          .split(',')
+          .map((email) => ({ name: undefined, email: email.trim() }))
+      : hof.addressManagers.map(({ name, email }) => ({
+          name: name === undefined || name === null || name === '' ? undefined : name,
+          email,
+        }));
+  return [
+    ...signedIn,
+    ...synced.filter(({ email }) => email !== '' && !known.has(email.toLowerCase())),
+  ];
 };
 
 /** The id of a relationship, whether Payload returned it populated or not. */
@@ -361,8 +369,10 @@ export const getHofDashboardData = async (
       id: hofId,
       depth: 0,
       overrideAccess: true,
-      select: { name: true, groupId: true, addressManagerEmails: true },
-    }) as Promise<Pick<Hof, 'id' | 'name' | 'groupId' | 'addressManagerEmails'>>,
+      select: { name: true, groupId: true, addressManagerEmails: true, addressManagers: true },
+    }) as Promise<
+      Pick<Hof, 'id' | 'name' | 'groupId' | 'addressManagerEmails' | 'addressManagers'>
+    >,
     payload.findGlobal({
       slug: 'hof-dashboard-settings',
       locale,

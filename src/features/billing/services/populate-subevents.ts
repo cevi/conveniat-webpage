@@ -2,7 +2,7 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { BillingLogger } from '@/features/billing/ports/logger.port';
 import type { HofSyncWrite, SettingsPort } from '@/features/billing/ports/settings.port';
 import { flattenHofEvents } from '@/features/billing/services/hof-events';
-import type { HofEventRow } from '@/features/billing/types';
+import type { HofAddressManager, HofEventRow } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
 import { deriveHofName } from '@/features/payload-cms/payload-cms/utils/hof-name';
 import type { Hof } from '@/features/payload-cms/payload-types';
@@ -29,21 +29,45 @@ const CONCURRENCY_LIMIT = 3;
 const MAX_ATTEMPTS = 3;
 
 type StoredHof = Pick<Hof, 'name' | 'groupId' | 'events'> &
-  Partial<Pick<Hof, 'addressManagerEmails' | 'reminderRecipientsOverride'>>;
+  Partial<Pick<Hof, 'addressManagerEmails' | 'addressManagers' | 'reminderRecipientsOverride'>>;
+
+/** An event the walk found, with the address managers of its group when their lookup worked. */
+export interface WalkedEventRow extends HofEventRow {
+  addressManagers?: HofAddressManager[];
+}
+
+/** The row as callers see it: the names go to the Hof, not into the button's event list. */
+const toEventRow = (row: WalkedEventRow): HofEventRow => {
+  const { eventId, eventName, groupId, addressManagerEmails } = row;
+  return {
+    eventId,
+    eventName,
+    groupId,
+    ...(addressManagerEmails === undefined ? {} : { addressManagerEmails }),
+  };
+};
 
 interface WorkingHof {
   name: string;
   groupId: string;
   events: Array<{ eventId: string; eventName: string }>;
   addressManagerEmails?: string | null | undefined;
+  addressManagers?: Hof['addressManagers'];
   reminderRecipientsOverride?: string | null | undefined;
 }
 
 /** What a sync write would change on a Hof, to tell the Höfe it has to touch from the rest. */
-const syncedState = (hof: Pick<WorkingHof, 'events' | 'addressManagerEmails'>): string =>
+const syncedState = (
+  hof: Pick<WorkingHof, 'events' | 'addressManagerEmails' | 'addressManagers'>,
+): string =>
   JSON.stringify({
     events: hof.events.map(({ eventId, eventName }) => ({ eventId, eventName })),
     addressManagerEmails: hof.addressManagerEmails ?? '',
+    // a Hof synced before the names were kept has none yet, and is written once to get them
+    addressManagers: (hof.addressManagers ?? []).map(({ name, email }) => ({
+      name: name ?? '',
+      email,
+    })),
   });
 
 /**
@@ -62,7 +86,7 @@ const syncedState = (hof: Pick<WorkingHof, 'events' | 'addressManagerEmails'>): 
  */
 export function mergeWalkIntoHoefe(
   stored: readonly StoredHof[],
-  walked: readonly HofEventRow[],
+  walked: readonly WalkedEventRow[],
 ): { writes: HofSyncWrite[]; newEvents: HofEventRow[]; allEvents: HofEventRow[] } {
   const hoefe = new Map<string, WorkingHof>();
   const storedState = new Map<string, string>();
@@ -77,12 +101,13 @@ export function mergeWalkIntoHoefe(
       groupId: hof.groupId,
       events: events.filter((event) => !isAufbauOrAbbaulager(event.eventName)),
       addressManagerEmails: hof.addressManagerEmails,
+      addressManagers: hof.addressManagers,
       reminderRecipientsOverride: hof.reminderRecipientsOverride,
     });
   }
 
   const newEvents: HofEventRow[] = [];
-  const refreshedAddresses = new Map<string, string>();
+  const refreshedAddresses = new Map<string, HofAddressManager[]>();
 
   for (const row of walked) {
     // Cevi.DB now lists the event under another group, so it moves to that group's Hof. The
@@ -104,7 +129,7 @@ export function mergeWalkIntoHoefe(
     const existing = hof.events.find((event) => event.eventId === row.eventId);
     if (existing === undefined) {
       hof.events.push({ eventId: row.eventId, eventName: row.eventName });
-      if (!knownEventIds.has(row.eventId)) newEvents.push(row);
+      if (!knownEventIds.has(row.eventId)) newEvents.push(toEventRow(row));
     } else {
       // The name lives in Cevi.DB, and it is what the bills, the exports and the reminder
       // mails print.
@@ -112,9 +137,10 @@ export function mergeWalkIntoHoefe(
     }
 
     // Left undefined by the walk when the lookup failed, which keeps the stored list.
-    if (row.addressManagerEmails !== undefined) {
-      hof.addressManagerEmails = row.addressManagerEmails;
-      refreshedAddresses.set(row.groupId, row.addressManagerEmails);
+    if (row.addressManagers !== undefined) {
+      hof.addressManagerEmails = row.addressManagers.map(({ email }) => email).join(', ');
+      hof.addressManagers = row.addressManagers;
+      refreshedAddresses.set(row.groupId, row.addressManagers);
     }
   }
 
@@ -123,12 +149,17 @@ export function mergeWalkIntoHoefe(
     hof.events.sort((a, b) => a.eventName.localeCompare(b.eventName));
     if (storedState.get(hof.groupId) === syncedState(hof)) continue;
 
-    const addressManagerEmails = refreshedAddresses.get(hof.groupId);
+    const addressManagers = refreshedAddresses.get(hof.groupId);
     writes.push({
       groupId: hof.groupId,
       name: hof.name,
       events: hof.events,
-      ...(addressManagerEmails === undefined ? {} : { addressManagerEmails }),
+      ...(addressManagers === undefined
+        ? {}
+        : {
+            addressManagerEmails: addressManagers.map(({ email }) => email).join(', '),
+            addressManagers,
+          }),
     });
   }
 
@@ -168,7 +199,7 @@ export async function populateSubeventsUseCase(
     'billing.total_groups': subgroupLinks.length,
   });
 
-  const results: HofEventRow[] = [];
+  const results: WalkedEventRow[] = [];
 
   await onProgress?.({
     processedGroups: 0,
@@ -229,8 +260,8 @@ export async function populateSubeventsUseCase(
     return undefined;
   };
 
-  const executeBatch = async (ids: string[]): Promise<HofEventRow[]> => {
-    const batchResults: HofEventRow[] = [];
+  const executeBatch = async (ids: string[]): Promise<WalkedEventRow[]> => {
+    const batchResults: WalkedEventRow[] = [];
 
     await Promise.all(
       ids.map(async (groupId) => {
@@ -250,7 +281,7 @@ export async function populateSubeventsUseCase(
         // Once per group, not once per event: a Hof usually runs several events and the
         // Adressverwalter are a property of its group.
         const addressManagers = await withRetry('address managers', groupId, () =>
-          hitobitoService.fetchAddressManagerEmails(groupId),
+          hitobitoService.fetchAddressManagers(groupId),
         );
 
         for (const event of matching) {
@@ -262,7 +293,10 @@ export async function populateSubeventsUseCase(
             // from replacing a good stored list with an empty one.
             ...(addressManagers === undefined
               ? {}
-              : { addressManagerEmails: addressManagers.join(', ') }),
+              : {
+                  addressManagerEmails: addressManagers.map(({ email }) => email).join(', '),
+                  addressManagers,
+                }),
           });
         }
       }),
@@ -291,7 +325,7 @@ export async function populateSubeventsUseCase(
     await onProgress?.({
       processedGroups,
       totalGroups: subgroupLinks.length,
-      foundEvents: batchResults,
+      foundEvents: batchResults.map((row) => toEventRow(row)),
     });
 
     // Wait 150ms between batches to stay within rate limits

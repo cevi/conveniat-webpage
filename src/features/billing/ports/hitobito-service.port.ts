@@ -1,3 +1,5 @@
+import type { HofAddressManager } from '@/features/billing/types';
+
 export interface SyncedExternalParticipant {
   participationId: string;
   participantId: string;
@@ -48,10 +50,11 @@ export interface HitobitoServicePort {
   fetchEventsForGroup(groupId: string): Promise<Array<{ id: string; name: string }>>;
   fetchPersonDetails(personId: string): Promise<HitobitoPersonDetails | null>;
   /**
-   * The e-mail addresses of everyone holding the Adressverwalter role in a group. They
-   * are who a Pflichtangaben reminder for that Hof goes to.
+   * Everyone holding the Adressverwalter role in a group, once per address. They are who a
+   * Pflichtangaben reminder for that Hof goes to, and whom the Hof dashboard names as its
+   * responsible people.
    */
-  fetchAddressManagerEmails(groupId: string): Promise<string[]>;
+  fetchAddressManagers(groupId: string): Promise<HofAddressManager[]>;
   /**
    * Writes one custom-question answer of a participation back to the Cevi.DB.
    *
