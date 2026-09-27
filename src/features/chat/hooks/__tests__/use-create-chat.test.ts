@@ -9,6 +9,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { getOfflineOutbox } from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
 import { renderHook } from '@testing-library/react';
+import { TRPCClientError } from '@trpc/client';
 
 // the generated prisma client cannot be loaded under jsdom; the hook only needs its enums
 jest.mock('@prisma/client', () => ({
@@ -114,7 +115,7 @@ const createCacheStub = (): {
 };
 
 interface MutationOptions {
-  onError: (error: { message: string }, variables: CreateChatVariables) => void;
+  onError: (error: Error, variables: CreateChatVariables) => void;
   onSuccess: (createdChatId: string, variables: CreateChatVariables) => void;
 }
 
@@ -207,10 +208,11 @@ describe('useCreateChat', () => {
     const { cache, createChat, latestOptions } = renderCreateChat();
 
     const chatId = createChat({ chatName: undefined, members: [anna] });
-    latestOptions().onError(
-      { message: 'Failed to fetch' },
-      { chatId, chatName: undefined, members: [{ userId: anna.userId }] },
-    );
+    latestOptions().onError(new TRPCClientError('Failed to fetch'), {
+      chatId,
+      chatName: undefined,
+      members: [{ userId: anna.userId }],
+    });
 
     expect(getOfflineOutbox()).toEqual([
       expect.objectContaining({
@@ -232,7 +234,13 @@ describe('useCreateChat', () => {
     rerender();
 
     latestOptions().onError(
-      { message: 'FORBIDDEN' },
+      TRPCClientError.from({
+        error: {
+          code: -32_003,
+          message: 'Messaging is disabled in this chat or globally.',
+          data: { code: 'FORBIDDEN', httpStatus: 403, path: 'chat.createChat' },
+        },
+      }),
       { chatId, chatName: undefined, members: [{ userId: anna.userId }] },
     );
 

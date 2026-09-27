@@ -1,16 +1,16 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import type { SendMessageInput } from '@/features/chat/utils/failed-sends';
 import { CHAT_OUTBOX_STORAGE_KEY } from '@/lib/chat-local-storage';
 import { MessageEventType } from '@/lib/chat-shared';
-// type only: the generated client does not load in the browser tests this module runs in
-import type { MessageType } from '@/lib/prisma/client';
 
 export interface OfflineMessage {
   type: 'MESSAGE';
   id: string; // Optimistic ID
   chatId: string;
   content: string;
-  // Absent in entries queued by older app versions, which only queued text.
-  messageType?: MessageType | undefined;
+  // Absent in entries queued by older app versions, which only queued text. Only the types a
+  // client may send: system and alert messages are created by the server alone.
+  messageType?: SendMessageInput['type'];
   quotedMessageId?: string | undefined;
   parentId?: string | undefined;
   createdAt: string; // ISO String
@@ -84,6 +84,29 @@ export const getOfflineOutbox = (): OfflineOutboxItem[] => {
 };
 
 /**
+ * The bubble for a queued message, as it shows while it waits for the connection.
+ */
+export const toPendingChatMessage = (item: OfflineMessage, currentUser: string): ChatMessage => {
+  const messageType = item.messageType ?? 'TEXT_MSG';
+  return {
+    id: item.id,
+    messagePayload:
+      messageType === 'IMAGE_MSG'
+        ? { url: item.content }
+        : {
+            text: item.content.trim(),
+            ...(item.quotedMessageId ? { quotedMessageId: item.quotedMessageId } : {}),
+          },
+    createdAt: new Date(item.createdAt),
+    senderId: currentUser,
+    status: MessageEventType.CREATED,
+    type: messageType,
+    parentId: item.parentId ?? undefined,
+    isPendingOffline: true,
+  };
+};
+
+/**
  * Formats the pending outbox items of `currentUser` in a given chat as ChatMessage objects
  * for UI rehydration across app restarts.
  */
@@ -103,25 +126,7 @@ export const getPendingOutboxChatMessages = (
       (parentId ? item.parentId === parentId : !item.parentId),
   );
 
-  return matching.map((item) => {
-    const messageType = item.messageType ?? 'TEXT_MSG';
-    return {
-      id: item.id,
-      messagePayload:
-        messageType === 'IMAGE_MSG'
-          ? { url: item.content }
-          : {
-              text: item.content.trim(),
-              ...(item.quotedMessageId ? { quotedMessageId: item.quotedMessageId } : {}),
-            },
-      createdAt: new Date(item.createdAt),
-      senderId: currentUser,
-      status: MessageEventType.CREATED,
-      type: messageType,
-      parentId: item.parentId ?? undefined,
-      isPendingOffline: true,
-    };
-  });
+  return matching.map((item) => toPendingChatMessage(item, currentUser));
 };
 
 /**
