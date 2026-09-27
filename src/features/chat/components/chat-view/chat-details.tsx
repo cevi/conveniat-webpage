@@ -18,6 +18,7 @@ import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
+import { matchesContactSearch } from '@/features/chat/utils/contact-search';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -47,23 +48,10 @@ export const ChatDetails: React.FC = () => {
   const addableContacts = useMemo(() => {
     if (!allContacts || !chatDetails) return [];
     const participantIds = new Set(chatDetails.participants.map((p) => p.id));
-    const query = searchQuery.toLowerCase().trim();
-    return allContacts.filter((contact) => {
-      if (participantIds.has(contact.userId)) return false;
-      if (query === '') return true;
-
-      const matchesName = contact.name.toLowerCase().includes(query);
-      const matchesNickname =
-        typeof contact.nickname === 'string' && contact.nickname.trim().length > 0
-          ? contact.nickname.toLowerCase().includes(query)
-          : false;
-      const matchesDescription =
-        typeof contact.description === 'string' && contact.description.trim().length > 0
-          ? contact.description.toLowerCase().includes(query)
-          : false;
-
-      return matchesName || matchesNickname || matchesDescription;
-    });
+    return allContacts.filter(
+      (contact) =>
+        !participantIds.has(contact.userId) && matchesContactSearch(contact, searchQuery),
+    );
   }, [allContacts, chatDetails, searchQuery]);
 
   if (isLoading || chatDetails === undefined) {
