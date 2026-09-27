@@ -193,7 +193,9 @@ export const PopulateSubeventsButton: React.FC = () => {
     await start();
   };
 
-  if (permissions?.collections?.['hoefe']?.create !== true) return <></>;
+  // Update, not create: a Hof is read-only in the admin panel and only the sync creates one,
+  // while the billing team, who may run it, still updates the reminder override.
+  if (permissions?.collections?.['hoefe']?.update !== true) return <></>;
 
   const percentage = computePercentage(state);
 

@@ -5,6 +5,7 @@ import type {
   ParticipationAnswerUpdate,
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
+import type { HofAddressManager } from '@/features/billing/types';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { HitobitoClient } from '@/lib/hitobito/client';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
@@ -15,6 +16,7 @@ import {
 } from '@/lib/hitobito/html-parser';
 import { EventService } from '@/lib/hitobito/services/event.service';
 import { PersonService } from '@/lib/hitobito/services/person.service';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { trace } from '@opentelemetry/api';
 import { z } from 'zod';
 
@@ -67,6 +69,9 @@ const PeopleJsonSchema = z.object({
       z
         .object({
           email: z.string().nullish(),
+          first_name: z.string().nullish(),
+          last_name: z.string().nullish(),
+          nickname: z.string().nullish(),
           links: z
             .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
             .nullish(),
@@ -326,7 +331,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     }));
   }
 
-  async fetchAddressManagerEmails(groupId: string): Promise<string[]> {
+  async fetchAddressManagers(groupId: string): Promise<HofAddressManager[]> {
     const path = `/groups/${groupId}/people.json`;
     const { response, body } = await this.client.frontendRequest('GET', path, {
       headers: {
@@ -350,17 +355,23 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
         .map((role) => String(role?.id)),
     );
 
-    const emails = new Set<string>();
+    const managers = new Map<string, HofAddressManager>();
     for (const person of parsed.data.people ?? []) {
       const hasRole = (person.links?.roles ?? []).some((roleId) =>
         addressManagerRoleIds.has(String(roleId)),
       );
       if (!hasRole) continue;
       const email = (person.email ?? '').trim().toLowerCase();
-      if (email !== '') emails.add(email);
+      if (email === '' || managers.has(email)) continue;
+      const fullName = [person.first_name, person.last_name]
+        .map((part) => decodeDisplayText(part ?? '').trim())
+        .filter((part) => part !== '')
+        .join(' ');
+      const name = formatUserFullName(fullName, decodeDisplayText(person.nickname ?? ''));
+      managers.set(email, { name, email });
     }
 
-    return [...emails];
+    return [...managers.values()];
   }
 
   /**
