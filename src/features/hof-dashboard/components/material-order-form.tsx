@@ -17,8 +17,8 @@ import {
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import {
   type OrderValues,
+  parseQuantity,
   sameOrder,
-  toQuantity,
 } from '@/features/hof-dashboard/utils/order-form-state';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import { trpc } from '@/trpc/client';
@@ -81,7 +81,7 @@ export const MaterialOrderForm: React.FC<{
       setEdits((current) =>
         Object.fromEntries(
           Object.entries(current).filter(
-            ([itemId, typed]) => toQuantity(typed) !== (stored.quantities[itemId] ?? 0),
+            ([itemId, typed]) => parseQuantity(typed) !== (stored.quantities[itemId] ?? 0),
           ),
         ),
       );
@@ -104,7 +104,8 @@ export const MaterialOrderForm: React.FC<{
   const powerConnection = powerEdit ?? order.powerConnection;
   const shown: OrderValues = {
     quantities: Object.fromEntries(
-      order.items.map((item) => [item.id, toQuantity(quantityText(item))]),
+      // an invalid quantity stands in as the stored one; `invalid` below holds the save back
+      order.items.map((item) => [item.id, parseQuantity(quantityText(item)) ?? item.quantity]),
     ),
     powerConnection,
   };
@@ -114,13 +115,12 @@ export const MaterialOrderForm: React.FC<{
     order.items
       .filter((item) => {
         const typed = edits[item.id];
-        return (
-          typed !== undefined && (!/^\d*$/.test(typed) || Number(typed) > HOF_ORDER_MAX_QUANTITY)
-        );
+        return typed !== undefined && parseQuantity(typed) === undefined;
       })
       .map((item) => item.id),
   );
-  const dirty = !sameOrder(shown, storedValues(order));
+  // an invalid quantity is unsaved work too, so leaving warns about it
+  const dirty = invalid.size > 0 || !sameOrder(shown, storedValues(order));
   const hint = translate('quantityHint', locale, {
     n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
   });
@@ -128,7 +128,15 @@ export const MaterialOrderForm: React.FC<{
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault();
-    if (save.isPending || !dirty || invalid.size > 0) return;
+    const firstInvalid = order.items.find((item) => invalid.has(item.id));
+    if (firstInvalid !== undefined) {
+      // the save waits for it; taking the Hof there says why
+      document
+        .querySelector<HTMLInputElement>(`#${CSS.escape(`${id}-${firstInvalid.id}`)}`)
+        ?.focus();
+      return;
+    }
+    if (save.isPending || !dirty) return;
     save.mutate({
       hofId,
       orderType: order.type,
@@ -193,7 +201,8 @@ export const MaterialOrderForm: React.FC<{
                   )}
                   {group.items.map((item) => (
                     <Fragment key={item.id}>
-                      <tr>
+                      {/* no divider under an invalid field: its rule follows right below */}
+                      <tr className={cn(invalid.has(item.id) && 'border-b-0')}>
                         <td className="py-2 pr-3 text-gray-900">
                           <label htmlFor={`${id}-${item.id}`}>{item.name}</label>
                         </td>
@@ -222,7 +231,7 @@ export const MaterialOrderForm: React.FC<{
                             onBlur={() => {
                               const typed = edits[item.id];
                               if (typed === undefined || invalid.has(item.id)) return;
-                              const quantity = toQuantity(typed);
+                              const quantity = parseQuantity(typed) ?? 0;
                               setEdits((previous) => {
                                 const rest = Object.fromEntries(
                                   Object.entries(previous).filter(([other]) => other !== item.id),
@@ -232,7 +241,7 @@ export const MaterialOrderForm: React.FC<{
                                   : { ...rest, [item.id]: quantity > 0 ? String(quantity) : '' };
                               });
                             }}
-                            className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
+                            className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500 aria-invalid:bg-white aria-invalid:ring-2 aria-invalid:ring-amber-700"
                           />
                         </td>
                       </tr>
@@ -253,7 +262,8 @@ export const MaterialOrderForm: React.FC<{
               ))}
             </table>
           )}
-          {order.items.length > 0 && (
+          {/* while a field says it right below itself, not twice */}
+          {order.items.length > 0 && invalid.size === 0 && (
             <p id={`${id}-hint`} className="text-xs text-gray-500">
               {hint}
             </p>

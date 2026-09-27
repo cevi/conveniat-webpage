@@ -350,10 +350,13 @@ test.describe('Hof dashboard', () => {
     await expect(quantity).toHaveValue('2.5');
     await expect(quantity).toHaveAttribute('aria-invalid', 'true');
     await expect(quantity).toHaveAccessibleDescription(/Ganze Stückzahlen/);
-    await expect(page.getByRole('button', { name: 'Speichern' }).first()).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
+    await expect(page.getByText('Nicht gespeicherte Änderungen').first()).toBeVisible();
+    // the save waits, and takes the Hof to what holds it back
+    await page.getByLabel('Handbeil').press('Enter');
+    await expect(quantity).toBeFocused();
+    await page.setViewportSize({ width: 360, height: 740 });
+    await quantity.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: test.info().outputPath('invalid-quantity.png') });
   });
 
   test('sends only the quantities the Hof changed', async ({ page }) => {

@@ -6,10 +6,16 @@ export interface OrderValues {
   powerConnection: boolean;
 }
 
-/** A typed quantity as a whole number within what can be ordered; anything else counts as none. */
-export const toQuantity = (value: string | undefined): number => {
-  const quantity = Math.floor(Number(value));
-  return Number.isFinite(quantity) && quantity > 0 ? Math.min(quantity, HOF_ORDER_MAX_QUANTITY) : 0;
+/**
+ * A typed quantity as a whole number within what can be ordered, or undefined when it is not
+ * one, so the form can say so instead of saving some other number. Empty is none, and "1'000"
+ * counts, as the Swiss write it.
+ */
+export const parseQuantity = (typed: string): number | undefined => {
+  const digits = typed.replaceAll("'", '').trim();
+  if (!/^\d*$/.test(digits)) return undefined;
+  const quantity = digits === '' ? 0 : Number(digits);
+  return quantity <= HOF_ORDER_MAX_QUANTITY ? quantity : undefined;
 };
 
 const quantityOf = (values: OrderValues, itemId: string): number => values.quantities[itemId] ?? 0;
