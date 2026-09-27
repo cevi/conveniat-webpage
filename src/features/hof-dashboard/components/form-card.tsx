@@ -209,7 +209,9 @@ export const FormCard: React.FC<{
         </SectionHeading>
         <ProgressLine progress={progress} locale={locale} />
         {form.description !== undefined && form.description !== '' && (
-          <p className="text-sm whitespace-pre-line text-gray-600">{form.description}</p>
+          <p className="text-sm text-balance whitespace-pre-line text-gray-600">
+            {form.description}
+          </p>
         )}
       </header>
 

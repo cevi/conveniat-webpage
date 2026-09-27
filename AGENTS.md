@@ -36,6 +36,49 @@ Loki because someone logged at the wrong level.
 - **the stack** is the local Docker Compose environment. Mongo, Postgres, Redis, SeaweedFS, a fake OAuth
   server, and Grafana with Loki, Tempo and Prometheus.
 
+### Camp terms
+
+These are the words conveniat27 uses with its people. Use them in every user-facing German string,
+in the CMS labels and in the examples you give, and prefer them over the Cevi.DB role names: an
+editor reads "AVP", not "Adressverwalter". Examples name real Höfe, like "Cevi Uster" or "Züri 11",
+not invented ones like "Hof Süd".
+
+The member database is **Cevi.DB**, written exactly like that, in every label, help text, button and
+message a user or an editor reads. Never "Hitobito", "CeviDB" or "Cevi DB" there. Hitobito is the
+software Cevi.DB runs on; keep that name in code, identifiers, logs, spans and comments.
+
+| Begriff                                    | Bedeutung                                                                                                                                                                                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **conveniat27**                            | Lagername, konsequent überall so geschrieben.                                                                                                                                                                                 |
+| **Cevi.DB**                                | Die Mitgliederdatenbank des Cevi, genau so geschrieben. Läuft auf der Software Hitobito, was nur im Code vorkommt.                                                                                                            |
+| **Abteilung**                              | Eine lokale Cevi-Abteilung, z.B. Abteilung Uster, Abteilung St. Gallen. Je nach Region auch Ortsgruppe genannt; conveniat27 verwendet in seiner Kommunikation ausschliesslich Abteilung.                                      |
+| **der Cevi**                               | Gemeint ist der Verein, deshalb _der_ Cevi.                                                                                                                                                                                   |
+| **Hof** (Höfe)                             | Kleinste organisatorische und räumliche Einheit von Abteilungen auf dem Platz, aus einer oder mehreren Cevi-Abteilungen.                                                                                                      |
+| **Quartier** (Quartiere)                   | Nächstgrössere Einheit aus mehreren Höfen. Das Gesamtlager hat 8 Quartiere à ca. 500 Personen; dort laufen alle Blöcke, die nicht auf Stufe Hof geplant und umgesetzt werden.                                                 |
+| **Gesamtlager**                            | Alle regulären Teilnehmenden und Leitenden, über alle Quartiere. Gemeinsame Aktivitäten wie Rollenspiele oder Stadtleben finden auf dieser Stufe statt.                                                                       |
+| **Abteilungsverantwortliche Person (AVP)** | Hof-Verantwortliche/r: jeder Hof hat eine/n sowie eine Stellvertretung, die den Kontakt zwischen Kernteam und Hof sicherstellen. In der Cevi.DB tragen sie die Rolle Adressverwalter/-in.                                     |
+| **Hof-J+S-Hauptleitung**                   | Jeder Hof ist ein eigenes J+S-Lager und wird von ihr geleitet. Idealerweise dieselbe Person wie die AVP.                                                                                                                      |
+| **Hofcoach**                               | J+S-Coach eines Hofs: prüft und nimmt das Hofprogramm ab und meldet dem Gesamtcoach, dass es den J+S-Standards entspricht.                                                                                                    |
+| **Kernteam**                               | Das OK des conveniat27; die Leitung jedes Ressorts ist darin vertreten.                                                                                                                                                       |
+| **Ressortmitglied**                        | Person, die in einem Ressort mitarbeitet.                                                                                                                                                                                     |
+| **FUSI**                                   | Ressort Fundraising, Sponsoring und Interaction.                                                                                                                                                                              |
+| **KOMA**                                   | Ressort Kommunikation und Marketing.                                                                                                                                                                                          |
+| **PROST!**                                 | Ressort Programm (und Story).                                                                                                                                                                                                 |
+| **Hofprogramm (HP)**                       | Programm, das die Höfe organisieren.                                                                                                                                                                                          |
+| **Ressortprogramm (RP)**                   | Programm, das das Ressort Programm organisiert.                                                                                                                                                                               |
+| **Externes Programm (EP)**                 | Programm ausserhalb des Lagergeländes, z.B. Tageswanderung, Wald, Ausflüge, Badesee.                                                                                                                                          |
+| **Events (EVN)**                           | Grossveranstaltungen des ganzen conveniat27: Konzerte, Tagesstart/-schluss, RS, Stadtleben, Schlussabend, Eröffnungs-/Abschlussfeier.                                                                                         |
+| **Leitendenevent**                         | Anlass, an dem Leitende und Helfende teilnehmen dürfen.                                                                                                                                                                       |
+| **Helfende/r**                             | Schläft, isst und lebt nicht bei einer Abteilung und steht für die ganze Dauer des Einsatzes als Helfer/in zur Verfügung. Kommt gratis ins Lager und stellt dafür die ganze Zeit als Arbeitszeit zur Verfügung (8 h pro Tag). |
+| **Schichteinsätze**                        | Helfereinsätze, die Abteilungen mit eigenen Personen für bestimmte Aufgaben und Zeiten während des Lagers übernehmen.                                                                                                         |
+| **Definitive Anmeldung**                   | Ab Winter 2025/2026 melden sich die Abteilungen definitiv an und melden dabei auch ihre Höfe.                                                                                                                                 |
+| **Teilnahmeprognose**                      | Die Schätzung der Teilnehmenden aus dem Sommer 2025.                                                                                                                                                                          |
+| **Aufbaulager Infrastruktur**              | 12.07.–23.07.2027, für den Aufbau der allgemeinen Infrastruktur.                                                                                                                                                              |
+| **Aufbaulager Höfe**                       | 21.07.–23.07.2027, Aufbaulager der Abteilungen.                                                                                                                                                                               |
+| **Scharniertag (Leitendentag)**            | 03.08.2027, ein Tag für Leitende und Helfende; die Kinder sind nicht mehr auf dem Platz.                                                                                                                                      |
+| **Abbaulager Höfe**                        | 03.08.–06.08.2027, Abbaulager der Abteilungen.                                                                                                                                                                                |
+| **Abbaulager Infrastruktur**               | 03.08.–15.08.2027, für den Abbau der allgemeinen Infrastruktur.                                                                                                                                                               |
+
 ## What has to keep working
 
 Offline. The service worker, the precached shell and the persisted query cache are features, and

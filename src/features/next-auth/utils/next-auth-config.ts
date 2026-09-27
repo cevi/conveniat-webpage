@@ -450,7 +450,7 @@ export const authOptions: NextAuthConfig = {
     {
       id: 'cevi-db',
       type: 'oauth',
-      name: 'CeviDB',
+      name: 'Cevi.DB',
       authorization: {
         url: `${HITOBITO_FORWARD_URL}/oauth/authorize`,
         params: {

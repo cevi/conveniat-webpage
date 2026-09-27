@@ -255,16 +255,16 @@ export const AppFeatureFlags: GlobalConfig = {
     {
       name: 'checkHitobitoApprovalsEnabled',
       label: {
-        en: 'Enable Check Hitobito Approvals Task',
-        de: 'Task "Check Hitobito Approvals" aktivieren',
-        fr: "Activer la tâche d'approbations Hitobito",
+        en: 'Enable the Cevi.DB approvals check task',
+        de: 'Task zur Prüfung der Cevi.DB-Freigaben aktivieren',
+        fr: "Activer la tâche d'approbations Cevi.DB",
       },
       type: 'checkbox',
       defaultValue: true,
       admin: {
         condition: () => environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT,
         description:
-          'Toggles whether the scheduled task checks Hitobito approvals for pending registrations.',
+          'Toggles whether the scheduled task checks Cevi.DB approvals for pending registrations.',
         components: {
           Field:
             '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',

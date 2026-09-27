@@ -192,9 +192,9 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
       if (fieldConfig.blockType === 'ceviDbLogin') {
         const locale = (req.locale ?? 'en') as Locale;
         const requiredMessage: StaticTranslationString = {
-          en: `Field "${fieldName}" is required. Please log in with Cevi DB.`,
-          de: `Feld "${fieldName}" ist erforderlich. Bitte melden Sie sich mit Cevi DB an.`,
-          fr: `Le champ "${fieldName}" ist obligatoire. Veuillez vous connecter avec Cevi DB.`,
+          en: `Field "${fieldName}" is required. Please log in with Cevi.DB.`,
+          de: `Feld "${fieldName}" ist erforderlich. Bitte melden Sie sich mit Cevi.DB an.`,
+          fr: `Le champ "${fieldName}" ist obligatoire. Veuillez vous connecter avec Cevi.DB.`,
         };
         throw new APIError(requiredMessage[locale], 400, undefined, true);
       } else {

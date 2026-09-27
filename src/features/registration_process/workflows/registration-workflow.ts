@@ -7,6 +7,7 @@ import {
 } from '@/lib/hitobito/schemas';
 import type { WorkflowConfig } from 'payload';
 
+import { MANUAL_APPROVAL_REASON } from '@/features/registration_process/manual-approval-reason';
 import { z } from 'zod';
 
 const CreateUserOutputSchema = z.object({
@@ -156,7 +157,7 @@ export const registrationWorkflow: WorkflowConfig<'registrationWorkflow'> = {
             input: {
               workflowSlug: 'registrationWorkflow',
               originalInput: { ...workflowInput, resolvedUserId: currentUserId },
-              reason: 'Manuelle Freigabe in Hitobito ausstehend durch die Gruppe',
+              reason: MANUAL_APPROVAL_REASON,
             },
           }),
         );

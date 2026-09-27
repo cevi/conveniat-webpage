@@ -150,3 +150,24 @@ describe('syncFunktionen', () => {
     expect(fake.delete).not.toHaveBeenCalled();
   });
 });
+
+describe('syncFunktionen progress', () => {
+  it('reports the walk of the tree, then every group read, with the groups that have leaders', async () => {
+    const reports: unknown[] = [];
+    await syncFunktionen(fakePayload([]).payload, source(), '4046', (progress) => {
+      reports.push(progress);
+    });
+
+    expect(reports.at(0)).toEqual({ phase: 'discovering', discoveredGroups: 3 });
+    const reading = reports.filter(
+      (report): report is { phase: 'reading'; processedGroups: number; found: unknown[] } =>
+        (report as { phase: string }).phase === 'reading',
+    );
+    expect(reading.map((report) => report.processedGroups)).toEqual([1, 2, 3, 4]);
+    expect(reading.flatMap((report) => report.found)).toEqual([
+      { groupId: '4046', groupName: 'Projektleitung', leaders: 1 },
+      { groupId: '5001', groupName: 'Ressort Infrastruktur', leaders: 2 },
+      { groupId: '6001', groupName: 'Team Strom', leaders: 1 },
+    ]);
+  });
+});

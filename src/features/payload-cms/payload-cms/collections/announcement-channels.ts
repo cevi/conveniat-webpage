@@ -314,7 +314,7 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
           value: 'roles',
         },
         {
-          label: { en: 'CeviDB Groups', de: 'CeviDB Gruppen', fr: 'Groupes CeviDB' },
+          label: { en: 'Cevi.DB groups', de: 'Cevi.DB-Gruppen', fr: 'Groupes Cevi.DB' },
           value: 'cevi_groups',
         },
       ],
@@ -341,9 +341,9 @@ export const AnnouncementChannelsCollection: CollectionConfig = {
     {
       name: 'targetCeviGroups',
       label: {
-        en: 'Target CeviDB Groups',
-        de: 'Ziel CeviDB-Gruppen',
-        fr: 'Groupes CeviDB cibles',
+        en: 'Target Cevi.DB groups',
+        de: 'Ziel-Cevi.DB-Gruppen',
+        fr: 'Groupes Cevi.DB cibles',
       },
       type: 'array',
       admin: {

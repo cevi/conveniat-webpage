@@ -165,9 +165,9 @@ export const HoefeCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         description: {
-          en: 'Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.',
-          de: 'Anzeigename, z.B. "Hof Süd", bei jedem Abgleich aus den Namen seiner Anlässe in der Cevi.DB übernommen.',
-          fr: "Nom d'affichage, par ex. « Hof Süd », repris à chaque synchronisation des noms de ses événements dans Cevi.DB.",
+          en: 'Display name, e.g. "Cevi Uster" or "Züri 11", taken from the names of its events in Cevi.DB by every sync.',
+          de: 'Anzeigename, z.B. "Cevi Uster" oder "Züri 11", bei jedem Abgleich aus den Namen seiner Anlässe in der Cevi.DB übernommen.',
+          fr: "Nom d'affichage, par ex. « Cevi Uster » ou « Züri 11 », repris à chaque synchronisation des noms de ses événements dans Cevi.DB.",
         },
       },
     },
@@ -198,9 +198,9 @@ export const HoefeCollection: CollectionConfig = {
       admin: {
         readOnly: true,
         description: {
-          en: 'Hitobito group ID of this Hof (up to 6 digits)',
-          de: 'Hitobito Gruppen-ID dieses Hofs (bis zu 6 Stellen)',
-          fr: "ID du groupe Hitobito de ce Hof (jusqu'à 6 chiffres)",
+          en: 'Cevi.DB group ID of this Hof (up to 6 digits)',
+          de: 'Cevi.DB-Gruppen-ID dieses Hofs (bis zu 6 Stellen)',
+          fr: "ID du groupe Cevi.DB de ce Hof (jusqu'à 6 chiffres)",
         },
       },
       validate: validateHitobitoId,
@@ -209,9 +209,9 @@ export const HoefeCollection: CollectionConfig = {
       name: 'events',
       type: 'array',
       label: {
-        en: 'Hitobito Events to Sync',
-        de: 'Hitobito Anlässe zum Synchronisieren',
-        fr: 'Événements Hitobito à synchroniser',
+        en: 'Cevi.DB events to sync',
+        de: 'Cevi.DB-Anlässe zum Synchronisieren',
+        fr: 'Événements Cevi.DB à synchroniser',
       },
       access: syncedFromCeviDatabase,
       admin: {
@@ -235,9 +235,9 @@ export const HoefeCollection: CollectionConfig = {
           label: { en: 'Event ID', de: 'Anlass-ID', fr: "ID de l'événement" },
           admin: {
             description: {
-              en: 'Hitobito event ID to sync (up to 6 digits)',
-              de: 'Hitobito Anlass-ID zum Synchronisieren (bis zu 6 Stellen)',
-              fr: "ID de l'événement Hitobito à synchroniser (jusqu'à 6 chiffres)",
+              en: 'Cevi.DB event ID to sync (up to 6 digits)',
+              de: 'Cevi.DB-Anlass-ID zum Synchronisieren (bis zu 6 Stellen)',
+              fr: "ID de l'événement Cevi.DB à synchroniser (jusqu'à 6 chiffres)",
             },
           },
           validate: validateHitobitoId,
@@ -263,9 +263,9 @@ export const HoefeCollection: CollectionConfig = {
       type: 'text',
       access: { read: canAccessBillingField, ...syncedFromCeviDatabase },
       label: {
-        en: 'Address managers (from Cevi.DB)',
-        de: 'Adressverwalter/-innen (aus Cevi.DB)',
-        fr: "Gestionnaires d'adresses (Cevi.DB)",
+        en: 'AVP email addresses (from Cevi.DB)',
+        de: 'E-Mail-Adressen der AVPs (aus Cevi.DB)',
+        fr: 'Adresses e-mail des AVP (Cevi.DB)',
       },
       admin: {
         readOnly: true,
@@ -277,14 +277,19 @@ export const HoefeCollection: CollectionConfig = {
       },
     },
     {
-      // the same people with their names, which the Hof dashboard shows as the Hof's contacts
+      // The same people with their names, which the Hof dashboard shows as the Hof's contacts.
+      // conveniat27 calls them AVPs; in Cevi.DB they hold the Adressverwalter role.
       name: 'addressManagers',
       type: 'array',
       access: { read: canAccessBillingField, ...syncedFromCeviDatabase },
       label: {
-        en: 'Address managers with names (from Cevi.DB)',
-        de: 'Adressverwalter/-innen mit Namen (aus Cevi.DB)',
-        fr: "Gestionnaires d'adresses avec noms (Cevi.DB)",
+        en: 'Abteilungsverantwortliche Personen (AVPs)',
+        de: 'Abteilungsverantwortliche Personen (AVPs)',
+        fr: 'Abteilungsverantwortliche Personen (AVP)',
+      },
+      labels: {
+        singular: { en: 'AVP', de: 'AVP', fr: 'AVP' },
+        plural: { en: 'AVPs', de: 'AVPs', fr: 'AVP' },
       },
       admin: {
         readOnly: true,
@@ -319,9 +324,9 @@ export const HoefeCollection: CollectionConfig = {
       },
       admin: {
         description: {
-          en: 'Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.',
-          de: 'Kommagetrennt. Wenn ausgefüllt, gehen die Erinnerungen für diesen Hof an diese Adressen statt an die abgeglichenen Adressverwalter/-innen.',
-          fr: "Séparées par des virgules. Si rempli, ces adresses sont utilisées à la place des gestionnaires d'adresses synchronisés pour ce Hof.",
+          en: 'Comma-separated. When filled, these addresses are used instead of the synced AVPs for this Hof.',
+          de: 'Kommagetrennt. Wenn ausgefüllt, gehen die Erinnerungen für diesen Hof an diese Adressen statt an die abgeglichenen AVPs.',
+          fr: 'Séparées par des virgules. Si rempli, ces adresses sont utilisées à la place des AVP synchronisés pour ce Hof.',
         },
       },
     },

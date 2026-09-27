@@ -12,6 +12,7 @@ jest.mock('@/lib/hitobito', () => ({
   getHitobito: jest.fn().mockResolvedValue({ groups: {} }),
 }));
 jest.mock('@/features/payload-cms/payload-cms/utils/sync-funktionen', () => ({
+  ...jest.requireActual<object>('@/features/payload-cms/payload-cms/utils/sync-funktionen'),
   syncFunktionen: jest.fn(),
 }));
 jest.mock('@/utils/tracing-helpers', () => ({

@@ -37,9 +37,9 @@ export const invalidSelectionText: StaticTranslationString = {
 };
 
 export const loginWithCeviDatabaseText: StaticTranslationString = {
-  en: 'Login with Cevi DB',
-  de: 'Anmelden mit Cevi DB',
-  fr: 'Se connecter avec Cevi DB',
+  en: 'Login with Cevi.DB',
+  de: 'Anmelden mit Cevi.DB',
+  fr: 'Se connecter avec Cevi.DB',
 };
 
 export const loggedInAsText: StaticTranslationString = {
@@ -55,9 +55,9 @@ export const changeUserText: StaticTranslationString = {
 };
 
 export const requiredCeviDatabaseLoginText: StaticTranslationString = {
-  en: 'You must be logged in with Cevi DB to submit this form.',
-  de: 'Sie müssen mit Cevi DB angemeldet sein, um dieses Formular abzusenden.',
-  fr: 'Vous devez être connecté avec Cevi DB pour soumettre ce formulaire.',
+  en: 'You must be logged in with Cevi.DB to submit this form.',
+  de: 'Sie müssen mit Cevi.DB angemeldet sein, um dieses Formular abzusenden.',
+  fr: 'Vous devez être connecté avec Cevi.DB pour soumettre ce formulaire.',
 };
 
 export const skipLoginText: StaticTranslationString = {
