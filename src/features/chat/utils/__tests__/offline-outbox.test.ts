@@ -89,11 +89,64 @@ describe('offline-outbox utility tests', () => {
     addMessageToOutbox(message1);
     addMessageToOutbox(message2);
 
-    const pendingForChat1 = getPendingOutboxChatMessages('chat-1');
+    const pendingForChat1 = getPendingOutboxChatMessages('chat-1', undefined, 'user-1');
     expect(pendingForChat1).toHaveLength(1);
     expect(pendingForChat1[0]?.id).toBe('opt-id-1');
     expect(pendingForChat1[0]?.messagePayload).toEqual({ text: 'hello chat 1' });
     expect(pendingForChat1[0]?.status).toBe('CREATED');
+  });
+
+  test('a queued image comes back as an image bubble, not as its storage key in text', () => {
+    addMessageToOutbox({
+      type: 'MESSAGE',
+      id: 'opt-id-1',
+      chatId: 'chat-1',
+      content: 'chat-images/chat-1/photo.jpg',
+      messageType: 'IMAGE_MSG',
+      createdAt: '2026-05-22T00:00:00.000Z',
+      userId: 'user-1',
+    });
+
+    const [pending] = getPendingOutboxChatMessages('chat-1', undefined, 'user-1');
+    expect(pending?.type).toBe('IMAGE_MSG');
+    expect(pending?.messagePayload).toEqual({ url: 'chat-images/chat-1/photo.jpg' });
+  });
+
+  test('queued bubbles belong to the user who wrote them, so they render as their own', () => {
+    addMessageToOutbox({
+      type: 'MESSAGE',
+      id: 'opt-id-1',
+      chatId: 'chat-1',
+      content: 'mine',
+      createdAt: '2026-05-22T00:00:00.000Z',
+      userId: 'user-1',
+    });
+    addMessageToOutbox({
+      type: 'MESSAGE',
+      id: 'opt-id-2',
+      chatId: 'chat-1',
+      content: 'from whoever used the phone before',
+      createdAt: '2026-05-22T00:00:01.000Z',
+      userId: 'user-2',
+    });
+
+    const pending = getPendingOutboxChatMessages('chat-1', undefined, 'user-1');
+    expect(pending.map((message) => [message.id, message.senderId])).toEqual([
+      ['opt-id-1', 'user-1'],
+    ]);
+    // before the user is known, nothing can be told apart, so nothing is shown
+    // eslint-disable-next-line unicorn/no-useless-undefined -- the user query has not answered
+    expect(getPendingOutboxChatMessages('chat-1', undefined, undefined)).toEqual([]);
+  });
+
+  test('an entry queued by an older version is text written by the current user', () => {
+    mockStorage[OFFLINE_OUTBOX_KEY] = JSON.stringify([
+      { id: 'opt-id-1', chatId: 'chat-1', content: 'old', createdAt: '2026-05-22T00:00:00.000Z' },
+    ]);
+
+    const [pending] = getPendingOutboxChatMessages('chat-1', undefined, 'user-1');
+    expect(pending).toMatchObject({ type: 'TEXT_MSG', senderId: 'user-1' });
+    expect(pending?.messagePayload).toEqual({ text: 'old' });
   });
 
   test('getOfflineOutbox should return an empty array and log error on corrupted JSON', () => {

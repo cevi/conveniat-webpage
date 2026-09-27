@@ -1,8 +1,9 @@
 'use client';
 
+import { CHAT_DRAFT_STORAGE_KEY_PREFIX } from '@/lib/chat-local-storage';
 import { useEffect, useRef } from 'react';
 
-const DRAFT_KEY_PREFIX = 'conveniat:chat-draft:';
+const DRAFT_KEY_PREFIX = CHAT_DRAFT_STORAGE_KEY_PREFIX;
 
 /** Storage key of the draft for one chat, or for one thread inside it. */
 export const getChatDraftKey = (chatId: string, threadId?: string): string =>

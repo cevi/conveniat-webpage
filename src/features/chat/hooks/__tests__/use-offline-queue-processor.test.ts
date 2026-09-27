@@ -6,7 +6,12 @@ import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { useOfflineQueueProcessor } from '@/features/chat/hooks/use-offline-queue-processor';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { generateChatId } from '@/features/chat/utils';
-import { getOfflineOutbox, saveOfflineOutbox } from '@/features/chat/utils/offline-outbox';
+import {
+  getOfflineOutbox,
+  saveOfflineOutbox,
+  setSendInFlight,
+  type OfflineMessage,
+} from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
 import { renderHook, waitFor } from '@testing-library/react';
 
@@ -41,6 +46,8 @@ interface CachedQueries {
   messagePages: Map<string, { pages: { items: ChatMessage[] }[] } | undefined>;
 }
 
+const CURRENT_USER = 'user-1';
+
 /** Same stand-in for the tRPC query cache as `use-create-chat.test.ts`. */
 const createCacheStub = (): {
   cache: CachedQueries;
@@ -54,6 +61,7 @@ const createCacheStub = (): {
 
   const utils = {
     chat: {
+      user: { ensureData: jest.fn((): Promise<string> => Promise.resolve(CURRENT_USER)) },
       chats: {
         setData: (
           _input: unknown,
@@ -179,6 +187,102 @@ describe('useOfflineQueueProcessor - replaying a queued chat creation', () => {
     expect(createChat).toHaveBeenCalledWith(expect.objectContaining({ chatId: optimisticChatId }));
     expect(cache.chats?.map((chat) => chat.id)).toEqual([optimisticChatId]);
     expect(mockRouterReplace).not.toHaveBeenCalled();
+    unmount();
+  });
+});
+
+const queuedMessage = (overrides: Partial<OfflineMessage>): OfflineMessage => ({
+  type: 'MESSAGE',
+  id: 'msg-1',
+  chatId: 'chat-1',
+  content: 'hello',
+  createdAt: new Date().toISOString(),
+  userId: CURRENT_USER,
+  ...overrides,
+});
+
+/** Drains the outbox once, answering every send with the stored message. */
+const renderDrain = (): { sendMessage: jest.Mock; unmount: () => void } => {
+  const { utils } = createCacheStub();
+  (trpc.useUtils as unknown as jest.Mock).mockReturnValue(utils);
+  const sendMessage = jest.fn(
+    (input: { messageId: string; chatId: string }): Promise<ChatMessage> =>
+      Promise.resolve({
+        id: input.messageId,
+        createdAt: new Date(),
+        messagePayload: {},
+        senderId: CURRENT_USER,
+        status: 'STORED',
+        type: 'TEXT_MSG',
+      }),
+  );
+  (trpc.chat.sendMessage.useMutation as unknown as jest.Mock).mockReturnValue({
+    mutateAsync: sendMessage,
+  });
+  (trpc.chat.createChat.useMutation as unknown as jest.Mock).mockReturnValue({
+    mutateAsync: jest.fn(),
+  });
+  const { unmount } = renderHook(() => useOfflineQueueProcessor());
+  return { sendMessage, unmount };
+};
+
+describe('useOfflineQueueProcessor - replaying queued messages', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('a queued image is sent as an image, not as text holding its storage key', async () => {
+    saveOfflineOutbox([
+      queuedMessage({ content: 'chat-images/chat-1/photo.jpg', messageType: 'IMAGE_MSG' }),
+    ]);
+    const { sendMessage, unmount } = renderDrain();
+
+    await waitFor(() => expect(getOfflineOutbox()).toEqual([]));
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'chat-images/chat-1/photo.jpg', type: 'IMAGE_MSG' }),
+    );
+    unmount();
+  });
+
+  test('the sends someone else queued on this phone are neither sent nor dropped', async () => {
+    saveOfflineOutbox([
+      queuedMessage({ id: 'msg-other', userId: 'user-2' }),
+      queuedMessage({ id: 'msg-own' }),
+    ]);
+    const { sendMessage, unmount } = renderDrain();
+
+    await waitFor(() => expect(getOfflineOutbox().map((item) => item.id)).toEqual(['msg-other']));
+    expect(sendMessage).toHaveBeenCalledTimes(1);
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ messageId: 'msg-own' }));
+    unmount();
+  });
+
+  test('a send queued by an older version without an owner is sent for the current user', async () => {
+    saveOfflineOutbox([queuedMessage({ userId: undefined })]);
+    const { sendMessage, unmount } = renderDrain();
+
+    await waitFor(() => expect(getOfflineOutbox()).toEqual([]));
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ messageId: 'msg-1', type: undefined }),
+    );
+    unmount();
+  });
+
+  test('a send whose request is still open is not posted a second time', async () => {
+    saveOfflineOutbox([queuedMessage({})]);
+    setSendInFlight('msg-1', true);
+    const { sendMessage, unmount } = renderDrain();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(getOfflineOutbox()).toHaveLength(1);
+
+    setSendInFlight('msg-1', false);
     unmount();
   });
 });

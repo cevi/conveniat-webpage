@@ -36,7 +36,7 @@ const fetchWithAuthRedirect: typeof fetch = async (input, init) => {
 
   if (response.status === 401 && !isHandlingUnauthenticated) {
     isHandlingUnauthenticated = true;
-    flushPersonalData();
+    flushPersonalData({ keepUnsentChatMessages: true });
     try {
       await signOut({ redirect: false });
     } catch (error) {
