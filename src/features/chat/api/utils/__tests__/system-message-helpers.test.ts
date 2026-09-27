@@ -14,114 +14,106 @@ import { formatMessageContent } from '@/features/chat/components/chat-view/messa
 
 describe('System Message Helpers and Formatting', () => {
   it('generates localized join group message payload', () => {
-    const payload = getJoinGroupMessagePayload('Cyrill Püntener');
+    const payload = getJoinGroupMessagePayload('Max Muster');
     expect(payload).toEqual({
-      de: 'Cyrill Püntener ist der Gruppe beigetreten',
-      en: 'Cyrill Püntener joined the group',
-      fr: 'Cyrill Püntener a rejoint le groupe',
+      de: 'Max Muster ist der Gruppe beigetreten',
+      en: 'Max Muster joined the group',
+      fr: 'Max Muster a rejoint le groupe',
     });
   });
 
   it('generates localized left group message payload', () => {
-    const payload = getLeftGroupMessagePayload('Cyrill Püntener');
+    const payload = getLeftGroupMessagePayload('Max Muster');
     expect(payload).toEqual({
-      de: 'Cyrill Püntener hat die Gruppe verlassen',
-      en: 'Cyrill Püntener left the group',
-      fr: 'Cyrill Püntener a quitté le groupe',
+      de: 'Max Muster hat die Gruppe verlassen',
+      en: 'Max Muster left the group',
+      fr: 'Max Muster a quitté le groupe',
     });
   });
 
   it('generates localized joined as admin message payload', () => {
-    const payload = getJoinedAsAdminMessagePayload('Cyrill Püntener');
+    const payload = getJoinedAsAdminMessagePayload('Max Muster');
     expect(payload).toEqual({
-      de: 'Cyrill Püntener ist als Admin beigetreten',
-      en: 'Cyrill Püntener joined as admin',
-      fr: "Cyrill Püntener a rejoint en tant qu'administrateur",
+      de: 'Max Muster ist als Admin beigetreten',
+      en: 'Max Muster joined as admin',
+      fr: "Max Muster a rejoint en tant qu'administrateur",
     });
   });
 
   it('formats localized payload correctly in formatMessageContent', () => {
-    const payload = getJoinGroupMessagePayload('Cyrill Püntener');
-    expect(formatMessageContent(payload, 'de')).toEqual([
-      'Cyrill Püntener ist der Gruppe beigetreten',
-    ]);
-    expect(formatMessageContent(payload, 'en')).toEqual(['Cyrill Püntener joined the group']);
-    expect(formatMessageContent(payload, 'fr')).toEqual(['Cyrill Püntener a rejoint le groupe']);
+    const payload = getJoinGroupMessagePayload('Max Muster');
+    expect(formatMessageContent(payload, 'de')).toEqual(['Max Muster ist der Gruppe beigetreten']);
+    expect(formatMessageContent(payload, 'en')).toEqual(['Max Muster joined the group']);
+    expect(formatMessageContent(payload, 'fr')).toEqual(['Max Muster a rejoint le groupe']);
   });
 
   it('formats legacy string payload correctly in formatMessageContent', () => {
-    const legacyJoinPayload = 'Cyrill Püntener joined the group';
+    const legacyJoinPayload = 'Max Muster joined the group';
     expect(formatMessageContent(legacyJoinPayload, 'de')).toEqual([
-      'Cyrill Püntener ist der Gruppe beigetreten',
+      'Max Muster ist der Gruppe beigetreten',
     ]);
-    expect(formatMessageContent(legacyJoinPayload, 'en')).toEqual([
-      'Cyrill Püntener joined the group',
-    ]);
+    expect(formatMessageContent(legacyJoinPayload, 'en')).toEqual(['Max Muster joined the group']);
     expect(formatMessageContent(legacyJoinPayload, 'fr')).toEqual([
-      'Cyrill Püntener a rejoint le groupe',
+      'Max Muster a rejoint le groupe',
     ]);
 
-    const legacyLeftPayload = 'Cyrill Püntener left the group';
+    const legacyLeftPayload = 'Max Muster left the group';
     expect(formatMessageContent(legacyLeftPayload, 'de')).toEqual([
-      'Cyrill Püntener hat die Gruppe verlassen',
+      'Max Muster hat die Gruppe verlassen',
     ]);
-    expect(formatMessageContent(legacyLeftPayload, 'en')).toEqual([
-      'Cyrill Püntener left the group',
-    ]);
+    expect(formatMessageContent(legacyLeftPayload, 'en')).toEqual(['Max Muster left the group']);
     expect(formatMessageContent(legacyLeftPayload, 'fr')).toEqual([
-      'Cyrill Püntener a quitté le groupe',
+      'Max Muster a quitté le groupe',
     ]);
 
-    const legacyAdminPayload = 'Cyrill Püntener joined as admin';
+    const legacyAdminPayload = 'Max Muster joined as admin';
     expect(formatMessageContent(legacyAdminPayload, 'de')).toEqual([
-      'Cyrill Püntener ist als Admin beigetreten',
+      'Max Muster ist als Admin beigetreten',
     ]);
-    expect(formatMessageContent(legacyAdminPayload, 'en')).toEqual([
-      'Cyrill Püntener joined as admin',
-    ]);
+    expect(formatMessageContent(legacyAdminPayload, 'en')).toEqual(['Max Muster joined as admin']);
     expect(formatMessageContent(legacyAdminPayload, 'fr')).toEqual([
-      "Cyrill Püntener a rejoint en tant qu'administrateur",
+      "Max Muster a rejoint en tant qu'administrateur",
     ]);
   });
 
   it('provides localized preview text in getMessagePreviewText', () => {
-    const payload = getJoinGroupMessagePayload('Cyrill Püntener');
+    const payload = getJoinGroupMessagePayload('Max Muster');
     const preview = getMessagePreviewText({
       contentVersions: [{ payload }],
     });
     expect(preview).toEqual({
-      de: 'Cyrill Püntener ist der Gruppe beigetreten',
-      en: 'Cyrill Püntener joined the group',
-      fr: 'Cyrill Püntener a rejoint le groupe',
+      de: 'Max Muster ist der Gruppe beigetreten',
+      en: 'Max Muster joined the group',
+      fr: 'Max Muster a rejoint le groupe',
     });
   });
 
   it('provides localized preview text for legacy string payloads in getMessagePreviewText', () => {
     const joinPreview = getMessagePreviewText({
-      contentVersions: [{ payload: 'Cyrill Püntener joined the group' }],
+      contentVersions: [{ payload: 'Max Muster joined the group' }],
     });
     expect(joinPreview).toEqual({
-      de: 'Cyrill Püntener ist der Gruppe beigetreten',
-      en: 'Cyrill Püntener joined the group',
-      fr: 'Cyrill Püntener a rejoint le groupe',
+      de: 'Max Muster ist der Gruppe beigetreten',
+      en: 'Max Muster joined the group',
+      fr: 'Max Muster a rejoint le groupe',
     });
 
     const leftPreview = getMessagePreviewText({
-      contentVersions: [{ payload: 'Cyrill Püntener left the group' }],
+      contentVersions: [{ payload: 'Max Muster left the group' }],
     });
     expect(leftPreview).toEqual({
-      de: 'Cyrill Püntener hat die Gruppe verlassen',
-      en: 'Cyrill Püntener left the group',
-      fr: 'Cyrill Püntener a quitté le groupe',
+      de: 'Max Muster hat die Gruppe verlassen',
+      en: 'Max Muster left the group',
+      fr: 'Max Muster a quitté le groupe',
     });
 
     const adminPreview = getMessagePreviewText({
-      contentVersions: [{ payload: 'Cyrill Püntener joined as admin' }],
+      contentVersions: [{ payload: 'Max Muster joined as admin' }],
     });
     expect(adminPreview).toEqual({
-      de: 'Cyrill Püntener ist als Admin beigetreten',
-      en: 'Cyrill Püntener joined as admin',
-      fr: "Cyrill Püntener a rejoint en tant qu'administrateur",
+      de: 'Max Muster ist als Admin beigetreten',
+      en: 'Max Muster joined as admin',
+      fr: "Max Muster a rejoint en tant qu'administrateur",
     });
   });
 });
