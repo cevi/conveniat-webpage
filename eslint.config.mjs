@@ -155,7 +155,6 @@ const config = defineConfig([
       'src/features/chat/hooks/use-offline-queue-processor.ts',
       'src/features/chat/hooks/use-update-chat-mutation.ts',
       'src/features/emergency/components/emergency-component.tsx',
-      'src/features/hof-dashboard/hooks/use-hof-upload.ts',
       'src/features/onboarding/hooks/use-onboarding.ts',
       'src/features/payload-cms/payload-cms/components/live-preview-restorer.tsx',
       'src/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field.tsx',
