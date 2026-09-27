@@ -24,7 +24,7 @@ jest.mock('@/utils/server-logger', () => ({
   }),
 }));
 
-import { GET } from '@/app/api/form-upload/route';
+import { GET, POST } from '@/app/api/form-upload/route';
 import { getPayload } from 'payload';
 
 const FILE_ID = '0123456789abcdef01234567';
@@ -63,11 +63,61 @@ describe('GET /api/form-upload', () => {
     );
   });
 
-  it('only shows a participant files that no submission has claimed yet', async () => {
+  it('only shows a participant their own files that no submission has claimed yet', async () => {
     await lookUp(PARTICIPANT);
     expect(mockPayload.find).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { and: [{ id: { in: [FILE_ID] } }, { isTemporary: { equals: true } }] },
+        where: {
+          and: [
+            { id: { in: [FILE_ID] } },
+            { isTemporary: { equals: true } },
+            { uploadedBy: { equals: PARTICIPANT.id } },
+          ],
+        },
+      }),
+    );
+  });
+});
+
+describe('POST /api/form-upload', () => {
+  const mockPayload = { auth: jest.fn(), findByID: jest.fn(), create: jest.fn() };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (getPayload as jest.Mock).mockResolvedValue(mockPayload);
+    mockPayload.auth.mockResolvedValue({ user: PARTICIPANT });
+    mockPayload.findByID.mockResolvedValue({
+      id: 'form-1',
+      sections: [
+        {
+          formSection: {
+            fields: [{ blockType: 'fileUpload', name: 'plan', allowedFileTypes: 'pdf' }],
+          },
+        },
+      ],
+    });
+    mockPayload.create.mockResolvedValue({ id: FILE_ID });
+  });
+
+  it('records who uploaded the file, so only they can attach it', async () => {
+    const body = new FormData();
+    body.set('file', new File(['%PDF'], 'plan.pdf', { type: 'application/pdf' }));
+    body.set('formId', 'form-1');
+    body.set('fieldName', 'plan');
+
+    const response = await POST(
+      new Request('http://localhost/api/form-upload', { method: 'POST', body }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockPayload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'form_collection',
+        data: expect.objectContaining({
+          isTemporary: true,
+          form: 'form-1',
+          uploadedBy: PARTICIPANT.id,
+        }) as unknown,
       }),
     );
   });

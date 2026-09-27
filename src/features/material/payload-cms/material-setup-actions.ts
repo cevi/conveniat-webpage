@@ -5,7 +5,10 @@ import {
   setupMessages,
   type SetupResult,
 } from '@/features/material/payload-cms/material-setup-messages';
-import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAccessToThis,
+  MATERIAL_DEPOT_ROLES,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
 import { Prisma } from '@/lib/prisma/client';
 import { createLogger } from '@/utils/server-logger';
@@ -38,15 +41,15 @@ const describe = (key: SetupMessageKey, values: Record<string, string | number>)
   );
 
 /**
- * Resolves the admin user from the request cookies; the setup is for full admins only. A server
- * action is a public endpoint, so every action starts here.
+ * Resolves the admin user from the request cookies; the setup is for the material team and the
+ * full admins. A server action is a public endpoint, so every action starts here.
  */
 const canSetUp = async (): Promise<boolean> => {
   const payload = await getPayload({ config });
   const { user } = await payload.auth({ headers: await headers() });
   if (!user) return false;
   const request = await createLocalReq({ user }, payload);
-  return await isFullAdmin({ req: request });
+  return hasAccessToThis({ req: request, requiredRoles: MATERIAL_DEPOT_ROLES });
 };
 
 const isKnownError = (error: unknown, code: string): boolean =>

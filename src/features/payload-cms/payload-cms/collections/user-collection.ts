@@ -134,9 +134,16 @@ export const UserCollection: CollectionConfig = {
   },
 
   access: {
-    // All roles must be able to log into the admin dashboard
+    // All roles must be able to log into the admin dashboard; the material team for the
+    // depot setup, every collection still denies it
     admin: hasAccessToThisHelper({
-      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam, Roles.ProgramTeam, Roles.TranslationTeam],
+      requiredRoles: [
+        Roles.FullAdmin,
+        Roles.WebCoreTeam,
+        Roles.ProgramTeam,
+        Roles.TranslationTeam,
+        Roles.MaterialTeam,
+      ],
     }),
     read: hasAdminOrWebAccess,
     create: () => false,

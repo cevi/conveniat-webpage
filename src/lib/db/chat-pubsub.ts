@@ -24,7 +24,13 @@ const isBuild =
   process.env['NEXT_PHASE'] === 'phase-production-build';
 
 export interface ChatRealtimeEvent {
-  type: 'new_message' | 'message_updated' | 'chat_read_by_admin' | 'chat_updated' | 'new_chat';
+  type:
+    | 'new_message'
+    | 'message_updated'
+    | 'chat_read_by_admin'
+    | 'chat_updated'
+    | 'new_chat'
+    | 'typing';
   chatId: string;
   senderId: string;
   /**
@@ -47,6 +53,11 @@ export interface ChatRealtimeEvent {
   chat?: {
     status: string;
     capabilities: string[];
+  };
+  /** Set on `typing`: who is typing, and in which thread (none for the main list). */
+  typing?: {
+    name: string;
+    parentId?: string | undefined;
   };
 }
 
@@ -340,11 +351,16 @@ class ChatPubSub {
         } catch (error) {
           recordPubSubPublish('error');
           span.setAttribute('chat.publish.ok', false);
-          logger.error('Failed to execute pg_notify', {
+          // A lost typing signal costs nothing and fires every few seconds per typist; at
+          // error level an outage would bury every other error under it.
+          const failure = {
             error,
             'chat.event.type': publishedEvent.type,
             'chat.channel': channel,
-          });
+          };
+          if (publishedEvent.type === 'typing')
+            logger.debug('Failed to execute pg_notify', failure);
+          else logger.error('Failed to execute pg_notify', failure);
         }
       },
       {

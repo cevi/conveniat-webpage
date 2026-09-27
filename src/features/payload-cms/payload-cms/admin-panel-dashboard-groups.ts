@@ -69,6 +69,11 @@ export const AdminPanelDashboardGroups = {
     en: 'Billing',
     fr: 'Facturation',
   }),
+  BackofficeHofDashboard: defineGroup('backoffice', {
+    de: 'Hof-Dashboard',
+    en: 'Hof dashboard',
+    fr: 'Tableau de bord des Hofs',
+  }),
   BackofficeSystem: defineGroup('backoffice', { de: 'System', en: 'System', fr: 'Système' }),
 } satisfies Record<string, AdminPanelDashboardGroup>;
 

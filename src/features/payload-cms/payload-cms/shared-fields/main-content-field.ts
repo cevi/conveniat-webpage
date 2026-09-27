@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { accordion } from '@/features/payload-cms/payload-cms/shared-blocks/accordion';
 import { approvedFormSubmissionsBlock } from '@/features/payload-cms/payload-cms/shared-blocks/approved-form-submissions-block';
 import { blockPostsOverview } from '@/features/payload-cms/payload-cms/shared-blocks/blog-posts-overview-block';
@@ -13,6 +14,7 @@ import { featuredSectionBlock } from '@/features/payload-cms/payload-cms/shared-
 import { fileDownloadBlock } from '@/features/payload-cms/payload-cms/shared-blocks/file-download-block';
 import { formBlock } from '@/features/payload-cms/payload-cms/shared-blocks/form-block';
 import { heroSectionBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hero-section-block';
+import { hofDashboardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/hof-dashboard-block';
 import { instagramEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/instagram-embed-block';
 import { mediaTextBlock } from '@/features/payload-cms/payload-cms/shared-blocks/media-text-block';
 import { newsCardBlock } from '@/features/payload-cms/payload-cms/shared-blocks/news-card-block';
@@ -31,7 +33,7 @@ import { timelineEntries } from '@/features/payload-cms/payload-cms/shared-block
 import { twoColumnBlock } from '@/features/payload-cms/payload-cms/shared-blocks/two-column-block';
 import { whiteSpaceBlock } from '@/features/payload-cms/payload-cms/shared-blocks/white-space-block';
 import { youtubeEmbedBlock } from '@/features/payload-cms/payload-cms/shared-blocks/youtube-embed-block';
-import type { Block, Field } from 'payload';
+import type { Block, BlocksField, Field } from 'payload';
 
 export const mainContentBlocks: Block[] = [
   heroSectionBlock,
@@ -45,6 +47,7 @@ export const mainContentBlocks: Block[] = [
   approvedFormSubmissionsBlock,
   photoCarouselBlock,
   photoContestBlock,
+  hofDashboardBlock,
   singlePictureBlock,
   youtubeEmbedBlock,
   instagramEmbedBlock,
@@ -68,6 +71,14 @@ export const mainContentBlocks: Block[] = [
   featuredSectionBlock,
   tabsBlock,
 ];
+
+/** The content blocks an editor is offered: the Hof dashboard only where it is switched on. */
+export const mainContentBlockOptions: NonNullable<BlocksField['filterOptions']> = () =>
+  environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
+    ? true
+    : mainContentBlocks
+        .map((block) => block.slug)
+        .filter((slug) => slug !== hofDashboardBlock.slug);
 
 export const mainContentField: Field = {
   name: 'mainContent',
@@ -118,4 +129,5 @@ export const mainContentField: Field = {
     },
   ],
   blocks: mainContentBlocks,
+  filterOptions: mainContentBlockOptions,
 };

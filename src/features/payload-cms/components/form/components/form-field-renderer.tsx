@@ -5,11 +5,15 @@ import type {
   DateSlotSelectionBlock,
   FormFieldBlock,
   FormSection,
+  HofSelectionBlock,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getEffectivePlacement } from '@/features/payload-cms/components/form/utils/field-placement';
-import React, { useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { useFormContext, useFormState, useWatch } from 'react-hook-form';
+
+/** Fields whose answer the embedding feature presets, so the form does not ask for them. */
+export const HiddenFieldsContext = createContext<ReadonlySet<string>>(new Set());
 
 interface FormFieldRendererProperties {
   section: FormSection;
@@ -75,13 +79,16 @@ const ConditionedField: React.FC<{
 };
 
 const SingleField: React.FC<{
-  field: (FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock) & { required?: boolean };
+  field: (FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock) & {
+    required?: boolean;
+  };
   currentStepIndex: number;
   formId: string | undefined;
   renderMode: 'all' | 'sidebar' | 'main';
 }> = ({ field, currentStepIndex, formId, renderMode }) => {
   const Component = fieldComponents[field.blockType];
   const { register, control } = useFormContext();
+  const hiddenFields = useContext(HiddenFieldsContext);
 
   const fieldName = 'name' in field && typeof field.name === 'string' ? field.name : undefined;
 
@@ -93,6 +100,10 @@ const SingleField: React.FC<{
 
   if (!Component) {
     console.error(`Field type ${field.blockType} is not supported`);
+    return null; // eslint-disable-line unicorn/no-null
+  }
+
+  if (fieldName !== undefined && hiddenFields.has(fieldName)) {
     return null; // eslint-disable-line unicorn/no-null
   }
 

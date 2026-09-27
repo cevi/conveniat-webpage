@@ -22,6 +22,8 @@ interface UseFormSubmissionProperties {
   setError?: UseFormSetError<FieldValues>;
   formSections?: FormSection[];
   setCurrentStepIndex?: (index: number) => void;
+  /** Called once the submission is stored, instead of a redirect. */
+  onSubmitted?: (() => void) | undefined;
 }
 
 interface PreviewData {
@@ -70,6 +72,7 @@ export const useFormSubmission = ({
   setError,
   formSections,
   setCurrentStepIndex,
+  onSubmitted,
 }: UseFormSubmissionProperties): UseFormSubmissionReturn => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
@@ -216,7 +219,9 @@ export const useFormSubmission = ({
         sessionStorage.removeItem(getFormStorageKey(formId, 'step'));
       }
 
-      if (
+      if (onSubmitted !== undefined) {
+        onSubmitted();
+      } else if (
         config.confirmationType === 'redirect' &&
         typeof config.redirect?.url === 'string' &&
         config.redirect.url.length > 0

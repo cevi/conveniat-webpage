@@ -109,6 +109,7 @@ import { WeeklyReportDownloadButton as WeeklyReportDownloadButton_4feb29f94908f9
 import { FinanceOverviewDownloadButton as FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0 } from '@/features/billing/components/finance-overview-download-button'
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
+import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_3e2b30fa7254fe78d9ec6b625e5d8926 } from '@/features/payload-cms/payload-cms/components/access-overview-nav-link'
@@ -238,6 +239,7 @@ export const importMap = {
   "@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton": FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0,
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
+  "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/access-overview-nav-link#default": default_3e2b30fa7254fe78d9ec6b625e5d8926,

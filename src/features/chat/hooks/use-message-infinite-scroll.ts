@@ -2,6 +2,11 @@
 
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import {
+  FAILED_SENDS_UPDATED_EVENT,
+  forgetFailedSend,
+  getFailedChatMessages,
+} from '@/features/chat/utils/failed-sends';
 import { getPendingOutboxChatMessages } from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
 import type React from 'react';
@@ -76,8 +81,10 @@ export const useMessageInfiniteScroll = ({
   useEffect(() => {
     const handleOutboxUpdate = (): void => setOutboxVersion((v) => v + 1);
     globalThis.addEventListener('conveniat:outbox-updated', handleOutboxUpdate);
+    globalThis.addEventListener(FAILED_SENDS_UPDATED_EVENT, handleOutboxUpdate);
     return (): void => {
       globalThis.removeEventListener('conveniat:outbox-updated', handleOutboxUpdate);
+      globalThis.removeEventListener(FAILED_SENDS_UPDATED_EVENT, handleOutboxUpdate);
     };
   }, []);
 
@@ -88,17 +95,40 @@ export const useMessageInfiniteScroll = ({
 
   // Hydrate any pending offline messages from localStorage outbox if not present in fetchedMessages
   const pendingOutboxMessages = useMemo(
-    () => getPendingOutboxChatMessages(chatId, parentId),
+    () => [
+      ...getPendingOutboxChatMessages(chatId, parentId),
+      ...getFailedChatMessages(chatId, parentId),
+    ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chatId, parentId, outboxVersion],
   );
+
+  // A failed send the server did store after all (a lost response) turns up in the fetched
+  // pages; the local copy would otherwise come back as a ghost once it scrolls out of them.
+  useEffect(() => {
+    for (const failed of getFailedChatMessages(chatId, parentId)) {
+      const isStored = fetchedMessages.some(
+        // a pending copy is only a retry in flight, not proof the server has it
+        (m) => m.id === failed.id && m.sendFailed !== true && m.status !== 'CREATED',
+      );
+      if (isStored) {
+        forgetFailedSend(failed.id);
+      }
+    }
+  }, [chatId, parentId, fetchedMessages]);
 
   const sortedMessages = useMemo(() => {
     const missingOutboxMessages = pendingOutboxMessages.filter(
       (pending) => !fetchedMessages.some((m) => m.id === pending.id),
     );
 
-    let finalMessages = [...fetchedMessages, ...missingOutboxMessages];
+    // local-only messages are appended, so put them back in time order among the fetched ones
+    let finalMessages =
+      missingOutboxMessages.length === 0
+        ? fetchedMessages
+        : [...fetchedMessages, ...missingOutboxMessages].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
     if (parentMessage && !finalMessages.some((m) => m.id === parentMessage.id)) {
       finalMessages = [parentMessage, ...finalMessages];
     } else if (finalMessages.length === 0 && parentMessage) {

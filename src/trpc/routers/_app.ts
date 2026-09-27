@@ -1,6 +1,7 @@
 import { adminRouter } from '@/features/admin/api/admin-router';
 import { chatRouter } from '@/features/chat/api/chat-router';
 import { emergencyRouter } from '@/features/emergency/api/emergency-router';
+import { hofDashboardRouter } from '@/features/hof-dashboard/api/hof-dashboard-router';
 import { mapRouter } from '@/features/map/api/map-router';
 import { materialRouter } from '@/features/material/api/material-router';
 import { nativePushRouter } from '@/features/native-push/api/native-push-router';
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   nativePush: nativePushRouter,
   photoContest: photoContestRouter,
   material: materialRouter,
+  hofDashboard: hofDashboardRouter,
 });
 
 // export type definition of API

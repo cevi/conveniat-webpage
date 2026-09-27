@@ -19,7 +19,7 @@ import {
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
 import { randomUUID } from 'node:crypto';
-import { getPayload, type Where } from 'payload';
+import { getPayload, type PayloadRequest, type Where } from 'payload';
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
   beforeChangeParameters: unknown,
@@ -163,6 +163,16 @@ export const beforeEmailChangeHook: BeforeEmail = async (
           fileSubmissionId = (fileSubmissionRaw as { id: string }).id;
         }
 
+        // A temporary file goes only with the submission of the person who uploaded it: its
+        // id is all an answer names, and the ids of other people's uploads can be guessed.
+        const uploader = fileDocument.uploadedBy;
+        const uploaderId =
+          typeof uploader === 'object' && uploader !== null ? uploader.id : uploader;
+        const senderId = (beforeChangeParameters as { req?: PayloadRequest }).req?.user?.id;
+        if (fileDocument.isTemporary && (uploaderId == undefined || uploaderId !== senderId)) {
+          continue;
+        }
+
         // If file already belongs to another non-temporary submission, skip it
         if (
           !fileDocument.isTemporary &&
@@ -230,7 +240,29 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     form?: string | { id?: string };
     approvalToken?: string;
   };
+  const request = (beforeChangeParameters as { req?: PayloadRequest }).req;
   let approvalToken = typedSubmissionDocument.approvalToken;
+  // The document here is read with the sender's access, which does not include the token, so
+  // for a public submission it is read again before a new one would replace it.
+  if (
+    (typeof approvalToken !== 'string' || approvalToken.length === 0) &&
+    typeof formSubmissionId === 'string' &&
+    formSubmissionId.length > 0
+  ) {
+    try {
+      const stored = await payload.findByID({
+        collection: 'form-submissions',
+        id: formSubmissionId,
+        depth: 0,
+        select: { approvalToken: true },
+        overrideAccess: true,
+        ...(request === undefined ? {} : { req: request }),
+      });
+      approvalToken = stored.approvalToken ?? undefined;
+    } catch {
+      // not found: a new token below
+    }
+  }
   if (typeof approvalToken !== 'string' || approvalToken.length === 0) {
     approvalToken = randomUUID();
     if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
@@ -239,6 +271,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
           collection: 'form-submissions',
           id: formSubmissionId,
           data: { approvalToken },
+          ...(request === undefined ? {} : { req: request }),
         });
       } catch {
         // ignore fallback update error
@@ -250,12 +283,15 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
   const submissionDataArray =
     (formSubmissionDocument as { submissionData?: unknown[] }).submissionData ?? [];
-  const submissionDict: Record<string, string> = {
+  // Filled in after the answers: an answer named like one of these must not replace the link
+  // the approver clicks.
+  const reservedPlaceholders: Record<string, string> = {
     formSubmissionID: String(formSubmissionId),
     approvalLink: approvalUrl,
     approvalUrl: approvalUrl,
     'approval-link': approvalUrl,
   };
+  const submissionDict: Record<string, string> = {};
 
   const extractStringValue = (val: unknown): string => {
     if (typeof val === 'string') return val;
@@ -285,6 +321,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }
   }
   wildcardHtmlTable += '</table>';
+  Object.assign(submissionDict, reservedPlaceholders);
 
   interface MinimalLexicalNode {
     type: string;

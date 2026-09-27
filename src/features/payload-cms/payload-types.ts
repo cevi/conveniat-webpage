@@ -180,6 +180,7 @@ export interface Config {
     PWA: PWA;
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
+    'hof-dashboard-settings': HofDashboardSetting;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -197,6 +198,7 @@ export interface Config {
     PWA: PWASelect<false> | PWASelect<true>;
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
+    'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -364,6 +366,7 @@ export interface GenericPage {
           blockType: 'photoCarousel';
         }
       | PhotoContestBlock
+      | HofDashboardBlock
       | {
           image: string | Image;
           /**
@@ -948,6 +951,7 @@ export interface Blog {
           blockType: 'photoCarousel';
         }
       | PhotoContestBlock
+      | HofDashboardBlock
       | {
           image: string | Image;
           /**
@@ -1254,6 +1258,10 @@ export interface Form {
                   };
                   [k: string]: unknown;
                 } | null;
+                /**
+                 * Optional. With a title, the message starts folded under it, like an accordion on a page, e.g. for criteria someone only needs now and then.
+                 */
+                collapsibleTitle?: string | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'message';
@@ -1414,6 +1422,18 @@ export interface Form {
             | {
                 name: string;
                 label: string;
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'hofSelection';
+              }
+            | {
+                name: string;
+                label: string;
                 /**
                  * First day a helper can mark.
                  */
@@ -1460,6 +1480,29 @@ export interface Form {
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'fileUpload';
+              }
+            | {
+                name: string;
+                label: string;
+                /**
+                 * One line per material, asked as a quantity. A line removed later keeps its name in the orders already handed in.
+                 */
+                items: {
+                  name: string;
+                  /**
+                   * Optional heading the line is listed under, e.g. "Wood".
+                   */
+                  section?: string | null;
+                  id?: string | null;
+                }[];
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'materialList';
               }
             | {
                 displayCondition?: {
@@ -1537,6 +1580,10 @@ export interface Form {
                             };
                             [k: string]: unknown;
                           } | null;
+                          /**
+                           * Optional. With a title, the message starts folded under it, like an accordion on a page, e.g. for criteria someone only needs now and then.
+                           */
+                          collapsibleTitle?: string | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'message';
@@ -1698,6 +1745,18 @@ export interface Form {
                       | {
                           name: string;
                           label: string;
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'hofSelection';
+                        }
+                      | {
+                          name: string;
+                          label: string;
                           /**
                            * First day a helper can mark.
                            */
@@ -1744,6 +1803,29 @@ export interface Form {
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'fileUpload';
+                        }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * One line per material, asked as a quantity. A line removed later keeps its name in the orders already handed in.
+                           */
+                          items: {
+                            name: string;
+                            /**
+                             * Optional heading the line is listed under, e.g. "Wood".
+                             */
+                            section?: string | null;
+                            id?: string | null;
+                          }[];
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'materialList';
                         }
                     )[]
                   | null;
@@ -1885,6 +1967,38 @@ export interface Form {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Shows this form on the dashboard of every Hof, with that Hof’s submissions. The Ressort answers each submission in its sidebar.
+   */
+  hofDashboard?: {
+    /**
+     * The tab it shows under. Leave empty to keep the form off the dashboard.
+     */
+    area?: ('infrastructure' | 'program' | 'material') | null;
+    entries?: ('versions' | 'entries') | null;
+    /**
+     * E.g. "Hof buildings". Without one, the dashboard uses the internal form title.
+     */
+    title?: string | null;
+    description?: string | null;
+    deadline?: string | null;
+    /**
+     * E.g. for a material order. The Höfe still see what they sent; the web team can still hand it in for them.
+     */
+    closesAtDeadline?: boolean | null;
+    /**
+     * Optional field name, e.g. "name" for the name of a stand.
+     */
+    titleField?: string | null;
+    /**
+     * Off: anyone signed in can hand it in for any Hof, as the Stadtleben stand registration always allowed. Leave it on for plans and orders.
+     */
+    onlyHofAdministrators?: boolean | null;
+    /**
+     * Lower numbers show first within their area.
+     */
+    position?: number | null;
+  };
   submissions?: {
     docs?: (string | FormSubmission)[];
     hasNextPage?: boolean;
@@ -1957,6 +2071,34 @@ export interface FormSubmission {
     | boolean
     | null;
   'helper-jobs'?: (string | HelperJob)[] | null;
+  /**
+   * Set by a "Hof Selection" field. Set it by hand for an older submission, and the Hof finds it on its dashboard.
+   */
+  hof?: (string | null) | Hof;
+  /**
+   * Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback. To accept a submission, tick "Approved".
+   */
+  hofReviewStatus?: ('inReview' | 'revisionRequired') | null;
+  hofFeedback?: string | null;
+  /**
+   * For a form of versions, e.g. a material order: the Hof can no longer hand in a new one. Changes then go through the Ressort.
+   */
+  hofFinal?: boolean | null;
+  submittedBy?: (string | null) | User;
+  /**
+   * Who changed the status or the feedback, and when. Written on every save.
+   */
+  hofReviewLog?:
+    | {
+        changedAt: string;
+        reviewerName?: string | null;
+        status?: ('inReview' | 'revisionRequired' | 'accepted') | null;
+        final?: boolean | null;
+        feedback?: string | null;
+        reviewer?: (string | null) | User;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2021,6 +2163,49 @@ export interface HelperJob {
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hoefe".
+ */
+export interface Hof {
+  id: string;
+  /**
+   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
+   */
+  name: string;
+  /**
+   * Hitobito group ID of this Hof (up to 6 digits)
+   */
+  groupId: string;
+  /**
+   * The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.
+   */
+  events?:
+    | {
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
+        eventId: string;
+        /**
+         * Name of the event in Cevi.DB, refreshed by every sync
+         */
+        eventName: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
+   */
+  addressManagerEmails?: string | null;
+  /**
+   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   */
+  reminderRecipientsOverride?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2088,6 +2273,15 @@ export interface PhotoContestBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'photoContestBlock';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HofDashboardBlock".
+ */
+export interface HofDashboardBlock {
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'hofDashboardBlock';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3906,6 +4100,7 @@ export interface FormCollection {
   isTemporary: boolean;
   form?: (string | null) | Form;
   formSubmission?: (string | null) | FormSubmission;
+  uploadedBy?: (string | null) | User;
   originalFilename?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
@@ -4486,49 +4681,6 @@ export interface OutgoingEmail {
   createdAt: string;
   lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
-}
-/**
- * One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hoefe".
- */
-export interface Hof {
-  id: string;
-  /**
-   * Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.
-   */
-  name: string;
-  /**
-   * Hitobito group ID of this Hof (up to 6 digits)
-   */
-  groupId: string;
-  /**
-   * Configure which Hitobito events should be synced for billing.
-   */
-  events?:
-    | {
-        /**
-         * Hitobito event ID to sync (up to 6 digits)
-         */
-        eventId: string;
-        /**
-         * Name of the event in Cevi.DB, refreshed by every sync
-         */
-        eventName: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
-   */
-  addressManagerEmails?: string | null;
-  /**
-   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
-   */
-  reminderRecipientsOverride?: string | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Registered background worker instances and their activity heartbeats.
@@ -5224,6 +5376,7 @@ export interface GenericPageSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               photoContestBlock?: T | PhotoContestBlockSelect<T>;
+              hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -5455,6 +5608,14 @@ export interface ApprovedFormSubmissionsBlockSelect<T extends boolean = true> {
  */
 export interface PhotoContestBlockSelect<T extends boolean = true> {
   initialContestSlug?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HofDashboardBlock_select".
+ */
+export interface HofDashboardBlockSelect<T extends boolean = true> {
   id?: T;
   blockName?: T;
 }
@@ -6282,6 +6443,7 @@ export interface BlogSelect<T extends boolean = true> {
                     blockName?: T;
                   };
               photoContestBlock?: T | PhotoContestBlockSelect<T>;
+              hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
               singlePicture?:
                 | T
                 | {
@@ -6616,6 +6778,7 @@ export interface FormCollectionSelect<T extends boolean = true> {
   isTemporary?: T;
   form?: T;
   formSubmission?: T;
+  uploadedBy?: T;
   originalFilename?: T;
   _objectKey?: T;
   updatedAt?: T;
@@ -7218,6 +7381,7 @@ export interface FormsSelect<T extends boolean = true> {
                       | T
                       | {
                           message?: T;
+                          collapsibleTitle?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -7320,6 +7484,16 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    hofSelection?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     dateSlotSelection?:
                       | T
                       | {
@@ -7346,6 +7520,23 @@ export interface FormsSelect<T extends boolean = true> {
                           allowedFileTypes?: T;
                           customAllowedFileTypes?: T;
                           allowMultiple?: T;
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
+                    materialList?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          items?:
+                            | T
+                            | {
+                                name?: T;
+                                section?: T;
+                                id?: T;
+                              };
                           required?: T;
                           placement?: T;
                           id?: T;
@@ -7400,6 +7591,7 @@ export interface FormsSelect<T extends boolean = true> {
                                   | T
                                   | {
                                       message?: T;
+                                      collapsibleTitle?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -7502,6 +7694,16 @@ export interface FormsSelect<T extends boolean = true> {
                                       id?: T;
                                       blockName?: T;
                                     };
+                                hofSelection?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
                                 dateSlotSelection?:
                                   | T
                                   | {
@@ -7528,6 +7730,23 @@ export interface FormsSelect<T extends boolean = true> {
                                       allowedFileTypes?: T;
                                       customAllowedFileTypes?: T;
                                       allowMultiple?: T;
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
+                                materialList?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      items?:
+                                        | T
+                                        | {
+                                            name?: T;
+                                            section?: T;
+                                            id?: T;
+                                          };
                                       required?: T;
                                       placement?: T;
                                       id?: T;
@@ -7596,6 +7815,19 @@ export interface FormsSelect<T extends boolean = true> {
         mapping?: T;
         id?: T;
       };
+  hofDashboard?:
+    | T
+    | {
+        area?: T;
+        entries?: T;
+        title?: T;
+        description?: T;
+        deadline?: T;
+        closesAtDeadline?: T;
+        titleField?: T;
+        onlyHofAdministrators?: T;
+        position?: T;
+      };
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -7625,6 +7857,22 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
   smtpResults?: T;
   workflowResults?: T;
   'helper-jobs'?: T;
+  hof?: T;
+  hofReviewStatus?: T;
+  hofFeedback?: T;
+  hofFinal?: T;
+  submittedBy?: T;
+  hofReviewLog?:
+    | T
+    | {
+        changedAt?: T;
+        reviewerName?: T;
+        status?: T;
+        final?: T;
+        feedback?: T;
+        reviewer?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8345,6 +8593,7 @@ export interface AppLandingPage {
             blockType: 'photoCarousel';
           }
         | PhotoContestBlock
+        | HofDashboardBlock
         | {
             image: string | Image;
             /**
@@ -8843,6 +9092,35 @@ export interface BillSetting {
   createdAt?: string | null;
 }
 /**
+ * Texts are only required in German; French and English fall back to it.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-dashboard-settings".
+ */
+export interface HofDashboardSetting {
+  id: string;
+  /**
+   * The camp’s milestones, shown on every dashboard. A form’s own due date is set on the form.
+   */
+  deadlines?:
+    | {
+        date: string;
+        title: string;
+        area: 'infrastructure' | 'program' | 'material';
+        id?: string | null;
+      }[]
+    | null;
+  documents?:
+    | {
+        document: string | Document;
+        area?: ('infrastructure' | 'program' | 'material') | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
@@ -9087,6 +9365,7 @@ export interface AppLandingPageSelect<T extends boolean = true> {
               blockName?: T;
             };
         photoContestBlock?: T | PhotoContestBlockSelect<T>;
+        hofDashboardBlock?: T | HofDashboardBlockSelect<T>;
         singlePicture?:
           | T
           | {
@@ -9366,6 +9645,30 @@ export interface BillSettingsSelect<T extends boolean = true> {
   financeEmailRecipients?: T;
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "hof-dashboard-settings_select".
+ */
+export interface HofDashboardSettingsSelect<T extends boolean = true> {
+  deadlines?:
+    | T
+    | {
+        date?: T;
+        title?: T;
+        area?: T;
+        id?: T;
+      };
+  documents?:
+    | T
+    | {
+        document?: T;
+        area?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

@@ -232,6 +232,9 @@ export const useAdminChatManagement = ({
         const data = superjson.parse<{ json: ChatRealtimeEvent }>(event.data);
         const chatEvent = 'json' in data ? data.json : (data as unknown as ChatRealtimeEvent);
 
+        // typing arrives every few seconds per typist and changes nothing the panel lists
+        if (chatEvent.type === 'typing') return;
+
         // Invalidate chats to instantly update new/unread list in the sidebar
         void utils.admin.listSupportChats.invalidate();
 

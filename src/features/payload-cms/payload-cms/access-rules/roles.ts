@@ -144,10 +144,19 @@ export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean =
   });
 };
 /**
- * Who runs the material depot in the app: the material team and the full admins. Checked on
- * the tRPC side with the session user; the team needs no admin panel login for it.
+ * Who runs the material depot: the material team and the full admins. Checked on the tRPC side
+ * with the session user for the app, and by the depot setup in the admin panel, which is the
+ * only admin page the material team may open.
  */
 export const MATERIAL_DEPOT_ROLES: Roles[] = [Roles.FullAdmin, Roles.MaterialTeam];
+
+/**
+ * Who reviews what the Höfe hand in on the Hof dashboard and edits its settings: the full
+ * admins and the web core team, for now. The infrastructure and programme Ressorts will want
+ * this without the rest of the web team's rights, and get a role of their own once their
+ * Cevi.DB groups are known. Checked in Payload and, with the session user, in tRPC.
+ */
+export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
 
 export const hasAccessToThisHelper = ({
   requiredRoles,

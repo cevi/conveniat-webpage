@@ -1,4 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { formHofDashboardField } from '@/features/hof-dashboard/payload-cms/form-hof-dashboard-field';
+import { formSubmissionReviewFields } from '@/features/hof-dashboard/payload-cms/form-submission-review-fields';
+import { checkHofDashboardSubmission } from '@/features/hof-dashboard/payload-cms/hooks/check-hof-dashboard-submission';
+import { recordHofReview } from '@/features/hof-dashboard/payload-cms/hooks/record-hof-review';
 import {
   hasAccessToThisHelper,
   hasAdminOrWebAccess,
@@ -13,7 +17,9 @@ import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
 import { ensureApprovalToken } from '@/features/payload-cms/payload-cms/plugins/form/hooks/ensure-approval-token';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
+import { linkHofSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-hof-submission';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
+import { nameMaterialLines } from '@/features/payload-cms/payload-cms/plugins/form/hooks/name-material-lines';
 import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import { approvalEmailTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/approval-email-tab';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
@@ -86,7 +92,15 @@ const formFileUploadLimitField: Field = {
  */
 const formBuilderTabs: TabsField = {
   type: 'tabs',
-  tabs: [formFieldsTab, confirmationSettingsTab, approvalEmailTab, workflowTab, formResultsTab],
+  tabs: [
+    formFieldsTab,
+    confirmationSettingsTab,
+    approvalEmailTab,
+    // next to the workflows, and here rather than in workflow-tab.ts, which the admin's client
+    // components import: the Hof dashboard's group reads a server-side feature flag
+    { ...workflowTab, fields: [...workflowTab.fields, formHofDashboardField] },
+    formResultsTab,
+  ],
 };
 
 const formFields: Field[] = [
@@ -224,6 +238,13 @@ export const formPluginConfiguration = formBuilderPlugin({
           name: 'approved',
           type: 'checkbox',
           defaultValue: false,
+          // Anyone may hand in a form, but an approved answer shows on the website and on a
+          // Hof's dashboard, so only the reviewers may set it. The approval link writes it
+          // with overrideAccess.
+          access: {
+            create: hasAdminOrWebAccess,
+            update: hasAdminOrWebAccess,
+          },
           label: {
             en: 'Approved',
             de: 'Freigegeben',
@@ -246,6 +267,8 @@ export const formPluginConfiguration = formBuilderPlugin({
           name: 'approvalToken',
           type: 'text',
           index: true,
+          // it approves the submission, so it must not come back to whoever sent it
+          access: { read: hasAdminOrWebAccess },
           admin: {
             position: 'sidebar' as const,
             readOnly: true,
@@ -320,10 +343,36 @@ export const formPluginConfiguration = formBuilderPlugin({
             position: 'sidebar',
           },
         },
+        {
+          name: 'hof',
+          type: 'relationship',
+          relationTo: 'hoefe',
+          index: true,
+          label: { en: 'Hof', de: 'Hof', fr: 'Hof' },
+          admin: {
+            // it links to the Hof dashboard; a deployment without it has nothing to link to
+            hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
+            position: 'sidebar',
+            description: {
+              en: 'Set by a "Hof Selection" field. Set it by hand for an older submission, and the Hof finds it on its dashboard.',
+              de: 'Wird von einem Feld "Hof Auswahl" gesetzt. Bei älteren Antworten von Hand setzen, dann findet der Hof sie auf seinem Dashboard.',
+              fr: 'Défini par un champ « Sélection du Hof ». Le définir à la main pour une ancienne réponse, et le Hof la retrouve sur son tableau de bord.',
+            },
+          },
+        },
+        ...formSubmissionReviewFields,
       ] as Field[];
     },
     hooks: {
-      beforeChange: [ensureApprovalToken, validateFormSubmission, linkJobSubmission],
+      beforeChange: [
+        ensureApprovalToken,
+        validateFormSubmission,
+        nameMaterialLines,
+        linkJobSubmission,
+        linkHofSubmission,
+        checkHofDashboardSubmission,
+        recordHofReview,
+      ],
       afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent, sendApprovalEmail],
     },
   },

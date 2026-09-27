@@ -17,7 +17,10 @@ import {
 // Custom Hooks & Components
 import { buildEmptyFormState } from '@/features/payload-cms/components/form/build-initial-form-state';
 import { FormControls } from '@/features/payload-cms/components/form/components/form-controls';
-import { FormFieldRenderer } from '@/features/payload-cms/components/form/components/form-field-renderer';
+import {
+  FormFieldRenderer,
+  HiddenFieldsContext,
+} from '@/features/payload-cms/components/form/components/form-field-renderer';
 import { ProgressBar } from '@/features/payload-cms/components/form/components/progress-bar';
 import { SubmissionMessage } from '@/features/payload-cms/components/form/components/submission-message';
 import { useFormSteps } from '@/features/payload-cms/components/form/hooks/use-form-steps';
@@ -37,23 +40,49 @@ const formatFieldErrors = (errors: FieldErrors): string => {
     .join(', ');
 };
 
+/**
+ * A form placed on a page, or embedded by a feature that knows some answers already.
+ *
+ * `presetValues` fills answers in and hides their fields, e.g. the Hof on its own dashboard;
+ * `initialValues` fills answers in to be changed, e.g. last time's order. `onSubmitted`
+ * replaces the confirmation: the embedding feature shows what was sent itself.
+ */
 export const FormBlock: React.FC<
-  FormBlockType & { isPreviewMode?: boolean; withBorder?: boolean }
-> = ({ form: config, isPreviewMode, withBorder = true }) => {
+  FormBlockType & {
+    isPreviewMode?: boolean;
+    withBorder?: boolean;
+    presetValues?: Record<string, string>;
+    initialValues?: Record<string, string>;
+    onSubmitted?: () => void;
+  }
+> = ({
+  form: config,
+  isPreviewMode,
+  withBorder = true,
+  presetValues,
+  initialValues,
+  onSubmitted,
+}) => {
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
   const posthog = usePostHog();
 
   // 1. Initialize Form
-  const initialFormState = useMemo(() => buildEmptyFormState(config), [config]);
+  const initialFormState = useMemo(
+    () => ({ ...buildEmptyFormState(config), ...initialValues, ...presetValues }),
+    [config, initialValues, presetValues],
+  );
+  const hiddenFields = useMemo(() => new Set(Object.keys(presetValues ?? {})), [presetValues]);
   const formMethods = useForm<FieldValues>({
     mode: 'onSubmit',
     reValidateMode: 'onChange',
     defaultValues: initialFormState,
   });
 
-  // Restore form state from sessionStorage on mount
+  // Restore form state from sessionStorage on mount. An embedded form with preset answers
+  // starts from them: what was left in another context is not this one's.
   useEffect(() => {
+    if (presetValues !== undefined) return;
     if (typeof config.id === 'string' && config.id.length > 0) {
       const savedState = sessionStorage.getItem(getFormStorageKey(config.id, 'state'));
       if (typeof savedState === 'string' && savedState.length > 0) {
@@ -69,7 +98,7 @@ export const FormBlock: React.FC<
         }
       }
     }
-  }, [config, formMethods]);
+  }, [config, formMethods, presetValues]);
 
   // 2. Initialize Hooks
   // Map config.sections (wrappers) to FormSection[]
@@ -83,7 +112,7 @@ export const FormBlock: React.FC<
     next,
     prev,
     currentActualStep,
-  } = useFormSteps(formSections, formMethods, config.id);
+  } = useFormSteps(formSections, formMethods, config.id, presetValues === undefined);
 
   const {
     submit,
@@ -101,11 +130,12 @@ export const FormBlock: React.FC<
     // even when a section was skipped by its display condition.
     formSections: steps,
     setCurrentStepIndex,
+    onSubmitted,
   });
 
   const handleReset = (): void => {
     resetSubmission();
-    formMethods.reset(buildEmptyFormState(config));
+    formMethods.reset(initialFormState);
     setCurrentStepIndex(0);
   };
 
@@ -223,85 +253,87 @@ export const FormBlock: React.FC<
         ) : (
           <JobSelectionProvider>
             <FormProvider {...formMethods}>
-              <form id={config.id} onSubmit={handleSubmit} noValidate>
-                <div
-                  className={cn(
-                    '',
-                    isDualCardLayout
-                      ? 'grid grid-cols-1 items-start gap-8 @[1600px]:grid-cols-[36rem_1fr] @[1600px]:gap-12'
-                      : 'flex flex-col gap-6',
-                  )}
-                >
-                  <aside
+              <HiddenFieldsContext.Provider value={hiddenFields}>
+                <form id={config.id} onSubmit={handleSubmit} noValidate>
+                  <div
                     className={cn(
-                      'w-full',
-                      (isDualCardLayout || withBorder) &&
-                        'space-y-4 rounded-xl border border-gray-100 bg-white p-8 shadow-sm',
+                      '',
+                      isDualCardLayout
+                        ? 'grid grid-cols-1 items-start gap-8 @[1600px]:grid-cols-[36rem_1fr] @[1600px]:gap-12'
+                        : 'flex flex-col gap-6',
                     )}
                   >
-                    {steps.length > 1 && currentActualStep && (
-                      <ProgressBar
-                        locale={locale}
-                        currentStepIndex={currentStepIndex}
-                        definedSteps={steps}
-                        currentActualStep={currentActualStep}
-                      />
-                    )}
-                    {currentActualStep && (
-                      <FormFieldRenderer
-                        section={currentActualStep}
-                        currentStepIndex={currentStepIndex}
-                        formId={config.id}
-                        renderMode={isDualCardLayout ? 'sidebar' : 'all'}
-                      />
-                    )}
-                    <FormControls
-                      locale={locale}
-                      isFirst={isFirstStep}
-                      isLast={isLastStep}
-                      isSubmitting={status === 'loading'}
-                      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                      onNext={handleNext}
-                      onPrev={prev}
-                      submitLabel={config.submitButtonLabel ?? ''}
-                      formId={config.id}
-                    />
-                  </aside>
-
-                  {isDualCardLayout && (
-                    <div
-                      key="main-column"
-                      className="animate-in fade-in fill-mode-backwards flex flex-col rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
+                    <aside
+                      className={cn(
+                        'w-full',
+                        (isDualCardLayout || withBorder) &&
+                          'space-y-4 rounded-xl border border-gray-100 bg-white p-8 shadow-sm',
+                      )}
                     >
-                      <div
-                        className={
-                          status === 'loading' ? 'pointer-events-none grow opacity-50' : 'grow'
-                        }
-                      >
+                      {steps.length > 1 && currentActualStep && (
+                        <ProgressBar
+                          locale={locale}
+                          currentStepIndex={currentStepIndex}
+                          definedSteps={steps}
+                          currentActualStep={currentActualStep}
+                        />
+                      )}
+                      {currentActualStep && (
                         <FormFieldRenderer
                           section={currentActualStep}
                           currentStepIndex={currentStepIndex}
                           formId={config.id}
-                          renderMode="main"
+                          renderMode={isDualCardLayout ? 'sidebar' : 'all'}
                         />
+                      )}
+                      <FormControls
+                        locale={locale}
+                        isFirst={isFirstStep}
+                        isLast={isLastStep}
+                        isSubmitting={status === 'loading'}
+                        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                        onNext={handleNext}
+                        onPrev={prev}
+                        submitLabel={config.submitButtonLabel ?? ''}
+                        formId={config.id}
+                      />
+                    </aside>
+
+                    {isDualCardLayout && (
+                      <div
+                        key="main-column"
+                        className="animate-in fade-in fill-mode-backwards flex flex-col rounded-xl border border-gray-100 bg-white p-8 shadow-sm duration-300"
+                      >
+                        <div
+                          className={
+                            status === 'loading' ? 'pointer-events-none grow opacity-50' : 'grow'
+                          }
+                        >
+                          <FormFieldRenderer
+                            section={currentActualStep}
+                            currentStepIndex={currentStepIndex}
+                            formId={config.id}
+                            renderMode="main"
+                          />
+                        </div>
+                        <div className="pt-8 @[1600px]:hidden">
+                          <FormControls
+                            locale={locale}
+                            isFirst={isFirstStep}
+                            isLast={isLastStep}
+                            isSubmitting={status === 'loading'}
+                            // eslint-disable-next-line @typescript-eslint/no-misused-promises
+                            onNext={handleNext}
+                            onPrev={prev}
+                            submitLabel={config.submitButtonLabel ?? ''}
+                            formId={config.id}
+                          />
+                        </div>
                       </div>
-                      <div className="pt-8 @[1600px]:hidden">
-                        <FormControls
-                          locale={locale}
-                          isFirst={isFirstStep}
-                          isLast={isLastStep}
-                          isSubmitting={status === 'loading'}
-                          // eslint-disable-next-line @typescript-eslint/no-misused-promises
-                          onNext={handleNext}
-                          onPrev={prev}
-                          submitLabel={config.submitButtonLabel ?? ''}
-                          formId={config.id}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </form>
+                    )}
+                  </div>
+                </form>
+              </HiddenFieldsContext.Provider>
             </FormProvider>
           </JobSelectionProvider>
         )}

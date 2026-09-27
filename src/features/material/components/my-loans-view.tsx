@@ -139,7 +139,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
       itemId: loan.item.id,
       startDate: startDate ?? loan.startDate,
       endDate: endDate ?? loan.endDate,
-      excludeLoanId: loan.id,
+      excludeLoanIds: [loan.id],
     },
     { ...materialQueryOptions, enabled: periodValid },
   );

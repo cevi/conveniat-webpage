@@ -4,6 +4,9 @@ import config from '@payload-config';
 import { revalidateTag } from 'next/cache';
 import { getPayload } from 'payload';
 
+/** How the review history names an approval given through an email's approval link. */
+const APPROVED_BY_LINK = 'Freigabe-Link (E-Mail)';
+
 const logger = createLogger('api:form-submission-approval');
 
 interface RenderHtmlOptions {
@@ -379,6 +382,8 @@ export async function POST(request: Request): Promise<Response> {
           approved: true,
         },
         overrideAccess: true,
+        // nobody is signed in here: the review history of a Hof's submission names the link
+        context: { hofReviewer: { id: '', name: APPROVED_BY_LINK } },
       });
 
       try {
