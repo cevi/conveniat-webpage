@@ -16,12 +16,14 @@ interface MessageInfiniteScrollProperties {
   chatId: string;
   parentId: string | undefined;
   parentMessage: ChatMessage | undefined;
+  currentUser: string | undefined;
 }
 
 export const useMessageInfiniteScroll = ({
   chatId,
   parentId,
   parentMessage,
+  currentUser,
 }: MessageInfiniteScrollProperties): {
   sortedMessages: ChatMessage[];
   isFetchingNextPage: boolean;
@@ -96,17 +98,17 @@ export const useMessageInfiniteScroll = ({
   // Hydrate any pending offline messages from localStorage outbox if not present in fetchedMessages
   const pendingOutboxMessages = useMemo(
     () => [
-      ...getPendingOutboxChatMessages(chatId, parentId),
-      ...getFailedChatMessages(chatId, parentId),
+      ...getPendingOutboxChatMessages(chatId, parentId, currentUser),
+      ...getFailedChatMessages(chatId, parentId, currentUser),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chatId, parentId, outboxVersion],
+    [chatId, parentId, currentUser, outboxVersion],
   );
 
   // A failed send the server did store after all (a lost response) turns up in the fetched
   // pages; the local copy would otherwise come back as a ghost once it scrolls out of them.
   useEffect(() => {
-    for (const failed of getFailedChatMessages(chatId, parentId)) {
+    for (const failed of getFailedChatMessages(chatId, parentId, currentUser)) {
       const isStored = fetchedMessages.some(
         // a pending copy is only a retry in flight, not proof the server has it
         (m) => m.id === failed.id && m.sendFailed !== true && m.status !== 'CREATED',
@@ -115,7 +117,7 @@ export const useMessageInfiniteScroll = ({
         forgetFailedSend(failed.id);
       }
     }
-  }, [chatId, parentId, fetchedMessages]);
+  }, [chatId, parentId, currentUser, fetchedMessages]);
 
   const sortedMessages = useMemo(() => {
     const missingOutboxMessages = pendingOutboxMessages.filter(

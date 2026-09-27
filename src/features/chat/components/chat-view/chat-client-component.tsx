@@ -39,6 +39,12 @@ const tryAgainLater: StaticTranslationString = {
   fr: 'Veuillez réessayer plus tard.',
 };
 
+const noLongerMember: StaticTranslationString = {
+  en: 'You are no longer a member of this chat.',
+  de: 'Du bist nicht mehr Mitglied dieses Chats.',
+  fr: "Vous n'êtes plus membre de ce chat.",
+};
+
 /**
  * Message displayed if the user is offline and tries to access a chat.
  * And the chat is not cached.
@@ -78,6 +84,22 @@ export const ChatErrorMessage: React.FC = () => {
   );
 };
 
+/**
+ * Shown instead of the cached chat once the server no longer lets the user read it,
+ * i.e. after they left or were removed.
+ */
+const ChatNotMemberMessage: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  return (
+    <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+      <ChatHeaderSkeleton />
+      <div className="flex flex-1 items-center justify-center p-4 text-center text-gray-500">
+        <b>{noLongerMember[locale]}</b>
+      </div>
+    </div>
+  );
+};
+
 const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
   const {
@@ -86,6 +108,7 @@ const ChatClientContent: React.FC = () => {
     isPaused,
     isPending,
     isError,
+    error,
     errorUpdateCount,
   } = useChatDetail(chatId);
   const { activeThreadId, closeThread } = useChatActions();
@@ -98,6 +121,11 @@ const ChatClientContent: React.FC = () => {
   if (isLoading && errorUpdateCount === 0 && chatDetails === undefined) return <ChatSkeleton />;
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (isPaused && isPending && chatDetails === undefined) return <ChatOfflineMessage />;
+
+  // Cached details mean the user could read this chat before; NOT_FOUND now means they left
+  // or were removed. Without a cache it may just as well be a chat that never existed.
+  if (error?.data?.code === 'NOT_FOUND' && chatDetails !== undefined)
+    return <ChatNotMemberMessage />;
 
   if ((isError || (isLoading && errorUpdateCount !== 0)) && chatDetails === undefined)
     return <ChatErrorMessage />;

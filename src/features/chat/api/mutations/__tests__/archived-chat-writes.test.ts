@@ -3,7 +3,11 @@ import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
-jest.mock('payload', () => ({ getPayload: jest.fn() }));
+// No alert question follows, so an answer ends after storing it.
+jest.mock('payload', () => ({
+  getPayload: (): Promise<unknown> =>
+    Promise.resolve({ findGlobal: (): Promise<unknown> => Promise.resolve({ questions: [] }) }),
+}));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
@@ -98,6 +102,7 @@ const record =
 /** The chat tables, with just enough of Prisma's behaviour for the write procedures. */
 const mockPrisma = {
   $transaction: <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => callback(mockPrisma),
+  $executeRaw: (): Promise<number> => Promise.resolve(1),
   chat: {
     findUnique: ({
       where,
@@ -119,10 +124,20 @@ const mockPrisma = {
         uuid: MESSAGE_ID,
         chatId: CHAT_ID,
         senderId: owner,
-        type: MessageType.TEXT_MSG,
+        // An alert question, the only message `updateMessageContent` changes; the other
+        // procedures do not care about the type.
+        type: MessageType.ALERT_QUESTION,
         createdAt: new Date(0),
         parentId: undefined,
-        contentVersions: [{ revision: 0, payload: { text: 'Hoi zäme' } }],
+        contentVersions: [
+          {
+            revision: 0,
+            payload: {
+              question: 'Ist jemand verletzt?',
+              options: [{ id: 'o-no', option: 'Nein' }],
+            },
+          },
+        ],
       }),
     findFirst: (): Promise<unknown> => Promise.resolve({ uuid: MESSAGE_ID }),
     create: record('message.create', { uuid: 'new-message', createdAt: new Date() }),
@@ -179,7 +194,7 @@ const writeProcedures: [string, WriteCall][] = [
   [
     'updateMessageContent',
     (caller): Promise<unknown> =>
-      caller.updateMessageContent({ messageId: MESSAGE_ID, content: { text: 'Hoi' } }),
+      caller.updateMessageContent({ messageId: MESSAGE_ID, content: { selectedOption: 'Nein' } }),
   ],
   [
     'addParticipants',

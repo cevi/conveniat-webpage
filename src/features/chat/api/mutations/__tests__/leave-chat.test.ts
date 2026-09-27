@@ -23,6 +23,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
 
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { leaveChat } from '@/features/chat/api/mutations/leave-chat';
+import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
 import type { StaticTranslationString } from '@/types/types';
@@ -133,7 +134,9 @@ const prisma = {
   },
 };
 
-const createCaller = createCallerFactory(createTRPCRouter({ leaveChat, addParticipants }));
+const createCaller = createCallerFactory(
+  createTRPCRouter({ leaveChat, addParticipants, removeParticipant }),
+);
 const as = (uuid: string): ReturnType<typeof createCaller> =>
   createCaller({
     user: { uuid, group_ids: [], name: `Name of ${uuid}`, email: `${uuid}@example.test` },
@@ -211,6 +214,27 @@ describe('leaving a group chat', () => {
     await expect(as('stranger').leaveChat({ chatUuid: CHAT_ID })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
+  });
+});
+
+describe('being removed by an owner', () => {
+  it("ends the removed member's live subscription to the chat", async () => {
+    await as('owner').removeParticipant({ chatId: CHAT_ID, participantId: 'anna' });
+
+    expect(permissionOf('anna')).toBeUndefined();
+    expect(publish).toHaveBeenCalledWith('anna', {
+      type: 'membership_revoked',
+      chatId: CHAT_ID,
+      senderId: 'owner',
+    });
+  });
+
+  it('revokes nothing when the removal is refused', async () => {
+    await expect(
+      as('ben').removeParticipant({ chatId: CHAT_ID, participantId: 'anna' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+
+    expect(publish).not.toHaveBeenCalled();
   });
 });
 

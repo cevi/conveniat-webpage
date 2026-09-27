@@ -31,6 +31,7 @@ jest.mock('@/utils/server-logger', () => {
 });
 
 interface MockLogger {
+  debug: jest.Mock;
   info: jest.Mock;
   warn: jest.Mock;
   error: jest.Mock;
@@ -216,7 +217,7 @@ describe('sendNotification fan-out', () => {
 
     await sendNotification('hi', ['user-1'], 'chat-1');
 
-    expect(mockLogger.info).toHaveBeenCalledWith(
+    expect(mockLogger.debug).toHaveBeenCalledWith(
       'Push fan-out finished',
       expect.objectContaining({
         'push.subscriptions': 3,

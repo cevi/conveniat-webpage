@@ -76,13 +76,10 @@ export const AlertQuestionMessage: React.FC<AlertQuestionMessageProperties> = ({
     setIsSubmitting(true);
     setOptimisticSelection(optItem.option);
 
-    const newPayload = {
-      ...payload,
-      selectedOption: optItem.option,
-      selectedOptionId: optItem.id,
-    };
-
-    updateMessageContext.mutate({ messageId: message.id, content: newPayload });
+    updateMessageContext.mutate({
+      messageId: message.id,
+      content: { selectedOption: optItem.option, selectedOptionId: optItem.id },
+    });
   };
 
   const questionTitle = typeof payload['question'] === 'string' ? payload['question'] : '';

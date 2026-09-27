@@ -16,6 +16,24 @@ interface MessageReadStatusProperties {
 // Module-level watermark cache to record confirmed read message IDs per chat
 const confirmedReadWatermarks = new Map<string, string>();
 
+/**
+ * The latest message the server can mark as read for `currentUser`: a system message or one
+ * someone else sent. Queued and failed bubbles are skipped, since the server has never
+ * stored them and refuses them as a read watermark, and the chat would be marked again on
+ * every render.
+ */
+export const findLatestMessageToRead = (
+  sortedMessages: ChatMessage[],
+  currentUser: string,
+): ChatMessage | undefined =>
+  [...sortedMessages].reverse().find((message) => {
+    if (message.isPendingOffline === true || message.sendFailed === true) return false;
+    if (message.type === MessageType.SYSTEM_MSG) return true;
+    if (message.senderId === SYSTEM_SENDER_ID) return true;
+    if (typeof message.senderId !== 'string') return true;
+    return message.senderId !== currentUser;
+  });
+
 export const useMessageReadStatus = ({
   chatId,
   currentUser,
@@ -59,13 +77,7 @@ export const useMessageReadStatus = ({
 
   useEffect(() => {
     if (currentUser !== undefined && sortedMessages.length > 0) {
-      // Find the latest message to mark as read (system message or message not sent by current user)
-      const latestMessageToRead = [...sortedMessages].reverse().find((message) => {
-        if (message.type === MessageType.SYSTEM_MSG) return true;
-        if (message.senderId === SYSTEM_SENDER_ID) return true;
-        if (typeof message.senderId !== 'string') return true;
-        return message.senderId !== currentUser;
-      });
+      const latestMessageToRead = findLatestMessageToRead(sortedMessages, currentUser);
 
       if (
         latestMessageToRead !== undefined &&

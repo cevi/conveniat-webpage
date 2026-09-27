@@ -32,6 +32,10 @@ describe('scheduleEntriesCollection', () => {
     ['a dangling location', { location: null }],
     ['an unpopulated location', { location: 'loc-1' }],
     ['a dangling organiser', { organiser: [undefined] }],
+    [
+      'an organiser populated without an email',
+      { organiser: [{ id: 'user-1', fullName: 'Test Person', nickname: null }] },
+    ],
     ['a dangling category', { category: null }],
   ])('accepts an entry with %s', (_label, overrides) => {
     expect(() => scheduleEntriesCollection.insert(baseEntry(overrides))).not.toThrow();
@@ -49,12 +53,32 @@ describe('scheduleEntriesCollection', () => {
   it('drops dangling organisers instead of storing them', () => {
     scheduleEntriesCollection.insert(
       baseEntry({
-        organiser: [undefined, { fullName: 'Test Person', email: 'test@example.com' }],
+        organiser: [undefined, { id: 'user-1', fullName: 'Test Person' }],
       }),
     );
 
     expect(scheduleEntriesCollection.get('entry-1')?.organiser).toEqual([
-      { fullName: 'Test Person', email: 'test@example.com' },
+      { id: 'user-1', fullName: 'Test Person' },
+    ]);
+  });
+
+  /**
+   * Browsers still hold entries synced before users were populated without their email. The
+   * next sync overwrites them with the email-less organiser and must not be rejected.
+   */
+  it('updates a stored organiser to one without an email', () => {
+    scheduleEntriesCollection.insert(
+      baseEntry({
+        organiser: [{ id: 'user-1', fullName: 'Test Person', email: 'test@example.com' }],
+      }),
+    );
+
+    scheduleEntriesCollection.update('entry-1', (draft) => {
+      Object.assign(draft, baseEntry({ organiser: [{ id: 'user-1', fullName: 'Test Person' }] }));
+    });
+
+    expect(scheduleEntriesCollection.get('entry-1')?.organiser).toEqual([
+      { id: 'user-1', fullName: 'Test Person' },
     ]);
   });
 

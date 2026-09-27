@@ -6,6 +6,7 @@ import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { dropCachedEntry, generateChatId, generateMessageId } from '@/features/chat/utils';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
+import { isTransportError } from '@/features/chat/utils/send-errors';
 import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
@@ -73,12 +74,7 @@ export const useCreateChat = (): {
 
     onError: (error, variables) => {
       const optimisticChatId = variables.chatId;
-      const isOfflineError =
-        !navigator.onLine ||
-        error.message === 'Failed to fetch' ||
-        error.message.includes('Network request failed');
-
-      if (isOfflineError && optimisticChatId !== undefined) {
+      if (isTransportError(error) && optimisticChatId !== undefined) {
         // Keep the seeded caches in place: the chat stays open and writable, and the
         // outbox replays the creation (under the very same id) once we are back online.
         addMessageToOutbox({
@@ -87,6 +83,7 @@ export const useCreateChat = (): {
           chatName: variables.chatName,
           memberIds: variables.members.map((m) => m.userId),
           createdAt: new Date().toISOString(),
+          userId: currentUserId,
         });
         toast.success('Chat queued. Will be created when online.');
         return;
