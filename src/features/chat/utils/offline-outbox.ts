@@ -9,8 +9,9 @@ export interface OfflineMessage {
   id: string; // Optimistic ID
   chatId: string;
   content: string;
-  // Absent in entries queued by older app versions, which only queued text.
-  messageType?: MessageType | undefined;
+  // Absent in entries queued by older app versions, which only queued text. Only the
+  // types `sendMessage` accepts from a participant, since that is where the entry replays.
+  messageType?: Extract<MessageType, 'TEXT_MSG' | 'IMAGE_MSG' | 'LOCATION_MSG'> | undefined;
   quotedMessageId?: string | undefined;
   parentId?: string | undefined;
   createdAt: string; // ISO String
