@@ -1,3 +1,4 @@
+import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -74,6 +75,12 @@ export const updateMessageContent = trpcBaseProcedure
     if (message.senderId !== user.uuid) {
       throw new TRPCError({ code: 'FORBIDDEN', message: 'You can only answer your own alert' });
     }
+
+    const chat = await prisma.chat.findUniqueOrThrow({
+      where: { uuid: message.chatId },
+      select: { archivedAt: true },
+    });
+    assertChatNotArchived(chat);
 
     const storedPayload = (message.contentVersions[0]?.payload ?? {}) as Record<string, unknown>;
     if (

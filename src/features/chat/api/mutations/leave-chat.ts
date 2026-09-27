@@ -1,6 +1,6 @@
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { getLeftGroupMessagePayload } from '@/features/chat/api/utils/system-message-helpers';
+import { isChatArchived } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';

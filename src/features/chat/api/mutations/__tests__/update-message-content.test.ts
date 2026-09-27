@@ -99,7 +99,11 @@ const prisma = {
       for (const release of held) release();
     }
   },
-  chat: { update: (): Promise<void> => Promise.resolve() },
+  chat: {
+    // eslint-disable-next-line unicorn/no-null
+    findUniqueOrThrow: (): Promise<unknown> => Promise.resolve({ archivedAt: null }),
+    update: (): Promise<void> => Promise.resolve(),
+  },
   message: {
     findUnique: async ({ where }: { where: { uuid: string } }): Promise<unknown> => {
       // yield, so that concurrent answers interleave wherever they are not serialised

@@ -4,7 +4,6 @@ import { AppFooterController } from '@/components/footer/hide-footer-context';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
 import { LeaveChat } from '@/features/chat/components/chat-details-view/leave-chat';
@@ -25,6 +24,7 @@ import {
   describeContactHof,
   matchesContactSearch,
 } from '@/features/chat/utils/contact-search';
+import { isChatArchived } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';

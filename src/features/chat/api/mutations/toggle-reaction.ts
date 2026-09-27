@@ -1,3 +1,4 @@
+import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -44,6 +45,7 @@ export const toggleReaction = trpcBaseProcedure
       select: {
         uuid: true,
         capabilities: true,
+        archivedAt: true,
         chatMemberships: {
           where: { userId: user.uuid },
           select: {
@@ -60,6 +62,8 @@ export const toggleReaction = trpcBaseProcedure
         message: 'You are not a member of this chat.',
       });
     }
+
+    assertChatNotArchived(chat);
 
     // 3. Permission checks: Emoji reactions must be enabled for the chat
     if (!chat.capabilities.includes(ChatCapability.EMOJI_REACTIONS)) {

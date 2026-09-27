@@ -571,7 +571,13 @@ export const adminRouter = createTRPCRouter({
         .filter((membership) => membership.userId !== user.uuid)
         .map((membership) => membership.userId);
 
-      sendNotification(input.content, recipientUserIds, input.chatId, message.uuid, {
+      // A member who deleted the chat never sees it in their list again, so a push for it
+      // would lead nowhere.
+      const pushRecipientUserIds = chat.chatMemberships
+        .filter((membership) => membership.userId !== user.uuid && !membership.hasDeleted)
+        .map((membership) => membership.userId);
+
+      sendNotification(input.content, pushRecipientUserIds, input.chatId, message.uuid, {
         chatName: chat.name,
         senderName: user.name,
         // This is the reply path of the CMS Alert Management view, so it posts into
