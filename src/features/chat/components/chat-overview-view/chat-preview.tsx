@@ -1,4 +1,5 @@
 'use client';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { trpc } from '@/trpc/client';
@@ -76,11 +77,7 @@ export const ChatPreview: React.FC<{
             </div>
           )}
           {chat.chatType === ChatType.ONE_TO_ONE && (
-            <div className="bg-conveniat-green flex h-12 w-12 items-center justify-center rounded-full shadow-sm">
-              <span className="font-heading text-sm font-semibold text-white">
-                {chat.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
+            <PersonAvatar seed={chat.id} name={chat.name} className="h-12 w-12 text-sm shadow-sm" />
           )}
           {chat.chatType === ChatType.EMERGENCY && (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-red-500">
