@@ -1,6 +1,6 @@
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import type { HitobitoClient } from '@/lib/hitobito/client';
 
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 
@@ -15,16 +15,24 @@ const clientReturning = (body: unknown): HitobitoClient =>
       .mockResolvedValue({ response: { ok: true, status: 200 }, body: JSON.stringify(body) }),
   }) as unknown as HitobitoClient;
 
-describe('HitobitoServiceAdapter.fetchAddressManagerEmails', () => {
+describe('HitobitoServiceAdapter.fetchAddressManagers', () => {
   it("lists the people with the Hof group's address manager role, and nobody else", async () => {
     const adapter = new HitobitoServiceAdapter(
       clientReturning({
         people: [
-          { email: ' AV@Hof-Sued.ch ', links: { roles: ['1'] } },
+          {
+            email: ' AV@Hof-Sued.ch ',
+            first_name: 'Anna',
+            last_name: 'Muster',
+            nickname: 'Flink',
+            links: { roles: ['1'] },
+          },
           { email: 'externe@hof-sued.ch', links: { roles: ['2'] } },
           { email: 'jungschar@hof-sued.ch', links: { roles: ['3'] } },
           { email: 'ortsgruppe@hof-sued.ch', links: { roles: ['4'] } },
-          { email: 'zweite@hof-sued.ch', links: { roles: [1] } },
+          { email: 'zweite@hof-sued.ch', first_name: 'Beat', links: { roles: [1] } },
+          // the same person again, through a second role
+          { email: 'av@hof-sued.ch', links: { roles: ['1'] } },
         ],
         linked: {
           roles: [
@@ -39,9 +47,9 @@ describe('HitobitoServiceAdapter.fetchAddressManagerEmails', () => {
       logger,
     );
 
-    await expect(adapter.fetchAddressManagerEmails('990002')).resolves.toEqual([
-      'av@hof-sued.ch',
-      'zweite@hof-sued.ch',
+    await expect(adapter.fetchAddressManagers('990002')).resolves.toEqual([
+      { name: 'Anna Muster v/o Flink', email: 'av@hof-sued.ch' },
+      { name: 'Beat', email: 'zweite@hof-sued.ch' },
     ]);
   });
 });

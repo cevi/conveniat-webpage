@@ -1,4 +1,9 @@
 import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  describeHoefe,
+  getHofDirectory,
+} from '@/features/payload-cms/payload-cms/utils/hof-directory';
+import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
@@ -54,16 +59,18 @@ export const courseParticipantsExportHandler: PayloadHandler = async (request) =
     const payloadUsersById = new Map(payloadUsersResult.docs.map((u) => [u.id, u]));
 
     const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+    const hofDirectory = await getHofDirectory(request.payload);
 
     const participantData = enrollments.map((enrollment) => {
       const payloadUser = payloadUsersById.get(enrollment.userId);
+      const { hoefe, quartiere } = describeHoefe(toHofIds(payloadUser?.hoefe), hofDirectory);
       return {
         uuid: enrollment.userId,
         fullName: payloadUser?.fullName || enrollment.user.name || 'Unbekannt',
         nickname: payloadUser?.nickname || '',
         email: payloadUser?.email || '',
-        hof: payloadUser?.hof ? String(payloadUser.hof) : '',
-        quartier: payloadUser?.quartier ? String(payloadUser.quartier) : '',
+        hof: hoefe.join(', '),
+        quartier: quartiere.join(', '),
       };
     });
 

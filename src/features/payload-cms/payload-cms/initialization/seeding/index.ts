@@ -27,9 +27,14 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
-import { seedHoefe } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
+import { seedFunktionen } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-funktionen';
+import {
+  seedHoefe,
+  seedRandomUserRegistrations,
+} from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
 import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
+import { seedQuartiere } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-quartiere';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
   generateTimelineEntries,
@@ -515,6 +520,10 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
   // the depot empty
   await seedMaterial(payload, userIds);
 
+  // after the Höfe, so the registration hooks find the Höfe of the random users
+  await seedRandomUserRegistrations(payload, userIds);
+  await seedFunktionen(payload, userIds);
+
   console.log('Seeding: Creating the Hof dashboard...');
   await seedHofDashboard(payload, publicPermission);
 
@@ -633,6 +642,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
     campSitesIds.push(campSiteId);
   }
+  await seedQuartiere(payload, campSitesIds);
 
   const playGrounds = generatePlaygroundPolygons();
   for (const playground of playGrounds) {

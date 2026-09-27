@@ -1,6 +1,10 @@
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
+import {
+  describeContactFunktionen,
+  describeContactHof,
+} from '@/features/chat/utils/contact-search';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { Check, Loader2, Search, UserPlus, X } from 'lucide-react';
@@ -145,6 +149,16 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                       {contact.description && (
                         <span className="font-body text-xs text-gray-500">
                           {contact.description}
+                        </span>
+                      )}
+                      {describeContactFunktionen(contact) !== '' && (
+                        <span className="font-body text-conveniat-green text-xs font-medium">
+                          {describeContactFunktionen(contact)}
+                        </span>
+                      )}
+                      {describeContactHof(contact) !== '' && (
+                        <span className="font-body text-xs text-gray-500">
+                          {describeContactHof(contact)}
                         </span>
                       )}
                     </div>

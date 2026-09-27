@@ -4,7 +4,7 @@ import type { z } from 'zod';
 import type {
   EventParticipationResourceSchema,
   EventParticipationWithPersonSchema,
-} from '@/features/registration_process/hitobito-api/event-participation-schemas';
+} from '@/lib/hitobito/event-participation-schemas';
 
 export type EventParticipationResource = z.infer<typeof EventParticipationResourceSchema>;
 export type EventParticipationWithPerson = z.infer<typeof EventParticipationWithPersonSchema>;
@@ -136,6 +136,14 @@ export enum BillingJobStatus {
   Pending = 'pending',
   Failed = 'failed',
   Success = 'success',
+}
+
+/** Someone holding the Adressverwalter role of a Hof's group in Cevi.DB. */
+export interface HofAddressManager {
+  /** Formatted like a signed-in user's name: first and last name, then the v/o. */
+  name: string;
+  /** Lowercased, which is what the addresses are matched on. */
+  email: string;
 }
 
 /**

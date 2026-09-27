@@ -1,3 +1,15 @@
+import {
+  describeFunktionen,
+  getFunktionDirectory,
+  type FunktionLabel,
+} from '@/features/payload-cms/payload-cms/utils/funktionen';
+import {
+  describeHoefe,
+  getHofDirectory,
+  type HofLabel,
+} from '@/features/payload-cms/payload-cms/utils/hof-directory';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
@@ -10,6 +22,12 @@ export interface Contact {
   name: string;
   nickname?: string | null | undefined;
   description?: string | null | undefined;
+  /** Names of the Höfe the contact is registered at; missing when hidden by the feature flag. */
+  hoefe?: string[] | undefined;
+  /** Names of the Quartiere of those Höfe, each once. */
+  quartiere?: string[] | undefined;
+  /** Functions in the camp organisation, e.g. "Ressortleitung Infrastruktur", in order. */
+  funktionen?: string[] | undefined;
 }
 
 /**
@@ -32,8 +50,14 @@ export const listContacts = trpcBaseProcedure
         uuid: true,
         name: true,
         description: true,
+        hofIds: true,
+        funktionIds: true,
       },
     });
+
+    const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+    let hofDirectory = new Map<string, HofLabel>();
+    let funktionDirectory = new Map<string, FunktionLabel>();
 
     const cmsUsersMap = new Map<
       string,
@@ -53,6 +77,9 @@ export const listContacts = trpcBaseProcedure
         depth: 0,
       });
 
+      if (!hideHofAndQuartier) hofDirectory = await getHofDirectory(payload);
+      funktionDirectory = await getFunktionDirectory(payload, ctx.locale);
+
       for (const u of cmsUsers.docs) {
         cmsUsersMap.set(u.id, {
           fullName: u.fullName,
@@ -60,7 +87,7 @@ export const listContacts = trpcBaseProcedure
         });
       }
     } catch (error) {
-      // Fall back to prisma user names if payload query fails
+      // Fall back to prisma user names, and no Höfe, if payload query fails
       logger.warn('Falling back to prisma user names, the Payload user query failed', { error });
     }
 
@@ -78,6 +105,8 @@ export const listContacts = trpcBaseProcedure
         name,
         nickname,
         description: contact.description,
+        ...(hideHofAndQuartier ? {} : describeHoefe(contact.hofIds, hofDirectory)),
+        funktionen: describeFunktionen(contact.funktionIds, funktionDirectory),
       };
     });
   });

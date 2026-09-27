@@ -15,6 +15,12 @@ model User {
   description   String?
   hidden        Boolean  @default(false)
   presentAtCamp Boolean  @default(false)
+  /// ids of the Höfe in Payload's `hoefe` collection the user is registered at, mirrored from
+  /// the Payload user; no foreign key, the Höfe live in MongoDB
+  hofIds        String[] @default([])
+  /// ids of the camp functions in Payload's `funktionen` collection the user holds, mirrored
+  /// from the Payload user; no foreign key, the functions live in MongoDB
+  funktionIds   String[] @default([])
 
   messages             Message[]
   chatMemberships      ChatMembership[]

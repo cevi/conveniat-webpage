@@ -26,7 +26,7 @@ jest.mock('@aws-sdk/client-s3', () => ({
 jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => ({
   sendTrackedEmail: jest.fn().mockResolvedValue({ success: true, outgoingEmailId: 'mail-1' }),
 }));
-jest.mock('@/features/registration_process/hitobito-api', () => ({
+jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
 

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-jest.mock('@/features/registration_process/hitobito-api', () => ({
+jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
 jest.mock('@/features/billing/adapters/hitobito-service.adapter', () => ({}));
@@ -9,11 +9,15 @@ import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-serv
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import type { PopulateSubeventsProgress } from '@/features/billing/services/populate-subevents';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
+import type { HofAddressManager } from '@/features/billing/types';
 import type { Hof } from '@/features/payload-cms/payload-types';
 
 /** A stored Hof, with only what the merge looks at. */
 const storedHof = (hof: Partial<Hof> & Pick<Hof, 'groupId'>): Hof =>
   ({ id: `hof-${hof.groupId}`, name: `Hof ${hof.groupId}`, events: [], ...hof }) as Hof;
+
+/** An Adressverwalter as Cevi.DB lists them. */
+const manager = (email: string): HofAddressManager => ({ name: `Name of ${email}`, email });
 
 // Typed rather than bare `jest.fn()`, so that reading an attribute off a recorded call is not
 // an `any` access.
@@ -37,7 +41,7 @@ describe('populateSubeventsUseCase', () => {
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
       fetchPersonDetails: jest.fn(),
-      fetchAddressManagerEmails: jest.fn().mockResolvedValue([]),
+      fetchAddressManagers: jest.fn().mockResolvedValue([]),
       updateParticipationAnswer: jest.fn(),
     };
 
@@ -107,7 +111,7 @@ describe('populateSubeventsUseCase', () => {
 
     // Only the groups that actually run a matching event are asked for their managers,
     // and each of them exactly once.
-    expect(mockHitobitoService.fetchAddressManagerEmails.mock.calls.flat()).toEqual(['2', '4']);
+    expect(mockHitobitoService.fetchAddressManagers.mock.calls.flat()).toEqual(['2', '4']);
   });
 
   it('creates one Hof per group, named after its first event', async () => {
@@ -116,7 +120,7 @@ describe('populateSubeventsUseCase', () => {
       { id: 'e-2', name: 'Hauptlager conveniat27 - Altstetten & Albisrieden' },
       { id: 'e-3', name: 'conveniat27 Altstetten Leitende' },
     ]);
-    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['av@example.com']);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([manager('av@example.com')]);
 
     await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
 
@@ -129,6 +133,7 @@ describe('populateSubeventsUseCase', () => {
           { eventId: 'e-2', eventName: 'Hauptlager conveniat27 - Altstetten & Albisrieden' },
         ],
         addressManagerEmails: 'av@example.com',
+        addressManagers: [manager('av@example.com')],
       },
     ]);
   });
@@ -152,8 +157,10 @@ describe('populateSubeventsUseCase', () => {
           : [{ id: 'e-2', name: 'conveniat27 Chur' }],
       ),
     );
-    mockHitobitoService.fetchAddressManagerEmails.mockImplementation((groupId: string) =>
-      Promise.resolve(groupId === '1' ? ['neu@example.com', 'zweite@example.com'] : []),
+    mockHitobitoService.fetchAddressManagers.mockImplementation((groupId: string) =>
+      Promise.resolve(
+        groupId === '1' ? [manager('neu@example.com'), manager('zweite@example.com')] : [],
+      ),
     );
 
     const result = await populateSubeventsUseCase(
@@ -184,12 +191,14 @@ describe('populateSubeventsUseCase', () => {
         name: 'Hof Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'neu@example.com, zweite@example.com',
+        addressManagers: [manager('neu@example.com'), manager('zweite@example.com')],
       },
       {
         groupId: '2',
         name: 'Chur',
         events: [{ eventId: 'e-2', eventName: 'conveniat27 Chur' }],
         addressManagerEmails: '',
+        addressManagers: [],
       },
     ]);
   });
@@ -200,17 +209,92 @@ describe('populateSubeventsUseCase', () => {
         groupId: '1',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'av@example.com',
+        addressManagers: [{ id: 'row-1', ...manager('av@example.com') }],
       }),
     ]);
     mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
     mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
       { id: 'e-1', name: 'conveniat27 Basel' },
     ]);
-    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['av@example.com']);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([manager('av@example.com')]);
 
     await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
 
     expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([]);
+  });
+
+  it('writes a Hof whose address manager changed their name in Cevi.DB', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+        addressManagers: [{ id: 'row-1', name: 'Alter Name', email: 'av@example.com' }],
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([manager('av@example.com')]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    const [writes] = mockSettingsRepo.upsertHoefe.mock.calls[0] ?? [];
+    expect(writes?.map((write) => write.addressManagers)).toEqual([[manager('av@example.com')]]);
+  });
+
+  it('leaves a Hof unwritten whose address manager has no name on either side', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+        addressManagers: [
+          // eslint-disable-next-line unicorn/no-null -- what Mongo holds for a name never set
+          { id: 'row-1', name: null, email: 'av@example.com' },
+        ],
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([
+      { name: '', email: 'av@example.com' },
+    ]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([]);
+  });
+
+  it('writes the names to a Hof synced before they were kept', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        name: 'Hof Basel',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Basel' },
+    ]);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([manager('av@example.com')]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([
+      {
+        groupId: '1',
+        name: 'Hof Basel',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
+        addressManagerEmails: 'av@example.com',
+        addressManagers: [manager('av@example.com')],
+      },
+    ]);
   });
 
   it('adopts the new name of an event and moves an event Cevi.DB now lists elsewhere', async () => {
@@ -234,7 +318,7 @@ describe('populateSubeventsUseCase', () => {
           : [{ id: 'e-1', name: 'Hauptlager conveniat27 Seuzach-Welsikon' }],
       ),
     );
-    mockHitobitoService.fetchAddressManagerEmails.mockResolvedValue(['neu@example.com']);
+    mockHitobitoService.fetchAddressManagers.mockResolvedValue([manager('neu@example.com')]);
 
     const result = await populateSubeventsUseCase(
       mockHitobitoService,
@@ -275,7 +359,7 @@ describe('populateSubeventsUseCase', () => {
       { id: 'e-1', name: 'conveniat27 Basel' },
       { id: 'e-2', name: 'conveniat27 Basel Leitende' },
     ]);
-    mockHitobitoService.fetchAddressManagerEmails.mockRejectedValue(new Error('status 500'));
+    mockHitobitoService.fetchAddressManagers.mockRejectedValue(new Error('status 500'));
 
     const result = await populateSubeventsUseCase(
       mockHitobitoService,
@@ -291,6 +375,7 @@ describe('populateSubeventsUseCase', () => {
     ]);
     const [writes] = mockSettingsRepo.upsertHoefe.mock.calls[0] ?? [];
     expect(writes?.[0]).not.toHaveProperty('addressManagerEmails');
+    expect(writes?.[0]).not.toHaveProperty('addressManagers');
 
     // The one line a human has to be able to find: which group was skipped, and why.
     const [warning, attributes] = mockLogger.warn.mock.calls[0] ?? [];
@@ -392,6 +477,7 @@ describe('populateSubeventsUseCase', () => {
         name: 'Bern',
         events: [{ eventId: 'e-new-haupt', eventName: 'Hauptlager conveniat27 Bern' }],
         addressManagerEmails: '',
+        addressManagers: [],
       },
     ]);
   });

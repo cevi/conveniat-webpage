@@ -1,10 +1,10 @@
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 import {
   extractAuthenticityToken,
   extractCsrfMetaToken,
   extractFormFields,
-} from '@/features/registration_process/hitobito-api/html-parser';
-import type { Logger, RequestOptions } from '@/features/registration_process/hitobito-api/types';
+} from '@/lib/hitobito/html-parser';
+import type { Logger, RequestOptions } from '@/lib/hitobito/types';
 import { withSpan } from '@/utils/tracing-helpers';
 
 export class FatalError extends Error {
@@ -13,6 +13,9 @@ export class FatalError extends Error {
     this.name = 'FatalError';
   }
 }
+
+/** A frontend page redirects to its canonical URL at most a couple of times. */
+const MAX_REDIRECTS = 5;
 
 /** Where Hitobito sends a frontend request that carries no valid session. */
 const SIGN_IN_PATH = '/users/sign_in';
@@ -63,14 +66,68 @@ export class HitobitoClient {
     }
   }
 
-  private buildUrl(base: string, path: string, params?: Record<string, string>): string {
-    const url = new URL(path, base.endsWith('/') ? base : `${base}/`);
+  /**
+   * Resolves a path, or an absolute URL such as a pagination link Cevi.DB returned, against
+   * the configured base URL. Every request carries the API token or the session cookie, so
+   * anything that resolves to another origin is refused instead of sent.
+   */
+  private resolveUrl(pathOrUrl: string, params?: Record<string, string>): string {
+    const base = new URL(
+      this.config.baseUrl.endsWith('/') ? this.config.baseUrl : `${this.config.baseUrl}/`,
+    );
+    const url = new URL(pathOrUrl, base);
+    if (url.origin !== base.origin) {
+      const message = `Refusing to send Cevi.DB credentials to ${url.origin}; only ${base.origin} is trusted`;
+      // never expected: a link or a redirect from Cevi.DB pointing elsewhere is worth a look
+      this.logger?.error(message);
+      throw new FatalError(message);
+    }
     if (params) {
       for (const [key, value] of Object.entries(params)) {
         url.searchParams.append(key, value);
       }
     }
     return url.toString();
+  }
+
+  /**
+   * Fetches a frontend page and follows its redirects by hand, within the configured origin
+   * only. `fetch` would follow them too, but on a redirect to another origin it keeps custom
+   * headers like `X-Token`; here such a redirect is refused before anything is sent there.
+   */
+  private async fetchFollowingSameOriginRedirects(
+    url: string,
+    init: RequestInit,
+  ): Promise<{ response: Response; finalUrl: string }> {
+    let currentUrl = url;
+    let currentInit = init;
+    for (let hop = 0; ; hop += 1) {
+      const response = await this.fetchWithTimeout(currentUrl, {
+        ...currentInit,
+        redirect: 'manual',
+      });
+      const location = response.headers.get('location');
+      if (response.status < 300 || response.status >= 400 || location === null) {
+        return { response, finalUrl: response.url === '' ? currentUrl : response.url };
+      }
+      if (hop >= MAX_REDIRECTS) {
+        throw new Error(`Too many redirects from ${url}`);
+      }
+      // the body of a redirect is not needed, but must be read so the connection is released
+      await response.text();
+      const nextUrl = this.resolveUrl(new URL(location, currentUrl).toString());
+      // as `fetch` does: after a 303, or a 301/302 to a POST, the next request is a GET
+      const becomesGet =
+        response.status === 303 ||
+        ((response.status === 301 || response.status === 302) && currentInit.method === 'POST');
+      if (becomesGet) {
+        const headers = new Headers(currentInit.headers);
+        headers.delete('Content-Type');
+        // eslint-disable-next-line unicorn/no-null -- RequestInit spells "no body" as null
+        currentInit = { ...currentInit, method: 'GET', headers, body: null };
+      }
+      currentUrl = nextUrl;
+    }
   }
 
   // Official JSON API Methods
@@ -84,7 +141,7 @@ export class HitobitoClient {
     } = {},
   ): Promise<T> {
     return withSpan(`HitobitoClient.apiRequest:${method} ${path}`, async (span) => {
-      const url = this.buildUrl(this.config.baseUrl, path, options.params);
+      const url = this.resolveUrl(path, options.params);
 
       span.setAttributes({
         'http.method': method,
@@ -106,6 +163,9 @@ export class HitobitoClient {
             ? (JSON.stringify(options.body) as BodyInit)
             : undefined,
         signal: options.signal,
+        // the JSON API does not redirect; a redirect is an error here, never followed with the
+        // token to wherever it points
+        redirect: 'manual',
       } as RequestInit);
 
       span.setAttribute('http.status_code', response.status);
@@ -146,11 +206,9 @@ export class HitobitoClient {
     method: 'GET' | 'POST',
     urlOrPath: string,
     options: RequestOptions = {},
-  ): Promise<{ response: Response; body: string }> {
+  ): Promise<{ response: Response; body: string; finalUrl: string }> {
     return withSpan(`HitobitoClient.frontendRequest:${method} ${urlOrPath}`, async (span) => {
-      const url = urlOrPath.startsWith('http')
-        ? urlOrPath
-        : this.buildUrl(this.config.baseUrl, urlOrPath, options.params);
+      const url = this.resolveUrl(urlOrPath, options.params);
 
       span.setAttributes({
         'http.method': method,
@@ -173,7 +231,7 @@ export class HitobitoClient {
 
       this.logger?.info(`Frontend ${method} ${url}`);
 
-      const response = await this.fetchWithTimeout(url, {
+      const { response, finalUrl } = await this.fetchFollowingSameOriginRedirects(url, {
         ...options,
         method,
         headers,
@@ -184,12 +242,12 @@ export class HitobitoClient {
       // Drained before the check below, so a dead session does not leak the connection.
       const body = await response.text();
 
-      if (isSignInRedirect(url, response.url)) {
+      if (isSignInRedirect(url, finalUrl)) {
         span.setAttribute('hitobito.session_expired', true);
         throw new SessionExpiredError(url);
       }
 
-      return { response, body };
+      return { response, body, finalUrl };
     });
   }
 
@@ -291,7 +349,7 @@ export class HitobitoClient {
         body: payloadString,
       });
 
-      return { ...result, finalUrl: result.response.url };
+      return result;
     });
   }
 }

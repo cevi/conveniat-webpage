@@ -67,12 +67,14 @@ export interface Config {
     'emergency-cards': EmergencyCard;
     'photo-contests': PhotoContest;
     'camp-map-annotations': CampMapAnnotation;
+    quartiere: Quartier;
     'camp-categories': CampCategory;
     'camp-schedule-entry': CampScheduleEntry;
     'helper-shifts': HelperShift;
     'piket-schedules': PiketSchedule;
     'push-notification-subscriptions': PushNotificationSubscription;
     users: User;
+    funktionen: Funktion;
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
@@ -102,8 +104,14 @@ export interface Config {
     'helper-jobs': {
       submissions: 'form-submissions';
     };
+    quartiere: {
+      hoefe: 'hoefe';
+    };
     users: {
       presenceLogs: 'presence-logs';
+    };
+    funktionen: {
+      holders: 'users';
     };
     'bill-participants': {
       relatedEmails: 'outgoing-emails';
@@ -133,12 +141,14 @@ export interface Config {
     'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
     'photo-contests': PhotoContestsSelect<false> | PhotoContestsSelect<true>;
     'camp-map-annotations': CampMapAnnotationsSelect<false> | CampMapAnnotationsSelect<true>;
+    quartiere: QuartiereSelect<false> | QuartiereSelect<true>;
     'camp-categories': CampCategoriesSelect<false> | CampCategoriesSelect<true>;
     'camp-schedule-entry': CampScheduleEntrySelect<false> | CampScheduleEntrySelect<true>;
     'helper-shifts': HelperShiftsSelect<false> | HelperShiftsSelect<true>;
     'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    funktionen: FunktionenSelect<false> | FunktionenSelect<true>;
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
@@ -232,6 +242,7 @@ export interface Config {
       sendWeeklyReport: TaskSendWeeklyReport;
       sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
@@ -586,13 +597,13 @@ export interface User {
   nickname?: string | null;
   groups?: GroupsOfTheUser;
   /**
-   * The Hof of the user.
+   * The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.
    */
-  hof?: number | null;
+  hoefe?: (string | Hof)[] | null;
   /**
-   * The Quartier of the user.
+   * The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.
    */
-  quartier?: number | null;
+  funktionen?: (string | Funktion)[] | null;
   /**
    * An additional description of the user shown in the chat.
    */
@@ -620,66 +631,174 @@ export interface User {
   collection: 'users';
 }
 /**
+ * One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "presence-logs".
+ * via the `definition` "hoefe".
  */
-export interface PresenceLog {
-  id: string;
-  user: string | User;
-  isPresent: boolean;
-  timestamp: string;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "permissions".
- */
-export interface Permission {
+export interface Hof {
   id: string;
   /**
-   * The name of the permission.
+   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
    */
-  permissionName: string;
+  name: string;
   /**
-   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
+   * The Quartier of the campsite this Hof lies in.
    */
-  permissions?:
+  quartier?: (string | null) | Quartier;
+  /**
+   * Hitobito group ID of this Hof (up to 6 digits)
+   */
+  groupId: string;
+  /**
+   * The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.
+   */
+  events?:
     | {
-        group_id: number;
-        note?: string | null;
+        /**
+         * Hitobito event ID to sync (up to 6 digits)
+         */
+        eventId: string;
+        /**
+         * Name of the event in Cevi.DB, refreshed by every sync
+         */
+        eventName: string;
         id?: string | null;
       }[]
     | null;
   /**
-   * These permissions are special and disable group checking for CeviDB groups.
+   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
    */
-  special_permissions?: {
-    public?: boolean | null;
-    logged_in?: boolean | null;
+  addressManagerEmails?: string | null;
+  /**
+   * Written by the subgroup sync button; the Hof dashboard lists them as the responsible people of the Hof.
+   */
+  addressManagers?:
+    | {
+        name?: string | null;
+        email: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   */
+  reminderRecipientsOverride?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * The Quartiere of the campsite. Assign a Hof to its Quartier on the Hof.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quartiere".
+ */
+export interface Quartier {
+  id: string;
+  /**
+   * Shown next to the Hof, e.g. "Quartier 3".
+   */
+  name: string;
+  /**
+   * The area of this Quartier, drawn as a polygon on the camp map.
+   */
+  mapAnnotation?: (string | null) | CampMapAnnotation;
+  /**
+   * The Höfe in this Quartier. Change it on the Hof.
+   */
+  hoefe?: {
+    docs?: (string | Hof)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "camp-map-annotations".
+ */
+export interface CampMapAnnotation {
+  id: string;
+  /**
+   * The title of the annotation.
+   */
+  title: string;
+  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
+  annotationType: 'marker' | 'polygon';
+  icon?:
+    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
+    | null;
+  /**
+   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
+   */
+  importance: 'high' | 'medium' | 'low';
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  geometry?: [number, number] | null;
+  /**
+   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
+   */
+  polygonCoordinates?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
+   */
+  showLabel?: boolean | null;
+  /**
+   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
+   */
+  isInteractive?: boolean | null;
+  /**
+   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
+   */
+  hiddenOnDefaultMap?: boolean | null;
+  /**
+   * If checked, users will be able to report issues and start a support chat from this location.
+   */
+  enableSupportChat?: boolean | null;
+  /**
+   * A detailed description of the annotation.
+   */
+  description: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  openingHours?:
+    | {
+        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
+        /**
+         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
+         */
+        time: string;
+        id?: string | null;
+      }[]
+    | null;
+  images?: (string | Image)[] | null;
   lastEditedByUser?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "HeroSectionBlock".
- */
-export interface HeroSectionBlock {
-  badge?: string | null;
-  title: string;
-  description?: string | null;
-  primaryCtaLabel?: string | null;
-  primaryCtaLink?: string | null;
-  secondaryCtaLabel?: string | null;
-  secondaryCtaLink?: string | null;
-  deadlineText?: string | null;
-  image?: (string | null) | Image;
-  id?: string | null;
-  blockName?: string | null;
-  blockType: 'heroSection';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -750,6 +869,98 @@ export interface Image {
       filename?: string | null;
     };
   };
+}
+/**
+ * Functions in the camp organisation, synced every night from the leaders of the Cevi.DB groups. Set the label and the order here; who holds a function is changed in Cevi.DB.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "funktionen".
+ */
+export interface Funktion {
+  id: string;
+  /**
+   * Shown next to the person in the chat, e.g. "Ressortleitung Infrastruktur". Suggested in German by the sync; falls back to German where a language has none.
+   */
+  label?: string | null;
+  /**
+   * Lower comes first, e.g. the Projektleitung before the Ressortleitungen.
+   */
+  order?: number | null;
+  groupName?: string | null;
+  groupId: string;
+  /**
+   * Everyone with the leader role in the group, including people who have not logged in yet.
+   */
+  personIds?: string[] | null;
+  holders?: {
+    docs?: (string | User)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "presence-logs".
+ */
+export interface PresenceLog {
+  id: string;
+  user: string | User;
+  isPresent: boolean;
+  timestamp: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "permissions".
+ */
+export interface Permission {
+  id: string;
+  /**
+   * The name of the permission.
+   */
+  permissionName: string;
+  /**
+   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
+   */
+  permissions?:
+    | {
+        group_id: number;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * These permissions are special and disable group checking for CeviDB groups.
+   */
+  special_permissions?: {
+    public?: boolean | null;
+    logged_in?: boolean | null;
+  };
+  lastEditedByUser?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+  deletedAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HeroSectionBlock".
+ */
+export interface HeroSectionBlock {
+  badge?: string | null;
+  title: string;
+  description?: string | null;
+  primaryCtaLabel?: string | null;
+  primaryCtaLink?: string | null;
+  secondaryCtaLabel?: string | null;
+  secondaryCtaLink?: string | null;
+  deadlineText?: string | null;
+  image?: (string | null) | Image;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'heroSection';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2165,49 +2376,6 @@ export interface HelperJob {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hoefe".
- */
-export interface Hof {
-  id: string;
-  /**
-   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
-   */
-  name: string;
-  /**
-   * Hitobito group ID of this Hof (up to 6 digits)
-   */
-  groupId: string;
-  /**
-   * The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.
-   */
-  events?:
-    | {
-        /**
-         * Hitobito event ID to sync (up to 6 digits)
-         */
-        eventId: string;
-        /**
-         * Name of the event in Cevi.DB, refreshed by every sync
-         */
-        eventName: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
-   */
-  addressManagerEmails?: string | null;
-  /**
-   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
-   */
-  reminderRecipientsOverride?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "ApprovedFormSubmissionsBlock".
  */
@@ -2589,92 +2757,6 @@ export interface TeamMembersBlock {
   id?: string | null;
   blockName?: string | null;
   blockType: 'accordionTeamMembersBlock';
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "camp-map-annotations".
- */
-export interface CampMapAnnotation {
-  id: string;
-  /**
-   * The title of the annotation.
-   */
-  title: string;
-  color?: ('78909c' | 'fbc02d' | 'ff8126' | 'b56aff' | 'f848c7' | '16a672' | '1e88e5' | 'f64955') | null;
-  annotationType: 'marker' | 'polygon';
-  icon?:
-    | ('Tent' | 'Utensils' | 'Flag' | 'HelpCircle' | 'Recycle' | 'GlassWater' | 'Stage' | 'Toilet' | 'BriefcaseMedical')
-    | null;
-  /**
-   * Controls at which zoom levels the annotation is visible (High = always, Medium = slightly zoomed in, Low = fully zoomed in).
-   */
-  importance: 'high' | 'medium' | 'low';
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  geometry?: [number, number] | null;
-  /**
-   * Enter the coordinates for the polygon. A closed polygon requires at least 3 points.
-   */
-  polygonCoordinates?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * If checked, the title is shown next to the marker as soon as the map is zoomed in far enough.
-   */
-  showLabel?: boolean | null;
-  /**
-   * If checked, the polygon will be clickable and show metadata. If unchecked, it will be a background-only shape.
-   */
-  isInteractive?: boolean | null;
-  /**
-   * If checked, this annotation will not be shown on the main map, but can still be linked to from schedules.
-   */
-  hiddenOnDefaultMap?: boolean | null;
-  /**
-   * If checked, users will be able to report issues and start a support chat from this location.
-   */
-  enableSupportChat?: boolean | null;
-  /**
-   * A detailed description of the annotation.
-   */
-  description: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  };
-  openingHours?:
-    | {
-        day?: ('monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday') | null;
-        /**
-         * Opening hours in HH:mm format (e.g., 08:00 - 18:00)
-         */
-        time: string;
-        id?: string | null;
-      }[]
-    | null;
-  images?: (string | Image)[] | null;
-  lastEditedByUser?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-  deletedAt?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5045,6 +5127,7 @@ export interface PayloadJob {
           | 'sendWeeklyReport'
           | 'sendPflichtangabenReminders'
           | 'cleanupTemporaryFormFiles'
+          | 'syncFunktionen'
           | 'autoCheckoutPresence'
           | 'createCollectionExport'
           | 'createCollectionImport';
@@ -5103,6 +5186,7 @@ export interface PayloadJob {
         | 'sendWeeklyReport'
         | 'sendPflichtangabenReminders'
         | 'cleanupTemporaryFormFiles'
+        | 'syncFunktionen'
         | 'autoCheckoutPresence'
         | 'createCollectionExport'
         | 'createCollectionImport'
@@ -5195,6 +5279,10 @@ export interface PayloadLockedDocument {
         value: string | CampMapAnnotation;
       } | null)
     | ({
+        relationTo: 'quartiere';
+        value: string | Quartier;
+      } | null)
+    | ({
         relationTo: 'camp-categories';
         value: string | CampCategory;
       } | null)
@@ -5217,6 +5305,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: string | User;
+      } | null)
+    | ({
+        relationTo: 'funktionen';
+        value: string | Funktion;
       } | null)
     | ({
         relationTo: 'presence-logs';
@@ -6964,6 +7056,17 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quartiere_select".
+ */
+export interface QuartiereSelect<T extends boolean = true> {
+  name?: T;
+  mapAnnotation?: T;
+  hoefe?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "camp-categories_select".
  */
 export interface CampCategoriesSelect<T extends boolean = true> {
@@ -7110,8 +7213,8 @@ export interface UsersSelect<T extends boolean = true> {
   fullName?: T;
   nickname?: T;
   groups?: T;
-  hof?: T;
-  quartier?: T;
+  hoefe?: T;
+  funktionen?: T;
   description?: T;
   hidden?: T;
   presentAtCamp?: T;
@@ -7120,6 +7223,20 @@ export interface UsersSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "funktionen_select".
+ */
+export interface FunktionenSelect<T extends boolean = true> {
+  label?: T;
+  order?: T;
+  groupName?: T;
+  groupId?: T;
+  personIds?: T;
+  holders?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7213,6 +7330,7 @@ export interface BillPdfsSelect<T extends boolean = true> {
  */
 export interface HoefeSelect<T extends boolean = true> {
   name?: T;
+  quartier?: T;
   groupId?: T;
   events?:
     | T
@@ -7222,6 +7340,13 @@ export interface HoefeSelect<T extends boolean = true> {
         id?: T;
       };
   addressManagerEmails?: T;
+  addressManagers?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        id?: T;
+      };
   reminderRecipientsOverride?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -9996,6 +10121,14 @@ export interface TaskCleanupTemporaryFormFiles {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncFunktionen".
+ */
+export interface TaskSyncFunktionen {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskAutoCheckoutPresence".
  */
 export interface TaskAutoCheckoutPresence {
@@ -10030,12 +10163,14 @@ export interface TaskCreateCollectionExport {
       | 'emergency-cards'
       | 'photo-contests'
       | 'camp-map-annotations'
+      | 'quartiere'
       | 'camp-categories'
       | 'camp-schedule-entry'
       | 'helper-shifts'
       | 'piket-schedules'
       | 'push-notification-subscriptions'
       | 'users'
+      | 'funktionen'
       | 'presence-logs'
       | 'bill-participants'
       | 'bill-pdfs'

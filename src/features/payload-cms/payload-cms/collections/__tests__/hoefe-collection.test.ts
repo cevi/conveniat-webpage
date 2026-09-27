@@ -2,7 +2,8 @@ jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
-    GROUPS_WITH_API_ACCESS: [541, 105],
+    CEVIDB_GROUP_TRANSLATION_TEAM: [106],
+    GROUPS_WITH_API_ACCESS: [541, 105, 106],
     BILLING_ADMIN_GROUP_ID: '900',
   },
 }));
@@ -24,13 +25,24 @@ const fieldNamed = (name: string): Field => {
   return field;
 };
 
+/** The web core team, outside the billing team. */
+const WEB_TEAM = { id: 'web', groups: [{ id: 105 }] };
+
 /** Whether the admin panel lets the user write the field on the given operation. */
-const mayWrite = async (name: string, operation: 'create' | 'update'): Promise<boolean> => {
+const mayWrite = async (
+  name: string,
+  operation: 'create' | 'update',
+  user: object = BILLING_ADMIN,
+): Promise<boolean> => {
   const access = (fieldNamed(name) as { access?: Record<string, FieldAccess | undefined> })
     .access?.[operation];
   if (access === undefined) return true;
-  return Boolean(await access({ req: requestOf(BILLING_ADMIN) } as Parameters<FieldAccess>[0]));
+  return Boolean(await access({ req: requestOf(user) } as Parameters<FieldAccess>[0]));
 };
+
+/** Whether the admin panel lets the user save a Hof at all. */
+const mayUpdateHof = async (user: object): Promise<boolean> =>
+  Boolean(await HoefeCollection.access?.update?.({ req: requestOf(user) }));
 
 describe('HoefeCollection', () => {
   it('lets nobody create a Hof in the admin panel: the Cevi.DB sync does', async () => {
@@ -53,6 +65,17 @@ describe('HoefeCollection', () => {
       Promise.resolve(HoefeCollection.access?.update?.({ req: requestOf(BILLING_ADMIN) })),
     ).resolves.toBe(true);
     await expect(mayWrite('reminderRecipientsOverride', 'update')).resolves.toBe(true);
+  });
+
+  it('lets the web team place a Hof in its Quartier, but not override the reminder', async () => {
+    await expect(mayUpdateHof(WEB_TEAM)).resolves.toBe(true);
+    await expect(mayWrite('quartier', 'update', WEB_TEAM)).resolves.toBe(true);
+    await expect(mayWrite('reminderRecipientsOverride', 'update', WEB_TEAM)).resolves.toBe(false);
+  });
+
+  it('keeps a Hof closed to editors outside admin, web and billing', async () => {
+    const translationTeam = { id: 'translation', groups: [{ id: 106 }] };
+    await expect(mayUpdateHof(translationTeam)).resolves.toBe(false);
   });
 
   it('declares no contacts of its own: the dashboard reads them from Cevi.DB', () => {

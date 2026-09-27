@@ -1,4 +1,8 @@
-import { findMyHofIds, type HofMembershipKeys } from '@/features/material/utils/hoefe';
+import {
+  findMyHofIds,
+  getRegisteredEventIds,
+  type HofMembershipKeys,
+} from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
@@ -11,9 +15,6 @@ const logger = createLogger('material:hoefe');
 export interface MaterialHof extends HofMembershipKeys {
   name: string;
 }
-
-/** Most registrations one person has; one per camp event they take part in. */
-const MAX_REGISTRATIONS = 100;
 
 /**
  * Every Hof, sorted by name. The Höfe live in Payload and are kept by the Cevi.DB sync of the
@@ -40,12 +41,11 @@ export const listHoefe = cache(async (): Promise<MaterialHof[]> => {
 });
 
 /**
- * The camp events the user is registered for, from the billing's copy of the Cevi.DB
- * participations. A registration that was removed or is not active does not count.
+ * The camp events the user is registered for. The session's uuid is the Payload user; the
+ * registrations know the Cevi.DB person.
  */
-const getRegisteredEventIds = async (userUuid: string): Promise<string[]> => {
+const getMyRegisteredEventIds = async (userUuid: string): Promise<string[]> => {
   const payload = await getPayload({ config });
-  // the session's uuid is the Payload user; the registrations know the Cevi.DB person
   const user = await payload.findByID({
     collection: 'users',
     id: userUuid,
@@ -56,23 +56,7 @@ const getRegisteredEventIds = async (userUuid: string): Promise<string[]> => {
   });
   const ceviId = user?.cevi_db_uuid;
   if (typeof ceviId !== 'number') return [];
-
-  const { docs } = await payload.find({
-    collection: 'bill-participants',
-    where: {
-      and: [
-        { userId: { equals: String(ceviId) } },
-        { active: { not_equals: false } },
-        { status: { not_equals: 'removed' } },
-      ],
-    },
-    depth: 0,
-    limit: MAX_REGISTRATIONS,
-    overrideAccess: true,
-    pagination: false,
-    select: { eventId: true },
-  });
-  return docs.map((registration) => registration.eventId);
+  return await getRegisteredEventIds(payload, ceviId);
 };
 
 /**
@@ -80,7 +64,7 @@ const getRegisteredEventIds = async (userUuid: string): Promise<string[]> => {
  * ones whose camp they are registered for. Read once per request.
  */
 export const getMyHofIds = cache(async (user: HitobitoNextAuthUser): Promise<string[]> => {
-  const [hoefe, eventIds] = await Promise.all([listHoefe(), getRegisteredEventIds(user.uuid)]);
+  const [hoefe, eventIds] = await Promise.all([listHoefe(), getMyRegisteredEventIds(user.uuid)]);
   const mine = findMyHofIds(hoefe, user.group_ids, eventIds);
   logger.debug('Resolved the Höfe of a material depot user', {
     'material.hoefe.registrations': eventIds.length,

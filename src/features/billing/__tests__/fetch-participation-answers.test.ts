@@ -1,6 +1,6 @@
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import type { HitobitoClient } from '@/lib/hitobito/client';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 

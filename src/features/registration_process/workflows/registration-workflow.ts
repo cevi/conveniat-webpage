@@ -4,7 +4,7 @@ import {
   RegistrationWorkflowInputSchema,
   ResolveUserOutputSchema,
   type ResolveUserByDetails,
-} from '@/features/registration_process/hitobito-api/schemas';
+} from '@/lib/hitobito/schemas';
 import type { WorkflowConfig } from 'payload';
 
 import { z } from 'zod';

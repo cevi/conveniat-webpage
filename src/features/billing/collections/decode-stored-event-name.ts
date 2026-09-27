@@ -1,4 +1,4 @@
-import { decodeDisplayText } from '@/features/registration_process/hitobito-api/html-parser';
+import { decodeDisplayText } from '@/lib/hitobito/html-parser';
 import type { FieldHook } from 'payload';
 
 /**

@@ -10,9 +10,9 @@ import {
   skipSchedule,
   type ScheduleDecision,
 } from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
-import { getHitobito, HITOBITO_CONFIG } from '@/features/registration_process/hitobito-api';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED } from '@/lib/feature-flags';
+import { getHitobito, HITOBITO_CONFIG } from '@/lib/hitobito';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 

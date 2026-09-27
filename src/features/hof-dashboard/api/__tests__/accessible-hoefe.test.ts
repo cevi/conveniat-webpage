@@ -5,8 +5,13 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_TRANSLATION_TEAM: [106],
     CEVIDB_GROUP_PROGRAM_TEAM: [107],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
+    // the Ressorts Infrastruktur and Programm
+    CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [4087, 4105],
+    GROUPS_WITH_API_ACCESS: [541, 105, 106, 107, 108],
   },
 }));
+jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
+jest.mock('@/utils/auth-helpers', () => ({ getAuthenticateUsingCeviDB: jest.fn() }));
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): Record<string, jest.Mock> => ({
     debug: jest.fn(),
@@ -16,10 +21,16 @@ jest.mock('@/utils/server-logger', () => ({
   }),
 }));
 
-import { listAccessibleHoefe } from '@/features/hof-dashboard/api/accessible-hoefe';
+import {
+  isHofDashboardReviewer,
+  listAccessibleHoefe,
+} from '@/features/hof-dashboard/api/accessible-hoefe';
+import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
+import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
-import type { Payload } from 'payload';
+import type { Payload, PayloadRequest } from 'payload';
 
 const HOEFE = [
   { id: 'hof-sued', name: 'Hof Süd', groupId: '990002' },
@@ -69,5 +80,31 @@ describe('listAccessibleHoefe', () => {
   it('opens every Hof for a reviewer', async () => {
     const hoefe = await listAccessibleHoefe(payloadWith([]), sessionUser([105]));
     expect(hoefe).toHaveLength(3);
+  });
+
+  it('opens every Hof to the Ressorts Infrastruktur and Programm, leaders and members alike', async () => {
+    for (const ressort of [4087, 4105]) {
+      const hoefe = await listAccessibleHoefe(payloadWith([]), sessionUser([ressort]));
+      expect(hoefe).toHaveLength(3);
+    }
+  });
+});
+
+const requestOf = (user: object): PayloadRequest =>
+  ({ user, context: {} }) as unknown as PayloadRequest;
+
+describe('the Hof dashboard reviewers of the Ressorts', () => {
+  const ressortMember = { id: 'ressort', groups: [{ id: 4087 }] };
+
+  it('review the Hof dashboard, in Payload as in tRPC', () => {
+    expect(canReviewHofDashboard({ req: requestOf(ressortMember) })).toBe(true);
+    expect(isHofDashboardReviewer(sessionUser([4105]))).toBe(true);
+  });
+
+  it('cannot log into the admin panel', async () => {
+    expect(canAccessAdminPanel({ req: requestOf(ressortMember) })).toBe(false);
+    await expect(
+      Promise.resolve(UserCollection.access?.admin?.({ req: requestOf(ressortMember) })),
+    ).resolves.toBe(false);
   });
 });

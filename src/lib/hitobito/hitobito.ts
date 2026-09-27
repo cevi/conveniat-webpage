@@ -1,10 +1,10 @@
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
-import { GroupService } from '@/features/registration_process/hitobito-api/services/group.service';
-import { MatcherService } from '@/features/registration_process/hitobito-api/services/matcher.service';
-import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
-import { RegistrationService } from '@/features/registration_process/hitobito-api/services/registration.service';
-import type { HitobitoConfig, Logger } from '@/features/registration_process/hitobito-api/types';
+import { HitobitoClient } from '@/lib/hitobito/client';
+import { EventService } from '@/lib/hitobito/services/event.service';
+import { GroupService } from '@/lib/hitobito/services/group.service';
+import { MatcherService } from '@/lib/hitobito/services/matcher.service';
+import { PersonService } from '@/lib/hitobito/services/person.service';
+import { RegistrationService } from '@/lib/hitobito/services/registration.service';
+import type { HitobitoConfig, Logger } from '@/lib/hitobito/types';
 
 export class Hitobito {
   public readonly people: PersonService;

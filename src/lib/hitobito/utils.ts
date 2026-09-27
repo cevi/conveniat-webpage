@@ -1,4 +1,4 @@
-import type { Logger, PersonAttributes } from '@/features/registration_process/hitobito-api/types';
+import type { Logger, PersonAttributes } from '@/lib/hitobito/types';
 import { z } from 'zod';
 
 export const MismatchDetailSchema = z.object({
