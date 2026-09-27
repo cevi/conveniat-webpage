@@ -1,12 +1,14 @@
 import { addParticipants } from '@/features/chat/api/mutations/add-participants';
 import { archiveChat } from '@/features/chat/api/mutations/archive-chat';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
+import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invite';
 import { createMessage } from '@/features/chat/api/mutations/create-message';
 import { createMessageStatus } from '@/features/chat/api/mutations/create-message-status';
 import { getUploadUrl } from '@/features/chat/api/mutations/get-upload-url';
 import { markChatAsRead } from '@/features/chat/api/mutations/mark-chat-as-read';
 import { markThreadAsRead } from '@/features/chat/api/mutations/mark-thread-as-read';
 import { onlinePing } from '@/features/chat/api/mutations/online-ping';
+import { redeemChatInvite } from '@/features/chat/api/mutations/redeem-chat-invite';
 import { removeParticipant } from '@/features/chat/api/mutations/remove-participant';
 import { renameChat } from '@/features/chat/api/mutations/rename-chat';
 import { reportProblem } from '@/features/chat/api/mutations/report-problem';
@@ -32,6 +34,8 @@ export const chatRouter = createTRPCRouter({
   markChatAsRead,
   markThreadAsRead,
   createChat: createChat,
+  createChatInvite,
+  redeemChatInvite,
   user: getUser,
   contacts: listContacts,
   onlinePing,

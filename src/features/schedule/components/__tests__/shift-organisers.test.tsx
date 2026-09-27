@@ -6,6 +6,18 @@ import type { HelperShiftOrganiser } from '@/features/schedule/api/get-helper-sh
 import { ShiftOrganisers } from '@/features/schedule/components/shift-organisers';
 import { render, screen } from '@testing-library/react';
 
+// The organiser rows carry a chat button that creates the chat through tRPC.
+jest.mock('@/trpc/client', () => ({
+  trpc: {
+    chat: {
+      createChat: { useMutation: (): unknown => ({ mutate: jest.fn(), isPending: false }) },
+    },
+  },
+}));
+jest.mock('next-i18n-router/client', () => ({
+  useCurrentLocale: (): string => 'de',
+}));
+
 jest.mock('next/navigation', () => ({
   useRouter: (): { push: jest.Mock } => ({ push: jest.fn() }),
 }));
