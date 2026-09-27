@@ -347,6 +347,28 @@ test.describe('Hof dashboard', () => {
     await expect(page.getByText(/Ganze Stückzahlen/)).toHaveClass(/text-amber-800/);
   });
 
+  test('keeps a saved order in view when the reload after it fails', async ({ page }) => {
+    await mockBackend(page, { failReloads: true });
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Material' }).click();
+    let failedReloads = 0;
+    page.on('response', (response) => {
+      if (response.url().includes('getHofDashboard') && response.status() === 500) {
+        failedReloads += 1;
+      }
+    });
+    const quantity = page.getByLabel('Bindestrick');
+    await quantity.fill('7');
+    await page.getByRole('button', { name: 'Speichern' }).first().click();
+
+    await expect(page.getByText('Gespeichert')).toBeVisible();
+    // the typed value decides once the reload has given up, after its three retries
+    await expect.poll(() => failedReloads, { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
+    // what is checked is that the value stays, so give a reset the time to show
+    await page.waitForTimeout(500);
+    await expect(quantity).toHaveValue('7');
+  });
+
   test('keeps a saved answer when the reload after it fails', async ({ page }) => {
     await mockBackend(page, { failReloads: true });
     await page.goto('/hof-dashboard');

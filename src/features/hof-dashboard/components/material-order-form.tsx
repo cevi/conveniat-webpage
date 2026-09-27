@@ -16,7 +16,6 @@ import {
 } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import {
-  followsStoredOrder,
   type OrderValues,
   sameOrder,
   toQuantity,
@@ -44,11 +43,6 @@ const groupBySection = (
     [],
   );
 
-const initialQuantities = (order: HofDashboardOrder): Record<string, string> =>
-  Object.fromEntries(
-    order.items.map((item) => [item.id, item.quantity > 0 ? String(item.quantity) : '']),
-  );
-
 const storedValues = (order: HofDashboardOrder): OrderValues => ({
   quantities: Object.fromEntries(order.items.map((item) => [item.id, item.quantity])),
   powerConnection: order.powerConnection,
@@ -68,36 +62,31 @@ export const MaterialOrderForm: React.FC<{
   const utils = trpc.useUtils();
   // unique per form, since both orders of a Hof are on the page
   const id = useId();
-  const [quantities, setQuantities] = useState(() => initialQuantities(order));
-  const [powerConnection, setPowerConnection] = useState(order.powerConnection);
+  // Only what the Hof typed is kept here, over the stored order: a field it has not touched
+  // shows what is stored, so a reviewer's correction arrives by itself, and nothing typed is
+  // lost to one.
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [powerEdit, setPowerEdit] = useState<boolean>();
   const [refused, setRefused] = useState(false);
-  const shown: OrderValues = {
-    quantities: Object.fromEntries(
-      order.items.map((item) => [item.id, toQuantity(quantities[item.id])]),
-    ),
-    powerConnection,
-  };
-  // A newly stored order, e.g. a reviewer's correction, replaces what the form shows unless
-  // the Hof typed something since. Adjusted while rendering, so the form is never remounted
-  // and nothing flashes as unsaved in between.
-  const [taken, setTaken] = useState(() => ({
-    savedAt: order.savedAt,
-    values: storedValues(order),
-  }));
-  if (order.savedAt !== taken.savedAt) {
-    const stored = storedValues(order);
-    if (followsStoredOrder(shown, taken.values, stored)) {
-      setQuantities(initialQuantities(order));
-      setPowerConnection(order.powerConnection);
-    }
-    setTaken({ savedAt: order.savedAt, values: stored });
-  }
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
     onSuccess: async () => {
       toast.success(translate('saved', locale));
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
+      // Typed values give way once the reloaded order holds them; if the reload did not get
+      // through, they stay, rather than the order from before the save showing as if unsaved.
+      const reloaded = utils.hofDashboard.getHofDashboard.getData({ hofId })?.orders[order.type];
+      if (reloaded === undefined) return;
+      const stored = storedValues(reloaded);
+      setEdits((current) =>
+        Object.fromEntries(
+          Object.entries(current).filter(
+            ([itemId, typed]) => toQuantity(typed) !== (stored.quantities[itemId] ?? 0),
+          ),
+        ),
+      );
+      setPowerEdit((current) => (current === stored.powerConnection ? undefined : current));
     },
     onError: (error) => {
       if (error.message === 'order_list_changed') {
@@ -111,6 +100,15 @@ export const MaterialOrderForm: React.FC<{
 
   const daysLeft = order.deadline === undefined ? undefined : daysUntil(order.deadline, new Date());
   const closed = daysLeft !== undefined && daysLeft < 0 && !isReviewer;
+  const quantityText = (item: HofDashboardOrder['items'][number]): string =>
+    edits[item.id] ?? (item.quantity > 0 ? String(item.quantity) : '');
+  const powerConnection = powerEdit ?? order.powerConnection;
+  const shown: OrderValues = {
+    quantities: Object.fromEntries(
+      order.items.map((item) => [item.id, toQuantity(quantityText(item))]),
+    ),
+    powerConnection,
+  };
   const dirty = !sameOrder(shown, storedValues(order));
   useWarnBeforeLeaving(dirty);
 
@@ -122,7 +120,7 @@ export const MaterialOrderForm: React.FC<{
       orderType: order.type,
       quantities: order.items.map((item) => ({
         itemId: item.id,
-        quantity: toQuantity(quantities[item.id]),
+        quantity: shown.quantities[item.id] ?? 0,
       })),
       powerConnection,
     });
@@ -196,7 +194,7 @@ export const MaterialOrderForm: React.FC<{
                           autoComplete="off"
                           placeholder="0"
                           disabled={closed}
-                          value={quantities[item.id] ?? ''}
+                          value={quantityText(item)}
                           onChange={(event) => {
                             const typed = event.target.value;
                             // only whole numbers up to the most that can be ordered get in
@@ -206,17 +204,17 @@ export const MaterialOrderForm: React.FC<{
                               return;
                             }
                             setRefused(false);
-                            setQuantities((previous) => ({ ...previous, [item.id]: typed }));
+                            setEdits((previous) => ({ ...previous, [item.id]: typed }));
                           }}
-                          onBlur={(event) =>
-                            setQuantities((previous) => {
-                              const quantity = toQuantity(event.target.value);
-                              return {
-                                ...previous,
-                                [item.id]: quantity > 0 ? String(quantity) : '',
-                              };
-                            })
-                          }
+                          // "007" reads as 7 and "0" as nothing once the Hof moves on
+                          onBlur={(event) => {
+                            if (!(item.id in edits)) return;
+                            const quantity = toQuantity(event.target.value);
+                            setEdits((previous) => ({
+                              ...previous,
+                              [item.id]: quantity > 0 ? String(quantity) : '',
+                            }));
+                          }}
                           className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                         />
                       </td>
@@ -258,7 +256,7 @@ export const MaterialOrderForm: React.FC<{
                 type="checkbox"
                 checked={powerConnection}
                 disabled={closed}
-                onChange={(event) => setPowerConnection(event.target.checked)}
+                onChange={(event) => setPowerEdit(event.target.checked)}
                 className="accent-conveniat-green h-5 w-5"
               />
               {translate('powerConnection', locale)}

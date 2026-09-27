@@ -20,15 +20,3 @@ export const sameOrder = (a: OrderValues, b: OrderValues): boolean =>
   [...new Set([...Object.keys(a.quantities), ...Object.keys(b.quantities)])].every(
     (itemId) => quantityOf(a, itemId) === quantityOf(b, itemId),
   );
-
-/**
- * Whether the form takes over an order stored anew, e.g. after a reviewer's correction in the
- * admin: when it still shows what it last took over, so the Hof has not changed anything, or
- * when it already shows the new order, as after its own save. Anything the Hof typed and has
- * not saved yet stays.
- */
-export const followsStoredOrder = (
-  shown: OrderValues,
-  lastTakenOver: OrderValues,
-  stored: OrderValues,
-): boolean => sameOrder(shown, lastTakenOver) || sameOrder(shown, stored);
