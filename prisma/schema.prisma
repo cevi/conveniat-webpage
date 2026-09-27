@@ -39,6 +39,8 @@ model User {
   materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
   addressBook          AddressBookEntry[]    @relation("AddressBookOwner")
   inAddressBooksOf     AddressBookEntry[]    @relation("AddressBookContact")
+  issuedChatInvites    ChatInvite[]          @relation("ChatInviteIssuer")
+  redeemedChatInvites  ChatInvite[]          @relation("ChatInviteRedeemer")
 
   @@index([name])
 }
@@ -147,6 +149,28 @@ model AddressBookEntry {
   createdAt DateTime @default(now())
 
   @@id([ownerId, contactId])
+}
+
+/// A single-use code behind the QR code a user shows to start a chat with them. The code
+/// stands in for the user id, so a QR code cannot be printed and scanned by everyone.
+model ChatInvite {
+  token String @id
+
+  issuerId String
+  issuer   User   @relation("ChatInviteIssuer", fields: [issuerId], references: [uuid])
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  /// the user who scanned the code, null until it is redeemed
+  redeemedById String?
+  redeemedBy   User?     @relation("ChatInviteRedeemer", fields: [redeemedById], references: [uuid])
+  redeemedAt   DateTime?
+
+  /// the chat the redemption opened, answered again when the same user replays the link
+  chatId String?
+
+  @@index([issuerId])
 }
 
 model ChatMembership {
