@@ -226,65 +226,70 @@ export const updateMessageContent = trpcBaseProcedure
             },
       });
 
-      // Publish new_message event for the new question/response
+      // Publish new_message event for the new question/response. Deferred until after
+      // commit, so a client refetching on it finds the message.
+      ctx.afterTransactionCommit(() => {
+        chatPubSub
+          .publish({
+            type: 'new_message',
+            chatId: message.chatId,
+            senderId: createdNextMessage.senderId ?? '',
+            message: {
+              id: createdNextMessage.uuid,
+              createdAt: createdNextMessage.createdAt,
+              messagePayload: nextQuestion
+                ? {
+                    question: nextQuestion.question,
+                    options: nextQuestion.options
+                      .map((o) => o.option as string | undefined)
+                      .filter((o): o is string => o !== undefined),
+                    selectedOption: undefined,
+                    questionRefId: nextQuestion.id,
+                  }
+                : {
+                    message: alertSettings.finalResponseMessage,
+                    phoneNumber: alertSettings.emergencyPhoneNumber,
+                  },
+              senderId: createdNextMessage.senderId ?? undefined,
+              status: 'STORED',
+              type: createdNextMessage.type,
+            },
+          })
+          .catch((error: unknown) => {
+            logger.error('Failed to publish the new alert message event', {
+              error,
+              'chat.id': message.chatId,
+              'message.id': createdNextMessage.uuid,
+            });
+          });
+      });
+    }
+
+    // Publish message_updated event for the original message once committed
+    ctx.afterTransactionCommit(() => {
       chatPubSub
         .publish({
-          type: 'new_message',
+          type: 'message_updated',
           chatId: message.chatId,
-          senderId: createdNextMessage.senderId ?? '',
+          senderId: user.uuid,
           message: {
-            id: createdNextMessage.uuid,
-            createdAt: createdNextMessage.createdAt,
-            messagePayload: nextQuestion
-              ? {
-                  question: nextQuestion.question,
-                  options: nextQuestion.options
-                    .map((o) => o.option as string | undefined)
-                    .filter((o): o is string => o !== undefined),
-                  selectedOption: undefined,
-                  questionRefId: nextQuestion.id,
-                }
-              : {
-                  message: alertSettings.finalResponseMessage,
-                  phoneNumber: alertSettings.emergencyPhoneNumber,
-                },
-            senderId: createdNextMessage.senderId ?? undefined,
+            id: message.uuid,
+            createdAt: message.createdAt,
+            messagePayload: content,
+            senderId: message.senderId ?? undefined,
             status: 'STORED',
-            type: createdNextMessage.type,
+            type: message.type,
+            parentId: message.parentId ?? undefined,
           },
         })
         .catch((error: unknown) => {
-          logger.error('Failed to publish the new alert message event', {
+          logger.error('Failed to publish the message_updated event', {
             error,
             'chat.id': message.chatId,
-            'message.id': createdNextMessage.uuid,
+            'message.id': message.uuid,
           });
         });
-    }
-
-    // Publish message_updated event for the original message
-    chatPubSub
-      .publish({
-        type: 'message_updated',
-        chatId: message.chatId,
-        senderId: user.uuid,
-        message: {
-          id: message.uuid,
-          createdAt: message.createdAt,
-          messagePayload: content,
-          senderId: message.senderId,
-          status: 'STORED',
-          type: message.type,
-          parentId: message.parentId ?? undefined,
-        },
-      })
-      .catch((error: unknown) => {
-        logger.error('Failed to publish the message_updated event', {
-          error,
-          'chat.id': message.chatId,
-          'message.id': message.uuid,
-        });
-      });
+    });
 
     return { success: true };
   });

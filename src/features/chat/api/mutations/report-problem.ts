@@ -111,12 +111,14 @@ export const reportProblem = trpcBaseProcedure
         localizedAlertMessage = `Nouveau rapport de problème de ${user.name}!`;
       }
 
-      sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
-        chatName: chat.name,
-      }).catch((error: unknown) => {
-        logger.error('Failed to send the support push notification to the piket members', {
-          error,
-          'chat.id': chat.uuid,
+      ctx.afterTransactionCommit(() => {
+        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
+          chatName: chat.name,
+        }).catch((error: unknown) => {
+          logger.error('Failed to send the support push notification to the piket members', {
+            error,
+            'chat.id': chat.uuid,
+          });
         });
       });
     }
@@ -151,28 +153,31 @@ export const reportProblem = trpcBaseProcedure
       },
     });
 
-    // Publish the initial system message real-time event to chatPubSub so that active admin streams display it instantly
-    chatPubSub
-      .publish({
-        type: 'new_message',
-        chatId: chat.uuid,
-        senderId: SYSTEM_SENDER_ID,
-        message: {
-          id: systemMessage.uuid,
-          createdAt: systemMessage.createdAt,
-          messagePayload: payloadContent,
+    // Publish the initial system message real-time event to chatPubSub so that active admin
+    // streams display it instantly, once the chat and message are committed
+    ctx.afterTransactionCommit(() => {
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: chat.uuid,
           senderId: SYSTEM_SENDER_ID,
-          status: MessageEventType.STORED,
-          type: MessageType.SYSTEM_MSG,
-        },
-      })
-      .catch((error: unknown) => {
-        logger.error('Failed to publish the real-time event for a problem report', {
-          error,
-          'chat.id': chat.uuid,
-          'message.id': systemMessage.uuid,
+          message: {
+            id: systemMessage.uuid,
+            createdAt: systemMessage.createdAt,
+            messagePayload: payloadContent,
+            senderId: SYSTEM_SENDER_ID,
+            status: MessageEventType.STORED,
+            type: MessageType.SYSTEM_MSG,
+          },
+        })
+        .catch((error: unknown) => {
+          logger.error('Failed to publish the real-time event for a problem report', {
+            error,
+            'chat.id': chat.uuid,
+            'message.id': systemMessage.uuid,
+          });
         });
-      });
+    });
 
     return chat;
   });

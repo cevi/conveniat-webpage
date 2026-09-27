@@ -18,11 +18,26 @@ jest.mock('superjson', () => ({
 jest.mock('@/lib/ability', () => ({
   Ability: { can: (): Promise<boolean> => Promise.resolve(true) },
 }));
+
+/** Whether the transaction had committed when each side effect fired. */
+let committed: boolean;
+let failCommit: boolean;
+const publishedAt: boolean[] = [];
+const pushedAt: boolean[] = [];
+
 jest.mock('@/lib/db/chat-pubsub', () => ({
-  chatPubSub: { publish: (): Promise<void> => Promise.resolve() },
+  chatPubSub: {
+    publish: (): Promise<void> => {
+      publishedAt.push(committed);
+      return Promise.resolve();
+    },
+  },
 }));
 jest.mock('@/features/chat/api/utils/send-push-notifications', () => ({
-  sendNotification: (): Promise<void> => Promise.resolve(),
+  sendNotification: (): Promise<{ success: boolean }> => {
+    pushedAt.push(committed);
+    return Promise.resolve({ success: true });
+  },
 }));
 
 import { createMessage } from '@/features/chat/api/mutations/create-message';
@@ -32,8 +47,17 @@ const CHAT_ID = '00000000-0000-4000-8000-000000000001';
 
 let storedTypes: MessageType[];
 
+/** The rows the procedure touches, and a transaction that commits after the callback. */
 const prisma = {
-  $transaction: <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => callback(prisma),
+  $transaction: async <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => {
+    const result = await callback(prisma);
+    // Prisma's interactive transaction timeout fires between the last query and the
+    // commit, which rolls back everything the callback wrote.
+    if (failCommit)
+      throw new Error('Transaction already closed: the timeout for this transaction was 5000 ms');
+    committed = true;
+    return result;
+  },
   chat: {
     findUnique: (): Promise<unknown> =>
       Promise.resolve({
@@ -74,6 +98,10 @@ const send = (type?: MessageType): Promise<unknown> =>
 
 beforeEach(() => {
   storedTypes = [];
+  committed = false;
+  failCommit = false;
+  publishedAt.length = 0;
+  pushedAt.length = 0;
 });
 
 describe('the message types a participant can send', () => {
@@ -97,4 +125,22 @@ describe('the message types a participant can send', () => {
       expect(storedTypes).toEqual([]);
     },
   );
+});
+
+describe('announcing a sent message', () => {
+  it('happens exactly once, after the commit', async () => {
+    await send();
+
+    expect(publishedAt).toEqual([true]);
+    expect(pushedAt).toEqual([true]);
+  });
+
+  it('does not happen when the transaction rolls back', async () => {
+    failCommit = true;
+
+    await expect(send()).rejects.toThrow('Transaction already closed');
+
+    expect(publishedAt).toEqual([]);
+    expect(pushedAt).toEqual([]);
+  });
 });
