@@ -1,4 +1,4 @@
-import type { HofEventRow } from '@/features/billing/types';
+import type { HofAddressManager, HofEventRow } from '@/features/billing/types';
 import type {
   BillSetting,
   Hof,
@@ -18,6 +18,8 @@ export interface HofSyncWrite {
   events: Array<{ eventId: string; eventName: string }>;
   /** Left out when the Cevi.DB lookup failed, which keeps the stored addresses. */
   addressManagerEmails?: string;
+  /** The same people with their names, left out together with the addresses. */
+  addressManagers?: HofAddressManager[];
 }
 
 export interface SettingsPort {

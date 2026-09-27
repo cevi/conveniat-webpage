@@ -155,7 +155,7 @@ describe('Sync Service', () => {
       fetchSubgroupLinks: jest.fn(),
       fetchEventsForGroup: jest.fn(),
       fetchPersonDetails: jest.fn(),
-      fetchAddressManagerEmails: jest.fn(),
+      fetchAddressManagers: jest.fn(),
       updateParticipationAnswer: jest
         .fn()
         .mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' }),
