@@ -9,12 +9,16 @@ import {
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
 import { getFormSubmissionResendOptionsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/get-form-submission-resend-options';
 import { resendFormSubmissionEmailsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/resend-form-submission-emails';
 import { triggerPastWorkflowsHandler } from '@/features/payload-cms/payload-cms/plugins/form/endpoints/trigger-past-workflows';
 import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugins/form/fix-links-in-mails';
+import {
+  helperJobsField,
+  smtpResultsField,
+  workflowResultsField,
+} from '@/features/payload-cms/payload-cms/plugins/form/form-submission-server-fields';
 import { ensureApprovalToken } from '@/features/payload-cms/payload-cms/plugins/form/hooks/ensure-approval-token';
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkHofSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-hof-submission';
@@ -279,50 +283,8 @@ export const formPluginConfiguration = formBuilderPlugin({
             },
           },
         },
-        {
-          name: 'smtpResults',
-          type: 'json',
-          hooks: {
-            afterRead: [parseSmtpResultsHook],
-          },
-          admin: {
-            readOnly: true,
-            position: 'sidebar',
-            components: {
-              Field: {
-                path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
-                clientProps: {
-                  smtpDomain:
-                    typeof environmentVariables.SMTP_USER === 'string' &&
-                    (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
-                      ? environmentVariables.SMTP_USER.split('@')[1]
-                      : 'cevi.tools',
-                  systemEmails: [
-                    typeof environmentVariables.SMTP_USER === 'string'
-                      ? environmentVariables.SMTP_USER
-                      : 'noreply@cevi.tools',
-                  ].filter((email) => email.length > 0),
-                },
-              },
-
-              Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
-            },
-          },
-        },
-        {
-          name: 'workflowResults',
-          type: 'json',
-          admin: {
-            readOnly: true,
-            position: 'sidebar',
-            components: {
-              Field: {
-                path: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-field',
-              },
-              Cell: '@/features/payload-cms/payload-cms/components/workflow-results/workflow-results-cell',
-            },
-          },
-        },
+        smtpResultsField,
+        workflowResultsField,
         {
           name: 'resendMail',
           type: 'ui',
@@ -333,16 +295,7 @@ export const formPluginConfiguration = formBuilderPlugin({
             },
           },
         },
-        {
-          name: 'helper-jobs',
-          type: 'relationship',
-          relationTo: 'helper-jobs',
-          hasMany: true,
-          admin: {
-            readOnly: true,
-            position: 'sidebar',
-          },
-        },
+        helperJobsField,
         {
           name: 'hof',
           type: 'relationship',
