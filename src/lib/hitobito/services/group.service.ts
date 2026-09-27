@@ -79,6 +79,19 @@ export interface RemoveRoleParameters {
   roleId: string;
 }
 
+/** Cevi.DB group ids are plain numbers. */
+const GROUP_ID = /^\d+$/;
+
+/**
+ * Checks a group id before it becomes part of a path. The ids come from Cevi.DB's own answers
+ * and from configuration, and a `../` in one would point an authenticated request elsewhere.
+ */
+const assertGroupId = (groupId: string): void => {
+  if (!GROUP_ID.test(groupId)) {
+    throw new Error(`Not a Cevi.DB group id: ${JSON.stringify(groupId)}`);
+  }
+};
+
 export class GroupService {
   constructor(
     private readonly client: HitobitoClient,
@@ -87,6 +100,7 @@ export class GroupService {
 
   /** The name of one group, empty when Cevi.DB has none. */
   async getGroupName(groupId: string): Promise<string> {
+    assertGroupId(groupId);
     const response = await this.client.apiRequest<{ data?: { attributes?: { name?: string } } }>(
       'GET',
       `/api/groups/${groupId}`,
@@ -96,6 +110,7 @@ export class GroupService {
 
   /** The groups directly below a group, every page of them. */
   async listSubgroups(parentGroupId: string): Promise<GroupSummary[]> {
+    assertGroupId(parentGroupId);
     const subgroups: GroupSummary[] = [];
     let nextUrl: string | undefined = '/api/groups';
     let isFirstPage = true;
@@ -109,9 +124,9 @@ export class GroupService {
           : {},
       );
       for (const group of response.data ?? []) {
-        if (typeof group.id === 'string' && group.id !== '') {
-          subgroups.push({ id: group.id, name: group.attributes?.name ?? '' });
-        }
+        if (typeof group.id !== 'string') continue;
+        assertGroupId(group.id);
+        subgroups.push({ id: group.id, name: group.attributes?.name ?? '' });
       }
       nextUrl = response.links?.next ?? undefined;
       isFirstPage = false;
@@ -124,6 +139,7 @@ export class GroupService {
    * Reads the legacy `people.json`, the only list that carries the role classes.
    */
   async listPeopleWithRole(groupId: string, roleClass: string): Promise<GroupRoleHolder[]> {
+    assertGroupId(groupId);
     const path = `/groups/${groupId}/people.json`;
     const { response, body } = await this.client.frontendRequest('GET', path, {
       headers: {
@@ -138,8 +154,12 @@ export class GroupService {
       );
     }
 
+    // An answer of another shape is an error, not an empty group: read as "nobody holds the
+    // role", it would take a function or a reminder recipient away from everyone.
     const parsed = PeopleJsonSchema.safeParse(JSON.parse(body));
-    if (!parsed.success) return [];
+    if (!parsed.success) {
+      throw new Error(`Cevi.DB answered the people of group ${groupId} in an unexpected shape`);
+    }
 
     const roleIds = new Set(
       (parsed.data.linked?.roles ?? [])

@@ -37,3 +37,27 @@ describe('GroupService.listPeopleWithRole', () => {
     ]);
   });
 });
+
+describe('GroupService refusing what it cannot trust', () => {
+  it('throws on an answer of another shape instead of reporting nobody', async () => {
+    const groups = new GroupService(clientReturning({ people: 'not a list' }));
+
+    await expect(
+      groups.listPeopleWithRole('5001', 'Group::DachverbandGremium::Leitung'),
+    ).rejects.toThrow('unexpected shape');
+  });
+
+  it('sends nothing for a group id that is not a number', async () => {
+    const frontendRequest = jest.fn();
+    const groups = new GroupService({
+      config: { apiToken: 'token', baseUrl: 'https://db.cevi.ch' },
+      getFrontendHeaders: (): Record<string, string> => ({}),
+      frontendRequest,
+    } as unknown as HitobitoClient);
+
+    await expect(
+      groups.listPeopleWithRole('../people/1', 'Group::DachverbandGremium::Leitung'),
+    ).rejects.toThrow('Not a Cevi.DB group id');
+    expect(frontendRequest).not.toHaveBeenCalled();
+  });
+});

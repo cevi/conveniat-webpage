@@ -130,4 +130,17 @@ describe('syncFunktionen', () => {
     expect(fake.delete).not.toHaveBeenCalled();
     expect(stored).toHaveLength(1);
   });
+
+  it('refuses to remove every function when Cevi.DB suddenly shows no leader at all', async () => {
+    const stored: StoredFunktion[] = [
+      { id: 'infra', groupId: '5001', groupName: 'Ressort Infrastruktur', personIds: ['12'] },
+    ];
+    const fake = fakePayload(stored);
+    const empty = source({ listPeopleWithRole: jest.fn(() => Promise.resolve([])) });
+
+    await expect(syncFunktionen(fake.payload, empty, '4046')).rejects.toThrow(
+      'refusing to remove all 1 functions',
+    );
+    expect(fake.delete).not.toHaveBeenCalled();
+  });
 });

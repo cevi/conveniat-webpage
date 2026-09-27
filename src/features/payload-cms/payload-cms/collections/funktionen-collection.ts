@@ -4,8 +4,10 @@ import {
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 import { refreshUserFunktionen } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import type { CollectionAfterDeleteHook, CollectionConfig, PayloadHandler } from 'payload';
+import { countRunnableOrActiveJobsForQueue } from 'payload';
 
 /**
  * Everything but the label and the order comes from Cevi.DB through the sync, which writes
@@ -13,12 +15,38 @@ import type { CollectionAfterDeleteHook, CollectionConfig, PayloadHandler } from
  */
 const syncedFromCeviDatabase = { create: (): boolean => false, update: (): boolean => false };
 
-/** Queues a sync now instead of waiting for the night. */
+/**
+ * Queues a sync now instead of waiting for the night, unless one is already queued or
+ * running: each walks the whole Cevi.DB tree, and two at once would race on the same groups.
+ */
 const queueSyncHandler: PayloadHandler = async (request) => {
   if (!hasAdminOrWebAccess({ req: request })) {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
-  await request.payload.jobs.queue({ task: 'syncFunktionen', input: {} });
+  const pending = await countRunnableOrActiveJobsForQueue({
+    queue: DEFAULT_QUEUE,
+    req: request,
+    taskSlug: 'syncFunktionen',
+    onlyScheduled: false,
+  });
+  const { logger } = request.payload;
+  if (pending > 0) {
+    logger.debug('A camp functions sync is already queued or running, not queuing another');
+    return Response.json({ queued: false }, { status: 200 });
+  }
+  try {
+    await request.payload.jobs.queue({ task: 'syncFunktionen', input: {}, queue: DEFAULT_QUEUE });
+  } catch (error: unknown) {
+    logger.error(
+      { err: error },
+      'Could not queue a camp functions sync started from the admin panel',
+    );
+    return Response.json({ error: 'Could not queue the sync' }, { status: 500 });
+  }
+  logger.info(
+    { 'user.id': request.user?.id },
+    'Queued a camp functions sync started from the admin panel',
+  );
   return Response.json({ queued: true }, { status: 202 });
 };
 

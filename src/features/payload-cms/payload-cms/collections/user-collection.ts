@@ -141,11 +141,20 @@ const fillCampDataOfNewPerson: NonNullable<
   const ceviId = next.cevi_db_uuid;
   if (typeof ceviId !== 'number') return next;
   if ((originalDoc as Partial<User> | undefined)?.cevi_db_uuid === ceviId) return next;
-  const [hoefe, funktionen] = await Promise.all([
-    findRegisteredHofIds(req.payload, ceviId, req),
-    findFunktionIdsOfPerson(req.payload, ceviId, req),
-  ]);
-  return { ...next, hoefe, funktionen };
+  try {
+    const [hoefe, funktionen] = await Promise.all([
+      findRegisteredHofIds(req.payload, ceviId, req),
+      findFunktionIdsOfPerson(req.payload, ceviId, req),
+    ]);
+    return { ...next, hoefe, funktionen };
+  } catch (error: unknown) {
+    // Never fail a login over this: the next start and the next functions sync fill it in.
+    req.payload.logger.error(
+      { err: error },
+      'Could not look up the Höfe and functions of a new user; the login goes on without them',
+    );
+    return next;
+  }
 };
 
 export const UserCollection: CollectionConfig = {

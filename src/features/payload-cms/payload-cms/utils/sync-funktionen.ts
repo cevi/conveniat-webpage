@@ -89,6 +89,14 @@ export const syncFunktionen = async (
     select: { groupId: true, groupName: true, personIds: true },
   });
 
+  // No leader anywhere in the tree is far likelier a Cevi.DB answer gone wrong than a camp
+  // without an organisation. Removing the last functions is left to an admin.
+  if (found.length === 0 && existing.length > 0) {
+    throw new Error(
+      `No group below ${rootGroupId} has a leader in Cevi.DB; refusing to remove all ${String(existing.length)} functions`,
+    );
+  }
+
   let created = 0;
   let updated = 0;
   for (const funktion of found) {

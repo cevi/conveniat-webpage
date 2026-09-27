@@ -24,6 +24,12 @@ const queuedMessage: StaticTranslationString = {
   fr: 'Synchronisation lancée. Rechargez la liste dans une à deux minutes.',
 };
 
+const alreadyRunningMessage: StaticTranslationString = {
+  de: 'Ein Abgleich ist bereits gestartet. Laden Sie die Liste in ein bis zwei Minuten neu.',
+  en: 'A sync is already running. Reload the list in a minute or two.',
+  fr: 'Une synchronisation est déjà en cours. Rechargez la liste dans une à deux minutes.',
+};
+
 const failedMessage: StaticTranslationString = {
   de: 'Der Abgleich konnte nicht gestartet werden.',
   en: 'The sync could not be started.',
@@ -39,7 +45,8 @@ export const FunktionenSyncButton: React.FC = () => {
     setIsQueuing(true);
     try {
       const response = await fetch('/api/funktionen/sync', { method: 'POST' });
-      if (response.ok) toast.success(queuedMessage[locale]);
+      if (response.status === 202) toast.success(queuedMessage[locale]);
+      else if (response.ok) toast.info(alreadyRunningMessage[locale]);
       else toast.error(failedMessage[locale]);
     } catch {
       toast.error(failedMessage[locale]);
