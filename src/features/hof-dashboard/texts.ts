@@ -167,6 +167,30 @@ export const text = {
     en: 'Signed in as {name}',
     fr: 'Connecté·e en tant que {name}',
   },
+  reviewTitle: {
+    de: 'Antwort des Ressorts',
+    en: 'The Ressort’s answer',
+    fr: 'Réponse du Ressort',
+  },
+  reviewStatus: { de: 'Status', en: 'Status', fr: 'Statut' },
+  reviewFeedback: {
+    de: 'Rückmeldung an den Hof',
+    en: 'Feedback to the Hof',
+    fr: 'Retour au Hof',
+  },
+  reviewHint: {
+    de: 'Der Hof sieht Status und Rückmeldung, sobald du speicherst.',
+    en: 'The Hof sees the status and feedback as soon as you save.',
+    fr: 'Le Hof voit le statut et le retour dès que tu enregistres.',
+  },
+  save: { de: 'Speichern', en: 'Save', fr: 'Enregistrer' },
+  saving: { de: 'Wird gespeichert …', en: 'Saving …', fr: 'Enregistrement …' },
+  saved: { de: 'Gespeichert', en: 'Saved', fr: 'Enregistré' },
+  saveFailed: {
+    de: 'Speichern fehlgeschlagen.',
+    en: 'Saving failed.',
+    fr: "L'enregistrement a échoué.",
+  },
   openCount: { de: '{n} offen', en: '{n} open', fr: '{n} en attente' },
   signOut: { de: 'Abmelden', en: 'Sign out', fr: 'Se déconnecter' },
 } satisfies Record<string, StaticTranslationString>;

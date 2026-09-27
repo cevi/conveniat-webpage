@@ -12,6 +12,7 @@ import {
   StatusPill,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { EntryAnswers } from '@/features/hof-dashboard/components/entry-answers';
+import { ReviewPanel } from '@/features/hof-dashboard/components/review-panel';
 import { HOF_ENTRY_STATUS_LABELS, type HofEntryStatus } from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { useWithdrawSubmission } from '@/features/hof-dashboard/hooks/use-withdraw-submission';
@@ -96,9 +97,11 @@ const EntryBlock: React.FC<{
   heading: string;
   /** Off for the version that counts: the card's own status already says where it stands. */
   showStatus?: boolean;
+  /** Set for a reviewer, who answers the submission here instead. */
+  reviewFor?: string | undefined;
   locale: Locale;
   onWithdraw: (id: string) => Promise<void>;
-}> = ({ entry, heading, showStatus = true, locale, onWithdraw }) => (
+}> = ({ entry, heading, showStatus = true, reviewFor, locale, onWithdraw }) => (
   <div className="space-y-4">
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <h4 className="text-sm font-bold text-gray-900">{heading}</h4>
@@ -128,6 +131,15 @@ const EntryBlock: React.FC<{
       </div>
     )}
     <EntryAnswers answers={entry.answers} locale={locale} />
+    {reviewFor !== undefined && (
+      // starts over from what is stored once it changes, e.g. saved by another reviewer
+      <ReviewPanel
+        key={`${entry.reviewStatus ?? ''}:${entry.feedback ?? ''}`}
+        entry={entry}
+        hofId={reviewFor}
+        locale={locale}
+      />
+    )}
     {entry.withdrawable && (
       <WithdrawAction locale={locale} onWithdraw={() => onWithdraw(entry.id)} />
     )}
@@ -151,8 +163,10 @@ export const FormCard: React.FC<{
   form: HofDashboardForm;
   progress: SubmissionProgress;
   hofId: string;
+  /** A reviewer answers what the Hof handed in, and hands in nothing for it. */
+  isReviewer: boolean;
   locale: Locale;
-}> = ({ form, progress, hofId, locale }) => {
+}> = ({ form, progress, hofId, isReviewer, locale }) => {
   const [open, setOpen] = useState(false);
   const [showEarlier, setShowEarlier] = useState(false);
   const utils = trpc.useUtils();
@@ -194,6 +208,7 @@ export const FormCard: React.FC<{
             entry={current}
             heading={versionHeading(0)}
             showStatus={false}
+            reviewFor={isReviewer ? hofId : undefined}
             locale={locale}
             onWithdraw={withdraw}
           />
@@ -218,6 +233,7 @@ export const FormCard: React.FC<{
                         entry={entry}
                         heading={versionHeading(index + 1)}
                         locale={locale}
+                        reviewFor={isReviewer ? hofId : undefined}
                         onWithdraw={withdraw}
                       />
                     </div>
@@ -237,6 +253,7 @@ export const FormCard: React.FC<{
                 entry={entry}
                 heading={entry.title ?? translate('entryUntitled', locale)}
                 locale={locale}
+                reviewFor={isReviewer ? hofId : undefined}
                 onWithdraw={withdraw}
               />
             </div>
@@ -250,7 +267,7 @@ export const FormCard: React.FC<{
         </p>
       )}
 
-      {!form.closed && !open && (
+      {!isReviewer && !form.closed && !open && (
         <button
           type="button"
           // when the Ressort asked for a revision, handing it in is the card's main action
@@ -263,7 +280,7 @@ export const FormCard: React.FC<{
         </button>
       )}
 
-      {!form.closed && open && (
+      {!isReviewer && !form.closed && open && (
         <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 @xl:p-6">
           <FormBlock
             form={form.form}

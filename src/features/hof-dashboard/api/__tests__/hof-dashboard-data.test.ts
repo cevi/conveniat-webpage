@@ -299,6 +299,19 @@ describe('getHofDashboardData', () => {
     expect(material.entries.every((entry) => !entry.withdrawable)).toBe(true);
   });
 
+  it("leaves withdrawing to the Hof: a reviewer answers, and gets the Ressort's own status", async () => {
+    const data = await getHofDashboardData('hof-nord', 'de', true);
+    expect(data.isReviewer).toBe(true);
+    expect(data.forms.flatMap((form) => form.entries).some((entry) => entry.withdrawable)).toBe(
+      false,
+    );
+    const stand = await formOf('form-stand', true);
+    // approved for the website reads as accepted; the review panel still shows what the
+    // Ressort itself set
+    const approved = stand.entries.find((entry) => entry.id === 'stand-b');
+    expect([approved?.status, approved?.reviewStatus]).toEqual(['accepted', 'revisionRequired']);
+  });
+
   it('lets a Hof withdraw any unreviewed entry of a form of entries', async () => {
     const stand = await formOf('form-stand');
     expect(stand.entries.map((entry) => [entry.id, entry.withdrawable, entry.title])).toEqual([
@@ -373,9 +386,8 @@ describe('getHofDashboardData', () => {
     expect(plan.initialValues).toEqual({});
   });
 
-  it('closes a form at its due date, but not for the reviewers', async () => {
+  it('closes a form at its due date', async () => {
     await expect(closedOf('form-plan')).resolves.toBe(true);
-    await expect(closedOf('form-plan', true)).resolves.toBe(false);
     // past its date, but set to stay open
     await expect(closedOf('form-material')).resolves.toBe(false);
     // no due date at all

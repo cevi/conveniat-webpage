@@ -42,6 +42,7 @@ const mockPayload = {
     return Promise.resolve({ docs: newest === undefined ? [] : [{ id: newest }] });
   }),
   delete: jest.fn<Promise<unknown>, [unknown]>(() => Promise.resolve({ docs: [] })),
+  update: jest.fn<Promise<unknown>, [unknown]>(() => Promise.resolve({})),
 };
 
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
@@ -54,7 +55,10 @@ jest.mock('@/utils/server-logger', () => ({
   }),
 }));
 
-import { withdrawHofSubmission } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
+import {
+  reviewHofSubmission,
+  withdrawHofSubmission,
+} from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 
 const HOF_NORD = { id: 'hof-nord', name: 'Hof Nord' };
 
@@ -108,5 +112,46 @@ describe('withdrawHofSubmission', () => {
     expect(mockPayload.delete).toHaveBeenCalledWith(
       expect.objectContaining({ collection: 'form-submissions', id: 'stand-old' }),
     );
+  });
+});
+
+describe('reviewHofSubmission', () => {
+  it('stores the status and the feedback the Hof reads', async () => {
+    await reviewHofSubmission({
+      hof: HOF_NORD,
+      submissionId: 'plan-2',
+      status: 'revisionRequired',
+      feedback: 'Masthöhe fehlt',
+    });
+    expect(mockPayload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'form-submissions',
+        id: 'plan-2',
+        data: { hofReviewStatus: 'revisionRequired', hofFeedback: 'Masthöhe fehlt' },
+      }),
+    );
+  });
+
+  it('puts a submission back to handed in without a status', async () => {
+    await reviewHofSubmission({
+      hof: HOF_NORD,
+      submissionId: 'plan-reviewed',
+      status: undefined,
+      feedback: '',
+    });
+    expect(mockPayload.update).toHaveBeenCalledWith(
+      // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+      expect.objectContaining({ data: { hofReviewStatus: null, hofFeedback: '' } }),
+    );
+  });
+
+  it.each([
+    ["another Hof's submission", 'sued-plan'],
+    ['a submission of a form off the dashboard', 'unlinked-entry'],
+  ])('does not answer %s', async (_description, submissionId) => {
+    await expect(
+      reviewHofSubmission({ hof: HOF_NORD, submissionId, status: 'accepted', feedback: '' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockPayload.update).not.toHaveBeenCalled();
   });
 });

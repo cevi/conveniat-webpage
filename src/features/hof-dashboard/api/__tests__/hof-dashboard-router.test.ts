@@ -3,6 +3,7 @@ import { createCallerFactory } from '@/trpc/init';
 
 const mockData = jest.fn();
 const mockWithdraw = jest.fn();
+const mockReview = jest.fn();
 
 const HOEFE = [
   { id: 'hof-nord', name: 'Hof Nord', groupId: '990001' },
@@ -47,6 +48,7 @@ jest.mock('@/features/hof-dashboard/api/hof-dashboard-data', () => ({
 }));
 jest.mock('@/features/hof-dashboard/api/hof-dashboard-mutations', () => ({
   withdrawHofSubmission: (...parameters: unknown[]): unknown => mockWithdraw(...parameters),
+  reviewHofSubmission: (...parameters: unknown[]): unknown => mockReview(...parameters),
 }));
 // see admin-router-access.test.ts: a direct caller never serializes anything
 jest.mock('superjson', () => ({
@@ -116,6 +118,33 @@ describe('hofDashboardRouter', () => {
   it('lets a reviewer open any Hof, as a reviewer', async () => {
     await reviewer.getHofDashboard({ hofId: 'hof-sued' });
     expect(mockData).toHaveBeenCalledWith('hof-sued', 'de', true);
+  });
+
+  it('leaves the review to the reviewers, and withdrawing to the Hof', async () => {
+    const review = { hofId: 'hof-nord', submissionId: 'plan-2', feedback: 'ok' };
+    await expect(
+      hofNordAdmin.updateSubmissionReview({ ...review, status: 'accepted' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await expect(
+      reviewer.deleteSubmission({ hofId: 'hof-nord', submissionId: 'plan-2' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockReview).not.toHaveBeenCalled();
+    expect(mockWithdraw).not.toHaveBeenCalled();
+  });
+
+  it("stores a reviewer's status and feedback", async () => {
+    await reviewer.updateSubmissionReview({
+      hofId: 'hof-sued',
+      submissionId: 'sued-plan',
+      status: 'revisionRequired',
+      feedback: 'Bitte ergänzen',
+    });
+    expect(mockReview).toHaveBeenCalledWith({
+      hof: { id: 'hof-sued', name: 'Hof Süd' },
+      submissionId: 'sued-plan',
+      status: 'revisionRequired',
+      feedback: 'Bitte ergänzen',
+    });
   });
 
   it('answers nothing of the dashboard while it is switched off', async () => {

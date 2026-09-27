@@ -1,10 +1,15 @@
 import { hofDashboardProcedure } from '@/features/hof-dashboard/api/hof-dashboard-access';
 import { getHofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { withdrawHofSubmission } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
+import {
+  reviewHofSubmission,
+  withdrawHofSubmission,
+} from '@/features/hof-dashboard/api/hof-dashboard-mutations';
+import { HOF_REVIEW_STATUSES } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import config from '@payload-config';
+import { TRPCError } from '@trpc/server';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
@@ -39,11 +44,32 @@ export const hofDashboardRouter = createTRPCRouter({
       return await getHofDashboardData(input.hofId, locale, ctx.isReviewer);
     }),
 
-  /** Takes back a submission the Ressort has not taken up yet. */
+  /** Takes back a submission the Ressort has not taken up yet; the Hof's, not a reviewer's. */
   deleteSubmission: hofDashboardProcedure
     .input(hofIdInput.extend({ submissionId: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
       const hof = await ctx.assertHofAccess(input.hofId);
+      if (ctx.isReviewer) throw new TRPCError({ code: 'FORBIDDEN' });
       await withdrawHofSubmission(hof, input.submissionId);
+    }),
+
+  /** The Ressort's status and feedback on a submission, for the reviewers only. */
+  updateSubmissionReview: hofDashboardProcedure
+    .input(
+      hofIdInput.extend({
+        submissionId: z.string().min(1).max(64),
+        status: z.enum(HOF_REVIEW_STATUSES).optional(),
+        feedback: z.string().max(5000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.isReviewer) throw new TRPCError({ code: 'FORBIDDEN' });
+      const hof = await ctx.assertHofAccess(input.hofId);
+      await reviewHofSubmission({
+        hof,
+        submissionId: input.submissionId,
+        status: input.status,
+        feedback: input.feedback,
+      });
     }),
 });

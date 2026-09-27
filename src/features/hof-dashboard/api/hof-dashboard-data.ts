@@ -2,6 +2,7 @@ import {
   type HofDashboardArea,
   type HofEntryMode,
   type HofEntryStatus,
+  type HofReviewStatus,
 } from '@/features/hof-dashboard/constants';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
 import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
@@ -65,6 +66,8 @@ export interface HofDashboardEntry {
   answers: HofDashboardAnswer[];
   /** Whether the Hof may still take it back: handed in, and not yet taken up by the Ressort. */
   withdrawable: boolean;
+  /** The Ressort's own status, without the website approval that also reads as accepted. */
+  reviewStatus: HofReviewStatus | undefined;
 }
 
 /** A form linked to the dashboard, with the Hof's submissions of it, newest first. */
@@ -74,7 +77,7 @@ export interface HofDashboardForm {
   title: string;
   description: string | undefined;
   deadline: string | undefined;
-  /** Closed at its due date; the reviewers can still hand it in. */
+  /** Closed at its due date. */
   closed: boolean;
   mode: HofEntryMode;
   /** The field that asks for the Hof, answered by the dashboard. */
@@ -100,6 +103,8 @@ export interface HofDashboardData {
   deadlines: HofDashboardDeadline[];
   forms: HofDashboardForm[];
   documents: HofDashboardDocument[];
+  /** Whether the reader reviews: answers submissions instead of handing them in. */
+  isReviewer: boolean;
 }
 
 const toContact = (
@@ -374,8 +379,11 @@ export const getHofDashboardData = async (
           status,
           feedback: submission.hofFeedback ?? undefined,
           answers: toAnswers(fields, values, files, locale),
-          // only the version that counts; an earlier one is what the Ressort answered on
-          withdrawable: status === 'submitted' && (mode === 'entries' || index === 0),
+          reviewStatus: submission.hofReviewStatus ?? undefined,
+          // only the version that counts; an earlier one is what the Ressort answered on.
+          // A reviewer answers a submission; taking it back is the Hof's.
+          withdrawable:
+            !isReviewer && status === 'submitted' && (mode === 'entries' || index === 0),
         };
       });
 
@@ -400,7 +408,6 @@ export const getHofDashboardData = async (
           description: settingsOfForm?.description ?? undefined,
           deadline,
           closed:
-            !isReviewer &&
             settingsOfForm?.closesAtDeadline === true &&
             deadline !== undefined &&
             daysUntil(deadline, now) < 0,
@@ -451,5 +458,6 @@ export const getHofDashboardData = async (
     deadlines,
     forms: dashboardForms,
     documents,
+    isReviewer,
   };
 };

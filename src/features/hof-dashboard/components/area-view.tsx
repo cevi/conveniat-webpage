@@ -74,6 +74,7 @@ export const AreaView: React.FC<{
                 form={form}
                 progress={formProgress}
                 hofId={data.hof.id}
+                isReviewer={data.isReviewer}
                 locale={locale}
               />
             );
