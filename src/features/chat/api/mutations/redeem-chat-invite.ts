@@ -1,3 +1,4 @@
+import { addToAddressBooks } from '@/features/chat/api/database-interactions/add-to-address-books';
 import { findOrCreatePrivateChat } from '@/features/chat/api/database-interactions/find-or-create-private-chat';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -19,6 +20,8 @@ export type RedeemChatInviteResult =
  * A code opens a chat for exactly one person. Phones tend to open a scanned link more than
  * once (the camera app checks it, the browser prefetches it), so the same user redeeming
  * the same code again is answered with the chat the first redemption opened.
+ *
+ * Redeeming also puts the two into each other's address book, see `addToAddressBooks`.
  */
 export const redeemChatInvite = trpcBaseProcedure
   .input(z.object({ token: z.string().min(1).max(64) }))
@@ -63,6 +66,7 @@ export const redeemChatInvite = trpcBaseProcedure
       afterCommit: ctx.afterTransactionCommit,
     });
     await prisma.chatInvite.update({ where: { token }, data: { chatId } });
+    await addToAddressBooks(prisma, user.uuid, invite.issuerId);
 
     logger.debug('Chat invite redeemed', { 'chat.id': chatId });
     return { status: 'redeemed', chatId };

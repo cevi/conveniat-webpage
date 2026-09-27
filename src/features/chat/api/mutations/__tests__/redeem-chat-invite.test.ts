@@ -34,10 +34,22 @@ interface Invite {
 }
 
 let invites: Invite[];
+let addressBook: { ownerId: string; contactId: string }[];
 
 /** The ChatInvite table, with the conditional update behaving like Postgres. */
 const prisma = {
   $transaction: <T>(callback: (tx: unknown) => Promise<T>): Promise<T> => callback(prisma),
+  addressBookEntry: {
+    createMany: ({ data }: { data: { ownerId: string; contactId: string }[] }): Promise<void> => {
+      for (const entry of data) {
+        const exists = addressBook.some(
+          (stored) => stored.ownerId === entry.ownerId && stored.contactId === entry.contactId,
+        );
+        if (!exists) addressBook.push(entry);
+      }
+      return Promise.resolve();
+    },
+  },
   chatInvite: {
     findUnique: ({ where }: { where: { token: string } }): Promise<Invite | null> =>
       // eslint-disable-next-line unicorn/no-null
@@ -98,6 +110,7 @@ const unredeemed = (token: string, expiresInMs: number): Invite => ({
 beforeEach(() => {
   findOrCreatePrivateChat.mockClear();
   invites = [unredeemed('fresh', 60_000), unredeemed('expired', -1000)];
+  addressBook = [];
 });
 
 describe('redeeming a chat invite', () => {
@@ -109,6 +122,24 @@ describe('redeeming a chat invite', () => {
     expect(findOrCreatePrivateChat).toHaveBeenCalledWith(
       expect.objectContaining({ otherUserId: 'issuer' }),
     );
+  });
+
+  it("puts the two into each other's address book", async () => {
+    await redeemAs('scanner', 'fresh');
+
+    expect(addressBook).toEqual(
+      expect.arrayContaining([
+        { ownerId: 'scanner', contactId: 'issuer' },
+        { ownerId: 'issuer', contactId: 'scanner' },
+      ]),
+    );
+  });
+
+  it('adds nobody to an address book for a rejected code', async () => {
+    await redeemAs('scanner', 'expired');
+    await redeemAs('issuer', 'fresh');
+
+    expect(addressBook).toEqual([]);
   });
 
   it('answers a phone opening the scanned link again with the same chat', async () => {

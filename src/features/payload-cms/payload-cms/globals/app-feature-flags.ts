@@ -16,6 +16,7 @@ import {
   FEATURE_FLAG_PHOTO_CONTEST_ENABLED,
   FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED,
   FEATURE_FLAG_RESERVATIONS_ENABLED,
+  FEATURE_FLAG_RESTRICT_CONTACT_LIST,
   FEATURE_FLAG_SEND_MESSAGES,
   FEATURE_HIDE_HOF_AND_QUARTIER,
 } from '@/lib/feature-flags';
@@ -78,6 +79,34 @@ export const AppFeatureFlags: GlobalConfig = {
           async ({ value }): Promise<void> => {
             // Redis key matching the constant: 'create_chats_enabled'
             await setFeatureFlag(FEATURE_FLAG_CREATE_CHATS_ENABLED, Boolean(value));
+          },
+        ],
+      },
+    },
+    {
+      name: 'restrictContactList',
+      label: {
+        en: 'Restrict the chat contact list',
+        de: 'Kontaktliste im Chat einschränken',
+        fr: 'Restreindre la liste de contacts du chat',
+      },
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        description: {
+          en: 'When on, the contact list for new chats shows only people from the same Hof, people whose chat QR code was scanned (or who scanned yours), and people with a leader function or an AVP role. When off, it shows everyone.',
+          de: 'Wenn aktiv, zeigt die Kontaktliste für neue Chats nur Personen aus dem gleichen Hof, Personen, deren Chat-QR-Code gescannt wurde (oder die den eigenen gescannt haben), sowie Personen mit einer Leitungsfunktion oder als AVP. Wenn inaktiv, zeigt sie alle.',
+          fr: "Si activé, la liste de contacts pour les nouvelles discussions ne montre que les personnes du même Hof, celles dont le code QR de chat a été scanné (ou qui ont scanné le vôtre) et celles qui ont une fonction de direction ou le rôle d'AVP. Si désactivé, elle montre tout le monde.",
+        },
+        components: {
+          Field:
+            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
+        },
+      },
+      hooks: {
+        afterChange: [
+          async ({ value }): Promise<void> => {
+            await setFeatureFlag(FEATURE_FLAG_RESTRICT_CONTACT_LIST, Boolean(value));
           },
         ],
       },
