@@ -19,6 +19,11 @@ import { sendNotification } from '@/features/chat/api/utils/send-push-notificati
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  describeHoefe,
+  getHofDirectory,
+} from '@/features/payload-cms/payload-cms/utils/hof-directory';
+import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
@@ -902,8 +907,8 @@ export const adminRouter = createTRPCRouter({
     .input(
       z.object({
         search: z.string().optional(),
-        hof: z.number().optional(),
-        quartier: z.number().optional(),
+        hofId: z.string().optional(),
+        quartierId: z.string().optional(),
         role: z.string().optional(),
       }),
     )
@@ -925,12 +930,18 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      if (input.hof !== undefined) {
-        whereConditions.push({ hof: { equals: input.hof } });
+      const hofDirectory = await getHofDirectory(payload);
+
+      if (input.hofId !== undefined) {
+        whereConditions.push({ hoefe: { contains: input.hofId } });
       }
 
-      if (input.quartier !== undefined) {
-        whereConditions.push({ quartier: { equals: input.quartier } });
+      if (input.quartierId !== undefined) {
+        // a user is in a Quartier through any of their Höfe
+        const hofIds = [...hofDirectory]
+          .filter(([, hof]) => hof.quartier?.id === input.quartierId)
+          .map(([id]) => id);
+        whereConditions.push({ hoefe: { in: hofIds } });
       }
 
       if (typeof input.role === 'string' && input.role !== '') {
@@ -978,16 +989,29 @@ export const adminRouter = createTRPCRouter({
         depth: 0,
       });
 
-      return users.map((u) => ({
-        id: u.id,
-        fullName: u.fullName,
-        nickname: u.nickname ?? '',
-        email: u.email,
-        hof: u.hof ?? undefined,
-        quartier: u.quartier ?? undefined,
-        description: u.description ?? undefined,
-      }));
+      return users.map((u) => {
+        const { hoefe, quartiere } = describeHoefe(toHofIds(u.hoefe), hofDirectory);
+        return {
+          id: u.id,
+          fullName: u.fullName,
+          nickname: u.nickname ?? '',
+          email: u.email,
+          hoefe,
+          quartiere,
+          description: u.description ?? undefined,
+        };
+      });
     }),
+
+  getHofList: adminProcedure.query(async () => {
+    const { getPayload } = await import('payload');
+    const { default: config } = await import('@payload-config');
+    const payload = await getPayload({ config });
+    const hofDirectory = await getHofDirectory(payload);
+    return [...hofDirectory]
+      .map(([id, hof]) => ({ id, name: hof.name, quartier: hof.quartier }))
+      .toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
+  }),
 
   addMemberToChat: adminProcedure
     .input(

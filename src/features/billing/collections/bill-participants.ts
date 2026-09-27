@@ -1,5 +1,9 @@
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
+  refreshHoefeAfterRegistrationChange,
+  refreshHoefeAfterRegistrationDelete,
+} from '@/features/billing/collections/refresh-registered-hoefe';
+import {
   canTransition,
   describeRefusedTransition,
 } from '@/features/billing/services/billing-status';
@@ -78,6 +82,8 @@ export const BillParticipantsCollection: CollectionConfig = {
         return data as Record<string, unknown>;
       },
     ],
+    afterChange: [refreshHoefeAfterRegistrationChange],
+    afterDelete: [refreshHoefeAfterRegistrationDelete],
   },
   access: {
     read: canAccessAdminPanel,

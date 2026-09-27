@@ -8,8 +8,16 @@ import {
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { CollectionConfig, FieldAccess, TextFieldSingleValidation } from 'payload';
+import type { Hof } from '@/features/payload-cms/payload-types';
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionConfig,
+  FieldAccess,
+  TextFieldSingleValidation,
+} from 'payload';
 
 /** Cevi.DB group and event ids are plain numbers of up to six digits. */
 const HITOBITO_ID = /^\d{1,6}$/;
@@ -33,6 +41,69 @@ const validateHitobitoId: TextFieldSingleValidation = (value, { req }) => {
  * Cevi.DB.
  */
 const syncedFromCeviDatabase = { create: (): boolean => false, update: (): boolean => false };
+
+const eventIdsOf = (hof: Partial<Hof> | undefined): string[] =>
+  (hof?.events ?? []).map((event) => event.eventId);
+
+/**
+ * The Höfe of a user follow from the Hof's events, so a sync that adds or drops an event
+ * moves the people registered for it. A failure must not fail the sync; the next start
+ * repairs the Höfe of every user.
+ */
+const refreshUsersOfChangedEvents: CollectionAfterChangeHook<Hof> = async ({
+  doc,
+  previousDoc,
+  req,
+}) => {
+  const before = new Set(eventIdsOf(previousDoc));
+  const after = new Set(eventIdsOf(doc));
+  const changed = [...after.symmetricDifference(before)];
+  if (changed.length === 0) return doc;
+  try {
+    const { docs } = await req.payload.find({
+      collection: 'bill-participants',
+      where: { eventId: { in: changed } },
+      depth: 0,
+      pagination: false,
+      select: { userId: true },
+      req,
+    });
+    const ceviIds = [...new Set(docs.map(({ userId }) => Number(userId)))].filter((id) =>
+      Number.isInteger(id),
+    );
+    await refreshUserHoefe(req.payload, { ceviIds, req });
+  } catch (error: unknown) {
+    req.payload.logger.error(
+      { err: error, 'hof.id': doc.id },
+      'Could not refresh the Höfe of the users registered for the changed events of a Hof',
+    );
+  }
+  return doc;
+};
+
+/** A deleted Hof leaves the users that were registered at it. */
+const refreshUsersOfDeletedHof: CollectionAfterDeleteHook<Hof> = async ({ doc, req }) => {
+  try {
+    const { docs } = await req.payload.find({
+      collection: 'users',
+      where: { hoefe: { contains: doc.id } },
+      depth: 0,
+      pagination: false,
+      select: { cevi_db_uuid: true },
+      req,
+    });
+    const ceviIds = docs
+      .map(({ cevi_db_uuid }) => cevi_db_uuid)
+      .filter((id) => typeof id === 'number');
+    await refreshUserHoefe(req.payload, { ceviIds, req });
+  } catch (error: unknown) {
+    req.payload.logger.error(
+      { err: error, 'hof.id': doc.id },
+      'Could not refresh the Höfe of the users of a deleted Hof',
+    );
+  }
+  return doc;
+};
 
 /** Who may place a Hof in its Quartier: the same people who may open a Hof at all. */
 const canPlaceHofInQuartier: FieldAccess = (args) =>
@@ -68,6 +139,10 @@ export const HoefeCollection: CollectionConfig = {
         '@/features/billing/components/populate-subevents-button#PopulateSubeventsButton',
       ],
     },
+  },
+  hooks: {
+    afterChange: [refreshUsersOfChangedEvents],
+    afterDelete: [refreshUsersOfDeletedHof],
   },
   access: {
     // Name, group and events are not confidential, and other areas build on them. The two
