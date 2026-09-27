@@ -2,16 +2,14 @@ import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of
 import { USER_RELEVANT_MESSAGE_EVENTS } from '@/features/chat/api/definitions';
 import type { ChatDetails } from '@/features/chat/api/types';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
+import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
-import { MessageEventType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
-import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-
-const logger = createLogger('chat:queries');
 
 export const getChat = trpcBaseProcedure
   .input(z.object({ chatId: z.string().uuid() }))
@@ -39,7 +37,8 @@ export const getChat = trpcBaseProcedure
             sender: { select: { name: true } },
           },
         },
-        chatMemberships: { include: { user: true } },
+        // only the caller's own membership: an announcement channel has thousands
+        chatMemberships: { where: { userId: user.uuid }, include: { user: true } },
       },
     });
 
@@ -69,39 +68,25 @@ export const getChat = trpcBaseProcedure
       });
     }
 
-    const cmsUsersMap = new Map<
-      string,
-      { fullName?: string; nickname?: string | null | undefined }
-    >();
-    try {
-      const { getPayload } = await import('payload');
-      const { default: config } = await import('@payload-config');
-      const payload = await getPayload({ config });
+    // An announcement shows its members only themselves, every other chat all of its members.
+    const chatMemberships =
+      chat.type === ChatType.ANNOUNCEMENT
+        ? chat.chatMemberships
+        : await prisma.chatMembership.findMany({
+            where: { chatId },
+            include: { user: true },
+          });
 
-      const cmsUsers = await payload.find({
-        collection: 'users',
-        limit: 1000,
-        depth: 0,
-      });
-
-      for (const u of cmsUsers.docs) {
-        cmsUsersMap.set(u.id, {
-          fullName: u.fullName,
-          nickname: u.nickname,
-        });
-      }
-    } catch (error) {
-      // Fallback to the prisma user names if the Payload query fails.
-      logger.warn('Falling back to prisma user names, the Payload user query failed', {
-        error,
-        'chat.id': chatId,
-      });
-    }
+    // Only a one-to-one chat is named after a person.
+    const cmsUsersMap = await findCmsUserNames(
+      chat.type === ChatType.ONE_TO_ONE ? chatMemberships.map((m) => m.userId) : [],
+      { 'chat.id': chatId },
+    );
 
     return {
       name: resolveChatName(
         chat.name,
-        chat.chatMemberships.map((membership) => {
+        chatMemberships.map((membership) => {
           const cmsUser = cmsUsersMap.get(membership.user.uuid);
           return {
             name: membership.user.name,
@@ -134,10 +119,7 @@ export const getChat = trpcBaseProcedure
           type: message.type,
         };
       }),
-      participants: (chat.type === 'ANNOUNCEMENT'
-        ? chat.chatMemberships.filter((membership) => membership.user.uuid === user.uuid)
-        : chat.chatMemberships
-      ).map((membership) => ({
+      participants: chatMemberships.map((membership) => ({
         id: membership.user.uuid,
         name: membership.user.name,
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),

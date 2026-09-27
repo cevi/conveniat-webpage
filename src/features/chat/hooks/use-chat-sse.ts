@@ -3,6 +3,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { mergeStoredMessage, mergeStoredMessageAcrossPages } from '@/features/chat/utils';
+import { applyMessageToChatList } from '@/features/chat/utils/apply-message-to-chat-list';
 import type {
   RealtimeConnection,
   RealtimeConnectionStatus,
@@ -291,8 +292,22 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
           },
         );
 
-        // Invalidate chat list overview for unread counts and sorting
-        trpcUtils.chat.chats.invalidate().catch(console.error);
+        // Patched instead of refetched: a refetch per message makes one announcement cost a
+        // list query per online member. Only a chat missing from the list needs the server.
+        const cachedChats = trpcUtils.chat.chats.getData({});
+        if (cachedChats !== undefined) {
+          const patchedChats = applyMessageToChatList(
+            cachedChats,
+            data.chatId,
+            message,
+            currentUser,
+          );
+          if (patchedChats === undefined) {
+            trpcUtils.chat.chats.invalidate().catch(console.error);
+          } else {
+            trpcUtils.chat.chats.setData({}, patchedChats);
+          }
+        }
 
         if (message.parentId !== undefined && message.parentId !== '') {
           // Update the getMessage query cache for the parent message

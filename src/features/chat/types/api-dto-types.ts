@@ -23,6 +23,11 @@ export interface ChatWithMessagePreview {
   lastUpdate: Date;
   unreadCount: number;
   messageCount: number;
+  /**
+   * Whether the chat has so many members that its unread count is capped at 1. Optional
+   * because chat lists persisted before this field existed are restored without it.
+   */
+  isLarge?: boolean;
   userChatPermission: ChatMembershipPermission;
   /** Optional because chat lists persisted before this field existed are restored without it. */
   isPinned?: boolean;

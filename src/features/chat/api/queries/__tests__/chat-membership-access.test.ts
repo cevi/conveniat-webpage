@@ -69,26 +69,43 @@ const message = {
   _count: { replies: 0 },
 };
 
+const chat = {
+  uuid: CHAT_ID,
+  name: 'Kurs-Chat',
+  description: undefined,
+  type: 'GROUP',
+  status: 'OPEN',
+  caseNumber: undefined,
+  courseId: undefined,
+  archivedAt: undefined,
+  adminReadAt: undefined,
+  capabilities: [],
+  messages: [message],
+};
+
 /**
- * Answers the two lookups the way Postgres would for a single chat with one message: the chat by
- * id, and the message by id, narrowed to chats the caller is a member of when the query asks so.
+ * Answers the lookups the way Postgres would for a single chat with one message: the chat by id
+ * with the memberships its query narrows to, all members of the chat, and the message by id,
+ * narrowed to chats the caller is a member of when the query asks so.
  */
 const prisma = {
+  chatMembership: {
+    findMany: jest.fn().mockResolvedValue(chatMemberships),
+  },
   chat: {
-    findUnique: jest.fn().mockResolvedValue({
-      uuid: CHAT_ID,
-      name: 'Kurs-Chat',
-      description: undefined,
-      type: 'GROUP',
-      status: 'OPEN',
-      caseNumber: undefined,
-      courseId: undefined,
-      archivedAt: undefined,
-      adminReadAt: undefined,
-      capabilities: [],
-      messages: [message],
-      chatMemberships,
-    }),
+    findUnique: jest.fn(
+      ({
+        include,
+      }: {
+        include: { chatMemberships: { where: { userId: string } } };
+      }): Promise<Record<string, unknown>> =>
+        Promise.resolve({
+          ...chat,
+          chatMemberships: chatMemberships.filter(
+            (m) => m.userId === include.chatMemberships.where.userId,
+          ),
+        }),
+    ),
   },
   message: {
     findFirst: jest.fn(
