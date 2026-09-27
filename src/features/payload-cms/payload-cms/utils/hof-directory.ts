@@ -51,3 +51,23 @@ export const describeHoefe = (
     ],
   };
 };
+
+/** A person's place at one Hof, as the address book shows it. */
+export interface HofRole {
+  hof: string;
+  quartier: string | undefined;
+  /** whether the person holds the Hauptleitung of the Hof's camp, i.e. is its AVP */
+  isAvp: boolean;
+}
+
+/** A person's Höfe, each with its Quartier and whether they are its AVP. Unknown Höfe are left out. */
+export const describeHofRoles = (
+  hofIds: string[],
+  avpHofIds: string[],
+  directory: Map<string, HofLabel>,
+): HofRole[] =>
+  hofIds.flatMap((id) => {
+    const label = directory.get(id);
+    if (label === undefined) return [];
+    return [{ hof: label.name, quartier: label.quartier?.name, isAvp: avpHofIds.includes(id) }];
+  });

@@ -62,9 +62,9 @@ interface FakeUser {
 /** A Payload that knows the seeded Höfe, the given users and registrations, and records writes. */
 const fakePayload = (
   users: FakeUser[],
-  registrations: { userId: string; eventId: string }[],
-): { payload: Payload; writes: { id: string; hoefe: string[] }[] } => {
-  const writes: { id: string; hoefe: string[] }[] = [];
+  registrations: { userId: string; eventId: string; roleType?: string }[],
+): { payload: Payload; writes: { id: string; hoefe: string[]; avpHoefe?: string[] }[] } => {
+  const writes: { id: string; hoefe: string[]; avpHoefe?: string[] }[] = [];
   const hoefe = HOEFE.map((hof) => ({
     id: hof.id,
     groupId: hof.groupId,
@@ -76,9 +76,11 @@ const fakePayload = (
       if (collection === 'users') return { docs: users };
       return { docs: registrations };
     }),
-    update: jest.fn(({ id, data }: { id: string; data: { hoefe: string[] } }) => {
-      writes.push({ id, hoefe: data.hoefe });
-    }),
+    update: jest.fn(
+      ({ id, data }: { id: string; data: { hoefe: string[]; avpHoefe?: string[] } }) => {
+        writes.push({ id, ...data });
+      },
+    ),
   } as unknown as Payload;
   return { payload, writes };
 };
@@ -99,7 +101,7 @@ describe('refreshUserHoefe', () => {
       ],
     );
     await expect(refreshUserHoefe(payload)).resolves.toBe(1);
-    expect(writes).toEqual([{ id: 'anna', hoefe: ['nord', 'sued'] }]);
+    expect(writes).toEqual([{ id: 'anna', hoefe: ['nord', 'sued'], avpHoefe: [] }]);
   });
 
   it('writes nobody whose Höfe are already right, whatever their order', async () => {
@@ -117,7 +119,7 @@ describe('refreshUserHoefe', () => {
   it('takes a user out of a Hof once they have no registration left for it', async () => {
     const { payload, writes } = fakePayload([{ id: 'ben', cevi_db_uuid: 8, hoefe: ['nord'] }], []);
     await refreshUserHoefe(payload, { ceviIds: [8] });
-    expect(writes).toEqual([{ id: 'ben', hoefe: [] }]);
+    expect(writes).toEqual([{ id: 'ben', hoefe: [], avpHoefe: [] }]);
   });
 
   it('does not look anything up for an empty list of people', async () => {
@@ -131,13 +133,33 @@ describe('refreshUserHoefe', () => {
       [{ id: 'anna', cevi_db_uuid: 7, hoefe: ['nord'] }],
       [{ userId: '7', eventId: '991001' }],
     );
-    mockMirrorFindMany.mockResolvedValue([{ uuid: 'anna', hofIds: [] }]);
+    mockMirrorFindMany.mockResolvedValue([{ uuid: 'anna', hofIds: [], avpHofIds: [] }]);
 
     await expect(refreshUserHoefe(payload)).resolves.toBe(1);
     expect(writes).toEqual([]);
     expect(mockMirrorUpdate).toHaveBeenCalledWith({
       where: { uuid: 'anna' },
-      data: { hofIds: ['nord'] },
+      data: { hofIds: ['nord'], avpHofIds: [] },
     });
+  });
+
+  it('makes the Hauptleitung of a Hof camp its AVP, and nobody else', async () => {
+    const { payload, writes } = fakePayload(
+      [
+        { id: 'lead', cevi_db_uuid: 21, hoefe: [] },
+        { id: 'assistant', cevi_db_uuid: 22, hoefe: [] },
+      ],
+      [
+        { userId: '21', eventId: '991002', roleType: 'Event::Role::Leader' },
+        { userId: '22', eventId: '991002', roleType: 'Event::Role::AssistantLeader' },
+      ],
+    );
+
+    await refreshUserHoefe(payload);
+
+    expect(writes).toEqual([
+      { id: 'lead', hoefe: ['sued'], avpHoefe: ['sued'] },
+      { id: 'assistant', hoefe: ['sued'], avpHoefe: [] },
+    ]);
   });
 });

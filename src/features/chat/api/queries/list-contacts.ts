@@ -5,8 +5,10 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import {
   describeHoefe,
+  describeHofRoles,
   getHofDirectory,
   type HofLabel,
+  type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
@@ -26,6 +28,8 @@ export interface Contact {
   hoefe?: string[] | undefined;
   /** Names of the Quartiere of those Höfe, each once. */
   quartiere?: string[] | undefined;
+  /** Each Hof with its Quartier and whether the contact is its AVP; newer than `hoefe`. */
+  hofRoles?: HofRole[] | undefined;
   /** Functions in the camp organisation, e.g. "Ressortleitung Infrastruktur", in order. */
   funktionen?: string[] | undefined;
 }
@@ -51,6 +55,7 @@ export const listContacts = trpcBaseProcedure
         name: true,
         description: true,
         hofIds: true,
+        avpHofIds: true,
         funktionIds: true,
       },
     });
@@ -105,7 +110,12 @@ export const listContacts = trpcBaseProcedure
         name,
         nickname,
         description: contact.description,
-        ...(hideHofAndQuartier ? {} : describeHoefe(contact.hofIds, hofDirectory)),
+        ...(hideHofAndQuartier
+          ? {}
+          : {
+              ...describeHoefe(contact.hofIds, hofDirectory),
+              hofRoles: describeHofRoles(contact.hofIds, contact.avpHofIds, hofDirectory),
+            }),
         funktionen: describeFunktionen(contact.funktionIds, funktionDirectory),
       };
     });
