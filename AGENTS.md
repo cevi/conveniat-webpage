@@ -172,8 +172,8 @@ src/
 
 `eslint.config.mjs` enforces the direction with `import/no-restricted-paths`. `src/app` imports from
 `src/features`, and both import from the shared directories. Nothing goes the other way. Features do
-not import each other, with `payload-cms` and `next-auth` open to everyone and `billing` allowed
-into `registration_process` for the Hitobito client.
+not import each other, with `payload-cms` and `next-auth` open to everyone. The Cevi.DB client lives
+in `src/lib/hitobito`, so every feature reaches it without an exception.
 
 ## Conventions
 

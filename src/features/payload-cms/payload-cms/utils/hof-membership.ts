@@ -1,3 +1,4 @@
+import prisma from '@/lib/db/prisma';
 import type { Payload, PayloadRequest, Where } from 'payload';
 
 /** What decides whether somebody belongs to a Hof: its Cevi.DB group and its camp events. */
@@ -168,18 +169,28 @@ export const refreshUserHoefe = async (
     eventIdsByPerson.set(userId, [...(eventIdsByPerson.get(userId) ?? []), eventId]);
   }
 
+  // The chat reads the Postgres copy, which `syncUserToPostgres` fills on every user write but
+  // gives up on silently, e.g. before the migration of the column ran. Compared as well, so a
+  // run repairs it instead of trusting a Mongo value that already matches.
+  const mirrorRows = await prisma.user.findMany({
+    where: { uuid: { in: users.docs.map((user) => user.id) } },
+    select: { uuid: true, hofIds: true },
+  });
+  const mirrored = new Map(mirrorRows.map((row) => [row.uuid, row.hofIds]));
+
   let written = 0;
   for (const user of users.docs) {
     if (typeof user.cevi_db_uuid !== 'number') continue;
     const next = findMyHofIds(hoefe, [], eventIdsByPerson.get(String(user.cevi_db_uuid)) ?? []);
-    if (sameIds(next, toHofIds(user.hoefe))) continue;
-    await payload.update({
-      collection: 'users',
-      id: user.id,
-      data: { hoefe: next },
-      ...withRequest,
-    });
-    written += 1;
+    const inPostgres = mirrored.get(user.id);
+    if (!sameIds(next, toHofIds(user.hoefe))) {
+      // without the request: a derived field, not an edit by whoever triggered the refresh
+      await payload.update({ collection: 'users', id: user.id, data: { hoefe: next } });
+      written += 1;
+    } else if (inPostgres !== undefined && !sameIds(next, inPostgres)) {
+      await prisma.user.update({ where: { uuid: user.id }, data: { hofIds: next } });
+      written += 1;
+    }
   }
   return written;
 };

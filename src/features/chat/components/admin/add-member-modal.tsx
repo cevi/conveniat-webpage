@@ -58,6 +58,17 @@ const translations = {
   },
 } as const;
 
+/**
+ * Names joined, or a dash for none. Takes `undefined` too: the admin view restores search
+ * results cached before these fields existed.
+ */
+const namesOrDash = (names: string[] | undefined): React.ReactNode =>
+  names === undefined || names.length === 0 ? (
+    <span className="text-(--theme-elevation-300)">—</span>
+  ) : (
+    names.join(', ')
+  );
+
 export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
   isOpen,
   onClose,
@@ -181,20 +192,8 @@ export const AddMemberModal: React.FC<AddMemberModalProperties> = ({
                   )}
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">{item.email}</td>
-                <td className="px-4 py-3 text-center">
-                  {item.hoefe.length === 0 ? (
-                    <span className="text-(--theme-elevation-300)">—</span>
-                  ) : (
-                    item.hoefe.join(', ')
-                  )}
-                </td>
-                <td className="px-4 py-3 text-center">
-                  {item.quartiere.length === 0 ? (
-                    <span className="text-(--theme-elevation-300)">—</span>
-                  ) : (
-                    item.quartiere.join(', ')
-                  )}
-                </td>
+                <td className="px-4 py-3 text-center">{namesOrDash(item.hoefe)}</td>
+                <td className="px-4 py-3 text-center">{namesOrDash(item.quartiere)}</td>
                 <td className="px-4 py-3 text-right">
                   <button
                     type="button"

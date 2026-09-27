@@ -74,6 +74,7 @@ export interface Config {
     'piket-schedules': PiketSchedule;
     'push-notification-subscriptions': PushNotificationSubscription;
     users: User;
+    funktionen: Funktion;
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
@@ -108,6 +109,9 @@ export interface Config {
     };
     users: {
       presenceLogs: 'presence-logs';
+    };
+    funktionen: {
+      holders: 'users';
     };
     'bill-participants': {
       relatedEmails: 'outgoing-emails';
@@ -144,6 +148,7 @@ export interface Config {
     'piket-schedules': PiketSchedulesSelect<false> | PiketSchedulesSelect<true>;
     'push-notification-subscriptions': PushNotificationSubscriptionsSelect<false> | PushNotificationSubscriptionsSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    funktionen: FunktionenSelect<false> | FunktionenSelect<true>;
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
@@ -237,6 +242,7 @@ export interface Config {
       sendWeeklyReport: TaskSendWeeklyReport;
       sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
+      syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
       createCollectionExport: TaskCreateCollectionExport;
       createCollectionImport: TaskCreateCollectionImport;
@@ -595,6 +601,10 @@ export interface User {
    */
   hoefe?: (string | Hof)[] | null;
   /**
+   * The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.
+   */
+  funktionen?: (string | Funktion)[] | null;
+  /**
    * An additional description of the user shown in the chat.
    */
   description?: string | null;
@@ -859,6 +869,36 @@ export interface Image {
       filename?: string | null;
     };
   };
+}
+/**
+ * Functions in the camp organisation, synced every night from the leaders of the Cevi.DB groups. Set the label and the order here; who holds a function is changed in Cevi.DB.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "funktionen".
+ */
+export interface Funktion {
+  id: string;
+  /**
+   * Shown next to the person in the chat, e.g. "Ressortleitung Infrastruktur". Suggested in German by the sync; falls back to German where a language has none.
+   */
+  label?: string | null;
+  /**
+   * Lower comes first, e.g. the Projektleitung before the Ressortleitungen.
+   */
+  order?: number | null;
+  groupName?: string | null;
+  groupId: string;
+  /**
+   * Everyone with the leader role in the group, including people who have not logged in yet.
+   */
+  personIds?: string[] | null;
+  holders?: {
+    docs?: (string | User)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5087,6 +5127,7 @@ export interface PayloadJob {
           | 'sendWeeklyReport'
           | 'sendPflichtangabenReminders'
           | 'cleanupTemporaryFormFiles'
+          | 'syncFunktionen'
           | 'autoCheckoutPresence'
           | 'createCollectionExport'
           | 'createCollectionImport';
@@ -5145,6 +5186,7 @@ export interface PayloadJob {
         | 'sendWeeklyReport'
         | 'sendPflichtangabenReminders'
         | 'cleanupTemporaryFormFiles'
+        | 'syncFunktionen'
         | 'autoCheckoutPresence'
         | 'createCollectionExport'
         | 'createCollectionImport'
@@ -5263,6 +5305,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'users';
         value: string | User;
+      } | null)
+    | ({
+        relationTo: 'funktionen';
+        value: string | Funktion;
       } | null)
     | ({
         relationTo: 'presence-logs';
@@ -7168,6 +7214,7 @@ export interface UsersSelect<T extends boolean = true> {
   nickname?: T;
   groups?: T;
   hoefe?: T;
+  funktionen?: T;
   description?: T;
   hidden?: T;
   presentAtCamp?: T;
@@ -7176,6 +7223,20 @@ export interface UsersSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "funktionen_select".
+ */
+export interface FunktionenSelect<T extends boolean = true> {
+  label?: T;
+  order?: T;
+  groupName?: T;
+  groupId?: T;
+  personIds?: T;
+  holders?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -10060,6 +10121,14 @@ export interface TaskCleanupTemporaryFormFiles {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskSyncFunktionen".
+ */
+export interface TaskSyncFunktionen {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskAutoCheckoutPresence".
  */
 export interface TaskAutoCheckoutPresence {
@@ -10101,6 +10170,7 @@ export interface TaskCreateCollectionExport {
       | 'piket-schedules'
       | 'push-notification-subscriptions'
       | 'users'
+      | 'funktionen'
       | 'presence-logs'
       | 'bill-participants'
       | 'bill-pdfs'

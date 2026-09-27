@@ -15,21 +15,10 @@ import {
   type ParticipationAnswerField,
 } from '@/lib/hitobito/html-parser';
 import { EventService } from '@/lib/hitobito/services/event.service';
+import { GroupService } from '@/lib/hitobito/services/group.service';
 import { PersonService } from '@/lib/hitobito/services/person.service';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { trace } from '@opentelemetry/api';
-import { z } from 'zod';
-
-interface GroupResource {
-  id: string;
-}
-
-interface GroupApiResponse {
-  data?: GroupResource[];
-  links?: {
-    next?: string | null;
-  };
-}
 
 interface EventResource {
   id: string;
@@ -58,44 +47,6 @@ interface LegacyParticipationsResponse {
   };
 }
 
-/**
- * The legacy `people.json` payload, read defensively: it is a frontend endpoint, so a
- * person without an e-mail, without roles or with an unexpected extra key is normal and
- * must not lose us the rest of the list.
- */
-const PeopleJsonSchema = z.object({
-  people: z
-    .array(
-      z
-        .object({
-          email: z.string().nullish(),
-          first_name: z.string().nullish(),
-          last_name: z.string().nullish(),
-          nickname: z.string().nullish(),
-          links: z
-            .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
-            .nullish(),
-        })
-        .passthrough(),
-    )
-    .nullish(),
-  linked: z
-    .object({
-      roles: z
-        .array(
-          z
-            .object({
-              id: z.union([z.string(), z.number()]),
-              role_class: z.string().nullish(),
-            })
-            .passthrough()
-            .nullable(),
-        )
-        .nullish(),
-    })
-    .nullish(),
-});
-
 /** The answer control whose question text contains every keyword, case-insensitively. */
 function findAnswerField(
   html: string,
@@ -110,6 +61,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
   private readonly eventService: EventService;
   private readonly personService: PersonService;
+  private readonly groupService: GroupService;
   private readonly participationsJsonCache = new Map<string, LegacyParticipationsResponse>();
 
   constructor(
@@ -124,6 +76,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       'apiRequest' in configOrClient ? configOrClient : new HitobitoClient(configOrClient, logger);
     this.eventService = new EventService(this.client, logger);
     this.personService = new PersonService(this.client, logger);
+    this.groupService = new GroupService(this.client, logger);
   }
 
   async fetchParticipations(
@@ -288,31 +241,8 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
   }
 
   async fetchSubgroupLinks(parentGroupId: string): Promise<string[]> {
-    const subgroupLinks: string[] = [];
-    let nextUrl: string | undefined = `/api/groups`;
-    let isFirstPage = true;
-    const baseParameters: Record<string, string> = {
-      'filter[parent_id][eq]': parentGroupId,
-      'page[size]': '100',
-    };
-
-    while (typeof nextUrl === 'string' && nextUrl !== '') {
-      const response: GroupApiResponse = await this.client.apiRequest<GroupApiResponse>(
-        'GET',
-        nextUrl,
-        isFirstPage ? { params: baseParameters } : {},
-      );
-      if (response.data !== undefined) {
-        for (const group of response.data) {
-          if (typeof group.id === 'string' && group.id !== '') {
-            subgroupLinks.push(group.id);
-          }
-        }
-      }
-      nextUrl = response.links?.next ?? undefined;
-      isFirstPage = false;
-    }
-    return subgroupLinks;
+    const subgroups = await this.groupService.listSubgroups(parentGroupId);
+    return subgroups.map((group) => group.id);
   }
 
   async fetchEventsForGroup(groupId: string): Promise<Array<{ id: string; name: string }>> {
@@ -332,43 +262,20 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
   }
 
   async fetchAddressManagers(groupId: string): Promise<HofAddressManager[]> {
-    const path = `/groups/${groupId}/people.json`;
-    const { response, body } = await this.client.frontendRequest('GET', path, {
-      headers: {
-        ...this.client.getFrontendHeaders(),
-        'X-Token': this.client.config.apiToken,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch address managers for group ${groupId}: status ${String(response.status)}`,
-      );
-    }
-
-    const parsed = PeopleJsonSchema.safeParse(JSON.parse(body));
-    if (!parsed.success) return [];
-
-    const addressManagerRoleIds = new Set(
-      (parsed.data.linked?.roles ?? [])
-        .filter((role) => role !== null && role.role_class === HOF_ADMINISTRATOR_ROLE_CLASS)
-        .map((role) => String(role?.id)),
+    const holders = await this.groupService.listPeopleWithRole(
+      groupId,
+      HOF_ADMINISTRATOR_ROLE_CLASS,
     );
 
     const managers = new Map<string, HofAddressManager>();
-    for (const person of parsed.data.people ?? []) {
-      const hasRole = (person.links?.roles ?? []).some((roleId) =>
-        addressManagerRoleIds.has(String(roleId)),
-      );
-      if (!hasRole) continue;
-      const email = (person.email ?? '').trim().toLowerCase();
-      if (email === '' || managers.has(email)) continue;
-      const fullName = [person.first_name, person.last_name]
-        .map((part) => decodeDisplayText(part ?? '').trim())
+    for (const holder of holders) {
+      if (holder.email === '' || managers.has(holder.email)) continue;
+      const fullName = [holder.firstName, holder.lastName]
+        .map((part) => decodeDisplayText(part).trim())
         .filter((part) => part !== '')
         .join(' ');
-      const name = formatUserFullName(fullName, decodeDisplayText(person.nickname ?? ''));
-      managers.set(email, { name, email });
+      const name = formatUserFullName(fullName, decodeDisplayText(holder.nickname));
+      managers.set(holder.email, { name, email: holder.email });
     }
 
     return [...managers.values()];

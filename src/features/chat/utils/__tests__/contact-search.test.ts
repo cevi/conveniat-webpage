@@ -1,5 +1,9 @@
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
-import { describeContactHof, matchesContactSearch } from '@/features/chat/utils/contact-search';
+import {
+  describeContactFunktionen,
+  describeContactHof,
+  matchesContactSearch,
+} from '@/features/chat/utils/contact-search';
 
 const ANNA: Contact = {
   userId: 'anna',
@@ -47,5 +51,21 @@ describe('matchesContactSearch', () => {
   it('searches a cached contact without Höfe by name only', () => {
     expect(matchesContactSearch(CACHED, 'ben')).toBe(true);
     expect(matchesContactSearch(CACHED, 'hof')).toBe(false);
+  });
+});
+
+describe('functions in the address book', () => {
+  const LEAD: Contact = { ...ANNA, funktionen: ['Projektleitung', 'Ressortleitung Infrastruktur'] };
+
+  it('lists every function of a contact in order', () => {
+    expect(describeContactFunktionen(LEAD)).toBe('Projektleitung, Ressortleitung Infrastruktur');
+  });
+
+  it('finds a contact by a function', () => {
+    expect(matchesContactSearch(LEAD, 'infrastruktur')).toBe(true);
+  });
+
+  it('shows no function for a contact cached before functions existed', () => {
+    expect(describeContactFunktionen(CACHED)).toBe('');
   });
 });

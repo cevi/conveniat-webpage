@@ -76,6 +76,15 @@ export const environmentVariables = createEnv({
           .filter((n) => Number.isInteger(n) && n > 0),
       ),
 
+    /**
+     * optional: the Cevi.DB group whose tree the camp functions are synced from, e.g. the
+     * Projektleitung. Without it, nobody gets a function.
+     */
+    CEVIDB_FUNCTIONS_ROOT_GROUP_ID: z
+      .string()
+      .regex(/^\d{0,6}$/)
+      .default(''),
+
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
     S3_ACCESS_KEY_ID: z.string().min(5),

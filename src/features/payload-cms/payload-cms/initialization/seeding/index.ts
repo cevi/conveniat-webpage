@@ -27,6 +27,7 @@ import {
   generateScheduleEntries,
 } from '@/features/payload-cms/payload-cms/initialization/seeding/schedule-entries';
 import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-alert-settings';
+import { seedFunktionen } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-funktionen';
 import {
   seedHoefe,
   seedRandomUserRegistrations,
@@ -521,6 +522,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
 
   // after the Höfe, so the registration hooks find the Höfe of the random users
   await seedRandomUserRegistrations(payload, userIds);
+  await seedFunktionen(payload, userIds);
 
   console.log('Seeding: Creating the Hof dashboard...');
   await seedHofDashboard(payload, publicPermission);

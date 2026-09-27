@@ -36,6 +36,7 @@ import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bil
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
 import { sendWeeklyReportTask } from '@/features/payload-cms/payload-cms/tasks/send-weekly-report';
 import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/tasks/sync-active-piket-members';
+import { syncFunktionenTask } from '@/features/payload-cms/payload-cms/tasks/sync-funktionen';
 import { syncNewUserAnnouncementChatsTask } from '@/features/payload-cms/payload-cms/tasks/sync-new-user-announcement-chats';
 import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/sync-participants';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
@@ -374,6 +375,7 @@ const jobsConfig: JobsConfig = {
       sendWeeklyReportTask,
       sendPflichtangabenRemindersTask,
       cleanupTemporaryFormFilesTask,
+      syncFunktionenTask,
       autoCheckoutPresenceTask,
     ].map((task) => withActiveJobTracking(task)),
   ),
