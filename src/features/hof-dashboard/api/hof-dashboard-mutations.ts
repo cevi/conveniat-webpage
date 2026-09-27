@@ -69,6 +69,36 @@ export const createHofUploadUrl = async (
   return { url, key, contentType };
 };
 
+const PDF = [0x25, 0x50, 0x44, 0x46];
+const ZIP = [0x50, 0x4b, 0x03, 0x04];
+const JPEG = [0xff, 0xd8, 0xff];
+const PNG = [0x89, 0x50, 0x4e, 0x47];
+
+/** How a file of each allowed type begins; Word, Excel and PowerPoint files are zip archives. */
+const FILE_SIGNATURES: Record<keyof typeof HOF_FILE_TYPES, readonly number[]> = {
+  pdf: PDF,
+  docx: ZIP,
+  xlsx: ZIP,
+  pptx: ZIP,
+  jpg: JPEG,
+  jpeg: JPEG,
+  png: PNG,
+  zip: ZIP,
+};
+
+/**
+ * The name a file is stored under: the Hof's own, so a download still reads "Plan-….pdf", with
+ * a random part, so no one can guess it, and no Hof learns from a "Plan-1.pdf" which names
+ * other Höfe used.
+ */
+const storedFilename = (filename: string, extension: string): string => {
+  const base = filename
+    .slice(0, -(extension.length + 1))
+    .replaceAll(/[^\w-]/g, '_')
+    .slice(0, 60);
+  return `${base}-${randomUUID().slice(0, 8)}.${extension}`;
+};
+
 /** The Hof's entry for one kind of plan, created the first time the Hof touches it. */
 const findOrCreateSubmission = async (
   payload: Payload,
@@ -172,6 +202,15 @@ export const completeHofUpload = async ({
       throw new TRPCError({ code: 'BAD_REQUEST', message: 'too_many_files' });
     }
     const body = await readUpload(key);
+    // Checked here, before anything is made for it: a renamed file would otherwise leave an
+    // empty submission behind, and Payload's own check logs every refusal as an error.
+    if (!FILE_SIGNATURES[extension].every((byte, index) => body[index] === byte)) {
+      logger.info('A Hof handed in a file whose content does not match its type', {
+        'hof_dashboard.hof_id': hofId,
+        'hof_dashboard.file_extension': extension,
+      });
+      throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
+    }
 
     const submission = await findOrCreateSubmission(payload, hof, submissionType);
     try {
@@ -187,16 +226,14 @@ export const completeHofUpload = async ({
         file: {
           data: Buffer.from(body),
           mimetype: HOF_FILE_TYPES[extension],
-          // not the Hof's own name, which would be guessable and show which names other Höfe
-          // used; originalFilename keeps it for the dashboard
-          name: `${randomUUID()}.${extension}`,
+          name: storedFilename(filename, extension),
           size: body.length,
         },
         depth: 0,
         overrideAccess: true,
       });
     } catch (error) {
-      // Payload checks the content against the file type; a renamed file ends up here
+      // Payload checks the content more closely than the first bytes above
       if (
         error instanceof ValidationError &&
         error.data.errors.some(({ path }) => path === 'file')

@@ -104,7 +104,7 @@ describe('completeHofUpload', () => {
       data: { hof: 'hof-nord', originalFilename: 'Plan.pdf' },
     });
     // stored under a name of its own, so other Höfe can neither guess it nor learn of it
-    expect((fileCreate as { file: { name: string } }).file.name).toMatch(/^[\da-f-]{36}\.pdf$/);
+    expect((fileCreate as { file: { name: string } }).file.name).toMatch(/^Plan-[\da-f]{8}\.pdf$/);
     expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
       collection: 'hof-submissions',
       data: { status: 'submitted' },
@@ -133,6 +133,18 @@ describe('completeHofUpload', () => {
     await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toThrow(
       'connection refused',
     );
+  });
+
+  it('refuses a renamed file before it makes a submission for it', async () => {
+    const exe = new TextEncoder().encode('MZ\u0090\u0000');
+    mockSend.mockResolvedValue({
+      ContentLength: exe.length,
+      Body: { transformToByteArray: (): Promise<Uint8Array> => Promise.resolve(exe) },
+    });
+    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
+      message: 'unsupported_file_type',
+    });
+    expect(mockPayload.create).not.toHaveBeenCalled();
   });
 
   it('answers a file whose content does not match its ending as an unsupported type', async () => {

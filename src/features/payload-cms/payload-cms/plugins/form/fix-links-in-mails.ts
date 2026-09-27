@@ -19,7 +19,7 @@ import {
   type HTMLConverter,
 } from '@payloadcms/richtext-lexical/html';
 import { randomUUID } from 'node:crypto';
-import { getPayload, type Where } from 'payload';
+import { getPayload, type PayloadRequest, type Where } from 'payload';
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
   beforeChangeParameters: unknown,
@@ -230,7 +230,29 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     form?: string | { id?: string };
     approvalToken?: string;
   };
+  const request = (beforeChangeParameters as { req?: PayloadRequest }).req;
   let approvalToken = typedSubmissionDocument.approvalToken;
+  // The document here is read with the sender's access, which does not include the token, so
+  // for a public submission it is read again before a new one would replace it.
+  if (
+    (typeof approvalToken !== 'string' || approvalToken.length === 0) &&
+    typeof formSubmissionId === 'string' &&
+    formSubmissionId.length > 0
+  ) {
+    try {
+      const stored = await payload.findByID({
+        collection: 'form-submissions',
+        id: formSubmissionId,
+        depth: 0,
+        select: { approvalToken: true },
+        overrideAccess: true,
+        ...(request === undefined ? {} : { req: request }),
+      });
+      approvalToken = stored.approvalToken ?? undefined;
+    } catch {
+      // not found: a new token below
+    }
+  }
   if (typeof approvalToken !== 'string' || approvalToken.length === 0) {
     approvalToken = randomUUID();
     if (typeof formSubmissionId === 'string' && formSubmissionId.length > 0) {
@@ -239,6 +261,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
           collection: 'form-submissions',
           id: formSubmissionId,
           data: { approvalToken },
+          ...(request === undefined ? {} : { req: request }),
         });
       } catch {
         // ignore fallback update error

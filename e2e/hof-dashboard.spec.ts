@@ -312,6 +312,20 @@ test.describe('Hof dashboard', () => {
     await expect(page.getByRole('tab', { name: 'Übersicht' })).toBeVisible();
   });
 
+  test('opens the Hof chosen last after a reload', async ({ page }) => {
+    await mockBackend(page, {
+      hoefe: [DASHBOARD.hof, { id: 'hof-sued', name: 'Hof Süd' }],
+    });
+    await page.goto('/hof-dashboard');
+    const selector = page.getByRole('combobox', { name: 'Hof' });
+    await selector.click();
+    await page.getByRole('option', { name: 'Hof Süd' }).click();
+    await expect(selector).toHaveText('Hof Süd');
+
+    await page.reload();
+    await expect(page.getByRole('combobox', { name: 'Hof' })).toHaveText('Hof Süd');
+  });
+
   test('keeps a saved answer when the reload after it fails', async ({ page }) => {
     await mockBackend(page, { failReloads: true });
     await page.goto('/hof-dashboard');

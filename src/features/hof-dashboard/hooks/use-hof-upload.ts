@@ -105,6 +105,11 @@ export const useHofUpload = (
       toast.error(translate('fileTypeNotAllowed', locale, { types: typesText }));
       return;
     }
+    // an empty file is one the phone failed to read, not a plan
+    if (file.size === 0) {
+      toast.error(translate('fileUnreadable', locale));
+      return;
+    }
     if (file.size > HOF_FILE_MAX_BYTES) {
       toast.error(translate('fileTooLarge', locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) }));
       return;
@@ -151,13 +156,14 @@ export const useHofUpload = (
     } catch (error) {
       // called off, or its Hof left meanwhile: its failure is not the one shown now
       if (error instanceof UploadCancelled || state.cancelled) return;
-      console.error('Hof dashboard upload failed', error);
       // its ending passed here, so a file whose content the server refuses is damaged
       if (error instanceof TRPCClientError && error.message === 'unsupported_file_type') {
         toast.error(translate('fileUnreadable', locale));
       } else if (error instanceof TRPCClientError && error.message === 'too_many_files') {
         toast.error(translate('tooManyFiles', locale));
       } else {
+        // only what nobody expected is worth an error report; no signal is the usual cause
+        if (globalThis.navigator.onLine) console.error('Hof dashboard upload failed', error);
         notifyFailure(locale, 'uploadFailed');
       }
     } finally {

@@ -24,6 +24,7 @@ import {
   type HofDashboardArea,
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
+import { useRememberedHofId } from '@/features/hof-dashboard/hooks/use-remembered-hof-id';
 import { useScrollToSubmission } from '@/features/hof-dashboard/hooks/use-scroll-to-submission';
 import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { text, translate } from '@/features/hof-dashboard/texts';
@@ -193,7 +194,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
     refetchOnMount: true,
     meta: { persist: false },
   });
-  const [selectedHofId, setSelectedHofId] = useState<string>();
+  const [selectedHofId, setSelectedHofId] = useRememberedHofId();
   const selectId = useId();
 
   if (hoefe.isLoading) return <LoadingState locale={locale} />;

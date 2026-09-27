@@ -30,15 +30,20 @@ export const FieldsRowLabel: React.FC<{ fields: string[] }> = ({ fields }) => {
   const locale = useLocale();
   const { i18n } = useTranslation();
   const parts = fields.map((field) => show(data[field])).filter((part) => part !== undefined);
-  if (parts.length > 0) return <span>{parts.join(' · ')}</span>;
+  // dates and numbers are the same in every language; a row without any text in French or
+  // English is one still waiting for its translation
+  const hasText = fields.some((field) => {
+    const value = data[field];
+    return typeof value === 'string' && value !== '' && !ISO_DATE_TIME.test(value);
+  });
+  const label =
+    parts.length > 0 ? parts.join(' · ') : String((rowNumber ?? 0) + 1).padStart(2, '0');
+  if (hasText || locale.code === 'de') return <span>{label}</span>;
 
-  const number = String((rowNumber ?? 0) + 1).padStart(2, '0');
-  // in French or English, an empty row is one still waiting for its translation
-  if (locale.code === 'de') return <span>{number}</span>;
   const language = i18n.language as keyof StaticTranslationString;
   return (
     <span className="flex items-center gap-2">
-      {number}
+      {label}
       <Pill pillStyle="warning" size="small">
         {(NOT_TRANSLATED[language] as string | undefined) ?? NOT_TRANSLATED.de}
       </Pill>

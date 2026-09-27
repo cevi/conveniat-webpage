@@ -21,7 +21,7 @@ export const HofFilesCollection: CollectionConfig = {
     plural: { de: 'Hof-Dateien', en: 'Hof files', fr: 'Fichiers des Hofs' },
   },
   admin: {
-    // what the Hof named the file; the stored name may carry a suffix against duplicates
+    // what the Hof named the file; the stored name carries a random part
     useAsTitle: 'originalFilename',
     group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
     defaultColumns: ['originalFilename', 'hof', 'kind', 'submission', 'createdAt'],
@@ -70,8 +70,7 @@ export const HofFilesCollection: CollectionConfig = {
       label: { de: 'Art', en: 'Kind', fr: 'Type' },
     },
     {
-      // Payload renames a file whose name is taken, so a second "Plan.pdf" is stored as
-      // "Plan-1.pdf"; the Hof should read the name it chose
+      // the stored name carries a random part, so the Hof should read the name it chose
       name: 'originalFilename',
       type: 'text',
       label: {

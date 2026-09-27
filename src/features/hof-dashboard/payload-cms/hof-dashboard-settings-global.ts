@@ -53,7 +53,8 @@ const hasText = (value: unknown): boolean => typeof value === 'string' && value.
  * In French or English, a row still without its German text is refused as well: it would show
  * German readers an empty line, and block the next German save of anything else.
  */
-const requiredInGerman: TextFieldSingleValidation = async (value, { req, siblingData, path }) => {
+// `name`, not `path`: Payload leaves `path` out of the checks it runs while the form is edited
+const requiredInGerman: TextFieldSingleValidation = async (value, { req, siblingData, name }) => {
   if (req.locale === LOCALE.DE) {
     return (
       hasText(value) ||
@@ -66,12 +67,11 @@ const requiredInGerman: TextFieldSingleValidation = async (value, { req, sibling
   }
 
   const rowId = (siblingData as { id?: unknown }).id;
-  const field = path.at(-1);
-  if (typeof rowId !== 'string' || typeof field !== 'string') return true;
+  if (typeof rowId !== 'string') return true;
   const rows = await germanRows(req);
   const germanRow = rows.get(rowId);
   return (
-    hasText(germanRow?.[field]) ||
+    hasText(germanRow?.[name]) ||
     getValidationMessage(req.i18n.language, {
       en: 'Missing in German. Add new entries in German first, then translate them.',
       de: 'Fehlt auf Deutsch. Neue Einträge zuerst auf Deutsch erfassen, dann übersetzen.',
