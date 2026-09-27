@@ -138,6 +138,14 @@ export enum BillingJobStatus {
   Success = 'success',
 }
 
+/** Someone holding the Adressverwalter role of a Hof's group in Cevi.DB. */
+export interface HofAddressManager {
+  /** Formatted like a signed-in user's name: first and last name, then the v/o. */
+  name: string;
+  /** Lowercased, which is what the addresses are matched on. */
+  email: string;
+}
+
 /**
  * One Cevi.DB event of a Hof, flattened: the event carries its Hof's group and addresses.
  *

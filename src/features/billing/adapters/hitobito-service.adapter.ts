@@ -5,6 +5,7 @@ import type {
   ParticipationAnswerUpdate,
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
+import type { HofAddressManager } from '@/features/billing/types';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { HitobitoClient } from '@/lib/hitobito/client';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
@@ -16,6 +17,7 @@ import {
 import { EventService } from '@/lib/hitobito/services/event.service';
 import { GroupService } from '@/lib/hitobito/services/group.service';
 import { PersonService } from '@/lib/hitobito/services/person.service';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { trace } from '@opentelemetry/api';
 
 interface EventResource {
@@ -259,12 +261,24 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     }));
   }
 
-  async fetchAddressManagerEmails(groupId: string): Promise<string[]> {
+  async fetchAddressManagers(groupId: string): Promise<HofAddressManager[]> {
     const holders = await this.groupService.listPeopleWithRole(
       groupId,
       HOF_ADMINISTRATOR_ROLE_CLASS,
     );
-    return [...new Set(holders.map((holder) => holder.email).filter((email) => email !== ''))];
+
+    const managers = new Map<string, HofAddressManager>();
+    for (const holder of holders) {
+      if (holder.email === '' || managers.has(holder.email)) continue;
+      const fullName = [holder.firstName, holder.lastName]
+        .map((part) => decodeDisplayText(part).trim())
+        .filter((part) => part !== '')
+        .join(' ');
+      const name = formatUserFullName(fullName, decodeDisplayText(holder.nickname));
+      managers.set(holder.email, { name, email: holder.email });
+    }
+
+    return [...managers.values()];
   }
 
   /**

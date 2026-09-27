@@ -35,7 +35,13 @@ const source = (overrides: Partial<FunktionenSource> = {}): FunktionenSource => 
   listPeopleWithRole: jest.fn((id: string, roleClass: string) =>
     Promise.resolve(
       roleClass === LEITUNG_ROLE_CLASS
-        ? (TREE[id]?.leaders ?? []).map((personId) => ({ personId, email: '' }))
+        ? (TREE[id]?.leaders ?? []).map((personId) => ({
+            personId,
+            email: '',
+            firstName: '',
+            lastName: '',
+            nickname: '',
+          }))
         : [],
     ),
   ),

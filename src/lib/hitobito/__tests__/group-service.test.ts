@@ -31,7 +31,7 @@ describe('GroupService.listPeopleWithRole', () => {
 
     await expect(
       groups.listPeopleWithRole('5001', 'Group::DachverbandGremium::Leitung'),
-    ).resolves.toEqual([
+    ).resolves.toMatchObject([
       { personId: '11', email: 'leitung@cevi.ch' },
       { personId: '13', email: '' },
     ]);

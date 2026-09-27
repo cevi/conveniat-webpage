@@ -16,7 +16,12 @@ interface GroupListResponse {
 /** Somebody holding a role in a group, as `people.json` lists them. */
 export interface GroupRoleHolder {
   personId: string;
+  /** trimmed and lower-cased, empty when Cevi.DB has none */
   email: string;
+  /** as Cevi.DB stores them, still HTML-encoded; empty when missing */
+  firstName: string;
+  lastName: string;
+  nickname: string;
 }
 
 /**
@@ -33,6 +38,9 @@ const PeopleJsonSchema = z.object({
         .object({
           id: z.union([z.string(), z.number()]).nullish(),
           email: z.string().nullish(),
+          first_name: z.string().nullish(),
+          last_name: z.string().nullish(),
+          nickname: z.string().nullish(),
           links: z
             .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
             .nullish(),
@@ -164,6 +172,9 @@ export class GroupService {
         holders.push({
           personId: person.id === null || person.id === undefined ? '' : String(person.id),
           email: (person.email ?? '').trim().toLowerCase(),
+          firstName: person.first_name ?? '',
+          lastName: person.last_name ?? '',
+          nickname: person.nickname ?? '',
         });
       }
 

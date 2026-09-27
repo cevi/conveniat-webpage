@@ -671,6 +671,16 @@ export interface Hof {
    */
   addressManagerEmails?: string | null;
   /**
+   * Written by the subgroup sync button; the Hof dashboard lists them as the responsible people of the Hof.
+   */
+  addressManagers?:
+    | {
+        name?: string | null;
+        email: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
    */
   reminderRecipientsOverride?: string | null;
@@ -7330,6 +7340,13 @@ export interface HoefeSelect<T extends boolean = true> {
         id?: T;
       };
   addressManagerEmails?: T;
+  addressManagers?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        id?: T;
+      };
   reminderRecipientsOverride?: T;
   updatedAt?: T;
   createdAt?: T;
