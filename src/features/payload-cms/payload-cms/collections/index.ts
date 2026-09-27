@@ -21,6 +21,7 @@ import { PermissionsCollection } from '@/features/payload-cms/payload-cms/collec
 import { PhotoContestCollection } from '@/features/payload-cms/payload-cms/collections/photo-contest-collection';
 import { PiketScheduleCollection } from '@/features/payload-cms/payload-cms/collections/piket-schedule-collection';
 import { PushNotificationSubscriptions } from '@/features/payload-cms/payload-cms/collections/push-notification-subscriptions';
+import { QuartiereCollection } from '@/features/payload-cms/payload-cms/collections/quartiere-collection';
 import { SmtpBounceMailTracking } from '@/features/payload-cms/payload-cms/collections/smtp-bounce-tracking';
 import { TimelineCollection } from '@/features/payload-cms/payload-cms/collections/timeline';
 import { TimelineEntryCategory } from '@/features/payload-cms/payload-cms/collections/timeline/timeline-entry-category';
@@ -59,6 +60,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   EmergencyCardsCollection,
   PhotoContestCollection,
   CampMapAnnotationsCollection,
+  QuartiereCollection,
   CampCategoryCollection,
   CampScheduleEntryCollection,
   HelperShiftsCollection,

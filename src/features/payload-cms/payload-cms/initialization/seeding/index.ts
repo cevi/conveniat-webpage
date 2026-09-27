@@ -30,6 +30,7 @@ import { seedAlertSettings } from '@/features/payload-cms/payload-cms/initializa
 import { seedHoefe } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hoefe';
 import { seedHofDashboard } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-hof-dashboard';
 import { seedJobs } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-jobs';
+import { seedQuartiere } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-quartiere';
 import { createRandomUser } from '@/features/payload-cms/payload-cms/initialization/seeding/seed-users';
 import {
   generateTimelineEntries,
@@ -633,6 +634,7 @@ export const seedDatabase = async (payload: Payload): Promise<void> => {
     });
     campSitesIds.push(campSiteId);
   }
+  await seedQuartiere(payload, campSitesIds);
 
   const playGrounds = generatePlaygroundPolygons();
   for (const playground of playGrounds) {
