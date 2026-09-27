@@ -23,6 +23,7 @@ interface ChatRealtimeEvent {
     | 'chat_read_by_admin'
     | 'chat_updated'
     | 'new_chat'
+    | 'membership_revoked'
     | 'typing';
   chatId: string;
   senderId: string;
@@ -194,6 +195,13 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
 
     const listener = (data: ChatRealtimeEvent): void => {
       if (data.type === 'new_chat') {
+        trpcUtils.chat.chats.invalidate().catch(console.error);
+        return;
+      }
+
+      // The user left the chat, possibly on another device: drop it from the overview.
+      if (data.type === 'membership_revoked') {
+        trpcUtils.chat.chats.setData({}, (chats) => chats?.filter((c) => c.id !== data.chatId));
         trpcUtils.chat.chats.invalidate().catch(console.error);
         return;
       }

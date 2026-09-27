@@ -1,15 +1,9 @@
 'use client';
+import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import {
-  ChatAlertDialog,
-  ChatAlertDialogAction,
-  ChatAlertDialogCancel,
-  ChatAlertDialogContent,
-  ChatAlertDialogDescription,
-  ChatAlertDialogFooter,
-  ChatAlertDialogHeader,
-  ChatAlertDialogTitle,
-  ChatAlertDialogTrigger,
-} from '@/features/chat/components/ui/chat-alert-dialog';
+  ArchiveChatConfirmDialog,
+  localizedDeleteChat,
+} from '@/features/chat/components/archive-chat-confirm-dialog';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -23,24 +17,6 @@ import { cn } from '@/utils/tailwindcss-override';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
-const localizedDeleteChat: StaticTranslationString = {
-  en: 'Delete Chat',
-  de: 'Chat löschen',
-  fr: 'Supprimer la discussion',
-};
-
-const localizedDeleteChatWarning: StaticTranslationString = {
-  en:
-    'Deleting this chat is irreversible and will remove it from your view. Other members ' +
-    'will still be able to access and read its messages.',
-  de:
-    'Das Löschen dieses Chats ist irreversibel und entfernt ihn aus deiner Chat-Ansicht. ' +
-    'Andere Mitglieder können weiterhin auf die Nachrichten zugreifen und sie lesen.',
-  fr:
-    'La suppression de cette discussion est irréversible et la retirera de votre vue, ' +
-    'mais les autres membres pourront toujours accéder et lire ses messages.',
-};
-
 const localizedRoleNames: Record<ChatMembershipPermission, StaticTranslationString> = {
   [ChatMembershipPermission.OWNER]: { en: 'Owner', de: 'Besitzer', fr: 'Propriétaire' },
   [ChatMembershipPermission.ADMIN]: { en: 'Admin', de: 'Admin', fr: 'Admin' },
@@ -56,12 +32,6 @@ const getCannotDeleteExplanation = (role: ChatMembershipPermission, locale: Loca
     fr: `Seuls les admins et propriétaires peuvent supprimer cette discussion. Votre rôle: ${roleName}.`,
   };
   return explanations[locale];
-};
-
-const localizedCancel: StaticTranslationString = {
-  en: 'Cancel',
-  de: 'Abbrechen',
-  fr: 'Annuler',
 };
 
 export const DeleteChat: React.FC = () => {
@@ -112,51 +82,28 @@ export const DeleteChat: React.FC = () => {
         </div>
       )}
 
-      <ChatAlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <ChatAlertDialogTrigger asChild>
-          <button
-            aria-label={'Delete Chat'}
-            disabled={
-              !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
-            }
-            className={cn('mt-4 w-full rounded-md px-4 py-2', {
-              'cursor-pointer bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none':
-                canUserArchiveChat,
-              'cursor-not-allowed bg-gray-300 text-gray-500': !canUserArchiveChat,
-            })}
-          >
-            {localizedDeleteChat[locale]}
-          </button>
-        </ChatAlertDialogTrigger>
-        <ChatAlertDialogContent>
-          <ChatAlertDialogHeader>
-            <ChatAlertDialogTitle>{localizedDeleteChat[locale]}</ChatAlertDialogTitle>
-            <ChatAlertDialogDescription>
-              {localizedDeleteChatWarning[locale]}
-            </ChatAlertDialogDescription>
-          </ChatAlertDialogHeader>
-          <ChatAlertDialogFooter>
-            <ChatAlertDialogCancel>{localizedCancel[locale]}</ChatAlertDialogCancel>
-            <ChatAlertDialogAction
-              onClick={(event) => {
-                event.preventDefault();
-                handleDeleteChat();
-              }}
-              disabled={deleteChatMutation.isPending}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {deleteChatMutation.isPending ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  {localizedDeleteChat[locale]}
-                </>
-              ) : (
-                localizedDeleteChat[locale]
-              )}
-            </ChatAlertDialogAction>
-          </ChatAlertDialogFooter>
-        </ChatAlertDialogContent>
-      </ChatAlertDialog>
+      <button
+        aria-label={'Delete Chat'}
+        onClick={() => setIsDialogOpen(true)}
+        disabled={
+          !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
+        }
+        className={cn('mt-4 w-full rounded-md px-4 py-2', {
+          'cursor-pointer bg-red-600 text-white hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none':
+            canUserArchiveChat,
+          'cursor-not-allowed bg-gray-300 text-gray-500': !canUserArchiveChat,
+        })}
+      >
+        {localizedDeleteChat[locale]}
+      </button>
+
+      <ArchiveChatConfirmDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleDeleteChat}
+        isPending={deleteChatMutation.isPending}
+        archivesForEveryone={chatDetails === undefined || !isChatArchived(chatDetails)}
+      />
     </>
   );
 };

@@ -180,6 +180,13 @@ export async function GET(request: NextRequest): Promise<Response> {
       keepAliveInterval.unref();
 
       const listener = (event: ChatRealtimeEvent): void => {
+        // Membership is only checked when the stream opens. A user who leaves a chat must
+        // stop receiving it now, not on the next reconnect.
+        if (event.type === 'membership_revoked' && event.channel === user.uuid) {
+          activeListeners.get(event.chatId)?.();
+          activeListeners.delete(event.chatId);
+        }
+
         try {
           const dataString = superjson.stringify(event);
           controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));

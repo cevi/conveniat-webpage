@@ -204,4 +204,41 @@ describe('GET /api/chat/sse', () => {
     expect(new TextDecoder().decode(chunk?.value)).toContain('event: resync');
     await reader?.cancel();
   });
+
+  it('stops delivering a chat to a user who left it', async () => {
+    const validChatId = '550e8400-e29b-41d4-a716-446655440000';
+    const mockUser = { uuid: 'user-uuid-123', group_ids: ['member-group'] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+    (prisma.chatMembership.findMany as unknown as jest.Mock).mockResolvedValue([
+      { chatId: validChatId, userId: 'user-uuid-123' },
+    ]);
+    const unsubscribeChat = jest.fn();
+    (chatPubSub.subscribe as unknown as jest.Mock)
+      .mockResolvedValueOnce(jest.fn())
+      .mockResolvedValueOnce(unsubscribeChat);
+
+    const request = new NextRequest(`https://konekta.ch/api/chat/sse?chatIds=${validChatId}`);
+    const response = await GET(request);
+    const reader = response.body?.getReader();
+    await reader?.read();
+    await reader?.read();
+
+    const subscribeCalls = (chatPubSub.subscribe as unknown as jest.Mock).mock.calls as [
+      string,
+      (event: unknown) => void,
+    ][];
+    const listener = subscribeCalls.find(([channel]) => channel === 'user-uuid-123')?.[1];
+    listener?.({
+      type: 'membership_revoked',
+      chatId: validChatId,
+      senderId: 'user-uuid-123',
+      channel: 'user-uuid-123',
+    });
+
+    expect(unsubscribeChat).toHaveBeenCalledTimes(1);
+    await reader?.cancel();
+    // Closing the stream must not try to unsubscribe the chat a second time.
+    expect(unsubscribeChat).toHaveBeenCalledTimes(1);
+  });
 });
