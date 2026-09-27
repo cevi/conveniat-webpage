@@ -5,6 +5,8 @@
 - translation team: can read and update collection entries, but not create or delete
 - program team: only allowed users (field allowsEditsByUser on some collections)
 - material team: runs the material depot in the app (/app/material)
+- Hof dashboard reviewers: review what the Höfe hand in on the Hof dashboard, without the
+  admin panel
 */
 
 import { environmentVariables } from '@/config/environment-variables';
@@ -15,6 +17,8 @@ const CEVIDB_GROUP_WEB_CORE_TEAM = environmentVariables.CEVIDB_GROUP_WEB_CORE_TE
 const CEVIDB_GROUP_TRANSLATION_TEAM = environmentVariables.CEVIDB_GROUP_TRANSLATION_TEAM;
 const CEVIDB_GROUP_PROGRAM_TEAM = environmentVariables.CEVIDB_GROUP_PROGRAM_TEAM;
 const CEVIDB_GROUP_MATERIAL_TEAM = environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM;
+const CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS =
+  environmentVariables.CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS;
 
 // create enum for roles
 export enum Roles {
@@ -23,6 +27,7 @@ export enum Roles {
   TranslationTeam = 'translation-team',
   ProgramTeam = 'program-team',
   MaterialTeam = 'material-team',
+  HofDashboardReviewer = 'hof-dashboard-reviewer',
 }
 
 /**
@@ -114,6 +119,12 @@ export const hasAccessToThisUser: ({
   ) {
     return true;
   }
+  if (
+    requiredRoles.includes(Roles.HofDashboardReviewer) &&
+    userGroupIds.some((id) => CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS.includes(id))
+  ) {
+    return true;
+  }
 
   return false;
 };
@@ -152,11 +163,16 @@ export const MATERIAL_DEPOT_ROLES: Roles[] = [Roles.FullAdmin, Roles.MaterialTea
 
 /**
  * Who reviews what the Höfe hand in on the Hof dashboard and edits its settings: the full
- * admins and the web core team, for now. The infrastructure and programme Ressorts will want
- * this without the rest of the web team's rights, and get a role of their own once their
- * Cevi.DB groups are known. Checked in Payload and, with the session user, in tRPC.
+ * admins, the web core team, and the Hof dashboard reviewers, the Ressorts Infrastruktur and
+ * Programm, who get the dashboard without the web team's rights. The reviewers are not in
+ * `GROUPS_WITH_API_ACCESS`, so the admin panel stays closed to them. Checked in Payload and,
+ * with the session user, in tRPC.
  */
-export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
+export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [
+  Roles.FullAdmin,
+  Roles.WebCoreTeam,
+  Roles.HofDashboardReviewer,
+];
 
 export const hasAccessToThisHelper = ({
   requiredRoles,

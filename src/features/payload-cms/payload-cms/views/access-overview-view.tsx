@@ -114,6 +114,11 @@ const roleLabels: Record<Roles | 'billing', StaticTranslationString> = {
   },
   [Roles.ProgramTeam]: { de: 'Programmteam', en: 'Programme team', fr: 'Équipe programme' },
   [Roles.MaterialTeam]: { de: 'Materialteam', en: 'Material team', fr: 'Équipe matériel' },
+  [Roles.HofDashboardReviewer]: {
+    de: 'Hof-Dashboard-Prüfung',
+    en: 'Hof dashboard reviewers',
+    fr: 'Vérification du tableau de bord des Hofs',
+  },
   billing: { de: 'Rechnungswesen', en: 'Billing', fr: 'Facturation' },
 };
 
@@ -161,6 +166,11 @@ const listRoleColumns = (): RoleColumn[] => {
       key: Roles.MaterialTeam,
       envName: 'CEVIDB_GROUP_MATERIAL_TEAM',
       groupIds: environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM,
+    },
+    {
+      key: Roles.HofDashboardReviewer,
+      envName: 'CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS',
+      groupIds: environmentVariables.CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS,
     },
     {
       key: 'billing',

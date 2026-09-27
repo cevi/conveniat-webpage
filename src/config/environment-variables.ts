@@ -85,6 +85,20 @@ export const environmentVariables = createEnv({
       .regex(/^\d{0,6}$/)
       .default(''),
 
+    /**
+     * optional: Cevi.DB groups whose members review the Hof dashboard, e.g. the Ressorts
+     * Infrastruktur and Programm. Grants the dashboard only, not the admin panel.
+     */
+    CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: z
+      .string()
+      .default('')
+      .transform((value) =>
+        value
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isInteger(n) && n > 0),
+      ),
+
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),
     S3_ACCESS_KEY_ID: z.string().min(5),
