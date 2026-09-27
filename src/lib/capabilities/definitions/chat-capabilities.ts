@@ -18,7 +18,8 @@ import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 
 /**
- * Handles capabilities related to sending and viewing messages.
+ * Handles capabilities related to sending messages. Who may read a chat is a membership
+ * question, which the chat procedures answer themselves; capabilities know no user.
  */
 export class MessageCapabilities implements Capability {
   readonly subject = CapabilitySubject.Messages;
@@ -26,9 +27,6 @@ export class MessageCapabilities implements Capability {
   async can(action: CapabilityAction, context?: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Send) {
       return this.canSend(context?.chatId);
-    }
-    if (action === CapabilityAction.View) {
-      return this.canView(context?.chatId);
     }
     return false;
   }
@@ -57,12 +55,6 @@ export class MessageCapabilities implements Capability {
     }
 
     return true;
-  }
-
-  private canView(chatId?: string): Promise<boolean> {
-    if (chatId === undefined) return Promise.resolve(false);
-    // Membership checks are assumed to be handled by context/caller
-    return Promise.resolve(true);
   }
 }
 

@@ -24,6 +24,8 @@ import {
   getHofDirectory,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import { createChatImageUploadUrl } from '@/lib/chat-image-upload';
+import { chatImageUploadInputSchema } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { getFeatureFlag, setFeatureFlag } from '@/lib/db/redis';
 import {
@@ -32,12 +34,9 @@ import {
   MessageEventType,
   MessageType,
 } from '@/lib/prisma/client';
-import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { Prisma } from '@prisma/client';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -630,35 +629,8 @@ export const adminRouter = createTRPCRouter({
     }),
 
   getAdminUploadUrl: adminProcedure
-    .input(
-      z.object({
-        chatId: z.string().uuid(),
-        fileName: z.string(),
-        contentType: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const { chatId, fileName, contentType } = input;
-
-      // Generate a unique key for the file
-      const fileExtension = fileName.split('.').pop();
-      const uniqueFileName = `${chatId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExtension}`;
-      const key = `chat-images/${uniqueFileName}`;
-
-      // Generate pre-signed PUT URL
-      const command = new PutObjectCommand({
-        Bucket: S3_BUCKET_NAME,
-        Key: key,
-        ContentType: contentType,
-      });
-
-      const url = await getSignedUrl(s3ClientPublic, command, { expiresIn: 3600 });
-
-      return {
-        url,
-        key,
-      };
-    }),
+    .input(chatImageUploadInputSchema)
+    .mutation(({ input }) => createChatImageUploadUrl(input)),
 
   closeChat: adminProcedure
     .input(z.object({ chatId: z.string().uuid() }))
