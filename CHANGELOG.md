@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.19.0](https://github.com/cevi/conveniat-webpage/compare/v1.18.1...v1.19.0) (2026-09-27)
+
+
+### Features
+
+* **chat:** show and search the Hof in the address book ([c72eb12](https://github.com/cevi/conveniat-webpage/commit/c72eb1254f5e413d09c59667637a1337dee7aa2d))
+* **chat:** show the Hof of the participants in the chat details ([15a5ea0](https://github.com/cevi/conveniat-webpage/commit/15a5ea0eaa648c202443e85cc9863000e65beffd))
+* **hoefe:** Quartiere in the CMS, each Hof placed in one ([20eaf43](https://github.com/cevi/conveniat-webpage/commit/20eaf43c9210b3138b68237c54937222a02f720d))
+* **hof-dashboard:** the Ressorts Infrastruktur and Programm review the Höfe ([851f76c](https://github.com/cevi/conveniat-webpage/commit/851f76cb551107257d3c1bb82f731d70ec654e49))
+* **hof-dashboard:** the Ressorts Infrastruktur and Programm review the Höfe ([0c36f1c](https://github.com/cevi/conveniat-webpage/commit/0c36f1c042500d649ce7e17967a47c0946f28b51))
+* **users:** camp functions synced from Cevi.DB ([70338d9](https://github.com/cevi/conveniat-webpage/commit/70338d931a9a80b4dc56b5932611567dc2d06f87))
+* **users:** camp functions synced from Cevi.DB ([7858535](https://github.com/cevi/conveniat-webpage/commit/7858535ad3c57b16b55c402e215818f18fb134d9))
+* **users:** link users to their Höfe from the registrations ([b7233f8](https://github.com/cevi/conveniat-webpage/commit/b7233f873b611f32f6b7d5acc6194f5ed5bbfc37))
+
+
+### Bug Fixes
+
+* **funktionen:** fail safe on bad Cevi.DB answers, log every sync ([0d57a2f](https://github.com/cevi/conveniat-webpage/commit/0d57a2f3d76eff277f51db6267863ea063c0843c))
+* **hitobito:** never send Cevi.DB credentials to another origin ([ecf8428](https://github.com/cevi/conveniat-webpage/commit/ecf8428806fd7f27e694b57baa952d2fb5317992))
+* **hof-dashboard:** browser back returns to the tab the user came from ([#1932](https://github.com/cevi/conveniat-webpage/issues/1932)) ([0826f47](https://github.com/cevi/conveniat-webpage/commit/0826f473a250b6a921e78fb1f31f1749a56ceed4))
+* **hof-dashboard:** name the Hof's responsible people from Cevi.DB ([#1933](https://github.com/cevi/conveniat-webpage/issues/1933)) ([49daf5a](https://github.com/cevi/conveniat-webpage/commit/49daf5abdfe2000e145d3ec5a3155c7f7287613d))
+* review findings on the Hof and functions stack ([9055a64](https://github.com/cevi/conveniat-webpage/commit/9055a64736aea35780e510a16f633b9019f1fa9a))
+
 ## [1.18.1](https://github.com/cevi/conveniat-webpage/compare/v1.18.0...v1.18.1) (2026-09-27)
 
 
