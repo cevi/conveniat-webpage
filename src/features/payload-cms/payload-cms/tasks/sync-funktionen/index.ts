@@ -8,23 +8,14 @@ import {
   scheduleUnlessQueued,
   type ScheduleDecision,
 } from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
-import { syncFunktionen } from '@/features/payload-cms/payload-cms/utils/sync-funktionen';
-import { FatalError, getHitobito } from '@/lib/hitobito';
-import { SessionExpiredError } from '@/lib/hitobito/errors';
+import {
+  describeFunktionenSyncFailure,
+  syncFunktionen,
+} from '@/features/payload-cms/payload-cms/utils/sync-funktionen';
+import { getHitobito } from '@/lib/hitobito';
 import { withSpan } from '@/utils/tracing-helpers';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
-
-/**
- * What kind of failure stopped a sync, so a log query can tell an expired session, which an
- * editor fixes by storing a new cookie, from a Cevi.DB outage or a refused request.
- */
-const describeFailure = (error: unknown): string => {
-  if (error instanceof SessionExpiredError) return 'session_expired';
-  if (error instanceof FatalError) return 'refused';
-  if (error instanceof Error && error.message.startsWith('No browser cookie')) return 'no_cookie';
-  return 'error';
-};
 
 /**
  * Syncs the camp functions from Cevi.DB, every night and whenever an editor starts it from
@@ -46,7 +37,7 @@ export const syncFunktionenTask: TaskConfig<'syncFunktionen'> = {
             queue: queueable.scheduleConfig.queue,
             req,
             taskSlug: 'syncFunktionen',
-            onlyScheduled: false, // a run started from the list counts too
+            onlyScheduled: true,
           });
 
           return scheduleUnlessQueued(runnableOrActiveJobsForQueue, queueable.waitUntil);
@@ -114,7 +105,7 @@ export const syncFunktionenTask: TaskConfig<'syncFunktionen'> = {
         {
           err: error,
           'funktionen.root_group': rootGroupId,
-          'funktionen.failure': describeFailure(error),
+          'funktionen.failure': describeFunktionenSyncFailure(error),
           'duration.ms': Date.now() - startedAt,
         },
         'Syncing the camp functions from Cevi.DB failed; the functions stay as they were',

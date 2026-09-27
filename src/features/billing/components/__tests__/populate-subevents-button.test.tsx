@@ -8,6 +8,17 @@ import React from 'react';
 let mockHoefePermissions: { create?: boolean; update?: boolean } = {};
 
 jest.mock('@payloadcms/ui', () => ({
+  Button: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+  }): React.ReactElement => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
   useAuth: (): unknown => ({ permissions: { collections: { hoefe: mockHoefePermissions } } }),
   useListQuery: (): unknown => ({ query: {}, refineListData: jest.fn() }),
   useLocale: (): unknown => ({ code: 'de' }),

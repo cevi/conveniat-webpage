@@ -4,51 +4,15 @@ import {
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import { DEFAULT_QUEUE } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
+import { funktionenSyncStreamHandler } from '@/features/payload-cms/payload-cms/endpoints/funktionen-sync-stream';
 import { refreshUserFunktionen } from '@/features/payload-cms/payload-cms/utils/funktionen';
-import type { CollectionAfterDeleteHook, CollectionConfig, PayloadHandler } from 'payload';
-import { countRunnableOrActiveJobsForQueue } from 'payload';
+import type { CollectionAfterDeleteHook, CollectionConfig } from 'payload';
 
 /**
  * Everything but the label and the order comes from Cevi.DB through the sync, which writes
  * over the local API: in the admin panel it can be read, not changed.
  */
 const syncedFromCeviDatabase = { create: (): boolean => false, update: (): boolean => false };
-
-/**
- * Queues a sync now instead of waiting for the night, unless one is already queued or
- * running: each walks the whole Cevi.DB tree, and two at once would race on the same groups.
- */
-const queueSyncHandler: PayloadHandler = async (request) => {
-  if (!hasAdminOrWebAccess({ req: request })) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
-  }
-  const pending = await countRunnableOrActiveJobsForQueue({
-    queue: DEFAULT_QUEUE,
-    req: request,
-    taskSlug: 'syncFunktionen',
-    onlyScheduled: false,
-  });
-  const { logger } = request.payload;
-  if (pending > 0) {
-    logger.debug('A camp functions sync is already queued or running, not queuing another');
-    return Response.json({ queued: false }, { status: 200 });
-  }
-  try {
-    await request.payload.jobs.queue({ task: 'syncFunktionen', input: {}, queue: DEFAULT_QUEUE });
-  } catch (error: unknown) {
-    logger.error(
-      { err: error },
-      'Could not queue a camp functions sync started from the admin panel',
-    );
-    return Response.json({ error: 'Could not queue the sync' }, { status: 500 });
-  }
-  logger.info(
-    { 'user.id': request.user?.id },
-    'Queued a camp functions sync started from the admin panel',
-  );
-  return Response.json({ queued: true }, { status: 202 });
-};
 
 /** A deleted function leaves the users that held it; the next sync brings it back if needed. */
 const refreshUsersOfDeletedFunktion: CollectionAfterDeleteHook = async ({ doc, req }) => {
@@ -95,7 +59,7 @@ export const FunktionenCollection: CollectionConfig = {
     },
   },
   defaultSort: 'order',
-  endpoints: [{ path: '/sync', method: 'post', handler: queueSyncHandler }],
+  endpoints: [{ path: '/sync', method: 'post', handler: funktionenSyncStreamHandler }],
   hooks: { afterDelete: [refreshUsersOfDeletedFunktion] },
   access: {
     // the labels reach every participant through the chat, which reads them server-side;
