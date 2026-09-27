@@ -37,41 +37,37 @@ describe('formatUserFullName', () => {
 
 describe('getContactDisplayName', () => {
   it('does not repeat the nickname when the name already contains it', () => {
-    expect(
-      getContactDisplayName({ name: 'Anja Lindenmann v/o Pfäffer', nickname: 'Pfäffer' }),
-    ).toBe('Anja Lindenmann v/o Pfäffer');
-    expect(
-      getContactDisplayName({ name: 'Anja Lindenmann v/o Pfäffer', nickname: 'v/o Pfäffer' }),
-    ).toBe('Anja Lindenmann v/o Pfäffer');
-    expect(
-      getContactDisplayName({ name: 'Anja Lindenmann V/O Pfäffer', nickname: 'Pfäffer' }),
-    ).toBe('Anja Lindenmann V/O Pfäffer');
+    expect(getContactDisplayName({ name: 'Anna Muster v/o Fuchs', nickname: 'Fuchs' })).toBe(
+      'Anna Muster v/o Fuchs',
+    );
+    expect(getContactDisplayName({ name: 'Anna Muster v/o Fuchs', nickname: 'v/o Fuchs' })).toBe(
+      'Anna Muster v/o Fuchs',
+    );
+    expect(getContactDisplayName({ name: 'Anna Muster V/O Fuchs', nickname: 'Fuchs' })).toBe(
+      'Anna Muster V/O Fuchs',
+    );
   });
 
   it('appends the nickname when the name does not contain it', () => {
-    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: 'Pfäffer' })).toBe(
-      'Anja Lindenmann v/o Pfäffer',
+    expect(getContactDisplayName({ name: 'Anna Muster', nickname: 'Fuchs' })).toBe(
+      'Anna Muster v/o Fuchs',
     );
-    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: 'v/o Pfäffer' })).toBe(
-      'Anja Lindenmann v/o Pfäffer',
+    expect(getContactDisplayName({ name: 'Anna Muster', nickname: 'v/o Fuchs' })).toBe(
+      'Anna Muster v/o Fuchs',
     );
   });
 
   it('does not confuse a different nickname with the one already in the name', () => {
-    expect(getContactDisplayName({ name: 'Anja Lindenmann v/o Fuchs', nickname: 'Pfäffer' })).toBe(
-      'Anja Lindenmann v/o Fuchs v/o Pfäffer',
+    expect(getContactDisplayName({ name: 'Anna Muster v/o Wiesel', nickname: 'Fuchs' })).toBe(
+      'Anna Muster v/o Wiesel v/o Fuchs',
     );
   });
 
   it('returns the plain name when no nickname is set', () => {
-    expect(getContactDisplayName({ name: 'Anja Lindenmann' })).toBe('Anja Lindenmann');
+    expect(getContactDisplayName({ name: 'Anna Muster' })).toBe('Anna Muster');
     // eslint-disable-next-line unicorn/no-null
-    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: null })).toBe(
-      'Anja Lindenmann',
-    );
-    expect(getContactDisplayName({ name: 'Anja Lindenmann', nickname: '  ' })).toBe(
-      'Anja Lindenmann',
-    );
+    expect(getContactDisplayName({ name: 'Anna Muster', nickname: null })).toBe('Anna Muster');
+    expect(getContactDisplayName({ name: 'Anna Muster', nickname: '  ' })).toBe('Anna Muster');
   });
 });
 

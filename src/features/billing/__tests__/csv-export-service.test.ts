@@ -6,7 +6,7 @@ import type { BillParticipant } from '@/features/payload-cms/payload-types';
 
 const participant = (overrides: Partial<BillParticipant>): BillParticipant =>
   ({
-    fullName: 'Susanna Läuchli',
+    fullName: 'Susanna Beispiel',
     eventName: 'Hauptlager conveniat27 - Züri 11',
     invoiceNumber: '2026-001',
     referenceNumber: '21 00000 00031 39471 430',
@@ -37,7 +37,7 @@ describe('buildFinanceCsvRows', () => {
       ExternalReference: '21000000003139471430',
       Amount: 1500,
       DateExpiration: '2026-06-20',
-      Description: 'Leitendenbeitrag u18, Susanna Läuchli, Züri 11',
+      Description: 'Leitendenbeitrag u18, Susanna Beispiel, Züri 11',
       AccountDebit: '11000',
       AccountCredit: '[CA]',
     });
@@ -78,7 +78,7 @@ describe('formatFinanceCsv', () => {
 
     expect(csv).toBe(
       '﻿Date,DocInvoice,ExternalReference,Amount,DateExpiration,Description,AccountDebit,AccountCredit\r\n' +
-        '2026-05-20,2026-001,21000000003139471430,1500.00,2026-06-20,"Leitendenbeitrag u18, Susanna Läuchli, Züri 11",11000,[CA]\r\n',
+        '2026-05-20,2026-001,21000000003139471430,1500.00,2026-06-20,"Leitendenbeitrag u18, Susanna Beispiel, Züri 11",11000,[CA]\r\n',
     );
   });
 

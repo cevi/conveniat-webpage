@@ -48,7 +48,7 @@ describe('parseTimeSlotHours', () => {
 
 describe('splitFullName', () => {
   it('splits a simple first/last name pair', () => {
-    expect(splitFullName('Hans Müller')).toEqual({ firstName: 'Hans', lastName: 'Müller' });
+    expect(splitFullName('Hans Muster')).toEqual({ firstName: 'Hans', lastName: 'Muster' });
   });
 
   it('keeps compound first names together', () => {
@@ -59,9 +59,9 @@ describe('splitFullName', () => {
   });
 
   it('attaches name particles to the last name', () => {
-    expect(splitFullName('Hans von Gunten')).toEqual({
+    expect(splitFullName('Hans von Beispiel')).toEqual({
       firstName: 'Hans',
-      lastName: 'von Gunten',
+      lastName: 'von Beispiel',
     });
     expect(splitFullName('Marie de la Croix')).toEqual({
       firstName: 'Marie',
@@ -70,11 +70,11 @@ describe('splitFullName', () => {
   });
 
   it('treats a single token as a last name', () => {
-    expect(splitFullName('Müller')).toEqual({ firstName: '', lastName: 'Müller' });
+    expect(splitFullName('Muster')).toEqual({ firstName: '', lastName: 'Muster' });
   });
 
   it('collapses surrounding and repeated whitespace', () => {
-    expect(splitFullName('  Hans   Müller  ')).toEqual({ firstName: 'Hans', lastName: 'Müller' });
+    expect(splitFullName('  Hans   Muster  ')).toEqual({ firstName: 'Hans', lastName: 'Muster' });
   });
 
   it('returns empty names for missing input', () => {
@@ -95,7 +95,7 @@ describe('aggregateCourseParticipation', () => {
 
   const participants: CourseParticipant[] = [
     { id: 'user-1', fullName: 'Anna Meier', nickname: 'Bambi', email: 'anna@example.org' },
-    { id: 'user-2', fullName: 'Hans von Gunten', nickname: 'Specht', email: 'hans@example.org' },
+    { id: 'user-2', fullName: 'Hans von Beispiel', nickname: 'Specht', email: 'hans@example.org' },
     // eslint-disable-next-line unicorn/no-null
     { id: 'user-3', fullName: 'Lea Zwahlen', nickname: null, email: 'lea@example.org' },
   ];
@@ -128,7 +128,7 @@ describe('aggregateCourseParticipation', () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.userId).toBe('user-2');
-    expect(rows[0]?.lastName).toBe('von Gunten');
+    expect(rows[0]?.lastName).toBe('von Beispiel');
   });
 
   it('ignores assignments pointing at unknown courses or unknown users', () => {
@@ -184,7 +184,7 @@ describe('aggregateCourseParticipation', () => {
 
     const rows = aggregateCourseParticipation({ courses, assignments, participants });
 
-    expect(rows.map((row) => row.lastName)).toEqual(['Meier', 'von Gunten', 'Zwahlen']);
+    expect(rows.map((row) => row.lastName)).toEqual(['Meier', 'von Beispiel', 'Zwahlen']);
   });
 
   it('returns an empty list when nobody is assigned', () => {

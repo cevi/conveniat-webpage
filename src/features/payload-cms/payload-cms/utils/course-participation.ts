@@ -72,7 +72,7 @@ const TIME_SLOT_PATTERN = /^\s*([01]?\d|2[0-3]):([0-5]\d)\s*-\s*([01]?\d|2[0-3])
 
 /**
  * Name particles that belong to the last name rather than the first name
- * ("Hans von Gunten" → "Hans" / "von Gunten").
+ * ("Hans von Beispiel" → "Hans" / "von Beispiel").
  */
 const LAST_NAME_PARTICLES = new Set([
   'da',
