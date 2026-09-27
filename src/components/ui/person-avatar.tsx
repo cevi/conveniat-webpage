@@ -1,3 +1,4 @@
+import { AvatarPicture } from '@/components/ui/avatar-picture';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
@@ -34,23 +35,26 @@ export const avatarColorOf = (seed: string): string => {
 };
 
 /**
- * A person's avatar: their initials on a colour of their own. The size and the text size come
- * from `className`, e.g. `h-10 w-10 text-sm`.
+ * A person's avatar: their profile picture from Cevi.DB, or their initials on a colour of their
+ * own. The size and the text size come from `className`, e.g. `h-10 w-10 text-sm`.
  */
 export const PersonAvatar: React.FC<{
   /** the person's id; decides the colour */
   seed: string;
   name: string;
+  /** see `profilePictureUrl`; the initials show until and unless it loads */
+  pictureUrl?: string | undefined;
   className?: string;
-}> = ({ seed, name, className }) => (
+}> = ({ seed, name, pictureUrl, className }) => (
   <div
     aria-hidden="true"
     className={cn(
-      'font-heading flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none',
+      'font-heading relative flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none',
       avatarColorOf(seed),
       className,
     )}
   >
     {initialsOf(name)}
+    {pictureUrl !== undefined && <AvatarPicture src={pictureUrl} />}
   </div>
 );

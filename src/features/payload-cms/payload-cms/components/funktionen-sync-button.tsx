@@ -1,5 +1,6 @@
 'use client';
 
+import { SeedProfilePicturesButton } from '@/features/payload-cms/payload-cms/components/funktionen-sync/seed-profile-pictures-button';
 import {
   useFunktionenSync,
   type FunktionenSyncState,
@@ -242,6 +243,8 @@ export const FunktionenSyncButton: React.FC = () => {
           />
         </div>
       )}
+
+      <SeedProfilePicturesButton locale={locale} />
     </div>
   );
 };

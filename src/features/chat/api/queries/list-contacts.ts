@@ -14,6 +14,7 @@ import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
 import { z } from 'zod';
 
@@ -32,6 +33,8 @@ export interface Contact {
   hofRoles?: HofRole[] | undefined;
   /** Functions in the camp organisation, e.g. "Ressortleitung Infrastruktur", in order. */
   funktionen?: string[] | undefined;
+  /** The profile picture from Cevi.DB; missing without one, and in caches from before. */
+  pictureUrl?: string | undefined;
 }
 
 /**
@@ -57,6 +60,7 @@ export const listContacts = trpcBaseProcedure
         hofIds: true,
         avpHofIds: true,
         funktionIds: true,
+        profilePictureVersion: true,
       },
     });
 
@@ -117,6 +121,7 @@ export const listContacts = trpcBaseProcedure
               hofRoles: describeHofRoles(contact.hofIds, contact.avpHofIds, hofDirectory),
             }),
         funktionen: describeFunktionen(contact.funktionIds, funktionDirectory),
+        pictureUrl: profilePictureUrlOrUndefined(contact.uuid, contact.profilePictureVersion),
       };
     });
   });

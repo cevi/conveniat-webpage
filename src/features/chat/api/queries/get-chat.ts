@@ -6,6 +6,7 @@ import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import { MessageEventType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
+import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -142,6 +143,10 @@ export const getChat = trpcBaseProcedure
         isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
         chatPermission: membership.chatPermission,
         description: membership.user.description,
+        pictureUrl: profilePictureUrlOrUndefined(
+          membership.user.uuid,
+          membership.user.profilePictureVersion,
+        ),
       })),
       capabilities: chat.capabilities,
       description: chat.description,

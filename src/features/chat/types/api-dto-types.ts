@@ -24,4 +24,9 @@ export interface ChatWithMessagePreview {
   unreadCount: number;
   messageCount: number;
   userChatPermission: ChatMembershipPermission;
+  /**
+   * The other person of a one-to-one chat, for their avatar; missing in other chats and in
+   * caches from before.
+   */
+  partner?: { userId: string; pictureUrl?: string | undefined } | undefined;
 }

@@ -7,12 +7,15 @@ import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, User } from 'lucide-react';
+import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin } from 'lucide-react';
 import React from 'react';
 
 import { SettingsRow } from '@/features/settings/components/settings-row';
+import { ProfileAvatar } from '@/features/settings/profile-avatar';
+import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 
 const notAvailable: StaticTranslationString = {
   de: 'nicht verfügbar',
@@ -96,18 +99,36 @@ export const ProfileDetails: React.FC = async () => {
   }
   const shouldShowHofAndQuartier = isAuthenticated && !hideHofAndQuartier;
 
+  let pictureUrl: string | undefined;
+  if (isAuthenticated) {
+    try {
+      const own = await prisma.user.findUnique({
+        where: { uuid: user.uuid },
+        select: { profilePictureVersion: true },
+      });
+      pictureUrl = profilePictureUrlOrUndefined(user.uuid, own?.profilePictureVersion);
+    } catch {
+      // the initials stand in, e.g. while the database is unreachable
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}
       <Card contentClassName="p-6">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-            {isAuthenticated ? (
-              <User className="h-7 w-7 text-gray-600" />
-            ) : (
+          {isAuthenticated ? (
+            <ProfileAvatar
+              userId={user.uuid}
+              name={user.name}
+              pictureUrl={pictureUrl}
+              locale={locale}
+            />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
               <LogIn className="h-7 w-7 text-gray-400" />
-            )}
-          </div>
+            </div>
+          )}
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900">
               {isAuthenticated ? getDetail(user.name) : guestTitle[locale]}

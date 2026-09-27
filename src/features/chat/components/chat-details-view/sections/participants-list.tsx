@@ -12,8 +12,9 @@ interface ParticipantsListProperties {
     description?: string | null;
     /** e.g. "Ressortleitung Infrastruktur", empty for someone without a function */
     funktionLine?: string;
-    /** e.g. "Hof Süd · Quartier 2", empty for someone at no Hof */
+    /** e.g. "Cevi Uster · Quartier 2", empty for someone at no Hof */
     hofLine?: string;
+    pictureUrl?: string | undefined;
   }>;
   currentUser: string | undefined;
   isGroupChat: boolean;
@@ -84,6 +85,7 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
               <PersonAvatar
                 seed={participant.id}
                 name={participant.name}
+                pictureUrl={participant.pictureUrl}
                 className="h-10 w-10 text-sm"
               />
               <div>
