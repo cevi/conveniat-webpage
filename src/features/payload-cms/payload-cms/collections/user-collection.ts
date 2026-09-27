@@ -24,7 +24,7 @@ const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCE
 
 const syncUserToPostgres: NonNullable<
   NonNullable<CollectionConfig['hooks']>['afterChange']
->[number] = async ({ doc, req }): Promise<void> => {
+>[number] = async ({ doc, previousDoc, req }): Promise<void> => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const uuid = doc.id as string | undefined | null;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -86,7 +86,14 @@ const syncUserToPostgres: NonNullable<
 
     // The presence mutation writes Postgres before it writes Payload, so a difference here only
     // ever originates from the admin panel — the slider never produces a duplicate entry.
-    if (knownUser !== null && knownUser.presentAtCamp !== presentAtCamp) {
+    // Only a write that changed the flag is a check-in or check-out from the admin panel. Other
+    // writes, like the background refreshes of the Höfe and functions, carry the Mongo value
+    // along and would otherwise undo a presence mutation that has reached Postgres but not yet
+    // Payload, logging a transition nobody made.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const previousPresent = (previousDoc?.presentAtCamp as boolean | undefined | null) ?? false;
+    const writeChangedPresence = previousDoc === undefined || previousPresent !== presentAtCamp;
+    if (writeChangedPresence && knownUser !== null && knownUser.presentAtCamp !== presentAtCamp) {
       const timestamp = new Date();
 
       /**

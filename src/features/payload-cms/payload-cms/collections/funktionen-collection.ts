@@ -52,6 +52,8 @@ const queueSyncHandler: PayloadHandler = async (request) => {
 
 /** A deleted function leaves the users that held it; the next sync brings it back if needed. */
 const refreshUsersOfDeletedFunktion: CollectionAfterDeleteHook = async ({ doc, req }) => {
+  // the sync refreshes every user once at its end, not once per function it removes
+  if (req.context['internal'] === true) return doc as unknown;
   try {
     await refreshUserFunktionen(req.payload, req);
   } catch (error: unknown) {

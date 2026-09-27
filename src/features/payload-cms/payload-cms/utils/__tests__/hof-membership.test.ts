@@ -1,3 +1,16 @@
+const mockMirrorFindMany = jest.fn();
+const mockMirrorUpdate = jest.fn();
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  // wrapped: the factory runs before the mocks above are initialised
+  default: {
+    user: {
+      findMany: (...args: unknown[]): unknown => mockMirrorFindMany(...args),
+      update: (...args: unknown[]): unknown => mockMirrorUpdate(...args),
+    },
+  },
+}));
+
 import {
   findMyHofIds,
   refreshUserHoefe,
@@ -71,6 +84,12 @@ const fakePayload = (
 };
 
 describe('refreshUserHoefe', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // by default the Postgres copy agrees with whatever Mongo holds
+    mockMirrorFindMany.mockResolvedValue([]);
+  });
+
   it('gives a user the Höfe of the events they are registered for', async () => {
     const { payload, writes } = fakePayload(
       [{ id: 'anna', cevi_db_uuid: 7, hoefe: [] }],
@@ -105,5 +124,20 @@ describe('refreshUserHoefe', () => {
     const { payload } = fakePayload([], []);
     await expect(refreshUserHoefe(payload, { ceviIds: [] })).resolves.toBe(0);
     expect(payload.find).not.toHaveBeenCalled();
+  });
+
+  it('repairs the Postgres copy the chat reads when only it is behind', async () => {
+    const { payload, writes } = fakePayload(
+      [{ id: 'anna', cevi_db_uuid: 7, hoefe: ['nord'] }],
+      [{ userId: '7', eventId: '991001' }],
+    );
+    mockMirrorFindMany.mockResolvedValue([{ uuid: 'anna', hofIds: [] }]);
+
+    await expect(refreshUserHoefe(payload)).resolves.toBe(1);
+    expect(writes).toEqual([]);
+    expect(mockMirrorUpdate).toHaveBeenCalledWith({
+      where: { uuid: 'anna' },
+      data: { hofIds: ['nord'] },
+    });
   });
 });

@@ -61,3 +61,40 @@ describe('GroupService refusing what it cannot trust', () => {
     expect(frontendRequest).not.toHaveBeenCalled();
   });
 });
+
+describe('GroupService.listPeopleWithRole across pages', () => {
+  it('reads every page Cevi.DB links, each with its own roles', async () => {
+    const pages = [
+      {
+        next_page_link: 'https://db.cevi.ch/groups/5001/people.json?page=2',
+        people: [{ id: 11, email: 'a@cevi.ch', links: { roles: ['1'] } }],
+        linked: { roles: [{ id: '1', role_class: 'Group::DachverbandGremium::Leitung' }] },
+      },
+      {
+        people: [{ id: 21, email: 'b@cevi.ch', links: { roles: ['7'] } }],
+        linked: { roles: [{ id: '7', role_class: 'Group::DachverbandGremium::Leitung' }] },
+      },
+    ];
+    const frontendRequest = jest.fn();
+    for (const page of pages) {
+      frontendRequest.mockResolvedValueOnce({
+        response: { ok: true, status: 200 },
+        body: JSON.stringify(page),
+      });
+    }
+    const groups = new GroupService({
+      config: { apiToken: 'token', baseUrl: 'https://db.cevi.ch' },
+      getFrontendHeaders: (): Record<string, string> => ({}),
+      frontendRequest,
+    } as unknown as HitobitoClient);
+
+    const leaders = await groups.listPeopleWithRole('5001', 'Group::DachverbandGremium::Leitung');
+
+    expect(leaders.map(({ personId }) => personId)).toEqual(['11', '21']);
+    expect(frontendRequest).toHaveBeenLastCalledWith(
+      'GET',
+      'https://db.cevi.ch/groups/5001/people.json?page=2',
+      expect.anything(),
+    );
+  });
+});

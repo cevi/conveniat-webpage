@@ -64,8 +64,9 @@ export const MessageList: React.FC<{
   const chatId = useChatId();
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
   const { data: currentUser } = trpc.chat.user.useQuery({});
-  // the messages name their sender only; the functions come with the cached contacts
-  const { data: contacts } = trpc.chat.contacts.useQuery({});
+  // The messages name their sender only; the functions come with the cached contacts, which
+  // the chat sync keeps fresh. Never refetched from here: that is the whole contact list.
+  const { data: contacts } = trpc.chat.contacts.useQuery({}, { staleTime: Infinity });
   const funktionenBySender = React.useMemo(
     () =>
       new Map(

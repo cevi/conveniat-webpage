@@ -25,6 +25,8 @@ export interface GroupRoleHolder {
  * must not lose us the rest of the list.
  */
 const PeopleJsonSchema = z.object({
+  /** Hitobito pages long lists; absent or empty on the last page. */
+  next_page_link: z.string().nullish(),
   people: z
     .array(
       z
@@ -78,6 +80,9 @@ export interface AddPersonToGroupParameters {
 export interface RemoveRoleParameters {
   roleId: string;
 }
+
+/** A safety stop for `people.json`, far above any real group. */
+const MAX_PEOPLE_PAGES = 100;
 
 /** Cevi.DB group ids are plain numbers. */
 const GROUP_ID = /^\d+$/;
@@ -140,8 +145,40 @@ export class GroupService {
    */
   async listPeopleWithRole(groupId: string, roleClass: string): Promise<GroupRoleHolder[]> {
     assertGroupId(groupId);
-    const path = `/groups/${groupId}/people.json`;
-    const { response, body } = await this.client.frontendRequest('GET', path, {
+    const holders: GroupRoleHolder[] = [];
+    let nextPage: string | undefined = `/groups/${groupId}/people.json`;
+    for (let page = 0; nextPage !== undefined; page += 1) {
+      if (page >= MAX_PEOPLE_PAGES) {
+        throw new Error(`The people of group ${groupId} span more than ${MAX_PEOPLE_PAGES} pages`);
+      }
+      const parsed = await this.fetchPeoplePage(groupId, nextPage);
+
+      // every page links the roles of its own people
+      const roleIds = new Set(
+        (parsed.linked?.roles ?? [])
+          .filter((role) => role !== null && role.role_class === roleClass)
+          .map((role) => String(role?.id)),
+      );
+      for (const person of parsed.people ?? []) {
+        if (!(person.links?.roles ?? []).some((roleId) => roleIds.has(String(roleId)))) continue;
+        holders.push({
+          personId: person.id === null || person.id === undefined ? '' : String(person.id),
+          email: (person.email ?? '').trim().toLowerCase(),
+        });
+      }
+
+      const link = parsed.next_page_link ?? '';
+      nextPage = link === '' ? undefined : link;
+    }
+    return holders;
+  }
+
+  /** One page of `people.json`; the client refuses a next-page link on another origin. */
+  private async fetchPeoplePage(
+    groupId: string,
+    pathOrUrl: string,
+  ): Promise<z.infer<typeof PeopleJsonSchema>> {
+    const { response, body } = await this.client.frontendRequest('GET', pathOrUrl, {
       headers: {
         ...this.client.getFrontendHeaders(),
         'X-Token': this.client.config.apiToken,
@@ -160,19 +197,7 @@ export class GroupService {
     if (!parsed.success) {
       throw new Error(`Cevi.DB answered the people of group ${groupId} in an unexpected shape`);
     }
-
-    const roleIds = new Set(
-      (parsed.data.linked?.roles ?? [])
-        .filter((role) => role !== null && role.role_class === roleClass)
-        .map((role) => String(role?.id)),
-    );
-
-    return (parsed.data.people ?? [])
-      .filter((person) => (person.links?.roles ?? []).some((roleId) => roleIds.has(String(roleId))))
-      .map((person) => ({
-        personId: person.id === null || person.id === undefined ? '' : String(person.id),
-        email: (person.email ?? '').trim().toLowerCase(),
-      }));
+    return parsed.data;
   }
 
   async getPersonRoles({ personId, groupId }: GetPersonRolesParameters): Promise<RoleResource[]> {

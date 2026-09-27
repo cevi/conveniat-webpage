@@ -1,3 +1,4 @@
+import prisma from '@/lib/db/prisma';
 import type { Locale } from '@/types/types';
 import type { Payload, PayloadRequest } from 'payload';
 
@@ -83,20 +84,28 @@ export const refreshUserFunktionen = async (
     }
   }
 
+  // see refreshUserHoefe: the Postgres copy the chat reads is compared and repaired as well
+  const mirrorRows = await prisma.user.findMany({
+    where: { uuid: { in: users.docs.map((user) => user.id) } },
+    select: { uuid: true, funktionIds: true },
+  });
+  const mirrored = new Map(mirrorRows.map((row) => [row.uuid, row.funktionIds]));
+
   let written = 0;
   for (const user of users.docs) {
     const next =
       typeof user.cevi_db_uuid === 'number'
         ? (funktionIdsByPerson.get(String(user.cevi_db_uuid)) ?? [])
         : [];
-    if (sameIds(next, toFunktionIds(user.funktionen))) continue;
-    await payload.update({
-      collection: 'users',
-      id: user.id,
-      data: { funktionen: next },
-      ...withRequest,
-    });
-    written += 1;
+    const inPostgres = mirrored.get(user.id);
+    if (!sameIds(next, toFunktionIds(user.funktionen))) {
+      // without the request: a derived field, not an edit by whoever triggered the refresh
+      await payload.update({ collection: 'users', id: user.id, data: { funktionen: next } });
+      written += 1;
+    } else if (inPostgres !== undefined && !sameIds(next, inPostgres)) {
+      await prisma.user.update({ where: { uuid: user.id }, data: { funktionIds: next } });
+      written += 1;
+    }
   }
   return written;
 };
@@ -121,11 +130,15 @@ export const getFunktionDirectory = async (
     docs.map((funktion) => {
       // with `locale: 'all'` a localized field comes back as an object by locale
       const labels = funktion.label as unknown as Partial<Record<Locale, string | null>> | null;
-      const label = labels?.[locale] ?? labels?.de ?? '';
+      // an emptied label counts as missing, so it falls back like one that was never set
+      const label =
+        [labels?.[locale], labels?.de, funktion.groupName].find(
+          (candidate) => typeof candidate === 'string' && candidate.trim() !== '',
+        ) ?? '';
       return [
         funktion.id,
         {
-          label: label === '' ? (funktion.groupName ?? '') : label,
+          label,
           order: funktion.order ?? 0,
         },
       ];
