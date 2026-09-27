@@ -30,6 +30,7 @@ export interface ChatRealtimeEvent {
     | 'chat_read_by_admin'
     | 'chat_updated'
     | 'new_chat'
+    | 'membership_revoked'
     | 'typing';
   chatId: string;
   senderId: string;
