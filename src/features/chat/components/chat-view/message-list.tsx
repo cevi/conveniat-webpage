@@ -4,6 +4,7 @@ import { MessageComponent } from '@/features/chat/components/chat-view/message';
 import { TypingIndicator } from '@/features/chat/components/chat-view/typing-indicator';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
+import { describeContactFunktionen } from '@/features/chat/utils/contact-search';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -63,6 +64,15 @@ export const MessageList: React.FC<{
   const chatId = useChatId();
   const { data: chatDetails, isLoading } = useChatDetail(chatId);
   const { data: currentUser } = trpc.chat.user.useQuery({});
+  // the messages name their sender only; the functions come with the cached contacts
+  const { data: contacts } = trpc.chat.contacts.useQuery({});
+  const funktionenBySender = React.useMemo(
+    () =>
+      new Map(
+        (contacts ?? []).map((contact) => [contact.userId, describeContactFunktionen(contact)]),
+      ),
+    [contacts],
+  );
 
   const { sortedMessages, isFetchingNextPage, topSentinelReference } = useMessageInfiniteScroll({
     chatId,
@@ -175,6 +185,7 @@ export const MessageList: React.FC<{
                     <MessageComponent
                       message={message}
                       isCurrentUser={message.senderId === currentUser}
+                      senderFunktionen={funktionenBySender.get(message.senderId ?? '') ?? ''}
                       chatType={chatDetails.type}
                       hideReplyCount={hideReplyCount}
                       isThreadRoot={isThreadRoot}

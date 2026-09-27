@@ -73,6 +73,8 @@ const clickToRemoveText: StaticTranslationString = {
 interface MessageProperties {
   message: ChatMessage;
   isCurrentUser: boolean;
+  /** The sender's functions in the camp organisation, shown with their name; may be empty. */
+  senderFunktionen?: string;
   chatType: string;
   hideReplyCount?: boolean;
   isThreadRoot?: boolean;
@@ -94,6 +96,7 @@ interface MessageProperties {
 export const MessageComponent: React.FC<MessageProperties> = ({
   message,
   isCurrentUser,
+  senderFunktionen = '',
   chatType,
   hideReplyCount = false,
   isThreadRoot = false,
@@ -359,6 +362,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         {!isCurrentUser && isFirstInGroup && chatType === 'GROUP' && message.senderName && (
           <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">
             {message.senderName}
+            {senderFunktionen !== '' && (
+              <span className="text-conveniat-green font-medium"> · {senderFunktionen}</span>
+            )}
           </span>
         )}
         <div

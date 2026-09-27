@@ -9,6 +9,8 @@ interface ParticipantsListProperties {
     name: string;
     chatPermission: string;
     description?: string | null;
+    /** e.g. "Ressortleitung Infrastruktur", empty for someone without a function */
+    funktionLine?: string;
     /** e.g. "Hof Süd · Quartier 2", empty for someone at no Hof */
     hofLine?: string;
   }>;
@@ -97,6 +99,11 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
                 </div>
                 {participant.description && (
                   <div className="font-body text-xs text-gray-500">{participant.description}</div>
+                )}
+                {participant.funktionLine !== undefined && participant.funktionLine !== '' && (
+                  <div className="font-body text-conveniat-green text-xs font-medium">
+                    {participant.funktionLine}
+                  </div>
                 )}
                 {participant.hofLine !== undefined && participant.hofLine !== '' && (
                   <div className="font-body text-xs text-gray-500">{participant.hofLine}</div>

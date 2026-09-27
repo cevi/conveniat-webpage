@@ -50,6 +50,7 @@ import { HelperShiftOrganiserExport as HelperShiftOrganiserExport_706abe738905a3
 import { ExportListMenuItem as ExportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
+import { FunktionenSyncButton as FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198 } from '@/features/payload-cms/payload-cms/components/funktionen-sync-button'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
 import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
 import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
@@ -180,6 +181,7 @@ export const importMap = {
   "@payloadcms/plugin-import-export/rsc#ExportListMenuItem": ExportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@payloadcms/plugin-import-export/rsc#ImportListMenuItem": ImportListMenuItem_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
+  "@/features/payload-cms/payload-cms/components/funktionen-sync-button#FunktionenSyncButton": FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
   "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
   "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,

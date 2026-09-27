@@ -18,13 +18,25 @@ import { useAddParticipants } from '@/features/chat/hooks/use-add-participants';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useRemoveParticipants } from '@/features/chat/hooks/use-remove-participant';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
-import { describeContactHof, matchesContactSearch } from '@/features/chat/utils/contact-search';
+import {
+  describeContactFunktionen,
+  describeContactHof,
+  matchesContactSearch,
+} from '@/features/chat/utils/contact-search';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 
 import { useCurrentLocale } from 'next-i18n-router/client';
+
+/** The function and Hof lines of a participant; empty for someone not among the contacts. */
+const participantLines = (
+  contact: Contact | undefined,
+): { funktionLine: string; hofLine: string } =>
+  contact === undefined
+    ? { funktionLine: '', hofLine: '' }
+    : { funktionLine: describeContactFunktionen(contact), hofLine: describeContactHof(contact) };
 
 export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -54,11 +66,10 @@ export const ChatDetails: React.FC = () => {
     );
   }, [allContacts, chatDetails, searchQuery]);
 
-  // The participants come without their Hof; the contacts, already loaded for adding people,
-  // carry it. Your own row stays without one, the contacts leave you out.
-  const hofLineByUserId = useMemo(
-    () =>
-      new Map((allContacts ?? []).map((contact) => [contact.userId, describeContactHof(contact)])),
+  // The participants come without their Hof and functions; the contacts, already loaded for
+  // adding people, carry them. Your own row stays without, the contacts leave you out.
+  const contactById = useMemo(
+    () => new Map((allContacts ?? []).map((contact) => [contact.userId, contact])),
     [allContacts],
   );
 
@@ -130,7 +141,7 @@ export const ChatDetails: React.FC = () => {
             <ParticipantsList
               participants={chatDetails.participants.map((participant) => ({
                 ...participant,
-                hofLine: hofLineByUserId.get(participant.id) ?? '',
+                ...participantLines(contactById.get(participant.id)),
               }))}
               currentUser={currentUser ?? ''}
               isGroupChat={isGroupChat}

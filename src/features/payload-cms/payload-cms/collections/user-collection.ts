@@ -7,6 +7,10 @@ import {
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
 import {
+  findFunktionIdsOfPerson,
+  toFunktionIds,
+} from '@/features/payload-cms/payload-cms/utils/funktionen';
+import {
   findRegisteredHofIds,
   toHofIds,
 } from '@/features/payload-cms/payload-cms/utils/hof-membership';
@@ -35,6 +39,8 @@ const syncUserToPostgres: NonNullable<
   const presentAtCamp = (doc.presentAtCamp as boolean | undefined | null) ?? false;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hofIds = toHofIds(doc.hoefe);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const funktionIds = toFunktionIds(doc.funktionen);
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -62,6 +68,7 @@ const syncUserToPostgres: NonNullable<
         description: description ?? null,
         hidden: hidden ?? false,
         hofIds,
+        funktionIds,
       },
       create: {
         uuid: uuid,
@@ -70,6 +77,7 @@ const syncUserToPostgres: NonNullable<
         description: description ?? null,
         hidden: hidden ?? false,
         hofIds,
+        funktionIds,
         presentAtCamp: presentAtCamp,
         // set date to 1970-01-01 to avoid null values
         lastSeen: new Date('1970-01-01T00:00:00Z'),
@@ -122,18 +130,22 @@ const syncUserToPostgres: NonNullable<
 };
 
 /**
- * Looks up the Höfe of a person the moment the user learns their Cevi.DB id, on the first
- * login or when a manually created user is linked. Later changes come from the registrations
- * and the Höfe, whose hooks refresh the users they touch.
+ * Looks up the Höfe and the functions of a person the moment the user learns their Cevi.DB
+ * id, on the first login or when a manually created user is linked. Later changes come from
+ * the registrations, the Höfe and the functions sync, which refresh the users they touch.
  */
-const fillHoefeOfNewPerson: NonNullable<
+const fillCampDataOfNewPerson: NonNullable<
   NonNullable<CollectionConfig['hooks']>['beforeChange']
 >[number] = async ({ data, originalDoc, req }): Promise<Partial<User>> => {
   const next = data as Partial<User>;
   const ceviId = next.cevi_db_uuid;
   if (typeof ceviId !== 'number') return next;
   if ((originalDoc as Partial<User> | undefined)?.cevi_db_uuid === ceviId) return next;
-  return { ...next, hoefe: await findRegisteredHofIds(req.payload, ceviId, req) };
+  const [hoefe, funktionen] = await Promise.all([
+    findRegisteredHofIds(req.payload, ceviId, req),
+    findFunktionIdsOfPerson(req.payload, ceviId, req),
+  ]);
+  return { ...next, hoefe, funktionen };
 };
 
 export const UserCollection: CollectionConfig = {
@@ -153,7 +165,7 @@ export const UserCollection: CollectionConfig = {
   },
 
   hooks: {
-    beforeChange: [fillHoefeOfNewPerson],
+    beforeChange: [fillCampDataOfNewPerson],
     afterChange: [syncUserToPostgres],
   },
 
@@ -422,6 +434,24 @@ export const UserCollection: CollectionConfig = {
           en: 'The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.',
           de: 'Die Höfe, an denen diese Person angemeldet ist, aus den von der Cevi.DB abgeglichenen Anmeldungen. Wird automatisch nachgeführt; das Quartier ergibt sich aus dem Hof.',
           fr: "Les Hofs auxquels cette personne est inscrite, d'après les inscriptions synchronisées depuis Cevi.DB. Mis à jour automatiquement ; le quartier découle du Hof.",
+        },
+      },
+    },
+    {
+      name: 'funktionen',
+      type: 'relationship',
+      relationTo: 'funktionen',
+      hasMany: true,
+      label: { en: 'Functions', de: 'Funktionen', fr: 'Fonctions' },
+      access: {
+        update: () => false,
+      },
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.',
+          de: 'Die Funktionen dieser Person in der Lagerorganisation, aus ihren Leitungsrollen in der Cevi.DB abgeglichen.',
+          fr: "Les fonctions de cette personne dans l'organisation du camp, synchronisées à partir de ses rôles de responsable dans Cevi.DB.",
         },
       },
     },

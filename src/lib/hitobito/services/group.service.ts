@@ -1,5 +1,59 @@
 import type { HitobitoClient } from '@/lib/hitobito/client';
 import type { Logger, RoleResource } from '@/lib/hitobito/types';
+import { z } from 'zod';
+
+/** A group as the JSON:API lists it. */
+export interface GroupSummary {
+  id: string;
+  name: string;
+}
+
+interface GroupListResponse {
+  data?: Array<{ id?: string; attributes?: { name?: string } }>;
+  links?: { next?: string | null };
+}
+
+/** Somebody holding a role in a group, as `people.json` lists them. */
+export interface GroupRoleHolder {
+  personId: string;
+  email: string;
+}
+
+/**
+ * The legacy `people.json` payload, read defensively: it is a frontend endpoint, so a
+ * person without an e-mail, without roles or with an unexpected extra key is normal and
+ * must not lose us the rest of the list.
+ */
+const PeopleJsonSchema = z.object({
+  people: z
+    .array(
+      z
+        .object({
+          id: z.union([z.string(), z.number()]).nullish(),
+          email: z.string().nullish(),
+          links: z
+            .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
+            .nullish(),
+        })
+        .passthrough(),
+    )
+    .nullish(),
+  linked: z
+    .object({
+      roles: z
+        .array(
+          z
+            .object({
+              id: z.union([z.string(), z.number()]),
+              role_class: z.string().nullish(),
+            })
+            .passthrough()
+            .nullable(),
+        )
+        .nullish(),
+    })
+    .nullish(),
+});
 
 export interface GetPersonRolesParameters {
   personId: string;
@@ -30,6 +84,76 @@ export class GroupService {
     private readonly client: HitobitoClient,
     private readonly logger?: Logger,
   ) {}
+
+  /** The name of one group, empty when Cevi.DB has none. */
+  async getGroupName(groupId: string): Promise<string> {
+    const response = await this.client.apiRequest<{ data?: { attributes?: { name?: string } } }>(
+      'GET',
+      `/api/groups/${groupId}`,
+    );
+    return response.data?.attributes?.name ?? '';
+  }
+
+  /** The groups directly below a group, every page of them. */
+  async listSubgroups(parentGroupId: string): Promise<GroupSummary[]> {
+    const subgroups: GroupSummary[] = [];
+    let nextUrl: string | undefined = '/api/groups';
+    let isFirstPage = true;
+
+    while (typeof nextUrl === 'string' && nextUrl !== '') {
+      const response: GroupListResponse = await this.client.apiRequest<GroupListResponse>(
+        'GET',
+        nextUrl,
+        isFirstPage
+          ? { params: { 'filter[parent_id][eq]': parentGroupId, 'page[size]': '100' } }
+          : {},
+      );
+      for (const group of response.data ?? []) {
+        if (typeof group.id === 'string' && group.id !== '') {
+          subgroups.push({ id: group.id, name: group.attributes?.name ?? '' });
+        }
+      }
+      nextUrl = response.links?.next ?? undefined;
+      isFirstPage = false;
+    }
+    return subgroups;
+  }
+
+  /**
+   * The people holding a role of the given class in a group itself, not in its subgroups.
+   * Reads the legacy `people.json`, the only list that carries the role classes.
+   */
+  async listPeopleWithRole(groupId: string, roleClass: string): Promise<GroupRoleHolder[]> {
+    const path = `/groups/${groupId}/people.json`;
+    const { response, body } = await this.client.frontendRequest('GET', path, {
+      headers: {
+        ...this.client.getFrontendHeaders(),
+        'X-Token': this.client.config.apiToken,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch the people of group ${groupId}: status ${String(response.status)}`,
+      );
+    }
+
+    const parsed = PeopleJsonSchema.safeParse(JSON.parse(body));
+    if (!parsed.success) return [];
+
+    const roleIds = new Set(
+      (parsed.data.linked?.roles ?? [])
+        .filter((role) => role !== null && role.role_class === roleClass)
+        .map((role) => String(role?.id)),
+    );
+
+    return (parsed.data.people ?? [])
+      .filter((person) => (person.links?.roles ?? []).some((roleId) => roleIds.has(String(roleId))))
+      .map((person) => ({
+        personId: person.id === null || person.id === undefined ? '' : String(person.id),
+        email: (person.email ?? '').trim().toLowerCase(),
+      }));
+  }
 
   async getPersonRoles({ personId, groupId }: GetPersonRolesParameters): Promise<RoleResource[]> {
     const response = await this.client.apiRequest<{ data: RoleResource[] }>('GET', '/api/roles', {

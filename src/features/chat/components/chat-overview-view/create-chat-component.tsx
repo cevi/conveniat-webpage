@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
-import { describeContactHof, matchesContactSearch } from '@/features/chat/utils/contact-search';
+import {
+  describeContactFunktionen,
+  describeContactHof,
+  matchesContactSearch,
+} from '@/features/chat/utils/contact-search';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -400,6 +404,11 @@ export const CreateNewChatPage: React.FC = () => {
                         </p>
                         {contact.description && (
                           <p className="font-body text-xs text-gray-500">{contact.description}</p>
+                        )}
+                        {describeContactFunktionen(contact) !== '' && (
+                          <p className="font-body text-conveniat-green text-xs font-medium">
+                            {describeContactFunktionen(contact)}
+                          </p>
                         )}
                         {describeContactHof(contact) !== '' && (
                           <p className="font-body text-xs text-gray-500">

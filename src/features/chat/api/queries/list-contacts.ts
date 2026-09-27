@@ -1,4 +1,9 @@
 import {
+  describeFunktionen,
+  getFunktionDirectory,
+  type FunktionLabel,
+} from '@/features/payload-cms/payload-cms/utils/funktionen';
+import {
   describeHoefe,
   getHofDirectory,
   type HofLabel,
@@ -21,6 +26,8 @@ export interface Contact {
   hoefe?: string[] | undefined;
   /** Names of the Quartiere of those Höfe, each once. */
   quartiere?: string[] | undefined;
+  /** Functions in the camp organisation, e.g. "Ressortleitung Infrastruktur", in order. */
+  funktionen?: string[] | undefined;
 }
 
 /**
@@ -44,11 +51,13 @@ export const listContacts = trpcBaseProcedure
         name: true,
         description: true,
         hofIds: true,
+        funktionIds: true,
       },
     });
 
     const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
     let hofDirectory = new Map<string, HofLabel>();
+    let funktionDirectory = new Map<string, FunktionLabel>();
 
     const cmsUsersMap = new Map<
       string,
@@ -69,6 +78,7 @@ export const listContacts = trpcBaseProcedure
       });
 
       if (!hideHofAndQuartier) hofDirectory = await getHofDirectory(payload);
+      funktionDirectory = await getFunktionDirectory(payload, ctx.locale);
 
       for (const u of cmsUsers.docs) {
         cmsUsersMap.set(u.id, {
@@ -96,6 +106,7 @@ export const listContacts = trpcBaseProcedure
         nickname,
         description: contact.description,
         ...(hideHofAndQuartier ? {} : describeHoefe(contact.hofIds, hofDirectory)),
+        funktionen: describeFunktionen(contact.funktionIds, funktionDirectory),
       };
     });
   });
