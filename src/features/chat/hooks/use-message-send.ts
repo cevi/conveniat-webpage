@@ -13,6 +13,7 @@ import {
   removeMessageFromOutbox,
   setSendInFlight,
 } from '@/features/chat/utils/offline-outbox';
+import { isTransportError } from '@/features/chat/utils/send-errors';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
@@ -281,12 +282,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
     onError: (error, variables, context) => {
       const { chatId, parentId } = variables;
-      const isOfflineError =
-        !navigator.onLine ||
-        error.message === 'Failed to fetch' ||
-        error.message.includes('Network request failed');
-
-      if (isOfflineError) {
+      if (isTransportError(error)) {
         // the send stays in the outbox it was queued in on mutate
         if (context?.optimisticMessageId) {
           const optimisticMessageId = context.optimisticMessageId;
@@ -336,32 +332,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
       if (failedMessageId === undefined) return;
       // refused for good: replaying it from the outbox would fail the same way
       removeMessageFromOutbox(failedMessageId);
-      const markFailed = (item: ChatMessage): ChatMessage =>
-        item.id === failedMessageId ? { ...item, sendFailed: true } : item;
-
-      trpcUtils.chat.infiniteMessages.setInfiniteData(
-        { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
-        (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
-          if (!data) return data;
-          return {
-            ...data,
-            pages: data.pages.map((page) => ({
-              ...page,
-              items: page.items.map((item) => markFailed(item)),
-            })),
-          };
-        },
-      );
-
-      if (!parentId) {
-        trpcUtils.chat.chatDetails.setData(
-          { chatId },
-          (oldData: ChatDetails | undefined): ChatDetails | undefined => {
-            if (!oldData) return oldData;
-            return { ...oldData, messages: oldData.messages.map((item) => markFailed(item)) };
-          },
-        );
-      }
+      markMessageSendFailed(trpcUtils, { chatId, parentId, messageId: failedMessageId });
 
       // persisted, so the next refetch of the list (which never had it) cannot drop it
       const failedMessage = trpcUtils.chat.infiniteMessages
@@ -433,4 +404,44 @@ export const useMessageSend = (): UseMessageSendMutation => {
       if (messageId !== undefined) setSendInFlight(messageId, false);
     },
   });
+};
+
+/**
+ * Turns a message's bubble in the cached lists into a failed one, which shows an inline retry
+ * instead of the queued or sending state.
+ */
+export const markMessageSendFailed = (
+  trpcUtils: ReturnType<typeof trpc.useUtils>,
+  {
+    chatId,
+    parentId,
+    messageId,
+  }: { chatId: string; parentId?: string | undefined; messageId: string },
+): void => {
+  const markFailed = (item: ChatMessage): ChatMessage =>
+    item.id === messageId ? { ...item, sendFailed: true, isPendingOffline: false } : item;
+
+  trpcUtils.chat.infiniteMessages.setInfiniteData(
+    { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined },
+    (data: InfiniteMessagesData | undefined): InfiniteMessagesData | undefined => {
+      if (!data) return data;
+      return {
+        ...data,
+        pages: data.pages.map((page) => ({
+          ...page,
+          items: page.items.map((item) => markFailed(item)),
+        })),
+      };
+    },
+  );
+
+  if (!parentId) {
+    trpcUtils.chat.chatDetails.setData(
+      { chatId },
+      (oldData: ChatDetails | undefined): ChatDetails | undefined => {
+        if (!oldData) return oldData;
+        return { ...oldData, messages: oldData.messages.map((item) => markFailed(item)) };
+      },
+    );
+  }
 };

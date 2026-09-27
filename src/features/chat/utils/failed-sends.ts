@@ -47,7 +47,9 @@ const writeFailedSends = (sends: FailedSend[]): void => {
 /** Records a send that failed, replacing an earlier failure of the same message. */
 export const rememberFailedSend = (message: ChatMessage, input: SendMessageInput): void => {
   const others = readFailedSends().filter((send) => send.message.id !== message.id);
-  writeFailedSends([...others, { input, message: { ...message, sendFailed: true } }]);
+  // a queued message that failed for good is no longer queued, and the queued clock would win
+  const failed = { ...message, sendFailed: true, isPendingOffline: false };
+  writeFailedSends([...others, { input, message: failed }]);
 };
 
 /** The input of a failed send, for a retry that replays it exactly. */

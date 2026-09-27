@@ -8,6 +8,7 @@ import { getOfflineOutbox } from '@/features/chat/utils/offline-outbox';
 import { ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { renderHook } from '@testing-library/react';
+import { TRPCClientError } from '@trpc/client';
 
 // the generated prisma client cannot be loaded under jsdom; the hook only needs its enums
 jest.mock('@/lib/prisma/client', () => ({
@@ -192,7 +193,7 @@ describe('useMessageSend message identity', () => {
     });
 
     onError(
-      new Error('Failed to fetch'),
+      new TRPCClientError('Failed to fetch'),
       { chatId: CHAT_ID, content: 'queued while offline', timestamp: new Date() },
       context,
     );

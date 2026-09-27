@@ -6,6 +6,7 @@ import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { useOfflineQueueProcessor } from '@/features/chat/hooks/use-offline-queue-processor';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { generateChatId } from '@/features/chat/utils';
+import { getFailedChatMessages, getFailedSendInput } from '@/features/chat/utils/failed-sends';
 import {
   getOfflineOutbox,
   saveOfflineOutbox,
@@ -14,6 +15,14 @@ import {
 } from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
 import { renderHook, waitFor } from '@testing-library/react';
+import { TRPCClientError } from '@trpc/client';
+
+// the generated prisma client cannot be loaded under jsdom; the drain only needs its enums
+jest.mock('@/lib/prisma/client', () => ({
+  ChatType: { ONE_TO_ONE: 'ONE_TO_ONE', GROUP: 'GROUP' },
+  MessageEventType: { CREATED: 'CREATED', STORED: 'STORED' },
+  MessageType: { TEXT_MSG: 'TEXT_MSG', IMAGE_MSG: 'IMAGE_MSG' },
+}));
 
 jest.mock('@/trpc/client', () => ({
   trpc: {
@@ -283,6 +292,111 @@ describe('useOfflineQueueProcessor - replaying queued messages', () => {
     expect(getOfflineOutbox()).toHaveLength(1);
 
     setSendInFlight('msg-1', false);
+    unmount();
+  });
+});
+
+/** The error tRPC raises for an answer the server sent with the given code. */
+const serverError = (code: string, httpStatus: number): TRPCClientError<never> =>
+  TRPCClientError.from({
+    error: { code: -32_000, message: code, data: { code, httpStatus, path: 'chat.sendMessage' } },
+  });
+
+describe('useOfflineQueueProcessor - a queued message the server did not take', () => {
+  const chatId = 'chat-uster';
+  const messageId = 'message-queued-in-the-forest';
+
+  const drainAgainst = (
+    failure: Error,
+  ): { cache: CachedQueries; sendMessage: jest.Mock; unmount: () => void } => {
+    const { cache, utils } = createCacheStub();
+    cache.messagePages.set(chatId, {
+      pages: [
+        {
+          items: [
+            {
+              id: messageId,
+              messagePayload: { text: 'Wir sind beim Feuer' },
+              createdAt: new Date('2027-07-26T18:00:00Z'),
+              senderId: CURRENT_USER,
+              status: 'CREATED',
+              type: 'TEXT_MSG',
+              isPendingOffline: true,
+            } as unknown as ChatMessage,
+          ],
+        },
+      ],
+    });
+    (trpc.useUtils as unknown as jest.Mock).mockReturnValue(utils);
+    const sendMessage = jest.fn((): Promise<never> => Promise.reject(failure));
+    (trpc.chat.sendMessage.useMutation as unknown as jest.Mock).mockReturnValue({
+      mutateAsync: sendMessage,
+    });
+    (trpc.chat.createChat.useMutation as unknown as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(),
+    });
+
+    const { unmount } = renderHook(() => useOfflineQueueProcessor());
+    return { cache, sendMessage, unmount };
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    saveOfflineOutbox([
+      {
+        type: 'MESSAGE',
+        id: messageId,
+        chatId,
+        content: 'Wir sind beim Feuer',
+        createdAt: '2027-07-26T18:00:00.000Z',
+        userId: CURRENT_USER,
+      },
+    ]);
+  });
+
+  it.each([
+    ['the connection drops (Safari)', new TRPCClientError('Load failed')],
+    ['the session expired', serverError('UNAUTHORIZED', 401)],
+    ['the server crashed', serverError('INTERNAL_SERVER_ERROR', 500)],
+  ])('keeps the message queued when %s', async (_case, failure) => {
+    const { sendMessage, unmount } = drainAgainst(failure);
+
+    await waitFor(() => {
+      expect(sendMessage).toHaveBeenCalled();
+    });
+
+    expect(getOfflineOutbox()).toEqual([expect.objectContaining({ id: messageId })]);
+    expect(getFailedChatMessages(chatId, undefined, CURRENT_USER)).toEqual([]);
+    unmount();
+  });
+
+  it('keeps a message the server rejects for good as a failed bubble with its text', async () => {
+    const { cache, unmount } = drainAgainst(serverError('BAD_REQUEST', 400));
+
+    await waitFor(() => {
+      expect(getOfflineOutbox()).toEqual([]);
+    });
+
+    expect(getFailedChatMessages(chatId, undefined, CURRENT_USER)).toEqual([
+      expect.objectContaining({
+        id: messageId,
+        messagePayload: { text: 'Wir sind beim Feuer' },
+        sendFailed: true,
+        isPendingOffline: false,
+      }),
+    ]);
+    // a retry replays the send exactly as it was queued
+    expect(getFailedSendInput(messageId)).toMatchObject({
+      chatId,
+      content: 'Wir sind beim Feuer',
+      messageId,
+      timestamp: new Date('2027-07-26T18:00:00.000Z'),
+    });
+    expect(cache.messagePages.get(chatId)?.pages[0]?.items[0]).toMatchObject({
+      id: messageId,
+      sendFailed: true,
+      isPendingOffline: false,
+    });
     unmount();
   });
 });
