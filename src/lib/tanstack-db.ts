@@ -47,14 +47,14 @@ const locationSchema = z.union([
 ]);
 
 /**
- * Schema for organiser
+ * Schema for organiser. A populated user carries only `id`, `fullName` and `nickname` (see
+ * `defaultPopulate` on the users collection), never the email.
  */
 const organiserSchema = z.union([
   z.string(),
   z
     .object({
       fullName: z.string(),
-      email: z.string(),
     })
     .passthrough(), // Allow additional properties from User
 ]);
