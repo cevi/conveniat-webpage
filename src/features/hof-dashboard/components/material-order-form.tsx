@@ -70,6 +70,7 @@ export const MaterialOrderForm: React.FC<{
   const id = useId();
   const [quantities, setQuantities] = useState(() => initialQuantities(order));
   const [powerConnection, setPowerConnection] = useState(order.powerConnection);
+  const [refused, setRefused] = useState(false);
   const shown: OrderValues = {
     quantities: Object.fromEntries(
       order.items.map((item) => [item.id, toQuantity(quantities[item.id])]),
@@ -186,20 +187,27 @@ export const MaterialOrderForm: React.FC<{
                       <td className="py-1.5 text-right">
                         <input
                           id={`${id}-${item.id}`}
-                          type="number"
+                          // text, not number: a number field reports "2." as empty and takes
+                          // "2.5" or "-4", which would then be corrected without a word
+                          type="text"
                           inputMode="numeric"
-                          min={0}
-                          max={HOF_ORDER_MAX_QUANTITY}
-                          step={1}
+                          pattern="[0-9]*"
+                          aria-describedby={`${id}-hint`}
+                          autoComplete="off"
                           placeholder="0"
                           disabled={closed}
                           value={quantities[item.id] ?? ''}
-                          onChange={(event) =>
-                            setQuantities((previous) => ({
-                              ...previous,
-                              [item.id]: event.target.value,
-                            }))
-                          }
+                          onChange={(event) => {
+                            const typed = event.target.value;
+                            // only whole numbers up to the most that can be ordered get in
+                            if (!/^\d*$/.test(typed) || Number(typed) > HOF_ORDER_MAX_QUANTITY) {
+                              // the key does nothing, so the rule below says why
+                              setRefused(true);
+                              return;
+                            }
+                            setRefused(false);
+                            setQuantities((previous) => ({ ...previous, [item.id]: typed }));
+                          }}
                           onBlur={(event) =>
                             setQuantities((previous) => {
                               const quantity = toQuantity(event.target.value);
@@ -219,7 +227,10 @@ export const MaterialOrderForm: React.FC<{
             </table>
           )}
           {order.items.length > 0 && (
-            <p className="text-xs text-gray-500">
+            <p
+              id={`${id}-hint`}
+              className={cn('text-xs', refused ? 'font-semibold text-amber-800' : 'text-gray-500')}
+            >
               {translate('quantityHint', locale, {
                 n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
               })}

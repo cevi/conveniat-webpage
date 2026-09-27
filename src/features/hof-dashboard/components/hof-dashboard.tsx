@@ -26,6 +26,7 @@ import {
 } from '@/features/hof-dashboard/constants';
 import { useRememberedHofId } from '@/features/hof-dashboard/hooks/use-remembered-hof-id';
 import { useScrollToSubmission } from '@/features/hof-dashboard/hooks/use-scroll-to-submission';
+import { useTabInAddress } from '@/features/hof-dashboard/hooks/use-tab-in-address';
 import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { text, translate } from '@/features/hof-dashboard/texts';
 import {
@@ -50,6 +51,8 @@ const TABS: { id: Tab; label: StaticTranslationString }[] = [
   { id: 'orders', label: text.tabOrders },
   { id: 'documents', label: text.tabDocuments },
 ];
+
+const TAB_IDS = TABS.map(({ id }) => id);
 
 const LoadingState: React.FC<{ locale: Locale }> = ({ locale }) => (
   <div className="space-y-4" role="status">
@@ -106,7 +109,7 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
 );
 
 const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useTabInAddress(TAB_IDS, 'overview');
   const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
   const clearScrollTarget = useCallback(() => setScrollTarget(undefined), []);
   const root = useRef<HTMLDivElement>(null);

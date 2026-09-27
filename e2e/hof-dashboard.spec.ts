@@ -326,6 +326,27 @@ test.describe('Hof dashboard', () => {
     await expect(page.getByRole('combobox', { name: 'Hof' })).toHaveText('Hof Süd');
   });
 
+  test('opens the tab it showed after a reload', async ({ page }) => {
+    await mockBackend(page);
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Material' }).click();
+    await page.reload();
+    await expect(page.getByRole('tab', { name: 'Material' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+
+  test('takes whole quantities only and says so', async ({ page }) => {
+    await mockBackend(page);
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Material' }).click();
+    const quantity = page.getByLabel('Bindestrick');
+    await quantity.pressSequentially('2.');
+    await expect(quantity).toHaveValue('2');
+    await expect(page.getByText(/Ganze Stückzahlen/)).toHaveClass(/text-amber-800/);
+  });
+
   test('keeps a saved answer when the reload after it fails', async ({ page }) => {
     await mockBackend(page, { failReloads: true });
     await page.goto('/hof-dashboard');
