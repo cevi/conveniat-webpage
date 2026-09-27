@@ -10,15 +10,81 @@ import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, User } from 'lucide-react';
 import React from 'react';
 
+import {
+  describeHofRoles,
+  getHofDirectory,
+  type HofRole,
+} from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { createLogger } from '@/utils/server-logger';
+import config from '@payload-config';
+import { getPayload } from 'payload';
+
+const logger = createLogger('settings:profile-details');
 
 const notAvailable: StaticTranslationString = {
   de: 'nicht verfügbar',
   en: 'not available',
-  fr: '',
+  fr: 'non disponible',
 };
+
+const noHofYet: StaticTranslationString = {
+  de: 'Noch keinem Hof zugeteilt',
+  en: 'Not assigned to a Hof yet',
+  fr: 'Pas encore attribué à un Hof',
+};
+
+const noQuartierYet: StaticTranslationString = {
+  de: 'Dein Hof ist noch keinem Quartier zugeteilt',
+  en: 'Your Hof is not assigned to a Quartier yet',
+  fr: "Ton Hof n'est pas encore attribué à un Quartier",
+};
+
+/** Ids of related documents, whether Payload returned them as ids or as documents. */
+const idsOf = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.flatMap((entry: unknown) => {
+        if (typeof entry === 'string') return [entry];
+        if (typeof entry === 'object' && entry !== null && 'id' in entry) {
+          return typeof entry.id === 'string' ? [entry.id] : [];
+        }
+        return [];
+      })
+    : [];
+
+/**
+ * The Höfe of the logged-in user, from their registration, each with its Quartier and whether
+ * they are its AVP. Undefined when they cannot be read, so the page says so instead of claiming
+ * the user has no Hof.
+ */
+const findHofRolesOfUser = async (userId: string): Promise<HofRole[] | undefined> => {
+  try {
+    const payload = await getPayload({ config });
+    const [user, directory] = await Promise.all([
+      payload.findByID({
+        collection: 'users',
+        id: userId,
+        depth: 0,
+        select: { hoefe: true, avpHoefe: true },
+      }),
+      getHofDirectory(payload),
+    ]);
+    return describeHofRoles(idsOf(user.hoefe), idsOf(user.avpHoefe), directory);
+  } catch (error: unknown) {
+    logger.warn('Could not read the Höfe of the user', { error, 'user.id': userId });
+    return undefined;
+  }
+};
+
+/** "Cevi Uster (AVP), Züri 11" and their Quartiere, each once. */
+const describeHofRolesForProfile = (roles: HofRole[]): { hoefe: string; quartiere: string } => ({
+  hoefe: roles.map(({ hof, isAvp }) => (isAvp ? `${hof} (AVP)` : hof)).join(', '),
+  quartiere: [
+    ...new Set(roles.map(({ quartier }) => quartier).filter((name) => name !== undefined)),
+  ].join(', '),
+});
 
 const guestTitle: StaticTranslationString = {
   de: 'Gast',
@@ -95,6 +161,17 @@ export const ProfileDetails: React.FC = async () => {
     // Default to false if Redis is unreachable
   }
   const shouldShowHofAndQuartier = isAuthenticated && !hideHofAndQuartier;
+  const hofRoles = shouldShowHofAndQuartier ? await findHofRolesOfUser(user.uuid) : undefined;
+  const hofSummary = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles);
+  const hofText = (): string => {
+    if (hofSummary === undefined) return notAvailable[locale];
+    return hofSummary.hoefe === '' ? noHofYet[locale] : hofSummary.hoefe;
+  };
+  const quartierText = (): string => {
+    if (hofSummary === undefined) return notAvailable[locale];
+    if (hofSummary.hoefe === '') return noHofYet[locale];
+    return hofSummary.quartiere === '' ? noQuartierYet[locale] : hofSummary.quartiere;
+  };
 
   return (
     <div className="space-y-6">
@@ -126,8 +203,8 @@ export const ProfileDetails: React.FC = async () => {
 
               {shouldShowHofAndQuartier && (
                 <>
-                  <SettingsRow icon={MapPin} title="Hof" subtitle={getDetail(user.hof)} />
-                  <SettingsRow icon={MapPin} title="Quartier" subtitle={getDetail(user.quartier)} />
+                  <SettingsRow icon={MapPin} title="Hof" subtitle={hofText()} />
+                  <SettingsRow icon={MapPin} title="Quartier" subtitle={quartierText()} />
                 </>
               )}
 
