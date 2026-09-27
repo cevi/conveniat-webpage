@@ -87,6 +87,7 @@ export const useCreateChat = (): {
           chatName: variables.chatName,
           memberIds: variables.members.map((m) => m.userId),
           createdAt: new Date().toISOString(),
+          userId: currentUserId,
         });
         toast.success('Chat queued. Will be created when online.');
         return;

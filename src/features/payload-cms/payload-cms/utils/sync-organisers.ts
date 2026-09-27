@@ -1,5 +1,6 @@
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import {
   ChatMembershipPermission,
   CourseType,
@@ -13,7 +14,10 @@ import {
 } from '@/features/chat/api/utils/system-message-helpers';
 import type { CollectionAfterChangeHook } from 'payload';
 
-export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = async ({ doc }) => {
+export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = async ({
+  doc,
+  req,
+}) => {
   const courseId = doc.id;
 
   // Normalize organisers to string IDs
@@ -117,6 +121,11 @@ export const syncOrganisers: CollectionAfterChangeHook<CampScheduleEntry> = asyn
           },
         },
       });
+      await publishMembershipRevoked(
+        membership.userId,
+        chat.uuid,
+        req.user?.id ?? membership.userId,
+      );
 
       // System message for leaving
       const user = await prisma.user.findUnique({

@@ -8,6 +8,8 @@ import {
 } from '@/features/chat/utils';
 import {
   getOfflineOutbox,
+  isOutboxItemOwnedBy,
+  isSendInFlight,
   removeMessageFromOutbox,
   saveOfflineOutbox,
 } from '@/features/chat/utils/offline-outbox';
@@ -56,17 +58,29 @@ export const useOfflineQueueProcessor = (): void => {
     const processQueue = async (): Promise<void> => {
       if (!isOnline || isGlobalQueueProcessing) return;
 
-      const queue = getOfflineOutbox();
-      if (queue.length === 0) return;
+      if (getOfflineOutbox().length === 0) return;
 
       isGlobalQueueProcessing = true;
-      console.log(`[Offline Sync] Found ${queue.length} pending offline messages. Syncing...`);
-
       let abortedDueToNetwork = false;
       let syncedCount = 0;
 
       try {
+        // Only the sends of whoever is logged in: after a session expired on a shared
+        // phone, the outbox can still hold what the previous user queued.
+        let currentUser: string;
+        try {
+          currentUser = await trpcUtils.chat.user.ensureData({});
+        } catch {
+          return;
+        }
+        const queue = getOfflineOutbox().filter((item) => isOutboxItemOwnedBy(item, currentUser));
+        if (queue.length === 0) return;
+        console.log(`[Offline Sync] Found ${queue.length} pending offline messages. Syncing...`);
+
         for (const message of queue) {
+          // Sent right now by the page that queued it. Stop rather than skip, so nothing
+          // queued after it overtakes it; removing it from the outbox restarts the drain.
+          if (isSendInFlight(message.id)) break;
           try {
             if (message.type === 'CREATE_CHAT') {
               const createdChatId = await createChatMutateAsyncReference.current({
@@ -152,6 +166,7 @@ export const useOfflineQueueProcessor = (): void => {
               const createdMessageData = await mutateAsyncReference.current({
                 chatId: message.chatId,
                 content: message.content,
+                type: message.messageType,
                 timestamp,
                 quotedMessageId: message.quotedMessageId,
                 parentId: message.parentId,

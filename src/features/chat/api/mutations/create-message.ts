@@ -41,7 +41,13 @@ const sendMessageInputSchema = z.object({
       invalid_type_error: 'Timestamp must be a valid date.',
     }),
   ),
-  type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
+  // System and alert messages render with authority (the emergency banner, a "call this
+  // number" button), so only server code creates them. Offline sends queued by older app
+  // versions carry no type or TEXT_MSG, and both still pass.
+  type: z
+    .enum([MessageType.TEXT_MSG, MessageType.IMAGE_MSG, MessageType.LOCATION_MSG])
+    .optional()
+    .default(MessageType.TEXT_MSG),
   parentId: z.string().uuid().optional(),
   quotedMessageId: z.string().uuid().optional(),
   // Client-generated identity of this message. Sending it makes the mutation idempotent:

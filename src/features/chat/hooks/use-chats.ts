@@ -120,6 +120,9 @@ export const useChatDetail = (
       refetchOnWindowFocus: false,
       refetchInterval: isOnline ? 300_000 : false,
       placeholderData: (previousData) => previousData,
+      // NOT_FOUND means the user is not (or no longer) a member; retrying cannot change that
+      // and would keep a removed member looking at the chat for several more seconds.
+      retry: (failureCount, error) => error.data?.code !== 'NOT_FOUND' && failureCount < 3,
     },
   );
 };

@@ -1,13 +1,22 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { CHAT_OUTBOX_STORAGE_KEY } from '@/lib/chat-local-storage';
+import { MessageEventType } from '@/lib/chat-shared';
+// type only: the generated client does not load in the browser tests this module runs in
+import type { MessageType } from '@/lib/prisma/client';
 
 export interface OfflineMessage {
   type: 'MESSAGE';
   id: string; // Optimistic ID
   chatId: string;
   content: string;
+  // Absent in entries queued by older app versions, which only queued text.
+  messageType?: MessageType | undefined;
   quotedMessageId?: string | undefined;
   parentId?: string | undefined;
   createdAt: string; // ISO String
+  // Who wrote it. Absent in entries queued by older app versions: those belong to whoever
+  // is logged in.
+  userId?: string | undefined;
   retryCount?: number;
 }
 
@@ -20,12 +29,31 @@ export interface OfflineChatCreation {
   chatName: string | undefined;
   memberIds: string[];
   createdAt: string; // ISO String
+  userId?: string | undefined;
   retryCount?: number;
 }
 
 export type OfflineOutboxItem = OfflineMessage | OfflineChatCreation;
 
-const OFFLINE_OUTBOX_KEY = 'conveniat-offline-outbox';
+const OFFLINE_OUTBOX_KEY = CHAT_OUTBOX_STORAGE_KEY;
+
+/** Whether `userId` may see and send a queued item. */
+export const isOutboxItemOwnedBy = (item: OfflineOutboxItem, userId: string): boolean =>
+  item.userId === undefined || item.userId === userId;
+
+// Sends whose request this page still has open. Every send is queued before its request goes
+// out, so that a PWA killed mid-request keeps it; the drain leaves these alone instead of
+// posting each message a second time while the first request is still on its way.
+const sendsInFlight = new Set<string>();
+
+/** Marks a queued send as being sent by this page, or releases it again. */
+export const setSendInFlight = (id: string, inFlight: boolean): void => {
+  if (inFlight) sendsInFlight.add(id);
+  else sendsInFlight.delete(id);
+};
+
+/** Whether this page has a request open for the queued send. */
+export const isSendInFlight = (id: string): boolean => sendsInFlight.has(id);
 
 /**
  * Retrieves the current queue of offline items from localStorage.
@@ -56,34 +84,44 @@ export const getOfflineOutbox = (): OfflineOutboxItem[] => {
 };
 
 /**
- * Formats pending outbox items for a given chat as ChatMessage objects for UI rehydration across app restarts.
+ * Formats the pending outbox items of `currentUser` in a given chat as ChatMessage objects
+ * for UI rehydration across app restarts.
  */
-export const getPendingOutboxChatMessages = (chatId: string, parentId?: string): ChatMessage[] => {
-  const outbox = getOfflineOutbox();
-  const matching = outbox.filter(
-    (item) =>
+export const getPendingOutboxChatMessages = (
+  chatId: string,
+  parentId: string | undefined,
+  currentUser: string | undefined,
+): ChatMessage[] => {
+  // without the user we cannot tell own bubbles from others', so show none yet
+  if (currentUser === undefined) return [];
+
+  const matching = getOfflineOutbox().filter(
+    (item): item is OfflineMessage =>
       item.type === 'MESSAGE' &&
+      isOutboxItemOwnedBy(item, currentUser) &&
       item.chatId === chatId &&
       (parentId ? item.parentId === parentId : !item.parentId),
-  ) as OfflineMessage[];
+  );
 
-  const userId =
-    // eslint-disable-next-line unicorn/prefer-global-this
-    (typeof window !== 'undefined' && localStorage.getItem('conveniat-user-id')) || 'offline-user';
-
-  return matching.map((item) => ({
-    id: item.id,
-    messagePayload: {
-      text: item.content.trim(),
-      ...(item.quotedMessageId ? { quotedMessageId: item.quotedMessageId } : {}),
-    },
-    createdAt: new Date(item.createdAt),
-    senderId: userId,
-    status: 'CREATED',
-    type: 'TEXT_MSG',
-    parentId: item.parentId ?? undefined,
-    isPendingOffline: true,
-  }));
+  return matching.map((item) => {
+    const messageType = item.messageType ?? 'TEXT_MSG';
+    return {
+      id: item.id,
+      messagePayload:
+        messageType === 'IMAGE_MSG'
+          ? { url: item.content }
+          : {
+              text: item.content.trim(),
+              ...(item.quotedMessageId ? { quotedMessageId: item.quotedMessageId } : {}),
+            },
+      createdAt: new Date(item.createdAt),
+      senderId: currentUser,
+      status: MessageEventType.CREATED,
+      type: messageType,
+      parentId: item.parentId ?? undefined,
+      isPendingOffline: true,
+    };
+  });
 };
 
 /**

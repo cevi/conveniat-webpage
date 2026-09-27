@@ -199,10 +199,12 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
         return;
       }
 
-      // The user left the chat, possibly on another device: drop it from the overview.
+      // The user left or was removed from the chat, possibly on another device: drop it from
+      // the overview, and let an open chat view find out through the refetch that fails.
       if (data.type === 'membership_revoked') {
         trpcUtils.chat.chats.setData({}, (chats) => chats?.filter((c) => c.id !== data.chatId));
         trpcUtils.chat.chats.invalidate().catch(console.error);
+        trpcUtils.chat.chatDetails.invalidate({ chatId: data.chatId }).catch(console.error);
         return;
       }
 

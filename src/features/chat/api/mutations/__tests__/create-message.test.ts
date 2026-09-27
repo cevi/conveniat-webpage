@@ -15,9 +15,8 @@ jest.mock('superjson', () => ({
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
 }));
-jest.mock('@/features/chat/api/checks/assert-can-write-in-chat', () => ({
-  assertWriteAbilities: (): Promise<void> => Promise.resolve(),
-  assertMembershipCanWrite: (): void => {},
+jest.mock('@/lib/ability', () => ({
+  Ability: { can: (): Promise<boolean> => Promise.resolve(true) },
 }));
 
 /** Whether the transaction had committed when each side effect fired. */
@@ -42,9 +41,11 @@ jest.mock('@/features/chat/api/utils/send-push-notifications', () => ({
 }));
 
 import { createMessage } from '@/features/chat/api/mutations/create-message';
-import { ChatType } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/client';
 
-const CHAT_ID = '4f1c2a9e-3b7d-4e8a-9c51-0d6e2f8a1b34';
+const CHAT_ID = '00000000-0000-4000-8000-000000000001';
+
+let storedTypes: MessageType[];
 
 /** The rows the procedure touches, and a transaction that commits after the callback. */
 const prisma = {
@@ -64,47 +65,77 @@ const prisma = {
         type: ChatType.GROUP,
         capabilities: [],
         chatMemberships: [
-          { userId: 'anna', chatPermission: 'MEMBER' },
-          { userId: 'ben', chatPermission: 'MEMBER' },
+          { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER },
+          { userId: 'ben', chatPermission: ChatMembershipPermission.MEMBER },
         ],
       }),
     update: (): Promise<void> => Promise.resolve(),
   },
   message: {
-    create: (): Promise<unknown> =>
-      Promise.resolve({ uuid: 'message-1', createdAt: new Date(0), type: 'TEXT_MSG' }),
+    create: ({ data }: { data: { type: MessageType } }): Promise<unknown> => {
+      storedTypes.push(data.type);
+      return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
+    },
   },
-  messageEvent: {
-    createMany: (): Promise<void> => Promise.resolve(),
-  },
+  messageEvent: { createMany: (): Promise<void> => Promise.resolve() },
 };
 
-const createCaller = createCallerFactory(createTRPCRouter({ createMessage }));
+const createCaller = createCallerFactory(createTRPCRouter({ sendMessage: createMessage }));
 const anna = createCaller({
   user: { uuid: 'anna', group_ids: [], name: 'Anna', email: 'anna@example.test' },
   prisma,
   locale: 'de',
 } as unknown as Context);
 
-const send = (): Promise<unknown> =>
-  anna.createMessage({ chatId: CHAT_ID, content: 'Hoi zäme', timestamp: new Date(0) });
+const send = (type?: MessageType): Promise<unknown> =>
+  anna.sendMessage({
+    chatId: CHAT_ID,
+    content: 'Hoi zäme',
+    timestamp: new Date(),
+    // cast, because the input type already rules out what the server has to reject
+    ...(type === undefined ? {} : { type: type as typeof MessageType.TEXT_MSG }),
+  });
 
 beforeEach(() => {
+  storedTypes = [];
   committed = false;
   failCommit = false;
   publishedAt.length = 0;
   pushedAt.length = 0;
 });
 
-describe('sending a message', () => {
-  it('announces it exactly once, after the commit', async () => {
+describe('the message types a participant can send', () => {
+  it.each([MessageType.TEXT_MSG, MessageType.IMAGE_MSG, MessageType.LOCATION_MSG])(
+    'stores a %s',
+    async (type) => {
+      await send(type);
+      expect(storedTypes).toEqual([type]);
+    },
+  );
+
+  it('stores a send without a type, as older offline outboxes queued it, as text', async () => {
+    await send();
+    expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
+  });
+
+  it.each([MessageType.SYSTEM_MSG, MessageType.ALERT_QUESTION, MessageType.ALERT_RESPONSE])(
+    'rejects a %s, which only server code creates',
+    async (type) => {
+      await expect(send(type)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+      expect(storedTypes).toEqual([]);
+    },
+  );
+});
+
+describe('announcing a sent message', () => {
+  it('happens exactly once, after the commit', async () => {
     await send();
 
     expect(publishedAt).toEqual([true]);
     expect(pushedAt).toEqual([true]);
   });
 
-  it('announces nothing when the transaction rolls back', async () => {
+  it('does not happen when the transaction rolls back', async () => {
     failCommit = true;
 
     await expect(send()).rejects.toThrow('Transaction already closed');

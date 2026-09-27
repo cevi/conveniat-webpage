@@ -47,6 +47,13 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+const newMessage = (chatId: string, text: string): object => ({
+  type: 'new_message',
+  chatId,
+  senderId: 'hof-leader',
+  message: { id: text, messagePayload: text },
+});
+
 const mockAuth = auth as unknown as jest.Mock;
 const mockIsValidNextAuthUser = isValidNextAuthUser as unknown as jest.Mock;
 
@@ -240,5 +247,92 @@ describe('GET /api/chat/sse', () => {
     await reader?.cancel();
     // Closing the stream must not try to unsubscribe the chat a second time.
     expect(unsubscribeChat).toHaveBeenCalledTimes(1);
+  });
+
+  it("connects for the remaining chats when one requested chat is no longer the user's", async () => {
+    const memberChatId = '550e8400-e29b-41d4-a716-446655440000';
+    const staleChatId = '550e8400-e29b-41d4-a716-446655440001';
+    const mockUser = { uuid: 'user-uuid-123', group_ids: ['member-group'] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+    (prisma.chatMembership.findMany as unknown as jest.Mock).mockResolvedValue([
+      { chatId: memberChatId },
+    ]);
+
+    const request = new NextRequest(
+      `https://konekta.ch/api/chat/sse?chatIds=${memberChatId},${staleChatId}`,
+    );
+    const response = await GET(request);
+    const reader = response.body?.getReader();
+    await reader?.read();
+    await reader?.read();
+
+    expect(response.status).toBe(200);
+    const channels = (chatPubSub.subscribe as unknown as jest.Mock).mock.calls.map(
+      ([channel]) => channel as string,
+    );
+    expect(channels).toEqual(['user-uuid-123', memberChatId]);
+    await reader?.cancel();
+  });
+
+  it('writes no further messages of a chat to a user who was removed from it', async () => {
+    const removedChatId = '550e8400-e29b-41d4-a716-446655440000';
+    const otherChatId = '550e8400-e29b-41d4-a716-446655440001';
+    const mockUser = { uuid: 'user-uuid-123', group_ids: ['member-group'] };
+    mockAuth.mockResolvedValue({ user: mockUser });
+    mockIsValidNextAuthUser.mockReturnValue(true);
+    (prisma.chatMembership.findMany as unknown as jest.Mock).mockResolvedValue([
+      { chatId: removedChatId },
+      { chatId: otherChatId },
+    ]);
+
+    // A pub/sub that actually routes by channel, so an unsubscribe really stops delivery.
+    const listeners = new Map<string, (event: unknown) => void>();
+    const subscribe = (
+      channel: string,
+      listener: (event: unknown) => void,
+    ): Promise<() => void> => {
+      listeners.set(channel, listener);
+      return Promise.resolve(() => listeners.delete(channel));
+    };
+    // once per channel: the user's own and the two chats
+    (chatPubSub.subscribe as unknown as jest.Mock)
+      .mockImplementationOnce(subscribe)
+      .mockImplementationOnce(subscribe)
+      .mockImplementationOnce(subscribe);
+    const deliver = (channel: string, event: object): void => listeners.get(channel)?.(event);
+
+    const request = new NextRequest(
+      `https://konekta.ch/api/chat/sse?chatIds=${removedChatId},${otherChatId}`,
+    );
+    const response = await GET(request);
+    const reader = response.body?.getReader();
+    await reader?.read();
+    await reader?.read();
+
+    // the first message was queued on the chat's channel before the revocation reached us
+    const queuedListener = listeners.get(removedChatId);
+    deliver('user-uuid-123', {
+      type: 'membership_revoked',
+      chatId: removedChatId,
+      senderId: 'kernteam-admin',
+      channel: 'user-uuid-123',
+    });
+    queuedListener?.(newMessage(removedChatId, 'already queued'));
+    deliver(removedChatId, newMessage(removedChatId, 'after removal'));
+    deliver(otherChatId, newMessage(otherChatId, 'still delivered'));
+
+    let frames = '';
+    while (!frames.includes('still delivered')) {
+      const chunk = await reader?.read();
+      if (chunk === undefined || chunk.done) break;
+      frames += new TextDecoder().decode(chunk.value);
+    }
+
+    expect(frames).toContain('membership_revoked');
+    expect(frames).toContain('still delivered');
+    expect(frames).not.toContain('already queued');
+    expect(frames).not.toContain('after removal');
+    await reader?.cancel();
   });
 });
