@@ -39,6 +39,19 @@ describe('useTabInAddress', () => {
     expect(result.current[0]).toBe('overview');
   });
 
+  it('returns to the overview on back after moving on between tabs', async () => {
+    const { result } = renderHook(() => useTabInAddress(TABS, 'overview'));
+
+    act(() => result.current[1]('program'));
+    const lengthOnFirstTab = globalThis.history.length;
+    act(() => result.current[1]('material'));
+    expect(globalThis.location.hash).toBe('#material');
+    expect(globalThis.history.length).toBe(lengthOnFirstTab);
+
+    await act(goBack);
+    expect(result.current[0]).toBe('overview');
+  });
+
   it('adds no entry when the open tab is chosen again', () => {
     const { result } = renderHook(() => useTabInAddress(TABS, 'overview'));
     const lengthBefore = globalThis.history.length;
