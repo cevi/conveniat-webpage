@@ -1,9 +1,22 @@
 import { refreshUserFunktionen } from '@/features/payload-cms/payload-cms/utils/funktionen';
+import { FatalError } from '@/lib/hitobito/client';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 import type { GroupRoleHolder, GroupSummary } from '@/lib/hitobito/services/group.service';
 import type { Payload } from 'payload';
 
 /** Only the leaders of a group get its function; its members stay plain participants. */
 export const LEITUNG_ROLE_CLASS = 'Group::DachverbandGremium::Leitung';
+
+/**
+ * What kind of failure stopped a sync, so a log query can tell an expired session, which an
+ * editor fixes by storing a new cookie, from a Cevi.DB outage or a refused request.
+ */
+export const describeFunktionenSyncFailure = (error: unknown): string => {
+  if (error instanceof SessionExpiredError) return 'session_expired';
+  if (error instanceof FatalError) return 'refused';
+  if (error instanceof Error && error.message.startsWith('No browser cookie')) return 'no_cookie';
+  return 'error';
+};
 
 /** A safety stop, far above any real camp organisation. */
 const MAX_GROUPS = 500;
@@ -22,6 +35,30 @@ interface FoundFunktion {
   personIds: string[];
 }
 
+/** A group that has leaders, as the sync reports it while it reads the tree. */
+export interface FoundFunktionGroup {
+  groupId: string;
+  groupName: string;
+  leaders: number;
+}
+
+/** How far a sync has got, for a progress bar. */
+export type FunktionenSyncProgress =
+  | { phase: 'discovering'; discoveredGroups: number }
+  | {
+      phase: 'reading';
+      processedGroups: number;
+      totalGroups: number;
+      /** groups with leaders found since the previous report; append, do not replace */
+      found: FoundFunktionGroup[];
+    };
+
+/** One line of the stream the admin panel reads while a sync runs. */
+export type FunktionenSyncStreamMessage =
+  | ({ type: 'progress' } & FunktionenSyncProgress)
+  | { type: 'done'; result: FunktionenSyncResult }
+  | { type: 'error'; error: string; failure: string };
+
 export interface FunktionenSyncResult {
   groups: number;
   created: number;
@@ -34,6 +71,7 @@ export interface FunktionenSyncResult {
 const walkGroupTree = async (
   source: FunktionenSource,
   rootGroupId: string,
+  onProgress: (progress: FunktionenSyncProgress) => void,
 ): Promise<GroupSummary[]> => {
   const groups: GroupSummary[] = [
     { id: rootGroupId, name: await source.getGroupName(rootGroupId) },
@@ -49,6 +87,7 @@ const walkGroupTree = async (
       seen.add(child.id);
       groups.push(child);
     }
+    onProgress({ phase: 'discovering', discoveredGroups: groups.length });
   }
   return groups;
 };
@@ -68,18 +107,27 @@ export const syncFunktionen = async (
   payload: Payload,
   source: FunktionenSource,
   rootGroupId: string,
+  onProgress: (progress: FunktionenSyncProgress) => void = (): void => {},
 ): Promise<FunktionenSyncResult> => {
-  const groups = await walkGroupTree(source, rootGroupId);
+  const groups = await walkGroupTree(source, rootGroupId, onProgress);
 
   const found: FoundFunktion[] = [];
-  for (const group of groups) {
+  for (const [index, group] of groups.entries()) {
     const leaders = await source.listPeopleWithRole(group.id, LEITUNG_ROLE_CLASS);
     const personIds = [...new Set(leaders.map((leader) => leader.personId))].filter(
       (id) => id !== '',
     );
-    if (personIds.length > 0) {
-      found.push({ groupId: group.id, groupName: group.name, personIds });
-    }
+    const funktion = { groupId: group.id, groupName: group.name, personIds };
+    if (personIds.length > 0) found.push(funktion);
+    onProgress({
+      phase: 'reading',
+      processedGroups: index + 1,
+      totalGroups: groups.length,
+      found:
+        personIds.length > 0
+          ? [{ groupId: group.id, groupName: group.name, leaders: personIds.length }]
+          : [],
+    });
   }
 
   const { docs: existing } = await payload.find({

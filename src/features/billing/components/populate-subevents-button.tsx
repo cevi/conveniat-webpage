@@ -4,9 +4,14 @@ import type { PopulateSubeventsState } from '@/features/billing/hooks/use-popula
 import { usePopulateSubevents } from '@/features/billing/hooks/use-populate-subevents';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import {
+  SyncFoundList,
+  SyncProgressCard,
+  syncPhaseOf,
+} from '@/features/payload-cms/payload-cms/components/shared/sync-progress';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { useAuth, useListQuery, useLocale } from '@payloadcms/ui';
-import { AlertTriangle, CheckCircle2, Download, RefreshCw, Sparkles } from 'lucide-react';
+import { Button, useAuth, useListQuery, useLocale } from '@payloadcms/ui';
+import { Download, RefreshCw } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
@@ -106,12 +111,6 @@ const noEventsYet: StaticTranslationString = {
   fr: 'Aucun événement trouvé pour le moment.',
 };
 
-const newBadge: StaticTranslationString = {
-  de: 'neu',
-  en: 'new',
-  fr: 'nouveau',
-};
-
 const reloadButtonLabel: StaticTranslationString = {
   de: 'Seite neu laden',
   en: 'Reload page',
@@ -207,10 +206,6 @@ export const PopulateSubeventsButton: React.FC = () => {
     error: errorStatus[locale],
   }[state.phase];
 
-  // Newest first: while the walk runs the freshly discovered event stays visible
-  // without the list having to scroll itself.
-  const eventsNewestFirst = [...state.foundEvents].reverse();
-
   return (
     <div className="mb-5 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) p-4">
       <h4 className="m-0 mb-2 text-[15px] font-semibold text-(--theme-elevation-900)">
@@ -229,63 +224,34 @@ export const PopulateSubeventsButton: React.FC = () => {
         {cardDescriptionAfter[locale]}
       </p>
 
-      <button
-        type="button"
-        onClick={() => setIsModalOpen(true)}
+      <Button
+        buttonStyle="primary"
+        size="medium"
+        margin={false}
         disabled={isRunning}
-        className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-(--theme-success-500) px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-(--theme-success-600) disabled:cursor-not-allowed disabled:opacity-60"
+        icon={
+          isRunning ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )
+        }
+        iconPosition="left"
+        onClick={() => setIsModalOpen(true)}
       >
-        {isRunning ? (
-          <RefreshCw className="h-4 w-4 animate-spin" />
-        ) : (
-          <Download className="h-4 w-4" />
-        )}
         {isRunning ? runningButtonLabel[locale] : startButtonLabel[locale]}
-      </button>
+      </Button>
 
       {state.phase !== 'idle' && (
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-medium text-(--theme-elevation-800)">
-              {state.phase === 'done' && (
-                <CheckCircle2 className="h-4 w-4 text-(--theme-success-500)" />
-              )}
-              {state.phase === 'error' && (
-                <AlertTriangle className="h-4 w-4 text-(--theme-error-500)" />
-              )}
-              {isRunning && <RefreshCw className="h-4 w-4 animate-spin" />}
-              <span>{statusText}</span>
-            </div>
-
-            <div
-              className="h-2 w-full overflow-hidden rounded-full bg-(--theme-elevation-100)"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={percentage}
-              aria-label={cardTitle[locale]}
-            >
-              <div
-                className={
-                  state.phase === 'error'
-                    ? 'h-full rounded-full bg-(--theme-error-500) transition-[width] duration-300 ease-out'
-                    : 'h-full rounded-full bg-(--theme-success-500) transition-[width] duration-300 ease-out'
-                }
-                style={{ width: `${String(percentage)}%` }}
-              />
-            </div>
-
-            <div className="mt-2 flex items-center justify-between text-xs text-(--theme-elevation-600)">
-              <span>{progressSummary(locale, state.processedGroups, state.totalGroups)}</span>
-              <span className="font-mono">{String(percentage)}%</span>
-            </div>
-
-            {state.phase === 'error' && (
-              <p className="mt-3 mb-0 text-[13px] text-(--theme-error-600)">
-                {state.error ?? genericError[locale]}
-              </p>
-            )}
-
+          <SyncProgressCard
+            phase={syncPhaseOf(isRunning, state.phase === 'error')}
+            status={statusText}
+            percentage={percentage}
+            summary={progressSummary(locale, state.processedGroups, state.totalGroups)}
+            ariaLabel={cardTitle[locale]}
+            error={state.phase === 'error' ? (state.error ?? genericError[locale]) : undefined}
+          >
             {state.phase === 'done' && (
               <>
                 <p className="mt-3 mb-0 text-[13px] text-(--theme-elevation-700)">
@@ -296,59 +262,32 @@ export const PopulateSubeventsButton: React.FC = () => {
                     <p className="mt-2 mb-0 text-[13px] text-(--theme-error-600)">
                       {listRefreshFailed[locale]}
                     </p>
-                    <button
-                      type="button"
+                    <Button
+                      buttonStyle="secondary"
+                      size="small"
+                      icon={<RefreshCw className="h-3.5 w-3.5" />}
+                      iconPosition="left"
                       onClick={() => globalThis.location.reload()}
-                      className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-50) px-3 py-1.5 text-xs font-medium text-(--theme-elevation-800) hover:bg-(--theme-elevation-100)"
                     >
-                      <RefreshCw className="h-3.5 w-3.5" />
                       {reloadButtonLabel[locale]}
-                    </button>
+                    </Button>
                   </>
                 )}
               </>
             )}
-          </div>
+          </SyncProgressCard>
 
-          <div className="rounded-md border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-4">
-            <div className="mb-2 flex items-baseline justify-between text-sm font-medium text-(--theme-elevation-800)">
-              <span>{foundEventsHeading[locale]}</span>
-              <span className="font-mono text-xs text-(--theme-elevation-600)">
-                {String(state.foundEvents.length)}
-              </span>
-            </div>
-
-            {state.foundEvents.length === 0 ? (
-              <p className="m-0 text-[13px] text-(--theme-elevation-500)">{noEventsYet[locale]}</p>
-            ) : (
-              <ul className="m-0 max-h-56 list-none overflow-y-auto p-0">
-                {eventsNewestFirst.map((event) => (
-                  <li
-                    key={event.eventId}
-                    className="flex items-center justify-between gap-2 border-b border-(--theme-elevation-100) py-1.5 last:border-b-0"
-                  >
-                    <span
-                      className="truncate text-[13px] text-(--theme-elevation-800)"
-                      title={event.eventName}
-                    >
-                      {event.eventName}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      {state.newEventIds.has(event.eventId) && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-(--theme-success-100) px-2 py-0.5 text-[11px] font-medium text-(--theme-success-600)">
-                          <Sparkles className="h-3 w-3" />
-                          {newBadge[locale]}
-                        </span>
-                      )}
-                      <span className="font-mono text-[11px] text-(--theme-elevation-500)">
-                        {groupLabel[locale]} {event.groupId}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <SyncFoundList
+            heading={foundEventsHeading[locale]}
+            emptyText={noEventsYet[locale]}
+            items={state.foundEvents.map((event) => ({
+              key: event.eventId,
+              label: event.eventName,
+              meta: `${groupLabel[locale]} ${event.groupId}`,
+              isNew: state.newEventIds.has(event.eventId),
+            }))}
+            locale={locale}
+          />
         </div>
       )}
 

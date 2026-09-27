@@ -1,6 +1,7 @@
 'use client';
 
 import type { HofEventRow, PopulateSubeventsStreamMessage } from '@/features/billing/types';
+import { readNdjsonLines } from '@/features/payload-cms/payload-cms/utils/read-ndjson-lines';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const POPULATE_SUBEVENTS_ENDPOINT = '/api/confidential/billing/populate-subevents';
@@ -32,35 +33,6 @@ const INITIAL_STATE: PopulateSubeventsState = {
   newEventIds: new Set(),
   error: undefined,
 };
-
-/**
- * Splits a stream of newline-delimited JSON into whole lines, keeping the trailing
- * partial line in the buffer until the chunk that completes it arrives.
- */
-async function* readNdjsonLines(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      // The last element is either an empty string or an incomplete line.
-      buffer = lines.pop() ?? '';
-      for (const line of lines) {
-        if (line.trim().length > 0) yield line;
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  if (buffer.trim().length > 0) yield buffer;
-}
 
 /**
  * Runs the Cevi.DB subgroup-event import and exposes its live progress.
