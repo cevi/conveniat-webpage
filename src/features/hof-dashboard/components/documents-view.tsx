@@ -1,47 +1,35 @@
-import type {
-  HofDashboardData,
-  HofDashboardSubmission,
-} from '@/features/hof-dashboard/api/hof-dashboard-data';
+import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
   Panel,
   ProgressPill,
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DocumentLinks } from '@/features/hof-dashboard/components/document-links';
-import { FileList } from '@/features/hof-dashboard/components/file-list';
-import {
-  HOF_SUBMISSION_TYPE_LABELS,
-  type HofSubmissionType,
-} from '@/features/hof-dashboard/constants';
+import { FileRow } from '@/features/hof-dashboard/components/entry-answers';
 import { translate } from '@/features/hof-dashboard/texts';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 
-/** One submission's files, under its name and where it stands, as on the overview. */
-const SubmissionFiles: React.FC<{
-  submission: HofDashboardSubmission;
-  progress: SubmissionProgress;
-  locale: Locale;
-}> = ({ submission, progress, locale }) => (
-  <div className="space-y-2 pt-4 first:pt-0">
-    <div className="flex flex-wrap items-center gap-2">
-      <h4 className="text-sm font-bold text-gray-900">
-        {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
-      </h4>
-      <ProgressPill progress={progress} status={submission.status} locale={locale} />
-    </div>
-    <FileList files={submission.files} locale={locale} showKind />
-  </div>
-);
-
-/** The documents to download, and every file the Hof handed in, by submission. */
+/**
+ * The documents to download, and the files the Hof handed in, by form: of a form of versions
+ * those of the newest version, of one of entries those of every entry.
+ */
 export const DocumentsView: React.FC<{
   data: HofDashboardData;
-  progress: Record<HofSubmissionType, SubmissionProgress>;
+  progress: Record<string, SubmissionProgress>;
   locale: Locale;
 }> = ({ data, progress, locale }) => {
-  const handedIn = data.submissions.filter((submission) => submission.files.length > 0);
+  const handedIn = data.forms.flatMap((form) => {
+    const entries = form.mode === 'versions' ? form.entries.slice(0, 1) : form.entries;
+    const files = entries.flatMap((entry) =>
+      entry.answers.flatMap((answer) => (answer.kind === 'files' ? answer.files : [])),
+    );
+    const formProgress = progress[form.id];
+    return files.length === 0 || formProgress === undefined
+      ? []
+      : [{ form, files, progress: formProgress }];
+  });
 
   return (
     <div className="space-y-6">
@@ -60,13 +48,18 @@ export const DocumentsView: React.FC<{
           <p className="text-sm text-gray-500">{translate('noSubmittedDocuments', locale)}</p>
         ) : (
           <div className="divide-y divide-gray-100">
-            {handedIn.map((submission) => (
-              <SubmissionFiles
-                key={submission.type}
-                submission={submission}
-                progress={progress[submission.type]}
-                locale={locale}
-              />
+            {handedIn.map(({ form, files, progress: formProgress }) => (
+              <div key={form.id} className="space-y-2 py-4 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-bold text-gray-900">{form.title}</h4>
+                  <ProgressPill progress={formProgress} locale={locale} />
+                </div>
+                <ul className="grid gap-2 @2xl:grid-cols-2">
+                  {files.map((file) => (
+                    <FileRow key={file.id} file={file} locale={locale} />
+                  ))}
+                </ul>
+              </div>
             ))}
           </div>
         )}

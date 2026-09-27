@@ -1,4 +1,8 @@
-import { DUE_SOON_DAYS, type HofSubmissionStatus } from '@/features/hof-dashboard/constants';
+import {
+  DUE_SOON_DAYS,
+  type HofEntryMode,
+  type HofEntryStatus,
+} from '@/features/hof-dashboard/constants';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -25,72 +29,56 @@ const dayStart = (date: Date): number => {
 export const daysUntil = (deadline: string, now: Date): number =>
   Math.round((dayStart(new Date(deadline)) - dayStart(now)) / DAY_MS);
 
-const soonestFirst = (deadlines: readonly string[]): string[] =>
-  deadlines.toSorted((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-/** The deadline a submission works towards: the next one still ahead, else the last one. */
-export const nextDeadline = (deadlines: readonly string[], now: Date): string | undefined => {
-  const sorted = soonestFirst(deadlines);
-  return sorted.find((deadline) => daysUntil(deadline, now) >= 0) ?? sorted.at(-1);
-};
-
 export type SubmissionState = 'done' | 'open' | 'dueSoon' | 'overdue';
 
-/** What is still missing before a submission counts as handed in. */
-export type SubmissionGap = 'plan' | 'safetyRiskAnswer' | 'safetyConcept' | 'revision';
+/** What the Hof still has to do for a form: hand it in, or revise what it handed in. */
+export type SubmissionGap = 'missing' | 'revision';
 
 export interface SubmissionProgressInput {
-  hasPlan: boolean;
-  hasSafetyConcept: boolean;
-  elevatedSafetyRisk: 'yes' | 'no' | null | undefined;
-  status: HofSubmissionStatus | null | undefined;
-  deadlines: readonly string[];
+  mode: HofEntryMode;
+  deadline: string | undefined;
+  /** The statuses of the Hof's submissions of the form, newest first. */
+  statuses: readonly HofEntryStatus[];
 }
 
 export interface SubmissionProgress {
   state: SubmissionState;
   gap: SubmissionGap | undefined;
+  /** Where the newest submission stands, if there is one. */
+  status: HofEntryStatus | undefined;
   deadline: string | undefined;
   daysLeft: number | undefined;
 }
 
-const findGap = (input: SubmissionProgressInput): SubmissionGap | undefined => {
-  if (!input.hasPlan) return 'plan';
-  if (input.status === 'revisionRequired') return 'revision';
-  if (input.elevatedSafetyRisk !== 'yes' && input.elevatedSafetyRisk !== 'no') {
-    return 'safetyRiskAnswer';
-  }
-  if (input.elevatedSafetyRisk === 'yes' && !input.hasSafetyConcept) return 'safetyConcept';
-  return undefined;
+const findGap = ({ mode, statuses }: SubmissionProgressInput): SubmissionGap | undefined => {
+  if (statuses.length === 0) return 'missing';
+  // of versions only the newest counts; of entries each one the Ressort sent back
+  const revise =
+    mode === 'versions'
+      ? statuses[0] === 'revisionRequired'
+      : statuses.includes('revisionRequired');
+  return revise ? 'revision' : undefined;
 };
 
 /**
- * Where a Hof stands with one submission: handed in, or how urgently something is missing.
- *
- * A submission is done once its plan is up, the safety question is answered, a safety concept
- * is up when the answer is yes, and the Ressort has not sent it back for a revision.
- *
- * Something missing since a deadline that has passed is overdue from that deadline on, even
- * with a later one ahead: a Hof that missed the first Grobkonzept is late, not early for the
- * second. A revision the Ressort asks for works towards the next deadline instead.
+ * Where a Hof stands with one form: handed in, or how urgently something is missing. A form is
+ * done once the Hof handed it in and the Ressort has not sent it back for a revision; what is
+ * missing is due soon within two weeks of the form's due date, and overdue after it.
  */
 export const getSubmissionProgress = (
   input: SubmissionProgressInput,
   now: Date,
 ): SubmissionProgress => {
   const gap = findGap(input);
-  const earliest = soonestFirst(input.deadlines)[0];
-  const missedEarliest = earliest !== undefined && daysUntil(earliest, now) < 0;
-  const firstMissed =
-    gap === undefined || gap === 'revision' || !missedEarliest ? undefined : earliest;
-  const deadline = firstMissed ?? nextDeadline(input.deadlines, now);
+  const { deadline } = input;
   const daysLeft = deadline === undefined ? undefined : daysUntil(deadline, now);
+  const base = { gap, status: input.statuses[0], deadline, daysLeft };
 
-  if (gap === undefined) return { state: 'done', gap, deadline, daysLeft };
-  if (daysLeft === undefined) return { state: 'open', gap, deadline, daysLeft };
-  if (daysLeft < 0) return { state: 'overdue', gap, deadline, daysLeft };
-  if (daysLeft <= DUE_SOON_DAYS) return { state: 'dueSoon', gap, deadline, daysLeft };
-  return { state: 'open', gap, deadline, daysLeft };
+  if (gap === undefined) return { state: 'done', ...base };
+  if (daysLeft === undefined) return { state: 'open', ...base };
+  if (daysLeft < 0) return { state: 'overdue', ...base };
+  if (daysLeft <= DUE_SOON_DAYS) return { state: 'dueSoon', ...base };
+  return { state: 'open', ...base };
 };
 
 /** Share of done items, as a whole percentage; an empty list is not progress. */

@@ -89,3 +89,84 @@ describe('validateFormSubmission — Ressort wish', () => {
     ]);
   });
 });
+
+/** A material order: a list of named lines, behind a condition like the Stadtleben order. */
+const materialForm = {
+  sections: [
+    {
+      formSection: {
+        fields: [
+          { blockType: 'checkbox', name: 'bestellen' },
+          {
+            blockType: 'conditionedBlock',
+            displayCondition: { field: 'bestellen', value: 'true' },
+            fields: [
+              {
+                blockType: 'materialList',
+                name: 'holz',
+                required: true,
+                items: [
+                  { id: 'latte', name: 'Dachlatte' },
+                  { id: 'brett', name: 'Brett' },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
+};
+
+/** The field errors of a material order, or undefined when it was accepted. */
+const materialErrorsOf = async (value: string, bestellen = 'true'): Promise<unknown> => {
+  const hookArguments = {
+    data: {
+      form: 'form-id',
+      submissionData: [
+        { field: 'bestellen', value: bestellen },
+        { field: 'holz', value },
+      ],
+    },
+    operation: 'create',
+    req: { payload: { findByID: (): Promise<unknown> => Promise.resolve(materialForm) } },
+  } as unknown as Parameters<CollectionBeforeChangeHook>[0];
+  try {
+    await validateFormSubmission(hookArguments);
+    return undefined;
+  } catch (error) {
+    return (error as { data?: unknown }).data;
+  }
+};
+
+const order = (...lines: { id: string; quantity: number }[]): string => JSON.stringify(lines);
+
+describe('validateFormSubmission — material list', () => {
+  const invalid = [{ field: 'holz', message: 'invalid_number' }];
+
+  it('accepts whole quantities of the listed materials', async () => {
+    await expect(
+      materialErrorsOf(order({ id: 'latte', quantity: 12 }, { id: 'brett', quantity: 1 })),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects a material the list does not offer', async () => {
+    await expect(materialErrorsOf(order({ id: 'gold', quantity: 1 }))).resolves.toEqual(invalid);
+  });
+
+  it.each([-1, 1.5, 10_001])('rejects a quantity of %p', async (quantity) => {
+    await expect(materialErrorsOf(order({ id: 'latte', quantity }))).resolves.toEqual(invalid);
+  });
+
+  it('rejects an answer that is no material list', async () => {
+    await expect(materialErrorsOf('zwölf Latten')).resolves.toEqual(invalid);
+  });
+
+  it('asks for a required order', async () => {
+    await expect(materialErrorsOf('')).resolves.toEqual([{ field: 'holz', message: 'required' }]);
+  });
+
+  it('skips a list the helper never saw', async () => {
+    await expect(materialErrorsOf('zwölf Latten', 'false')).resolves.toBeUndefined();
+  });
+});

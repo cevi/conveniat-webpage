@@ -1,8 +1,5 @@
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
 import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
-import { HofFilesCollection } from '@/features/hof-dashboard/payload-cms/hof-files-collection';
-import { HofMaterialOrdersCollection } from '@/features/hof-dashboard/payload-cms/hof-material-orders-collection';
-import { HofSubmissionsCollection } from '@/features/hof-dashboard/payload-cms/hof-submissions-collection';
 import { AnnouncementChannelsCollection } from '@/features/payload-cms/payload-cms/collections/announcement-channels';
 import { AnnouncementsCollection } from '@/features/payload-cms/payload-cms/collections/announcements';
 import { BlogArticleCollection } from '@/features/payload-cms/payload-cms/collections/blog-article';
@@ -74,9 +71,6 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BillParticipantsCollection,
   BillPdfsCollection,
   HoefeCollection,
-  HofSubmissionsCollection,
-  HofFilesCollection,
-  HofMaterialOrdersCollection,
   OutgoingEmails,
   PayloadWorkersCollection,
 

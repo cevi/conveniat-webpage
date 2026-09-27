@@ -1,414 +1,74 @@
-import { getHofDashboardSettings } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import {
-  HOF_FILE_MAX_BYTES,
-  HOF_FILE_TYPES,
-  HOF_FILES_MAX_COUNT,
-  HOF_ORDER_TYPE_LABELS,
-  HOF_SUBMISSION_TYPE_LABELS,
-  hofFileExtensionOf,
-  type HofFileKind,
-  type HofOrderType,
-  type HofSubmissionType,
-} from '@/features/hof-dashboard/constants';
-import { buildOrderLines } from '@/features/hof-dashboard/utils/order-lines';
-import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
+import { idOf } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { HofMaterialOrder, HofSubmission } from '@/features/payload-cms/payload-types';
-import { S3_BUCKET_NAME, s3Client, s3ClientPublic } from '@/lib/s3';
 import { createLogger } from '@/utils/server-logger';
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
-import { randomUUID } from 'node:crypto';
-import { getPayload, ValidationError, type Payload } from 'payload';
+import { getPayload } from 'payload';
 
 const logger = createLogger('hof-dashboard:mutations');
 
-const PRESIGNED_UPLOAD_SECONDS = 15 * 60;
-
-/** How often a save is merged again when someone else saved the same order in between. */
-const MAX_ORDER_SAVE_ATTEMPTS = 3;
-
 /**
- * Where a browser puts a file for a Hof before the dashboard files it. The Hof is part of the
- * key, so an upload can only ever be filed under the Hof it was made for.
+ * Takes back what a Hof handed in, e.g. with the wrong file attached, together with its files.
+ * Only while the Ressort has not taken it up, and for a form of versions only the newest one:
+ * an earlier version is what the Ressort answered on, and stays part of the record.
  */
-const uploadPrefix = (hofId: string): string => `temp/hof-dashboard/${hofId}/`;
-
-/**
- * A URL the browser uploads one file to. The file lands in a temporary place and only becomes
- * part of a submission through `completeHofUpload`, which checks it again.
- */
-export const createHofUploadUrl = async (
-  hofId: string,
-  filename: string,
-  size: number,
-): Promise<{ url: string; key: string; contentType: string }> => {
-  const extension = hofFileExtensionOf(filename);
-  if (extension === undefined) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
-  }
-  if (size > HOF_FILE_MAX_BYTES) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'file_too_large' });
-  }
-  const contentType = HOF_FILE_TYPES[extension];
-  const key = `${uploadPrefix(hofId)}${randomUUID()}-${filename.replaceAll(/[^\w.-]/g, '_')}`;
-  const url = await getSignedUrl(
-    s3ClientPublic,
-    new PutObjectCommand({
-      Bucket: S3_BUCKET_NAME,
-      Key: key,
-      ContentType: contentType,
-      ContentLength: size,
-    }),
-    // signed, so storage refuses a body of any other size than the one checked above
-    {
-      expiresIn: PRESIGNED_UPLOAD_SECONDS,
-      signableHeaders: new Set(['content-type', 'content-length']),
-    },
-  );
-  return { url, key, contentType };
-};
-
-const PDF = [0x25, 0x50, 0x44, 0x46];
-const ZIP = [0x50, 0x4b, 0x03, 0x04];
-const JPEG = [0xff, 0xd8, 0xff];
-const PNG = [0x89, 0x50, 0x4e, 0x47];
-
-/** How a file of each allowed type begins; Word, Excel and PowerPoint files are zip archives. */
-const FILE_SIGNATURES: Record<keyof typeof HOF_FILE_TYPES, readonly number[]> = {
-  pdf: PDF,
-  docx: ZIP,
-  xlsx: ZIP,
-  pptx: ZIP,
-  jpg: JPEG,
-  jpeg: JPEG,
-  png: PNG,
-  zip: ZIP,
-};
-
-/**
- * The name a file is stored under: the Hof's own, so a download still reads "Plan-….pdf", with
- * a random part, so no one can guess it, and no Hof learns from a "Plan-1.pdf" which names
- * other Höfe used.
- */
-const storedFilename = (filename: string, extension: string): string => {
-  const base = filename
-    .slice(0, -(extension.length + 1))
-    .replaceAll(/[^\w-]/g, '_')
-    .slice(0, 60);
-  return `${base}-${randomUUID().slice(0, 8)}.${extension}`;
-};
-
-/** The Hof's entry for one kind of plan, created the first time the Hof touches it. */
-const findOrCreateSubmission = async (
-  payload: Payload,
-  hof: HofName,
-  submissionType: HofSubmissionType,
-): Promise<HofSubmission> => {
-  const hofId = hof.id;
-  const find = async (): Promise<HofSubmission | undefined> => {
-    const { docs } = await payload.find({
-      collection: 'hof-submissions',
-      where: {
-        and: [{ hof: { equals: hofId } }, { submissionType: { equals: submissionType } }],
-      },
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-    });
-    return docs[0];
-  };
-  const existing = await find();
-  if (existing !== undefined) return existing;
-  try {
-    return await payload.create({
-      collection: 'hof-submissions',
-      // named once, when it is made: the Hof and the kind of plan never change afterwards
-      data: {
-        hof: hofId,
-        submissionType,
-        title: `${hof.name} · ${HOF_SUBMISSION_TYPE_LABELS[submissionType].de}`,
-      },
-      depth: 0,
-      overrideAccess: true,
-    });
-  } catch (error) {
-    // two first writes at once: the unique index let one through, use that one
-    const created = await find();
-    if (created !== undefined) return created;
-    throw error;
-  }
-};
-
-/** Reads an uploaded file back from its temporary place, within the size limit. */
-const readUpload = async (key: string): Promise<Uint8Array> => {
-  const object = await s3Client
-    .send(new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key }))
-    .catch((error: unknown) => {
-      // an upload that never arrived is the browser's problem; anything else is ours
-      if (error instanceof Error && error.name === 'NoSuchKey') {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'upload_missing' });
-      }
-      logger.warn('Could not read back the temporary upload of a Hof file', { error });
-      throw error;
-    });
-  if ((object.ContentLength ?? 0) > HOF_FILE_MAX_BYTES) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'file_too_large' });
-  }
-  const body = await object.Body?.transformToByteArray();
-  if (body === undefined || body.length === 0 || body.length > HOF_FILE_MAX_BYTES) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'file_too_large' });
-  }
-  return body;
-};
-
-/**
- * Files an uploaded file under the Hof's submission. Any new file puts the submission back to
- * "submitted": whatever the Ressort said was about what the Hof had handed in before.
- */
-export const completeHofUpload = async ({
-  hof,
-  submissionType,
-  kind,
-  key,
-  filename,
-  userId,
-}: {
-  hof: HofName;
-  submissionType: HofSubmissionType;
-  kind: HofFileKind;
-  key: string;
-  filename: string;
-  userId: string;
-}): Promise<void> => {
-  const hofId = hof.id;
-  const extension = hofFileExtensionOf(filename);
-  if (!key.startsWith(uploadPrefix(hofId)) || key.includes('..') || extension === undefined) {
-    throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
-  }
-  // the temporary copy goes whether the file is filed or refused
-  try {
-    const payload = await getPayload({ config });
-    const { totalDocs } = await payload.count({
-      collection: 'hof-files',
-      where: { hof: { equals: hofId } },
-      overrideAccess: true,
-    });
-    if (totalDocs >= HOF_FILES_MAX_COUNT) {
-      logger.warn('A Hof reached the most files it may hand in', {
-        'hof_dashboard.hof_id': hofId,
-        'hof_dashboard.files': totalDocs,
-      });
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'too_many_files' });
-    }
-    const body = await readUpload(key);
-    // Checked here, before anything is made for it: a renamed file would otherwise leave an
-    // empty submission behind, and Payload's own check logs every refusal as an error.
-    if (!FILE_SIGNATURES[extension].every((byte, index) => body[index] === byte)) {
-      logger.info('A Hof handed in a file whose content does not match its type', {
-        'hof_dashboard.hof_id': hofId,
-        'hof_dashboard.file_extension': extension,
-      });
-      throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
-    }
-
-    const submission = await findOrCreateSubmission(payload, hof, submissionType);
-    try {
-      await payload.create({
-        collection: 'hof-files',
-        data: {
-          submission: submission.id,
-          hof: hofId,
-          kind,
-          uploadedBy: userId,
-          originalFilename: filename,
-        },
-        file: {
-          data: Buffer.from(body),
-          mimetype: HOF_FILE_TYPES[extension],
-          name: storedFilename(filename, extension),
-          size: body.length,
-        },
-        depth: 0,
-        overrideAccess: true,
-      });
-    } catch (error) {
-      // Payload checks the content more closely than the first bytes above
-      if (
-        error instanceof ValidationError &&
-        error.data.errors.some(({ path }) => path === 'file')
-      ) {
-        throw new TRPCError({ code: 'BAD_REQUEST', message: 'unsupported_file_type' });
-      }
-      throw error;
-    }
-    if (submission.status !== 'submitted') {
-      await payload.update({
-        collection: 'hof-submissions',
-        id: submission.id,
-        data: { status: 'submitted' },
-        depth: 0,
-        overrideAccess: true,
-      });
-    }
-
-    logger.info('A Hof handed in a file', {
-      'hof_dashboard.hof_id': hofId,
-      'hof_dashboard.submission_type': submissionType,
-      'hof_dashboard.file_kind': kind,
-      'hof_dashboard.file_bytes': body.length,
-    });
-  } finally {
-    await s3Client
-      .send(new DeleteObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key }))
-      .catch((error: unknown) => {
-        logger.warn('Could not remove the temporary upload of a Hof file', { error });
-      });
-  }
-};
-
-/** Records the Hof's answer to "elevated safety risk?" for one kind of plan. */
-export const updateHofSafetyRisk = async (
-  hof: HofName,
-  submissionType: HofSubmissionType,
-  elevatedSafetyRisk: 'yes' | 'no',
-): Promise<void> => {
+export const withdrawHofSubmission = async (hof: HofName, submissionId: string): Promise<void> => {
   const payload = await getPayload({ config });
-  const submission = await findOrCreateSubmission(payload, hof, submissionType);
-  await payload.update({
-    collection: 'hof-submissions',
-    id: submission.id,
-    data: { elevatedSafetyRisk },
+  const submission = await payload.findByID({
+    collection: 'form-submissions',
+    id: submissionId,
     depth: 0,
     overrideAccess: true,
+    disableErrors: true,
+    select: { form: true, hof: true, hofReviewStatus: true, approved: true },
   });
-};
-
-/**
- * Replaces the Hof's material order. Closed after the order's deadline, except for the
- * reviewers.
- *
- * The lines are resolved against the list in German, whatever language the Hof reads it in:
- * the settings are only required in German, and the Ressort reads every order in one language.
- */
-export const updateHofMaterialOrder = async ({
-  hof,
-  orderType,
-  changes,
-  powerConnection,
-  userId,
-  isReviewer,
-}: {
-  hof: HofName;
-  orderType: HofOrderType;
-  /** Only what the Hof changed; the rest of the order stays as stored. */
-  changes: { itemId: string; quantity: number }[];
-  /** Left out when the Hof did not change it. */
-  powerConnection?: boolean | undefined;
-  userId: string;
-  isReviewer: boolean;
-}): Promise<void> => {
-  const hofId = hof.id;
-  const payload = await getPayload({ config });
-  const settings = await getHofDashboardSettings(payload, LOCALE.DE);
-  const list =
-    orderType === 'infrastructure' ? settings.infrastructureOrder : settings.stadtlebenOrder;
-  const deadline = list?.deadline;
-  if (!isReviewer && typeof deadline === 'string' && daysUntil(deadline, new Date()) < 0) {
-    throw new TRPCError({ code: 'FORBIDDEN', message: 'order_closed' });
+  // another Hof's submission answers as a missing one, so its id tells nothing
+  if (submission === null || idOf(submission.hof) !== hof.id) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'submission_missing' });
+  }
+  const formId = idOf(submission.form) ?? '';
+  const form = await payload.findByID({
+    collection: 'forms',
+    id: formId,
+    depth: 0,
+    overrideAccess: true,
+    disableErrors: true,
+    select: { hofDashboard: true },
+  });
+  if (form?.hofDashboard?.area === undefined || form.hofDashboard.area === null) {
+    throw new TRPCError({ code: 'NOT_FOUND', message: 'submission_missing' });
   }
 
-  const listNames = new Map(
-    (list?.items ?? []).flatMap((item) =>
-      typeof item.id === 'string' ? [[item.id, item.name] as const] : [],
-    ),
-  );
-
-  // Read, merge the Hof's changes into what is stored, and write only if nobody saved in
-  // between; otherwise read again. A save that overlaps another one, a reviewer's and the
-  // Hof's, or two first saves, is merged into it instead of undoing it. Payload checks the
-  // version and writes in two steps, so saves within the same few milliseconds can still
-  // collide; the window a user could hit, their round trip, is closed.
-  for (let attempt = 1; attempt <= MAX_ORDER_SAVE_ATTEMPTS; attempt += 1) {
+  let isLatest = true;
+  if (form.hofDashboard.entries !== 'entries') {
     const { docs } = await payload.find({
-      collection: 'hof-material-orders',
-      where: { and: [{ hof: { equals: hofId } }, { orderType: { equals: orderType } }] },
+      collection: 'form-submissions',
+      where: { and: [{ form: { equals: formId } }, { hof: { equals: hof.id } }] },
+      sort: '-createdAt',
       depth: 0,
       limit: 1,
       overrideAccess: true,
+      select: { createdAt: true },
     });
-    const existing: HofMaterialOrder | undefined = docs[0];
-    const { lines, unknownItemIds } = buildOrderLines(listNames, existing?.items ?? [], changes);
-    if (unknownItemIds.length > 0) {
-      // the list changed while the Hof had the form open; a reload shows the new one
-      throw new TRPCError({ code: 'CONFLICT', message: 'order_list_changed' });
-    }
-    const data = {
-      items: lines,
-      powerConnection:
-        orderType === 'stadtleben' && (powerConnection ?? existing?.powerConnection === true),
-      lastEditedBy: userId,
-    };
-
-    let saved: boolean;
-    if (existing === undefined) {
-      // the unique index refuses a second first save; the next round merges into the first
-      saved = await payload
-        .create({
-          collection: 'hof-material-orders',
-          data: {
-            hof: hofId,
-            orderType,
-            title: `${hof.name} · ${HOF_ORDER_TYPE_LABELS[orderType].de}`,
-            ...data,
-          },
-          depth: 0,
-          overrideAccess: true,
-        })
-        .then(
-          () => true,
-          async (error: unknown) => {
-            // only a first save that lost the race is merged again; anything else is a failure
-            const { totalDocs } = await payload.count({
-              collection: 'hof-material-orders',
-              where: { and: [{ hof: { equals: hofId } }, { orderType: { equals: orderType } }] },
-              overrideAccess: true,
-            });
-            if (totalDocs === 0) throw error;
-            return false;
-          },
-        );
-    } else {
-      const { docs: updated, errors } = await payload.update({
-        collection: 'hof-material-orders',
-        where: {
-          and: [{ id: { equals: existing.id } }, { updatedAt: { equals: existing.updatedAt } }],
-        },
-        data,
-        depth: 0,
-        overrideAccess: true,
-      });
-      // Payload reports a failed write here instead of throwing; it is no race, so no retry
-      const failure = errors[0];
-      if (failure !== undefined) throw new Error(failure.message);
-      saved = updated.length === 1;
-    }
-    if (saved) {
-      logger.info('A Hof saved its material order', {
-        'hof_dashboard.hof_id': hofId,
-        'hof_dashboard.order_type': orderType,
-        'hof_dashboard.order_lines': lines.length,
-        'hof_dashboard.attempts': attempt,
-      });
-      return;
-    }
+    isLatest = docs[0]?.id === submissionId;
   }
-  logger.warn('A material order kept changing while it was saved', {
-    'hof_dashboard.hof_id': hofId,
-    'hof_dashboard.order_type': orderType,
+  const reviewed =
+    submission.approved === true ||
+    (submission.hofReviewStatus !== undefined && submission.hofReviewStatus !== null);
+  if (reviewed || !isLatest) {
+    throw new TRPCError({ code: 'CONFLICT', message: 'submission_locked' });
+  }
+
+  // the files first: a file left without its submission would be kept for good
+  await payload.delete({
+    collection: 'form_collection',
+    where: { formSubmission: { equals: submissionId } },
+    overrideAccess: true,
   });
-  throw new TRPCError({ code: 'CONFLICT', message: 'order_busy' });
+  await payload.delete({ collection: 'form-submissions', id: submissionId, overrideAccess: true });
+
+  logger.info('A Hof took back a submission', {
+    'hof_dashboard.hof_id': hof.id,
+    'hof_dashboard.form_id': formId,
+  });
 };

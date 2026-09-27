@@ -12,9 +12,7 @@ import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list'
 import {
   HOF_DASHBOARD_AREA_LABELS,
   HOF_DASHBOARD_AREAS,
-  HOF_SUBMISSION_TYPE_LABELS,
   type HofDashboardArea,
-  type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
 import { translate } from '@/features/hof-dashboard/texts';
 import {
@@ -34,7 +32,7 @@ const AreaTag: React.FC<{ area: HofDashboardArea; locale: Locale }> = ({ area, l
   </span>
 );
 
-/** Soonest first; a submission without a deadline goes last. */
+/** Soonest first; a form without a deadline goes last. */
 const byDeadline = (a: SubmissionProgress, b: SubmissionProgress): number =>
   (a.deadline ?? '9999').localeCompare(b.deadline ?? '9999');
 
@@ -44,17 +42,26 @@ const byDeadline = (a: SubmissionProgress, b: SubmissionProgress): number =>
  */
 export const OverviewView: React.FC<{
   data: HofDashboardData;
-  progress: Record<HofSubmissionType, SubmissionProgress>;
+  progress: Record<string, SubmissionProgress>;
   locale: Locale;
-  onOpen: (area: HofDashboardArea, type: HofSubmissionType) => void;
+  onOpen: (area: HofDashboardArea, formId: string) => void;
 }> = ({ data, progress, locale, onOpen }) => {
-  const open = data.submissions
-    .filter((submission) => progress[submission.type].state !== 'done')
-    .toSorted((a, b) => byDeadline(progress[a.type], progress[b.type]));
+  const open = data.forms
+    .flatMap((form) => {
+      const formProgress = progress[form.id];
+      return formProgress === undefined || formProgress.state === 'done'
+        ? []
+        : [{ form, progress: formProgress }];
+    })
+    .toSorted((a, b) => byDeadline(a.progress, b.progress));
+  // an area without forms has nothing to count
+  const areas = HOF_DASHBOARD_AREAS.filter((area) => data.forms.some((form) => form.area === area));
 
   return (
-    <div className="space-y-6">
-      <Panel>
+    // on a wide screen what is due and how far the Hof is sit side by side, as do the
+    // deadlines and whom to ask
+    <div className="grid items-start gap-6 @3xl:grid-cols-2 @6xl:grid-cols-3">
+      <Panel className="@3xl:col-span-2">
         <SectionHeading className="mb-2">{translate('nextUp', locale)}</SectionHeading>
         {open.length === 0 ? (
           <p className="flex items-center gap-2 text-sm text-green-600">
@@ -62,27 +69,22 @@ export const OverviewView: React.FC<{
             {translate('allDone', locale)}
           </p>
         ) : (
-          <ul className="-mx-2 divide-y divide-gray-100">
-            {open.map((submission) => (
-              <li key={submission.type}>
+          // the rows reach the panel's edges, so their hover is a band, not a rounded chip
+          <ul className="-mx-5 divide-y divide-gray-100 border-y border-gray-100 @xl:-mx-6">
+            {open.map(({ form, progress: formProgress }) => (
+              <li key={form.id}>
                 <button
                   type="button"
-                  className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-3 text-left transition hover:bg-gray-50"
-                  onClick={() => onOpen(submission.area, submission.type)}
+                  className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 px-5 py-3 text-left transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600 @xl:px-6"
+                  onClick={() => onOpen(form.area, form.id)}
                 >
                   <span className="min-w-0 space-y-1">
                     {/* the area beside the title, so more of what is due fits on a phone screen */}
                     <span className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="text-sm font-semibold text-gray-900">
-                        {HOF_SUBMISSION_TYPE_LABELS[submission.type][locale]}
-                      </span>
-                      <AreaTag area={submission.area} locale={locale} />
+                      <span className="text-sm font-semibold text-gray-900">{form.title}</span>
+                      <AreaTag area={form.area} locale={locale} />
                     </span>
-                    <ProgressLine
-                      progress={progress[submission.type]}
-                      status={submission.status}
-                      locale={locale}
-                    />
+                    <ProgressLine progress={formProgress} locale={locale} />
                   </span>
                   <ChevronRight className="h-5 w-5 shrink-0 text-gray-500" aria-hidden />
                 </button>
@@ -92,42 +94,40 @@ export const OverviewView: React.FC<{
         )}
       </Panel>
 
-      <div className="grid gap-6 @3xl:grid-cols-2">
-        <Panel className="space-y-5">
-          <SectionHeading>{translate('progress', locale)}</SectionHeading>
-          {HOF_DASHBOARD_AREAS.map((area) => {
-            const states = data.submissions
-              .filter((submission) => submission.area === area)
-              .map((submission) => progress[submission.type].state);
-            const count = translate('progressCount', locale, {
-              done: states.filter((state) => state === 'done').length,
-              total: states.length,
-            });
-            return (
-              <div key={area} className="space-y-1.5">
-                <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className={cn('font-semibold', AREA_TEXT_CLASS[area])}>
-                    {HOF_DASHBOARD_AREA_LABELS[area][locale]}
-                  </span>
-                  <span className="text-gray-600 tabular-nums">{count}</span>
-                </div>
-                <ProgressBar
-                  percent={percentDone(states)}
-                  area={area}
-                  label={`${HOF_DASHBOARD_AREA_LABELS[area][locale]}: ${count}`}
-                />
+      <Panel className="space-y-5">
+        <SectionHeading>{translate('progress', locale)}</SectionHeading>
+        {areas.map((area) => {
+          const states = data.forms
+            .filter((form) => form.area === area)
+            .flatMap((form) => progress[form.id]?.state ?? []);
+          const count = translate('progressCount', locale, {
+            done: states.filter((state) => state === 'done').length,
+            total: states.length,
+          });
+          return (
+            <div key={area} className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className={cn('font-semibold', AREA_TEXT_CLASS[area])}>
+                  {HOF_DASHBOARD_AREA_LABELS[area][locale]}
+                </span>
+                <span className="text-gray-600 tabular-nums">{count}</span>
               </div>
-            );
-          })}
-        </Panel>
-
-        <Panel className="space-y-4">
-          <SectionHeading>{translate('deadlines', locale)}</SectionHeading>
-          <DeadlineList deadlines={data.deadlines} locale={locale} />
-        </Panel>
-      </div>
+              <ProgressBar
+                percent={percentDone(states)}
+                area={area}
+                label={`${HOF_DASHBOARD_AREA_LABELS[area][locale]}: ${count}`}
+              />
+            </div>
+          );
+        })}
+      </Panel>
 
       <Panel className="space-y-4">
+        <SectionHeading>{translate('deadlines', locale)}</SectionHeading>
+        <DeadlineList deadlines={data.deadlines} locale={locale} />
+      </Panel>
+
+      <Panel className="space-y-4 @3xl:col-span-2">
         <SectionHeading>{translate('contacts', locale)}</SectionHeading>
         <dl className="grid gap-5 @2xl:grid-cols-3">
           <ContactBlock

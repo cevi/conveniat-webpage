@@ -4,7 +4,7 @@ import type { FileUploadBlock } from '@/features/payload-cms/components/form/typ
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, Check, FileText, Loader2, Upload, X } from 'lucide-react';
+import { AlertCircle, Check, FileText, Upload, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -23,6 +23,10 @@ interface FileUploadItem {
   name: string;
   size: number;
   status: 'uploading' | 'success' | 'error';
+  /** How much of the file is up, 0 to 100, while it uploads. */
+  percent?: number;
+  /** Seconds the upload still needs at its pace so far, once that can be told. */
+  secondsLeft?: number | undefined;
   docId?: string | undefined;
   error?: string | undefined;
 }
@@ -35,6 +39,10 @@ const fileUploadTexts: {
   uploadErrorText: StaticTranslationString;
   fileTypeErrorText: StaticTranslationString;
   allowedTypesLabel: StaticTranslationString;
+  secondsLeftText: StaticTranslationString;
+  minutesLeftText: StaticTranslationString;
+  retryText: StaticTranslationString;
+  removeText: StaticTranslationString;
 } = {
   dropzoneText: {
     en: 'Click to select or drag and drop files here',
@@ -47,9 +55,9 @@ const fileUploadTexts: {
     fr: 'Déposez les fichiers ici...',
   },
   uploadingText: {
-    en: 'Uploading in background...',
-    de: 'Wird im Hintergrund hochgeladen...',
-    fr: 'Téléversement en arrière-plan...',
+    en: 'Uploading',
+    de: 'Wird hochgeladen:',
+    fr: 'Téléversement :',
   },
   uploadedText: {
     en: 'Uploaded',
@@ -71,7 +79,61 @@ const fileUploadTexts: {
     de: 'Erlaubte Dateitypen:',
     fr: 'Types autorisés :',
   },
+  secondsLeftText: {
+    en: 'about {n} s left',
+    de: 'noch etwa {n} s',
+    fr: 'encore environ {n} s',
+  },
+  minutesLeftText: {
+    en: 'about {n} min left',
+    de: 'noch etwa {n} min',
+    fr: 'encore environ {n} min',
+  },
+  retryText: { en: 'Try again', de: 'Erneut versuchen', fr: 'Réessayer' },
+  removeText: { en: 'Remove {name}', de: '{name} entfernen', fr: 'Retirer {name}' },
 };
+
+/** How long an upload still takes, in the unit people read it in. */
+const formatTimeLeft = (seconds: number, locale: Locale): string =>
+  seconds < 90
+    ? fileUploadTexts.secondsLeftText[locale].replace(
+        '{n}',
+        String(Math.max(1, Math.round(seconds))),
+      )
+    : fileUploadTexts.minutesLeftText[locale].replace('{n}', String(Math.round(seconds / 60)));
+
+/** The ending of a file name in capitals, "PDF", shown next to its size. */
+const fileType = (name: string): string | undefined => {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? name.slice(dot + 1).toUpperCase() : undefined;
+};
+
+/**
+ * Sends the form data with the upload's progress reported as it goes: `fetch` cannot report
+ * the progress of a request body, and a plan of 20 MB takes minutes on camp wifi.
+ */
+const postWithProgress = (
+  body: FormData,
+  onProgress: (loaded: number, total: number) => void,
+): Promise<{ ok: boolean; result: { docId?: string; error?: string } }> =>
+  new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('POST', '/api/form-upload');
+    request.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) onProgress(event.loaded, event.total);
+    });
+    request.addEventListener('load', () => {
+      let result: { docId?: string; error?: string } = {};
+      try {
+        result = JSON.parse(request.responseText) as typeof result;
+      } catch {
+        // an answer that is not JSON, e.g. a proxy's error page, counts as a failure below
+      }
+      resolve({ ok: request.status >= 200 && request.status < 300, result });
+    });
+    request.addEventListener('error', () => reject(new Error('Upload failed')));
+    request.send(body);
+  });
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -235,6 +297,12 @@ export const FileUpload: React.FC<
     }
   }, [allowedFileTypes, customAllowedFileTypes]);
 
+  const updateItem = useCallback(
+    (id: string, changes: Partial<FileUploadItem>): void =>
+      setFilesList((previous) => previous.map((f) => (f.id === id ? { ...f, ...changes } : f))),
+    [],
+  );
+
   const handleUploadFile = useCallback(
     async (item: FileUploadItem): Promise<void> => {
       if (item.file === undefined || formId === undefined || formId === '') return;
@@ -244,62 +312,46 @@ export const FileUpload: React.FC<
       formData.append('formId', formId);
       formData.append('fieldName', name);
 
+      const startedAt = Date.now();
+      // the browser reports many times a percent; a render each would stall a cheap phone
+      let reported = -1;
       try {
-        const response = await fetch('/api/form-upload', {
-          method: 'POST',
-          body: formData,
+        const { ok, result } = await postWithProgress(formData, (loaded, total) => {
+          const percent = Math.round((loaded / total) * 100);
+          if (percent === reported) return;
+          reported = percent;
+          const elapsed = (Date.now() - startedAt) / 1000;
+          // a pace needs a second and a few percent before it says anything
+          const secondsLeft =
+            elapsed > 1 && loaded > 0 ? ((total - loaded) / loaded) * elapsed : undefined;
+          updateItem(item.id, { percent, secondsLeft });
         });
 
-        const result = (await response.json()) as {
-          docId?: string;
-          error?: string;
-        };
-
-        if (!response.ok || typeof result.docId !== 'string') {
-          setFilesList((previous) =>
-            previous.map((f) =>
-              f.id === item.id
-                ? {
-                    ...f,
-                    status: 'error',
-                    error: result.error ?? fileUploadTexts.uploadErrorText[locale],
-                  }
-                : f,
-            ),
-          );
+        if (!ok || typeof result.docId !== 'string') {
+          updateItem(item.id, {
+            status: 'error',
+            error: result.error ?? fileUploadTexts.uploadErrorText[locale],
+          });
           return;
         }
-
-        setFilesList((previous) =>
-          previous.map((f) =>
-            f.id === item.id
-              ? {
-                  ...f,
-                  status: 'success',
-                  docId: result.docId,
-                }
-              : f,
-          ),
-        );
-      } catch (error_) {
-        setFilesList((previous) =>
-          previous.map((f) =>
-            f.id === item.id
-              ? {
-                  ...f,
-                  status: 'error',
-                  error:
-                    error_ instanceof Error
-                      ? error_.message
-                      : fileUploadTexts.uploadErrorText[locale],
-                }
-              : f,
-          ),
-        );
+        updateItem(item.id, { status: 'success', docId: result.docId });
+      } catch {
+        // no signal, usually: the file stays, so one tap sends it again
+        updateItem(item.id, { status: 'error', error: fileUploadTexts.uploadErrorText[locale] });
       }
     },
-    [formId, name, locale],
+    [formId, name, locale, updateItem],
   );
+
+  const retryUpload = (item: FileUploadItem): void => {
+    updateItem(item.id, {
+      status: 'uploading',
+      percent: 0,
+      secondsLeft: undefined,
+      error: undefined,
+    });
+    void handleUploadFile(item);
+  };
 
   const processSelectedFiles = useCallback(
     (newFiles: FileList | File[]): void => {
@@ -320,6 +372,7 @@ export const FileUpload: React.FC<
         name: file.name,
         size: file.size,
         status: 'uploading',
+        percent: 0,
       }));
 
       if (allowMultiple) {
@@ -375,7 +428,8 @@ export const FileUpload: React.FC<
   } else if (hasError) {
     dropzoneBorderStyle = 'border-red-400 bg-red-50';
   } else if (isDragOver) {
-    dropzoneBorderStyle = 'border-conveniat-green bg-green-50';
+    // border, glow and words change before the drop, so the user sees it will land
+    dropzoneBorderStyle = 'border-conveniat-green bg-green-50 ring-4 ring-green-100';
   }
 
   return (
@@ -423,59 +477,98 @@ export const FileUpload: React.FC<
         </div>
       </div>
 
-      {/* Selected Files List */}
+      {/* Selected Files List: each file with its type and size, its own progress and retry */}
       {filesList.length > 0 && (
         <ul className="mt-3 space-y-2">
-          {filesList.map((item) => (
-            <li
-              key={item.id}
-              className="flex items-center justify-between rounded-md border border-gray-100 bg-white p-3 shadow-xs"
-            >
-              <div className="flex items-center space-x-3 truncate">
-                <FileText className="h-5 w-5 flex-shrink-0 text-gray-400" />
-                <div className="truncate">
-                  <p className="truncate font-['Inter'] text-sm font-medium text-gray-700">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-gray-400">{formatFileSize(item.size)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                {item.status === 'uploading' && (
-                  <div className="flex items-center text-amber-600">
-                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                    <span className="text-xs">{fileUploadTexts.uploadingText[locale]}</span>
-                  </div>
+          {filesList.map((item) => {
+            const details = [fileType(item.name), formatFileSize(item.size)].filter(
+              (part) => part !== undefined,
+            );
+            return (
+              <li
+                key={item.id}
+                className={cn(
+                  'space-y-2 rounded-md border bg-white p-3 shadow-xs',
+                  item.status === 'error' ? 'border-red-200' : 'border-gray-100',
                 )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <FileText className="h-5 w-5 flex-shrink-0 text-gray-400" aria-hidden />
+                    <div className="min-w-0">
+                      <p className="truncate font-['Inter'] text-sm font-medium text-gray-700">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-gray-400">{details.join(' · ')}</p>
+                    </div>
+                  </div>
 
-                {item.status === 'success' && (
-                  <div className="flex items-center text-green-600">
-                    <Check className="mr-1.5 h-4 w-4" />
-                    <span className="text-xs">{fileUploadTexts.uploadedText[locale]}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {item.status === 'uploading' && (
+                      <span className="text-xs text-gray-600 tabular-nums">
+                        {item.percent ?? 0} %
+                      </span>
+                    )}
+                    {item.status === 'success' && (
+                      <span className="flex items-center text-xs text-green-600">
+                        <Check className="mr-1.5 h-4 w-4" aria-hidden />
+                        {fileUploadTexts.uploadedText[locale]}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeFile(item.id)}
+                      className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                      aria-label={fileUploadTexts.removeText[locale].replace('{name}', item.name)}
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                </div>
+
+                {item.status === 'uploading' && (
+                  <div className="space-y-1">
+                    <div
+                      className="h-1.5 overflow-hidden rounded-full bg-gray-100"
+                      role="progressbar"
+                      aria-label={`${fileUploadTexts.uploadingText[locale]} ${item.name}`}
+                      aria-valuenow={item.percent ?? 0}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div
+                        className="bg-conveniat-green h-full rounded-full transition-[width] motion-reduce:transition-none"
+                        style={{ width: `${item.percent ?? 0}%` }}
+                      />
+                    </div>
+                    {item.secondsLeft !== undefined && (
+                      <p className="text-xs text-gray-500">
+                        {formatTimeLeft(item.secondsLeft, locale)}
+                      </p>
+                    )}
                   </div>
                 )}
 
                 {item.status === 'error' && (
-                  <div className="flex items-center text-red-600">
-                    <AlertCircle className="mr-1.5 h-4 w-4" />
-                    <span className="text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center text-xs text-red-600">
+                      <AlertCircle className="mr-1.5 h-4 w-4 shrink-0" aria-hidden />
                       {item.error ?? fileUploadTexts.uploadErrorText[locale]}
-                    </span>
+                    </p>
+                    {item.file !== undefined && (
+                      <button
+                        type="button"
+                        onClick={() => retryUpload(item)}
+                        className="text-conveniat-green min-h-10 cursor-pointer px-2 text-sm font-semibold hover:underline"
+                      >
+                        {fileUploadTexts.retryText[locale]}
+                      </button>
+                    )}
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => removeFile(item.id)}
-                  className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  aria-label="Remove file"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 

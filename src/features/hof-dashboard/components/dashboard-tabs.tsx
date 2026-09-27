@@ -1,73 +1,37 @@
 'use client';
 
-import { useScrollEdges } from '@/features/hof-dashboard/hooks/use-scroll-edges';
-import { scrollBehavior } from '@/features/hof-dashboard/utils/scroll-behavior';
-import { cn } from '@/utils/tailwindcss-override';
 import { Tab, TabList } from '@headlessui/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type React from 'react';
-import { useRef } from 'react';
-
-/** An arrow over the end of the tab row, on the page's background, that scrolls it along. */
-const ScrollButton: React.FC<{ direction: 1 | -1; onClick: () => void }> = ({
-  direction,
-  onClick,
-}) => {
-  const Icon = direction === 1 ? ChevronRight : ChevronLeft;
-  return (
-    <button
-      type="button"
-      tabIndex={-1}
-      aria-hidden
-      onClick={onClick}
-      className={cn(
-        'absolute top-0 z-10 flex h-11 w-10 cursor-pointer items-center text-gray-600 hover:text-gray-900',
-        direction === 1
-          ? 'right-0 justify-end bg-linear-to-l from-slate-50 from-60% to-transparent'
-          : 'left-0 justify-start bg-linear-to-r from-slate-50 from-60% to-transparent',
-      )}
-    >
-      <Icon className="h-5 w-5" />
-    </button>
-  );
-};
 
 /**
- * The dashboard's tabs, within a Headless UI TabGroup. The row can be wider than the column,
- * on a phone and on a narrow desktop, so where tabs are hidden an arrow says so and brings
- * them in; the keyboard moves with the arrow keys.
+ * The dashboard's tabs, within a Headless UI TabGroup, in the pill style of the site's tabs
+ * block. Every tab stays in view: on a narrow screen the row wraps rather than hiding tabs
+ * behind a scroll. A tab can carry how much is still open behind it. The keyboard moves with
+ * the arrow keys.
  */
-export const DashboardTabList: React.FC<{ labels: string[]; label: string }> = ({
-  labels,
-  label,
-}) => {
-  const row = useRef<HTMLDivElement>(null);
-  const edges = useScrollEdges(row);
-  const scrollBy = (direction: 1 | -1): void =>
-    row.current?.scrollBy({ left: direction * 120, behavior: scrollBehavior() });
-
-  return (
-    <div className="relative">
-      {edges.start && <ScrollButton direction={-1} onClick={() => scrollBy(-1)} />}
-      {edges.end && <ScrollButton direction={1} onClick={() => scrollBy(1)} />}
-      <TabList
-        ref={row}
-        aria-label={label}
-        className="flex scroll-px-10 [scrollbar-width:none] overflow-x-auto border-b border-gray-200"
+export const DashboardTabList: React.FC<{
+  tabs: { label: string; open?: number; openLabel?: string }[];
+  label: string;
+}> = ({ tabs, label }) => (
+  <TabList
+    aria-label={label}
+    className="flex flex-wrap gap-1 rounded-3xl bg-gray-100 p-1 @3xl:inline-flex @3xl:rounded-full"
+  >
+    {tabs.map((tab) => (
+      <Tab
+        key={tab.label}
+        className="inline-flex min-h-10 grow cursor-pointer items-center justify-center gap-1.5 rounded-full px-4 text-sm font-medium whitespace-nowrap text-gray-500 outline-hidden transition-colors hover:text-gray-900 data-focus:ring-2 data-focus:ring-green-600 data-focus:ring-inset data-selected:bg-white data-selected:text-gray-900 data-selected:shadow-sm @3xl:grow-0 @3xl:px-5"
       >
-        {labels.map((tabLabel) => (
-          <Tab
-            key={tabLabel}
-            // Headless UI focuses a tab without scrolling; clear it of the arrows instead
-            onFocus={(event: React.FocusEvent<HTMLButtonElement>) =>
-              event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-            }
-            className="data-selected:border-conveniat-green data-selected:text-conveniat-green -mb-px min-h-11 shrink-0 cursor-pointer border-b-2 border-transparent px-1 text-sm font-semibold whitespace-nowrap text-gray-600 outline-hidden transition-colors hover:text-gray-900 data-focus:outline-2 data-focus:outline-offset-[-2px] data-focus:outline-green-600 data-focus:outline-solid"
+        {tab.label}
+        {tab.open !== undefined && tab.open > 0 && (
+          <span
+            className="bg-conveniat-green inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold text-white tabular-nums"
+            aria-label={tab.openLabel}
           >
-            {tabLabel}
-          </Tab>
-        ))}
-      </TabList>
-    </div>
-  );
-};
+            {tab.open}
+          </span>
+        )}
+      </Tab>
+    ))}
+  </TabList>
+);

@@ -9,9 +9,9 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 import {
-  canReadHofFiles,
   getAdministeredGroupIds,
   HOF_ADMINISTRATOR_ROLE_CLASS,
+  mayOpenHof,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import type { PayloadRequest } from 'payload';
 
@@ -62,31 +62,31 @@ describe('getAdministeredGroupIds', () => {
   });
 });
 
-const read = (request: PayloadRequest): ReturnType<typeof canReadHofFiles> =>
-  canReadHofFiles({ req: request } as Parameters<typeof canReadHofFiles>[0]);
-
-describe('canReadHofFiles', () => {
-  it('lets the reviewers read every Hof file', async () => {
-    await expect(read(requestFor([{ id: 105, role_class: 'editor' }]))).resolves.toBe(true);
+describe('mayOpenHof', () => {
+  it('lets the reviewers open every Hof', async () => {
+    await expect(
+      mayOpenHof(requestFor([{ id: 105, role_class: 'editor' }]), 'hof-nord'),
+    ).resolves.toBe(true);
   });
 
-  it("narrows an address administrator to their Hof's files", async () => {
-    await expect(read(requestFor([administrator(990_002)]))).resolves.toEqual({
-      hof: { in: ['hof-sued'] },
-    });
+  it('opens the Hof of the group an address administrator administers, and no other', async () => {
+    const request = requestFor([administrator(990_002)]);
+    await expect(mayOpenHof(request, 'hof-sued')).resolves.toBe(true);
+    await expect(mayOpenHof(request, 'hof-nord')).resolves.toBe(false);
   });
 
   it('refuses a member of the Hof group without the administrator role', async () => {
     await expect(
-      read(requestFor([{ id: 990_001, role_class: 'Group::Ortsgruppe::Mitglied' }])),
+      mayOpenHof(
+        requestFor([{ id: 990_001, role_class: 'Group::Ortsgruppe::Mitglied' }]),
+        'hof-nord',
+      ),
     ).resolves.toBe(false);
   });
 
-  it('refuses an administrator of a group that runs no Hof', async () => {
-    await expect(read(requestFor([administrator(123_456)]))).resolves.toBe(false);
-  });
-
   it('refuses a visitor who is not signed in', async () => {
-    await expect(read({ user: undefined } as unknown as PayloadRequest)).resolves.toBe(false);
+    await expect(
+      mayOpenHof({ user: undefined } as unknown as PayloadRequest, 'hof-nord'),
+    ).resolves.toBe(false);
   });
 });

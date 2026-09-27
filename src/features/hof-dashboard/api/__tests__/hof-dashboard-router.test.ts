@@ -2,10 +2,7 @@ import type { Context } from '@/trpc/init';
 import { createCallerFactory } from '@/trpc/init';
 
 const mockData = jest.fn();
-const mockUploadUrl = jest.fn();
-const mockCompleteUpload = jest.fn();
-const mockSafetyRisk = jest.fn();
-const mockMaterialOrder = jest.fn();
+const mockWithdraw = jest.fn();
 
 const HOEFE = [
   { id: 'hof-nord', name: 'Hof Nord', groupId: '990001' },
@@ -29,6 +26,9 @@ const mockPayload = {
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('payload', () => ({ getPayload: (): Promise<unknown> => Promise.resolve(mockPayload) }));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
+jest.mock('@/utils/server-logger', () => ({
+  createLogger: (): Record<string, jest.Mock> => ({ debug: jest.fn(), warn: jest.fn() }),
+}));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
@@ -46,10 +46,7 @@ jest.mock('@/features/hof-dashboard/api/hof-dashboard-data', () => ({
   getHofDashboardData: (...parameters: unknown[]): unknown => mockData(...parameters),
 }));
 jest.mock('@/features/hof-dashboard/api/hof-dashboard-mutations', () => ({
-  createHofUploadUrl: (...parameters: unknown[]): unknown => mockUploadUrl(...parameters),
-  completeHofUpload: (...parameters: unknown[]): unknown => mockCompleteUpload(...parameters),
-  updateHofSafetyRisk: (...parameters: unknown[]): unknown => mockSafetyRisk(...parameters),
-  updateHofMaterialOrder: (...parameters: unknown[]): unknown => mockMaterialOrder(...parameters),
+  withdrawHofSubmission: (...parameters: unknown[]): unknown => mockWithdraw(...parameters),
 }));
 // see admin-router-access.test.ts: a direct caller never serializes anything
 jest.mock('superjson', () => ({
@@ -74,35 +71,6 @@ const callerAs = (user?: unknown): ReturnType<typeof createCaller> =>
 const hofNordAdmin = callerAs({ uuid: 'user-8', group_ids: [990_001] });
 const reviewer = callerAs({ uuid: 'web-1', group_ids: [542] });
 
-/** Every write of the dashboard, aimed at Hof Süd. */
-const writesToSued = (
-  caller: ReturnType<typeof createCaller>,
-): Record<string, () => Promise<unknown>> => ({
-  createUploadUrl: () =>
-    caller.createUploadUrl({ hofId: 'hof-sued', filename: 'Plan.pdf', size: 1000 }),
-  completeUpload: () =>
-    caller.completeUpload({
-      hofId: 'hof-sued',
-      submissionType: 'flagpole',
-      kind: 'plan',
-      key: 'temp/hof-dashboard/hof-sued/abc-Plan.pdf',
-      filename: 'Plan.pdf',
-    }),
-  updateSafetyRisk: () =>
-    caller.updateSafetyRisk({
-      hofId: 'hof-sued',
-      submissionType: 'flagpole',
-      elevatedSafetyRisk: 'yes',
-    }),
-  updateMaterialOrder: () =>
-    caller.updateMaterialOrder({
-      hofId: 'hof-sued',
-      orderType: 'infrastructure',
-      changes: [{ itemId: 'rope', quantity: 3 }],
-      powerConnection: false,
-    }),
-});
-
 beforeEach(() => {
   jest.clearAllMocks();
   environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD = true;
@@ -116,29 +84,38 @@ describe('hofDashboardRouter', () => {
     ]);
   });
 
-  it("refuses another Hof's dashboard", async () => {
+  it("refuses another Hof's dashboard before reading it", async () => {
     await expect(hofNordAdmin.getHofDashboard({ hofId: 'hof-sued' })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
     expect(mockData).not.toHaveBeenCalled();
   });
 
-  it.each(Object.keys(writesToSued(hofNordAdmin)))(
-    'refuses %s for another Hof before writing anything',
-    async (procedure) => {
-      await expect(writesToSued(hofNordAdmin)[procedure]?.()).rejects.toMatchObject({
-        code: 'FORBIDDEN',
-      });
-      for (const write of [mockUploadUrl, mockCompleteUpload, mockSafetyRisk, mockMaterialOrder]) {
-        expect(write).not.toHaveBeenCalled();
-      }
-    },
-  );
+  it("refuses to withdraw another Hof's submission before touching it", async () => {
+    await expect(
+      hofNordAdmin.deleteSubmission({ hofId: 'hof-sued', submissionId: 'sub-1' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockWithdraw).not.toHaveBeenCalled();
+  });
 
-  it('lets a reviewer open any Hof, and says so', async () => {
-    await expect(reviewer.getHofDashboard({ hofId: 'hof-sued' })).resolves.toMatchObject({
-      isReviewer: true,
-    });
+  it('withdraws a submission of the own Hof', async () => {
+    await hofNordAdmin.deleteSubmission({ hofId: 'hof-nord', submissionId: 'sub-1' });
+    expect(mockWithdraw).toHaveBeenCalledWith({ id: 'hof-nord', name: 'Hof Nord' }, 'sub-1');
+  });
+
+  it('opens the own Hof in the language asked for, and not as a reviewer', async () => {
+    await hofNordAdmin.getHofDashboard({ hofId: 'hof-nord', locale: 'fr' });
+    expect(mockData).toHaveBeenCalledWith('hof-nord', 'fr', false);
+  });
+
+  it("falls back to the reader's language without one asked for", async () => {
+    await hofNordAdmin.getHofDashboard({ hofId: 'hof-nord' });
+    expect(mockData).toHaveBeenCalledWith('hof-nord', 'de', false);
+  });
+
+  it('lets a reviewer open any Hof, as a reviewer', async () => {
+    await reviewer.getHofDashboard({ hofId: 'hof-sued' });
+    expect(mockData).toHaveBeenCalledWith('hof-sued', 'de', true);
   });
 
   it('answers nothing of the dashboard while it is switched off', async () => {
@@ -147,6 +124,11 @@ describe('hofDashboardRouter', () => {
     await expect(hofNordAdmin.getHofDashboard({ hofId: 'hof-nord' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+    await expect(
+      hofNordAdmin.deleteSubmission({ hofId: 'hof-nord', submissionId: 'sub-1' }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockData).not.toHaveBeenCalled();
+    expect(mockWithdraw).not.toHaveBeenCalled();
   });
 
   it('still lists the Höfe for forms while the dashboard is switched off', async () => {
@@ -155,8 +137,20 @@ describe('hofDashboardRouter', () => {
   });
 
   it('asks someone signed out to sign in', async () => {
-    await expect(callerAs().getMyHofList()).rejects.toMatchObject({
+    await expect(callerAs().getMyHofList()).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    await expect(callerAs().getHofDashboard({ hofId: 'hof-nord' })).rejects.toMatchObject({
       code: 'UNAUTHORIZED',
     });
+    await expect(
+      callerAs().deleteSubmission({ hofId: 'hof-nord', submissionId: 'sub-1' }),
+    ).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+    expect(mockWithdraw).not.toHaveBeenCalled();
+  });
+
+  it('lets anyone list the Höfe by name for a form, signed in or not', async () => {
+    await expect(callerAs().getHofList()).resolves.toEqual([
+      { id: 'hof-nord', name: 'Hof Nord' },
+      { id: 'hof-sued', name: 'Hof Süd' },
+    ]);
   });
 });

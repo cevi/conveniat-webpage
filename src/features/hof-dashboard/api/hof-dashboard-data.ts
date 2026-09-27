@@ -1,22 +1,25 @@
 import {
-  HOF_FILES_MAX_COUNT,
-  HOF_SUBMISSION_TYPE_AREA,
-  HOF_SUBMISSION_TYPES,
   type HofDashboardArea,
-  type HofFileKind,
-  type HofOrderType,
-  type HofSubmissionStatus,
-  type HofSubmissionType,
+  type HofEntryMode,
+  type HofEntryStatus,
 } from '@/features/hof-dashboard/constants';
-import { toFiles } from '@/features/hof-dashboard/utils/file-versions';
+import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
+import type { ExtendedFormType } from '@/features/payload-cms/components/form/types';
+import { parseMaterialAnswer } from '@/features/payload-cms/components/form/utils/material-list';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
-import type { Hof, HofDashboardSetting } from '@/features/payload-cms/payload-types';
-import type { Locale } from '@/types/types';
+import type { Form, Hof } from '@/features/payload-cms/payload-types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import { getPayload, type Payload } from 'payload';
+import { getPayload } from 'payload';
 
 const logger = createLogger('hof-dashboard:data');
+
+/** Most submissions one Hof's dashboard lists over all its forms. */
+const MAX_SUBMISSIONS = 500;
+
+/** Most forms linked to the dashboard; far more than it will ever have. */
+const MAX_FORMS = 100;
 
 export interface HofContact {
   name: string;
@@ -31,38 +34,56 @@ export interface HofDashboardDeadline {
   area: HofDashboardArea;
 }
 
+/** A file handed in with a submission. */
 export interface HofDashboardFile {
   id: string;
-  filename: string;
-  url: string | undefined;
-  kind: HofFileKind;
-  uploadedAt: string;
-  /** 1 for the first plan of a submission, counted per kind. */
-  version: number;
+  name: string;
+  url: string;
+  size: number | undefined;
+  mimeType: string | undefined;
 }
 
-export interface HofDashboardSubmission {
-  type: HofSubmissionType;
-  area: HofDashboardArea;
-  status: HofSubmissionStatus | undefined;
-  elevatedSafetyRisk: 'yes' | 'no' | undefined;
+/** One answer of a submission, as the dashboard shows it back to the Hof. */
+export type HofDashboardAnswer =
+  | { field: string; label: string; kind: 'text'; text: string }
+  | { field: string; label: string; kind: 'files'; files: HofDashboardFile[] }
+  | {
+      field: string;
+      label: string;
+      kind: 'materials';
+      materials: { id: string; name: string; section: string | undefined; quantity: number }[];
+    };
+
+/** One submission of a form by the Hof. */
+export interface HofDashboardEntry {
+  id: string;
+  submittedAt: string;
+  /** The answer that names it, for forms whose submissions are separate entries. */
+  title: string | undefined;
+  status: HofEntryStatus;
   feedback: string | undefined;
-  files: HofDashboardFile[];
-  deadlines: string[];
+  answers: HofDashboardAnswer[];
+  /** Whether the Hof may still take it back: handed in, and not yet taken up by the Ressort. */
+  withdrawable: boolean;
 }
 
-export interface HofDashboardOrder {
-  type: HofOrderType;
+/** A form linked to the dashboard, with the Hof's submissions of it, newest first. */
+export interface HofDashboardForm {
+  id: string;
+  area: HofDashboardArea;
+  title: string;
+  description: string | undefined;
   deadline: string | undefined;
-  items: { id: string; name: string; section: string | undefined; quantity: number }[];
-  /** Lines the Hof ordered that are no longer on the list, kept as they were ordered. */
-  retiredItems: { id: string; name: string; quantity: number }[];
-  powerConnection: boolean;
-  /**
-   * When the order was last stored, by the Hof or a reviewer; the form takes over what is
-   * stored when this moves.
-   */
-  savedAt: string | undefined;
+  /** Closed at its due date; the reviewers can still hand it in. */
+  closed: boolean;
+  mode: HofEntryMode;
+  /** The field that asks for the Hof, answered by the dashboard. */
+  hofField: string;
+  /** Answers a new submission starts from: the material lists of the newest one. */
+  initialValues: Record<string, string>;
+  /** The form as its block renders it. */
+  form: ExtendedFormType;
+  entries: HofDashboardEntry[];
 }
 
 export interface HofDashboardDocument {
@@ -73,26 +94,12 @@ export interface HofDashboardDocument {
   area: HofDashboardArea | undefined;
 }
 
-interface HofDashboardStadtlebenEntry {
-  id: string;
-  title: string | undefined;
-  submittedAt: string;
-  approved: boolean;
-}
-
 export interface HofDashboardData {
   hof: { id: string; name: string };
   contacts: { avp: HofContact; coach: HofContact; buildingManager: HofContact };
   deadlines: HofDashboardDeadline[];
-  submissions: HofDashboardSubmission[];
-  orders: Record<HofOrderType, HofDashboardOrder>;
-  stadtleben: {
-    deadline: string | undefined;
-    formUrl: string | undefined;
-    entries: HofDashboardStadtlebenEntry[];
-  };
+  forms: HofDashboardForm[];
   documents: HofDashboardDocument[];
-  safetyRiskCriteria: string[];
 }
 
 const toContact = (
@@ -103,94 +110,141 @@ const toContact = (
   phone: contact?.phone ?? '',
 });
 
-const idOf = (reference: string | { id: string } | null | undefined): string | undefined =>
+/** The id of a relationship, whether Payload returned it populated or not. */
+export const idOf = (reference: string | { id: string } | null | undefined): string | undefined =>
   typeof reference === 'object' && reference !== null ? reference.id : (reference ?? undefined);
 
-/**
- * The settings every dashboard shares, in the reader's language. The texts are only required
- * in German, and the site does not fall back on its own, so an untranslated text reads in
- * German instead of blank. The Stadtleben form comes trimmed to its title, since only its
- * id is used.
- */
-export const getHofDashboardSettings = async (
-  payload: Payload,
+/** A field of a form, as far as showing its answer needs it. */
+interface FormField {
+  blockType: string;
+  name: string;
+  label: string;
+  options?: { value: string; label: string }[];
+}
+
+/** Every named field of a form in the order it asks them, conditioned ones included. */
+const fieldsOf = (form: Pick<Form, 'sections'>): FormField[] => {
+  const collect = (fields: unknown[] | null | undefined): FormField[] =>
+    (fields ?? []).flatMap((field): FormField[] => {
+      if (field === null || typeof field !== 'object') return [];
+      const block = field as Partial<FormField> & { fields?: unknown[] | null };
+      if (block.blockType === 'conditionedBlock') return collect(block.fields);
+      if (typeof block.blockType !== 'string' || typeof block.name !== 'string') return [];
+      return [
+        {
+          blockType: block.blockType,
+          name: block.name,
+          label: typeof block.label === 'string' ? block.label : block.name,
+          ...(Array.isArray(block.options) ? { options: block.options } : {}),
+        },
+      ];
+    });
+  return form.sections.flatMap((section) =>
+    collect(section.formSection.fields as unknown[] | null | undefined),
+  );
+};
+
+const YES: StaticTranslationString = { de: 'Ja', en: 'Yes', fr: 'Oui' };
+const NO: StaticTranslationString = { de: 'Nein', en: 'No', fr: 'Non' };
+
+/** Fields the dashboard answers itself or that answer nothing worth showing back. */
+const UNSHOWN_FIELDS = new Set(['hofSelection', 'message', 'ceviDbLogin']);
+
+/** The answers of a submission in the order its form asks them, the empty ones left out. */
+const toAnswers = (
+  fields: FormField[],
+  values: Map<string, string>,
+  files: Map<string, HofDashboardFile>,
   locale: Locale,
-): Promise<HofDashboardSetting> =>
-  await payload.findGlobal({
-    slug: 'hof-dashboard-settings',
-    locale,
-    fallbackLocale: LOCALE.DE,
-    depth: 1,
-    populate: {
-      forms: { title: true },
-      documents: { title: true, filename: true, url: true, filesize: true },
-    },
-    overrideAccess: true,
+): HofDashboardAnswer[] =>
+  fields.flatMap((field): HofDashboardAnswer[] => {
+    const value = values.get(field.name);
+    if (UNSHOWN_FIELDS.has(field.blockType) || value === undefined || value === '') return [];
+    const base = { field: field.name, label: field.label };
+    switch (field.blockType) {
+      case 'fileUpload': {
+        const handedIn = value
+          .split(',')
+          .map((id) => files.get(id.trim()))
+          .filter((file) => file !== undefined);
+        return handedIn.length === 0 ? [] : [{ ...base, kind: 'files', files: handedIn }];
+      }
+      case 'materialList': {
+        const lines = parseMaterialAnswer(value) ?? [];
+        return lines.length === 0
+          ? []
+          : [
+              {
+                ...base,
+                kind: 'materials',
+                materials: lines.map((line) => ({
+                  id: line.id,
+                  name: line.name ?? line.id,
+                  section: line.section,
+                  quantity: line.quantity,
+                })),
+              },
+            ];
+      }
+      case 'checkbox': {
+        return [{ ...base, kind: 'text', text: (value === 'true' ? YES : NO)[locale] }];
+      }
+      case 'select': {
+        const labels = value
+          .split(', ')
+          .map(
+            (chosen) => field.options?.find((option) => option.value === chosen)?.label ?? chosen,
+          );
+        return [{ ...base, kind: 'text', text: labels.join(', ') }];
+      }
+      default: {
+        return [{ ...base, kind: 'text', text: value }];
+      }
+    }
   });
 
-const toOrder = (
-  type: HofOrderType,
-  list: HofDashboardSetting['infrastructureOrder'],
-  stored:
-    | {
-        items?: { itemId: string; name: string; quantity: number }[] | null;
-        powerConnection?: boolean | null;
-        updatedAt: string;
-      }
-    | undefined,
-): HofDashboardOrder => {
-  const quantities = new Map((stored?.items ?? []).map((line) => [line.itemId, line]));
-  const items = (list?.items ?? []).flatMap((item) =>
-    typeof item.id === 'string'
-      ? [
-          {
-            id: item.id,
-            name: item.name,
-            section: item.section ?? undefined,
-            quantity: quantities.get(item.id)?.quantity ?? 0,
-          },
-        ]
-      : [],
-  );
-  const listed = new Set(items.map((item) => item.id));
-  const retiredItems = (stored?.items ?? [])
-    .filter((line) => !listed.has(line.itemId) && line.quantity > 0)
-    .map((line) => ({ id: line.itemId, name: line.name, quantity: line.quantity }));
-  return {
-    type,
-    deadline: list?.deadline ?? undefined,
-    items,
-    retiredItems,
-    powerConnection: stored?.powerConnection === true,
-    savedAt: stored?.updatedAt,
-  };
-};
+interface StoredSubmission {
+  id: string;
+  form: string | { id: string };
+  submissionData?: { field: string; value: string }[] | null;
+  hofReviewStatus?: 'inReview' | 'revisionRequired' | 'accepted' | null;
+  hofFeedback?: string | null;
+  approved?: boolean | null;
+  createdAt: string;
+}
 
-/** Names a Stadtleben registration by one of its answers, as the settings say. */
-const answerOf = (
-  submissionData: unknown,
-  fieldName: string | null | undefined,
-): string | undefined => {
-  if (!Array.isArray(submissionData) || typeof fieldName !== 'string' || fieldName === '') {
-    return undefined;
-  }
-  const answer = (submissionData as { field?: unknown; value?: unknown }[]).find(
-    (entry) => entry.field === fieldName,
-  );
-  return typeof answer?.value === 'string' && answer.value !== '' ? answer.value : undefined;
-};
+/** Where a submission stands: approved for the website counts as accepted. */
+const statusOf = (submission: StoredSubmission): HofEntryStatus =>
+  submission.approved === true ? 'accepted' : (submission.hofReviewStatus ?? 'submitted');
+
+/** The form, trimmed to what its block renders, as the page would hand it over. */
+const toRenderedForm = (form: Form): ExtendedFormType =>
+  ({
+    id: form.id,
+    title: form.title,
+    autocomplete: form.autocomplete,
+    fileUploadLimitMB: form.fileUploadLimitMB,
+    sections: form.sections,
+    submitButtonLabel: form.submitButtonLabel,
+    confirmationType: form.confirmationType,
+    confirmationMessage: form.confirmationMessage,
+    redirect: form.redirect,
+    _localized_status: { published: true },
+  }) as unknown as ExtendedFormType;
 
 /**
- * Everything one Hof's dashboard shows. The caller has checked that the user may open the Hof;
- * everything here reads with `overrideAccess`, narrowed to that Hof.
+ * Everything one Hof's dashboard shows: the forms linked to it with the Hof's submissions of
+ * them, the camp's deadlines, the Hof's contacts and the documents. The caller has checked
+ * that the user may open the Hof; everything here reads with `overrideAccess`, narrowed to it.
  */
 export const getHofDashboardData = async (
   hofId: string,
   locale: Locale,
+  isReviewer: boolean,
 ): Promise<HofDashboardData> => {
   const payload = await getPayload({ config });
 
-  const [hof, settings, storedSubmissions, storedFiles, storedOrders] = await Promise.all([
+  const [hof, settings, linkedForms] = await Promise.all([
     payload.findByID({
       collection: 'hoefe',
       id: hofId,
@@ -198,107 +252,179 @@ export const getHofDashboardData = async (
       overrideAccess: true,
       select: { name: true, dashboardContacts: true },
     }) as Promise<Pick<Hof, 'id' | 'name' | 'dashboardContacts'>>,
-    getHofDashboardSettings(payload, locale),
-    payload.find({
-      collection: 'hof-submissions',
-      where: { hof: { equals: hofId } },
-      depth: 0,
-      limit: HOF_SUBMISSION_TYPES.length,
-      pagination: false,
+    payload.findGlobal({
+      slug: 'hof-dashboard-settings',
+      locale,
+      fallbackLocale: LOCALE.DE,
+      depth: 1,
+      populate: { documents: { title: true, filename: true, url: true, filesize: true } },
       overrideAccess: true,
-      select: { submissionType: true, status: true, elevatedSafetyRisk: true, feedback: true },
     }),
     payload.find({
-      collection: 'hof-files',
-      where: { hof: { equals: hofId } },
+      collection: 'forms',
+      where: { 'hofDashboard.area': { exists: true } },
+      locale,
+      fallbackLocale: LOCALE.DE,
       depth: 0,
-      // oldest first, so a cut at the limit keeps the version numbers of what it shows
-      sort: 'createdAt',
-      limit: HOF_FILES_MAX_COUNT,
-      overrideAccess: true,
-      select: {
-        submission: true,
-        kind: true,
-        originalFilename: true,
-        filename: true,
-        url: true,
-        createdAt: true,
-      },
-    }),
-    payload.find({
-      collection: 'hof-material-orders',
-      where: { hof: { equals: hofId } },
-      depth: 0,
-      limit: 2,
+      limit: MAX_FORMS,
       pagination: false,
       overrideAccess: true,
-      select: { orderType: true, items: true, powerConnection: true, updatedAt: true },
     }),
   ]);
 
-  if (storedFiles.totalDocs > storedFiles.docs.length) {
-    logger.warn('A Hof has more files than its dashboard shows', {
+  // a form not published in this language renders nothing, so it is not offered either
+  const forms = linkedForms.docs.filter(
+    (form) =>
+      typeof form.hofDashboard?.area === 'string' &&
+      (form._localized_status as { published?: boolean } | undefined)?.published === true,
+  );
+
+  const submissions = (
+    forms.length === 0
+      ? { docs: [], totalDocs: 0 }
+      : await payload.find({
+          collection: 'form-submissions',
+          where: {
+            and: [{ hof: { equals: hofId } }, { form: { in: forms.map((form) => form.id) } }],
+          },
+          depth: 0,
+          sort: '-createdAt',
+          limit: MAX_SUBMISSIONS,
+          overrideAccess: true,
+          select: {
+            form: true,
+            submissionData: true,
+            hofReviewStatus: true,
+            hofFeedback: true,
+            approved: true,
+            createdAt: true,
+          },
+        })
+  ) as { docs: StoredSubmission[]; totalDocs: number };
+  if (submissions.totalDocs > submissions.docs.length) {
+    logger.warn('A Hof has more submissions than its dashboard shows', {
       'hof_dashboard.hof_id': hofId,
-      'hof_dashboard.files': storedFiles.totalDocs,
+      'hof_dashboard.submissions': submissions.totalDocs,
     });
   }
 
-  const storedDeadlines = (settings.deadlines ?? []).toSorted((a, b) =>
-    a.date.localeCompare(b.date),
-  );
-  const deadlines: HofDashboardDeadline[] = storedDeadlines.map((deadline, index) => ({
-    id: deadline.id ?? String(index),
-    date: deadline.date,
-    title: deadline.title,
-    area: deadline.area,
-  }));
-
-  const submissions: HofDashboardSubmission[] = HOF_SUBMISSION_TYPES.map((type) => {
-    const stored = storedSubmissions.docs.find((candidate) => candidate.submissionType === type);
-    const files =
-      stored === undefined
-        ? []
-        : storedFiles.docs.filter((file) => idOf(file.submission) === stored.id);
-    return {
-      type,
-      area: HOF_SUBMISSION_TYPE_AREA[type],
-      status: stored?.status ?? undefined,
-      elevatedSafetyRisk: stored?.elevatedSafetyRisk ?? undefined,
-      feedback: stored?.feedback ?? undefined,
-      files: toFiles(files),
-      deadlines: storedDeadlines
-        .filter((deadline) => deadline.submissionTypes?.includes(type) === true)
-        .map((deadline) => deadline.date),
-    };
+  const fieldsByForm = new Map(forms.map((form) => [form.id, fieldsOf(form)]));
+  const fileIds = submissions.docs.flatMap((submission) => {
+    const fields = fieldsByForm.get(idOf(submission.form) ?? '') ?? [];
+    const fileFields = new Set(
+      fields.filter((field) => field.blockType === 'fileUpload').map((field) => field.name),
+    );
+    return (submission.submissionData ?? [])
+      .filter((answer) => fileFields.has(answer.field))
+      .flatMap((answer) => answer.value.split(',').map((id) => id.trim()))
+      .filter((id) => id !== '');
   });
+  const { docs: storedFiles } =
+    fileIds.length === 0
+      ? { docs: [] }
+      : await payload.find({
+          collection: 'form_collection',
+          where: { id: { in: fileIds } },
+          depth: 0,
+          limit: fileIds.length,
+          pagination: false,
+          overrideAccess: true,
+          select: { originalFilename: true, filename: true, filesize: true, mimeType: true },
+        });
+  const files = new Map(
+    storedFiles.map((file) => [
+      file.id,
+      {
+        id: file.id,
+        name: file.originalFilename ?? file.filename ?? file.id,
+        // served by the route that checks the Hof, not by Payload's own file URL
+        url: `/api/form-file/${file.id}`,
+        size: file.filesize ?? undefined,
+        mimeType: file.mimeType ?? undefined,
+      },
+    ]),
+  );
 
-  const orderOf = (type: HofOrderType): (typeof storedOrders.docs)[number] | undefined =>
-    storedOrders.docs.find((order) => order.orderType === type);
+  const now = new Date();
+  // an editor's order first; forms without a position after those with one
+  const positionOf = (formId: string): number =>
+    forms.find((form) => form.id === formId)?.hofDashboard?.position ?? Number.MAX_SAFE_INTEGER;
+  const dashboardForms: HofDashboardForm[] = forms
+    .flatMap((form): HofDashboardForm[] => {
+      const settingsOfForm = form.hofDashboard;
+      const area = settingsOfForm?.area;
+      const fields = fieldsByForm.get(form.id) ?? [];
+      const hofField = fields.find((field) => field.blockType === 'hofSelection')?.name;
+      if (area === undefined || area === null || hofField === undefined) return [];
 
-  const stadtlebenFormId = idOf(settings.stadtlebenForm);
-  const stadtlebenSubmissions =
-    stadtlebenFormId === undefined
-      ? []
-      : await payload
-          .find({
-            collection: 'form-submissions',
-            where: {
-              and: [{ form: { equals: stadtlebenFormId } }, { hof: { equals: hofId } }],
-            },
-            depth: 0,
-            limit: 100,
-            pagination: false,
-            overrideAccess: true,
-            sort: '-createdAt',
-            select: { submissionData: true, approved: true, createdAt: true },
-          })
-          .then((result) => result.docs);
-  const stadtlebenEntries = stadtlebenSubmissions.map((entry) => ({
-    id: entry.id,
-    title: answerOf(entry.submissionData, settings.stadtlebenTitleFieldName),
-    submittedAt: entry.createdAt,
-    approved: entry.approved === true,
-  }));
+      const mode = settingsOfForm?.entries ?? 'versions';
+      const own = submissions.docs.filter((submission) => idOf(submission.form) === form.id);
+      const entries = own.map((submission, index): HofDashboardEntry => {
+        const values = new Map(
+          (submission.submissionData ?? []).map((answer) => [answer.field, answer.value]),
+        );
+        const status = statusOf(submission);
+        const titleField = settingsOfForm?.titleField;
+        const title =
+          typeof titleField === 'string' && titleField !== '' ? values.get(titleField) : undefined;
+        return {
+          id: submission.id,
+          submittedAt: submission.createdAt,
+          title: title === '' ? undefined : title,
+          status,
+          feedback: submission.hofFeedback ?? undefined,
+          answers: toAnswers(fields, values, files, locale),
+          // only the version that counts; an earlier one is what the Ressort answered on
+          withdrawable: status === 'submitted' && (mode === 'entries' || index === 0),
+        };
+      });
+
+      const newest = own[0];
+      const initialValues = Object.fromEntries(
+        fields
+          .filter((field) => field.blockType === 'materialList')
+          .flatMap((field) => {
+            const value = newest?.submissionData?.find((answer) => answer.field === field.name);
+            return value === undefined || value.value === '' ? [] : [[field.name, value.value]];
+          }),
+      );
+      const deadline = settingsOfForm?.deadline ?? undefined;
+      return [
+        {
+          id: form.id,
+          area,
+          title:
+            typeof settingsOfForm?.title === 'string' && settingsOfForm.title !== ''
+              ? settingsOfForm.title
+              : form.title,
+          description: settingsOfForm?.description ?? undefined,
+          deadline,
+          closed:
+            !isReviewer &&
+            settingsOfForm?.closesAtDeadline === true &&
+            deadline !== undefined &&
+            daysUntil(deadline, now) < 0,
+          mode,
+          hofField,
+          initialValues,
+          form: toRenderedForm(form),
+          entries,
+        },
+      ];
+    })
+    .toSorted((a, b) => {
+      const byPosition = positionOf(a.id) - positionOf(b.id);
+      return byPosition === 0 ? a.title.localeCompare(b.title, locale) : byPosition;
+    });
+
+  const deadlines: HofDashboardDeadline[] = (settings.deadlines ?? [])
+    .toSorted((a, b) => a.date.localeCompare(b.date))
+    .map((deadline, index) => ({
+      id: deadline.id ?? String(index),
+      date: deadline.date,
+      title: deadline.title,
+      area: deadline.area,
+    }));
 
   const documents: HofDashboardDocument[] = (settings.documents ?? []).flatMap((entry) => {
     const document = entry.document;
@@ -323,21 +449,7 @@ export const getHofDashboardData = async (
       buildingManager: toContact(hof.dashboardContacts?.buildingManager),
     },
     deadlines,
-    submissions,
-    orders: {
-      infrastructure: toOrder(
-        'infrastructure',
-        settings.infrastructureOrder,
-        orderOf('infrastructure'),
-      ),
-      stadtleben: toOrder('stadtleben', settings.stadtlebenOrder, orderOf('stadtleben')),
-    },
-    stadtleben: {
-      deadline: settings.stadtlebenDeadline ?? undefined,
-      formUrl: settings.stadtlebenFormUrl ?? undefined,
-      entries: stadtlebenEntries,
-    },
+    forms: dashboardForms,
     documents,
-    safetyRiskCriteria: (settings.safetyRiskCriteria ?? []).map((entry) => entry.criterion),
   };
 };

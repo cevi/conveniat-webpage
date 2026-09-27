@@ -109,6 +109,17 @@ FAKE_USERS = [
             {"group_id": 990003, "group_name": "Hof Ost", "role_name": "Mitglied", "role_class": "Group::Ortsgruppe::Mitglied"}
         ],
         "comment": "Adressverwaltung von Hof Nord und Hof Süd, nur Mitglied von Hof Ost: öffnet das Hof-Dashboard der ersten beiden."
+    },
+    {
+        "id": "9",
+        "email": "benutzer9@conveniat27.ch",
+        "first_name": "Hof-Adressverwaltung",
+        "last_name": "West",
+        "nickname": "Hof West",
+        "roles": [
+            {"group_id": 990004, "group_name": "Hof West", "role_name": "Adressverwaltung", "role_class": "Group::Ortsgruppe::AdministratorCeviDB"}
+        ],
+        "comment": "Adressverwaltung von Hof West allein: dessen Hof-Dashboard ist vollständig befüllt, mit Abgaben in jedem Status, Bestellungen und Stadtleben-Ständen."
     }
 ]
 

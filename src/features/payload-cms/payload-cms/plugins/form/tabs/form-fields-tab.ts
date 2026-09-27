@@ -287,6 +287,23 @@ const formRichTextBlock: Block = {
       localized: true,
       hooks: patchRichTextLinkHook,
     },
+    {
+      name: 'collapsibleTitle',
+      type: 'text',
+      localized: true,
+      label: {
+        en: 'Collapsible title',
+        de: 'Titel zum Aufklappen',
+        fr: 'Titre dépliable',
+      },
+      admin: {
+        description: {
+          en: 'Optional. With a title, the message starts folded under it, like an accordion on a page, e.g. for criteria someone only needs now and then.',
+          de: 'Optional. Mit einem Titel ist die Nachricht darunter zugeklappt, wie ein Akkordeon auf einer Seite, z.B. für Kriterien, die man nur ab und zu braucht.',
+          fr: 'Facultatif. Avec un titre, le message est replié dessous, comme un accordéon sur une page, p. ex. pour des critères dont on n’a besoin que de temps en temps.',
+        },
+      },
+    },
   ],
   labels: { plural: 'Message Blocks', singular: 'Message' },
 };
@@ -1100,6 +1117,104 @@ const formFileUploadBlock: Block = {
   labels: { plural: 'File Upload Fields', singular: 'File Upload' },
 };
 
+const formMaterialListBlock: Block = {
+  slug: 'materialList',
+  admin: {
+    components: {
+      Label: {
+        path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
+        clientProps: {
+          label: {
+            en: 'Material List',
+            de: 'Materialliste',
+            fr: 'Liste de matériel',
+          },
+        },
+      },
+    },
+  },
+  fields: [
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'name',
+          type: 'text',
+          label: 'Name (lowercase, no special characters)',
+          validate: formNameValidation,
+          required: true,
+          admin: { width: '50%' },
+        },
+        {
+          name: 'label',
+          required: true,
+          type: 'text',
+          label: 'Label',
+          localized: true,
+          admin: { width: '50%' },
+        },
+      ],
+    },
+    {
+      name: 'items',
+      type: 'array',
+      required: true,
+      label: { en: 'Material', de: 'Material', fr: 'Matériel' },
+      labels: {
+        singular: { en: 'Material', de: 'Material', fr: 'Matériel' },
+        plural: { en: 'Material', de: 'Material', fr: 'Matériel' },
+      },
+      admin: {
+        description: {
+          en: 'One line per material, asked as a quantity. A line removed later keeps its name in the orders already handed in.',
+          de: 'Eine Zeile pro Material, gefragt wird die Menge. Eine später gelöschte Zeile bleibt in bereits abgegebenen Bestellungen unter ihrem Namen erhalten.',
+          fr: 'Une ligne par matériel, demandée en quantité. Une ligne supprimée plus tard garde son nom dans les commandes déjà passées.',
+        },
+      },
+      fields: [
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'name',
+              type: 'text',
+              required: true,
+              localized: true,
+              label: { en: 'Material', de: 'Material', fr: 'Matériel' },
+              admin: { width: '60%' },
+            },
+            {
+              name: 'section',
+              type: 'text',
+              localized: true,
+              label: { en: 'Section', de: 'Rubrik', fr: 'Rubrique' },
+              admin: {
+                width: '40%',
+                description: {
+                  en: 'Optional heading the line is listed under, e.g. "Wood".',
+                  de: 'Optionale Überschrift, unter der die Zeile erscheint, z.B. "Holz".',
+                  fr: 'Titre facultatif sous lequel la ligne apparaît, p. ex. « Bois ».',
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'required',
+      type: 'checkbox',
+      label: {
+        en: 'Required (at least one material)',
+        de: 'Pflichtfeld (mindestens ein Material)',
+        fr: 'Obligatoire (au moins un matériel)',
+      },
+    },
+    placementField('main'),
+  ],
+  labels: { plural: 'Material Lists', singular: 'Material List' },
+};
+
 const formBlocks: Block[] = [
   formCheckboxBlock,
   formCountryBlock,
@@ -1115,15 +1230,19 @@ const formBlocks: Block[] = [
   formHofSelectionBlock,
   formDateSlotSelectionBlock,
   formFileUploadBlock,
+  formMaterialListBlock,
 ];
 
-/** The form fields an editor is offered: the Hof selection only where the dashboard is on. */
+/** Fields that only mean something on the Hof dashboard. */
+const HOF_DASHBOARD_BLOCK_SLUGS = new Set([formHofSelectionBlock.slug, formMaterialListBlock.slug]);
+
+/** The form fields an editor is offered: the Hof dashboard's own only where it is on. */
 const formBlockOptions: NonNullable<BlocksField['filterOptions']> = () =>
   environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD
     ? true
     : [...formBlocks, conditionedBlock]
         .map((block) => block.slug)
-        .filter((slug) => slug !== formHofSelectionBlock.slug);
+        .filter((slug) => !HOF_DASHBOARD_BLOCK_SLUGS.has(slug));
 
 const conditionedBlock: Block = {
   slug: 'conditionedBlock',

@@ -2,7 +2,7 @@ import {
   hasAccessToThis,
   HOF_DASHBOARD_REVIEWER_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import type { Access, Payload, PayloadRequest } from 'payload';
+import type { Payload, PayloadRequest } from 'payload';
 
 /**
  * The Cevi.DB role that opens a Hof's dashboard: the address administrator of the Ortsgruppe
@@ -67,21 +67,19 @@ export const canReviewHofDashboard = ({ req }: { req: PayloadRequest }): boolean
   hasAccessToThis({ req, requiredRoles: HOF_DASHBOARD_REVIEWER_ROLES });
 
 /**
- * The files a Hof handed in: the reviewers see all of them, the address administrator of a
- * Hof's Cevi.DB group sees that Hof's and no other.
+ * Whether the user of a request may open a Hof's dashboard and what was handed in for it: the
+ * reviewers every Hof, the address administrator of a Hof's Cevi.DB group that Hof and no other.
  *
- * Checked when a file is served, so a download link only opens for the people the dashboard
- * showed it to.
+ * Checked when a file is served and when a Hof hands a form in, so neither trusts the Hof a
+ * request names.
  */
-export const canReadHofFiles: Access = async ({ req }) => {
-  if (canReviewHofDashboard({ req })) return true;
-  const user = req.user;
+export const mayOpenHof = async (request: PayloadRequest, hofId: string): Promise<boolean> => {
+  if (canReviewHofDashboard({ req: request })) return true;
+  const user = request.user;
   if (!user || !('groups' in user) || !Array.isArray(user.groups)) return false;
 
   const groupIds = getAdministeredGroupIds(user.groups);
   if (groupIds.length === 0) return false;
-
-  const hoefe = await findHoefe(req.payload, groupIds);
-  if (hoefe.length === 0) return false;
-  return { hof: { in: hoefe.map((hof) => hof.id) } };
+  const hoefe = await findHoefe(request.payload, groupIds);
+  return hoefe.some((hof) => hof.id === hofId);
 };

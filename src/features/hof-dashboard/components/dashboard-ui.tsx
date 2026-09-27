@@ -1,17 +1,7 @@
 import type { HofContact } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import {
-  HOF_SUBMISSION_STATUS_LABELS,
-  type HofDashboardArea,
-  type HofSubmissionStatus,
-} from '@/features/hof-dashboard/constants';
-import {
-  formatCountdown,
-  formatDate,
-  translate,
-  type TextKey,
-} from '@/features/hof-dashboard/texts';
+import { HOF_ENTRY_STATUS_LABELS, type HofDashboardArea } from '@/features/hof-dashboard/constants';
+import { formatCountdown, formatDate, translate } from '@/features/hof-dashboard/texts';
 import type {
-  SubmissionGap,
   SubmissionProgress,
   SubmissionState,
 } from '@/features/hof-dashboard/utils/submission-progress';
@@ -21,27 +11,29 @@ import { AlertCircle, CheckCircle2, Clock, Mail, Phone } from 'lucide-react';
 import type React from 'react';
 
 /**
- * Infrastructure reads in the camp's green, the programme in Cevi blue. Not in Cevi red, which
- * the dashboard keeps for what is overdue.
+ * Infrastructure reads in the camp's green, the programme in Cevi blue, material in plain grey.
+ * Not in Cevi red, which the dashboard keeps for what is overdue.
  */
 export const AREA_TEXT_CLASS: Record<HofDashboardArea, string> = {
   infrastructure: 'text-conveniat-green',
   program: 'text-cevi-blue',
+  material: 'text-gray-800',
 };
 
 /** The area's colour as a fill, for progress bars and dots. */
 export const AREA_DOT_CLASS: Record<HofDashboardArea, string> = {
   infrastructure: 'bg-conveniat-green',
   program: 'bg-cevi-blue',
+  material: 'bg-gray-500',
 };
 
-/** The main action of a card, styled like the submit button of the site's forms. */
+/** The main action, the submit button of the site's forms. */
 export const PRIMARY_BUTTON_CLASS =
-  'bg-conveniat-green inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-gray-100 transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:h-4 [&_svg]:w-4';
+  'bg-conveniat-green inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-gray-100 transition duration-100 hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
 
-/** A secondary action, in the same height as the primary one so rows line up. */
+/** A secondary action, the back button of the site's forms. */
 export const SECONDARY_BUTTON_CLASS =
-  'inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:h-4 [&_svg]:w-4';
+  'inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-gray-500 px-4 py-2 text-sm font-semibold text-gray-500 transition duration-100 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:text-base [&_svg]:h-4 [&_svg]:w-4';
 
 /** The card every part of the dashboard sits in, so their edges and padding match. */
 export const Panel: React.FC<{ children: React.ReactNode; className?: string }> = ({
@@ -116,30 +108,18 @@ const STATE_TONE: Record<SubmissionState, StatusTone> = {
   overdue: 'alert',
 };
 
-const GAP_LABEL: Record<Exclude<SubmissionGap, 'revision'>, TextKey> = {
-  plan: 'gapPlan',
-  safetyRiskAnswer: 'gapSafetyRiskAnswer',
-  safetyConcept: 'gapSafetyConcept',
+/** The Ressort's status once handed in, else that it is still missing. */
+const progressLabel = (progress: SubmissionProgress, locale: Locale): string => {
+  if (progress.gap === 'missing') return translate('gapMissing', locale);
+  if (progress.gap === 'revision') return HOF_ENTRY_STATUS_LABELS.revisionRequired[locale];
+  return HOF_ENTRY_STATUS_LABELS[progress.status ?? 'submitted'][locale];
 };
 
-/** The Ressort's status once handed in, else what is missing, named as everywhere else. */
-const progressLabel = (
-  progress: SubmissionProgress,
-  status: HofSubmissionStatus | undefined,
-  locale: Locale,
-): string => {
-  if (progress.gap === undefined)
-    return HOF_SUBMISSION_STATUS_LABELS[status ?? 'submitted'][locale];
-  if (progress.gap === 'revision') return HOF_SUBMISSION_STATUS_LABELS.revisionRequired[locale];
-  return translate(GAP_LABEL[progress.gap], locale);
-};
-
-/** Where a submission stands, as a pill: the same wherever it is shown. */
-export const ProgressPill: React.FC<{
-  progress: SubmissionProgress;
-  status: HofSubmissionStatus | undefined;
-  locale: Locale;
-}> = ({ progress, status, locale }) => (
+/** Where a form stands, as a pill: the same wherever it is shown. */
+export const ProgressPill: React.FC<{ progress: SubmissionProgress; locale: Locale }> = ({
+  progress,
+  locale,
+}) => (
   // a revision the Ressort asked for is the Hof's to act on, whatever the deadline says
   <StatusPill
     tone={
@@ -148,19 +128,18 @@ export const ProgressPill: React.FC<{
         : STATE_TONE[progress.state]
     }
   >
-    {progressLabel(progress, status, locale)}
+    {progressLabel(progress, locale)}
   </StatusPill>
 );
 
 /**
- * Where a submission stands: what is missing, or the Ressort's status once it is handed in,
- * named as everywhere else, and for what is missing the deadline and how far off it is.
+ * Where a form stands, named as everywhere else, and while something is missing the due date
+ * and how far off it is.
  */
-export const ProgressLine: React.FC<{
-  progress: SubmissionProgress;
-  status: HofSubmissionStatus | undefined;
-  locale: Locale;
-}> = ({ progress, status, locale }) => {
+export const ProgressLine: React.FC<{ progress: SubmissionProgress; locale: Locale }> = ({
+  progress,
+  locale,
+}) => {
   const due: string[] = [];
   if (progress.state !== 'done' && progress.deadline !== undefined) {
     due.push(translate('dueOn', locale, { date: formatDate(progress.deadline, locale) }));
@@ -171,7 +150,7 @@ export const ProgressLine: React.FC<{
   return (
     // a span, since it also sits inside the overview's row buttons
     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-      <ProgressPill progress={progress} status={status} locale={locale} />
+      <ProgressPill progress={progress} locale={locale} />
       {due.length > 0 && <span className="text-gray-600">{due.join(' · ')}</span>}
     </span>
   );

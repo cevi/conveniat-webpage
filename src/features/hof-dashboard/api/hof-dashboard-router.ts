@@ -1,17 +1,6 @@
 import { hofDashboardProcedure } from '@/features/hof-dashboard/api/hof-dashboard-access';
 import { getHofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import {
-  completeHofUpload,
-  createHofUploadUrl,
-  updateHofMaterialOrder,
-  updateHofSafetyRisk,
-} from '@/features/hof-dashboard/api/hof-dashboard-mutations';
-import {
-  HOF_FILE_KINDS,
-  HOF_ORDER_MAX_QUANTITY,
-  HOF_ORDER_TYPES,
-  HOF_SUBMISSION_TYPES,
-} from '@/features/hof-dashboard/constants';
+import { withdrawHofSubmission } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
@@ -20,11 +9,11 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const hofIdInput = z.object({ hofId: z.string().min(1).max(64) });
-const submissionTypeSchema = z.enum(HOF_SUBMISSION_TYPES);
 
 /**
  * The Hof dashboard: every procedure but the two Hof lists checks that the user may open the Hof
- * it names before it reads or writes anything of it.
+ * it names before it reads or writes anything of it. What a Hof hands in goes through the forms
+ * linked to the dashboard, which check the Hof themselves.
  */
 export const hofDashboardRouter = createTRPCRouter({
   /**
@@ -47,73 +36,14 @@ export const hofDashboardRouter = createTRPCRouter({
         input.locale !== undefined && enabledLocales.includes(input.locale)
           ? input.locale
           : ctx.locale;
-      const data = await getHofDashboardData(input.hofId, locale);
-      // reviewers may still change an order after its deadline
-      return { ...data, isReviewer: ctx.isReviewer };
+      return await getHofDashboardData(input.hofId, locale, ctx.isReviewer);
     }),
 
-  /** Where the browser puts a file before `completeUpload` files it. */
-  createUploadUrl: hofDashboardProcedure
-    .input(
-      hofIdInput.extend({
-        filename: z.string().min(1).max(200),
-        size: z.number().int().positive(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      await ctx.assertHofAccess(input.hofId);
-      return await createHofUploadUrl(input.hofId, input.filename, input.size);
-    }),
-
-  completeUpload: hofDashboardProcedure
-    .input(
-      hofIdInput.extend({
-        submissionType: submissionTypeSchema,
-        kind: z.enum(HOF_FILE_KINDS),
-        key: z.string().min(1).max(400),
-        filename: z.string().min(1).max(200),
-      }),
-    )
+  /** Takes back a submission the Ressort has not taken up yet. */
+  deleteSubmission: hofDashboardProcedure
+    .input(hofIdInput.extend({ submissionId: z.string().min(1).max(64) }))
     .mutation(async ({ ctx, input }) => {
       const hof = await ctx.assertHofAccess(input.hofId);
-      await completeHofUpload({ ...input, hof, userId: ctx.user.uuid });
-    }),
-
-  updateSafetyRisk: hofDashboardProcedure
-    .input(
-      hofIdInput.extend({
-        submissionType: submissionTypeSchema,
-        elevatedSafetyRisk: z.enum(['yes', 'no']),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const hof = await ctx.assertHofAccess(input.hofId);
-      await updateHofSafetyRisk(hof, input.submissionType, input.elevatedSafetyRisk);
-    }),
-
-  updateMaterialOrder: hofDashboardProcedure
-    .input(
-      hofIdInput.extend({
-        orderType: z.enum(HOF_ORDER_TYPES),
-        // only what the Hof changed, so a correction saved meanwhile is not undone
-        changes: z
-          .array(
-            z.object({
-              itemId: z.string().min(1).max(64),
-              quantity: z.number().int().min(0).max(HOF_ORDER_MAX_QUANTITY),
-            }),
-          )
-          .max(200),
-        powerConnection: z.boolean().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const hof = await ctx.assertHofAccess(input.hofId);
-      await updateHofMaterialOrder({
-        hof,
-        ...input,
-        userId: ctx.user.uuid,
-        isReviewer: ctx.isReviewer,
-      });
+      await withdrawHofSubmission(hof, input.submissionId);
     }),
 });

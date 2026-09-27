@@ -1,28 +1,51 @@
-const mockPayload = {
-  find: jest.fn<Promise<unknown>, [unknown]>(),
-  create: jest.fn<Promise<unknown>, [unknown]>(),
-  update: jest.fn<Promise<unknown>, [unknown]>(),
-  count: jest.fn<Promise<{ totalDocs: number }>, [unknown]>(),
+interface StoredSubmission {
+  id: string;
+  form: string;
+  hof: string;
+  hofReviewStatus?: string | null;
+  approved?: boolean | null;
+}
+
+const SUBMISSIONS: Record<string, StoredSubmission> = {
+  'plan-2': { id: 'plan-2', form: 'form-plan', hof: 'hof-nord' },
+  'plan-1': { id: 'plan-1', form: 'form-plan', hof: 'hof-nord' },
+  'plan-reviewed': {
+    id: 'plan-reviewed',
+    form: 'form-plan',
+    hof: 'hof-nord',
+    hofReviewStatus: 'inReview',
+  },
+  'stand-old': { id: 'stand-old', form: 'form-stand', hof: 'hof-nord' },
+  'stand-approved': { id: 'stand-approved', form: 'form-stand', hof: 'hof-nord', approved: true },
+  'sued-plan': { id: 'sued-plan', form: 'form-plan', hof: 'hof-sued' },
+  'unlinked-entry': { id: 'unlinked-entry', form: 'form-contact', hof: 'hof-nord' },
 };
-const mockSend = jest.fn();
-const mockSettings = jest.fn();
+
+const FORMS: Record<string, unknown> = {
+  'form-plan': { hofDashboard: { area: 'infrastructure', entries: 'versions' } },
+  'form-stand': { hofDashboard: { area: 'program', entries: 'entries' } },
+  // eslint-disable-next-line unicorn/no-null -- Payload stores an unset select as null
+  'form-contact': { hofDashboard: { area: null } },
+};
+
+/** The newest submission of each form, as the sorted query answers it. */
+let mockNewest: Record<string, string> = {};
+
+const mockPayload = {
+  findByID: jest.fn(({ collection, id }: { collection: string; id: string }) =>
+    // eslint-disable-next-line unicorn/no-null -- findByID with disableErrors answers a missing document with null
+    Promise.resolve((collection === 'forms' ? FORMS[id] : SUBMISSIONS[id]) ?? null),
+  ),
+  find: jest.fn(({ where }: { where: { and: { form?: { equals: string } }[] } }) => {
+    const formId = where.and.find((clause) => clause.form !== undefined)?.form?.equals ?? '';
+    const newest = mockNewest[formId];
+    return Promise.resolve({ docs: newest === undefined ? [] : [{ id: newest }] });
+  }),
+  delete: jest.fn<Promise<unknown>, [unknown]>(() => Promise.resolve({ docs: [] })),
+};
 
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
-jest.mock('payload', () => ({
-  getPayload: (): Promise<typeof mockPayload> => Promise.resolve(mockPayload),
-  ValidationError: class extends Error {
-    public data: { errors: { path: string; message: string }[] };
-    public constructor(data: { errors: { path: string; message: string }[] }) {
-      super('The following field is invalid');
-      this.data = data;
-    }
-  },
-}));
-jest.mock('@/lib/s3', () => ({
-  S3_BUCKET_NAME: 'bucket',
-  s3Client: { send: (...parameters: unknown[]): unknown => mockSend(...parameters) },
-  s3ClientPublic: {},
-}));
+jest.mock('payload', () => ({ getPayload: (): Promise<unknown> => Promise.resolve(mockPayload) }));
 jest.mock('@/utils/server-logger', () => ({
   createLogger: (): Record<string, jest.Mock> => ({
     debug: jest.fn(),
@@ -30,254 +53,60 @@ jest.mock('@/utils/server-logger', () => ({
     warn: jest.fn(),
   }),
 }));
-jest.mock('@/features/hof-dashboard/api/hof-dashboard-data', () => ({
-  getHofDashboardSettings: (...parameters: unknown[]): unknown => mockSettings(...parameters),
-}));
 
-import {
-  completeHofUpload,
-  updateHofMaterialOrder,
-} from '@/features/hof-dashboard/api/hof-dashboard-mutations';
-import { DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { ValidationError } from 'payload';
+import { withdrawHofSubmission } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
 
-const PDF_BYTES = new TextEncoder().encode('%PDF-1.4');
+const HOF_NORD = { id: 'hof-nord', name: 'Hof Nord' };
 
-const upload = (key: string): Promise<void> =>
-  completeHofUpload({
-    hof: { id: 'hof-nord', name: 'Hof Nord' },
-    submissionType: 'hofBuildings',
-    kind: 'plan',
-    key,
-    filename: 'Plan.pdf',
-    userId: 'user-8',
-  });
-
-const order = (
-  overrides: Partial<Parameters<typeof updateHofMaterialOrder>[0]> = {},
-): Promise<void> =>
-  updateHofMaterialOrder({
-    hof: { id: 'hof-nord', name: 'Hof Nord' },
-    orderType: 'infrastructure',
-    changes: [{ itemId: 'rope', quantity: 3 }],
-    powerConnection: false,
-    userId: 'user-8',
-    isReviewer: false,
-    ...overrides,
-  });
+const withdraw = (submissionId: string): Promise<void> =>
+  withdrawHofSubmission(HOF_NORD, submissionId);
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockPayload.find.mockResolvedValue({ docs: [] });
-  mockPayload.create.mockResolvedValue({ id: 'created' });
-  mockPayload.count.mockResolvedValue({ totalDocs: 0 });
-  mockPayload.update.mockResolvedValue({ docs: [{ id: 'updated' }], errors: [] });
-  mockSend.mockResolvedValue({
-    ContentLength: PDF_BYTES.length,
-    Body: { transformToByteArray: (): Promise<Uint8Array> => Promise.resolve(PDF_BYTES) },
-  });
-  mockSettings.mockResolvedValue({
-    infrastructureOrder: {
-      deadline: '2999-01-31T12:00:00.000Z',
-      items: [{ id: 'rope', name: 'Bindestrick' }],
-    },
-  });
+  mockNewest = { 'form-plan': 'plan-2', 'form-stand': 'stand-approved' };
 });
 
-describe('completeHofUpload', () => {
-  it('refuses a file uploaded for another Hof', async () => {
-    await expect(upload('temp/hof-dashboard/hof-sued/abc-Plan.pdf')).rejects.toMatchObject({
-      code: 'BAD_REQUEST',
-    });
-    expect(mockSend).not.toHaveBeenCalled();
+describe('withdrawHofSubmission', () => {
+  it('deletes the files first and then the submission', async () => {
+    await withdraw('plan-2');
+    expect(mockPayload.delete.mock.calls.map(([options]) => options)).toEqual([
+      {
+        collection: 'form_collection',
+        where: { formSubmission: { equals: 'plan-2' } },
+        overrideAccess: true,
+      },
+      { collection: 'form-submissions', id: 'plan-2', overrideAccess: true },
+    ]);
   });
 
-  it("files an upload under the Hof's submission and marks it handed in", async () => {
-    await upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf');
-    const fileCreate = mockPayload.create.mock.calls
-      .map(([options]) => options)
-      .find((options) => (options as { collection?: string }).collection === 'hof-files');
-    expect(mockPayload.create.mock.calls[0]?.[0]).toMatchObject({
-      collection: 'hof-submissions',
-      data: { title: 'Hof Nord · Hofbauten' },
-    });
-    expect(fileCreate).toMatchObject({
-      data: { hof: 'hof-nord', originalFilename: 'Plan.pdf' },
-    });
-    // stored under a name of its own, so other Höfe can neither guess it nor learn of it
-    expect((fileCreate as { file: { name: string } }).file.name).toMatch(/^Plan-[\da-f]{8}\.pdf$/);
-    expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
-      collection: 'hof-submissions',
-      data: { status: 'submitted' },
-    });
+  it("answers another Hof's submission as a missing one", async () => {
+    await expect(withdraw('sued-plan')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockPayload.delete).not.toHaveBeenCalled();
   });
 
-  it('refuses a file once the Hof has handed in the most files it may', async () => {
-    mockPayload.count.mockResolvedValue({ totalDocs: 500 });
-    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
-      message: 'too_many_files',
-    });
-    expect(mockPayload.create).not.toHaveBeenCalled();
-    // the temporary copy still goes
-    expect(mockSend).toHaveBeenCalledWith(expect.any(DeleteObjectCommand));
+  it('answers an unknown submission as a missing one', async () => {
+    await expect(withdraw('nope')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockPayload.delete).not.toHaveBeenCalled();
   });
 
-  it('reports an upload that never arrived as missing', async () => {
-    mockSend.mockRejectedValueOnce(Object.assign(new Error('gone'), { name: 'NoSuchKey' }));
-    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
-      code: 'NOT_FOUND',
-    });
+  it('does not withdraw a submission of a form off the dashboard', async () => {
+    await expect(withdraw('unlinked-entry')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(mockPayload.delete).not.toHaveBeenCalled();
   });
 
-  it('passes on a storage failure instead of calling the upload missing', async () => {
-    mockSend.mockRejectedValueOnce(new Error('connection refused'));
-    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toThrow(
-      'connection refused',
+  it.each([
+    ['one the Ressort took up', 'plan-reviewed'],
+    ['one approved for the website', 'stand-approved'],
+    ['an earlier version', 'plan-1'],
+  ])('keeps %s', async (_description, submissionId) => {
+    await expect(withdraw(submissionId)).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(mockPayload.delete).not.toHaveBeenCalled();
+  });
+
+  it('withdraws an older entry of a form of entries', async () => {
+    await withdraw('stand-old');
+    expect(mockPayload.delete).toHaveBeenCalledWith(
+      expect.objectContaining({ collection: 'form-submissions', id: 'stand-old' }),
     );
-  });
-
-  it('refuses a renamed file before it makes a submission for it', async () => {
-    const exe = new TextEncoder().encode('MZ\u0090\u0000');
-    mockSend.mockResolvedValue({
-      ContentLength: exe.length,
-      Body: { transformToByteArray: (): Promise<Uint8Array> => Promise.resolve(exe) },
-    });
-    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
-      message: 'unsupported_file_type',
-    });
-    expect(mockPayload.create).not.toHaveBeenCalled();
-  });
-
-  it('answers a file whose content does not match its ending as an unsupported type', async () => {
-    mockPayload.create
-      .mockResolvedValueOnce({ id: 'submission' })
-      .mockRejectedValueOnce(
-        new ValidationError({ errors: [{ path: 'file', message: 'invalid' }] }),
-      );
-    await expect(upload('temp/hof-dashboard/hof-nord/abc-Plan.pdf')).rejects.toMatchObject({
-      message: 'unsupported_file_type',
-    });
-  });
-});
-
-describe('updateHofMaterialOrder', () => {
-  it('stores the order with the German name of each material', async () => {
-    await order();
-    expect(mockSettings).toHaveBeenCalledWith(mockPayload, 'de');
-    expect(mockPayload.create.mock.calls[0]?.[0]).toMatchObject({
-      data: {
-        title: 'Hof Nord · Materialbestellung Hof-Infrastruktur',
-        items: [{ itemId: 'rope', name: 'Bindestrick', quantity: 3 }],
-      },
-    });
-  });
-
-  it('is closed after the deadline, except for the reviewers', async () => {
-    mockSettings.mockResolvedValue({
-      infrastructureOrder: {
-        deadline: '2000-01-31T12:00:00.000Z',
-        items: [{ id: 'rope', name: 'Bindestrick' }],
-      },
-    });
-    await expect(order()).rejects.toMatchObject({ code: 'FORBIDDEN', message: 'order_closed' });
-    await expect(order({ isReviewer: true })).resolves.toBeUndefined();
-  });
-
-  it('keeps a correction saved meanwhile on material the Hof did not change', async () => {
-    mockSettings.mockResolvedValue({
-      infrastructureOrder: {
-        deadline: '2999-01-31T12:00:00.000Z',
-        items: [
-          { id: 'rope', name: 'Bindestrick' },
-          { id: 'axe', name: 'Handbeil' },
-        ],
-      },
-    });
-    mockPayload.find.mockResolvedValue({
-      docs: [
-        {
-          id: 'order-1',
-          updatedAt: '2026-09-27T04:00:00.000Z',
-          items: [{ itemId: 'axe', name: 'Handbeil', quantity: 8 }],
-        },
-      ],
-    });
-    await order({ changes: [{ itemId: 'rope', quantity: 3 }] });
-    expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
-      where: {
-        and: [{ id: { equals: 'order-1' } }, { updatedAt: { equals: '2026-09-27T04:00:00.000Z' } }],
-      },
-      data: {
-        items: [
-          { itemId: 'axe', name: 'Handbeil', quantity: 8 },
-          { itemId: 'rope', name: 'Bindestrick', quantity: 3 },
-        ],
-      },
-    });
-  });
-
-  it('merges again when someone saved the same order in between', async () => {
-    mockSettings.mockResolvedValue({
-      infrastructureOrder: {
-        deadline: '2999-01-31T12:00:00.000Z',
-        items: [
-          { id: 'rope', name: 'Bindestrick' },
-          { id: 'axe', name: 'Handbeil' },
-        ],
-      },
-    });
-    mockPayload.find
-      .mockResolvedValueOnce({ docs: [{ id: 'order-1', updatedAt: 'first', items: [] }] })
-      .mockResolvedValueOnce({
-        docs: [
-          {
-            id: 'order-1',
-            updatedAt: 'second',
-            items: [{ itemId: 'axe', name: 'Handbeil', quantity: 8 }],
-          },
-        ],
-      });
-    // the first write finds the order changed since it was read
-    mockPayload.update.mockResolvedValueOnce({ docs: [], errors: [] });
-    await order({ changes: [{ itemId: 'rope', quantity: 3 }] });
-    expect(mockPayload.update.mock.calls[1]?.[0]).toMatchObject({
-      data: {
-        items: [
-          { itemId: 'axe', name: 'Handbeil', quantity: 8 },
-          { itemId: 'rope', name: 'Bindestrick', quantity: 3 },
-        ],
-      },
-    });
-  });
-
-  it('reports a failed write as such instead of retrying it as a race', async () => {
-    mockPayload.find.mockResolvedValue({
-      docs: [{ id: 'order-1', updatedAt: 'first', items: [] }],
-    });
-    mockPayload.update.mockResolvedValueOnce({
-      docs: [],
-      errors: [{ id: 'order-1', message: 'validation failed' }],
-    });
-    await expect(order()).rejects.toThrow('validation failed');
-    expect(mockPayload.update).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps the stored power answer when the Hof did not change it', async () => {
-    mockSettings.mockResolvedValue({ stadtlebenOrder: { items: [{ id: 'bench', name: 'Bank' }] } });
-    mockPayload.find.mockResolvedValue({
-      docs: [{ id: 'order-2', items: [], powerConnection: true }],
-    });
-    await order({ orderType: 'stadtleben', changes: [], powerConnection: undefined });
-    expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
-      data: { powerConnection: true },
-    });
-  });
-
-  it('refuses material the list no longer has, instead of dropping it', async () => {
-    await expect(order({ changes: [{ itemId: 'spade', quantity: 1 }] })).rejects.toMatchObject({
-      code: 'CONFLICT',
-      message: 'order_list_changed',
-    });
-    expect(mockPayload.create).not.toHaveBeenCalled();
   });
 });

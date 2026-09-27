@@ -1,4 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { formHofDashboardField } from '@/features/hof-dashboard/payload-cms/form-hof-dashboard-field';
+import { formSubmissionReviewFields } from '@/features/hof-dashboard/payload-cms/form-submission-review-fields';
+import { checkHofDashboardSubmission } from '@/features/hof-dashboard/payload-cms/hooks/check-hof-dashboard-submission';
 import {
   hasAccessToThisHelper,
   hasAdminOrWebAccess,
@@ -15,6 +18,7 @@ import { ensureApprovalToken } from '@/features/payload-cms/payload-cms/plugins/
 import { extractEmailLinksHook } from '@/features/payload-cms/payload-cms/plugins/form/hooks/extract-email-links';
 import { linkHofSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-hof-submission';
 import { linkJobSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/link-job-submission';
+import { nameMaterialLines } from '@/features/payload-cms/payload-cms/plugins/form/hooks/name-material-lines';
 import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import { approvalEmailTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/approval-email-tab';
 import { confirmationSettingsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/confirmation-settings-tab';
@@ -87,7 +91,15 @@ const formFileUploadLimitField: Field = {
  */
 const formBuilderTabs: TabsField = {
   type: 'tabs',
-  tabs: [formFieldsTab, confirmationSettingsTab, approvalEmailTab, workflowTab, formResultsTab],
+  tabs: [
+    formFieldsTab,
+    confirmationSettingsTab,
+    approvalEmailTab,
+    // next to the workflows, and here rather than in workflow-tab.ts, which the admin's client
+    // components import: the Hof dashboard's group reads a server-side feature flag
+    { ...workflowTab, fields: [...workflowTab.fields, formHofDashboardField] },
+    formResultsTab,
+  ],
 };
 
 const formFields: Field[] = [
@@ -347,14 +359,17 @@ export const formPluginConfiguration = formBuilderPlugin({
             },
           },
         },
+        ...formSubmissionReviewFields,
       ] as Field[];
     },
     hooks: {
       beforeChange: [
         ensureApprovalToken,
         validateFormSubmission,
+        nameMaterialLines,
         linkJobSubmission,
         linkHofSubmission,
+        checkHofDashboardSubmission,
       ],
       afterChange: [workflowTriggerOnFormSubmission, markUploadedFilesPermanent, sendApprovalEmail],
     },

@@ -77,9 +77,6 @@ export interface Config {
     'bill-participants': BillParticipant;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
-    'hof-submissions': HofSubmission;
-    'hof-files': HofFile;
-    'hof-material-orders': HofMaterialOrder;
     'outgoing-emails': OutgoingEmail;
     'payload-workers': PayloadWorker;
     'chat-images': ChatImage;
@@ -111,9 +108,6 @@ export interface Config {
     'bill-participants': {
       relatedEmails: 'outgoing-emails';
       reminderEmails: 'outgoing-emails';
-    };
-    'hof-submissions': {
-      files: 'hof-files';
     };
     forms: {
       submissions: 'form-submissions';
@@ -149,9 +143,6 @@ export interface Config {
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
-    'hof-submissions': HofSubmissionsSelect<false> | HofSubmissionsSelect<true>;
-    'hof-files': HofFilesSelect<false> | HofFilesSelect<true>;
-    'hof-material-orders': HofMaterialOrdersSelect<false> | HofMaterialOrdersSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
@@ -1267,6 +1258,10 @@ export interface Form {
                   };
                   [k: string]: unknown;
                 } | null;
+                /**
+                 * Optional. With a title, the message starts folded under it, like an accordion on a page, e.g. for criteria someone only needs now and then.
+                 */
+                collapsibleTitle?: string | null;
                 id?: string | null;
                 blockName?: string | null;
                 blockType: 'message';
@@ -1487,6 +1482,29 @@ export interface Form {
                 blockType: 'fileUpload';
               }
             | {
+                name: string;
+                label: string;
+                /**
+                 * One line per material, asked as a quantity. A line removed later keeps its name in the orders already handed in.
+                 */
+                items: {
+                  name: string;
+                  /**
+                   * Optional heading the line is listed under, e.g. "Wood".
+                   */
+                  section?: string | null;
+                  id?: string | null;
+                }[];
+                required?: boolean | null;
+                /**
+                 * Where this field is rendered when "Split" layout is selected for the section.
+                 */
+                placement?: ('sidebar' | 'main') | null;
+                id?: string | null;
+                blockName?: string | null;
+                blockType: 'materialList';
+              }
+            | {
                 displayCondition?: {
                   field?: string | null;
                   value?: string | null;
@@ -1562,6 +1580,10 @@ export interface Form {
                             };
                             [k: string]: unknown;
                           } | null;
+                          /**
+                           * Optional. With a title, the message starts folded under it, like an accordion on a page, e.g. for criteria someone only needs now and then.
+                           */
+                          collapsibleTitle?: string | null;
                           id?: string | null;
                           blockName?: string | null;
                           blockType: 'message';
@@ -1782,6 +1804,29 @@ export interface Form {
                           blockName?: string | null;
                           blockType: 'fileUpload';
                         }
+                      | {
+                          name: string;
+                          label: string;
+                          /**
+                           * One line per material, asked as a quantity. A line removed later keeps its name in the orders already handed in.
+                           */
+                          items: {
+                            name: string;
+                            /**
+                             * Optional heading the line is listed under, e.g. "Wood".
+                             */
+                            section?: string | null;
+                            id?: string | null;
+                          }[];
+                          required?: boolean | null;
+                          /**
+                           * Where this field is rendered when "Split" layout is selected for the section.
+                           */
+                          placement?: ('sidebar' | 'main') | null;
+                          id?: string | null;
+                          blockName?: string | null;
+                          blockType: 'materialList';
+                        }
                     )[]
                   | null;
                 /**
@@ -1922,6 +1967,38 @@ export interface Form {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Shows this form on the dashboard of every Hof, with that Hof’s submissions. The Ressort answers each submission in its sidebar.
+   */
+  hofDashboard?: {
+    /**
+     * The tab it shows under. Leave empty to keep the form off the dashboard.
+     */
+    area?: ('infrastructure' | 'program' | 'material') | null;
+    entries?: ('versions' | 'entries') | null;
+    /**
+     * E.g. "Hof buildings". Without one, the dashboard uses the internal form title.
+     */
+    title?: string | null;
+    description?: string | null;
+    deadline?: string | null;
+    /**
+     * E.g. for a material order. The Höfe still see what they sent; the web team can still hand it in for them.
+     */
+    closesAtDeadline?: boolean | null;
+    /**
+     * Optional field name, e.g. "name" for the name of a stand.
+     */
+    titleField?: string | null;
+    /**
+     * Off for a form everyone of a Hof may fill in, like the Stadtleben stand registration.
+     */
+    onlyHofAdministrators?: boolean | null;
+    /**
+     * Lower numbers show first within their area.
+     */
+    position?: number | null;
+  };
   submissions?: {
     docs?: (string | FormSubmission)[];
     hasNextPage?: boolean;
@@ -1998,6 +2075,12 @@ export interface FormSubmission {
    * Set by a "Hof Selection" field. Set it by hand for an older submission, and the Hof finds it on its dashboard.
    */
   hof?: (string | null) | Hof;
+  /**
+   * Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback.
+   */
+  hofReviewStatus?: ('inReview' | 'revisionRequired' | 'accepted') | null;
+  hofFeedback?: string | null;
+  submittedBy?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -4601,88 +4684,6 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
- * What the Höfe hand in on the Hof dashboard. Set the status and leave feedback here; the Hof sees both on its dashboard.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hof-submissions".
- */
-export interface HofSubmission {
-  id: string;
-  title?: string | null;
-  hof: string | Hof;
-  submissionType: 'flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram';
-  /**
-   * Empty until the Hof hands in a file. Every new file sets it back to "Submitted". The Hof sees the status on its dashboard; only "Revision required" asks it for a new version, together with the feedback.
-   */
-  status?: ('submitted' | 'inReview' | 'revisionRequired' | 'archived') | null;
-  /**
-   * Answered by the Hof. With "Yes" the Hof has to hand in a safety concept as well.
-   */
-  elevatedSafetyRisk?: ('yes' | 'no') | null;
-  /**
-   * Shown to the Hof on its dashboard for as long as it is filled in. Empty it once it no longer applies.
-   */
-  feedback?: string | null;
-  files?: {
-    docs?: (string | HofFile)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Every file the Höfe handed in on the dashboard, one entry per version. The Hof and the submission are set by the upload and cannot be changed.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hof-files".
- */
-export interface HofFile {
-  id: string;
-  submission: string | HofSubmission;
-  hof: string | Hof;
-  kind: 'plan' | 'safetyConcept';
-  originalFilename?: string | null;
-  uploadedBy?: (string | null) | User;
-  prefix?: string | null;
-  _objectKey?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * The material the Höfe order on the dashboard. Material names are kept in German, as they were when the Hof ordered. To change an order, open the Hof on the Hof dashboard: reviewers can pick any Hof there and may still order after the deadline.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hof-material-orders".
- */
-export interface HofMaterialOrder {
-  id: string;
-  title?: string | null;
-  hof: string | Hof;
-  orderType: 'infrastructure' | 'stadtleben';
-  items?:
-    | {
-        itemId: string;
-        name: string;
-        quantity: number;
-        id?: string | null;
-      }[]
-    | null;
-  powerConnection?: boolean | null;
-  lastEditedBy?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * Registered background worker instances and their activity heartbeats.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5233,18 +5234,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'hoefe';
         value: string | Hof;
-      } | null)
-    | ({
-        relationTo: 'hof-submissions';
-        value: string | HofSubmission;
-      } | null)
-    | ({
-        relationTo: 'hof-files';
-        value: string | HofFile;
-      } | null)
-    | ({
-        relationTo: 'hof-material-orders';
-        value: string | HofMaterialOrder;
       } | null)
     | ({
         relationTo: 'outgoing-emails';
@@ -7264,66 +7253,6 @@ export interface HoefeSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hof-submissions_select".
- */
-export interface HofSubmissionsSelect<T extends boolean = true> {
-  title?: T;
-  hof?: T;
-  submissionType?: T;
-  status?: T;
-  elevatedSafetyRisk?: T;
-  feedback?: T;
-  files?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hof-files_select".
- */
-export interface HofFilesSelect<T extends boolean = true> {
-  submission?: T;
-  hof?: T;
-  kind?: T;
-  originalFilename?: T;
-  uploadedBy?: T;
-  prefix?: T;
-  _objectKey?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "hof-material-orders_select".
- */
-export interface HofMaterialOrdersSelect<T extends boolean = true> {
-  title?: T;
-  hof?: T;
-  orderType?: T;
-  items?:
-    | T
-    | {
-        itemId?: T;
-        name?: T;
-        quantity?: T;
-        id?: T;
-      };
-  powerConnection?: T;
-  lastEditedBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "outgoing-emails_select".
  */
 export interface OutgoingEmailsSelect<T extends boolean = true> {
@@ -7477,6 +7406,7 @@ export interface FormsSelect<T extends boolean = true> {
                       | T
                       | {
                           message?: T;
+                          collapsibleTitle?: T;
                           id?: T;
                           blockName?: T;
                         };
@@ -7620,6 +7550,23 @@ export interface FormsSelect<T extends boolean = true> {
                           id?: T;
                           blockName?: T;
                         };
+                    materialList?:
+                      | T
+                      | {
+                          name?: T;
+                          label?: T;
+                          items?:
+                            | T
+                            | {
+                                name?: T;
+                                section?: T;
+                                id?: T;
+                              };
+                          required?: T;
+                          placement?: T;
+                          id?: T;
+                          blockName?: T;
+                        };
                     conditionedBlock?:
                       | T
                       | {
@@ -7669,6 +7616,7 @@ export interface FormsSelect<T extends boolean = true> {
                                   | T
                                   | {
                                       message?: T;
+                                      collapsibleTitle?: T;
                                       id?: T;
                                       blockName?: T;
                                     };
@@ -7812,6 +7760,23 @@ export interface FormsSelect<T extends boolean = true> {
                                       id?: T;
                                       blockName?: T;
                                     };
+                                materialList?:
+                                  | T
+                                  | {
+                                      name?: T;
+                                      label?: T;
+                                      items?:
+                                        | T
+                                        | {
+                                            name?: T;
+                                            section?: T;
+                                            id?: T;
+                                          };
+                                      required?: T;
+                                      placement?: T;
+                                      id?: T;
+                                      blockName?: T;
+                                    };
                               };
                           placement?: T;
                           id?: T;
@@ -7875,6 +7840,19 @@ export interface FormsSelect<T extends boolean = true> {
         mapping?: T;
         id?: T;
       };
+  hofDashboard?:
+    | T
+    | {
+        area?: T;
+        entries?: T;
+        title?: T;
+        description?: T;
+        deadline?: T;
+        closesAtDeadline?: T;
+        titleField?: T;
+        onlyHofAdministrators?: T;
+        position?: T;
+      };
   submissions?: T;
   publishingStatus?: T;
   _localized_status?: T;
@@ -7905,6 +7883,9 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
   workflowResults?: T;
   'helper-jobs'?: T;
   hof?: T;
+  hofReviewStatus?: T;
+  hofFeedback?: T;
+  submittedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -9132,84 +9113,20 @@ export interface BillSetting {
 export interface HofDashboardSetting {
   id: string;
   /**
-   * An open submission works towards the next deadline that lists it and is overdue from the first one it misses. A revision the Ressort asks for works towards the next deadline.
+   * The camp’s milestones, shown on every dashboard. A form’s own due date is set on the form.
    */
   deadlines?:
     | {
         date: string;
         title: string;
-        area: 'infrastructure' | 'program';
-        submissionTypes?: ('flagpole' | 'entrance' | 'hofBuildings' | 'sleepingTent' | 'hofProgram')[] | null;
+        area: 'infrastructure' | 'program' | 'material';
         id?: string | null;
       }[]
     | null;
-  infrastructureOrder?: {
-    /**
-     * After this day the Höfe can still see their order but no longer change it.
-     */
-    deadline?: string | null;
-    /**
-     * Removing a line keeps it on the orders already placed, under the name it had then.
-     */
-    items?:
-      | {
-          name: string;
-          /**
-           * Optional heading the line is listed under, e.g. "Wood".
-           */
-          section?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-  };
-  /**
-   * The Höfe are also asked whether they need a power connection.
-   */
-  stadtlebenOrder?: {
-    /**
-     * After this day the Höfe can still see their order but no longer change it.
-     */
-    deadline?: string | null;
-    /**
-     * Removing a line keeps it on the orders already placed, under the name it had then.
-     */
-    items?:
-      | {
-          name: string;
-          /**
-           * Optional heading the line is listed under, e.g. "Wood".
-           */
-          section?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-  };
-  /**
-   * Its submissions are listed on the dashboard of the Hof they are linked to. Link a submission in its sidebar, or let the form ask with a "Hof Selection" field.
-   */
-  stadtlebenForm?: (string | null) | Form;
-  /**
-   * The form field whose answer names a submission on the dashboard, e.g. the name of the stand.
-   */
-  stadtlebenTitleFieldName?: string | null;
-  /**
-   * Relative path, e.g. /stadtleben. The dashboard links to it for a new registration.
-   */
-  stadtlebenFormUrl?: string | null;
-  stadtlebenDeadline?: string | null;
   documents?:
     | {
         document: string | Document;
-        area?: ('infrastructure' | 'program') | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Shown when a Hof opens the info next to "Elevated safety risk?".
-   */
-  safetyRiskCriteria?:
-    | {
-        criterion: string;
+        area?: ('infrastructure' | 'program' | 'material') | null;
         id?: string | null;
       }[]
     | null;
@@ -9756,48 +9673,13 @@ export interface HofDashboardSettingsSelect<T extends boolean = true> {
         date?: T;
         title?: T;
         area?: T;
-        submissionTypes?: T;
         id?: T;
       };
-  infrastructureOrder?:
-    | T
-    | {
-        deadline?: T;
-        items?:
-          | T
-          | {
-              name?: T;
-              section?: T;
-              id?: T;
-            };
-      };
-  stadtlebenOrder?:
-    | T
-    | {
-        deadline?: T;
-        items?:
-          | T
-          | {
-              name?: T;
-              section?: T;
-              id?: T;
-            };
-      };
-  stadtlebenForm?: T;
-  stadtlebenTitleFieldName?: T;
-  stadtlebenFormUrl?: T;
-  stadtlebenDeadline?: T;
   documents?:
     | T
     | {
         document?: T;
         area?: T;
-        id?: T;
-      };
-  safetyRiskCriteria?:
-    | T
-    | {
-        criterion?: T;
         id?: T;
       };
   updatedAt?: T;
@@ -10171,9 +10053,6 @@ export interface TaskCreateCollectionExport {
       | 'bill-participants'
       | 'bill-pdfs'
       | 'hoefe'
-      | 'hof-submissions'
-      | 'hof-files'
-      | 'hof-material-orders'
       | 'outgoing-emails'
       | 'payload-workers'
       | 'chat-images'

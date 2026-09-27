@@ -1,18 +1,11 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { HOF_ORDER_TYPE_LABELS } from '@/features/hof-dashboard/constants';
-import { areaOptions, submissionTypeOptions } from '@/features/hof-dashboard/payload-cms/options';
+import { areaOptions } from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import type { StaticTranslationString } from '@/types/types';
-import type {
-  ArrayField,
-  Field,
-  GlobalConfig,
-  PayloadRequest,
-  TextFieldSingleValidation,
-} from 'payload';
+import type { ArrayField, GlobalConfig, PayloadRequest, TextFieldSingleValidation } from 'payload';
 
 /** Every row of the settings as stored in German, by its id, read once per request. */
 const germanRows = (request: PayloadRequest): Promise<Map<string, Record<string, unknown>>> => {
@@ -102,71 +95,10 @@ const arrayAdmin = (
   },
 });
 
-const materialListFields = (): Field[] => [
-  {
-    name: 'deadline',
-    type: 'date',
-    label: { de: 'Bestellbar bis', en: 'Orderable until', fr: "Commandable jusqu'au" },
-    admin: {
-      date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
-      description: {
-        en: 'After this day the Höfe can still see their order but no longer change it.',
-        de: 'Nach diesem Tag sehen die Höfe ihre Bestellung noch, können sie aber nicht mehr ändern.',
-        fr: 'Après ce jour, les Hofs voient encore leur commande mais ne peuvent plus la modifier.',
-      },
-    },
-  },
-  {
-    name: 'items',
-    type: 'array',
-    label: { de: 'Material', en: 'Material', fr: 'Matériel' },
-    ...arrayAdmin(
-      ['name', 'section'],
-      { de: 'Material', en: 'Material', fr: 'Matériel' },
-      { de: 'Material', en: 'Material', fr: 'Matériel' },
-      {
-        en: 'Removing a line keeps it on the orders already placed, under the name it had then.',
-        de: 'Eine gelöschte Zeile bleibt in bereits abgegebenen Bestellungen unter ihrem damaligen Namen erhalten.',
-        fr: 'Une ligne supprimée reste dans les commandes déjà passées, sous le nom qu’elle avait alors.',
-      },
-    ),
-    fields: [
-      {
-        type: 'row',
-        fields: [
-          {
-            name: 'name',
-            type: 'text',
-            required: true,
-            validate: requiredInGerman,
-            localized: true,
-            label: { de: 'Material', en: 'Material', fr: 'Matériel' },
-            admin: { width: '60%' },
-          },
-          {
-            name: 'section',
-            type: 'text',
-            localized: true,
-            label: { de: 'Rubrik', en: 'Section', fr: 'Rubrique' },
-            admin: {
-              width: '40%',
-              description: {
-                en: 'Optional heading the line is listed under, e.g. "Wood".',
-                de: 'Optionale Überschrift, unter der die Zeile erscheint, z.B. "Holz".',
-                fr: 'Titre facultatif sous lequel la ligne apparaît, p. ex. « Bois ».',
-              },
-            },
-          },
-        ],
-      },
-    ],
-  },
-];
-
 /**
- * What every Hof dashboard shows alike: the deadlines, the material that can be ordered, the
- * documents to download and the safety risk criteria. What differs per Hof lives on the Hof
- * and on its submissions.
+ * What every Hof dashboard shows alike: the camp's deadlines and the documents to download.
+ * What a Hof hands in are forms linked to the dashboard, set up on each form; what differs per
+ * Hof lives on the Hof and on its submissions.
  */
 export const HofDashboardSettingsGlobal: GlobalConfig = {
   slug: 'hof-dashboard-settings',
@@ -205,9 +137,9 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                 { de: 'Termin', en: 'Deadline', fr: 'Échéance' },
                 { de: 'Termine', en: 'Deadlines', fr: 'Échéances' },
                 {
-                  en: 'An open submission works towards the next deadline that lists it and is overdue from the first one it misses. A revision the Ressort asks for works towards the next deadline.',
-                  de: 'Eine offene Abgabe richtet sich nach dem nächsten Termin, der sie aufführt, und ist ab dem ersten verpassten überfällig. Eine vom Ressort verlangte Überarbeitung richtet sich nach dem nächsten Termin.',
-                  fr: 'Un dépôt ouvert vise la prochaine échéance qui le mentionne et est en retard dès la première manquée. Une révision demandée par le Ressort vise l’échéance suivante.',
+                  en: 'The camp’s milestones, shown on every dashboard. A form’s own due date is set on the form.',
+                  de: 'Die Meilensteine des Lagers, auf jedem Dashboard. Den Abgabetermin eines Formulars setzt man beim Formular.',
+                  fr: 'Les jalons du camp, sur chaque tableau de bord. L’échéance d’un formulaire se règle sur le formulaire.',
                 },
               ),
               fields: [
@@ -243,108 +175,7 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                     },
                   ],
                 },
-                {
-                  name: 'submissionTypes',
-                  type: 'select',
-                  hasMany: true,
-                  options: submissionTypeOptions,
-                  label: {
-                    de: 'Betroffene Abgaben',
-                    en: 'Submissions due',
-                    fr: 'Dépôts concernés',
-                  },
-                },
               ],
-            },
-          ],
-        },
-        {
-          label: { de: 'Materialbestellungen', en: 'Material orders', fr: 'Commandes' },
-          fields: [
-            {
-              name: 'infrastructureOrder',
-              type: 'group',
-              label: HOF_ORDER_TYPE_LABELS.infrastructure,
-              fields: materialListFields(),
-            },
-            {
-              name: 'stadtlebenOrder',
-              type: 'group',
-              label: HOF_ORDER_TYPE_LABELS.stadtleben,
-              admin: {
-                description: {
-                  en: 'The Höfe are also asked whether they need a power connection.',
-                  de: 'Die Höfe werden zusätzlich gefragt, ob sie einen Stromanschluss brauchen.',
-                  fr: 'Les Hofs indiquent en plus s’ils ont besoin d’un raccordement électrique.',
-                },
-              },
-              fields: materialListFields(),
-            },
-          ],
-        },
-        {
-          label: { de: 'Stadtleben', en: 'Stadtleben', fr: 'Stadtleben' },
-          fields: [
-            {
-              name: 'stadtlebenForm',
-              type: 'relationship',
-              relationTo: 'forms',
-              label: {
-                de: 'Formular Standanmeldung Stadtleben',
-                en: 'Stadtleben stand registration form',
-                fr: "Formulaire d'inscription de stand Stadtleben",
-              },
-              admin: {
-                description: {
-                  en: 'Its submissions are listed on the dashboard of the Hof they are linked to. Link a submission in its sidebar, or let the form ask with a "Hof Selection" field.',
-                  de: 'Die Antworten erscheinen auf dem Dashboard des Hofs, mit dem sie verknüpft sind. Verknüpft wird in der Seitenleiste der Antwort oder über ein Feld "Hof Auswahl" im Formular.',
-                  fr: 'Ses réponses apparaissent sur le tableau de bord du Hof auquel elles sont liées. Le lien se fait dans la barre latérale de la réponse ou par un champ « Sélection du Hof » dans le formulaire.',
-                },
-              },
-            },
-            {
-              name: 'stadtlebenTitleFieldName',
-              type: 'text',
-              defaultValue: 'name',
-              label: {
-                de: 'Feldname für den Titel',
-                en: 'Field name for the title',
-                fr: 'Nom du champ pour le titre',
-              },
-              admin: {
-                description: {
-                  en: 'The form field whose answer names a submission on the dashboard, e.g. the name of the stand.',
-                  de: 'Das Formularfeld, dessen Antwort eine Anmeldung auf dem Dashboard benennt, z.B. der Name des Standes.',
-                  fr: 'Le champ du formulaire dont la réponse nomme une inscription sur le tableau de bord, p. ex. le nom du stand.',
-                },
-              },
-            },
-            {
-              name: 'stadtlebenFormUrl',
-              type: 'text',
-              localized: true,
-              label: {
-                de: 'Seite mit dem Formular',
-                en: 'Page with the form',
-                fr: 'Page du formulaire',
-              },
-              admin: {
-                description: {
-                  en: 'Relative path, e.g. /stadtleben. The dashboard links to it for a new registration.',
-                  de: 'Relativer Pfad, z.B. /stadtleben. Das Dashboard verlinkt darauf für eine neue Anmeldung.',
-                  fr: 'Chemin relatif, p. ex. /stadtleben. Le tableau de bord y renvoie pour une nouvelle inscription.',
-                },
-              },
-            },
-            {
-              name: 'stadtlebenDeadline',
-              type: 'date',
-              label: {
-                de: 'Abgabe Planung Stadtleben',
-                en: 'Stadtleben planning due',
-                fr: 'Échéance planification Stadtleben',
-              },
-              admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' } },
             },
           ],
         },
@@ -383,40 +214,6 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
                       admin: { width: '30%' },
                     },
                   ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          label: { de: 'Sicherheitsrisiko', en: 'Safety risk', fr: 'Risque de sécurité' },
-          fields: [
-            {
-              name: 'safetyRiskCriteria',
-              type: 'array',
-              label: {
-                de: 'Kriterien für erhöhtes Sicherheitsrisiko',
-                en: 'Criteria for an elevated safety risk',
-                fr: 'Critères de risque de sécurité accru',
-              },
-              ...arrayAdmin(
-                ['criterion'],
-                { de: 'Kriterium', en: 'Criterion', fr: 'Critère' },
-                { de: 'Kriterien', en: 'Criteria', fr: 'Critères' },
-                {
-                  en: 'Shown when a Hof opens the info next to "Elevated safety risk?".',
-                  de: 'Erscheinen, wenn ein Hof die Info neben "Erhöhtes Sicherheitsrisiko?" öffnet.',
-                  fr: 'Affichés lorsqu’un Hof ouvre l’info à côté de « Risque de sécurité accru ? ».',
-                },
-              ),
-              fields: [
-                {
-                  name: 'criterion',
-                  type: 'text',
-                  required: true,
-                  validate: requiredInGerman,
-                  localized: true,
-                  label: { de: 'Kriterium', en: 'Criterion', fr: 'Critère' },
                 },
               ],
             },

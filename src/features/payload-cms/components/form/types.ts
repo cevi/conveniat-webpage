@@ -15,7 +15,17 @@ export interface FileUploadBlock {
   placement?: 'sidebar' | 'main';
 }
 
-export type FormFieldBlock = (PayloadFormFieldBlock | FileUploadBlock) & {
+/** Quantities of the materials an editor lists, for a Hof's material order. */
+export interface MaterialListBlock {
+  blockType: 'materialList';
+  name: string;
+  label?: string;
+  required?: boolean;
+  items?: { id?: string | null; name: string; section?: string | null }[] | null;
+  placement?: 'sidebar' | 'main';
+}
+
+export type FormFieldBlock = (PayloadFormFieldBlock | FileUploadBlock | MaterialListBlock) & {
   placement?: 'sidebar' | 'main';
 };
 

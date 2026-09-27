@@ -17,15 +17,13 @@ import {
   SECONDARY_BUTTON_CLASS,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DocumentsView } from '@/features/hof-dashboard/components/documents-view';
-import { MaterialOrderForm } from '@/features/hof-dashboard/components/material-order-form';
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
 import {
   HOF_DASHBOARD_AREA_LABELS,
   type HofDashboardArea,
-  type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
 import { useRememberedHofId } from '@/features/hof-dashboard/hooks/use-remembered-hof-id';
-import { useScrollToSubmission } from '@/features/hof-dashboard/hooks/use-scroll-to-submission';
+import { useScrollToForm } from '@/features/hof-dashboard/hooks/use-scroll-to-form';
 import { useTabInAddress } from '@/features/hof-dashboard/hooks/use-tab-in-address';
 import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { text, translate } from '@/features/hof-dashboard/texts';
@@ -33,22 +31,24 @@ import {
   getSubmissionProgress,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
+import { flushPersonalData } from '@/lib/flush-personal-data';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
-import { signIn, useSession } from 'next-auth/react';
+import { LogOut } from 'lucide-react';
+import { signIn, signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 
-type Tab = 'overview' | HofDashboardArea | 'orders' | 'documents';
+type Tab = 'overview' | HofDashboardArea | 'documents';
 
 const TABS: { id: Tab; label: StaticTranslationString }[] = [
   { id: 'overview', label: text.tabOverview },
   { id: 'infrastructure', label: HOF_DASHBOARD_AREA_LABELS.infrastructure },
   { id: 'program', label: HOF_DASHBOARD_AREA_LABELS.program },
-  { id: 'orders', label: text.tabOrders },
+  { id: 'material', label: HOF_DASHBOARD_AREA_LABELS.material },
   { id: 'documents', label: text.tabDocuments },
 ];
 
@@ -75,28 +75,26 @@ const signInWithCeviDatabase = async (): Promise<void> => {
   if (typeof response.url === 'string') globalThis.location.href = response.url;
 };
 
-/** Where every submission stands today. */
+/** Where every form stands today, by form id. */
 const useProgress = (
   data: HofDashboardData | undefined,
-): Record<HofSubmissionType, SubmissionProgress> | undefined =>
+): Record<string, SubmissionProgress> | undefined =>
   useMemo(() => {
     if (data === undefined) return;
     const now = new Date();
     return Object.fromEntries(
-      data.submissions.map((submission) => [
-        submission.type,
+      data.forms.map((form) => [
+        form.id,
         getSubmissionProgress(
           {
-            hasPlan: submission.files.some((file) => file.kind === 'plan'),
-            hasSafetyConcept: submission.files.some((file) => file.kind === 'safetyConcept'),
-            elevatedSafetyRisk: submission.elevatedSafetyRisk,
-            status: submission.status,
-            deadlines: submission.deadlines,
+            mode: form.mode,
+            deadline: form.deadline,
+            statuses: form.entries.map((entry) => entry.status),
           },
           now,
         ),
       ]),
-    ) as Record<HofSubmissionType, SubmissionProgress>;
+    );
   }, [data]);
 
 const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ locale, onRetry }) => (
@@ -110,10 +108,10 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
 
 const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
   const [tab, setTab] = useTabInAddress(TAB_IDS, 'overview');
-  const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
+  const [scrollTarget, setScrollTarget] = useState<string>();
   const clearScrollTarget = useCallback(() => setScrollTarget(undefined), []);
   const root = useRef<HTMLDivElement>(null);
-  useScrollToSubmission(root, scrollTarget, clearScrollTarget);
+  useScrollToForm(root, scrollTarget, clearScrollTarget);
 
   const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
     { hofId, locale },
@@ -141,9 +139,9 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
         data={data}
         progress={progress}
         locale={locale}
-        onOpen={(area, type) => {
+        onOpen={(area, formId) => {
           setTab(area);
-          setScrollTarget(type);
+          setScrollTarget(formId);
         }}
       />
     ),
@@ -151,19 +149,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
       <AreaView area="infrastructure" data={data} progress={progress} locale={locale} />
     ),
     program: <AreaView area="program" data={data} progress={progress} locale={locale} />,
-    orders: (
-      <div className="space-y-6">
-        {[data.orders.infrastructure, data.orders.stadtleben].map((order) => (
-          <MaterialOrderForm
-            key={order.type}
-            hofId={data.hof.id}
-            order={order}
-            isReviewer={data.isReviewer}
-            locale={locale}
-          />
-        ))}
-      </div>
-    ),
+    material: <AreaView area="material" data={data} progress={progress} locale={locale} />,
     documents: <DocumentsView data={data} progress={progress} locale={locale} />,
   };
 
@@ -175,10 +161,20 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
         className="space-y-6"
       >
         <DashboardTabList
-          labels={TABS.map(({ label }) => label[locale])}
+          tabs={TABS.map(({ id, label }) => {
+            // what the Hof still has to hand in or revise behind an area's tab
+            const open = data.forms.filter(
+              (form) => form.area === id && progress[form.id]?.state !== 'done',
+            ).length;
+            return {
+              label: label[locale],
+              open,
+              openLabel: translate('openCount', locale, { n: open }),
+            };
+          })}
           label={translate('tabs', locale)}
         />
-        {/* kept mounted, so what was typed into an order survives a look at another tab */}
+        {/* kept mounted, so what was typed into an open form survives a look at another tab */}
         <TabPanels>
           {TABS.map(({ id }) => (
             <TabPanel key={id} unmount={false}>
@@ -261,9 +257,30 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
   );
 };
 
+/**
+ * Who is signed in, and the way out: the dashboard shows one person's Höfe, so on a shared
+ * phone the next person needs to see whose they are and switch.
+ */
+const SignedInLine: React.FC<{ name: string; locale: Locale }> = ({ name, locale }) => (
+  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-gray-600">
+    <span>{translate('signedInAs', locale, { name })}</span>
+    <button
+      type="button"
+      className="text-conveniat-green inline-flex min-h-10 cursor-pointer items-center gap-1.5 font-semibold underline-offset-2 hover:underline"
+      onClick={() => {
+        flushPersonalData();
+        void signOut({ redirectTo: globalThis.location.href });
+      }}
+    >
+      <LogOut className="h-4 w-4" aria-hidden />
+      {translate('signOut', locale)}
+    </button>
+  </div>
+);
+
 const HofDashboardContent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { status } = useSession();
+  const { status, data: session } = useSession();
 
   if (status === 'loading') return <LoadingState locale={locale} />;
   if (status === 'unauthenticated') {
@@ -280,7 +297,14 @@ const HofDashboardContent: React.FC = () => {
       </Message>
     );
   }
-  return <DashboardForUser locale={locale} />;
+  const user = session?.user;
+  const name = user?.name ?? user?.email ?? '';
+  return (
+    <div className="space-y-6">
+      {name !== '' && <SignedInLine name={name} locale={locale} />}
+      <DashboardForUser locale={locale} />
+    </div>
+  );
 };
 
 /**

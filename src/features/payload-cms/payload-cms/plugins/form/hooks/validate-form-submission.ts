@@ -3,6 +3,10 @@ import {
   getSelectableDays,
   parseDateRangesValue,
 } from '@/features/payload-cms/components/form/utils/date-slots';
+import {
+  isAllowedQuantity,
+  parseMaterialAnswer,
+} from '@/features/payload-cms/components/form/utils/material-list';
 import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -313,6 +317,18 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
           !areRangesAllowed(ranges, selectable)
         ) {
           fieldErrors.push({ field: fieldName, message: 'invalid_selection' });
+        }
+        break;
+      }
+      case 'materialList': {
+        // only the listed materials, each a whole number within the limit
+        const listed = new Set(fieldConfig.items.map((item) => item.id));
+        const lines = parseMaterialAnswer(value);
+        if (
+          lines === undefined ||
+          lines.some((line) => !listed.has(line.id) || !isAllowedQuantity(line.quantity))
+        ) {
+          fieldErrors.push({ field: fieldName, message: 'invalid_number' });
         }
         break;
       }
