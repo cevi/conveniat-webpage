@@ -8,7 +8,7 @@ import {
 } from '@/features/hof-dashboard/utils/submission-progress';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, CheckCircle2, Clock, Mail, Phone } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Mail } from 'lucide-react';
 import type React from 'react';
 
 /**
@@ -159,41 +159,32 @@ export const ProgressLine: React.FC<{ progress: SubmissionProgress; locale: Loca
   );
 };
 
-/** One contact person of the Hof: name, and email and phone as links big enough to tap. */
-export const ContactBlock: React.FC<{
-  label: string;
-  contact: HofContact;
-  locale: Locale;
-}> = ({ label, contact, locale }) => (
-  <div>
-    <dt className="text-xs font-semibold tracking-wider text-gray-500 uppercase">{label}</dt>
-    {contact.name === '' && contact.email === '' && contact.phone === '' ? (
-      <dd className="mt-1 text-sm text-gray-500">{translate('contactMissing', locale)}</dd>
-    ) : (
-      <dd className="text-sm text-gray-900">
-        {contact.name !== '' && <p className="mt-1 font-semibold">{contact.name}</p>}
-        {contact.email !== '' && (
+/**
+ * The Hof's responsible people (AVP), as Cevi.DB knows them: a name once they signed in, and
+ * the address as a link big enough to tap.
+ */
+export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }> = ({
+  people,
+  locale,
+}) =>
+  people.length === 0 ? (
+    <p className="text-sm text-gray-500">{translate('responsibleMissing', locale)}</p>
+  ) : (
+    <ul className="grid gap-4 @2xl:grid-cols-2 @5xl:grid-cols-3">
+      {people.map((person) => (
+        <li key={person.email} className="text-sm text-gray-900">
+          {person.name !== undefined && <p className="font-semibold">{person.name}</p>}
           <a
-            href={`mailto:${contact.email}`}
+            href={`mailto:${person.email}`}
             className="text-conveniat-green flex min-h-11 items-center gap-1.5 break-all hover:underline"
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden />
-            {contact.email}
+            {person.email}
           </a>
-        )}
-        {contact.phone !== '' && (
-          <a
-            href={`tel:${contact.phone.replaceAll(/\s/g, '')}`}
-            className="flex min-h-11 items-center gap-1.5 text-gray-700 hover:underline"
-          >
-            <Phone className="h-4 w-4 shrink-0" aria-hidden />
-            {contact.phone}
-          </a>
-        )}
-      </dd>
-    )}
-  </div>
-);
+        </li>
+      ))}
+    </ul>
+  );
 
 /** The share of submissions handed in, labelled for screen readers with its count. */
 export const ProgressBar: React.FC<{ percent: number; area: HofDashboardArea; label: string }> = ({

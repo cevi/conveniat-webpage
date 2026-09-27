@@ -44,7 +44,9 @@ export class PayloadSettingsAdapter implements SettingsPort {
 
   async upsertHoefe(hoefe: HofSyncWrite[]): Promise<void> {
     for (const hof of hoefe) {
+      // the name too: a Hof is read-only in the admin panel, so the sync keeps it current
       const syncedFields = {
+        name: hof.name,
         events: hof.events,
         ...(hof.addressManagerEmails === undefined
           ? {}
@@ -63,7 +65,7 @@ export class PayloadSettingsAdapter implements SettingsPort {
       await (existing === undefined
         ? this.payload.create({
             collection: 'hoefe',
-            data: { name: hof.name, groupId: hof.groupId, ...syncedFields },
+            data: { groupId: hof.groupId, ...syncedFields },
             context: { internal: true },
           })
         : this.payload.update({

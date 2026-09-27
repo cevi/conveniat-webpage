@@ -1,4 +1,3 @@
-import { environmentVariables } from '@/config/environment-variables';
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
   canAccessBilling,
@@ -8,8 +7,7 @@ import {
 import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
-import type { StaticTranslationString } from '@/types/types';
-import type { CollectionConfig, Field, TextFieldSingleValidation } from 'payload';
+import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
 
 /** Cevi.DB group and event ids are plain numbers of up to six digits. */
 const HITOBITO_ID = /^\d{1,6}$/;
@@ -27,43 +25,19 @@ const validateHitobitoId: TextFieldSingleValidation = (value, { req }) => {
   });
 };
 
-/** One person the Hof dashboard lists with name, email and phone. */
-const hofContactField = (name: string, label: StaticTranslationString): Field => ({
-  name,
-  type: 'group',
-  label,
-  fields: [
-    {
-      type: 'row',
-      fields: [
-        {
-          name: 'name',
-          type: 'text',
-          label: { en: 'Name', de: 'Name', fr: 'Nom' },
-          admin: { width: '40%' },
-        },
-        {
-          name: 'email',
-          type: 'email',
-          label: { en: 'Email', de: 'E-Mail', fr: 'E-mail' },
-          admin: { width: '35%' },
-        },
-        {
-          name: 'phone',
-          type: 'text',
-          label: { en: 'Phone', de: 'Telefon', fr: 'Téléphone' },
-          admin: { width: '25%' },
-        },
-      ],
-    },
-  ],
-});
+/**
+ * Everything but the reminder override comes from Cevi.DB through the sync, which writes over
+ * the local API: in the admin panel it can be read, not changed, so it cannot drift from
+ * Cevi.DB.
+ */
+const syncedFromCeviDatabase = { create: (): boolean => false, update: (): boolean => false };
 
 /**
  * The Höfe of the camp, one document per Cevi.DB group.
  *
  * Filled by the subgroup sync of the billing ("Anlässe automatisch aus Cevi.DB laden"), which
- * adds the conveniat27 events a group runs to its Hof. The billing reads the events to know
+ * adds the conveniat27 events a group runs to its Hof. Read-only in the admin panel: a change
+ * is made in Cevi.DB and then synced. The billing reads the events to know
  * which participations to sync and whom to remind; other areas reference a Hof by its
  * document id.
  */
@@ -79,9 +53,9 @@ export const HoefeCollection: CollectionConfig = {
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
     defaultColumns: ['name', 'groupId', 'events'],
     description: {
-      en: 'One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.',
-      de: 'Ein Eintrag pro Cevi.DB-Gruppe, die ein conveniat27-Lager durchführt, mit den für die Rechnungsstellung abgeglichenen Anlässen.',
-      fr: 'Une entrée par groupe Cevi.DB qui organise un camp conveniat27, avec les événements synchronisés pour la facturation.',
+      en: 'One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.',
+      de: 'Ein Eintrag pro Cevi.DB-Gruppe, die ein conveniat27-Lager durchführt. Aus der Cevi.DB abgeglichen und hier schreibgeschützt: Einen Hof in der Cevi.DB ändern und dann "Anlässe automatisch aus Cevi.DB laden" erneut ausführen.',
+      fr: 'Une entrée par groupe Cevi.DB qui organise un camp conveniat27. Synchronisé depuis Cevi.DB et en lecture seule ici : modifier un Hof dans Cevi.DB, puis relancer le chargement des événements depuis Cevi.DB.',
     },
     components: {
       beforeListTable: [
@@ -93,7 +67,8 @@ export const HoefeCollection: CollectionConfig = {
     // Name, group and events are not confidential, and other areas build on them. The two
     // address fields below are narrowed to the billing team on the field.
     read: hasBillingOrAdminOrWebAccess,
-    create: canAccessBilling,
+    // only the sync creates a Hof; the billing may still set the reminder override on one
+    create: (): boolean => false,
     update: canAccessBilling,
     // Other collections point at a Hof, so removing one is left to the admins.
     delete: isFullAdmin,
@@ -104,11 +79,13 @@ export const HoefeCollection: CollectionConfig = {
       type: 'text',
       required: true,
       label: { en: 'Name', de: 'Name', fr: 'Nom' },
+      access: syncedFromCeviDatabase,
       admin: {
+        readOnly: true,
         description: {
-          en: 'Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.',
-          de: 'Anzeigename, z.B. "Hof Süd". Wird beim ersten Abgleich vorgeschlagen und danach vom Abgleich nicht mehr verändert.',
-          fr: 'Nom d\'affichage, par ex. "Hof Süd". Proposé par la synchronisation lorsque le Hof est trouvé pour la première fois, puis jamais modifié par celle-ci.',
+          en: 'Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.',
+          de: 'Anzeigename, z.B. "Hof Süd", bei jedem Abgleich aus den Namen seiner Anlässe in der Cevi.DB übernommen.',
+          fr: "Nom d'affichage, par ex. « Hof Süd », repris à chaque synchronisation des noms de ses événements dans Cevi.DB.",
         },
       },
     },
@@ -119,7 +96,9 @@ export const HoefeCollection: CollectionConfig = {
       unique: true,
       index: true,
       label: { en: 'Group ID', de: 'Gruppen-ID', fr: 'ID du groupe' },
+      access: syncedFromCeviDatabase,
       admin: {
+        readOnly: true,
         description: {
           en: 'Hitobito group ID of this Hof (up to 6 digits)',
           de: 'Hitobito Gruppen-ID dieses Hofs (bis zu 6 Stellen)',
@@ -136,16 +115,18 @@ export const HoefeCollection: CollectionConfig = {
         de: 'Hitobito Anlässe zum Synchronisieren',
         fr: 'Événements Hitobito à synchroniser',
       },
+      access: syncedFromCeviDatabase,
       admin: {
+        readOnly: true,
         components: {
           RowLabel: {
             path: '@/features/billing/components/event-row-label#EventRowLabel',
           },
         },
         description: {
-          en: 'Configure which Hitobito events should be synced for billing.',
-          de: 'Konfigurieren Sie, welche Hitobito-Anlässe für die Rechnungsstellung synchronisiert werden.',
-          fr: 'Configurez les événements Hitobito à synchroniser pour la facturation.',
+          en: 'The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.',
+          de: 'Die conveniat27-Anlässe dieser Gruppe in der Cevi.DB, deren Teilnahmen die Rechnungsstellung abgleicht.',
+          fr: 'Les événements conveniat27 de ce groupe dans Cevi.DB, dont la facturation synchronise les participations.',
         },
       },
       fields: [
@@ -180,46 +161,16 @@ export const HoefeCollection: CollectionConfig = {
       ],
     },
     {
-      name: 'dashboardContacts',
-      type: 'group',
-      label: {
-        en: 'Contacts on the Hof dashboard',
-        de: 'Kontakte auf dem Hof-Dashboard',
-        fr: 'Contacts sur le tableau de bord du Hof',
-      },
-      admin: {
-        // only the Hof dashboard shows them; a deployment without it has nothing to show them on
-        hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
-        description: {
-          en: 'Shown at the top of the Hof dashboard. The name reads like "First Last v/o Cevi name".',
-          de: 'Erscheinen zuoberst auf dem Hof-Dashboard. Der Name im Format "Vorname Name v/o Ceviname".',
-          fr: 'Affichés en haut du tableau de bord du Hof. Le nom au format « Prénom Nom v/o nom Cevi ».',
-        },
-      },
-      fields: [
-        hofContactField('avp', {
-          en: 'Person responsible for the Abteilung (AVP)',
-          de: 'Abteilungsverantwortliche Person (AVP)',
-          fr: "Responsable de l'Abteilung (AVP)",
-        }),
-        hofContactField('coach', { en: 'Coach', de: 'Coach', fr: 'Coach' }),
-        hofContactField('buildingManager', {
-          en: 'Person responsible for buildings',
-          de: 'Bauverantwortliche/r',
-          fr: 'Responsable des constructions',
-        }),
-      ],
-    },
-    {
       name: 'addressManagerEmails',
       type: 'text',
-      access: { read: canAccessBillingField, update: canAccessBillingField },
+      access: { read: canAccessBillingField, ...syncedFromCeviDatabase },
       label: {
         en: 'Address managers (from Cevi.DB)',
         de: 'Adressverwalter/-innen (aus Cevi.DB)',
         fr: "Gestionnaires d'adresses (Cevi.DB)",
       },
       admin: {
+        readOnly: true,
         description: {
           en: 'Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.',
           de: 'Kommagetrennt. Wird vom Subgruppen-Abgleich geschrieben; an diese Adressen geht die Erinnerung zu den Pflichtangaben.',

@@ -10,9 +10,9 @@ jest.mock('@/config/environment-variables', () => ({
 
 import {
   getAdministeredGroupIds,
-  HOF_ADMINISTRATOR_ROLE_CLASS,
   mayOpenHof,
 } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import type { PayloadRequest } from 'payload';
 
 /** Hof Nord is run by the Cevi.DB group 990001, Hof Süd by 990002. */
@@ -44,7 +44,9 @@ describe('getAdministeredGroupIds', () => {
   it('does not open a group through any other role in it', () => {
     expect(
       getAdministeredGroupIds([
-        { id: 990_001, role_class: 'Group::Ortsgruppe::Abteilungsleitung' },
+        { id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' },
+        // an Adressverwalter of another kind of group has a role class of its own
+        { id: 990_001, role_class: 'Group::Jungschar::Adressverwalter' },
         { id: 541, role_class: 'admin' },
       ]),
     ).toEqual([]);
@@ -78,7 +80,7 @@ describe('mayOpenHof', () => {
   it('refuses a member of the Hof group without the administrator role', async () => {
     await expect(
       mayOpenHof(
-        requestFor([{ id: 990_001, role_class: 'Group::Ortsgruppe::Mitglied' }]),
+        requestFor([{ id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' }]),
         'hof-nord',
       ),
     ).resolves.toBe(false);

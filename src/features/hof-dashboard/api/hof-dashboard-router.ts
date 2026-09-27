@@ -4,7 +4,7 @@ import {
   reviewHofSubmission,
   withdrawHofSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
-import { HOF_REVIEW_STATUSES } from '@/features/hof-dashboard/constants';
+import { HOF_REVIEW_CHOICES } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
@@ -58,8 +58,9 @@ export const hofDashboardRouter = createTRPCRouter({
     .input(
       hofIdInput.extend({
         submissionId: z.string().min(1).max(64),
-        status: z.enum(HOF_REVIEW_STATUSES).optional(),
+        status: z.enum(HOF_REVIEW_CHOICES).optional(),
         feedback: z.string().max(5000),
+        final: z.boolean().default(false),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -70,6 +71,7 @@ export const hofDashboardRouter = createTRPCRouter({
         submissionId: input.submissionId,
         status: input.status,
         feedback: input.feedback,
+        final: input.final,
         // the session's name already reads "First Last v/o Cevi name"
         reviewer: { id: ctx.user.uuid, name: ctx.user.name },
       });

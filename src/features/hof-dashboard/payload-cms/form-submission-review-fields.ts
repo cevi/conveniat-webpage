@@ -1,5 +1,8 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { reviewStatusOptions } from '@/features/hof-dashboard/payload-cms/options';
+import {
+  reviewChoiceOptions,
+  reviewStatusOptions,
+} from '@/features/hof-dashboard/payload-cms/options';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import type { Field } from 'payload';
 
@@ -25,9 +28,9 @@ export const formSubmissionReviewFields: Field[] = [
       position: 'sidebar',
       condition: belongsToHof,
       description: {
-        en: 'Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback.',
-        de: 'Leer heisst eingereicht und noch nicht angeschaut. Nur "Überarbeitung erforderlich" verlangt vom Hof eine neue Version, zusammen mit der Rückmeldung.',
-        fr: 'Vide signifie déposé et pas encore examiné. Seul « Révision nécessaire » demande au Hof une nouvelle version, avec le retour.',
+        en: 'Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback. To accept a submission, tick "Approved".',
+        de: 'Leer heisst eingereicht und noch nicht angeschaut. Nur "Überarbeitung erforderlich" verlangt vom Hof eine neue Version, zusammen mit der Rückmeldung. Zum Freigeben "Freigegeben" ankreuzen.',
+        fr: 'Vide signifie déposé et pas encore examiné. Seul « Révision nécessaire » demande au Hof une nouvelle version, avec le retour. Pour valider, cocher « Approuvé ».',
       },
     },
   },
@@ -40,6 +43,26 @@ export const formSubmissionReviewFields: Field[] = [
       hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
       position: 'sidebar',
       condition: belongsToHof,
+    },
+  },
+  {
+    name: 'hofFinal',
+    type: 'checkbox',
+    label: {
+      en: 'Final: no further versions',
+      de: 'Definitiv: keine weiteren Versionen',
+      fr: 'Définitif : plus de nouvelles versions',
+    },
+    access: { create: canReviewHofDashboard, update: canReviewHofDashboard },
+    admin: {
+      hidden: !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
+      position: 'sidebar',
+      condition: belongsToHof,
+      description: {
+        en: 'For a form of versions, e.g. a material order: the Hof can no longer hand in a new one. Changes then go through the Ressort.',
+        de: 'Bei einem Formular mit Versionen, z.B. einer Materialbestellung: Der Hof kann keine neue mehr abgeben. Änderungen laufen dann über das Ressort.',
+        fr: 'Pour un formulaire à versions, p. ex. une commande de matériel : le Hof ne peut plus en déposer de nouvelle. Les modifications passent alors par le Ressort.',
+      },
     },
   },
   {
@@ -101,11 +124,16 @@ export const formSubmissionReviewFields: Field[] = [
           {
             name: 'status',
             type: 'select',
-            options: reviewStatusOptions,
+            options: reviewChoiceOptions,
             label: { en: 'Status', de: 'Status', fr: 'Statut' },
             admin: { width: '30%' },
           },
         ],
+      },
+      {
+        name: 'final',
+        type: 'checkbox',
+        label: { en: 'Final', de: 'Definitiv', fr: 'Définitif' },
       },
       {
         name: 'feedback',

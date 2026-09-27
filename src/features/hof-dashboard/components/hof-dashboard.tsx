@@ -91,7 +91,7 @@ const useProgress = (
             mode: form.mode,
             deadline: form.deadline,
             statuses: form.entries.map((entry) => entry.status),
-            closed: form.closed,
+            closed: form.closed || form.finalized,
           },
           now,
         ),

@@ -35,13 +35,22 @@ export const HOF_ENTRY_MODE_LABELS: Record<HofEntryMode, StaticTranslationString
   },
 };
 
-/** What the reviewing Ressort answers on a submission, set in the admin panel. */
-export const HOF_REVIEW_STATUSES = ['inReview', 'revisionRequired', 'accepted'] as const;
+/**
+ * What the reviewing Ressort says while it works on a submission. Accepting it is the form
+ * builder's own approval (`approved`), the same whether set on the dashboard, in the admin
+ * panel or through the approval link of an email.
+ */
+export const HOF_REVIEW_STATUSES = ['inReview', 'revisionRequired'] as const;
 
 export type HofReviewStatus = (typeof HOF_REVIEW_STATUSES)[number];
 
+/** The answers a reviewer can give: a working status, or accepted. */
+export const HOF_REVIEW_CHOICES = [...HOF_REVIEW_STATUSES, 'accepted'] as const;
+
+export type HofReviewChoice = (typeof HOF_REVIEW_CHOICES)[number];
+
 /** Where a submission stands for the Hof: handed in, or what the Ressort answered. */
-export type HofEntryStatus = 'submitted' | HofReviewStatus;
+export type HofEntryStatus = 'submitted' | HofReviewChoice;
 
 export const HOF_ENTRY_STATUS_LABELS: Record<HofEntryStatus, StaticTranslationString> = {
   submitted: { de: 'Eingereicht', en: 'Submitted', fr: 'Déposé' },

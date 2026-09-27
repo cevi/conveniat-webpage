@@ -4,6 +4,7 @@ interface StoredSubmission {
   hof: string;
   hofReviewStatus?: string | null;
   approved?: boolean | null;
+  hofFinal?: boolean | null;
 }
 
 const SUBMISSIONS: Record<string, StoredSubmission> = {
@@ -15,6 +16,8 @@ const SUBMISSIONS: Record<string, StoredSubmission> = {
     hof: 'hof-nord',
     hofReviewStatus: 'inReview',
   },
+  // marked final by the Ressort before it gave any status
+  'order-final': { id: 'order-final', form: 'form-order', hof: 'hof-nord', hofFinal: true },
   'stand-old': { id: 'stand-old', form: 'form-stand', hof: 'hof-nord' },
   'stand-approved': { id: 'stand-approved', form: 'form-stand', hof: 'hof-nord', approved: true },
   'sued-plan': { id: 'sued-plan', form: 'form-plan', hof: 'hof-sued' },
@@ -24,6 +27,7 @@ const SUBMISSIONS: Record<string, StoredSubmission> = {
 const FORMS: Record<string, unknown> = {
   'form-plan': { hofDashboard: { area: 'infrastructure', entries: 'versions' } },
   'form-stand': { hofDashboard: { area: 'program', entries: 'entries' } },
+  'form-order': { hofDashboard: { area: 'material', entries: 'versions' } },
   // eslint-disable-next-line unicorn/no-null -- Payload stores an unset select as null
   'form-contact': { hofDashboard: { area: null } },
 };
@@ -45,6 +49,10 @@ const mockPayload = {
   update: jest.fn<Promise<unknown>, [unknown]>(() => Promise.resolve({})),
 };
 
+// the data module reads the access rules, which read the Cevi.DB groups from the environment
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: { FEATURE_ENABLE_HOF_DASHBOARD: true },
+}));
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
 jest.mock('payload', () => ({ getPayload: (): Promise<unknown> => Promise.resolve(mockPayload) }));
 jest.mock('@/utils/server-logger', () => ({
@@ -67,7 +75,11 @@ const withdraw = (submissionId: string): Promise<void> =>
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockNewest = { 'form-plan': 'plan-2', 'form-stand': 'stand-approved' };
+  mockNewest = {
+    'form-plan': 'plan-2',
+    'form-stand': 'stand-approved',
+    'form-order': 'order-final',
+  };
 });
 
 describe('withdrawHofSubmission', () => {
@@ -102,6 +114,7 @@ describe('withdrawHofSubmission', () => {
     ['one the Ressort took up', 'plan-reviewed'],
     ['one approved for the website', 'stand-approved'],
     ['an earlier version', 'plan-1'],
+    ['a version the Ressort marked final', 'order-final'],
   ])('keeps %s', async (_description, submissionId) => {
     await expect(withdraw(submissionId)).rejects.toMatchObject({ code: 'CONFLICT' });
     expect(mockPayload.delete).not.toHaveBeenCalled();
@@ -125,13 +138,19 @@ describe('reviewHofSubmission', () => {
       submissionId: 'plan-2',
       status: 'revisionRequired',
       feedback: 'Masthöhe fehlt',
+      final: false,
       reviewer: REVIEWER,
     });
     expect(mockPayload.update).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: 'form-submissions',
         id: 'plan-2',
-        data: { hofReviewStatus: 'revisionRequired', hofFeedback: 'Masthöhe fehlt' },
+        data: {
+          approved: false,
+          hofReviewStatus: 'revisionRequired',
+          hofFeedback: 'Masthöhe fehlt',
+          hofFinal: false,
+        },
         // the local API has no user, so the review history learns the reviewer from here
         context: { hofReviewer: REVIEWER },
       }),
@@ -144,12 +163,63 @@ describe('reviewHofSubmission', () => {
       submissionId: 'plan-reviewed',
       status: undefined,
       feedback: '',
+      final: false,
       reviewer: REVIEWER,
     });
     expect(mockPayload.update).toHaveBeenCalledWith(
-      // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
-      expect.objectContaining({ data: { hofReviewStatus: null, hofFeedback: '' } }),
+      expect.objectContaining({
+        // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+        data: { approved: false, hofReviewStatus: null, hofFeedback: '', hofFinal: false },
+      }),
     );
+  });
+
+  it("accepts it as the form builder's approval, and takes the approval back again", async () => {
+    await reviewHofSubmission({
+      hof: HOF_NORD,
+      submissionId: 'stand-old',
+      status: 'accepted',
+      feedback: 'Super',
+      final: false,
+      reviewer: REVIEWER,
+    });
+    expect(mockPayload.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        // accepted has no status of its own: an earlier one would outlive the approval
+        // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+        data: { approved: true, hofReviewStatus: null, hofFeedback: 'Super', hofFinal: false },
+      }),
+    );
+
+    await reviewHofSubmission({
+      hof: HOF_NORD,
+      submissionId: 'stand-approved',
+      status: 'inReview',
+      feedback: '',
+      final: false,
+      reviewer: REVIEWER,
+    });
+    expect(mockPayload.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { approved: false, hofReviewStatus: 'inReview', hofFeedback: '', hofFinal: false },
+      }),
+    );
+  });
+
+  it('marks a version final, so the Hof hands in no further one', async () => {
+    await reviewHofSubmission({
+      hof: HOF_NORD,
+      submissionId: 'plan-2',
+      status: 'accepted',
+      feedback: '',
+      final: true,
+      reviewer: REVIEWER,
+    });
+    const [options] = mockPayload.update.mock.calls[0] ?? [];
+    expect((options as { data?: unknown } | undefined)?.data).toMatchObject({
+      approved: true,
+      hofFinal: true,
+    });
   });
 
   it.each([
@@ -162,6 +232,7 @@ describe('reviewHofSubmission', () => {
         submissionId,
         status: 'accepted',
         feedback: '',
+        final: false,
         reviewer: REVIEWER,
       }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND' });

@@ -17,7 +17,7 @@ jest.mock('@/utils/server-logger', () => ({
 }));
 
 import { listAccessibleHoefe } from '@/features/hof-dashboard/api/accessible-hoefe';
-import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Payload } from 'payload';
 
@@ -52,14 +52,16 @@ describe('listAccessibleHoefe', () => {
     const payload = payloadWith([
       { id: 990_002, role_class: HOF_ADMINISTRATOR_ROLE_CLASS },
       { id: 990_001, role_class: HOF_ADMINISTRATOR_ROLE_CLASS },
-      { id: 990_003, role_class: 'Group::Ortsgruppe::Mitglied' },
+      { id: 990_003, role_class: 'Group::MitgliederorganisationExterne::Externer' },
     ]);
     const hoefe = await listAccessibleHoefe(payload, sessionUser([990_001, 990_002, 990_003]));
     expect(hoefe.map((hof) => hof.name)).toEqual(['Hof Nord', 'Hof Süd']);
   });
 
   it('opens nothing for a participant, and does not list the Höfe at all', async () => {
-    const payload = payloadWith([{ id: 990_001, role_class: 'Group::Ortsgruppe::Mitglied' }]);
+    const payload = payloadWith([
+      { id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' },
+    ]);
     await expect(listAccessibleHoefe(payload, sessionUser([990_001]))).resolves.toEqual([]);
     expect(payload.find).not.toHaveBeenCalled();
   });

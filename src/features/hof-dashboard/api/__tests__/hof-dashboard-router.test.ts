@@ -14,7 +14,9 @@ const HOEFE = [
 const mockPayload = {
   findByID: jest.fn(() =>
     Promise.resolve({
-      groups: [{ id: 990_001, role_class: 'Group::Ortsgruppe::AdministratorCeviDB' }],
+      groups: [
+        { id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Adressverwalter' },
+      ],
     }),
   ),
   find: jest.fn(({ where }: { where?: { groupId: { in: string[] } } }) =>
@@ -145,8 +147,35 @@ describe('hofDashboardRouter', () => {
       submissionId: 'sued-plan',
       status: 'revisionRequired',
       feedback: 'Bitte ergänzen',
+      // not final unless the reviewer says so
+      final: false,
       reviewer: { id: 'web-1', name: 'Sara Keller v/o Biber' },
     });
+  });
+
+  it('takes accepting it and marking it final', async () => {
+    await reviewer.updateSubmissionReview({
+      hofId: 'hof-sued',
+      submissionId: 'sued-order',
+      status: 'accepted',
+      feedback: '',
+      final: true,
+    });
+    expect(mockReview).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'accepted', final: true }),
+    );
+  });
+
+  it('refuses a status the Ressort does not give', async () => {
+    await expect(
+      reviewer.updateSubmissionReview({
+        hofId: 'hof-sued',
+        submissionId: 'sued-plan',
+        status: 'submitted' as 'accepted',
+        feedback: '',
+      }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect(mockReview).not.toHaveBeenCalled();
   });
 
   it('answers nothing of the dashboard while it is switched off', async () => {

@@ -21,7 +21,7 @@ jest.mock('payload', () => ({
 }));
 
 import { checkHofDashboardSubmission } from '@/features/hof-dashboard/payload-cms/hooks/check-hof-dashboard-submission';
-import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { CollectionBeforeChangeHook } from 'payload';
 
@@ -45,7 +45,7 @@ const HOF_NORD_ADMIN: User = {
 };
 const PARTICIPANT: User = {
   id: 'user-participant',
-  groups: [{ id: 990_001, role_class: 'Group::Ortsgruppe::Mitglied' }],
+  groups: [{ id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' }],
 };
 const REVIEWER: User = { id: 'user-web', groups: [{ id: 105, role_class: 'editor' }] };
 
@@ -61,6 +61,8 @@ interface RunOptions {
   hof?: unknown;
   operation?: 'create' | 'update';
   locale?: string;
+  /** The Hof's newest submission of the form, as the sorted query answers it. */
+  newest?: { hofFinal?: boolean | null };
 }
 
 const findByID = jest.fn();
@@ -70,8 +72,16 @@ const run = async (options: RunOptions): Promise<Partial<FormSubmission>> => {
   const { settings = { area: 'infrastructure' }, operation = 'create', locale = 'de' } = options;
   const hof = 'hof' in options ? options.hof : 'hof-nord';
   findByID.mockResolvedValue({ hofDashboard: settings });
-  const find = jest.fn(({ where }: { where: { groupId: { in: string[] } } }) =>
-    Promise.resolve({ docs: HOEFE.filter((entry) => where.groupId.in.includes(entry.groupId)) }),
+  // the Hof's newest submission of the form, if it handed one in
+  const newest = options.newest === undefined ? [] : [options.newest];
+  const find = jest.fn(
+    ({ collection, where }: { collection: string; where: { groupId?: { in: string[] } } }) =>
+      Promise.resolve({
+        docs:
+          collection === 'hoefe'
+            ? HOEFE.filter((entry) => where.groupId?.in.includes(entry.groupId) === true)
+            : newest,
+      }),
   );
   const hookArguments = {
     // a sender cannot name someone else as the one who handed it in
@@ -164,6 +174,42 @@ describe('checkHofDashboardSubmission', () => {
       run({
         user: HOF_NORD_ADMIN,
         settings: { area: 'infrastructure', deadline: PAST, closesAtDeadline: false },
+      }),
+    ).resolves.toMatchObject({ submittedBy: 'user-nord' });
+  });
+
+  it('refuses a new version once the Ressort marked the newest one final', async () => {
+    await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: true } })).rejects.toMatchObject({
+      status: 400,
+      message: 'Das Ressort hat dies als definitiv markiert. Änderungen laufen über das Ressort.',
+    });
+    await expect(
+      run({ user: HOF_NORD_ADMIN, newest: { hofFinal: true }, locale: 'fr' }),
+    ).rejects.toThrow('Le Ressort l’a marqué comme définitif.');
+  });
+
+  it('takes a new version while the newest one is not final', async () => {
+    await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: false } })).resolves.toMatchObject(
+      { submittedBy: 'user-nord' },
+    );
+    // eslint-disable-next-line unicorn/no-null -- Payload stores an unset checkbox as null
+    await expect(run({ user: HOF_NORD_ADMIN, newest: { hofFinal: null } })).resolves.toMatchObject({
+      submittedBy: 'user-nord',
+    });
+  });
+
+  it('lets a reviewer hand in past a final version', async () => {
+    await expect(run({ user: REVIEWER, newest: { hofFinal: true } })).resolves.toMatchObject({
+      submittedBy: 'user-web',
+    });
+  });
+
+  it('keeps a form of entries open whatever an earlier entry is marked', async () => {
+    await expect(
+      run({
+        user: HOF_NORD_ADMIN,
+        settings: { area: 'program', entries: 'entries' },
+        newest: { hofFinal: true },
       }),
     ).resolves.toMatchObject({ submittedBy: 'user-nord' });
   });

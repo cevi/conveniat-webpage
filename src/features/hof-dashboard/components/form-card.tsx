@@ -101,9 +101,19 @@ const EntryBlock: React.FC<{
   showStatus?: boolean;
   /** Set for a reviewer, who answers the submission here instead. */
   reviewFor?: string | undefined;
+  /** Whether a reviewer can mark it final: the version that counts of a form of versions. */
+  canFinalize?: boolean;
   locale: Locale;
   onWithdraw: (id: string) => Promise<void>;
-}> = ({ entry, heading, showStatus = true, reviewFor, locale, onWithdraw }) => (
+}> = ({
+  entry,
+  heading,
+  showStatus = true,
+  reviewFor,
+  canFinalize = false,
+  locale,
+  onWithdraw,
+}) => (
   <div className="space-y-4">
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <h4 className="text-sm font-bold text-gray-900">{heading}</h4>
@@ -141,7 +151,9 @@ const EntryBlock: React.FC<{
       </div>
     )}
     <EntryAnswers answers={entry.answers} locale={locale} />
-    {reviewFor !== undefined && <ReviewPanel entry={entry} hofId={reviewFor} locale={locale} />}
+    {reviewFor !== undefined && (
+      <ReviewPanel entry={entry} hofId={reviewFor} canFinalize={canFinalize} locale={locale} />
+    )}
     {/* taking it back is the Hof's; a reviewer answers it above instead */}
     {entry.withdrawable && reviewFor === undefined && (
       <WithdrawAction locale={locale} onWithdraw={() => onWithdraw(entry.id)} />
@@ -212,6 +224,7 @@ export const FormCard: React.FC<{
             heading={versionHeading(0)}
             showStatus={false}
             reviewFor={isReviewer ? hofId : undefined}
+            canFinalize
             locale={locale}
             onWithdraw={withdraw}
           />
@@ -270,7 +283,13 @@ export const FormCard: React.FC<{
         </p>
       )}
 
-      {!isReviewer && !form.closed && !open && (
+      {form.finalized && !isReviewer && (
+        <p className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          {translate('finalized', locale)}
+        </p>
+      )}
+
+      {!isReviewer && !form.closed && !form.finalized && !open && (
         <button
           type="button"
           // when the Ressort asked for a revision, handing it in is the card's main action
@@ -283,7 +302,7 @@ export const FormCard: React.FC<{
         </button>
       )}
 
-      {!isReviewer && !form.closed && open && (
+      {!isReviewer && !form.closed && !form.finalized && open && (
         <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 @xl:p-6">
           <FormBlock
             form={form.form}

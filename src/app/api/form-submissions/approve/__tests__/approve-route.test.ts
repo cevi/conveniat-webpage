@@ -140,6 +140,8 @@ describe('/api/form-submissions/approve route', () => {
         id: 'sub-123',
         data: { approved: true },
         overrideAccess: true,
+        // nobody is signed in: the review history of a Hof's submission names the link instead
+        context: { hofReviewer: { id: '', name: 'Freigabe-Link (E-Mail)' } },
       });
       const html = await response.text();
       expect(html).toContain('Formular-Antwort freigegeben');

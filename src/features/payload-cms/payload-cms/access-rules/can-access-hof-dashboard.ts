@@ -1,14 +1,9 @@
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import {
   hasAccessToThis,
   HOF_DASHBOARD_REVIEWER_ROLES,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { Payload, PayloadRequest } from 'payload';
-
-/**
- * The Cevi.DB role that opens a Hof's dashboard: the address administrator of the Ortsgruppe
- * the Hof belongs to. The role is read per group, so it opens that one Hof and no other.
- */
-export const HOF_ADMINISTRATOR_ROLE_CLASS = 'Group::Ortsgruppe::AdministratorCeviDB';
 
 /** One role of a user, as the login copies it from the Cevi.DB profile onto the Payload user. */
 interface CeviDatabaseRole {
@@ -17,10 +12,12 @@ interface CeviDatabaseRole {
 }
 
 /**
- * The Cevi.DB groups a user administers, as text, the way a Hof stores its `groupId`.
+ * The Cevi.DB groups a user manages the addresses of, as text, the way a Hof stores its
+ * `groupId`.
  *
- * Only the address administrator role counts: a leader or member of the same group is a
- * participant of the Hof, not the person who hands in its plans.
+ * Only the address manager role of such a group counts: someone else in the same group is a
+ * participant of the Hof, not the person who hands in its plans, and an Adressverwalter of an
+ * Ortsgruppe or a Jungschar has a role class of its own.
  */
 export const getAdministeredGroupIds = (
   roles: readonly CeviDatabaseRole[] | null | undefined,

@@ -29,8 +29,6 @@ const swissDate = (iso: string): string =>
     timeZone: 'Europe/Zurich',
   }).format(new Date(iso));
 
-const emptyContact = { name: '', email: '', phone: '' };
-
 /** The Hof field every dashboard form asks, which the dashboard answers itself. */
 const HOF_FIELD = { blockType: 'hofSelection', name: 'hof', label: 'Dein Hof', required: true };
 
@@ -72,6 +70,7 @@ const entry = (id: string, overrides: Record<string, unknown> = {}): Record<stri
   reviewStatus: ['inReview', 'revisionRequired', 'accepted'].includes(String(overrides['status']))
     ? overrides['status']
     : undefined,
+  final: false,
   feedbackBy: undefined,
   reviewLog: [],
   ...overrides,
@@ -89,6 +88,7 @@ const dashboardForm = (
     description: undefined,
     deadline: inDays(40),
     closed: false,
+    finalized: false,
     mode: 'versions',
     hofField: 'hof',
     initialValues: {},
@@ -162,6 +162,21 @@ const PROGRAM = dashboardForm('form-program', {
   ],
 });
 
+/** Stadtleben stands: every entry counts on its own. */
+const STANDS = dashboardForm('form-stands', {
+  area: 'program',
+  mode: 'entries',
+  title: 'Stadtleben',
+  deadline: inDays(60),
+  fields: [{ blockType: 'text', name: 'stand', label: 'Stand', required: true }],
+  entries: [
+    entry('stand-1', {
+      title: 'Crêpes',
+      answers: [{ field: 'stand', label: 'Stand', kind: 'text', text: 'Crêpes' }],
+    }),
+  ],
+});
+
 const ORDER = dashboardForm('form-order', {
   area: 'material',
   title: 'Materialbestellung',
@@ -187,12 +202,28 @@ const ORDER = dashboardForm('form-order', {
   ],
 });
 
+/** The order the Ressort accepted and marked final: the Hof hands in no further version. */
+const FINAL_ORDER = {
+  ...ORDER,
+  finalized: true,
+  entries: [
+    {
+      ...(ORDER['entries'] as Record<string, unknown>[])[0],
+      status: 'accepted',
+      reviewStatus: 'accepted',
+      final: true,
+      feedback: 'Bestellung übernommen.',
+      feedbackBy: { name: 'Sara Keller v/o Biber', at: '2026-09-21T08:30:00.000Z' },
+    },
+  ],
+};
+
 const HOF_NORD = { id: 'hof-nord', name: 'Hof Nord' };
 const HOF_SUED = { id: 'hof-sued', name: 'Hof Süd' };
 
 interface Dashboard {
   hof: { id: string; name: string };
-  contacts: Record<string, typeof emptyContact>;
+  responsible: { name?: string; email: string }[];
   deadlines: unknown[];
   forms: Record<string, unknown>[];
   documents: unknown[];
@@ -204,11 +235,11 @@ const dashboardOf = (
   forms: Record<string, unknown>[],
 ): Dashboard => ({
   hof,
-  contacts: {
-    avp: { name: 'Anna Beispiel v/o Fuchs', email: 'avp@example.com', phone: '079 123 45 67' },
-    coach: emptyContact,
-    buildingManager: emptyContact,
-  },
+  // the address managers of the Hof's Cevi.DB group; one of them never signed in
+  responsible: [
+    { name: 'Anna Beispiel v/o Fuchs', email: 'anna@example.com' },
+    { email: 'bau@hof-nord.example.com' },
+  ],
   deadlines: [],
   forms,
   documents: [],
@@ -364,6 +395,7 @@ const forReviewer = (form: Record<string, unknown>): Record<string, unknown> => 
               by: (submitted['feedbackBy'] as { name: string }).name,
               status: submitted['status'],
               feedback: submitted['feedback'],
+              final: submitted['final'] === true,
             },
           ],
   })),
@@ -658,7 +690,7 @@ test.describe('Hof dashboard', () => {
         [HOF_NORD.id]: {
           ...dashboardOf(
             HOF_NORD,
-            [PLAN, TENT, PROGRAM].map((form) => forReviewer(form)),
+            [PLAN, TENT, PROGRAM, STANDS, FINAL_ORDER].map((form) => forReviewer(form)),
           ),
           isReviewer: true,
         },
@@ -694,33 +726,126 @@ test.describe('Hof dashboard', () => {
       hofId: 'hof-nord',
       submissionId: 'plan-2',
       feedback: 'Die Statik fehlt noch.',
+      final: false,
     });
     // no status of the Ressort: back to plain handed in
     expect((reviews()[0] as { status?: unknown }).status).toBeUndefined();
+
+    // the version that counts can be made the last one, saved the moment it is ticked
+    const final = plan.getByRole('checkbox', { name: /^Definitiv: keine weiteren Versionen/ });
+    await expect(final).not.toBeChecked();
+    await final.check();
+    await expect.poll(reviews).toHaveLength(2);
+    expect(reviews()[1]).toEqual({
+      hofId: 'hof-nord',
+      submissionId: 'plan-2',
+      feedback: 'Die Statik fehlt noch.',
+      final: true,
+    });
+    // an earlier version is not the one to mark
+    await plan.getByRole('button', { name: 'Frühere Versionen (1)' }).click();
+    await expect(plan.getByRole('heading', { name: 'Version 1' })).toBeVisible();
+    await expect(plan.getByRole('checkbox')).toHaveCount(1);
 
     await openTab(page, 'Programm');
     const program = formCard(page, 'form-program');
     await expect(program.getByRole('button', { name: /abgeben/ })).toHaveCount(0);
     await expect(program.getByRole('button', { name: 'Zurückziehen' })).toHaveCount(0);
+    // each Stadtleben stand stands on its own: none is the last one
+    const stands = formCard(page, 'form-stands');
+    await expect(stands.getByRole('radio', { name: 'Eingereicht' })).toBeVisible();
+    await expect(stands.getByRole('checkbox')).toHaveCount(0);
     const loadsBefore = backend.loads(HOF_NORD.id);
+    // accepting is the approval the form builder knows
     await program.getByRole('radio', { name: 'Freigegeben' }).click();
-    await expect.poll(reviews).toHaveLength(2);
-    // typed feedback goes out once, after the typing pauses, not per key
-    await program
-      .getByLabel('Rückmeldung an den Hof')
-      .pressSequentially('Danke, passt so.', { delay: 20 });
     await expect.poll(reviews).toHaveLength(3);
-    await page.waitForTimeout(1200);
-    expect(reviews()).toHaveLength(3);
     expect(reviews()[2]).toEqual({
       hofId: 'hof-nord',
       submissionId: 'program-1',
       status: 'accepted',
+      feedback: '',
+      final: false,
+    });
+    // typed feedback goes out once, after the typing pauses, not per key
+    await program
+      .getByLabel('Rückmeldung an den Hof')
+      .pressSequentially('Danke, passt so.', { delay: 20 });
+    await expect.poll(reviews).toHaveLength(4);
+    await page.waitForTimeout(1200);
+    expect(reviews()).toHaveLength(4);
+    expect(reviews()[3]).toEqual({
+      hofId: 'hof-nord',
+      submissionId: 'program-1',
+      status: 'accepted',
       feedback: 'Danke, passt so.',
+      final: false,
     });
     // the pill beside the title says so, no toast
     await expect(program.getByText('Gespeichert', { exact: true })).toBeVisible();
     await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
     await expect.poll(() => backend.loads(HOF_NORD.id)).toBeGreaterThan(loadsBefore);
+
+    // an order accepted and marked final reads so, in the answer and in the history
+    await openTab(page, 'Material');
+    const order = formCard(page, 'form-order');
+    await expect(order.getByRole('radio', { name: 'Freigegeben' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(
+      order.getByRole('checkbox', { name: /^Definitiv: keine weiteren Versionen/ }),
+    ).toBeChecked();
+    await order.getByText('Verlauf (1)').click();
+    await expect(order.getByText('Freigegeben · definitiv')).toBeVisible();
+  });
+
+  test("names the Hof's responsible people from Cevi.DB in the overview only", async ({ page }) => {
+    await mockBackend(page);
+    await page.goto('/hof-dashboard');
+
+    const overview = page.getByRole('tabpanel', { name: 'Übersicht' });
+    await expect(overview.getByText('Hofverantwortliche Person (AVP)')).toBeVisible();
+    await expect(overview.getByText('Anna Beispiel v/o Fuchs')).toBeVisible();
+    await expect(overview.getByRole('link', { name: 'anna@example.com' })).toHaveAttribute(
+      'href',
+      'mailto:anna@example.com',
+    );
+    // known by address only, until they sign in once
+    await expect(overview.getByRole('link', { name: 'bau@hof-nord.example.com' })).toHaveAttribute(
+      'href',
+      'mailto:bau@hof-nord.example.com',
+    );
+
+    // an area names nobody of its own
+    await openTab(page, 'Infrastruktur');
+    await expect(page.getByRole('link', { name: /@/ })).toHaveCount(0);
+  });
+
+  test('says so when Cevi.DB names nobody responsible for the Hof', async ({ page }) => {
+    await mockBackend(page, {
+      dashboards: { [HOF_NORD.id]: { ...DASHBOARD, responsible: [] } },
+    });
+    await page.goto('/hof-dashboard');
+    await expect(
+      page.getByText('In der Cevi.DB ist für diesen Hof noch keine Adressverwaltung eingetragen.'),
+    ).toBeVisible();
+  });
+
+  test('offers no further version once the Ressort marked the order final', async ({ page }) => {
+    await mockBackend(page, {
+      dashboards: { [HOF_NORD.id]: dashboardOf(HOF_NORD, [PLAN, FINAL_ORDER]) },
+    });
+    await page.goto('/hof-dashboard#material');
+
+    const order = formCard(page, 'form-order');
+    await expect(
+      order.getByText(
+        'Das Ressort hat diese Version als definitiv markiert. Änderungen laufen über das Ressort.',
+      ),
+    ).toBeVisible();
+    await expect(order.getByText('Bestellung übernommen.')).toBeVisible();
+    await expect(order.getByRole('button')).toHaveCount(0);
+    // nothing left open behind Material
+    await expect(page.getByRole('tab', { name: /^Material/ })).toHaveText('Material');
   });
 });

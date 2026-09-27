@@ -351,7 +351,8 @@ interface SubmissionSeed {
   answers: Record<string, string>;
   /** File names of each upload field, stored as permanent files of the submission. */
   files?: Record<string, string[]>;
-  review?: { status: 'inReview' | 'revisionRequired' | 'accepted'; feedback?: string };
+  /** The Ressort's answer; accepted is `approved`, without a status of its own. */
+  review?: { status?: 'inReview' | 'revisionRequired'; feedback?: string; final?: boolean };
   approved?: boolean;
   daysAgo: number;
 }
@@ -396,13 +397,15 @@ const createSubmission = async (payload: Payload, seed: SubmissionSeed): Promise
         : {
             hofReviewStatus: seed.review.status,
             hofFeedback: seed.review.feedback,
-            // a day after it came in, by the building manager of the seed's contacts
+            hofFinal: seed.review.final === true,
+            // a day after it came in, by someone of the Ressort
             hofReviewLog: [
               {
                 changedAt: daysAgo(seed.daysAgo - 1),
                 reviewerName: 'Sara Keller v/o Biber',
-                status: seed.review.status,
+                status: seed.approved === true ? 'accepted' : seed.review.status,
                 feedback: seed.review.feedback ?? '',
+                final: seed.review.final === true,
               },
             ],
           }),
@@ -449,24 +452,10 @@ const materialAnswer = (
   );
 };
 
-/** The contact persons of a seeded Hof, their addresses on the Hof's domain. */
-const contacts = (hof: string): NonNullable<Hof['dashboardContacts']> => ({
-  avp: {
-    name: 'Anna Beispiel v/o Fuchs',
-    email: `avp@${hof}.example.com`,
-    phone: '079 123 45 67',
-  },
-  coach: { name: 'Thomas Muster v/o Dachs', email: 'coach@example.com', phone: '076 987 65 43' },
-  buildingManager: {
-    name: 'Sara Keller v/o Biber',
-    email: `bau@${hof}.example.com`,
-    phone: '078 234 56 78',
-  },
-});
-
 /**
  * The Hof dashboard of the dev seed: the forms linked to it, the milestones and a Merkblatt,
- * contacts, a page with the dashboard and one with the Stadtleben form.
+ * a page with the dashboard and one with the Stadtleben form. The Hof's responsible people come
+ * from the Höfe seed's address managers and from whoever signs in as one.
  *
  * Hof West is filled in completely, with a submission in every state the Ressort can give; the
  * fake login "Hof West" (user 9) opens it. User 8 administers Hof Nord and Hof Süd, which have
@@ -482,18 +471,6 @@ export const seedHofDashboard = async (payload: Payload, permission: Permission)
   });
   const [hofNord, hofSued, hofWest] = hoefe;
   if (hofNord === undefined || hofSued === undefined || hofWest === undefined) return;
-
-  for (const [hof, domain] of [
-    [hofNord, 'hof-nord'],
-    [hofWest, 'hof-west'],
-  ] as const) {
-    await payload.update({
-      collection: 'hoefe',
-      id: hof.id,
-      data: { dashboardContacts: contacts(domain) },
-      context: { internal: true },
-    });
-  }
 
   const forms: Record<string, Form> = {};
   for (const seed of FORMS) {
@@ -539,7 +516,8 @@ export const seedHofDashboard = async (payload: Payload, permission: Permission)
       ...plan('eingang'),
       hof: hofWest,
       files: { planung: ['Eingangstor.pdf'] },
-      review: { status: 'accepted', feedback: 'Sieht gut aus, danke!' },
+      approved: true,
+      review: { feedback: 'Sieht gut aus, danke!' },
       daysAgo: 12,
     },
     {
@@ -583,6 +561,8 @@ export const seedHofDashboard = async (payload: Payload, permission: Permission)
           'Dachlatten (27×50 mm, 4 m)': 30,
         }),
       },
+      approved: true,
+      review: { feedback: 'Bestellung übernommen.', final: true },
       daysAgo: 3,
     },
     // Hof Nord and Hof Süd: a little each, for the Hof switch of user 8

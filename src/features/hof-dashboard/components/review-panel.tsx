@@ -3,7 +3,7 @@
 import type { HofDashboardEntry } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
   HOF_ENTRY_STATUS_LABELS,
-  HOF_REVIEW_STATUSES,
+  HOF_REVIEW_CHOICES,
   type HofEntryStatus,
 } from '@/features/hof-dashboard/constants';
 import {
@@ -49,6 +49,7 @@ const ReviewHistory: React.FC<{ entry: HofDashboardEntry; locale: Locale }> = ({
               </p>
               <p className="font-semibold text-gray-900">
                 {HOF_ENTRY_STATUS_LABELS[change.status][locale]}
+                {change.final && ` · ${translate('finalShort', locale)}`}
               </p>
               {change.feedback !== '' && (
                 <p className="whitespace-pre-line text-gray-700">{change.feedback}</p>
@@ -62,7 +63,7 @@ const ReviewHistory: React.FC<{ entry: HofDashboardEntry; locale: Locale }> = ({
 };
 
 /** "Eingereicht" first: no status of the Ressort yet, the way a new submission starts. */
-const CHOICES: HofEntryStatus[] = ['submitted', ...HOF_REVIEW_STATUSES];
+const CHOICES: HofEntryStatus[] = ['submitted', ...HOF_REVIEW_CHOICES];
 
 const AUTOSAVE_LABEL: Record<Exclude<AutosaveState, 'idle'>, TextKey> = {
   typing: 'autosaveTyping',
@@ -115,12 +116,16 @@ const AutosavePill: React.FC<{ state: AutosaveState; locale: Locale; onRetry: ()
 export const ReviewPanel: React.FC<{
   entry: HofDashboardEntry;
   hofId: string;
+  /** For the version that counts of a form of versions: it can be made the last one. */
+  canFinalize: boolean;
   locale: Locale;
-}> = ({ entry, hofId, locale }) => {
-  const { values, setStatus, setFeedback, state, retry } = useAutosaveReview(hofId, entry.id, {
-    status: entry.reviewStatus,
-    feedback: entry.feedback ?? '',
-  });
+}> = ({ entry, hofId, canFinalize, locale }) => {
+  const { values, setStatus, setFeedback, setFinal, state, retry } = useAutosaveReview(
+    hofId,
+    entry.id,
+    { status: entry.reviewStatus, feedback: entry.feedback ?? '', final: entry.final },
+  );
+  const finalId = useId();
   const statusId = useId();
   const feedbackId = useId();
 
@@ -152,9 +157,6 @@ export const ReviewPanel: React.FC<{
             </Radio>
           ))}
         </div>
-        {entry.status === 'accepted' && entry.reviewStatus !== 'accepted' && (
-          <p className="mt-2 text-xs text-gray-600">{translate('approvedOnSite', locale)}</p>
-        )}
       </RadioGroup>
       <div>
         <label
@@ -173,6 +175,21 @@ export const ReviewPanel: React.FC<{
         />
         <p className="mt-1 text-xs text-gray-500">{translate('reviewHint', locale)}</p>
       </div>
+      {canFinalize && (
+        <div className="flex items-start gap-3">
+          <input
+            id={finalId}
+            type="checkbox"
+            checked={values.final}
+            onChange={(event) => setFinal(event.target.checked)}
+            className="text-conveniat-green focus:ring-conveniat-green mt-[3px] h-4 w-4 rounded border-0 bg-green-100 shadow-sm ring-1 ring-transparent ring-inset focus:ring-2 focus:ring-offset-0 focus:outline-none"
+          />
+          <label htmlFor={finalId} className="font-body text-sm text-gray-700">
+            <span className="font-medium text-gray-900">{translate('finalLabel', locale)}</span>
+            <span className="block text-xs text-gray-500">{translate('finalHint', locale)}</span>
+          </label>
+        </div>
+      )}
       {entry.reviewLog.length > 0 && <ReviewHistory entry={entry} locale={locale} />}
     </div>
   );

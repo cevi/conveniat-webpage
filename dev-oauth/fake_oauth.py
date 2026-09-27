@@ -104,9 +104,9 @@ FAKE_USERS = [
         "last_name": "Nord und Süd",
         "nickname": "Adressverwaltung",
         "roles": [
-            {"group_id": 990001, "group_name": "Hof Nord", "role_name": "Adressverwaltung", "role_class": "Group::Ortsgruppe::AdministratorCeviDB"},
-            {"group_id": 990002, "group_name": "Hof Süd", "role_name": "Adressverwaltung", "role_class": "Group::Ortsgruppe::AdministratorCeviDB"},
-            {"group_id": 990003, "group_name": "Hof Ost", "role_name": "Mitglied", "role_class": "Group::Ortsgruppe::Mitglied"}
+            {"group_id": 990001, "group_name": "Hof Nord", "role_name": "Adressverwalter/-in", "role_class": "Group::MitgliederorganisationExterne::Adressverwalter"},
+            {"group_id": 990002, "group_name": "Hof Süd", "role_name": "Adressverwalter/-in", "role_class": "Group::MitgliederorganisationExterne::Adressverwalter"},
+            {"group_id": 990003, "group_name": "Hof Ost", "role_name": "Externe/-r", "role_class": "Group::MitgliederorganisationExterne::Externer"}
         ],
         "comment": "Adressverwaltung von Hof Nord und Hof Süd, nur Mitglied von Hof Ost: öffnet das Hof-Dashboard der ersten beiden."
     },
@@ -117,7 +117,7 @@ FAKE_USERS = [
         "last_name": "West",
         "nickname": "Hof West",
         "roles": [
-            {"group_id": 990004, "group_name": "Hof West", "role_name": "Adressverwaltung", "role_class": "Group::Ortsgruppe::AdministratorCeviDB"}
+            {"group_id": 990004, "group_name": "Hof West", "role_name": "Adressverwalter/-in", "role_class": "Group::MitgliederorganisationExterne::Adressverwalter"}
         ],
         "comment": "Adressverwaltung von Hof West allein: dessen Hof-Dashboard ist vollständig befüllt, mit Abgaben in jedem Status, Bestellungen und Stadtleben-Ständen."
     }

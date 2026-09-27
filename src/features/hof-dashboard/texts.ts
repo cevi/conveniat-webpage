@@ -28,18 +28,15 @@ export const text = {
   tabs: { de: 'Bereiche', en: 'Sections', fr: 'Rubriques' },
   tabOverview: { de: 'Übersicht', en: 'Overview', fr: 'Aperçu' },
   tabDocuments: { de: 'Dokumente', en: 'Documents', fr: 'Documents' },
-  contacts: { de: 'Kontakte', en: 'Contacts', fr: 'Contacts' },
-  avp: { de: 'AVP', en: 'AVP', fr: 'AVP' },
-  coach: { de: 'Coach', en: 'Coach', fr: 'Coach' },
-  buildingManager: {
-    de: 'Bauverantwortliche/r',
-    en: 'Building lead',
-    fr: 'Responsable des constructions',
+  responsible: {
+    de: 'Hofverantwortliche Person (AVP)',
+    en: 'Person responsible for the Hof (AVP)',
+    fr: 'Personne responsable du Hof (AVP)',
   },
-  contactMissing: {
-    de: 'Noch nicht erfasst',
-    en: 'Not recorded yet',
-    fr: 'Pas encore saisi',
+  responsibleMissing: {
+    de: 'In der Cevi.DB ist für diesen Hof noch keine Adressverwaltung eingetragen.',
+    en: 'Cevi.DB has no address manager for this Hof yet.',
+    fr: "Cevi.DB n'indique encore aucune gestion des adresses pour ce Hof.",
   },
   progress: { de: 'Stand der Abgaben', en: 'Progress', fr: 'Avancement' },
   progressCount: {
@@ -176,11 +173,6 @@ export const text = {
     en: 'The Ressort’s answer',
     fr: 'Réponse du Ressort',
   },
-  approvedOnSite: {
-    de: 'Für die Website freigegeben: Das gilt als "Freigegeben", was immer hier steht.',
-    en: 'Approved for the website: that counts as "Accepted", whatever is set here.',
-    fr: 'Approuvé pour le site web : cela vaut « Validé », quoi qu’il soit indiqué ici.',
-  },
   feedbackBy: { de: '{name}, {date}', en: '{name}, {date}', fr: '{name}, {date}' },
   reviewHistory: {
     de: 'Verlauf ({n})',
@@ -188,6 +180,22 @@ export const text = {
     fr: 'Historique ({n})',
   },
   reviewerUnknown: { de: 'Unbekannt', en: 'Unknown', fr: 'Inconnu' },
+  finalLabel: {
+    de: 'Definitiv: keine weiteren Versionen',
+    en: 'Final: no further versions',
+    fr: 'Définitif : plus de nouvelles versions',
+  },
+  finalHint: {
+    de: 'Der Hof kann danach keine neue Version mehr abgeben; Änderungen laufen über das Ressort.',
+    en: 'The Hof can no longer hand in a new version; changes go through the Ressort.',
+    fr: 'Le Hof ne peut plus déposer de nouvelle version ; les modifications passent par le Ressort.',
+  },
+  finalShort: { de: 'definitiv', en: 'final', fr: 'définitif' },
+  finalized: {
+    de: 'Das Ressort hat diese Version als definitiv markiert. Änderungen laufen über das Ressort.',
+    en: 'The Ressort marked this version as final. Changes go through the Ressort.',
+    fr: 'Le Ressort a marqué cette version comme définitive. Les modifications passent par lui.',
+  },
   reviewStatus: { de: 'Status', en: 'Status', fr: 'Statut' },
   reviewFeedback: {
     de: 'Rückmeldung an den Hof',

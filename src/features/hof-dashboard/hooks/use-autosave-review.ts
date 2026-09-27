@@ -1,6 +1,6 @@
 'use client';
 
-import type { HofReviewStatus } from '@/features/hof-dashboard/constants';
+import type { HofReviewChoice } from '@/features/hof-dashboard/constants';
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { trpc } from '@/trpc/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -8,10 +8,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /** How long typing has to pause before the feedback is saved. */
 const DEBOUNCE_MS = 800;
 
-/** What a reviewer set: the Ressort's status, none for "handed in", and the feedback. */
+/**
+ * What a reviewer set: the Ressort's answer, none for "handed in", the feedback, and whether
+ * the version is final.
+ */
 export interface ReviewValues {
-  status: HofReviewStatus | undefined;
+  status: HofReviewChoice | undefined;
   feedback: string;
+  final: boolean;
 }
 
 /**
@@ -21,7 +25,7 @@ export interface ReviewValues {
 export type AutosaveState = 'idle' | 'typing' | 'saving' | 'saved' | 'offline' | 'error';
 
 const same = (a: ReviewValues, b: ReviewValues): boolean =>
-  a.status === b.status && a.feedback === b.feedback;
+  a.status === b.status && a.feedback === b.feedback && a.final === b.final;
 
 /**
  * Saves a reviewer's answer as it is given: a status at once, the feedback after a pause in
@@ -35,7 +39,8 @@ export const useAutosaveReview = (
   stored: ReviewValues,
 ): {
   values: ReviewValues;
-  setStatus: (status: HofReviewStatus | undefined) => void;
+  setStatus: (status: HofReviewChoice | undefined) => void;
+  setFinal: (final: boolean) => void;
   setFeedback: (feedback: string) => void;
   state: AutosaveState;
   retry: () => void;
@@ -96,6 +101,7 @@ export const useAutosaveReview = (
   return {
     values,
     setStatus: (status) => change({ ...latest.current, status }, false),
+    setFinal: (final) => change({ ...latest.current, final }, false),
     setFeedback: (feedback) => change({ ...latest.current, feedback }, true),
     state,
     retry: () => void flush(),

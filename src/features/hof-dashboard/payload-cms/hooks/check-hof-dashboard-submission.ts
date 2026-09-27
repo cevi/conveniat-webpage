@@ -30,6 +30,11 @@ const texts = {
     de: 'Dieses Formular ist seit dem Abgabetermin geschlossen.',
     fr: 'Ce formulaire est fermé depuis son échéance.',
   },
+  final: {
+    en: 'The Ressort marked this as final. Contact them for changes.',
+    de: 'Das Ressort hat dies als definitiv markiert. Änderungen laufen über das Ressort.',
+    fr: 'Le Ressort l’a marqué comme définitif. Adresse-toi à lui pour toute modification.',
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 /**
@@ -84,6 +89,23 @@ export const checkHofDashboardSubmission: CollectionBeforeChangeHook<FormSubmiss
     !isReviewer
   ) {
     throw new APIError(texts.closed[locale], 400, undefined, true);
+  }
+
+  // a version marked final is the last one the Hof hands in
+  if (settings.entries !== 'entries' && !isReviewer) {
+    const { docs } = await req.payload.find({
+      collection: 'form-submissions',
+      where: { and: [{ form: { equals: formId } }, { hof: { equals: hofId } }] },
+      sort: '-createdAt',
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      select: { hofFinal: true },
+      req,
+    });
+    if (docs[0]?.hofFinal === true) {
+      throw new APIError(texts.final[locale], 400, undefined, true);
+    }
   }
 
   data.submittedBy = user.id;

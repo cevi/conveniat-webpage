@@ -15,7 +15,7 @@ const logger = createLogger('api:form-file');
 const submissionOf = async (
   payload: Payload,
   fileDocument: FormCollection,
-): Promise<Pick<FormSubmission, 'approved' | 'hof'> | undefined> => {
+): Promise<Pick<FormSubmission, 'approved' | 'hof' | 'form'> | undefined> => {
   if (fileDocument.isTemporary !== false) return undefined;
   const { formSubmission } = fileDocument;
   if (formSubmission === null || formSubmission === undefined) return undefined;
@@ -27,9 +27,36 @@ const submissionOf = async (
       depth: 0,
       overrideAccess: true,
       disableErrors: true,
-      select: { approved: true, hof: true },
+      select: { approved: true, hof: true, form: true },
     })) ?? undefined
   );
+};
+
+/**
+ * Whether an approved submission makes its files public. Approval publishes a submission, e.g.
+ * a Stadtleben stand on the website, but it is also how the Ressort accepts a Hof's plan or
+ * order, which stays the Hof's: files of a form only a Hof's administrators hand in are never
+ * public.
+ */
+const isPublishedFile = async (
+  payload: Payload,
+  submission: Pick<FormSubmission, 'approved' | 'form' | 'hof'> | undefined,
+): Promise<boolean> => {
+  if (submission?.approved !== true) return false;
+  if (!environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD) return true;
+  const formId = typeof submission.form === 'object' ? submission.form.id : submission.form;
+  const form = await payload.findByID({
+    collection: 'forms',
+    id: formId,
+    depth: 0,
+    overrideAccess: true,
+    disableErrors: true,
+    select: { hofDashboard: true },
+  });
+  // a Hof's submission whose form is gone, e.g. in the trash, stays as private as it was
+  if (form === null) return submission.hof === undefined || submission.hof === null;
+  const linked = typeof form.hofDashboard?.area === 'string';
+  return !linked || form.hofDashboard?.onlyHofAdministrators === false;
 };
 
 /**
@@ -47,8 +74,9 @@ const isOwnHofFile = async (
 };
 
 /**
- * Streams an uploaded form file. Files on an approved submission are public, every other file
- * only reaches those who may read form submissions and a Hof's own address administrators.
+ * Streams an uploaded form file. Files on an approved submission are public, except a Hof's
+ * plans and orders; every other file only reaches those who may read form submissions and a
+ * Hof's own address administrators.
  */
 export async function GET(
   request: Request,
@@ -83,7 +111,7 @@ export async function GET(
     const submission = await submissionOf(payload, fileDocument);
     const mayRead =
       hasAdminOrWebAccess({ req: accessRequest }) ||
-      submission?.approved === true ||
+      (await isPublishedFile(payload, submission)) ||
       (await isOwnHofFile(accessRequest, submission));
 
     if (!mayRead) {

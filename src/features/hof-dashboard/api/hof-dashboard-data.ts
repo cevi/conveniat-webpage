@@ -2,6 +2,7 @@ import {
   type HofDashboardArea,
   type HofEntryMode,
   type HofEntryStatus,
+  type HofReviewChoice,
   type HofReviewStatus,
 } from '@/features/hof-dashboard/constants';
 import { daysUntil } from '@/features/hof-dashboard/utils/submission-progress';
@@ -10,12 +11,15 @@ import {
   parseMaterialAnswer,
   serializeMaterialAnswer,
 } from '@/features/payload-cms/components/form/utils/material-list';
+import { getAdministeredGroupIds } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Form, Hof } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import { getPayload } from 'payload';
+import { getPayload, type Payload } from 'payload';
 
 const logger = createLogger('hof-dashboard:data');
 
@@ -25,10 +29,11 @@ const MAX_SUBMISSIONS = 500;
 /** Most forms linked to the dashboard; far more than it will ever have. */
 const MAX_FORMS = 100;
 
+/** The Hof's responsible person (AVP), as Cevi.DB knows them. */
 export interface HofContact {
-  name: string;
+  /** Missing until they signed in once: the sync only knows the address. */
+  name: string | undefined;
   email: string;
-  phone: string;
 }
 
 export interface HofDashboardDeadline {
@@ -69,8 +74,10 @@ export interface HofDashboardEntry {
   answers: HofDashboardAnswer[];
   /** Whether the Hof may still take it back: handed in, and not yet taken up by the Ressort. */
   withdrawable: boolean;
-  /** The Ressort's own status, without the website approval that also reads as accepted. */
-  reviewStatus: HofReviewStatus | undefined;
+  /** What a reviewer answered: a working status, accepted (approved), or nothing yet. */
+  reviewStatus: HofReviewChoice | undefined;
+  /** Marked final by a reviewer: the Hof hands in no further version. */
+  final: boolean;
   /** Who wrote the current feedback, and when. */
   feedbackBy: { name: string; at: string } | undefined;
   /** Every change of status or feedback, newest first; for the reviewers only, else empty. */
@@ -83,6 +90,7 @@ export interface HofReviewLogEntry {
   by: string;
   status: HofEntryStatus;
   feedback: string;
+  final: boolean;
 }
 
 /** A form linked to the dashboard, with the Hof's submissions of it, newest first. */
@@ -94,6 +102,8 @@ export interface HofDashboardForm {
   deadline: string | undefined;
   /** Closed at its due date. */
   closed: boolean;
+  /** The Hof's newest version is marked final, so it hands in no further one. */
+  finalized: boolean;
   mode: HofEntryMode;
   /** The field that asks for the Hof, answered by the dashboard. */
   hofField: string;
@@ -114,7 +124,11 @@ export interface HofDashboardDocument {
 
 export interface HofDashboardData {
   hof: { id: string; name: string };
-  contacts: { avp: HofContact; coach: HofContact; buildingManager: HofContact };
+  /**
+   * The Hof's responsible people (AVP): the address managers of its Cevi.DB group, read-only
+   * from Cevi.DB.
+   */
+  responsible: HofContact[];
   deadlines: HofDashboardDeadline[];
   forms: HofDashboardForm[];
   documents: HofDashboardDocument[];
@@ -122,13 +136,55 @@ export interface HofDashboardData {
   isReviewer: boolean;
 }
 
-const toContact = (
-  contact: { name?: string | null; email?: string | null; phone?: string | null } | undefined,
-): HofContact => ({
-  name: contact?.name ?? '',
-  email: contact?.email ?? '',
-  phone: contact?.phone ?? '',
-});
+/**
+ * Most users read to find a Hof's address managers. The query can only narrow to users with
+ * this group and this role somewhere, not in the same entry, so the exact match is made after;
+ * far more than a group ever has.
+ */
+const MAX_RESPONSIBLE = 200;
+
+/**
+ * The Hof's responsible people, lazily from what Cevi.DB already told us: the addresses the
+ * billing sync copies from the group's address managers, named by those of them who signed
+ * in, since the login keeps their roles. Nothing here is edited by hand.
+ */
+const findResponsible = async (
+  payload: Payload,
+  hof: Pick<Hof, 'groupId' | 'addressManagerEmails'>,
+): Promise<HofContact[]> => {
+  const { docs: users } = await payload.find({
+    collection: 'users',
+    where: {
+      and: [
+        { 'groups.id': { equals: Number(hof.groupId) } },
+        { 'groups.role_class': { equals: HOF_ADMINISTRATOR_ROLE_CLASS } },
+      ],
+    },
+    depth: 0,
+    limit: MAX_RESPONSIBLE,
+    pagination: false,
+    overrideAccess: true,
+    select: { fullName: true, nickname: true, email: true, groups: true },
+  });
+  const signedIn = users
+    // the role in this very group, not one role here and another elsewhere
+    .filter((user) =>
+      getAdministeredGroupIds(
+        user.groups as Parameters<typeof getAdministeredGroupIds>[0],
+      ).includes(hof.groupId),
+    )
+    .map((user) => ({
+      name: formatUserFullName(user.fullName, user.nickname),
+      email: user.email,
+    }));
+  const known = new Set(signedIn.map((contact) => contact.email.toLowerCase()));
+  const synced = (hof.addressManagerEmails ?? '')
+    .split(',')
+    .map((email) => email.trim())
+    .filter((email) => email !== '' && !known.has(email.toLowerCase()))
+    .map((email) => ({ name: undefined, email }));
+  return [...signedIn, ...synced];
+};
 
 /** The id of a relationship, whether Payload returned it populated or not. */
 export const idOf = (reference: string | { id: string } | null | undefined): string | undefined =>
@@ -234,14 +290,16 @@ interface StoredSubmission {
   id: string;
   form: string | { id: string };
   submissionData?: { field: string; value: string }[] | null;
-  hofReviewStatus?: 'inReview' | 'revisionRequired' | 'accepted' | null;
+  hofReviewStatus?: HofReviewStatus | null;
   hofFeedback?: string | null;
+  hofFinal?: boolean | null;
   hofReviewLog?:
     | {
         changedAt: string;
         reviewerName?: string | null;
-        status?: HofReviewStatus | null;
+        status?: HofReviewChoice | null;
         feedback?: string | null;
+        final?: boolean | null;
       }[]
     | null;
   approved?: boolean | null;
@@ -266,7 +324,7 @@ const feedbackAuthor = (submission: StoredSubmission): { name: string; at: strin
     : { name: setBy.reviewerName ?? '', at: setBy.changedAt };
 };
 
-/** Where a submission stands: approved for the website counts as accepted. */
+/** Where a submission stands: accepted is the form builder's approval. */
 const statusOf = (submission: StoredSubmission): HofEntryStatus =>
   submission.approved === true ? 'accepted' : (submission.hofReviewStatus ?? 'submitted');
 
@@ -287,7 +345,7 @@ const toRenderedForm = (form: Form): ExtendedFormType =>
 
 /**
  * Everything one Hof's dashboard shows: the forms linked to it with the Hof's submissions of
- * them, the camp's deadlines, the Hof's contacts and the documents. The caller has checked
+ * them, the camp's deadlines, the Hof's responsible people and the documents. The caller has checked
  * that the user may open the Hof; everything here reads with `overrideAccess`, narrowed to it.
  */
 export const getHofDashboardData = async (
@@ -303,8 +361,8 @@ export const getHofDashboardData = async (
       id: hofId,
       depth: 0,
       overrideAccess: true,
-      select: { name: true, dashboardContacts: true },
-    }) as Promise<Pick<Hof, 'id' | 'name' | 'dashboardContacts'>>,
+      select: { name: true, groupId: true, addressManagerEmails: true },
+    }) as Promise<Pick<Hof, 'id' | 'name' | 'groupId' | 'addressManagerEmails'>>,
     payload.findGlobal({
       slug: 'hof-dashboard-settings',
       locale,
@@ -363,6 +421,7 @@ export const getHofDashboardData = async (
             hofReviewStatus: true,
             hofFeedback: true,
             hofReviewLog: true,
+            hofFinal: true,
             approved: true,
             createdAt: true,
           },
@@ -462,7 +521,8 @@ export const getHofDashboardData = async (
             filesBySubmission.get(submission.id) ?? new Map<string, HofDashboardFile>(),
             locale,
           ),
-          reviewStatus: submission.hofReviewStatus ?? undefined,
+          reviewStatus: status === 'submitted' ? undefined : status,
+          final: submission.hofFinal === true,
           feedbackBy: feedbackAuthor(submission),
           // the history is the Ressort's working record, not the Hof's
           reviewLog: isReviewer
@@ -472,13 +532,17 @@ export const getHofDashboardData = async (
                   by: change.reviewerName ?? '',
                   status: change.status ?? 'submitted',
                   feedback: change.feedback ?? '',
+                  final: change.final === true,
                 }))
                 .toReversed()
             : [],
           // only the version that counts; an earlier one is what the Ressort answered on.
           // A reviewer answers a submission; taking it back is the Hof's.
           withdrawable:
-            !isReviewer && status === 'submitted' && (mode === 'entries' || index === 0),
+            !isReviewer &&
+            status === 'submitted' &&
+            submission.hofFinal !== true &&
+            (mode === 'entries' || index === 0),
         };
       });
 
@@ -511,6 +575,7 @@ export const getHofDashboardData = async (
             settingsOfForm?.closesAtDeadline === true &&
             deadline !== undefined &&
             daysUntil(deadline, now) < 0,
+          finalized: mode === 'versions' && own[0]?.hofFinal === true,
           mode,
           hofField,
           initialValues,
@@ -550,11 +615,7 @@ export const getHofDashboardData = async (
 
   return {
     hof: { id: hof.id, name: hof.name },
-    contacts: {
-      avp: toContact(hof.dashboardContacts?.avp),
-      coach: toContact(hof.dashboardContacts?.coach),
-      buildingManager: toContact(hof.dashboardContacts?.buildingManager),
-    },
+    responsible: await findResponsible(payload, hof),
     deadlines,
     forms: dashboardForms,
     documents,

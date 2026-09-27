@@ -5,6 +5,7 @@ import type {
   ParticipationAnswerUpdate,
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
 import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
 import {
@@ -54,12 +55,6 @@ interface LegacyParticipationsResponse {
     } | null>;
   };
 }
-
-/**
- * The role class Cevi.DB gives the people who maintain a Hof's addresses. They are the
- * recipients of a Pflichtangaben reminder for that Hof.
- */
-const ADDRESS_MANAGER_ROLE_CLASS = 'Group::MitgliederorganisationExterne::Adressverwalter';
 
 /**
  * The legacy `people.json` payload, read defensively: it is a frontend endpoint, so a
@@ -351,7 +346,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
 
     const addressManagerRoleIds = new Set(
       (parsed.data.linked?.roles ?? [])
-        .filter((role) => role !== null && role.role_class === ADDRESS_MANAGER_ROLE_CLASS)
+        .filter((role) => role !== null && role.role_class === HOF_ADMINISTRATOR_ROLE_CLASS)
         .map((role) => String(role?.id)),
     );
 

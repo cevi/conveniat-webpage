@@ -2,10 +2,10 @@ import type { HofDashboardData } from '@/features/hof-dashboard/api/hof-dashboar
 import {
   AREA_DOT_CLASS,
   AREA_TEXT_CLASS,
-  ContactBlock,
   Panel,
   ProgressBar,
   ProgressLine,
+  ResponsibleList,
   SectionHeading,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DeadlineList } from '@/features/hof-dashboard/components/deadline-list';
@@ -129,24 +129,8 @@ export const OverviewView: React.FC<{
       </Panel>
 
       <Panel className="space-y-4 @3xl:col-span-2">
-        <SectionHeading>{translate('contacts', locale)}</SectionHeading>
-        <dl className="grid gap-5 @2xl:grid-cols-3">
-          <ContactBlock
-            label={translate('avp', locale)}
-            contact={data.contacts.avp}
-            locale={locale}
-          />
-          <ContactBlock
-            label={translate('coach', locale)}
-            contact={data.contacts.coach}
-            locale={locale}
-          />
-          <ContactBlock
-            label={translate('buildingManager', locale)}
-            contact={data.contacts.buildingManager}
-            locale={locale}
-          />
-        </dl>
+        <SectionHeading>{translate('responsible', locale)}</SectionHeading>
+        <ResponsibleList people={data.responsible} locale={locale} />
       </Panel>
     </div>
   );

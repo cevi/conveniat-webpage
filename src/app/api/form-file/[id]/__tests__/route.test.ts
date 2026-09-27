@@ -40,7 +40,7 @@ jest.mock('@/utils/server-logger', () => ({
 
 import { GET } from '@/app/api/form-file/[id]/route';
 import { environmentVariables } from '@/config/environment-variables';
-import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { getPayload } from 'payload';
 
 const FILE_ID = '0123456789abcdef01234567';
@@ -67,8 +67,21 @@ const HOF_NORD_ADMINISTRATOR = {
   groups: [{ id: 990_001, role_class: HOF_ADMINISTRATOR_ROLE_CLASS }],
 };
 
+/** The forms a file can be handed in with, by id. */
+const FORMS: Record<string, object> = {
+  // a contact form, off the dashboard
+  // eslint-disable-next-line unicorn/no-null -- Payload stores an unset select as null
+  'form-contact': { hofDashboard: { area: null } },
+  // a Hof's plan, handed in by its address administrators only
+  'form-plan': { hofDashboard: { area: 'infrastructure', entries: 'versions' } },
+  // Stadtleben stands, which any participant hands in and the website shows once approved
+  'form-stadtleben': {
+    hofDashboard: { area: 'program', entries: 'entries', onlyHofAdministrators: false },
+  },
+};
+
 const fileOn = (
-  submission: { approved: boolean; hof?: string } | undefined,
+  submission: { approved: boolean; hof?: string; form?: string } | undefined,
   isTemporary = false,
 ): object => ({
   id: FILE_ID,
@@ -76,7 +89,10 @@ const fileOn = (
   filename: 'stored-name.pdf',
   originalFilename: 'upload.pdf',
   mimeType: 'application/pdf',
-  formSubmission: submission === undefined ? undefined : { id: 'submission', ...submission },
+  formSubmission:
+    submission === undefined
+      ? undefined
+      : { id: 'submission', form: 'form-contact', ...submission },
 });
 
 describe('GET /api/form-file/[id]', () => {
@@ -90,7 +106,11 @@ describe('GET /api/form-file/[id]', () => {
 
   const download = (user: object | null, fileDocument: object): Promise<Response> => {
     mockPayload.auth.mockResolvedValue({ user });
-    mockPayload.findByID.mockResolvedValue(fileDocument);
+    mockPayload.findByID.mockImplementation(
+      ({ collection, id }: { collection: string; id: string }) =>
+        // eslint-disable-next-line unicorn/no-null -- findByID with disableErrors answers null
+        Promise.resolve(collection === 'forms' ? (FORMS[id] ?? null) : fileDocument),
+    );
     return GET(new Request(`http://localhost/api/form-file/${FILE_ID}`), {
       params: Promise.resolve({ id: FILE_ID }),
     });
@@ -156,6 +176,32 @@ describe('GET /api/form-file/[id]', () => {
       fileOn({ approved: false, hof: 'hof-nord' }, true),
     );
     expect(response.status).toBe(403);
+  });
+
+  it("keeps a Hof's approved plan private: approving it accepts it, it does not publish it", async () => {
+    const plan = fileOn({ approved: true, hof: 'hof-nord', form: 'form-plan' });
+    await expect(download(ANONYMOUS, plan)).resolves.toMatchObject({ status: 401 });
+    await expect(download(PARTICIPANT, plan)).resolves.toMatchObject({ status: 403 });
+    // the Hof and the Ressort still read it
+    await expect(download(HOF_NORD_ADMINISTRATOR, plan)).resolves.toMatchObject({ status: 200 });
+    await expect(download(WEB_CORE_TEAM_MEMBER, plan)).resolves.toMatchObject({ status: 200 });
+  });
+
+  it('publishes an approved Stadtleben stand, which the website shows', async () => {
+    const stand = fileOn({ approved: true, hof: 'hof-sued', form: 'form-stadtleben' });
+    await expect(download(ANONYMOUS, stand)).resolves.toMatchObject({ status: 200 });
+    // until it is approved, it is the Hof's
+    const handedIn = fileOn({ approved: false, hof: 'hof-sued', form: 'form-stadtleben' });
+    await expect(download(ANONYMOUS, handedIn)).resolves.toMatchObject({ status: 401 });
+  });
+
+  it('publishes any approved submission on a deployment without the Hof dashboard', async () => {
+    setHofDashboard(false);
+    const response = await download(
+      ANONYMOUS,
+      fileOn({ approved: true, hof: 'hof-nord', form: 'form-plan' }),
+    );
+    expect(response.status).toBe(200);
   });
 
   it('opens no Hof file on a deployment without the Hof dashboard', async () => {

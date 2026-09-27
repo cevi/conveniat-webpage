@@ -1,5 +1,5 @@
 import { idOf } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import type { HofReviewStatus } from '@/features/hof-dashboard/constants';
+import type { HofReviewChoice } from '@/features/hof-dashboard/constants';
 import type { HofReviewer } from '@/features/hof-dashboard/payload-cms/hooks/record-hof-review';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { createLogger } from '@/utils/server-logger';
@@ -22,7 +22,7 @@ export const withdrawHofSubmission = async (hof: HofName, submissionId: string):
     depth: 0,
     overrideAccess: true,
     disableErrors: true,
-    select: { form: true, hof: true, hofReviewStatus: true, approved: true },
+    select: { form: true, hof: true, hofReviewStatus: true, approved: true, hofFinal: true },
   });
   // another Hof's submission answers as a missing one, so its id tells nothing
   if (submission === null || idOf(submission.hof) !== hof.id) {
@@ -56,6 +56,7 @@ export const withdrawHofSubmission = async (hof: HofName, submissionId: string):
   }
   const reviewed =
     submission.approved === true ||
+    submission.hofFinal === true ||
     (submission.hofReviewStatus !== undefined && submission.hofReviewStatus !== null);
   if (reviewed || !isLatest) {
     throw new TRPCError({ code: 'CONFLICT', message: 'submission_locked' });
@@ -77,19 +78,24 @@ export const withdrawHofSubmission = async (hof: HofName, submissionId: string):
 
 /**
  * Records the Ressort's answer on a Hof's submission: its status, or none to put it back to
- * handed in, and the feedback the Hof reads next to it. Only for a form on the dashboard.
+ * handed in, the feedback the Hof reads next to it, and whether it is final. Accepting it is
+ * the form builder's approval, as the approval link of an email gives it. Only for a form on
+ * the dashboard.
  */
 export const reviewHofSubmission = async ({
   hof,
   submissionId,
   status,
   feedback,
+  final,
   reviewer,
 }: {
   hof: HofName;
   submissionId: string;
-  status: HofReviewStatus | undefined;
+  status: HofReviewChoice | undefined;
   feedback: string;
+  /** Final: the Hof hands in no further version of the form. */
+  final: boolean;
   /** Who answers, for the review history and the name next to the feedback. */
   reviewer: HofReviewer;
 }): Promise<void> => {
@@ -120,8 +126,13 @@ export const reviewHofSubmission = async ({
   await payload.update({
     collection: 'form-submissions',
     id: submissionId,
-    // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
-    data: { hofReviewStatus: status ?? null, hofFeedback: feedback },
+    data: {
+      approved: status === 'accepted',
+      // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+      hofReviewStatus: status === 'accepted' || status === undefined ? null : status,
+      hofFeedback: feedback,
+      hofFinal: final,
+    },
     depth: 0,
     overrideAccess: true,
     context: { hofReviewer: reviewer },
@@ -130,5 +141,6 @@ export const reviewHofSubmission = async ({
   logger.info('A reviewer answered a Hof submission', {
     'hof_dashboard.hof_id': hof.id,
     'hof_dashboard.review_status': status ?? 'submitted',
+    'hof_dashboard.review_final': final,
   });
 };

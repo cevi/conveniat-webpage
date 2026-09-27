@@ -1,3 +1,5 @@
+import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
+
 const PAST = '2020-01-31T10:00:00.000Z';
 const FUTURE = '2999-01-31T10:00:00.000Z';
 
@@ -199,6 +201,40 @@ const SUBMISSIONS = [
   },
 ];
 
+/** Users who signed in: the login keeps their Cevi.DB roles. Hof Nord is the group 990001. */
+const USERS = [
+  {
+    fullName: 'Anna Beispiel',
+    nickname: 'Fuchs',
+    email: 'anna@example.com',
+    groups: [{ id: 990_001, role_class: HOF_ADMINISTRATOR_ROLE_CLASS }],
+  },
+  {
+    fullName: 'Lea Roth',
+    // eslint-disable-next-line unicorn/no-null -- Payload stores a missing Cevi name as null
+    nickname: null,
+    email: 'lea@example.com',
+    groups: [{ id: 990_001, role_class: HOF_ADMINISTRATOR_ROLE_CLASS }],
+  },
+  {
+    // only a member of Hof Nord; the address manager of Hof Süd
+    fullName: 'Max Muster',
+    nickname: 'Dachs',
+    email: 'max@example.com',
+    groups: [
+      { id: 990_001, role_class: 'Group::MitgliederorganisationExterne::Externer' },
+      { id: 990_002, role_class: HOF_ADMINISTRATOR_ROLE_CLASS },
+    ],
+  },
+  {
+    // the address manager of a Jungschar with the same id, not of the Hof's group
+    fullName: 'Jan Keller',
+    nickname: 'Igel',
+    email: 'jan@example.com',
+    groups: [{ id: 990_001, role_class: 'Group::Jungschar::Adressverwalter' }],
+  },
+];
+
 const STORED_FILES = [
   {
     id: 'file-a',
@@ -221,6 +257,10 @@ interface FileQuery {
 }
 
 let mockForms: unknown[] = [];
+let mockSubmissions: Record<string, unknown>[] = SUBMISSIONS;
+let mockUsers: unknown[] = USERS;
+/** The Hof's addresses the billing sync copied from its Cevi.DB group. */
+let mockAddressManagerEmails: string | undefined;
 /** The forms as read in German, when that differs from the reader's language. */
 let mockGermanForms: unknown[] | undefined;
 
@@ -233,7 +273,10 @@ const mockPayload = {
           return Promise.resolve({ docs: forms, totalDocs: forms.length });
         }
         case 'form-submissions': {
-          return Promise.resolve({ docs: SUBMISSIONS, totalDocs: SUBMISSIONS.length });
+          return Promise.resolve({ docs: mockSubmissions, totalDocs: mockSubmissions.length });
+        }
+        case 'users': {
+          return Promise.resolve({ docs: mockUsers, totalDocs: mockUsers.length });
         }
         case 'form_collection': {
           const [ids, submissions] = where?.and ?? [];
@@ -254,7 +297,8 @@ const mockPayload = {
     Promise.resolve({
       id: 'hof-nord',
       name: 'Hof Nord',
-      dashboardContacts: { avp: { name: 'Anna', email: 'avp@example.com' } },
+      groupId: '990001',
+      addressManagerEmails: mockAddressManagerEmails,
     }),
   ),
   findGlobal: jest.fn(() =>
@@ -280,6 +324,10 @@ const mockPayload = {
   ),
 };
 
+// the access rules read the Cevi.DB groups of the Ressorts from the environment
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: { FEATURE_ENABLE_HOF_DASHBOARD: true },
+}));
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
 jest.mock('payload', () => ({ getPayload: (): Promise<unknown> => Promise.resolve(mockPayload) }));
 jest.mock('@/utils/server-logger', () => ({
@@ -307,7 +355,16 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockForms = [planForm, standForm, materialForm, draftForm];
   mockGermanForms = undefined;
+  mockSubmissions = SUBMISSIONS;
+  mockUsers = USERS;
+  mockAddressManagerEmails = undefined;
 });
+
+/** The Hof's submissions with one of them changed. */
+const withSubmission = (id: string, change: Record<string, unknown>): Record<string, unknown>[] =>
+  SUBMISSIONS.map((submission) =>
+    submission.id === id ? { ...submission, ...change } : submission,
+  );
 
 describe('getHofDashboardData', () => {
   it('offers the published forms in their position order, under their dashboard title', async () => {
@@ -372,17 +429,47 @@ describe('getHofDashboardData', () => {
     expect(material.entries.every((entry) => !entry.withdrawable)).toBe(true);
   });
 
-  it("leaves withdrawing to the Hof: a reviewer answers, and gets the Ressort's own status", async () => {
+  it('leaves withdrawing to the Hof: a reviewer answers, and sees what was answered', async () => {
     const data = await getHofDashboardData('hof-nord', 'de', true);
     expect(data.isReviewer).toBe(true);
     expect(data.forms.flatMap((form) => form.entries).some((entry) => entry.withdrawable)).toBe(
       false,
     );
     const stand = await formOf('form-stand', true);
-    // approved for the website reads as accepted; the review panel still shows what the
-    // Ressort itself set
-    const approved = stand.entries.find((entry) => entry.id === 'stand-b');
-    expect([approved?.status, approved?.reviewStatus]).toEqual(['accepted', 'revisionRequired']);
+    // accepted is the approval, whatever status was left next to it
+    expect(stand.entries.map((entry) => [entry.id, entry.status, entry.reviewStatus])).toEqual([
+      ['stand-b', 'accepted', 'accepted'],
+      // nothing answered yet
+      ['stand-a', 'submitted', undefined],
+    ]);
+    const material = await formOf('form-material', true);
+    expect(material.entries.map((entry) => entry.reviewStatus)).toEqual([
+      'revisionRequired',
+      'inReview',
+    ]);
+  });
+
+  it('marks the form finalized when its newest version is final, and closes it to withdrawing', async () => {
+    mockSubmissions = withSubmission('plan-2', { hofFinal: true });
+    const plan = await formOf('form-plan');
+    expect(plan.finalized).toBe(true);
+    expect(plan.entries.map((entry) => [entry.id, entry.final, entry.withdrawable])).toEqual([
+      // nobody gave it a status, but final is an answer too
+      ['plan-2', true, false],
+      ['plan-1', false, false],
+    ]);
+  });
+
+  it('keeps a form open while its newest version is not final', async () => {
+    await expect(formOf('form-plan')).resolves.toMatchObject({ finalized: false });
+    // an earlier version marked final was followed by a newer one the Ressort let in
+    mockSubmissions = withSubmission('plan-1', { hofFinal: true });
+    await expect(formOf('form-plan')).resolves.toMatchObject({ finalized: false });
+  });
+
+  it('never finalizes a form of entries: each entry stands on its own', async () => {
+    mockSubmissions = withSubmission('stand-b', { hofFinal: true });
+    await expect(formOf('form-stand')).resolves.toMatchObject({ finalized: false });
   });
 
   it('lets a Hof withdraw any unreviewed entry of a form of entries', async () => {
@@ -535,12 +622,14 @@ describe('getHofDashboardData', () => {
         by: 'Tom Frei v/o Dachs',
         status: 'submitted',
         feedback: '',
+        final: false,
       },
       {
         at: '2026-09-02T12:00:00.000Z',
         by: 'Tom Frei v/o Dachs',
         status: 'inReview',
         feedback: 'Fehlt da nicht etwas?',
+        final: false,
       },
     ]);
     expect(
@@ -548,6 +637,49 @@ describe('getHofDashboardData', () => {
         .find((entry) => entry.id === 'material-2')
         ?.reviewLog.map((change) => change.at),
     ).toEqual(['2026-09-20T12:00:00.000Z', '2026-09-19T12:00:00.000Z', '2026-09-18T12:00:00.000Z']);
+  });
+
+  it('shows a reviewer which change accepted a version and marked it final', async () => {
+    mockSubmissions = withSubmission('material-2', {
+      approved: true,
+      hofFinal: true,
+      hofReviewLog: [
+        {
+          changedAt: '2026-09-21T12:00:00.000Z',
+          reviewerName: 'Freigabe-Link (E-Mail)',
+          status: 'accepted',
+          feedback: '',
+          final: true,
+        },
+      ],
+    });
+    const material = await formOf('form-material', true);
+    expect(material.entries[0]?.reviewLog).toEqual([
+      {
+        at: '2026-09-21T12:00:00.000Z',
+        by: 'Freigabe-Link (E-Mail)',
+        status: 'accepted',
+        feedback: '',
+        final: true,
+      },
+    ]);
+  });
+
+  it("lists the Hof's address managers from Cevi.DB, named once they signed in", async () => {
+    mockAddressManagerEmails = 'LEA@example.com, bau@hof-nord.example.com, ';
+    const { responsible } = await getHofDashboardData('hof-nord', 'de', false);
+    expect(responsible).toEqual([
+      { name: 'Anna Beispiel v/o Fuchs', email: 'anna@example.com' },
+      { name: 'Lea Roth', email: 'lea@example.com' },
+      // synced by the billing, but never signed in; Lea's address, written differently, once
+      { name: undefined, email: 'bau@hof-nord.example.com' },
+    ]);
+  });
+
+  it('lists nobody for a Hof without address managers', async () => {
+    mockUsers = [];
+    const { responsible } = await getHofDashboardData('hof-nord', 'de', false);
+    expect(responsible).toEqual([]);
   });
 
   it('lists the deadlines by date and only documents with a file', async () => {
@@ -559,7 +691,5 @@ describe('getHofDashboardData', () => {
     expect(data.documents).toEqual([
       { id: 'doc-1', title: 'Merkblatt', url: '/m.pdf', filesize: 100, area: 'infrastructure' },
     ]);
-    expect(data.contacts.avp).toEqual({ name: 'Anna', email: 'avp@example.com', phone: '' });
-    expect(data.contacts.coach).toEqual({ name: '', email: '', phone: '' });
   });
 });

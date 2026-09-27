@@ -2076,10 +2076,14 @@ export interface FormSubmission {
    */
   hof?: (string | null) | Hof;
   /**
-   * Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback.
+   * Empty means handed in and not yet looked at. Only "Revision required" asks the Hof for a new version, together with the feedback. To accept a submission, tick "Approved".
    */
-  hofReviewStatus?: ('inReview' | 'revisionRequired' | 'accepted') | null;
+  hofReviewStatus?: ('inReview' | 'revisionRequired') | null;
   hofFeedback?: string | null;
+  /**
+   * For a form of versions, e.g. a material order: the Hof can no longer hand in a new one. Changes then go through the Ressort.
+   */
+  hofFinal?: boolean | null;
   submittedBy?: (string | null) | User;
   /**
    * Who changed the status or the feedback, and when. Written on every save.
@@ -2089,6 +2093,7 @@ export interface FormSubmission {
         changedAt: string;
         reviewerName?: string | null;
         status?: ('inReview' | 'revisionRequired' | 'accepted') | null;
+        final?: boolean | null;
         feedback?: string | null;
         reviewer?: (string | null) | User;
         id?: string | null;
@@ -2160,7 +2165,7 @@ export interface HelperJob {
   _status?: ('draft' | 'published') | null;
 }
 /**
- * One entry per Cevi.DB group that runs a conveniat27 camp, with the events synced for billing.
+ * One entry per Cevi.DB group that runs a conveniat27 camp. Synced from Cevi.DB and read-only here: change a Hof in Cevi.DB, then run "Load events from Cevi.DB" again.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "hoefe".
@@ -2168,7 +2173,7 @@ export interface HelperJob {
 export interface Hof {
   id: string;
   /**
-   * Display name, e.g. "Hof Süd". Suggested by the sync when the Hof is first found, never changed by it afterwards.
+   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
    */
   name: string;
   /**
@@ -2176,7 +2181,7 @@ export interface Hof {
    */
   groupId: string;
   /**
-   * Configure which Hitobito events should be synced for billing.
+   * The conveniat27 events of this group in Cevi.DB, whose participations the billing syncs.
    */
   events?:
     | {
@@ -2191,26 +2196,6 @@ export interface Hof {
         id?: string | null;
       }[]
     | null;
-  /**
-   * Shown at the top of the Hof dashboard. The name reads like "First Last v/o Cevi name".
-   */
-  dashboardContacts?: {
-    avp?: {
-      name?: string | null;
-      email?: string | null;
-      phone?: string | null;
-    };
-    coach?: {
-      name?: string | null;
-      email?: string | null;
-      phone?: string | null;
-    };
-    buildingManager?: {
-      name?: string | null;
-      email?: string | null;
-      phone?: string | null;
-    };
-  };
   /**
    * Comma-separated. Written by the subgroup sync button; these are the recipients of the mandatory-fields reminder email.
    */
@@ -7236,31 +7221,6 @@ export interface HoefeSelect<T extends boolean = true> {
         eventName?: T;
         id?: T;
       };
-  dashboardContacts?:
-    | T
-    | {
-        avp?:
-          | T
-          | {
-              name?: T;
-              email?: T;
-              phone?: T;
-            };
-        coach?:
-          | T
-          | {
-              name?: T;
-              email?: T;
-              phone?: T;
-            };
-        buildingManager?:
-          | T
-          | {
-              name?: T;
-              email?: T;
-              phone?: T;
-            };
-      };
   addressManagerEmails?: T;
   reminderRecipientsOverride?: T;
   updatedAt?: T;
@@ -7900,6 +7860,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
   hof?: T;
   hofReviewStatus?: T;
   hofFeedback?: T;
+  hofFinal?: T;
   submittedBy?: T;
   hofReviewLog?:
     | T
@@ -7907,6 +7868,7 @@ export interface FormSubmissionsSelect<T extends boolean = true> {
         changedAt?: T;
         reviewerName?: T;
         status?: T;
+        final?: T;
         feedback?: T;
         reviewer?: T;
         id?: T;
