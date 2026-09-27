@@ -33,7 +33,8 @@ export const useMessageReadStatus = ({
     onMutate: () => {
       // Optimistically update the chat overview
       trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) => {
-        if (!oldChats) return [];
+        // nothing cached (a chat opened by link): an empty list here would stay until it is stale
+        if (!oldChats) return oldChats;
         return oldChats.map((chat: ChatWithMessagePreview) => {
           if (chat.id === chatId) {
             return {
@@ -49,7 +50,9 @@ export const useMessageReadStatus = ({
       confirmedReadWatermarks.set(variables.chatId, variables.lastMessageId);
       lastMarkedReadIdReference.current = variables.lastMessageId;
     },
-    onSettled: () => {
+    // Only a failure needs the server's count back; on success the optimistic zero is the
+    // answer, and refetching here doubled the list queries of every message read live.
+    onError: () => {
       trpcUtils.chat.chats.invalidate().catch(console.error);
     },
   });
