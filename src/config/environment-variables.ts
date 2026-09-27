@@ -112,6 +112,10 @@ export const environmentVariables = createEnv({
       .string()
       .transform((value) => value === 'true')
       .default('false'),
+    FEATURE_ENABLE_HOF_DASHBOARD: z
+      .string()
+      .transform((value) => value === 'true')
+      .default('false'),
 
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),

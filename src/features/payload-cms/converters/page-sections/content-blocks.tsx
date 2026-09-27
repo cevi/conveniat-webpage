@@ -3,6 +3,8 @@ import type { PhotoCarouselBlock } from '@/components/gallery';
 import { PhotoCarousel } from '@/components/gallery';
 import type { NewsCardType } from '@/components/news-card';
 import { NewsCardBlock } from '@/components/news-card';
+import { environmentVariables } from '@/config/environment-variables';
+import { HofDashboard } from '@/features/hof-dashboard/components/hof-dashboard';
 import { getDonationBarometerCached } from '@/features/payload-cms/api/cached-globals';
 import { getTimelineEntriesCached } from '@/features/payload-cms/api/cached-timeline';
 import { Accordion } from '@/features/payload-cms/components/accordion/accordion';
@@ -83,6 +85,7 @@ export type ContentBlockTypeNames =
   | 'formBlock'
   | 'approvedFormSubmissionsBlock'
   | 'photoContestBlock'
+  | 'hofDashboardBlock'
   | 'photoCarousel'
   | 'youtubeEmbed'
   | 'instagramEmbed'
@@ -1029,6 +1032,34 @@ export const RenderPhotoContestBlock: SectionRenderer<{
       locale={locale}
     >
       <PhotoContestView initialContestSlug={block.initialContestSlug ?? 'cevi-schweiz'} />
+    </SectionWrapper>
+  );
+};
+
+/**
+ * The dashboard is personal, so the page around it stays cacheable: everything it shows is
+ * fetched in the browser once the visitor is signed in. On a deployment without the feature
+ * the block renders nothing.
+ */
+export const RenderHofDashboardBlock: SectionRenderer<Record<string, never>> = ({
+  block,
+  sectionClassName,
+  sectionOverrides,
+  locale,
+}) => {
+  if (!environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD) return <></>;
+  return (
+    <SectionWrapper
+      block={block}
+      sectionClassName={sectionClassName}
+      sectionOverrides={sectionOverrides}
+      errorFallbackMessage={errorMessageForType(
+        { de: 'Das Hof-Dashboard', en: 'Hof dashboard', fr: 'le tableau de bord du Hof' },
+        locale,
+      )}
+      locale={locale}
+    >
+      <HofDashboard />
     </SectionWrapper>
   );
 };

@@ -3,6 +3,7 @@ import type {
   DateSlotSelectionBlock,
   FormFieldBlock,
   FormSection,
+  HofSelectionBlock,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
@@ -43,11 +44,16 @@ const scrollFormTopIntoView = (formId?: string): void => {
   window.scrollTo({ top: top + window.scrollY - STICKY_NAV_OFFSET, behavior: 'smooth' });
 };
 
-type SectionField = FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock;
+type SectionField =
+  | FormFieldBlock
+  | ConditionedBlock
+  | JobSelectionBlock
+  | HofSelectionBlock
+  | DateSlotSelectionBlock;
 
 /** Names of the fields a `dateSlotSelection` block registers — it owns up to two. */
 const getFieldNames = (
-  field: FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock,
+  field: FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock,
 ): string[] => {
   const names: string[] = [];
   if ('name' in field && typeof field.name === 'string' && field.name !== '') {
@@ -74,6 +80,8 @@ export const useFormSteps = (
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formMethods: UseFormReturn<any>,
   formId?: string,
+  /** Off for an embedded form, which starts from its presets rather than a stored step. */
+  persistStep = true,
 ): UseFormStepsReturn => {
   /*
    * A section can be gated on an answer from an earlier step, so the list of steps is
@@ -140,7 +148,12 @@ export const useFormSteps = (
    * and "setState during render" lint errors.
    */
   const [currentStepIndex, setCurrentStepIndex] = useState(() => {
-    if (typeof globalThis !== 'undefined' && typeof formId === 'string' && formId !== '') {
+    if (
+      persistStep &&
+      typeof globalThis !== 'undefined' &&
+      typeof formId === 'string' &&
+      formId !== ''
+    ) {
       const savedStep = sessionStorage.getItem(getFormStorageKey(formId, 'step'));
       if (savedStep !== null) {
         return Number(savedStep);
@@ -161,10 +174,10 @@ export const useFormSteps = (
 
   // Save step to sessionStorage whenever it changes
   useEffect(() => {
-    if (typeof formId === 'string' && formId !== '') {
+    if (persistStep && typeof formId === 'string' && formId !== '') {
       sessionStorage.setItem(getFormStorageKey(formId, 'step'), String(clampedStepIndex));
     }
-  }, [formId, clampedStepIndex]);
+  }, [formId, clampedStepIndex, persistStep]);
 
   const currentActualStep = steps[clampedStepIndex];
   const isFirstStep = clampedStepIndex === 0;
@@ -182,7 +195,11 @@ export const useFormSteps = (
     // Explicitly define recursive function to avoid "processFields is undefined" issues if declared as const fn
     function processFields(
       fieldsToProcess: (
-        FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock
+        | FormFieldBlock
+        | ConditionedBlock
+        | JobSelectionBlock
+        | HofSelectionBlock
+        | DateSlotSelectionBlock
       )[],
     ): void {
       for (const field of fieldsToProcess) {

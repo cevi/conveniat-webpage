@@ -41,6 +41,14 @@ export const markUploadedFilesPermanent: CollectionAfterChangeHook<FormSubmissio
         if (fileFormId !== undefined && fileFormId !== currentFormId) {
           continue;
         }
+        // and that the one submitting uploaded it: a form can be shared, e.g. by every Hof
+        const uploaderId =
+          typeof fileDocument.uploadedBy === 'object' && fileDocument.uploadedBy !== null
+            ? fileDocument.uploadedBy.id
+            : fileDocument.uploadedBy;
+        if (uploaderId === undefined || uploaderId === null || uploaderId !== req.user?.id) {
+          continue;
+        }
 
         if (fileDocument.isTemporary) {
           await req.payload.update({

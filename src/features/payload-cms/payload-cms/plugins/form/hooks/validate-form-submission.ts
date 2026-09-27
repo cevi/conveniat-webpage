@@ -3,6 +3,10 @@ import {
   getSelectableDays,
   parseDateRangesValue,
 } from '@/features/payload-cms/components/form/utils/date-slots';
+import {
+  isAllowedQuantity,
+  parseMaterialAnswer,
+} from '@/features/payload-cms/components/form/utils/material-list';
 import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -105,6 +109,19 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
   });
 
   if (typeof form !== 'object') return data;
+
+  // A field answered twice would be checked by its last answer and stored with both, so an
+  // invalid first answer would slip through.
+  const answeredFields = data.submissionData.map((item) => item.field);
+  const repeated = answeredFields.find((field, index) => answeredFields.indexOf(field) !== index);
+  if (repeated !== undefined) {
+    throw new APIError(
+      'Validation Error',
+      400,
+      [{ field: repeated, message: 'invalid_selection' }],
+      true,
+    );
+  }
 
   // Build a map of submitted values for quick lookup
   const submissionDataMap = new Map<string, string>();
@@ -316,8 +333,48 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         }
         break;
       }
+      case 'fileUpload': {
+        // Only files the sender uploaded to this form and no submission claimed yet: an id is
+        // all a submission names, and ids of other people's uploads can be guessed.
+        const fileIds = value
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => id !== '');
+        const { totalDocs: ownUploads } =
+          !req.user || fileIds.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))
+            ? { totalDocs: 0 }
+            : await req.payload.count({
+                collection: 'form_collection',
+                where: {
+                  and: [
+                    { id: { in: fileIds } },
+                    { form: { equals: formId } },
+                    { isTemporary: { equals: true } },
+                    { uploadedBy: { equals: req.user.id } },
+                  ],
+                },
+                overrideAccess: true,
+              });
+        if (ownUploads !== new Set(fileIds).size) {
+          fieldErrors.push({ field: fieldName, message: 'invalid_selection' });
+        }
+        break;
+      }
+      case 'materialList': {
+        // only the listed materials, each a whole number within the limit
+        const listed = new Set(fieldConfig.items.map((item) => item.id));
+        const lines = parseMaterialAnswer(value);
+        if (
+          lines === undefined ||
+          lines.some((line) => !listed.has(line.id) || !isAllowedQuantity(line.quantity))
+        ) {
+          fieldErrors.push({ field: fieldName, message: 'invalid_number' });
+        }
+        break;
+      }
       // jobSelection, checkbox, country, textarea:
       // no extra type-specific validation needed beyond the required check above
+      // hofSelection: linkHofSubmission rejects a Hof that does not exist
     }
   }
 

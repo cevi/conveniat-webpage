@@ -42,6 +42,7 @@ jest.mock('@/features/payload-cms/components/form/components/form-field-renderer
   // eslint-disable-next-line @typescript-eslint/no-require-imports, unicorn/prefer-module
   const rhf = require('react-hook-form') as typeof import('react-hook-form');
   return {
+    HiddenFieldsContext: react.createContext<ReadonlySet<string>>(new Set()),
     FormFieldRenderer: ({
       section,
     }: {

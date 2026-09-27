@@ -3,6 +3,7 @@ import type {
   DateSlotSelectionBlock,
   ExtendedFormType,
   FormFieldBlock,
+  HofSelectionBlock,
   JobSelectionBlock,
 } from '@/features/payload-cms/components/form/types';
 import type { DefaultValues, FieldValues } from 'react-hook-form';
@@ -38,7 +39,13 @@ export const buildEmptyFormState = (config: ExtendedFormType): DefaultValues<Fie
   const values: Record<string, boolean | string | number | string[]> = {};
 
   const processFields = (
-    fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock)[],
+    fields: (
+      | FormFieldBlock
+      | ConditionedBlock
+      | JobSelectionBlock
+      | HofSelectionBlock
+      | DateSlotSelectionBlock
+    )[],
   ): void => {
     for (const field of fields) {
       if (field.blockType === 'conditionedBlock') {

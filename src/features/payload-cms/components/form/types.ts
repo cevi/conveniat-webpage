@@ -15,7 +15,17 @@ export interface FileUploadBlock {
   placement?: 'sidebar' | 'main';
 }
 
-export type FormFieldBlock = (PayloadFormFieldBlock | FileUploadBlock) & {
+/** Quantities of the materials an editor lists, for a Hof's material order. */
+export interface MaterialListBlock {
+  blockType: 'materialList';
+  name: string;
+  label?: string;
+  required?: boolean;
+  items?: { id?: string | null; name: string; section?: string | null }[] | null;
+  placement?: 'sidebar' | 'main';
+}
+
+export type FormFieldBlock = (PayloadFormFieldBlock | FileUploadBlock | MaterialListBlock) & {
   placement?: 'sidebar' | 'main';
 };
 
@@ -26,6 +36,14 @@ export interface JobSelectionBlock {
   required?: boolean;
   dateRangeCategory: 'setup' | 'main' | 'teardown';
   category?: string;
+  placement?: 'sidebar' | 'main';
+}
+
+export interface HofSelectionBlock {
+  blockType: 'hofSelection';
+  name: string;
+  label?: string;
+  required?: boolean;
   placement?: 'sidebar' | 'main';
 }
 
@@ -56,7 +74,7 @@ export interface ConditionedBlock {
     field: string;
     value: string;
   };
-  fields: (FormFieldBlock | JobSelectionBlock | DateSlotSelectionBlock)[];
+  fields: (FormFieldBlock | JobSelectionBlock | HofSelectionBlock | DateSlotSelectionBlock)[];
   placement?: 'sidebar' | 'main';
 }
 
@@ -72,7 +90,13 @@ export interface FormSection {
     field?: string | null;
     value?: string | null;
   } | null;
-  fields: (FormFieldBlock | ConditionedBlock | JobSelectionBlock | DateSlotSelectionBlock)[];
+  fields: (
+    | FormFieldBlock
+    | ConditionedBlock
+    | JobSelectionBlock
+    | HofSelectionBlock
+    | DateSlotSelectionBlock
+  )[];
 }
 
 export type ExtendedFormType = PayloadFormType & {

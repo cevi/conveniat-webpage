@@ -3,7 +3,10 @@ import {
   shouldHideInAdminPanelIfNotAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
-import { mainContentBlocks } from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
+import {
+  mainContentBlockOptions,
+  mainContentBlocks,
+} from '@/features/payload-cms/payload-cms/shared-fields/main-content-field';
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { GlobalConfig } from 'payload';
 
@@ -69,6 +72,7 @@ export const AppLandingPageGlobal: GlobalConfig = {
         },
       },
       blocks: mainContentBlocks,
+      filterOptions: mainContentBlockOptions,
     },
     {
       name: 'showActionCards',

@@ -1,3 +1,4 @@
+import { getFormBlockNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { CollectionBeforeChangeHook } from 'payload';
@@ -24,24 +25,6 @@ const noJobSelectedMessage: StaticTranslationString = {
   en: '-',
   de: '-',
   fr: '-',
-};
-
-/**
- * Recursively extracts the string names of all blocks that represent a Job Selection.
- */
-const getJobSelectionBlockNames = (fields: unknown[] | null | undefined = []): string[] => {
-  if (!fields || !Array.isArray(fields)) return [];
-  return fields.reduce<string[]>((accumulator, field) => {
-    if (field === null || field === undefined || typeof field !== 'object') return accumulator;
-    const f = field as { blockType?: string; name?: string; fields?: unknown[] | null };
-
-    if (f.blockType === 'jobSelection' && typeof f.name === 'string') {
-      accumulator.push(f.name);
-    } else if (f.blockType === 'conditionedBlock' && Array.isArray(f.fields)) {
-      accumulator.push(...getJobSelectionBlockNames(f.fields));
-    }
-    return accumulator;
-  }, []);
 };
 
 /**
@@ -91,7 +74,7 @@ export const linkJobSubmission: CollectionBeforeChangeHook<FormSubmission> = asy
   // Extract relevant job selection blocks from sections
   const blockNames = form.sections.flatMap(
     (section: { formSection?: { fields?: unknown[] | null } | null }) =>
-      getJobSelectionBlockNames(section.formSection?.fields),
+      getFormBlockNames(section.formSection?.fields, 'jobSelection'),
   );
 
   if (blockNames.length === 0) {

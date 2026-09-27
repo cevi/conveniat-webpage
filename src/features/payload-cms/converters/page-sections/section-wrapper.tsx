@@ -145,7 +145,9 @@ const SectionWrapper = async ({
               !isFullBleedBlock(block.blockType) &&
               block.blockType !== 'richTextSection' &&
               block.blockType !== 'twoColumnBlock' &&
-              block.blockType !== 'formBlock',
+              block.blockType !== 'formBlock' &&
+              // a working surface, laid out in columns of its own on a wide screen
+              block.blockType !== 'hofDashboardBlock',
           })}
         >
           {children}

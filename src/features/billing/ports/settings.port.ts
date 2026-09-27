@@ -12,7 +12,7 @@ import type {
  */
 export interface HofSyncWrite {
   groupId: string;
-  /** Only used when the Hof does not exist yet; an existing Hof keeps its name. */
+  /** Written on every sync: a Hof is read-only in the admin panel, so Cevi.DB names it. */
   name: string;
   /** The complete event list of the Hof, replacing the stored one. */
   events: Array<{ eventId: string; eventName: string }>;

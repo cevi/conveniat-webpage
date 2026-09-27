@@ -150,6 +150,14 @@ export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean =
  */
 export const MATERIAL_DEPOT_ROLES: Roles[] = [Roles.FullAdmin, Roles.MaterialTeam];
 
+/**
+ * Who reviews what the Höfe hand in on the Hof dashboard and edits its settings: the full
+ * admins and the web core team, for now. The infrastructure and programme Ressorts will want
+ * this without the rest of the web team's rights, and get a role of their own once their
+ * Cevi.DB groups are known. Checked in Payload and, with the session user, in tRPC.
+ */
+export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
+
 export const hasAccessToThisHelper = ({
   requiredRoles,
 }: {
