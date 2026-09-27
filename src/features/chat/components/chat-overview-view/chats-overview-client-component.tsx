@@ -163,23 +163,27 @@ export const ChatsOverviewClientComponent: React.FC<{
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setMounted(true), []);
 
-  // Filter chats based on a search query
+  // Filter chats based on a search query. Pinned chats go first; the sort is stable, so both
+  // groups keep the server's most-recent-first order, and chats added optimistically at the
+  // head of the cached list still land below the pinned ones.
   const filteredChats =
-    chats?.filter((chat): boolean => {
-      const rawPreview = chat.lastMessage?.messagePreview;
-      let previewText = '';
-      if (typeof rawPreview === 'string') {
-        previewText = rawPreview;
-      } else if (rawPreview) {
-        previewText = rawPreview[locale];
-      }
+    chats
+      ?.filter((chat): boolean => {
+        const rawPreview = chat.lastMessage?.messagePreview;
+        let previewText = '';
+        if (typeof rawPreview === 'string') {
+          previewText = rawPreview;
+        } else if (rawPreview) {
+          previewText = rawPreview[locale];
+        }
 
-      const chatName = chat.name;
-      return (
-        chatName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        previewText.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }) ?? [];
+        const chatName = chat.name;
+        return (
+          chatName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          previewText.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      })
+      .sort((a, b) => Number(b.isPinned === true) - Number(a.isPinned === true)) ?? [];
 
   // nothing cached yet (first ever visit / cache still being restored). A
   // failed fetch without any cached chats falls through to the empty state

@@ -4,6 +4,7 @@ import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { createLogger } from '@/utils/server-logger';
+import { TRPCError } from '@trpc/server';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -37,6 +38,16 @@ const labels = {
     de: 'Bitte versuche es erneut.',
     fr: 'Veuillez réessayer.',
   },
+  invalidInvite: {
+    en: 'This QR code is no longer valid.',
+    de: 'Dieser QR-Code ist nicht mehr gültig.',
+    fr: "Ce code QR n'est plus valable.",
+  },
+  askForNewInvite: {
+    en: 'Each QR code starts a single chat and expires after a few minutes. Ask for a new one.',
+    de: 'Jeder QR-Code startet nur einen Chat und läuft nach wenigen Minuten ab. Lass dir einen neuen zeigen.',
+    fr: "Chaque code QR ne démarre qu'une seule discussion et expire après quelques minutes. Demandez-en un nouveau.",
+  },
   unexpectedError: {
     en: 'An unexpected error occurred.',
     de: 'Ein unerwarteter Fehler ist aufgetreten.',
@@ -45,70 +56,50 @@ const labels = {
 } as const satisfies Record<string, StaticTranslationString>;
 
 /**
- * A simple page that creates a new chat with the user who's uuid is passed
- * in the URL.
+ * Opens the chat with the user whose QR code was scanned. The last path segment is the
+ * single-use code from that QR code, not a user id, see `redeemChatInvite`.
  */
 const NewChatWithUserPage: React.FC<{
   params: Promise<{
-    userId: string;
+    token: string;
   }>;
 }> = async ({ params }) => {
   const locale = await getLocaleFromCookies();
   let result:
     | 'notLoggedIn'
     | 'cannotCreateChat'
-    | { type: 'failedToCreate'; userId: string }
+    | 'invalidInvite'
+    | 'failedToCreate'
     | { type: 'redirect'; url: string }
     | 'error';
 
   try {
-    const { userId } = await params;
+    const { token } = await params;
 
     const session = await auth();
     const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
 
-    // Check if user is authenticated
     if (user?.uuid === undefined) {
+      // Also what the link checks of a phone's camera app end up at: they run without
+      // the session, so they never redeem the code.
       result = 'notLoggedIn';
-    } else if (user.uuid === userId) {
-      result = { type: 'redirect', url: `/app/chat` };
     } else {
-      // Check Feature Flag / Capability
-      const { checkCapability } = await import('@/lib/capabilities');
-      const { CapabilitySubject, CapabilityAction } = await import('@/lib/capabilities/types');
+      const redemption = await trpc.chat.redeemChatInvite({ token }).catch((error: unknown) => {
+        if (error instanceof TRPCError && error.code === 'FORBIDDEN') return 'forbidden' as const;
+        logger.error('Failed to redeem the chat invite', { error });
+        return 'failed' as const;
+      });
 
-      const canCreateChat = await checkCapability(CapabilityAction.Create, CapabilitySubject.Chat);
-
-      if (canCreateChat) {
-        const chatName = ''; // Private chats do not require a name
-        const contacts = [
-          {
-            uuid: userId,
-            name: '', // Name will be fetched from the user profile
-          },
-        ];
-        const chatId = await trpc.chat
-          .createChat({
-            chatName,
-            members: contacts.map((contact) => ({
-              userId: contact.uuid,
-            })),
-          })
-          .catch((error: unknown) => {
-            logger.error('Failed to create chat via tRPC', { error });
-            // eslint-disable-next-line unicorn/no-useless-undefined
-            return undefined; // Return undefined if chat creation fails
-          });
-
-        if (chatId === undefined) {
-          logger.warn('Chat creation returned undefined', { 'user.id': userId });
-          result = { type: 'failedToCreate', userId };
-        } else {
-          logger.debug('Chat created', { 'chat.id': chatId });
-          result = { type: 'redirect', url: `/app/chat/${chatId}` };
-        }
-      } else {
+      if (redemption === 'forbidden') {
         result = 'cannotCreateChat';
+      } else if (redemption === 'failed') {
+        result = 'failedToCreate';
+      } else if (redemption.status === 'invalid') {
+        result = 'invalidInvite';
+      } else if (redemption.status === 'ownInvite') {
+        result = { type: 'redirect', url: `/app/chat` };
+      } else {
+        result = { type: 'redirect', url: `/app/chat/${redemption.chatId}` };
       }
     }
   } catch (error: unknown) {
@@ -121,7 +112,7 @@ const NewChatWithUserPage: React.FC<{
     result = 'error';
   }
 
-  if (typeof result === 'object' && result.type === 'redirect') {
+  if (typeof result === 'object') {
     redirect(result.url);
   }
 
@@ -153,7 +144,23 @@ const NewChatWithUserPage: React.FC<{
     );
   }
 
-  if (typeof result === 'object') {
+  if (result === 'invalidInvite') {
+    return (
+      <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
+        <div className="font-body text-center text-gray-600">
+          <h2 className="mb-2 text-xl font-semibold text-gray-800">
+            {labels.invalidInvite[locale]}
+          </h2>
+          <p className="mb-4">{labels.askForNewInvite[locale]}</p>
+          <Link href="/app/chat" className="text-conveniat-blue font-medium underline">
+            {labels.goBackToChats[locale]}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (result === 'failedToCreate') {
     return (
       <div className="flex h-screen flex-row items-center justify-center bg-gray-50">
         <div className="font-body text-center text-gray-600">

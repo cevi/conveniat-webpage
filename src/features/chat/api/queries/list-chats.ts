@@ -1,4 +1,5 @@
 /* eslint-disable unicorn/no-null */
+import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
@@ -243,6 +244,7 @@ export const getChatList = trpcBaseProcedure
         caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
         messageCount: chat._count.messages,
+        isPinned: chat.pinned,
         lastMessage: {
           id: lastMessage?.uuid ?? chat.uuid,
           createdAt: chat.lastUpdate,
@@ -253,6 +255,7 @@ export const getChatList = trpcBaseProcedure
             : MessageEventType.STORED,
         },
         userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
+        isArchived: isChatArchived(chat),
         ...(chat.type === ChatType.ONE_TO_ONE && partnerUser !== undefined
           ? {
               partner: {

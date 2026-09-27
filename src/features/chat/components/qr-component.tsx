@@ -7,13 +7,13 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
 
 import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';
-import { environmentVariables } from '@/config/environment-variables';
 import {
   ChatDialog,
   ChatDialogContent,
   ChatDialogHeader,
   ChatDialogTitle,
 } from '@/features/chat/components/ui/chat-dialog';
+import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
 import { FormSubmit } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
 import { QrCode } from 'lucide-react';
@@ -24,62 +24,78 @@ const qrCodeTitleText: StaticTranslationString = {
   en: 'Let it be scanned to start a chat.',
 };
 
-export const QRCodeClientComponent: React.FC<{
-  url: string;
-  initialSvg?: string | undefined;
-}> = ({ url, initialSvg }) => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [open, setOpen] = useState(false);
+const qrCodeErrorText: StaticTranslationString = {
+  de: 'Der QR-Code konnte nicht geladen werden. Bitte versuche es später erneut.',
+  fr: 'Impossible de charger le code QR. Veuillez réessayer plus tard.',
+  en: 'The QR code could not be loaded. Please try again later.',
+};
 
-  const qrCodeContent = `${
-    environmentVariables.NEXT_PUBLIC_ENABLE_CON27_SHORT_URLS
-      ? 'https://con27.ch'
-      : environmentVariables.NEXT_PUBLIC_APP_HOST_URL
-  }/app/chat/new-chat-with-user/${url}`;
-
-  const {
-    data: qrImageData,
-    isLoading,
-    isError: isErrorQRCodeImage,
-  } = useQuery({
-    queryKey: ['qrCodeSvgImage', qrCodeContent],
-    meta: { persist: false },
-    queryFn: async () => {
-      if (initialSvg?.includes('<svg')) {
-        return initialSvg;
-      }
-      const response = await fetch(`${QR_CODE_BACKEND_URL}/svg`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': APP_USER_AGENT,
-        },
-        body: JSON.stringify({
-          text: qrCodeContent,
-          options: { color_scheme: 'cevi' },
-        }),
-      });
-      if (!response.ok) {
-        throw new Error(`QR code fetch failed: ${response.status}`);
-      }
-      const rawSvg = await response.text();
-      const processed = rawSvg
-        .replaceAll(/b(['"])([\s\S]*?)\1/g, (_, _q: string, p1: string) => {
-          return p1
-            .replaceAll(String.raw`\n`, '\n')
-            .replaceAll(String.raw`\'`, "'")
-            .replaceAll(String.raw`\"`, '"');
-        })
-        .replaceAll('ns0:', '');
-      return processed;
+/** Renders a QR code for `text` through the Cevi QR code backend. */
+const fetchQrCodeSvg = async (text: string): Promise<string> => {
+  const response = await fetch(`${QR_CODE_BACKEND_URL}/svg`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'User-Agent': APP_USER_AGENT,
     },
-    enabled: open,
-    ...(initialSvg?.includes('<svg') ? { initialData: initialSvg } : {}),
-    refetchInterval: false,
+    body: JSON.stringify({
+      text,
+      options: { color_scheme: 'cevi' },
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`QR code fetch failed: ${response.status}`);
+  }
+  const rawSvg = await response.text();
+  return rawSvg
+    .replaceAll(/b(['"])([\s\S]*?)\1/g, (_, _q: string, p1: string) => {
+      return p1
+        .replaceAll(String.raw`\n`, '\n')
+        .replaceAll(String.raw`\'`, "'")
+        .replaceAll(String.raw`\"`, '"');
+    })
+    .replaceAll('ns0:', '');
+};
+
+/**
+ * The QR code itself. Lives inside the dialog content, which mounts on every opening, so
+ * each opening shows a new single-use code.
+ */
+const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const inviteUrl = useChatInviteUrl();
+
+  const qrImage = useQuery({
+    queryKey: ['qrCodeSvgImage', inviteUrl.data],
+    meta: { persist: false },
+    queryFn: () => fetchQrCodeSvg(inviteUrl.data ?? ''),
+    enabled: inviteUrl.data !== undefined,
+    gcTime: 0,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     retry: 1,
   });
+
+  const isError = inviteUrl.isError || qrImage.isError;
+
+  return (
+    <div className="flex flex-col items-center gap-3 p-2">
+      <QRCodeImage
+        qrImageSrc={qrImage.data}
+        copied={false}
+        isLoading={!isError && qrImage.data === undefined}
+        locale={locale}
+        isError={isError}
+      />
+      {isError && (
+        <p className="px-2 text-center text-xs text-red-500">{qrCodeErrorText[locale]}</p>
+      )}
+    </div>
+  );
+};
+
+export const QRCodeClientComponent: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
+  const [open, setOpen] = useState(false);
 
   return (
     <>
@@ -97,20 +113,7 @@ export const QRCodeClientComponent: React.FC<{
             <ChatDialogTitle>{qrCodeTitleText[locale]}</ChatDialogTitle>
           </ChatDialogHeader>
 
-          <div className="flex flex-col items-center gap-3 p-2">
-            <QRCodeImage
-              qrImageSrc={qrImageData}
-              copied={false}
-              isLoading={isLoading}
-              locale={locale}
-              isError={isErrorQRCodeImage}
-            />
-            {isErrorQRCodeImage && (
-              <p className="px-2 text-center text-xs text-red-500">
-                Fehler beim Laden des QR-Codes. Bitte versuchen Sie es später erneut.
-              </p>
-            )}
-          </div>
+          <ChatInviteQrCode locale={locale} />
 
           <h2 className="text-md mb-4 text-center font-bold select-none">
             {qrCodeTitleText[locale]}

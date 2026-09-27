@@ -1,9 +1,16 @@
-import { QRCodeServerComponent } from '@/features/chat/components/qr-server-component';
+import { QRCodeClientComponent } from '@/features/chat/components/qr-component';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
+import { QrCode } from 'lucide-react';
 import { io } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type React from 'react';
+
+export const QrCodeIconSkeleton: React.FC = () => (
+  <div className="flex h-10 w-10 items-center justify-center">
+    <QrCode className="h-6 w-6 animate-pulse text-gray-400" />
+  </div>
+);
 
 /**
  * QR invite button of the chat overview.
@@ -28,5 +35,5 @@ export const ChatQrCodeButton: React.FC = async () => {
     redirect('/entrypoint?clearSkip=true');
   }
 
-  return <QRCodeServerComponent userId={user.uuid} />;
+  return <QRCodeClientComponent />;
 };

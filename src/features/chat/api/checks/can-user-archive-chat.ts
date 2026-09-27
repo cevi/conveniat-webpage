@@ -1,9 +1,13 @@
+import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 
 /**
  * Checks if a user has permission to archive a chat.
+ *
+ * Archiving also removes the chat from the user's own view. Once a chat is archived, that removal
+ * is the only effect left, so every member may do it, whatever their permission.
  *
  * @param user - The UUID of the user to check.
  * @param chatMemberships - Array of chat memberships where each membership contains userId and chatPermission.
@@ -14,6 +18,7 @@ export const canUserArchiveChat = (
   user: HitobitoNextAuthUser,
   chat: {
     type: string;
+    archivedAt: Date | null;
     chatMemberships: { userId: string; chatPermission: ChatMembershipPermission }[];
   },
 ): boolean => {
@@ -36,6 +41,8 @@ export const canUserArchiveChat = (
 
   // deny, if the user is not a member of the chat
   if (!userMembership) return false;
+
+  if (isChatArchived(chat)) return true;
 
   const permissionsWhichAllowArchiving: ChatMembershipPermission[] = [
     ChatMembershipPermission.OWNER,
