@@ -2,6 +2,7 @@ import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { getLeftGroupMessagePayload } from '@/features/chat/api/utils/system-message-helpers';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -115,14 +116,7 @@ export const leaveChat = trpcBaseProcedure
 
     ctx.afterTransactionCommit(() => {
       // Ends the leaver's live subscription to the chat on every device, see the SSE route.
-      chatPubSub
-        .publish(user.uuid, { type: 'membership_revoked', chatId: chat.uuid, senderId: user.uuid })
-        .catch((error: unknown) => {
-          logger.error('Failed to publish the membership_revoked event', {
-            error,
-            'chat.id': chat.uuid,
-          });
-        });
+      void publishMembershipRevoked(user.uuid, chat.uuid, user.uuid);
 
       chatPubSub
         .publish({

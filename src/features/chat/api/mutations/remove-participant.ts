@@ -1,5 +1,6 @@
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
@@ -69,6 +70,11 @@ export const removeParticipant = trpcBaseProcedure
           userId: participantId,
         },
       },
+    });
+
+    // Ends the removed user's live subscription to the chat on every device, see the SSE route.
+    ctx.afterTransactionCommit(() => {
+      void publishMembershipRevoked(participantId, chat.uuid, user.uuid);
     });
 
     return { success: true };

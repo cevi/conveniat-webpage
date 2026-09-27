@@ -4,6 +4,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import prisma from '@/lib/db/prisma';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import {
   ChatMembershipPermission,
   ChatType,
@@ -123,6 +124,13 @@ const syncAnnouncementChannelMemberships = async (
         userId: { in: membersToRemove.map((m) => m.userId) },
       },
     });
+
+    // Written outside a transaction, so the deletion is already committed here.
+    await Promise.all(
+      membersToRemove.map((m) =>
+        publishMembershipRevoked(m.userId, chatUuid, request.user?.id ?? m.userId),
+      ),
+    );
   }
 };
 
