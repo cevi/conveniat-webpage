@@ -51,6 +51,7 @@ export class PayloadSettingsAdapter implements SettingsPort {
         ...(hof.addressManagerEmails === undefined
           ? {}
           : { addressManagerEmails: hof.addressManagerEmails }),
+        ...(hof.addressManagers === undefined ? {} : { addressManagers: hof.addressManagers }),
       };
 
       const { docs } = await this.payload.find({

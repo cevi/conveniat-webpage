@@ -160,8 +160,8 @@ export const ProgressLine: React.FC<{ progress: SubmissionProgress; locale: Loca
 };
 
 /**
- * The Hof's responsible people (AVP), as Cevi.DB knows them: a name once they signed in, and
- * the address as a link big enough to tap.
+ * The Hof's responsible people (AVP), as Cevi.DB knows them: their name, and the address as a
+ * link big enough to tap.
  */
 export const ResponsibleList: React.FC<{ people: HofContact[]; locale: Locale }> = ({
   people,
