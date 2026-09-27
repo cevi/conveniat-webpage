@@ -11,7 +11,7 @@ import {
   toFunktionIds,
 } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import {
-  findRegisteredHofIds,
+  findRegisteredHoefe,
   toHofIds,
 } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { User } from '@/features/payload-cms/payload-types';
@@ -39,6 +39,8 @@ const syncUserToPostgres: NonNullable<
   const presentAtCamp = (doc.presentAtCamp as boolean | undefined | null) ?? false;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hofIds = toHofIds(doc.hoefe);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const avpHofIds = toHofIds(doc.avpHoefe);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const funktionIds = toFunktionIds(doc.funktionen);
 
@@ -68,6 +70,7 @@ const syncUserToPostgres: NonNullable<
         description: description ?? null,
         hidden: hidden ?? false,
         hofIds,
+        avpHofIds,
         funktionIds,
       },
       create: {
@@ -77,6 +80,7 @@ const syncUserToPostgres: NonNullable<
         description: description ?? null,
         hidden: hidden ?? false,
         hofIds,
+        avpHofIds,
         funktionIds,
         presentAtCamp: presentAtCamp,
         // set date to 1970-01-01 to avoid null values
@@ -149,11 +153,11 @@ const fillCampDataOfNewPerson: NonNullable<
   if (typeof ceviId !== 'number') return next;
   if ((originalDoc as Partial<User> | undefined)?.cevi_db_uuid === ceviId) return next;
   try {
-    const [hoefe, funktionen] = await Promise.all([
-      findRegisteredHofIds(req.payload, ceviId, req),
+    const [{ hoefe, avpHoefe }, funktionen] = await Promise.all([
+      findRegisteredHoefe(req.payload, ceviId, req),
       findFunktionIdsOfPerson(req.payload, ceviId, req),
     ]);
-    return { ...next, hoefe, funktionen };
+    return { ...next, hoefe, avpHoefe, funktionen };
   } catch (error: unknown) {
     // Never fail a login over this: the next start and the next functions sync fill it in.
     req.payload.logger.error(
@@ -450,6 +454,24 @@ export const UserCollection: CollectionConfig = {
           en: 'The Höfe this user is registered at, from the registrations synced from Cevi.DB. Kept up to date automatically; the Quartier follows from the Hof.',
           de: 'Die Höfe, an denen diese Person angemeldet ist, aus den von der Cevi.DB abgeglichenen Anmeldungen. Wird automatisch nachgeführt; das Quartier ergibt sich aus dem Hof.',
           fr: "Les Hofs auxquels cette personne est inscrite, d'après les inscriptions synchronisées depuis Cevi.DB. Mis à jour automatiquement ; le quartier découle du Hof.",
+        },
+      },
+    },
+    {
+      name: 'avpHoefe',
+      type: 'relationship',
+      relationTo: 'hoefe',
+      hasMany: true,
+      label: { en: 'AVP of', de: 'AVP von', fr: 'AVP de' },
+      access: {
+        update: () => false,
+      },
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The Höfe where this user holds the Hauptleitung of the camp, and so is the AVP. Kept up to date automatically from the registrations.',
+          de: 'Die Höfe, bei denen diese Person die Hauptleitung des Lagers innehat und damit AVP ist. Wird automatisch aus den Anmeldungen nachgeführt.',
+          fr: "Les Hofs dont cette personne assure la direction principale du camp et dont elle est donc l'AVP. Mis à jour automatiquement à partir des inscriptions.",
         },
       },
     },

@@ -61,4 +61,9 @@ describe('refreshing the Höfe when a registration changes', () => {
     refresh.mockRejectedValueOnce(new Error('mongo down'));
     await expect(change(REGISTRATION)).resolves.toBeUndefined();
   });
+
+  it('refreshes a person who becomes or stops being the Hauptleitung', async () => {
+    await change({ ...REGISTRATION, roleType: 'Event::Role::Leader' }, REGISTRATION);
+    expect(refresh).toHaveBeenCalledWith(request.payload, { ceviIds: [7], req: request });
+  });
 });

@@ -601,6 +601,10 @@ export interface User {
    */
   hoefe?: (string | Hof)[] | null;
   /**
+   * The Höfe where this user holds the Hauptleitung of the camp, and so is the AVP. Kept up to date automatically from the registrations.
+   */
+  avpHoefe?: (string | Hof)[] | null;
+  /**
    * The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.
    */
   funktionen?: (string | Funktion)[] | null;
@@ -7214,6 +7218,7 @@ export interface UsersSelect<T extends boolean = true> {
   nickname?: T;
   groups?: T;
   hoefe?: T;
+  avpHoefe?: T;
   funktionen?: T;
   description?: T;
   hidden?: T;

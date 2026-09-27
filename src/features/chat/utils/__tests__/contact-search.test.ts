@@ -69,3 +69,30 @@ describe('functions in the address book', () => {
     expect(describeContactFunktionen(CACHED)).toBe('');
   });
 });
+
+describe('the AVP of a Hof in the address book', () => {
+  const AVP: Contact = {
+    userId: 'avp',
+    name: 'Anna Muster v/o Fuchs',
+    hoefe: ['Cevi Uster', 'Züri 11'],
+    quartiere: ['Quartier 3'],
+    hofRoles: [
+      { hof: 'Cevi Uster', quartier: 'Quartier 3', isAvp: true },
+      { hof: 'Züri 11', quartier: undefined, isAvp: false },
+    ],
+  };
+
+  it('names the role, the Hof and its Quartier, one part per Hof', () => {
+    expect(describeContactHof(AVP)).toBe('AVP, Cevi Uster, Quartier 3 · Züri 11');
+  });
+
+  it('finds every AVP by searching for "avp"', () => {
+    expect(matchesContactSearch(AVP, 'avp')).toBe(true);
+    expect(matchesContactSearch(ANNA, 'avp')).toBe(false);
+  });
+
+  it('falls back to the plain Höfe for a contact cached before the roles existed', () => {
+    const cached: Contact = { ...AVP, hofRoles: undefined };
+    expect(describeContactHof(cached)).toBe('Cevi Uster, Züri 11 · Quartier 3');
+  });
+});
