@@ -13,6 +13,7 @@ import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-r
 import { registrationRouter } from '@/features/registration_process/api/registration-router';
 import { scheduleRouter } from '@/features/schedule/api/schedule-router';
 import { shiftsRouter } from '@/features/schedule/api/shifts-router';
+import { profilePictureRouter } from '@/features/settings/api/profile-picture-router';
 import { createTRPCRouter } from '@/trpc/init';
 
 export const appRouter = createTRPCRouter({
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   upload: uploadRouter,
   nativePush: nativePushRouter,
   photoContest: photoContestRouter,
+  profilePicture: profilePictureRouter,
   material: materialRouter,
   hofDashboard: hofDashboardRouter,
 });

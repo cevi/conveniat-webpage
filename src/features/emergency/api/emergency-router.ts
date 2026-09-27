@@ -8,13 +8,8 @@ import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/ini
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
-import {
-  ChatMembershipPermission,
-  ChatType,
-  MessageEventType,
-  MessageType,
-  Prisma,
-} from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 // eslint-disable-next-line import/no-restricted-paths
@@ -38,6 +33,19 @@ const GeolocationPositionSchema = z.object({
 
 const newAlertSchema = z.object({
   location: GeolocationPositionSchema.optional(),
+});
+
+/**
+ * Formats an instant as the calendar day a clock at the camp shows, `YYYY-MM-DD`.
+ *
+ * The containers run in UTC, so the server's own day would still be yesterday for the first two
+ * hours of a Swiss summer day.
+ */
+const campDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Zurich',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
 });
 
 const resolveEmergencyChatName = (locale: string, nickname: string): string => {
@@ -108,28 +116,25 @@ export const emergencyRouter = createTRPCRouter({
       // Prepare messages with explicit timestamps to ensure order: System -> Location -> Question
       const baseTime = new Date();
 
-      // Generate human-readable case number: YYYY-MM-DD-XXX
-      const year = baseTime.getFullYear();
-      const month = String(baseTime.getMonth() + 1).padStart(2, '0');
-      const day = String(baseTime.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
+      // Human-readable case number, YYYY-MM-DD-XXX, numbered per camp day.
+      const dateString = campDateFormatter.format(baseTime);
 
-      const startOfDay = new Date(baseTime);
-      startOfDay.setHours(0, 0, 0, 0);
-      const startOfNextDay = new Date(startOfDay);
-      startOfNextDay.setDate(startOfNextDay.getDate() + 1);
+      // Two alerts on the same day (or one double tap) would otherwise both count the same
+      // number of cases and try to insert the same case number. The unique violation of the
+      // second one aborts its whole transaction, so a retry could never succeed. Holding a lock
+      // per day until this transaction ends lets the second alert count the first one instead.
+      await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`emergency-case:${dateString}`}, 0))`;
 
+      // Counted by case number rather than by creation time, so the count covers exactly the
+      // numbers the unique constraint compares against.
       const countToday = await prisma.chat.count({
         where: {
           type: ChatType.EMERGENCY,
-          createdAt: {
-            gte: startOfDay,
-            lt: startOfNextDay,
-          },
+          caseNumber: { startsWith: `${dateString}-` },
         },
       });
 
-      let counter = countToday + 1;
+      const caseNumber = `${dateString}-${String(countToday + 1).padStart(3, '0')}`;
 
       const payloadAPI = await getPayload({ config });
       const alertSettings: AlertSetting = await payloadAPI.findGlobal({
@@ -240,75 +245,59 @@ export const emergencyRouter = createTRPCRouter({
         piketIndex++;
       }
 
-      // Atomic retry loop for creating chat with unique caseNumber
-      let chat;
-      let caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
-      let attempts = 0;
+      const emergencyAlertSystemMessage = {
+        payload: {
+          system_msg_type: SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
+          userUuid: user.uuid,
+          userName: user.name,
+          userNickname: user.nickname,
+          caseNumber,
+        },
+      };
 
-      while (!chat && attempts < 10) {
-        attempts++;
-        caseNumber = `${dateString}-${String(counter).padStart(3, '0')}`;
-
-        const emergencyAlertSystemMessage = {
-          payload: {
-            system_msg_type: SYSTEM_MSG_TYPE_EMERGENCY_ALERT,
-            userUuid: user.uuid,
-            userName: user.name,
-            userNickname: user.nickname,
-            caseNumber,
+      const messagesToCreate: Prisma.MessageCreateWithoutChatInput[] = [
+        {
+          contentVersions: { create: emergencyAlertSystemMessage },
+          type: MessageType.SYSTEM_MSG,
+          createdAt: baseTime,
+          messageEvents: {
+            create: [{ type: MessageEventType.STORED }],
           },
-        };
+        },
+        ...additionalMessagesToCreate,
+      ];
 
-        const messagesToCreate: Prisma.MessageCreateWithoutChatInput[] = [
-          {
-            contentVersions: { create: emergencyAlertSystemMessage },
-            type: MessageType.SYSTEM_MSG,
-            createdAt: baseTime,
-            messageEvents: {
-              create: [{ type: MessageEventType.STORED }],
-            },
+      const chat = await prisma.chat.create({
+        data: {
+          name: resolveEmergencyChatName(ctx.locale, user.name),
+          type: ChatType.EMERGENCY,
+          caseNumber,
+
+          messages: {
+            create: messagesToCreate,
           },
-          ...additionalMessagesToCreate,
-        ];
 
-        try {
-          chat = await prisma.chat.create({
-            data: {
-              name: resolveEmergencyChatName(ctx.locale, user.name),
-              type: ChatType.EMERGENCY,
-              caseNumber,
-
-              messages: {
-                create: messagesToCreate,
+          chatMemberships: {
+            create: [
+              {
+                user: { connect: { uuid: user.uuid } },
+                chatPermission: ChatMembershipPermission.MEMBER,
               },
+              ...activePiketMembers.map((member) => ({
+                user: { connect: { uuid: member.id } },
+                chatPermission: ChatMembershipPermission.MEMBER,
+              })),
+            ],
+          },
+          capabilities: [ChatCapability.CAN_SEND_MESSAGES],
+        },
+      });
 
-              chatMemberships: {
-                create: [
-                  {
-                    user: { connect: { uuid: user.uuid } },
-                    chatPermission: ChatMembershipPermission.MEMBER,
-                  },
-                  ...activePiketMembers.map((member) => ({
-                    user: { connect: { uuid: member.id } },
-                    chatPermission: ChatMembershipPermission.MEMBER,
-                  })),
-                ],
-              },
-              capabilities: [ChatCapability.CAN_SEND_MESSAGES],
-            },
-          });
-        } catch (error) {
-          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-            counter++;
-            continue;
-          }
-          throw error;
-        }
-      }
-
-      if (!chat) {
-        throw new Error('Failed to generate unique case number for emergency alert');
-      }
+      // Everything after the insert tells someone about the chat, so it waits for the commit:
+      // before it, a rollback would leave the piket woken up for a chat that never existed, and
+      // a piket member tapping the push fast enough would open a chat that is not visible yet.
+      const chatUuid = chat.uuid;
+      const chatName = chat.name;
 
       // Send push notification to all piket members
       if (activePiketMembers.length > 0) {
@@ -321,16 +310,18 @@ export const emergencyRouter = createTRPCRouter({
           localizedAlertMessage = `Urgence de ${user.name}! (${caseNumber})`;
         }
 
-        sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
-          chatName: chat.name,
-          // The alert that starts the emergency chat is the one push that has to wake a
-          // piket member up, so it goes out on the siren channel rather than the regular
-          // chat channel.
-          notificationType: 'emergency',
-        }).catch((error: unknown) => {
-          logger.error('Failed to send the emergency push notification to the piket members', {
-            error,
-            'notification.recipient.count': piketRecipientIds.length,
+        ctx.afterTransactionCommit(() => {
+          sendNotification(localizedAlertMessage, piketRecipientIds, chatUuid, undefined, {
+            chatName,
+            // The alert that starts the emergency chat is the one push that has to wake a
+            // piket member up, so it goes out on the siren channel rather than the regular
+            // chat channel.
+            notificationType: 'emergency',
+          }).catch((error: unknown) => {
+            logger.error('Failed to send the emergency push notification to the piket members', {
+              error,
+              'notification.recipient.count': piketRecipientIds.length,
+            });
           });
         });
       }
@@ -341,7 +332,6 @@ export const emergencyRouter = createTRPCRouter({
       // open chat overviews would only learn about the chat after a reload.
       // Deferred until after the transaction commits so the refetch it triggers
       // cannot read the pre-membership state.
-      const chatUuid = chat.uuid;
       const memberIdsToAnnounce = [user.uuid, ...activePiketMembers.map((member) => member.id)];
       ctx.afterTransactionCommit(() => {
         for (const memberId of memberIdsToAnnounce) {
@@ -374,29 +364,31 @@ export const emergencyRouter = createTRPCRouter({
       });
 
       // Publish new_message events for each message to notify administrators in real-time
-      for (const message of createdMessages) {
-        chatPubSub
-          .publish({
-            type: 'new_message',
-            chatId: chat.uuid,
-            senderId: message.senderId ?? user.uuid,
-            message: {
-              id: message.uuid,
-              createdAt: message.createdAt,
-              messagePayload: message.contentVersions[0]?.payload ?? {},
-              senderId: message.senderId ?? undefined,
-              status: MessageEventType.STORED,
-              type: message.type,
-            },
-          })
-          .catch((error: unknown) => {
-            logger.error('Failed to publish the real-time event for an emergency message', {
-              error,
-              'chat.id': chatUuid,
-              'message.id': message.uuid,
+      ctx.afterTransactionCommit(() => {
+        for (const message of createdMessages) {
+          chatPubSub
+            .publish({
+              type: 'new_message',
+              chatId: chatUuid,
+              senderId: message.senderId ?? user.uuid,
+              message: {
+                id: message.uuid,
+                createdAt: message.createdAt,
+                messagePayload: message.contentVersions[0]?.payload ?? {},
+                senderId: message.senderId ?? undefined,
+                status: MessageEventType.STORED,
+                type: message.type,
+              },
+            })
+            .catch((error: unknown) => {
+              logger.error('Failed to publish the real-time event for an emergency message', {
+                error,
+                'chat.id': chatUuid,
+                'message.id': message.uuid,
+              });
             });
-          });
-      }
+        }
+      });
 
       return { success: true, redirectUrl: `/app/chat/${chat.uuid}`, chatId: chat.uuid };
     }),

@@ -8,7 +8,7 @@ jest.mock('@/config/environment-variables', () => ({
 jest.mock('@/utils/auth-helpers', () => ({ getAuthenticateUsingCeviDB: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/features/payload-cms/payload-cms/utils/hof-membership', () => ({
-  findRegisteredHofIds: jest.fn(),
+  findRegisteredHoefe: jest.fn(),
   toHofIds: jest.fn(() => []),
 }));
 jest.mock('@/features/payload-cms/payload-cms/utils/funktionen', () => ({
@@ -18,10 +18,10 @@ jest.mock('@/features/payload-cms/payload-cms/utils/funktionen', () => ({
 
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
 import { findFunktionIdsOfPerson } from '@/features/payload-cms/payload-cms/utils/funktionen';
-import { findRegisteredHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import { findRegisteredHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { CollectionBeforeChangeHook, PayloadRequest } from 'payload';
 
-const hoefeOf = jest.mocked(findRegisteredHofIds);
+const hoefeOf = jest.mocked(findRegisteredHoefe);
 const funktionenOf = jest.mocked(findFunktionIdsOfPerson);
 const logger = { error: jest.fn() };
 const request = { payload: { logger } } as unknown as PayloadRequest;
@@ -45,17 +45,18 @@ describe('a user logging in for the first time', () => {
   beforeEach(() => jest.clearAllMocks());
 
   it('gets their Höfe and functions', async () => {
-    hoefeOf.mockResolvedValue(['hof-sued']);
+    hoefeOf.mockResolvedValue({ hoefe: ['hof-sued'], avpHoefe: ['hof-sued'] });
     funktionenOf.mockResolvedValue(['projektleitung']);
 
     await expect(firstLogin(7)).resolves.toMatchObject({
       hoefe: ['hof-sued'],
+      avpHoefe: ['hof-sued'],
       funktionen: ['projektleitung'],
     });
   });
 
   it('still logs in when the lookup fails, and the failure is logged', async () => {
-    hoefeOf.mockResolvedValue([]);
+    hoefeOf.mockResolvedValue({ hoefe: [], avpHoefe: [] });
     funktionenOf.mockRejectedValue(new Error('mongo down'));
 
     const data = await firstLogin(7);

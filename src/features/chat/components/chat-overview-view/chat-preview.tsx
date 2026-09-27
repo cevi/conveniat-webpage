@@ -1,16 +1,23 @@
 'use client';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { trpc } from '@/trpc/client';
-import { i18nConfig, type Locale } from '@/types/types';
+import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
-import { Megaphone, Siren, Users } from 'lucide-react';
+import { Megaphone, Pin, Siren, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback } from 'react';
+
+const pinnedText: StaticTranslationString = {
+  de: 'Angeheftet',
+  en: 'Pinned',
+  fr: 'Épinglé',
+};
 
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
@@ -76,11 +83,12 @@ export const ChatPreview: React.FC<{
             </div>
           )}
           {chat.chatType === ChatType.ONE_TO_ONE && (
-            <div className="bg-conveniat-green flex h-12 w-12 items-center justify-center rounded-full shadow-sm">
-              <span className="font-heading text-sm font-semibold text-white">
-                {chat.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
+            <PersonAvatar
+              seed={chat.partner?.userId ?? chat.id}
+              name={chat.name}
+              pictureUrl={chat.partner?.pictureUrl}
+              className="h-12 w-12 text-sm shadow-sm"
+            />
           )}
           {chat.chatType === ChatType.EMERGENCY && (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-red-500">
@@ -113,6 +121,14 @@ export const ChatPreview: React.FC<{
                 >
                   {chat.name}
                 </p>
+                {chat.isPinned === true && (
+                  <Pin
+                    size={14}
+                    className="shrink-0 text-gray-400"
+                    aria-label={pinnedText[locale]}
+                    role="img"
+                  />
+                )}
                 {chat.caseNumber != undefined && chat.caseNumber !== '' && (
                   <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-red-700">
                     {chat.caseNumber}

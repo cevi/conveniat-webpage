@@ -1,5 +1,7 @@
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
+import type { ChatImageUploadInput } from '@/lib/chat-images';
+import { CHAT_IMAGE_MAX_BYTES, isChatImageContentType } from '@/lib/chat-images';
 import { MessageType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import { useCallback, useState } from 'react';
@@ -9,11 +11,7 @@ interface UseImageUploadOptions {
   onSuccess?: () => void;
   onError?: (error: Error) => void;
   uploadUrlMutation?: {
-    mutateAsync: (args: {
-      chatId: string;
-      fileName: string;
-      contentType: string;
-    }) => Promise<{ url: string; key: string }>;
+    mutateAsync: (args: ChatImageUploadInput) => Promise<{ url: string; key: string }>;
   };
   sendMessageMutation?: {
     mutate: (args: {
@@ -52,11 +50,20 @@ export const useImageUpload = ({
       try {
         setIsUploading(true);
 
-        // 1. Get pre-signed URL
+        // The server refuses these too; checking here saves the round trip.
+        const contentType = file.type;
+        if (!isChatImageContentType(contentType)) {
+          throw new Error(`Unsupported image type: ${contentType}`);
+        }
+        if (file.size > CHAT_IMAGE_MAX_BYTES) {
+          throw new Error('Image is too large');
+        }
+
+        // 1. Get a pre-signed URL, valid only for this exact type and size
         const { url, key } = await getUploadUrlMutation.mutateAsync({
           chatId,
-          fileName: file.name,
-          contentType: file.type,
+          contentType,
+          contentLength: file.size,
         });
 
         // 2. Upload directly to S3
@@ -64,7 +71,7 @@ export const useImageUpload = ({
           method: 'PUT',
           body: file,
           headers: {
-            'Content-Type': file.type,
+            'Content-Type': contentType,
           },
         });
 

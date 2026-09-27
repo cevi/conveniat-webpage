@@ -6,8 +6,6 @@ export const HitobitoNextAuthUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
   nickname: z.string().nullish(),
-  hof: z.number().optional(),
-  quartier: z.number().optional(),
 });
 
 export type HitobitoNextAuthUser = z.infer<typeof HitobitoNextAuthUserSchema>;

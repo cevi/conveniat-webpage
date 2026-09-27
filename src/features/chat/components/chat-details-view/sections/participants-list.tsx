@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/buttons/button';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Loader2, UserCircle, UserX, Users, X } from 'lucide-react';
+import { Loader2, UserX, Users, X } from 'lucide-react';
 import type React from 'react';
 
 interface ParticipantsListProperties {
@@ -11,8 +12,9 @@ interface ParticipantsListProperties {
     description?: string | null;
     /** e.g. "Ressortleitung Infrastruktur", empty for someone without a function */
     funktionLine?: string;
-    /** e.g. "Hof Süd · Quartier 2", empty for someone at no Hof */
+    /** e.g. "Cevi Uster · Quartier 2", empty for someone at no Hof */
     hofLine?: string;
+    pictureUrl?: string | undefined;
   }>;
   currentUser: string | undefined;
   isGroupChat: boolean;
@@ -80,9 +82,12 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
         {participants.map((participant) => (
           <div key={participant.id} className="flex items-center justify-between gap-3">
             <div className="flex flex-1 items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200">
-                <UserCircle className="h-8 w-8 text-gray-600" />
-              </div>
+              <PersonAvatar
+                seed={participant.id}
+                name={participant.name}
+                pictureUrl={participant.pictureUrl}
+                className="h-10 w-10 text-sm"
+              />
               <div>
                 <div className="font-body font-medium text-gray-900">
                   {participant.name}

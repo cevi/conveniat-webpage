@@ -1,4 +1,5 @@
 /* eslint-disable unicorn/no-null */
+import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
@@ -9,10 +10,17 @@ import {
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
-import { ChatMembershipPermission, MessageEventType, MessageType, type Prisma } from '@/lib/prisma';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+  type Prisma,
+} from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import type { StaticTranslationString } from '@/types/types';
+import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -207,6 +215,7 @@ export const getChatList = trpcBaseProcedure
       const messagePreview = lastMessage ? getMessagePreviewText(lastMessage) : fallbackPreview;
 
       const currentUserMembership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
+      const partnerUser = chat.chatMemberships.find((m) => m.userId !== prismaUser.uuid)?.user;
       const isLarge = chat.chatMemberships.length >= LARGE_CHAT_THRESHOLD;
 
       const rawCount = unreadCountMap.get(chat.uuid) ?? 0;
@@ -235,6 +244,7 @@ export const getChatList = trpcBaseProcedure
         caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
         messageCount: chat._count.messages,
+        isPinned: chat.pinned,
         lastMessage: {
           id: lastMessage?.uuid ?? chat.uuid,
           createdAt: chat.lastUpdate,
@@ -245,6 +255,18 @@ export const getChatList = trpcBaseProcedure
             : MessageEventType.STORED,
         },
         userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
+        isArchived: isChatArchived(chat),
+        ...(chat.type === ChatType.ONE_TO_ONE && partnerUser !== undefined
+          ? {
+              partner: {
+                userId: partnerUser.uuid,
+                pictureUrl: profilePictureUrlOrUndefined(
+                  partnerUser.uuid,
+                  partnerUser.profilePictureVersion,
+                ),
+              },
+            }
+          : {}),
       };
     });
   });

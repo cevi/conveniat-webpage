@@ -1,7 +1,9 @@
 import { AppAdvertisement } from '@/components/app-advertisement';
-import { ChatQrCodeButton } from '@/features/chat/components/chat-overview-view/chat-qr-code-button';
+import {
+  ChatQrCodeButton,
+  QrCodeIconSkeleton,
+} from '@/features/chat/components/chat-overview-view/chat-qr-code-button';
 import { ChatsOverviewClientComponent } from '@/features/chat/components/chat-overview-view/chats-overview-client-component';
-import { QrCodeIconSkeleton } from '@/features/chat/components/qr-server-component';
 import type { Locale } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
 import type React from 'react';

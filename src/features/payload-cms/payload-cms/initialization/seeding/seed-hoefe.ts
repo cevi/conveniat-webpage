@@ -1,3 +1,4 @@
+import { HAUPTLEITUNG_ROLE_TYPE } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { Hof } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
@@ -96,7 +97,11 @@ export const seedRandomUserRegistrations = async (
           fullName: user.fullName,
           ...(typeof user.nickname === 'string' ? { nickname: user.nickname } : {}),
           email: user.email,
-          roleType: 'Event::Camp::Role::Participant',
+          // the first user holds the Hauptleitung of their first Hof, and so is its AVP
+          roleType:
+            index === 0 && hofName === RANDOM_USER_HOEFE[0]?.[0]
+              ? HAUPTLEITUNG_ROLE_TYPE
+              : 'Event::Camp::Role::Participant',
           active: true,
           status: 'new',
         },

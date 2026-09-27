@@ -601,9 +601,17 @@ export interface User {
    */
   hoefe?: (string | Hof)[] | null;
   /**
+   * The Höfe where this user holds the Hauptleitung of the camp, and so is the AVP. Kept up to date automatically from the registrations.
+   */
+  avpHoefe?: (string | Hof)[] | null;
+  /**
    * The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.
    */
   funktionen?: (string | Funktion)[] | null;
+  /**
+   * Version of the profile picture the person uploaded in the app; empty without one. Empty the field to remove an inappropriate picture.
+   */
+  profilePictureVersion?: string | null;
   /**
    * An additional description of the user shown in the chat.
    */
@@ -4263,6 +4271,10 @@ export interface AnnouncementChannel {
   allowEmojiReactions?: boolean | null;
   allowThreads?: boolean | null;
   allowThreadReplies?: boolean | null;
+  /**
+   * Pinned channels stay at the top of the chat overview, above all other chats.
+   */
+  pinned?: boolean | null;
   chatUuid?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -6944,6 +6956,7 @@ export interface AnnouncementChannelsSelect<T extends boolean = true> {
   allowEmojiReactions?: T;
   allowThreads?: T;
   allowThreadReplies?: T;
+  pinned?: T;
   chatUuid?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -7214,7 +7227,9 @@ export interface UsersSelect<T extends boolean = true> {
   nickname?: T;
   groups?: T;
   hoefe?: T;
+  avpHoefe?: T;
   funktionen?: T;
+  profilePictureVersion?: T;
   description?: T;
   hidden?: T;
   presentAtCamp?: T;
@@ -8987,6 +9002,10 @@ export interface AppFeatureFlag {
    */
   createChatsEnabled?: boolean | null;
   /**
+   * When on, the contact list for new chats shows only people from the same Hof, people whose chat QR code was scanned (or who scanned yours), and people with a leader function or an AVP role. When off, it shows everyone.
+   */
+  restrictContactList?: boolean | null;
+  /**
    * Hides the Hof and Quartier sections in the app. This is used for testing purposes.
    */
   hideHofAndQuartier?: boolean | null;
@@ -9666,6 +9685,7 @@ export interface PWASelect<T extends boolean = true> {
 export interface AppFeatureFlagsSelect<T extends boolean = true> {
   globalMessagingEnabled?: T;
   createChatsEnabled?: T;
+  restrictContactList?: T;
   hideHofAndQuartier?: T;
   helperShiftsEnabled?: T;
   hideFullHelperShifts?: T;

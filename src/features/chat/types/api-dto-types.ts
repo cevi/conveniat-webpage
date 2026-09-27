@@ -24,4 +24,13 @@ export interface ChatWithMessagePreview {
   unreadCount: number;
   messageCount: number;
   userChatPermission: ChatMembershipPermission;
+  /** Optional because chat lists persisted before this field existed are restored without it. */
+  isPinned?: boolean;
+  /** Optional because chat lists persisted before this field existed are restored without it. */
+  isArchived?: boolean;
+  /**
+   * The other person of a one-to-one chat, for their avatar; missing in other chats and in
+   * caches from before.
+   */
+  partner?: { userId: string; pictureUrl?: string | undefined } | undefined;
 }

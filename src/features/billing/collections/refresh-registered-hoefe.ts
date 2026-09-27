@@ -2,17 +2,21 @@ import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-m
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook, PayloadRequest } from 'payload';
 
-type Registration = Partial<Pick<BillParticipant, 'userId' | 'eventId' | 'active' | 'status'>>;
+type Registration = Partial<
+  Pick<BillParticipant, 'userId' | 'eventId' | 'active' | 'status' | 'roleType'>
+>;
 
 /** Whether a registration puts its person at the camp of the event's Hof. */
 const counts = (registration: Registration): boolean =>
   registration.active !== false && registration.status !== 'removed';
 
-/** Whether a write changed anything that decides the Höfe of its person. */
+/** Whether a write changed anything that decides the Höfe, or the AVP role, of its person. */
 const decidesHoefe = (current: Registration, previous: Registration | undefined): boolean =>
   previous === undefined ||
   previous.userId !== current.userId ||
   previous.eventId !== current.eventId ||
+  // the Hauptleitung makes the person the Hof's AVP
+  previous.roleType !== current.roleType ||
   counts(previous) !== counts(current);
 
 const toCeviIds = (registrations: (Registration | undefined)[]): number[] => [

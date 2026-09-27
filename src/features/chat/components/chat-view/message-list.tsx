@@ -74,6 +74,16 @@ export const MessageList: React.FC<{
       ),
     [contacts],
   );
+  const pictureBySender = React.useMemo(
+    () =>
+      new Map(
+        (chatDetails?.participants ?? []).map((participant) => [
+          participant.id,
+          participant.pictureUrl,
+        ]),
+      ),
+    [chatDetails?.participants],
+  );
 
   const { sortedMessages, isFetchingNextPage, topSentinelReference } = useMessageInfiniteScroll({
     chatId,
@@ -131,6 +141,7 @@ export const MessageList: React.FC<{
           typist={typist}
           showName={isGroupChat && !continuesBlock(typist)}
           showAvatar={isGroupChat}
+          pictureUrl={pictureBySender.get(typist.userId)}
           locale={locale}
         />
       </div>
@@ -187,6 +198,7 @@ export const MessageList: React.FC<{
                       message={message}
                       isCurrentUser={message.senderId === currentUser}
                       senderFunktionen={funktionenBySender.get(message.senderId ?? '') ?? ''}
+                      senderPictureUrl={pictureBySender.get(message.senderId ?? '')}
                       chatType={chatDetails.type}
                       hideReplyCount={hideReplyCount}
                       isThreadRoot={isThreadRoot}

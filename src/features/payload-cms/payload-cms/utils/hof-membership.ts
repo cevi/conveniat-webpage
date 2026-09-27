@@ -48,6 +48,18 @@ const ACTIVE_REGISTRATION: Where = {
   and: [{ active: { not_equals: false } }, { status: { not_equals: 'removed' } }],
 };
 
+/**
+ * The registration role of the Hauptleitung of a Hof's camp. conveniat27 calls that person the
+ * Hof's AVP (Abteilungsverantwortliche Person).
+ */
+export const HAUPTLEITUNG_ROLE_TYPE = 'Event::Role::Leader';
+
+/** The Höfe a person is registered at, and those of them where they are the AVP. */
+export interface RegisteredHoefe {
+  hoefe: string[];
+  avpHoefe: string[];
+}
+
 /** Most registrations one person has; one per camp event they take part in. */
 const MAX_REGISTRATIONS = 100;
 
@@ -92,20 +104,47 @@ export const getRegisteredEventIds = async (
 };
 
 /**
- * The Höfe a person is registered at. Only registrations count, not leading a Hof's group:
- * this is what the rest of the camp gets to see about somebody.
+ * The Höfe a person is registered at, and where they hold the Hauptleitung. Only registrations
+ * count, not leading a Hof's group: this is what the rest of the camp gets to see about somebody.
  */
-export const findRegisteredHofIds = async (
+export const findRegisteredHoefe = async (
   payload: Payload,
   ceviId: number,
   request?: PayloadRequest,
-): Promise<string[]> => {
-  const [hoefe, eventIds] = await Promise.all([
+): Promise<RegisteredHoefe> => {
+  const [hoefe, registrations] = await Promise.all([
     listHofMembershipKeys(payload, request),
-    getRegisteredEventIds(payload, ceviId, request),
+    payload.find({
+      collection: 'bill-participants',
+      where: { and: [{ userId: { equals: String(ceviId) } }, ACTIVE_REGISTRATION] },
+      depth: 0,
+      limit: MAX_REGISTRATIONS,
+      pagination: false,
+      select: { eventId: true, roleType: true },
+      ...(request === undefined ? {} : { req: request }),
+    }),
   ]);
-  return findMyHofIds(hoefe, [], eventIds);
+  return hoefeOfRegistrations(hoefe, registrations.docs);
 };
+
+/** Matches a person's registrations to the Höfe of their events. */
+const hoefeOfRegistrations = (
+  hoefe: HofMembershipKeys[],
+  registrations: { eventId: string; roleType?: string | null }[],
+): RegisteredHoefe => ({
+  hoefe: findMyHofIds(
+    hoefe,
+    [],
+    registrations.map(({ eventId }) => eventId),
+  ),
+  avpHoefe: findMyHofIds(
+    hoefe,
+    [],
+    registrations
+      .filter(({ roleType }) => roleType === HAUPTLEITUNG_ROLE_TYPE)
+      .map(({ eventId }) => eventId),
+  ),
+});
 
 /** A relationship reads as ids or as populated documents, depending on the depth. */
 export const toHofIds = (value: unknown): string[] => {
@@ -148,7 +187,7 @@ export const refreshUserHoefe = async (
           : { cevi_db_uuid: { in: ceviIds } },
       depth: 0,
       pagination: false,
-      select: { cevi_db_uuid: true, hoefe: true },
+      select: { cevi_db_uuid: true, hoefe: true, avpHoefe: true },
       ...withRequest,
     }),
     payload.find({
@@ -159,14 +198,17 @@ export const refreshUserHoefe = async (
           : { and: [{ userId: { in: ceviIds.map(String) } }, ACTIVE_REGISTRATION] },
       depth: 0,
       pagination: false,
-      select: { userId: true, eventId: true },
+      select: { userId: true, eventId: true, roleType: true },
       ...withRequest,
     }),
   ]);
 
-  const eventIdsByPerson = new Map<string, string[]>();
-  for (const { userId, eventId } of registrations.docs) {
-    eventIdsByPerson.set(userId, [...(eventIdsByPerson.get(userId) ?? []), eventId]);
+  const registrationsByPerson = new Map<string, { eventId: string; roleType?: string | null }[]>();
+  for (const registration of registrations.docs) {
+    registrationsByPerson.set(registration.userId, [
+      ...(registrationsByPerson.get(registration.userId) ?? []),
+      registration,
+    ]);
   }
 
   // The chat reads the Postgres copy, which `syncUserToPostgres` fills on every user write but
@@ -174,21 +216,33 @@ export const refreshUserHoefe = async (
   // run repairs it instead of trusting a Mongo value that already matches.
   const mirrorRows = await prisma.user.findMany({
     where: { uuid: { in: users.docs.map((user) => user.id) } },
-    select: { uuid: true, hofIds: true },
+    select: { uuid: true, hofIds: true, avpHofIds: true },
   });
-  const mirrored = new Map(mirrorRows.map((row) => [row.uuid, row.hofIds]));
+  const mirrored = new Map(mirrorRows.map((row) => [row.uuid, row]));
 
   let written = 0;
   for (const user of users.docs) {
     if (typeof user.cevi_db_uuid !== 'number') continue;
-    const next = findMyHofIds(hoefe, [], eventIdsByPerson.get(String(user.cevi_db_uuid)) ?? []);
+    const next = hoefeOfRegistrations(
+      hoefe,
+      registrationsByPerson.get(String(user.cevi_db_uuid)) ?? [],
+    );
     const inPostgres = mirrored.get(user.id);
-    if (!sameIds(next, toHofIds(user.hoefe))) {
+    if (
+      !sameIds(next.hoefe, toHofIds(user.hoefe)) ||
+      !sameIds(next.avpHoefe, toHofIds(user.avpHoefe))
+    ) {
       // without the request: a derived field, not an edit by whoever triggered the refresh
-      await payload.update({ collection: 'users', id: user.id, data: { hoefe: next } });
+      await payload.update({ collection: 'users', id: user.id, data: next });
       written += 1;
-    } else if (inPostgres !== undefined && !sameIds(next, inPostgres)) {
-      await prisma.user.update({ where: { uuid: user.id }, data: { hofIds: next } });
+    } else if (
+      inPostgres !== undefined &&
+      (!sameIds(next.hoefe, inPostgres.hofIds) || !sameIds(next.avpHoefe, inPostgres.avpHofIds))
+    ) {
+      await prisma.user.update({
+        where: { uuid: user.id },
+        data: { hofIds: next.hoefe, avpHofIds: next.avpHoefe },
+      });
       written += 1;
     }
   }

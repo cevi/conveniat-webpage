@@ -18,9 +18,14 @@ model User {
   /// ids of the Höfe in Payload's `hoefe` collection the user is registered at, mirrored from
   /// the Payload user; no foreign key, the Höfe live in MongoDB
   hofIds        String[] @default([])
+  /// the subset of `hofIds` where the user holds the Hauptleitung, i.e. is the Hof's AVP
+  avpHofIds     String[] @default([])
   /// ids of the camp functions in Payload's `funktionen` collection the user holds, mirrored
   /// from the Payload user; no foreign key, the functions live in MongoDB
   funktionIds   String[] @default([])
+  /// version of the user's profile picture from Cevi.DB, cached in S3 under
+  /// `profile-pictures/<uuid>/<version>.webp`, mirrored from the Payload user; null when none
+  profilePictureVersion String?
 
   messages             Message[]
   chatMemberships      ChatMembership[]
@@ -35,6 +40,10 @@ model User {
   materialLoans        MaterialLoan[]        @relation("MaterialLoanPerson")
   createdMaterialLoans MaterialLoan[]        @relation("MaterialLoanCreatedBy")
   materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
+  addressBook          AddressBookEntry[]    @relation("AddressBookOwner")
+  inAddressBooksOf     AddressBookEntry[]    @relation("AddressBookContact")
+  issuedChatInvites    ChatInvite[]          @relation("ChatInviteIssuer")
+  redeemedChatInvites  ChatInvite[]          @relation("ChatInviteRedeemer")
 
   @@index([name])
 }
@@ -107,6 +116,9 @@ model Chat {
   /// Case number for alert / emergency chats (e.g. 2026-06-01-001)
   caseNumber String? @unique
 
+  /// keeps the chat above all others in the chat overview, set from the CMS for announcement channels
+  pinned Boolean @default(false)
+
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
@@ -126,6 +138,42 @@ enum ChatMembershipPermission {
   MEMBER
   /// can read messages, but cannot send messages
   GUEST
+}
+
+/// The people a user met in person by scanning a chat QR code, one entry per direction. When the
+/// contact list is restricted, it shows these on top of the user's Hof and the camp leaders.
+model AddressBookEntry {
+  ownerId String
+  owner   User   @relation("AddressBookOwner", fields: [ownerId], references: [uuid])
+
+  contactId String
+  contact   User   @relation("AddressBookContact", fields: [contactId], references: [uuid])
+
+  createdAt DateTime @default(now())
+
+  @@id([ownerId, contactId])
+}
+
+/// A single-use code behind the QR code a user shows to start a chat with them. The code
+/// stands in for the user id, so a QR code cannot be printed and scanned by everyone.
+model ChatInvite {
+  token String @id
+
+  issuerId String
+  issuer   User   @relation("ChatInviteIssuer", fields: [issuerId], references: [uuid])
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  /// the user who scanned the code, null until it is redeemed
+  redeemedById String?
+  redeemedBy   User?     @relation("ChatInviteRedeemer", fields: [redeemedById], references: [uuid])
+  redeemedAt   DateTime?
+
+  /// the chat the redemption opened, answered again when the same user replays the link
+  chatId String?
+
+  @@index([issuerId])
 }
 
 model ChatMembership {

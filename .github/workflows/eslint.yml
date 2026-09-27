@@ -1,5 +1,9 @@
 on:
   pull_request:
+  # A pull request can only restore caches saved on its own ref or on its base branch. Running
+  # on dev keeps a warm cache there, so the first run of every new pull request starts from it.
+  push:
+    branches: [dev]
 
 # A new push supersedes the run for the previous one; only the latest result gates the merge.
 concurrency:
@@ -8,8 +12,43 @@ concurrency:
 
 name: 'Check Code Style and Linting'
 
+# ESLint is the slowest check by far, so it gets a runner of its own and starts right after the
+# install instead of after Prettier, the Payload artifacts and tsc. The job keeps the name `eslint`
+# because the dev and main rulesets require a check by that name.
 jobs:
   eslint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        name: Checkout repository
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      # The typed rules resolve src/build.ts and the Prisma client, both of which are generated.
+      - name: Generate Build Info
+        run: bash create_build_info.sh
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: generate prisma client
+        run: npx prisma generate --no-hints
+
+      # ESLint has no cache here: typed rules depend on other files, and ESLint's cache ignores
+      # that, so it could pass a file that now has an error.
+      - name: Check Code Style and Linting using ESLint
+        # Every worker builds its own TypeScript program for the typed rules. On the 4-vCPU runner two
+        # workers cut the step from about 95s to 80s; four were slower than one.
+        run: pnpm lint:check --concurrency 2
+
+  typecheck:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,8 +69,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Prettier and tsc both keep a cache of what they already checked. Prettier checks each file
+      # on its own and tsc tracks the dependencies between files, so a restored cache gives the same
+      # result as a cold run. The key runs on the lockfile, so an upgraded Prettier plugin never
+      # reuses results from its old version.
+      - name: Restore Prettier and TypeScript caches
+        uses: actions/cache@v6
+        with:
+          path: |
+            node_modules/.cache/prettier
+            tsconfig.tsbuildinfo
+          key: lint-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: lint-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - name: Run prettier
-        run: pnpm prettier:check
+        run: pnpm prettier:check --cache
 
       - name: generate prisma client
         run: npx prisma generate --no-hints
@@ -108,6 +160,3 @@ jobs:
 
       - name: Run TypeScript typecheck
         run: pnpm typecheck
-
-      - name: Check Code Style and Linting using ESLint
-        run: pnpm lint:check

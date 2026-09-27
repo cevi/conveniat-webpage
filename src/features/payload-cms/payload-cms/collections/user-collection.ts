@@ -11,13 +11,14 @@ import {
   toFunktionIds,
 } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import {
-  findRegisteredHofIds,
+  findRegisteredHoefe,
   toHofIds,
 } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import type { User } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
 import { formatUserFullName } from '@/utils/format-user-name';
+import { PROFILE_PICTURE_UPLOAD_CONTEXT } from '@/utils/profile-picture-url';
 import type { CollectionConfig } from 'payload';
 
 const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
@@ -40,7 +41,11 @@ const syncUserToPostgres: NonNullable<
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const hofIds = toHofIds(doc.hoefe);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const avpHofIds = toHofIds(doc.avpHoefe);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const funktionIds = toFunktionIds(doc.funktionen);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, unicorn/no-null
+  const profilePictureVersion = (doc.profilePictureVersion as string | undefined | null) ?? null;
 
   if (uuid === undefined || uuid === null || uuid === '') {
     throw new Error('UUID is required to update the user in the database.');
@@ -68,7 +73,9 @@ const syncUserToPostgres: NonNullable<
         description: description ?? null,
         hidden: hidden ?? false,
         hofIds,
+        avpHofIds,
         funktionIds,
+        profilePictureVersion,
       },
       create: {
         uuid: uuid,
@@ -77,7 +84,9 @@ const syncUserToPostgres: NonNullable<
         description: description ?? null,
         hidden: hidden ?? false,
         hofIds,
+        avpHofIds,
         funktionIds,
+        profilePictureVersion,
         presentAtCamp: presentAtCamp,
         // set date to 1970-01-01 to avoid null values
         lastSeen: new Date('1970-01-01T00:00:00Z'),
@@ -149,11 +158,11 @@ const fillCampDataOfNewPerson: NonNullable<
   if (typeof ceviId !== 'number') return next;
   if ((originalDoc as Partial<User> | undefined)?.cevi_db_uuid === ceviId) return next;
   try {
-    const [hoefe, funktionen] = await Promise.all([
-      findRegisteredHofIds(req.payload, ceviId, req),
+    const [{ hoefe, avpHoefe }, funktionen] = await Promise.all([
+      findRegisteredHoefe(req.payload, ceviId, req),
       findFunktionIdsOfPerson(req.payload, ceviId, req),
     ]);
-    return { ...next, hoefe, funktionen };
+    return { ...next, hoefe, avpHoefe, funktionen };
   } catch (error: unknown) {
     // Never fail a login over this: the next start and the next functions sync fill it in.
     req.payload.logger.error(
@@ -454,6 +463,24 @@ export const UserCollection: CollectionConfig = {
       },
     },
     {
+      name: 'avpHoefe',
+      type: 'relationship',
+      relationTo: 'hoefe',
+      hasMany: true,
+      label: { en: 'AVP of', de: 'AVP von', fr: 'AVP de' },
+      access: {
+        update: () => false,
+      },
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'The Höfe where this user holds the Hauptleitung of the camp, and so is the AVP. Kept up to date automatically from the registrations.',
+          de: 'Die Höfe, bei denen diese Person die Hauptleitung des Lagers innehat und damit AVP ist. Wird automatisch aus den Anmeldungen nachgeführt.',
+          fr: "Les Hofs dont cette personne assure la direction principale du camp et dont elle est donc l'AVP. Mis à jour automatiquement à partir des inscriptions.",
+        },
+      },
+    },
+    {
       name: 'funktionen',
       type: 'relationship',
       relationTo: 'funktionen',
@@ -468,6 +495,32 @@ export const UserCollection: CollectionConfig = {
           en: 'The functions this user holds in the camp organisation, synced from their leader roles in Cevi.DB.',
           de: 'Die Funktionen dieser Person in der Lagerorganisation, aus ihren Leitungsrollen in der Cevi.DB abgeglichen.',
           fr: "Les fonctions de cette personne dans l'organisation du camp, synchronisées à partir de ses rôles de responsable dans Cevi.DB.",
+        },
+      },
+    },
+    {
+      name: 'profilePictureVersion',
+      type: 'text',
+      label: { en: 'Profile picture', de: 'Profilbild', fr: 'Photo de profil' },
+      hooks: {
+        // Only the person sets a picture, by uploading it in the app. An editor may clear an
+        // inappropriate one; any other edit keeps what was there.
+        beforeChange: [
+          ({ value, previousValue, context }): unknown =>
+            context[PROFILE_PICTURE_UPLOAD_CONTEXT] === true ||
+            value === null ||
+            value === undefined ||
+            value === ''
+              ? value
+              : previousValue,
+        ],
+      },
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'Version of the profile picture the person uploaded in the app; empty without one. Empty the field to remove an inappropriate picture.',
+          de: 'Version des Profilbilds, das die Person in der App hochgeladen hat; leer, wenn es keines gibt. Leere das Feld, um ein unpassendes Bild zu entfernen.',
+          fr: "Version de la photo de profil que la personne a téléversée dans l'application ; vide s'il n'y en a pas. Vide le champ pour retirer une photo inappropriée.",
         },
       },
     },

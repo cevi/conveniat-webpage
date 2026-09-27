@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
   describeContactFunktionen,
@@ -133,15 +134,12 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                   onClick={() => onToggleSelection(contact)}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                        isSelected ? 'bg-conveniat-green text-white' : 'bg-gray-200 text-gray-600'
-                      }`}
-                    >
-                      <span className="font-heading text-sm font-semibold">
-                        {contact.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
+                    <PersonAvatar
+                      seed={contact.userId}
+                      name={contact.name}
+                      pictureUrl={contact.pictureUrl}
+                      className="h-8 w-8 text-xs"
+                    />
                     <div className="flex flex-col">
                       <span className="font-body text-sm font-medium text-gray-900">
                         {getContactDisplayName(contact)}

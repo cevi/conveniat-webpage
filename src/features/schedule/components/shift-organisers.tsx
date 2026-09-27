@@ -1,6 +1,7 @@
 'use client';
 
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { HelperShiftOrganiser } from '@/features/schedule/api/get-helper-shifts';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -49,9 +50,11 @@ export const ShiftOrganisers: React.FC<{
               className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-2.5"
             >
               <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                <div className="bg-conveniat-green font-heading flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs">
-                  {organiser.fullName.charAt(0).toUpperCase()}
-                </div>
+                <PersonAvatar
+                  seed={organiser.id}
+                  name={organiser.fullName}
+                  className="h-8 w-8 text-xs font-bold shadow-xs"
+                />
                 {/*
                   The name carries the Ceviname, which is how helpers know each other; the address
                   underneath was a second line of small grey text nobody types into anything -

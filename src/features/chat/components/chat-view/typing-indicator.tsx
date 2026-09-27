@@ -17,10 +17,13 @@ export const TypingIndicator: React.FC<{
   typist: Typist;
   showName: boolean;
   showAvatar: boolean;
+  pictureUrl?: string | undefined;
   locale: Locale;
-}> = ({ typist, showName, showAvatar, locale }) => (
+}> = ({ typist, showName, showAvatar, pictureUrl, locale }) => (
   <div className="flex w-full items-end gap-2 pl-2" role="status">
-    {showAvatar && <SenderAvatar senderId={typist.userId} name={typist.name} />}
+    {showAvatar && (
+      <SenderAvatar senderId={typist.userId} name={typist.name} pictureUrl={pictureUrl} />
+    )}
     <div className="flex flex-col items-start">
       {showName && (
         <span className="mb-1 px-1.5 text-xs font-semibold text-gray-500">{typist.name}</span>

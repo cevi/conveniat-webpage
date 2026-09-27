@@ -278,8 +278,8 @@ export const faqPageContent = (
             {
               titleOrPortrait: 'portrait',
               teamLeaderGroup: {
-                name: 'Leonie Loher',
-                ceviname: 'Vivace',
+                name: 'Erika Beispiel',
+                ceviname: 'Wiesel',
               },
               valueBlocks: [
                 {

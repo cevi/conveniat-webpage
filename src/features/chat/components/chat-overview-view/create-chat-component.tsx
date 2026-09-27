@@ -3,6 +3,7 @@ import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { Input } from '@/components/ui/input';
+import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import {
@@ -315,8 +316,13 @@ export const CreateNewChatPage: React.FC = () => {
                         key={contact.userId}
                         className="group relative flex shrink-0 flex-col items-center gap-1.5 pt-1"
                       >
-                        <div className="bg-conveniat-green font-heading relative flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold text-white shadow-xs">
-                          {getContactShortName(contact).charAt(0).toUpperCase()}
+                        <div className="relative">
+                          <PersonAvatar
+                            seed={contact.userId}
+                            name={contact.name}
+                            pictureUrl={contact.pictureUrl}
+                            className="h-12 w-12 text-sm font-bold shadow-xs"
+                          />
                           <button
                             type="button"
                             onClick={() => handleContactToggle(contact)}
@@ -393,11 +399,12 @@ export const CreateNewChatPage: React.FC = () => {
                       className="flex cursor-pointer items-center space-x-3 rounded-xl p-3 transition-all hover:bg-gray-50/80"
                       onClick={() => handleContactToggle(contact)}
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-tr from-gray-100 to-gray-200 text-gray-600 transition-transform">
-                        <span className="font-heading text-sm font-bold">
-                          {contact.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      <PersonAvatar
+                        seed={contact.userId}
+                        name={contact.name}
+                        pictureUrl={contact.pictureUrl}
+                        className="h-10 w-10 text-sm font-bold"
+                      />
                       <div className="flex-1">
                         <p className="font-body text-sm font-medium text-gray-900">
                           {getContactDisplayName(contact)}
