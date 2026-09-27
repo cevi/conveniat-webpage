@@ -78,7 +78,9 @@ export const MaterialOrderForm: React.FC<{
       await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
       // Typed values give way once the reloaded order holds them; if the reload did not get
       // through, they stay, rather than the order from before the save showing as if unsaved.
-      const reloaded = utils.hofDashboard.getHofDashboard.getData({ hofId })?.orders[order.type];
+      const reloaded = utils.hofDashboard.getHofDashboard.getData({ hofId, locale })?.orders[
+        order.type
+      ];
       if (reloaded === undefined) return;
       if ((reloaded.savedAt ?? '') === before) setSavedNotShown(before);
       const stored = storedValues(reloaded);
@@ -124,7 +126,9 @@ export const MaterialOrderForm: React.FC<{
       .map((item) => item.id),
   );
   // an invalid quantity is unsaved work too, so leaving warns about it
-  const dirty = invalid.size > 0 || !sameOrder(shown, storedValues(order));
+  // saved, only not reloaded yet: nothing is lost by leaving, so nothing warns about it
+  const savedButNotShown = savedNotShown === (order.savedAt ?? '');
+  const dirty = invalid.size > 0 || (!sameOrder(shown, storedValues(order)) && !savedButNotShown);
   const hint = translate('quantityHint', locale, {
     n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
   });
@@ -310,26 +314,20 @@ export const MaterialOrderForm: React.FC<{
           {!closed && (
             <div className="flex flex-col gap-3 @lg:flex-row @lg:items-center @lg:justify-between">
               <p
-                className={cn(
-                  'text-xs',
-                  dirty && savedNotShown !== (order.savedAt ?? '')
-                    ? 'font-semibold text-amber-700'
-                    : 'text-gray-500',
-                )}
+                className={cn('text-xs', dirty ? 'font-semibold text-amber-700' : 'text-gray-500')}
               >
-                {dirty &&
-                  translate(
-                    savedNotShown === (order.savedAt ?? '') ? 'savedNotShown' : 'unsavedChanges',
-                    locale,
-                  )}
-                {!dirty &&
+                {savedButNotShown && translate('savedNotShown', locale)}
+                {!savedButNotShown && dirty && translate('unsavedChanges', locale)}
+                {!savedButNotShown &&
+                  !dirty &&
                   order.savedAt !== undefined &&
                   translate('lastSaved', locale, { date: formatDate(order.savedAt, locale) })}
               </p>
               <button
                 type="submit"
                 // aria-disabled, not disabled: a disabled button drops the focus to the page
-                aria-disabled={save.isPending || !dirty || invalid.size > 0}
+                // stays active with an invalid quantity: pressing it takes the Hof there
+                aria-disabled={save.isPending || !dirty}
                 className={cn(
                   PRIMARY_BUTTON_CLASS,
                   'w-full aria-disabled:cursor-not-allowed aria-disabled:opacity-50 @lg:w-auto',

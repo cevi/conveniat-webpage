@@ -160,8 +160,7 @@ export const ProgressLine: React.FC<{
   progress: SubmissionProgress;
   status: HofSubmissionStatus | undefined;
   locale: Locale;
-  className?: string;
-}> = ({ progress, status, locale, className }) => {
+}> = ({ progress, status, locale }) => {
   const due: string[] = [];
   if (progress.state !== 'done' && progress.deadline !== undefined) {
     due.push(translate('dueOn', locale, { date: formatDate(progress.deadline, locale) }));
@@ -171,7 +170,7 @@ export const ProgressLine: React.FC<{
   }
   return (
     // a span, since it also sits inside the overview's row buttons
-    <span className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 text-sm', className)}>
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
       <ProgressPill progress={progress} status={status} locale={locale} />
       {due.length > 0 && <span className="text-gray-600">{due.join(' · ')}</span>}
     </span>

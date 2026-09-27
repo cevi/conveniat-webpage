@@ -25,7 +25,7 @@ export const useSafetyRiskAnswer = (
     onError: () => notifyFailure(locale, 'saveFailed'),
     // stored now, so it stays even if the reload below does not get through
     onSuccess: (_result, answer) =>
-      utils.hofDashboard.getHofDashboard.setData({ hofId }, (current) =>
+      utils.hofDashboard.getHofDashboard.setData({ hofId, locale }, (current) =>
         current === undefined
           ? current
           : {

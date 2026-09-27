@@ -8,7 +8,7 @@ import {
   type HofFileKind,
   type HofSubmissionType,
 } from '@/features/hof-dashboard/constants';
-import { translate } from '@/features/hof-dashboard/texts';
+import { translate, type TextKey } from '@/features/hof-dashboard/texts';
 import { notifyFailure } from '@/features/hof-dashboard/utils/notify-failure';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -28,6 +28,16 @@ export interface UploadInProgress {
 
 /** Raised when the user calls an upload off, so it is not reported as a failure. */
 class UploadCancelled extends Error {}
+
+/**
+ * What the server's refusals mean to the Hof. A file whose ending passed the checks here but
+ * whose content the server refuses is damaged.
+ */
+const SERVER_REFUSALS: Partial<Record<string, TextKey>> = {
+  unsupported_file_type: 'fileUnreadable',
+  file_too_large: 'fileTooLarge',
+  too_many_files: 'tooManyFiles',
+};
 
 /**
  * Puts the file to storage with the progress reported as it goes. `fetch` cannot report the
@@ -156,16 +166,18 @@ export const useHofUpload = (
     } catch (error) {
       // called off, or its Hof left meanwhile: its failure is not the one shown now
       if (error instanceof UploadCancelled || state.cancelled) return;
-      // its ending passed here, so a file whose content the server refuses is damaged
-      if (error instanceof TRPCClientError && error.message === 'unsupported_file_type') {
-        toast.error(translate('fileUnreadable', locale));
-      } else if (error instanceof TRPCClientError && error.message === 'too_many_files') {
-        toast.error(translate('tooManyFiles', locale));
-      } else {
-        // only what nobody expected is worth an error report; no signal is the usual cause
-        if (globalThis.navigator.onLine) console.error('Hof dashboard upload failed', error);
-        notifyFailure(locale, 'uploadFailed');
+      const refusal = error instanceof TRPCClientError ? SERVER_REFUSALS[error.message] : undefined;
+      if (refusal !== undefined) {
+        toast.error(translate(refusal, locale, { n: HOF_FILE_MAX_BYTES / (1024 * 1024) }));
+        return;
       }
+      // only what nobody expected is worth an error report; no signal, or an upload that never
+      // arrived because of it, is the usual cause
+      const expected =
+        !globalThis.navigator.onLine ||
+        (error instanceof TRPCClientError && error.message === 'upload_missing');
+      if (!expected) console.error('Hof dashboard upload failed', error);
+      notifyFailure(locale, 'uploadFailed');
     } finally {
       running.current.delete(cancel);
       // a cancelled upload already left the card, which may by now hold the next one

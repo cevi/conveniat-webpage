@@ -13,6 +13,7 @@ import {
   HOF_SUBMISSION_TYPES,
 } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -36,12 +37,15 @@ export const hofDashboardRouter = createTRPCRouter({
   getMyHofList: hofDashboardProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),
 
   /** Everything one Hof's dashboard shows. */
-  getHofDashboard: hofDashboardProcedure.input(hofIdInput).query(async ({ ctx, input }) => {
-    await ctx.assertHofAccess(input.hofId);
-    const data = await getHofDashboardData(input.hofId, ctx.locale);
-    // reviewers may still change an order after its deadline
-    return { ...data, isReviewer: ctx.isReviewer };
-  }),
+  getHofDashboard: hofDashboardProcedure
+    // the page's language, so it is part of the cached query and a switch loads the texts anew
+    .input(hofIdInput.extend({ locale: z.enum([LOCALE.DE, LOCALE.FR, LOCALE.EN]).optional() }))
+    .query(async ({ ctx, input }) => {
+      await ctx.assertHofAccess(input.hofId);
+      const data = await getHofDashboardData(input.hofId, input.locale ?? ctx.locale);
+      // reviewers may still change an order after its deadline
+      return { ...data, isReviewer: ctx.isReviewer };
+    }),
 
   /** Where the browser puts a file before `completeUpload` files it. */
   createUploadUrl: hofDashboardProcedure

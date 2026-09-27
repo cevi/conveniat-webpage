@@ -28,6 +28,9 @@ const logger = createLogger('hof-dashboard:mutations');
 
 const PRESIGNED_UPLOAD_SECONDS = 15 * 60;
 
+/** How often a save is merged again when someone else saved the same order in between. */
+const MAX_ORDER_SAVE_ATTEMPTS = 3;
+
 /**
  * Where a browser puts a file for a Hof before the dashboard files it. The Hof is part of the
  * key, so an upload can only ever be filed under the Hof it was made for.
@@ -318,7 +321,16 @@ export const updateHofMaterialOrder = async ({
     throw new TRPCError({ code: 'FORBIDDEN', message: 'order_closed' });
   }
 
-  const find = async (): Promise<HofMaterialOrder | undefined> => {
+  const listNames = new Map(
+    (list?.items ?? []).flatMap((item) =>
+      typeof item.id === 'string' ? [[item.id, item.name] as const] : [],
+    ),
+  );
+
+  // Read, merge the Hof's changes into what is stored, and write only if nobody saved in
+  // between; otherwise read again. So two saves at once, a reviewer's and the Hof's, or two
+  // first saves, both end up in the order instead of the second undoing the first.
+  for (let attempt = 1; attempt <= MAX_ORDER_SAVE_ATTEMPTS; attempt += 1) {
     const { docs } = await payload.find({
       collection: 'hof-material-orders',
       where: { and: [{ hof: { equals: hofId } }, { orderType: { equals: orderType } }] },
@@ -326,53 +338,72 @@ export const updateHofMaterialOrder = async ({
       limit: 1,
       overrideAccess: true,
     });
-    return docs[0];
-  };
-  const listNames = new Map(
-    (list?.items ?? []).flatMap((item) =>
-      typeof item.id === 'string' ? [[item.id, item.name] as const] : [],
-    ),
-  );
-  const existing = await find();
-  const { lines, unknownItemIds } = buildOrderLines(listNames, existing?.items ?? [], changes);
-  if (unknownItemIds.length > 0) {
-    // the list changed while the Hof had the form open; a reload shows the new one
-    throw new TRPCError({ code: 'CONFLICT', message: 'order_list_changed' });
-  }
+    const existing: HofMaterialOrder | undefined = docs[0];
+    const { lines, unknownItemIds } = buildOrderLines(listNames, existing?.items ?? [], changes);
+    if (unknownItemIds.length > 0) {
+      // the list changed while the Hof had the form open; a reload shows the new one
+      throw new TRPCError({ code: 'CONFLICT', message: 'order_list_changed' });
+    }
+    const data = {
+      items: lines,
+      powerConnection:
+        orderType === 'stadtleben' && (powerConnection ?? existing?.powerConnection === true),
+      lastEditedBy: userId,
+    };
 
-  const data = {
-    items: lines,
-    powerConnection:
-      orderType === 'stadtleben' && (powerConnection ?? existing?.powerConnection === true),
-    lastEditedBy: userId,
-  };
-  const update = async (id: string): Promise<void> => {
-    await payload.update({
-      collection: 'hof-material-orders',
-      id,
-      data,
-      depth: 0,
-      overrideAccess: true,
-    });
-  };
-  // two first saves at the same moment: the unique index refuses the second, which then fails
-  // like any failed save and is simply saved again
-  await (existing === undefined
-    ? payload.create({
+    let saved: boolean;
+    if (existing === undefined) {
+      // the unique index refuses a second first save; the next round merges into the first
+      saved = await payload
+        .create({
+          collection: 'hof-material-orders',
+          data: {
+            hof: hofId,
+            orderType,
+            title: `${hof.name} · ${HOF_ORDER_TYPE_LABELS[orderType].de}`,
+            ...data,
+          },
+          depth: 0,
+          overrideAccess: true,
+        })
+        .then(
+          () => true,
+          async (error: unknown) => {
+            // only a first save that lost the race is merged again; anything else is a failure
+            const { totalDocs } = await payload.count({
+              collection: 'hof-material-orders',
+              where: { and: [{ hof: { equals: hofId } }, { orderType: { equals: orderType } }] },
+              overrideAccess: true,
+            });
+            if (totalDocs === 0) throw error;
+            return false;
+          },
+        );
+    } else {
+      const { docs: updated } = await payload.update({
         collection: 'hof-material-orders',
-        data: {
-          hof: hofId,
-          orderType,
-          title: `${hof.name} · ${HOF_ORDER_TYPE_LABELS[orderType].de}`,
-          ...data,
+        where: {
+          and: [{ id: { equals: existing.id } }, { updatedAt: { equals: existing.updatedAt } }],
         },
+        data,
         depth: 0,
         overrideAccess: true,
-      })
-    : update(existing.id));
-  logger.info('A Hof saved its material order', {
+      });
+      saved = updated.length === 1;
+    }
+    if (saved) {
+      logger.info('A Hof saved its material order', {
+        'hof_dashboard.hof_id': hofId,
+        'hof_dashboard.order_type': orderType,
+        'hof_dashboard.order_lines': lines.length,
+        'hof_dashboard.attempts': attempt,
+      });
+      return;
+    }
+  }
+  logger.warn('A material order kept changing while it was saved', {
     'hof_dashboard.hof_id': hofId,
     'hof_dashboard.order_type': orderType,
-    'hof_dashboard.order_lines': lines.length,
   });
+  throw new TRPCError({ code: 'CONFLICT', message: 'order_busy' });
 };

@@ -11,7 +11,7 @@ import type { Access, Payload, PayloadRequest } from 'payload';
 export const HOF_ADMINISTRATOR_ROLE_CLASS = 'Group::Ortsgruppe::AdministratorCeviDB';
 
 /** One role of a user, as the login copies it from the Cevi.DB profile onto the Payload user. */
-export interface CeviDatabaseRole {
+interface CeviDatabaseRole {
   id?: number | null;
   role_class?: string | null;
 }

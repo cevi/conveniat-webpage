@@ -116,7 +116,7 @@ const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, l
   useScrollToSubmission(root, scrollTarget, clearScrollTarget);
 
   const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
-    { hofId },
+    { hofId, locale },
     {
       // a reviewer's answer should reach the Hof within a look away; the app's defaults
       // would keep showing what was loaded until the next full reload

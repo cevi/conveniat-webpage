@@ -71,6 +71,7 @@ beforeEach(() => {
   mockPayload.find.mockResolvedValue({ docs: [] });
   mockPayload.create.mockResolvedValue({ id: 'created' });
   mockPayload.count.mockResolvedValue({ totalDocs: 0 });
+  mockPayload.update.mockResolvedValue({ docs: [{ id: 'updated' }] });
   mockSend.mockResolvedValue({
     ContentLength: PDF_BYTES.length,
     Body: { transformToByteArray: (): Promise<Uint8Array> => Promise.resolve(PDF_BYTES) },
@@ -193,11 +194,53 @@ describe('updateHofMaterialOrder', () => {
       },
     });
     mockPayload.find.mockResolvedValue({
-      docs: [{ id: 'order-1', items: [{ itemId: 'axe', name: 'Handbeil', quantity: 8 }] }],
+      docs: [
+        {
+          id: 'order-1',
+          updatedAt: '2026-09-27T04:00:00.000Z',
+          items: [{ itemId: 'axe', name: 'Handbeil', quantity: 8 }],
+        },
+      ],
     });
     await order({ changes: [{ itemId: 'rope', quantity: 3 }] });
     expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
-      id: 'order-1',
+      where: {
+        and: [{ id: { equals: 'order-1' } }, { updatedAt: { equals: '2026-09-27T04:00:00.000Z' } }],
+      },
+      data: {
+        items: [
+          { itemId: 'axe', name: 'Handbeil', quantity: 8 },
+          { itemId: 'rope', name: 'Bindestrick', quantity: 3 },
+        ],
+      },
+    });
+  });
+
+  it('merges again when someone saved the same order in between', async () => {
+    mockSettings.mockResolvedValue({
+      infrastructureOrder: {
+        deadline: '2999-01-31T12:00:00.000Z',
+        items: [
+          { id: 'rope', name: 'Bindestrick' },
+          { id: 'axe', name: 'Handbeil' },
+        ],
+      },
+    });
+    mockPayload.find
+      .mockResolvedValueOnce({ docs: [{ id: 'order-1', updatedAt: 'first', items: [] }] })
+      .mockResolvedValueOnce({
+        docs: [
+          {
+            id: 'order-1',
+            updatedAt: 'second',
+            items: [{ itemId: 'axe', name: 'Handbeil', quantity: 8 }],
+          },
+        ],
+      });
+    // the first write finds the order changed since it was read
+    mockPayload.update.mockResolvedValueOnce({ docs: [] });
+    await order({ changes: [{ itemId: 'rope', quantity: 3 }] });
+    expect(mockPayload.update.mock.calls[1]?.[0]).toMatchObject({
       data: {
         items: [
           { itemId: 'axe', name: 'Handbeil', quantity: 8 },
