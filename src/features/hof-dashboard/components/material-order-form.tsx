@@ -26,7 +26,7 @@ import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Loader2 } from 'lucide-react';
 import type React from 'react';
-import { Fragment, useId, useState } from 'react';
+import { Fragment, useId, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 /** The material list, split under its section headings in the order the settings give them. */
@@ -67,8 +67,10 @@ export const MaterialOrderForm: React.FC<{
   // lost to one.
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [powerEdit, setPowerEdit] = useState<boolean>();
-  // the stored order a save could not replace on screen, as the reload after it failed
-  const [savedNotShown, setSavedNotShown] = useState<string>();
+  // What a save stored when the reload after it failed: the order it replaced, by its
+  // timestamp, and what the form showed. While both still hold, the form is saved, not dirty.
+  const [savedNotShown, setSavedNotShown] = useState<{ savedAt: string; values: OrderValues }>();
+  const savingValues = useRef<OrderValues>(undefined);
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
@@ -82,7 +84,10 @@ export const MaterialOrderForm: React.FC<{
         order.type
       ];
       if (reloaded === undefined) return;
-      if ((reloaded.savedAt ?? '') === before) setSavedNotShown(before);
+      const values = savingValues.current;
+      if ((reloaded.savedAt ?? '') === before && values !== undefined) {
+        setSavedNotShown({ savedAt: before, values });
+      }
       const stored = storedValues(reloaded);
       setEdits((current) =>
         Object.fromEntries(
@@ -127,7 +132,8 @@ export const MaterialOrderForm: React.FC<{
   );
   // an invalid quantity is unsaved work too, so leaving warns about it
   // saved, only not reloaded yet: nothing is lost by leaving, so nothing warns about it
-  const savedButNotShown = savedNotShown === (order.savedAt ?? '');
+  const savedButNotShown =
+    savedNotShown?.savedAt === (order.savedAt ?? '') && sameOrder(shown, savedNotShown.values);
   const dirty = invalid.size > 0 || (!sameOrder(shown, storedValues(order)) && !savedButNotShown);
   const hint = translate('quantityHint', locale, {
     n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
@@ -145,6 +151,7 @@ export const MaterialOrderForm: React.FC<{
       return;
     }
     if (save.isPending || !dirty) return;
+    savingValues.current = shown;
     save.mutate({
       hofId,
       orderType: order.type,
@@ -232,7 +239,6 @@ export const MaterialOrderForm: React.FC<{
                             value={quantityText(item)}
                             onChange={(event) => {
                               const typed = event.target.value.trim();
-                              setSavedNotShown(undefined);
                               setEdits((previous) => ({ ...previous, [item.id]: typed }));
                             }}
                             // once the Hof moves on, "007" reads as 7, and a quantity back at
@@ -301,7 +307,6 @@ export const MaterialOrderForm: React.FC<{
                 disabled={closed}
                 onChange={(event) => {
                   const checked = event.target.checked;
-                  setSavedNotShown(undefined);
                   // back at what is stored is no edit, so a later correction shows
                   setPowerEdit(checked === order.powerConnection ? undefined : checked);
                 }}

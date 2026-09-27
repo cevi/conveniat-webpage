@@ -71,7 +71,7 @@ beforeEach(() => {
   mockPayload.find.mockResolvedValue({ docs: [] });
   mockPayload.create.mockResolvedValue({ id: 'created' });
   mockPayload.count.mockResolvedValue({ totalDocs: 0 });
-  mockPayload.update.mockResolvedValue({ docs: [{ id: 'updated' }] });
+  mockPayload.update.mockResolvedValue({ docs: [{ id: 'updated' }], errors: [] });
   mockSend.mockResolvedValue({
     ContentLength: PDF_BYTES.length,
     Body: { transformToByteArray: (): Promise<Uint8Array> => Promise.resolve(PDF_BYTES) },
@@ -238,7 +238,7 @@ describe('updateHofMaterialOrder', () => {
         ],
       });
     // the first write finds the order changed since it was read
-    mockPayload.update.mockResolvedValueOnce({ docs: [] });
+    mockPayload.update.mockResolvedValueOnce({ docs: [], errors: [] });
     await order({ changes: [{ itemId: 'rope', quantity: 3 }] });
     expect(mockPayload.update.mock.calls[1]?.[0]).toMatchObject({
       data: {
@@ -248,6 +248,18 @@ describe('updateHofMaterialOrder', () => {
         ],
       },
     });
+  });
+
+  it('reports a failed write as such instead of retrying it as a race', async () => {
+    mockPayload.find.mockResolvedValue({
+      docs: [{ id: 'order-1', updatedAt: 'first', items: [] }],
+    });
+    mockPayload.update.mockResolvedValueOnce({
+      docs: [],
+      errors: [{ id: 'order-1', message: 'validation failed' }],
+    });
+    await expect(order()).rejects.toThrow('validation failed');
+    expect(mockPayload.update).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the stored power answer when the Hof did not change it', async () => {

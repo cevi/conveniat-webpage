@@ -402,6 +402,9 @@ test.describe('Hof dashboard', () => {
     await expect(quantity).toHaveValue('7');
     // and says it is saved, not that it is not
     await expect(page.getByText(/Gespeichert\. Die Anzeige wird aktualisiert/)).toBeVisible();
+    // what is typed afterwards is unsaved again
+    await quantity.fill('8');
+    await expect(page.getByText('Nicht gespeicherte Änderungen').first()).toBeVisible();
   });
 
   test('keeps a saved answer when the reload after it fails', async ({ page }) => {

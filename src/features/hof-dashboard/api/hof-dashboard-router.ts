@@ -13,7 +13,7 @@ import {
   HOF_SUBMISSION_TYPES,
 } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
-import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
+import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -42,7 +42,12 @@ export const hofDashboardRouter = createTRPCRouter({
     .input(hofIdInput.extend({ locale: z.enum([LOCALE.DE, LOCALE.FR, LOCALE.EN]).optional() }))
     .query(async ({ ctx, input }) => {
       await ctx.assertHofAccess(input.hofId);
-      const data = await getHofDashboardData(input.hofId, input.locale ?? ctx.locale);
+      // a language this deployment does not serve falls back to the reader's
+      const locale =
+        input.locale !== undefined && enabledLocales.includes(input.locale)
+          ? input.locale
+          : ctx.locale;
+      const data = await getHofDashboardData(input.hofId, locale);
       // reviewers may still change an order after its deadline
       return { ...data, isReviewer: ctx.isReviewer };
     }),

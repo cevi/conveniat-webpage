@@ -328,8 +328,10 @@ export const updateHofMaterialOrder = async ({
   );
 
   // Read, merge the Hof's changes into what is stored, and write only if nobody saved in
-  // between; otherwise read again. So two saves at once, a reviewer's and the Hof's, or two
-  // first saves, both end up in the order instead of the second undoing the first.
+  // between; otherwise read again. A save that overlaps another one, a reviewer's and the
+  // Hof's, or two first saves, is merged into it instead of undoing it. Payload checks the
+  // version and writes in two steps, so saves within the same few milliseconds can still
+  // collide; the window a user could hit, their round trip, is closed.
   for (let attempt = 1; attempt <= MAX_ORDER_SAVE_ATTEMPTS; attempt += 1) {
     const { docs } = await payload.find({
       collection: 'hof-material-orders',
@@ -380,7 +382,7 @@ export const updateHofMaterialOrder = async ({
           },
         );
     } else {
-      const { docs: updated } = await payload.update({
+      const { docs: updated, errors } = await payload.update({
         collection: 'hof-material-orders',
         where: {
           and: [{ id: { equals: existing.id } }, { updatedAt: { equals: existing.updatedAt } }],
@@ -389,6 +391,9 @@ export const updateHofMaterialOrder = async ({
         depth: 0,
         overrideAccess: true,
       });
+      // Payload reports a failed write here instead of throwing; it is no race, so no retry
+      const failure = errors[0];
+      if (failure !== undefined) throw new Error(failure.message);
       saved = updated.length === 1;
     }
     if (saved) {
