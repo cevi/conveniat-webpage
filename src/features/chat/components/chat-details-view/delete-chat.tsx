@@ -1,5 +1,4 @@
 'use client';
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import {
   ArchiveChatConfirmDialog,
   localizedDeleteChat,
@@ -9,6 +8,7 @@ import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-m
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useUpdateChatMutation } from '@/features/chat/hooks/use-update-chat-mutation';
 import { useUserCanArchiveChat } from '@/features/chat/hooks/use-user-can-archive';
+import { isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';

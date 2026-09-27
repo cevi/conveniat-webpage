@@ -1,3 +1,4 @@
+import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { ChatMembershipPermission } from '@/lib/prisma';
@@ -27,6 +28,8 @@ export const renameChat = trpcBaseProcedure
         message: 'You are not a member of this chat.',
       });
     }
+
+    assertChatNotArchived(chat);
 
     // check if user is ADMIN or OWNER of the chat
     const userMembership = chat.chatMemberships.find(

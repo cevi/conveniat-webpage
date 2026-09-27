@@ -114,6 +114,7 @@ export const createMessage = trpcBaseProcedure
           select: {
             userId: true,
             chatPermission: true,
+            hasDeleted: true,
           },
         },
       },
@@ -189,6 +190,12 @@ export const createMessage = trpcBaseProcedure
       .filter((membership) => membership.userId !== user.uuid)
       .map((membership) => membership.userId);
 
+    // A member who deleted the chat never sees it in their list again, so a push for it
+    // would lead nowhere.
+    const pushRecipientUserIds = chat.chatMemberships
+      .filter((membership) => membership.userId !== user.uuid && !membership.hasDeleted)
+      .map((membership) => membership.userId);
+
     // Fetch quoted message content if quotedMessageId is provided
     let quotedSnippet: string | undefined;
     if (validatedMessage.quotedMessageId) {
@@ -260,7 +267,7 @@ export const createMessage = trpcBaseProcedure
     // Send push notification (fire-and-forget, with error logging)
     sendNotification(
       validatedMessage.content,
-      recipientUserIds,
+      pushRecipientUserIds,
       validatedMessage.chatId,
       createdMessage.uuid,
       {

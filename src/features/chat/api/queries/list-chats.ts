@@ -1,5 +1,4 @@
 /* eslint-disable unicorn/no-null */
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
@@ -10,6 +9,7 @@ import {
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
+  isChatArchived,
 } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType, type Prisma } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';

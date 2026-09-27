@@ -1,3 +1,4 @@
+import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { extractStringKey } from '@/features/payload-cms/payload-cms/utils/extract-string-key';
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -41,6 +42,12 @@ export const updateMessageContent = trpcBaseProcedure
     if (message.senderId !== user.uuid) {
       throw new Error('You can only update your own messages');
     }
+
+    const chat = await prisma.chat.findUniqueOrThrow({
+      where: { uuid: message.chatId },
+      select: { archivedAt: true },
+    });
+    assertChatNotArchived(chat);
 
     const currentRevision = message.contentVersions[0]?.revision ?? 0;
 

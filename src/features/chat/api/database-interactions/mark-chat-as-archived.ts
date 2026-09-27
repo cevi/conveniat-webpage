@@ -1,4 +1,4 @@
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
+import { isChatArchived } from '@/lib/chat-shared';
 import { MessageEventType } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
