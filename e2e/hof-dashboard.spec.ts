@@ -71,7 +71,10 @@ const DASHBOARD = {
     infrastructure: {
       type: 'infrastructure',
       deadline: inDays(40),
-      items: [{ id: 'rope', name: 'Bindestrick', quantity: 0 }],
+      items: [
+        { id: 'rope', name: 'Bindestrick', quantity: 0 },
+        { id: 'axe', name: 'Handbeil', quantity: 2 },
+      ],
       retiredItems: [],
       powerConnection: false,
     },
@@ -342,10 +345,36 @@ test.describe('Hof dashboard', () => {
     await page.goto('/hof-dashboard');
     await page.getByRole('tab', { name: 'Material' }).click();
     const quantity = page.getByLabel('Bindestrick');
-    await quantity.pressSequentially('2.');
-    await expect(quantity).toHaveValue('2');
-    // said right below the field, not only under a long list
-    await expect(page.getByRole('status').filter({ hasText: 'Ganze Stückzahlen' })).toBeVisible();
+    await quantity.pressSequentially('2.5');
+    // kept as typed and marked, not read as 2 or 25
+    await expect(quantity).toHaveValue('2.5');
+    await expect(quantity).toHaveAttribute('aria-invalid', 'true');
+    await expect(quantity).toHaveAccessibleDescription(/Ganze Stückzahlen/);
+    await expect(page.getByRole('button', { name: 'Speichern' }).first()).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+
+  test('sends only the quantities the Hof changed', async ({ page }) => {
+    await mockBackend(page);
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Material' }).click();
+    await page.getByLabel('Bindestrick').fill('3');
+    // changed and changed back: nothing to send, so a reviewer's correction is not undone
+    await page.getByLabel('Handbeil').fill('5');
+    await page.getByLabel('Handbeil').fill('2');
+    await page.getByLabel('Handbeil').blur();
+
+    const saved = page.waitForRequest((request) => request.url().includes('updateMaterialOrder'));
+    await page.getByRole('button', { name: 'Speichern' }).first().click();
+    const request = await saved;
+    const body = request.postDataJSON() as Record<
+      string,
+      { json: { changes: unknown[]; powerConnection?: boolean } }
+    >;
+    expect(body['0']?.json.changes).toEqual([{ itemId: 'rope', quantity: 3 }]);
+    expect(body['0']?.json).not.toHaveProperty('powerConnection');
   });
 
   test('keeps a saved order in view when the reload after it fails', async ({ page }) => {

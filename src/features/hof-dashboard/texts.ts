@@ -14,8 +14,8 @@ export const text = {
   },
   noAccess: {
     de: 'Du hast keinen Zugriff auf ein Hof-Dashboard. Es öffnet sich für die Adressverwaltung der Cevi.DB-Gruppe eines Hofs. Hast du mehrere Cevi.DB-Konten, melde dich im Menü ab und mit dem richtigen wieder an.',
-    en: "You have no access to a Hof dashboard. It opens for the address administration of a Hof's Cevi.DB group. If you have several Cevi.DB accounts, sign out in the menu and back in with the right one.",
-    fr: "Tu n'as accès à aucun tableau de bord. Il s'ouvre pour l'administration des adresses du groupe Cevi.DB d'un Hof. Si tu as plusieurs comptes Cevi.DB, déconnecte-toi dans le menu et reconnecte-toi avec le bon.",
+    en: "You have no access to a Hof dashboard. It opens for the address managers of a Hof's Cevi.DB group. If you have several Cevi.DB accounts, sign out in the menu and back in with the right one.",
+    fr: "Tu n'as accès à aucun tableau de bord de Hof. Il s'ouvre pour la gestion des adresses du groupe Cevi.DB d'un Hof. Si tu as plusieurs comptes Cevi.DB, déconnecte-toi dans le menu et reconnecte-toi avec le bon.",
   },
   loadError: {
     de: 'Das Dashboard konnte nicht geladen werden.',
@@ -37,7 +37,7 @@ export const text = {
   coach: { de: 'Coach', en: 'Coach', fr: 'Coach' },
   buildingManager: {
     de: 'Bauverantwortliche/r',
-    en: 'Responsible for buildings',
+    en: 'Building lead',
     fr: 'Responsable des constructions',
   },
   contactMissing: {
@@ -68,7 +68,7 @@ export const text = {
   inDays: { de: 'in {n} Tagen', en: 'in {n} days', fr: 'dans {n} jours' },
   inOneDay: { de: 'morgen', en: 'tomorrow', fr: 'demain' },
   today: { de: 'heute', en: 'today', fr: "aujourd'hui" },
-  oneDayAgo: { de: 'seit 1 Tag überfällig', en: '1 day overdue', fr: 'en retard d’1 jour' },
+  oneDayAgo: { de: 'seit 1 Tag überfällig', en: '1 day overdue', fr: 'en retard d’un jour' },
   deadlinePassed: { de: 'Frist abgelaufen', en: 'Deadline passed', fr: 'Délai dépassé' },
   daysAgo: {
     de: 'seit {n} Tagen überfällig',
@@ -77,10 +77,10 @@ export const text = {
   },
   dueOn: { de: 'Frist {date}', en: 'Due {date}', fr: 'Échéance {date}' },
 
-  gapPlan: { de: 'Planung fehlt', en: 'Plan missing', fr: 'Planification manquante' },
+  gapPlan: { de: 'Planung fehlt', en: 'Plan missing', fr: 'Plans manquants' },
   gapSafetyRiskAnswer: {
     de: 'Sicherheitsrisiko angeben',
-    en: 'Safety risk not answered',
+    en: 'Answer the safety question',
     fr: 'Risque de sécurité à indiquer',
   },
   gapSafetyConcept: {
@@ -93,7 +93,7 @@ export const text = {
   uploadNewVersion: {
     de: 'Neue Version hochladen',
     en: 'Upload a new version',
-    fr: 'Nouvelle version',
+    fr: 'Téléverser une nouvelle version',
   },
   uploadDone: { de: 'Datei hochgeladen', en: 'File uploaded', fr: 'Fichier téléversé' },
   uploadFailed: {
@@ -113,12 +113,12 @@ export const text = {
   },
   fileUnreadable: {
     de: 'Die Datei lässt sich nicht öffnen. Ist sie vielleicht beschädigt?',
-    en: 'The file cannot be opened. Could it be damaged?',
+    en: 'The file cannot be opened. It may be damaged.',
     fr: 'Le fichier ne peut pas être ouvert. Serait-il endommagé ?',
   },
   tooManyFiles: {
     de: 'Dieser Hof hat die höchste Zahl an Dateien erreicht. Melde dich beim Ressort.',
-    en: 'This Hof has reached the most files it can hand in. Please contact the Ressort.',
+    en: 'This Hof has reached the file limit. Please contact the Ressort.',
     fr: 'Ce Hof a atteint le nombre maximal de fichiers. Contacte le Ressort.',
   },
   fileRules: {
@@ -192,13 +192,13 @@ export const text = {
   quantity: { de: 'Anzahl', en: 'Quantity', fr: 'Quantité' },
   quantityHint: {
     de: 'Ganze Stückzahlen, höchstens {n} pro Material.',
-    en: 'Whole numbers, at most {n} per material.',
-    fr: 'Nombres entiers, au maximum {n} par matériel.',
+    en: 'Whole numbers only, up to {n} per item.',
+    fr: 'Nombres entiers, au maximum {n} par article.',
   },
   orderableUntil: {
     de: 'Bestellbar bis {date}',
-    en: 'Orderable until {date}',
-    fr: "Commandable jusqu'au {date}",
+    en: 'Order by {date}',
+    fr: "À commander jusqu'au {date}",
   },
   orderClosed: {
     de: 'Die Bestellfrist ist abgelaufen. Änderungen nimmt das Ressort entgegen.',
@@ -217,8 +217,8 @@ export const text = {
   },
   retiredItems: {
     de: 'Nicht mehr auf der Liste, aber bestellt',
-    en: 'No longer listed, but ordered',
-    fr: 'Plus dans la liste, mais commandé',
+    en: 'Ordered, no longer on the list',
+    fr: 'Commandé, retiré de la liste',
   },
   orderListChanged: {
     de: 'Die Materialliste wurde in der Zwischenzeit geändert. Prüfe deine Mengen und speichere erneut.',
@@ -231,7 +231,7 @@ export const text = {
   lastSaved: {
     de: 'Zuletzt gespeichert am {date}',
     en: 'Last saved on {date}',
-    fr: 'Enregistré le {date}',
+    fr: 'Dernier enregistrement le {date}',
   },
 
   officialDocuments: {
@@ -255,7 +255,11 @@ export const text = {
     fr: "Ton Hof n'a encore déposé aucun fichier.",
   },
   download: { de: 'Herunterladen', en: 'Download', fr: 'Télécharger' },
-  showCriteriaLink: { de: 'Was zählt dazu?', en: 'What counts?', fr: "Qu'est-ce qui compte ?" },
+  showCriteriaLink: {
+    de: 'Was zählt dazu?',
+    en: 'What counts as elevated?',
+    fr: 'Quels sont les critères ?',
+  },
   offline: {
     de: 'Keine Verbindung. Versuche es erneut, sobald du wieder Empfang hast.',
     en: 'No connection. Try again once you have signal.',

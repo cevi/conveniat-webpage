@@ -79,7 +79,7 @@ export const HOF_FILE_KINDS = ['plan', 'safetyConcept'] as const;
 export type HofFileKind = (typeof HOF_FILE_KINDS)[number];
 
 export const HOF_FILE_KIND_LABELS: Record<HofFileKind, StaticTranslationString> = {
-  plan: { de: 'Planung', en: 'Plan', fr: 'Planification' },
+  plan: { de: 'Planung', en: 'Plan', fr: 'Plans' },
   safetyConcept: { de: 'Sicherheitskonzept', en: 'Safety concept', fr: 'Concept de sécurité' },
 };
 
@@ -105,12 +105,12 @@ export type HofOrderType = (typeof HOF_ORDER_TYPES)[number];
 export const HOF_ORDER_TYPE_LABELS: Record<HofOrderType, StaticTranslationString> = {
   infrastructure: {
     de: 'Materialbestellung Hof-Infrastruktur',
-    en: 'Material order Hof infrastructure',
+    en: 'Material order for Hof infrastructure',
     fr: "Commande de matériel pour l'infrastructure du Hof",
   },
   stadtleben: {
     de: 'Materialbestellung Stadtleben',
-    en: 'Material order Stadtleben',
+    en: 'Material order for Stadtleben',
     fr: 'Commande de matériel Stadtleben',
   },
 };

@@ -88,8 +88,10 @@ const UploadButton: React.FC<{
   label: string;
   primary: boolean;
   focusRef: React.RefObject<HTMLButtonElement | null>;
+  /** What the file is for, as ids of the texts that say it; every button reads "Hochladen". */
+  describedBy: string;
   onFile: (file: File) => void;
-}> = ({ label, primary, focusRef, onFile }) => {
+}> = ({ label, primary, focusRef, describedBy, onFile }) => {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -107,6 +109,7 @@ const UploadButton: React.FC<{
       <button
         ref={focusRef}
         type="button"
+        aria-describedby={describedBy}
         className={primary ? PRIMARY_BUTTON_CLASS : SECONDARY_BUTTON_CLASS}
         onClick={() => input.current?.click()}
       >
@@ -195,9 +198,10 @@ const FilesWithUpload: React.FC<{
   upload: UploadInProgress | undefined;
   /** When the Ressort asked for a new version, adding one is the card's main action. */
   primary?: boolean;
+  describedBy: string;
   locale: Locale;
   onFile: (file: File) => void;
-}> = ({ files, upload, primary = false, locale, onFile }) => {
+}> = ({ files, upload, primary = false, describedBy, locale, onFile }) => {
   // the upload button, or the cancel button while the upload runs
   const focusTarget = useRef<HTMLButtonElement>(null);
   useKeepFocus(upload === undefined ? 'idle' : 'uploading', focusTarget);
@@ -213,6 +217,7 @@ const FilesWithUpload: React.FC<{
             label={translate(files.length === 0 ? 'upload' : 'uploadNewVersion', locale)}
             primary={primary}
             focusRef={focusTarget}
+            describedBy={describedBy}
             onFile={onFile}
           />
           <p className="text-xs text-gray-500">
@@ -251,6 +256,7 @@ export const SubmissionCard: React.FC<{
   const questionId = `${id}-question`;
   const revisionRequested = submission.status === 'revisionRequired';
   const titleId = `${id}-title`;
+  const conceptId = `${id}-concept`;
 
   return (
     <article
@@ -286,6 +292,7 @@ export const SubmissionCard: React.FC<{
       <FilesWithUpload
         files={plans}
         primary={revisionRequested}
+        describedBy={titleId}
         upload={uploads[uploadKey(submission.type, 'plan')]}
         locale={locale}
         onFile={(file) => onUpload(file, 'plan')}
@@ -316,19 +323,20 @@ export const SubmissionCard: React.FC<{
         >
           {safetyConcepts.length === 0 ? (
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p id={conceptId} className="text-sm font-semibold text-gray-900">
                 {translate('safetyConceptRequired', locale)}
               </p>
               <p className="text-sm text-gray-600">{translate('safetyConceptHint', locale)}</p>
             </div>
           ) : (
-            <p className="text-sm font-semibold text-gray-900">
+            <p id={conceptId} className="text-sm font-semibold text-gray-900">
               {translate('safetyConcept', locale)}
             </p>
           )}
           {safetyRisk === 'yes' ? (
             <FilesWithUpload
               files={safetyConcepts}
+              describedBy={`${titleId} ${conceptId}`}
               upload={uploads[uploadKey(submission.type, 'safetyConcept')]}
               locale={locale}
               onFile={(file) => onUpload(file, 'safetyConcept')}

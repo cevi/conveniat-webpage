@@ -20,8 +20,10 @@ export const useTabInAddress = <T extends string>(
     (next: T): void => {
       setTab(next);
       const { pathname, search } = globalThis.location;
+      // not the current state, which marks the entry as the router's own: only then does the
+      // Next.js router take the new address over
       globalThis.history.replaceState(
-        globalThis.history.state,
+        undefined,
         '',
         next === initial ? `${pathname}${search}` : `${pathname}${search}#${next}`,
       );

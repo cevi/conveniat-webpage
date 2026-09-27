@@ -67,8 +67,6 @@ export const MaterialOrderForm: React.FC<{
   // lost to one.
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [powerEdit, setPowerEdit] = useState<boolean>();
-  // the material whose field just refused a key, to say why right below it
-  const [refusedItemId, setRefusedItemId] = useState<string>();
   const save = trpc.hofDashboard.updateMaterialOrder.useMutation({
     // fail right away without signal instead of waiting paused for it
     networkMode: 'always',
@@ -110,6 +108,18 @@ export const MaterialOrderForm: React.FC<{
     ),
     powerConnection,
   };
+  // what is typed stays as typed; a quantity that is not a whole number within the limit is
+  // marked and holds the save back, rather than being read as some other number
+  const invalid = new Set(
+    order.items
+      .filter((item) => {
+        const typed = edits[item.id];
+        return (
+          typed !== undefined && (!/^\d*$/.test(typed) || Number(typed) > HOF_ORDER_MAX_QUANTITY)
+        );
+      })
+      .map((item) => item.id),
+  );
   const dirty = !sameOrder(shown, storedValues(order));
   const hint = translate('quantityHint', locale, {
     n: formatNumber(HOF_ORDER_MAX_QUANTITY, locale),
@@ -118,13 +128,13 @@ export const MaterialOrderForm: React.FC<{
 
   const submit = (event: React.FormEvent): void => {
     event.preventDefault();
-    if (save.isPending || !dirty) return;
+    if (save.isPending || !dirty || invalid.size > 0) return;
     save.mutate({
       hofId,
       orderType: order.type,
       // only what the Hof changed, so a reviewer's correction saved meanwhile is not undone
       changes: order.items
-        .filter((item) => item.id in edits)
+        .filter((item) => shown.quantities[item.id] !== item.quantity)
         .map((item) => ({ itemId: item.id, quantity: shown.quantities[item.id] ?? 0 })),
       ...(powerEdit === undefined ? {} : { powerConnection: powerEdit }),
     });
@@ -190,47 +200,48 @@ export const MaterialOrderForm: React.FC<{
                         <td className="py-1.5 text-right">
                           <input
                             id={`${id}-${item.id}`}
-                            // text, not number: a number field reports "2." as empty and takes
-                            // "2.5" or "-4", which would then be corrected without a word
+                            // text, not number: a number field reports "2." as empty and
+                            // would read "2.5" as some other number without a word
                             type="text"
                             inputMode="numeric"
-                            pattern="[0-9]*"
-                            aria-describedby={`${id}-hint`}
+                            maxLength={8}
+                            aria-invalid={invalid.has(item.id)}
+                            aria-describedby={
+                              invalid.has(item.id) ? `${id}-${item.id}-hint` : `${id}-hint`
+                            }
                             autoComplete="off"
                             placeholder="0"
                             disabled={closed}
                             value={quantityText(item)}
                             onChange={(event) => {
-                              const typed = event.target.value;
-                              // only whole numbers up to the most that can be ordered get in
-                              if (!/^\d*$/.test(typed) || Number(typed) > HOF_ORDER_MAX_QUANTITY) {
-                                // the key does nothing, so the rule shows below the field
-                                setRefusedItemId(item.id);
-                                return;
-                              }
-                              setRefusedItemId(undefined);
+                              const typed = event.target.value.trim();
                               setEdits((previous) => ({ ...previous, [item.id]: typed }));
                             }}
-                            // "007" reads as 7 and "0" as nothing once the Hof moves on
-                            onBlur={(event) => {
-                              setRefusedItemId(undefined);
-                              if (!(item.id in edits)) return;
-                              const quantity = toQuantity(event.target.value);
-                              setEdits((previous) => ({
-                                ...previous,
-                                [item.id]: quantity > 0 ? String(quantity) : '',
-                              }));
+                            // once the Hof moves on, "007" reads as 7, and a quantity back at
+                            // what is stored is no edit any more, so a later correction shows
+                            onBlur={() => {
+                              const typed = edits[item.id];
+                              if (typed === undefined || invalid.has(item.id)) return;
+                              const quantity = toQuantity(typed);
+                              setEdits((previous) => {
+                                const rest = Object.fromEntries(
+                                  Object.entries(previous).filter(([other]) => other !== item.id),
+                                );
+                                return quantity === item.quantity
+                                  ? rest
+                                  : { ...rest, [item.id]: quantity > 0 ? String(quantity) : '' };
+                              });
                             }}
                             className="focus:ring-conveniat-green h-11 w-24 rounded-md border-0 bg-green-100 px-3 text-right text-base text-gray-700 tabular-nums ring-1 ring-transparent transition ring-inset focus:bg-white focus:ring-2 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500"
                           />
                         </td>
                       </tr>
-                      {refusedItemId === item.id && (
+                      {invalid.has(item.id) && (
                         <tr>
                           <td
+                            id={`${id}-${item.id}-hint`}
                             colSpan={2}
                             className="pb-2 text-right text-xs font-semibold text-amber-800"
-                            role="status"
                           >
                             {hint}
                           </td>
@@ -269,7 +280,11 @@ export const MaterialOrderForm: React.FC<{
                 type="checkbox"
                 checked={powerConnection}
                 disabled={closed}
-                onChange={(event) => setPowerEdit(event.target.checked)}
+                onChange={(event) => {
+                  const checked = event.target.checked;
+                  // back at what is stored is no edit, so a later correction shows
+                  setPowerEdit(checked === order.powerConnection ? undefined : checked);
+                }}
                 className="accent-conveniat-green h-5 w-5"
               />
               {translate('powerConnection', locale)}
@@ -289,7 +304,7 @@ export const MaterialOrderForm: React.FC<{
               <button
                 type="submit"
                 // aria-disabled, not disabled: a disabled button drops the focus to the page
-                aria-disabled={save.isPending || !dirty}
+                aria-disabled={save.isPending || !dirty || invalid.size > 0}
                 className={cn(
                   PRIMARY_BUTTON_CLASS,
                   'w-full aria-disabled:cursor-not-allowed aria-disabled:opacity-50 @lg:w-auto',

@@ -207,6 +207,17 @@ describe('updateHofMaterialOrder', () => {
     });
   });
 
+  it('keeps the stored power answer when the Hof did not change it', async () => {
+    mockSettings.mockResolvedValue({ stadtlebenOrder: { items: [{ id: 'bench', name: 'Bank' }] } });
+    mockPayload.find.mockResolvedValue({
+      docs: [{ id: 'order-2', items: [], powerConnection: true }],
+    });
+    await order({ orderType: 'stadtleben', changes: [], powerConnection: undefined });
+    expect(mockPayload.update.mock.calls[0]?.[0]).toMatchObject({
+      data: { powerConnection: true },
+    });
+  });
+
   it('refuses material the list no longer has, instead of dropping it', async () => {
     await expect(order({ changes: [{ itemId: 'spade', quantity: 1 }] })).rejects.toMatchObject({
       code: 'CONFLICT',
