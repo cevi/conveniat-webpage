@@ -1,5 +1,5 @@
-import type { Hitobito } from '@/features/registration_process/hitobito-api/index';
-import type { Logger } from '@/features/registration_process/hitobito-api/types';
+import type { Hitobito } from '@/lib/hitobito/index';
+import type { Logger } from '@/lib/hitobito/types';
 
 export interface CreateRegistrationParameters {
   userData: {

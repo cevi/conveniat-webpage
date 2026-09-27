@@ -6,15 +6,15 @@ import type {
   SyncedExternalParticipant,
 } from '@/features/billing/ports/hitobito-service.port';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { HitobitoClient } from '@/lib/hitobito/client';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 import {
   decodeDisplayText,
   parseParticipationAnswerFields,
   type ParticipationAnswerField,
-} from '@/features/registration_process/hitobito-api/html-parser';
-import { EventService } from '@/features/registration_process/hitobito-api/services/event.service';
-import { PersonService } from '@/features/registration_process/hitobito-api/services/person.service';
+} from '@/lib/hitobito/html-parser';
+import { EventService } from '@/lib/hitobito/services/event.service';
+import { PersonService } from '@/lib/hitobito/services/person.service';
 import { trace } from '@opentelemetry/api';
 import { z } from 'zod';
 

@@ -1,6 +1,6 @@
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 
 /** The answer the Cevi.DB expects once the invoice has gone out. */
 export const ANMELDESTATUS_INVOICED = 'Rechnung gestellt';

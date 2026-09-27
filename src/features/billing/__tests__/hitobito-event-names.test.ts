@@ -1,5 +1,5 @@
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import type { HitobitoClient } from '@/lib/hitobito/client';
 
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 

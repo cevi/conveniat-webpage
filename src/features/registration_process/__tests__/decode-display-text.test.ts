@@ -1,4 +1,4 @@
-import { decodeDisplayText } from '@/features/registration_process/hitobito-api/html-parser';
+import { decodeDisplayText } from '@/lib/hitobito/html-parser';
 
 describe('decodeDisplayText', () => {
   it('unwraps a name Cevi.DB escaped twice', () => {

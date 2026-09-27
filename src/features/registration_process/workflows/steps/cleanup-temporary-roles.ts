@@ -1,4 +1,4 @@
-import { HITOBITO_CONFIG, getHitobito } from '@/features/registration_process/hitobito-api';
+import { HITOBITO_CONFIG, getHitobito } from '@/lib/hitobito';
 import type { TaskConfig } from 'payload';
 
 export const cleanupTemporaryRolesStep: TaskConfig<{

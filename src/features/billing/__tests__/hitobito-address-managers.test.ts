@@ -1,6 +1,6 @@
 import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-service.adapter';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import type { HitobitoClient } from '@/lib/hitobito/client';
 
 const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 

@@ -274,12 +274,7 @@ const config = defineConfig([
               .map((feature) => ({
                 target: `./src/features/${feature}`,
                 from: './src/features',
-                except: [
-                  `./${feature}`,
-                  './payload-cms',
-                  // billing needs access to registration_process for Hitobito API client
-                  ...(feature === 'billing' ? ['./registration_process'] : []),
-                ],
+                except: [`./${feature}`, './payload-cms'],
                 message: `Do not import from ${feature} directly, use the shared modules instead.`,
               })),
 

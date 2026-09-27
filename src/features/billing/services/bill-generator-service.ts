@@ -29,7 +29,7 @@ import {
   isAufbauOrAbbaulager,
   resolveRoleOptions,
 } from '@/features/billing/utils';
-import type { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
+import type { HitobitoClient } from '@/lib/hitobito/client';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -834,7 +834,7 @@ async function generateBillsLocked(
   // validated environment at module load, which used to make this module impossible to
   // import from a unit test of the pure use case below — `bill-generator-unpriced-role`
   // had been failing to load, and running zero tests, since it was written.
-  const { HITOBITO_CONFIG } = await import('@/features/registration_process/hitobito-api');
+  const { HITOBITO_CONFIG } = await import('@/lib/hitobito');
 
   const hitobitoService = new HitobitoServiceAdapter(
     dependencies?.hitobitoClient ?? {

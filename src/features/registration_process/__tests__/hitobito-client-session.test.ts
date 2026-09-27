@@ -1,5 +1,5 @@
-import { HitobitoClient } from '@/features/registration_process/hitobito-api/client';
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { HitobitoClient } from '@/lib/hitobito/client';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 
 const BASE_URL = 'https://db.cevi.ch';
 const EDIT_PATH = '/groups/4540/events/5430/participations/110111/edit';

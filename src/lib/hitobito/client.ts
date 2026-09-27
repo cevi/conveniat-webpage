@@ -1,10 +1,10 @@
-import { SessionExpiredError } from '@/features/registration_process/hitobito-api/errors';
+import { SessionExpiredError } from '@/lib/hitobito/errors';
 import {
   extractAuthenticityToken,
   extractCsrfMetaToken,
   extractFormFields,
-} from '@/features/registration_process/hitobito-api/html-parser';
-import type { Logger, RequestOptions } from '@/features/registration_process/hitobito-api/types';
+} from '@/lib/hitobito/html-parser';
+import type { Logger, RequestOptions } from '@/lib/hitobito/types';
 import { withSpan } from '@/utils/tracing-helpers';
 
 export class FatalError extends Error {

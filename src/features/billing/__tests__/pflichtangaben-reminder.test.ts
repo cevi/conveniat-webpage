@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/no-null */
-jest.mock('@/features/registration_process/hitobito-api', () => ({
+jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'https://db.cevi.test', apiToken: 'mock' },
 }));
 jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => ({

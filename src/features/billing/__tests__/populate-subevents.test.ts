@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-jest.mock('@/features/registration_process/hitobito-api', () => ({
+jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
 jest.mock('@/features/billing/adapters/hitobito-service.adapter', () => ({}));

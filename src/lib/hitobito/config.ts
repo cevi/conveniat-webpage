@@ -1,6 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { Hitobito } from '@/features/registration_process/hitobito-api/hitobito';
-import type { Logger } from '@/features/registration_process/hitobito-api/types';
+import { Hitobito } from '@/lib/hitobito/hitobito';
+import type { Logger } from '@/lib/hitobito/types';
 import type { Payload } from 'payload';
 
 export const HITOBITO_CONFIG = {

@@ -1,17 +1,13 @@
 import {
-  EXTERNAL_ROLE_TYPE,
-  HITOBITO_CONFIG,
-  getHitobito,
-} from '@/features/registration_process/hitobito-api';
-import type { PersonAttributes } from '@/features/registration_process/hitobito-api/schemas';
-import { poll } from '@/features/registration_process/hitobito-api/utils';
-import {
   resolveByEmailLookup,
   resolveById,
   resolveBySearch,
   type StrategyContext,
   type StrategyResult,
 } from '@/features/registration_process/workflows/steps/resolve-user-strategies';
+import { EXTERNAL_ROLE_TYPE, HITOBITO_CONFIG, getHitobito } from '@/lib/hitobito';
+import type { PersonAttributes } from '@/lib/hitobito/schemas';
+import { poll } from '@/lib/hitobito/utils';
 import type { TaskConfig } from 'payload';
 
 export const resolveUserStep: TaskConfig<'resolveUser'> = {
