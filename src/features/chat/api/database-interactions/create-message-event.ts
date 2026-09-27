@@ -13,12 +13,10 @@ export const createMessageEvent = async (
   prisma: PrismaClientOrTransaction,
 ): Promise<void> => {
   await prisma.messageEvent
-    .create({
-      data: {
-        messageId: messageId,
-        type: eventType,
-        userId: user.uuid,
-      },
+    .createMany({
+      data: [{ messageId: messageId, type: eventType, userId: user.uuid }],
+      // one event per message, user and type: repeating a status is not an error
+      skipDuplicates: true,
     })
     .catch((error: unknown) => {
       logger.error('Failed to record a message event', {
