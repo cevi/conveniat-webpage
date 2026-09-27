@@ -11,11 +11,11 @@
  */
 export type IsPublishedInCorrespondingLocale = boolean;
 /**
- * The ID of the group as used in the CeviDB.
+ * The ID of the group as used in Cevi.DB.
  */
 export type TheIDOfTheGroup = number;
 /**
- * The name of the group as used in the CeviDB.
+ * The name of the group as used in Cevi.DB.
  */
 export type TheNameOfTheGroup = string;
 /**
@@ -27,7 +27,7 @@ export type TheNameOfTheRole = string;
  */
 export type TheClassOfTheRole = string;
 /**
- * The groups the user is in as extracted from the CeviDB profile.
+ * The groups the user is in as extracted from the Cevi.DB profile.
  */
 export type GroupsOfTheUser = {
   id: TheIDOfTheGroup;
@@ -567,7 +567,7 @@ export interface LocalizedPublishingStatus {
   [k: string]: unknown;
 }
 /**
- * Represents a user. Data gets automatically synced from Hitobito whenever the user logs in. Users can also be created manually or imported via CSV.
+ * Represents a user. Data gets automatically synced from Cevi.DB whenever the user logs in. Users can also be created manually or imported via CSV.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
@@ -576,7 +576,7 @@ export interface User {
   id: string;
   displayName?: string | null;
   /**
-   * The ID of the user in the CeviDB. Set automatically when the user logs in via Hitobito. Leave empty for manually created users.
+   * The ID of the user in Cevi.DB. Set automatically when the user logs in via Cevi.DB. Leave empty for manually created users.
    */
   cevi_db_uuid?: number | null;
   /**
@@ -584,7 +584,7 @@ export interface User {
    */
   adminPanelAccess?: boolean | null;
   /**
-   * The email address of the user. Used for matching when the user logs in via Hitobito.
+   * The email address of the user. Used for matching when the user logs in via Cevi.DB.
    */
   email: string;
   /**
@@ -639,7 +639,7 @@ export interface User {
 export interface Hof {
   id: string;
   /**
-   * Display name, e.g. "Hof Süd", taken from the names of its events in Cevi.DB by every sync.
+   * Display name, e.g. "Cevi Uster" or "Züri 11", taken from the names of its events in Cevi.DB by every sync.
    */
   name: string;
   /**
@@ -647,7 +647,7 @@ export interface Hof {
    */
   quartier?: (string | null) | Quartier;
   /**
-   * Hitobito group ID of this Hof (up to 6 digits)
+   * Cevi.DB group ID of this Hof (up to 6 digits)
    */
   groupId: string;
   /**
@@ -656,7 +656,7 @@ export interface Hof {
   events?:
     | {
         /**
-         * Hitobito event ID to sync (up to 6 digits)
+         * Cevi.DB event ID to sync (up to 6 digits)
          */
         eventId: string;
         /**
@@ -681,7 +681,7 @@ export interface Hof {
       }[]
     | null;
   /**
-   * Comma-separated. When filled, these addresses are used instead of the synced address managers for this Hof.
+   * Comma-separated. When filled, these addresses are used instead of the synced AVPs for this Hof.
    */
   reminderRecipientsOverride?: string | null;
   updatedAt: string;
@@ -923,7 +923,7 @@ export interface Permission {
    */
   permissionName: string;
   /**
-   * List of Groups in the CeviDB for this permission. Disables the special permissions section.
+   * List of Groups in Cevi.DB for this permission. Disables the special permissions section.
    */
   permissions?:
     | {
@@ -933,7 +933,7 @@ export interface Permission {
       }[]
     | null;
   /**
-   * These permissions are special and disable group checking for CeviDB groups.
+   * These permissions are special and disable group checking for Cevi.DB groups.
    */
   special_permissions?: {
     public?: boolean | null;
@@ -4603,7 +4603,7 @@ export interface BillParticipant {
   nickname?: string | null;
   fullName: string;
   /**
-   * Hitobito event role type (e.g. Event::Camp::Role::Participant)
+   * Cevi.DB event role type (e.g. Event::Camp::Role::Participant)
    */
   roleType?: string | null;
   street?: string | null;
@@ -8652,7 +8652,7 @@ export interface RegistrationManagement {
     [k: string]: unknown;
   } | null;
   /**
-   * Session cookie for the hitobito API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   * Session cookie for the Cevi.DB API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
    */
   browserCookie?: string | null;
   updatedAt?: string | null;
@@ -9015,7 +9015,7 @@ export interface AppFeatureFlag {
    */
   forumEnabled?: boolean | null;
   /**
-   * Toggles whether the scheduled task checks Hitobito approvals for pending registrations.
+   * Toggles whether the scheduled task checks Cevi.DB approvals for pending registrations.
    */
   checkHitobitoApprovalsEnabled?: boolean | null;
   /**
@@ -9108,7 +9108,7 @@ export interface BillSetting {
    */
   invoiceLetterTextAfter?: string | null;
   /**
-   * Define the camp fee per Hitobito event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").
+   * Define the camp fee per Cevi.DB event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").
    */
   rolePricing?:
     | {
@@ -9118,7 +9118,7 @@ export interface BillSetting {
          */
         label: string;
         /**
-         * What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.
+         * What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Cevi.DB role.
          */
         roleName?: string | null;
         /**

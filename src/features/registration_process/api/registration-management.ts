@@ -75,7 +75,7 @@ export const RegistrationManagement: GlobalConfig = {
     {
       name: 'browserCookie',
       type: 'text',
-      label: 'Hitobito Browser Cookie',
+      label: 'Cevi.DB Browser Cookie',
       hooks: {
         afterRead: [
           ({ req, value }): string => {
@@ -102,7 +102,7 @@ export const RegistrationManagement: GlobalConfig = {
       },
       admin: {
         description:
-          'Session cookie for the hitobito API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.',
+          'Session cookie for the Cevi.DB API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.',
       },
     },
   ],

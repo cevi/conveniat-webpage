@@ -84,9 +84,9 @@ export const PermissionsCollection: CollectionConfig = {
       localized: false,
       admin: {
         description: {
-          en: 'List of Groups in the CeviDB for this permission. Disables the special permissions section.',
-          de: 'Liste der Gruppen in der CeviDB für diese Berechtigung. Deaktiviert den Abschnitt für spezielle Berechtigungen.',
-          fr: 'Liste des groupes dans la CeviDB pour cette autorisation. Désactive la section des autorisations spéciales.',
+          en: 'List of Groups in Cevi.DB for this permission. Disables the special permissions section.',
+          de: 'Liste der Gruppen in der Cevi.DB für diese Berechtigung. Deaktiviert den Abschnitt für spezielle Berechtigungen.',
+          fr: 'Liste des groupes dans Cevi.DB pour cette autorisation. Désactive la section des autorisations spéciales.',
         },
         condition: (data): boolean => {
           const typedData = data as ConditionType;
@@ -129,9 +129,9 @@ export const PermissionsCollection: CollectionConfig = {
       localized: false,
       admin: {
         description: {
-          en: 'These permissions are special and disable group checking for CeviDB groups.',
-          de: 'Diese Berechtigungen sind speziell und deaktivieren die Gruppenüberprüfung für CeviDB-Gruppen.',
-          fr: 'Ces autorisations sont spéciales et désactivent la vérification des groupes pour les groupes CeviDB.',
+          en: 'These permissions are special and disable group checking for Cevi.DB groups.',
+          de: 'Diese Berechtigungen sind speziell und deaktivieren die Gruppenüberprüfung für Cevi.DB-Gruppen.',
+          fr: 'Ces autorisations sont spéciales et désactivent la vérification des groupes pour les groupes Cevi.DB.',
         },
       },
       fields: [
@@ -157,9 +157,9 @@ export const PermissionsCollection: CollectionConfig = {
         {
           name: 'logged_in',
           label: {
-            en: 'Must be logged in (any CeviDB account)',
-            de: 'Muss eingeloggt sein (jedes CeviDB-Konto)',
-            fr: "Doit être connecté (n'importe quel compte CeviDB)",
+            en: 'Must be logged in (any Cevi.DB account)',
+            de: 'Muss eingeloggt sein (jedes Cevi.DB-Konto)',
+            fr: "Doit être connecté (n'importe quel compte Cevi.DB)",
           },
           type: 'checkbox',
           required: false,

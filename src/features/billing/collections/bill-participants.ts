@@ -238,9 +238,9 @@ export const BillParticipantsCollection: CollectionConfig = {
       admin: {
         disableGroupBy: true,
         description: {
-          en: 'Hitobito event role type (e.g. Event::Camp::Role::Participant)',
-          de: 'Hitobito Anlass-Rollentyp (z.B. Event::Camp::Role::Participant)',
-          fr: "Type de rôle d'événement Hitobito",
+          en: 'Cevi.DB event role type (e.g. Event::Camp::Role::Participant)',
+          de: 'Cevi.DB-Anlass-Rollentyp (z.B. Event::Camp::Role::Participant)',
+          fr: "Type de rôle d'événement Cevi.DB",
         },
       },
     },

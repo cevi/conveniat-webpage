@@ -620,9 +620,9 @@ const formCeviDatabaseLoginBlock: Block = {
         path: '@/features/payload-cms/payload-cms/components/form-block-label#FormBlockLabel',
         clientProps: {
           label: {
-            en: 'Login with Cevi DB',
-            de: 'Login mit Cevi DB',
-            fr: 'Connexion avec Cevi DB',
+            en: 'Login with Cevi.DB',
+            de: 'Login mit Cevi.DB',
+            fr: 'Connexion avec Cevi.DB',
           },
         },
       },
@@ -699,7 +699,7 @@ const formCeviDatabaseLoginBlock: Block = {
                 { label: 'Email', value: 'email' },
                 { label: 'Nickname', value: 'nickname' },
                 { label: 'UUID', value: 'uuid' },
-                { label: 'Cevi DB UUID', value: 'cevi_db_uuid' },
+                { label: 'Cevi.DB UUID', value: 'cevi_db_uuid' },
               ],
             },
             {
@@ -715,7 +715,7 @@ const formCeviDatabaseLoginBlock: Block = {
     },
     placementField(),
   ],
-  labels: { plural: 'Cevi DB Login Blocks', singular: 'Cevi DB Login' },
+  labels: { plural: 'Cevi.DB Login Blocks', singular: 'Cevi.DB Login' },
 };
 
 const formJobSelectionBlock: Block = {

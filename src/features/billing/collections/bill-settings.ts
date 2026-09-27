@@ -63,9 +63,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               name: 'events',
               type: 'array',
               label: {
-                en: 'Hitobito Events to Sync (legacy)',
-                de: 'Hitobito Anlässe zum Synchronisieren (veraltet)',
-                fr: 'Événements Hitobito à synchroniser (obsolète)',
+                en: 'Cevi.DB events to sync (legacy)',
+                de: 'Cevi.DB-Anlässe zum Synchronisieren (veraltet)',
+                fr: 'Événements Cevi.DB à synchroniser (obsolète)',
               },
               // No `required` on the rows either: nobody can edit them any more, so a row that
               // fails validation must not be able to block saving the rest of the settings.
@@ -545,9 +545,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Define the camp fee per Hitobito event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").',
-                  de: 'Definieren Sie den Lagerbeitrag pro Hitobito-Rollentyp. Rollentypen werden als Teilstring verglichen (z.B. "Participant" passt auf "Event::Camp::Role::Participant").',
-                  fr: 'Définissez le montant du camp par type de rôle Hitobito.',
+                  en: 'Define the camp fee per Cevi.DB event role type. Role types are matched as substring (e.g. "Participant" matches "Event::Camp::Role::Participant").',
+                  de: 'Definieren Sie den Lagerbeitrag pro Cevi.DB-Rollentyp. Rollentypen werden als Teilstring verglichen (z.B. "Participant" passt auf "Event::Camp::Role::Participant").',
+                  fr: 'Définissez le montant du camp par type de rôle Cevi.DB.',
                 },
               },
               defaultValue: [
@@ -599,8 +599,8 @@ export const BillSettingsGlobal: GlobalConfig = {
                   },
                   admin: {
                     description: {
-                      en: 'What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Hitobito role.',
-                      de: 'Was die Person ist, z.B. "Teilnehmer:in". Wird auf der Anmeldebestätigung aufgeführt, damit Teilnehmende ihre Rolle prüfen können. Leer lassen, um die eingebaute deutsche Bezeichnung der Hitobito-Rolle zu verwenden.',
+                      en: 'What the person is, e.g. "Teilnehmer:in". Listed on the registration confirmation so a participant can check their role. Leave empty to fall back to the built-in German name for the Cevi.DB role.',
+                      de: 'Was die Person ist, z.B. "Teilnehmer:in". Wird auf der Anmeldebestätigung aufgeführt, damit Teilnehmende ihre Rolle prüfen können. Leer lassen, um die eingebaute deutsche Bezeichnung der Cevi.DB-Rolle zu verwenden.',
                       fr: "Ce que la personne est, par ex. « Teilnehmer:in ». Affiché sur la confirmation d'inscription.",
                     },
                   },
