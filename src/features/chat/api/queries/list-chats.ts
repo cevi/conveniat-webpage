@@ -236,6 +236,7 @@ export const getChatList = trpcBaseProcedure
         caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
         messageCount: chat._count.messages,
+        isPinned: chat.pinned,
         lastMessage: {
           id: lastMessage?.uuid ?? chat.uuid,
           createdAt: chat.lastUpdate,
