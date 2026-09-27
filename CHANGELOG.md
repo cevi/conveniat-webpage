@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.18.0](https://github.com/cevi/conveniat-webpage/compare/v1.17.1...v1.18.0) (2026-09-27)
+
+
+### Features
+
+* **hof-dashboard:** Hof dashboard built on Payload forms ([#1921](https://github.com/cevi/conveniat-webpage/issues/1921)) ([048680a](https://github.com/cevi/conveniat-webpage/commit/048680a35a1089f3a0267437de5339b2dfa4377e))
+
+
+### Bug Fixes
+
+* **admin:** the material team sees only the depot setup in the admin panel ([525f73a](https://github.com/cevi/conveniat-webpage/commit/525f73af35e5a90cb2cdc7b15efc7513915ada80))
+* **admin:** the material team sees only the depot setup in the admin panel ([4d0e896](https://github.com/cevi/conveniat-webpage/commit/4d0e8967be7f5b4fc19984a76db83acd7c377cbc))
+* **material:** depot tabs stick right below the header on wide screens ([02228f7](https://github.com/cevi/conveniat-webpage/commit/02228f79b630725e9f6491246b57695d13979acd))
+* **material:** the basket says what is free while it is filled ([084d085](https://github.com/cevi/conveniat-webpage/commit/084d085dbd27e8cca43769f55a82afdbf8f00414))
+
 ## [1.17.1](https://github.com/cevi/conveniat-webpage/compare/v1.17.0...v1.17.1) (2026-09-26)
 
 
