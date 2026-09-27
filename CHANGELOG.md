@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.1](https://github.com/cevi/conveniat-webpage/compare/v1.18.0...v1.18.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **billing:** the Cevi.DB sync button shows again for the billing team ([#1925](https://github.com/cevi/conveniat-webpage/issues/1925)) ([e809d66](https://github.com/cevi/conveniat-webpage/commit/e809d66f7f32289a9e5c1f5ff87e86b662e7b40d))
+
 ## [1.18.0](https://github.com/cevi/conveniat-webpage/compare/v1.17.1...v1.18.0) (2026-09-27)
 
 
