@@ -14,6 +14,9 @@ export const useUserCanArchiveChat = (chatId: string): boolean => {
 
   if (chatData.type === ChatType.EMERGENCY) return true;
 
+  // removing an archived chat from the own view is up to every member
+  if (chatData.archivedAt && new Date(chatData.archivedAt) <= new Date()) return true;
+
   // check permission of user
   // TODO: unify with can-user-archive-chat.ts in src/features/chat/api/checks
 
