@@ -109,6 +109,9 @@ model Chat {
   /// Case number for alert / emergency chats (e.g. 2026-06-01-001)
   caseNumber String? @unique
 
+  /// keeps the chat above all others in the chat overview, set from the CMS for announcement channels
+  pinned Boolean @default(false)
+
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
