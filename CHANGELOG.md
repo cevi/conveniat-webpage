@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.19.1](https://github.com/cevi/conveniat-webpage/compare/v1.19.0...v1.19.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **funktionen:** the sync button runs the sync and shows its progress ([3c5fc9a](https://github.com/cevi/conveniat-webpage/commit/3c5fc9aacca3878f52fdfeba641e409f94c379a3))
+* **funktionen:** the sync button runs the sync and shows its progress ([802799a](https://github.com/cevi/conveniat-webpage/commit/802799abd08cddcf90f5c403c0d2eabf88afe581))
+* **hof-dashboard:** balance the lines of a form's description ([fb6a670](https://github.com/cevi/conveniat-webpage/commit/fb6a67040bd75e2f15fed457b861021507d5bd72))
+* **hof-dashboard:** balance the lines of a form's description ([f4c7edc](https://github.com/cevi/conveniat-webpage/commit/f4c7edcd59a64af9d0375b6d6460f709b97e996f))
+
 ## [1.19.0](https://github.com/cevi/conveniat-webpage/compare/v1.18.1...v1.19.0) (2026-09-27)
 
 
