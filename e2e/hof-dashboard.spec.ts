@@ -95,10 +95,30 @@ const mockBackend = async (
     signedIn = true,
     hoefe = [DASHBOARD.hof],
     dashboard = DASHBOARD,
+    failingHofId,
     failWrites = false,
-  }: { signedIn?: boolean; hoefe?: unknown[]; dashboard?: unknown; failWrites?: boolean } = {},
+    failReloads = false,
+  }: {
+    signedIn?: boolean;
+    hoefe?: { id: string; name: string }[];
+    dashboard?: unknown;
+    /** A Hof whose dashboard does not load. */
+    failingHofId?: string;
+    failWrites?: boolean;
+    /** Once something was saved, the dashboard no longer loads, as when the signal drops. */
+    failReloads?: boolean;
+  } = {},
 ): Promise<string[]> => {
   const mutations: string[] = [];
+  const failure = {
+    error: {
+      json: {
+        message: 'failed',
+        code: -32_603,
+        data: { code: 'INTERNAL_SERVER_ERROR', httpStatus: 500 },
+      },
+    },
+  };
   await page.route('**/api/auth/session', async (route) => {
     await route.fulfill({
       status: 200,
@@ -115,10 +135,20 @@ const mockBackend = async (
     });
   });
   await page.route('**/api/trpc/**', async (route) => {
-    const procedures = new URL(route.request().url()).pathname.split('/api/trpc/')[1]?.split(',');
-    const answers = (procedures ?? []).map((procedure) => {
+    const url = new URL(route.request().url());
+    const procedures = url.pathname.split('/api/trpc/')[1]?.split(',');
+    const inputs = JSON.parse(url.searchParams.get('input') ?? '{}') as Record<
+      string,
+      { json?: { hofId?: string } } | undefined
+    >;
+    const answers = (procedures ?? []).map((procedure, index) => {
+      if (procedure === 'hofDashboard.getMyHofList') return hoefe;
       if (procedure === 'hofDashboard.getHofDashboard') {
-        return { hoefe, dashboard: hoefe.length === 0 ? undefined : dashboard };
+        const hofId = inputs[String(index)]?.json?.hofId;
+        const reloadFails = failReloads && mutations.length > 0;
+        if (reloadFails || hofId === failingHofId) return;
+        const hof = hoefe.find((candidate) => candidate.id === hofId);
+        return { ...(dashboard as object), hof };
       }
       if (procedure.startsWith('hofDashboard.')) mutations.push(procedure);
       // eslint-disable-next-line unicorn/no-null -- tRPC answers "nothing" with null
@@ -131,25 +161,17 @@ const mockBackend = async (
         await route.fulfill({
           status: 500,
           contentType: 'application/json',
-          body: JSON.stringify(
-            (procedures ?? []).map(() => ({
-              error: {
-                json: {
-                  message: 'failed',
-                  code: -32_603,
-                  data: { code: 'INTERNAL_SERVER_ERROR', httpStatus: 500 },
-                },
-              },
-            })),
-          ),
+          body: JSON.stringify((procedures ?? []).map(() => failure)),
         });
         return;
       }
     }
     await route.fulfill({
-      status: 200,
+      status: answers.includes(undefined) ? 500 : 200,
       contentType: 'application/json',
-      body: JSON.stringify(answers.map((json) => ({ result: { data: { json } } }))),
+      body: JSON.stringify(
+        answers.map((json) => (json === undefined ? failure : { result: { data: { json } } })),
+      ),
     });
   });
   return mutations;
@@ -269,6 +291,48 @@ test.describe('Hof dashboard', () => {
 
     expect(asked).toContain('Trotzdem den Hof wechseln?');
     await expect(page.getByLabel('Bindestrick')).toHaveValue('7');
+  });
+
+  test('keeps the Hof selector when the other Hof does not load', async ({ page }) => {
+    await mockBackend(page, {
+      hoefe: [DASHBOARD.hof, { id: 'hof-sued', name: 'Hof Süd' }],
+      failingHofId: 'hof-sued',
+    });
+    await page.goto('/hof-dashboard');
+    const selector = page.getByRole('combobox', { name: 'Hof' });
+    await selector.click();
+    await page.getByRole('option', { name: 'Hof Süd' }).click();
+
+    // the query retries before it gives up
+    await expect(page.getByText('Das Dashboard konnte nicht geladen werden.')).toBeVisible({
+      timeout: 15_000,
+    });
+    await selector.click();
+    await page.getByRole('option', { name: 'Hof Nord' }).click();
+    await expect(page.getByRole('tab', { name: 'Übersicht' })).toBeVisible();
+  });
+
+  test('keeps a saved answer when the reload after it fails', async ({ page }) => {
+    await mockBackend(page, { failReloads: true });
+    await page.goto('/hof-dashboard');
+    await page.getByRole('tab', { name: 'Infrastruktur' }).click();
+
+    const yes = page.locator('[data-submission="entrance"]').getByRole('button', {
+      name: 'Ja',
+      exact: true,
+    });
+    let failedReloads = 0;
+    page.on('response', (response) => {
+      if (response.url().includes('getHofDashboard') && response.status() === 500) {
+        failedReloads += 1;
+      }
+    });
+    await yes.click();
+    // the answer shows as pending until the reload has given up, after its three retries
+    await expect.poll(() => failedReloads, { timeout: 15_000 }).toBe(4);
+    // what is checked is that the answer stays, so give a revert the time to show
+    await page.waitForTimeout(500);
+    await expect(yes).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('puts the stored answer back when saving it fails', async ({ page }) => {

@@ -191,7 +191,7 @@ export const ContactBlock: React.FC<{
         {contact.email !== '' && (
           <a
             href={`mailto:${contact.email}`}
-            className="text-conveniat-green flex min-h-9 items-center gap-1.5 break-all hover:underline"
+            className="text-conveniat-green flex min-h-11 items-center gap-1.5 break-all hover:underline"
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden />
             {contact.email}
@@ -200,7 +200,7 @@ export const ContactBlock: React.FC<{
         {contact.phone !== '' && (
           <a
             href={`tel:${contact.phone.replaceAll(/\s/g, '')}`}
-            className="flex min-h-9 items-center gap-1.5 text-gray-700 hover:underline"
+            className="flex min-h-11 items-center gap-1.5 text-gray-700 hover:underline"
           >
             <Phone className="h-4 w-4 shrink-0" aria-hidden />
             {contact.phone}

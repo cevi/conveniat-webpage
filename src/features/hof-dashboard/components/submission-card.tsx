@@ -177,7 +177,7 @@ const SafetyRiskChoice: React.FC<{
         aria-pressed={value === option}
         onClick={() => onChange(option)}
         className={cn(
-          'min-h-10 min-w-16 cursor-pointer rounded-md px-4 text-sm font-semibold transition-colors',
+          'min-h-11 min-w-16 cursor-pointer rounded-md px-4 text-sm font-semibold transition-colors',
           value === option ? 'bg-conveniat-green text-white' : 'text-gray-700 hover:bg-gray-50',
         )}
       >

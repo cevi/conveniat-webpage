@@ -46,7 +46,16 @@ export const HofSelection: React.FC<
   }
 > = ({ name, label, required, control, registerAction, error }) => {
   const locale = useCurrentLocale(i18nConfig) as keyof StaticTranslationString;
-  const { data: hoefe, isLoading, isError, fetchStatus } = trpc.hofDashboard.getHofList.useQuery();
+  const {
+    data: hoefe,
+    isLoading,
+    isError,
+    fetchStatus,
+  } = trpc.hofDashboard.getHofList.useQuery(
+    undefined,
+    // the stored list shows at once offline; with signal a Hof added since then joins it
+    { refetchOnMount: true },
+  );
   // without signal the query waits paused instead of failing
   const unavailable = hoefe === undefined && (isError || fetchStatus === 'paused');
 

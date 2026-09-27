@@ -31,7 +31,6 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { TabGroup, TabPanel, TabPanels } from '@headlessui/react';
-import { keepPreviousData } from '@tanstack/react-query';
 import { signIn, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
@@ -48,10 +47,8 @@ const TABS: { id: Tab; label: TextKey }[] = [
 ];
 
 const LoadingState: React.FC<{ locale: Locale }> = ({ locale }) => (
-  <div className="space-y-4" aria-busy>
-    <p className="sr-only" role="status">
-      {translate('loading', locale)}
-    </p>
+  <div className="space-y-4" role="status">
+    <span className="sr-only">{translate('loading', locale)}</span>
     <Skeleton className="h-11 w-full bg-gray-200" />
     <Skeleton className="h-32 w-full rounded-xl bg-gray-200" />
     <Skeleton className="h-48 w-full rounded-xl bg-gray-200" />
@@ -71,8 +68,11 @@ const signInWithCeviDatabase = async (): Promise<void> => {
 };
 
 /** Where every submission stands today. */
-const useProgress = (data: HofDashboardData): Record<HofSubmissionType, SubmissionProgress> =>
+const useProgress = (
+  data: HofDashboardData | undefined,
+): Record<HofSubmissionType, SubmissionProgress> | undefined =>
   useMemo(() => {
+    if (data === undefined) return;
     const now = new Date();
     return Object.fromEntries(
       data.submissions.map((submission) => [
@@ -100,16 +100,32 @@ const RetryMessage: React.FC<{ locale: Locale; onRetry: () => void }> = ({ local
   </Message>
 );
 
-const DashboardForHof: React.FC<{
-  data: HofDashboardData & { isReviewer: boolean };
-  locale: Locale;
-}> = ({ data, locale }) => {
+const DashboardForHof: React.FC<{ hofId: string; locale: Locale }> = ({ hofId, locale }) => {
   const [tab, setTab] = useState<Tab>('overview');
   const [scrollTarget, setScrollTarget] = useState<HofSubmissionType>();
   const clearScrollTarget = useCallback(() => setScrollTarget(undefined), []);
   const root = useRef<HTMLDivElement>(null);
   useScrollToSubmission(root, scrollTarget, clearScrollTarget);
-  const progress = useProgress(data);
+
+  const dashboard = trpc.hofDashboard.getHofDashboard.useQuery(
+    { hofId },
+    {
+      // a reviewer's answer should reach the Hof within a look away; the app's defaults
+      // would keep showing what was loaded until the next full reload
+      staleTime: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      // nothing here works offline, and yesterday's shape of it must not render after a deploy
+      meta: { persist: false },
+    },
+  );
+  const progress = useProgress(dashboard.data);
+
+  if (dashboard.isLoading) return <LoadingState locale={locale} />;
+  if (dashboard.data === undefined || progress === undefined) {
+    return <RetryMessage locale={locale} onRetry={() => void dashboard.refetch()} />;
+  }
+  const data = dashboard.data;
 
   const panels: Record<Tab, React.ReactNode> = {
     overview: (
@@ -168,27 +184,19 @@ const DashboardForHof: React.FC<{
 };
 
 const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
+  const hoefe = trpc.hofDashboard.getMyHofList.useQuery(undefined, {
+    // a Hof the user was given or lost since the last visit
+    refetchOnMount: true,
+    meta: { persist: false },
+  });
   const [selectedHofId, setSelectedHofId] = useState<string>();
   const selectId = useId();
-  const query = trpc.hofDashboard.getHofDashboard.useQuery(
-    { hofId: selectedHofId },
-    {
-      // a reviewer's answer should reach the Hof within a look away, not the app's minutes
-      staleTime: 30_000,
-      // keeps the Hof selector in place while the other Hof loads
-      placeholderData: keepPreviousData,
-      // nothing here works offline, and yesterday's shape of it must not render after a deploy
-      meta: { persist: false },
-    },
-  );
 
-  if (query.isLoading) return <LoadingState locale={locale} />;
-  if (query.data === undefined) {
-    return <RetryMessage locale={locale} onRetry={() => void query.refetch()} />;
+  if (hoefe.isLoading) return <LoadingState locale={locale} />;
+  if (hoefe.data === undefined) {
+    return <RetryMessage locale={locale} onRetry={() => void hoefe.refetch()} />;
   }
-  const { hoefe, dashboard } = query.data;
-  const hof = hoefe.find((candidate) => candidate.id === selectedHofId) ?? hoefe[0];
-  if (hof === undefined || dashboard === undefined) {
+  if (hoefe.data.length === 0) {
     return (
       <Message>
         <p>{translate('noAccess', locale)}</p>
@@ -196,9 +204,12 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
     );
   }
 
+  const hof = hoefe.data.find((candidate) => candidate.id === selectedHofId) ?? hoefe.data[0];
+  if (hof === undefined) return <></>;
+
   return (
     <div className="space-y-6">
-      {hoefe.length === 1 ? (
+      {hoefe.data.length === 1 ? (
         <h2 className="font-heading text-conveniat-green text-2xl font-extrabold">{hof.name}</h2>
       ) : (
         <div className="space-y-1">
@@ -224,7 +235,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white">
-              {hoefe.map((candidate) => (
+              {hoefe.data.map((candidate) => (
                 <SelectItem key={candidate.id} value={candidate.id} className="min-h-11">
                   {candidate.name}
                 </SelectItem>
@@ -233,11 +244,7 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
           </Select>
         </div>
       )}
-      {query.isPlaceholderData ? (
-        <LoadingState locale={locale} />
-      ) : (
-        <DashboardForHof key={dashboard.hof.id} data={dashboard} locale={locale} />
-      )}
+      <DashboardForHof key={hof.id} hofId={hof.id} locale={locale} />
     </div>
   );
 };

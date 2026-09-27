@@ -143,7 +143,7 @@ export const useHofUpload = (
       });
       // called off meanwhile, e.g. by a switch to another Hof: its success is not this one's
       if (!state.cancelled) toast.success(translate('uploadDone', locale));
-      await utils.hofDashboard.getHofDashboard.invalidate();
+      await utils.hofDashboard.getHofDashboard.invalidate({ hofId });
     } catch (error) {
       if (error instanceof UploadCancelled) return;
       console.error('Hof dashboard upload failed', error);

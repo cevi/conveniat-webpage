@@ -14,6 +14,7 @@ export const useKeepFocus = (step: string, target: RefObject<HTMLElement | null>
     if (previousStep.current === step) return;
     previousStep.current = step;
     const lostFocus = document.activeElement === null || document.activeElement === document.body;
-    if (lostFocus) target.current?.focus();
+    // without scrolling: the user may have scrolled on while a long upload ran
+    if (lostFocus) target.current?.focus({ preventScroll: true });
   }, [step, target]);
 };
