@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.20.0](https://github.com/cevi/conveniat-webpage/compare/v1.19.1...v1.20.0) (2026-09-27)
+
+
+### Features
+
+* **chat:** mark a Hof's AVP in the address book and chat ([1f10d20](https://github.com/cevi/conveniat-webpage/commit/1f10d20ca8b3fdd91206e966c03e5b73ea113982))
+* **chat:** mark a Hof's AVP in the address book and chat ([fc5bd4e](https://github.com/cevi/conveniat-webpage/commit/fc5bd4e7494384e7be7313ef86bd434a58726327))
+* **chat:** pin announcement channels to the top of the chat overview ([31dfc93](https://github.com/cevi/conveniat-webpage/commit/31dfc93065b886ca60874544441f47cb14f96b1e))
+* **chat:** pin announcement channels to the top of the chat overview ([0b1f718](https://github.com/cevi/conveniat-webpage/commit/0b1f718c3460bc7e278c7f12354cf35e5787e91e))
+* **chat:** restrict the contact list to Hof, scanned contacts and leaders ([a118138](https://github.com/cevi/conveniat-webpage/commit/a1181383f0311340b81ccebcfe9ac6829f7e4999))
+* **chat:** restrict the contact list to Hof, scanned contacts and leaders ([b2d9588](https://github.com/cevi/conveniat-webpage/commit/b2d9588ed3dddda3675604d1751b01daae291e15))
+* **chat:** two-letter initials avatars on a colour per person ([7c107ea](https://github.com/cevi/conveniat-webpage/commit/7c107ea4f2035525348365e3820ac554d6e3ae80))
+* **chat:** two-letter initials avatars on a colour per person ([2705500](https://github.com/cevi/conveniat-webpage/commit/2705500f7dc4e4e1446b1dabe7c801e85e40c2b8))
+* **settings:** profile pictures uploaded in the app ([b2bf9f0](https://github.com/cevi/conveniat-webpage/commit/b2bf9f0d4e3d3539c94119bce745fbc1ec0e19e7))
+* **settings:** profile pictures uploaded in the app ([1c606e9](https://github.com/cevi/conveniat-webpage/commit/1c606e9326a00b15ca7a8012e766dcddf6505ffd))
+
+
+### Bug Fixes
+
+* **chat:** a scanned QR code opens a single chat ([7c2076c](https://github.com/cevi/conveniat-webpage/commit/7c2076c5e77da096d9f4e78909bc2352b747087d))
+* **chat:** a scanned QR code opens a single chat ([4777eac](https://github.com/cevi/conveniat-webpage/commit/4777eacd1b8ce1eb3f5ee6282e02d657b94fb511))
+* **chat:** image links only for members, only for the chat's own images ([22276e9](https://github.com/cevi/conveniat-webpage/commit/22276e9890ef3d1e2cdb6678072e09f9c9fc3e15))
+* **chat:** image links only for members, only for the chat's own images ([1bd8ad0](https://github.com/cevi/conveniat-webpage/commit/1bd8ad0804a83cdf53edb05aa7145f3e5474fcfe))
+* **chat:** members can delete archived chats ([45b376f](https://github.com/cevi/conveniat-webpage/commit/45b376fc6ffe16477a947fa7b99cb9bc354f136e))
+* **chat:** members can delete archived chats ([1970dc9](https://github.com/cevi/conveniat-webpage/commit/1970dc989e4a2f4bcac4e71aa2979f12ff195765))
+* **emergency:** simultaneous alerts both open a case, the piket is woken after commit ([503dcc4](https://github.com/cevi/conveniat-webpage/commit/503dcc409f6e38b2c0bea61b9fd2ba9c638b6030))
+* **emergency:** simultaneous alerts both open a case, the piket is woken after commit ([b07e3ee](https://github.com/cevi/conveniat-webpage/commit/b07e3ee517e9db50c42ec49d797a525dc426cb39))
+* **forms:** senders cannot set job links or mail results on a submission ([c84980c](https://github.com/cevi/conveniat-webpage/commit/c84980c3b4cf66bb5e00d5e3d893bf960bef172e))
+* **forms:** senders cannot set job links or mail results on a submission ([089a789](https://github.com/cevi/conveniat-webpage/commit/089a78948b979654850afd5e68f460aaae7a4397))
+* **settings:** show the user's Hof and Quartier from the registration ([b4cca05](https://github.com/cevi/conveniat-webpage/commit/b4cca050d145b1fea78e750f998c8b20a67b89fe))
+* **settings:** show the user's Hof and Quartier from the registration ([4a7b90c](https://github.com/cevi/conveniat-webpage/commit/4a7b90c0ac92942ff96a79226bf91df2591151d3))
+
 ## [1.19.1](https://github.com/cevi/conveniat-webpage/compare/v1.19.0...v1.19.1) (2026-09-27)
 
 
