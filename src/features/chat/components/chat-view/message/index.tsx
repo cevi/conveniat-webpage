@@ -75,6 +75,8 @@ interface MessageProperties {
   isCurrentUser: boolean;
   /** The sender's functions in the camp organisation, shown with their name; may be empty. */
   senderFunktionen?: string;
+  /** The sender's profile picture, next to the block in a group chat. */
+  senderPictureUrl?: string | undefined;
   chatType: string;
   hideReplyCount?: boolean;
   isThreadRoot?: boolean;
@@ -97,6 +99,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   message,
   isCurrentUser,
   senderFunktionen = '',
+  senderPictureUrl,
   chatType,
   hideReplyCount = false,
   isThreadRoot = false,
@@ -342,6 +345,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           <SenderAvatar
             senderId={message.senderId}
             name={message.senderName ?? ''}
+            pictureUrl={senderPictureUrl}
             hidden={!isLastInGroup}
           />
           {/* the empty avatar slot is the one place a wide bubble leaves room for its time */}

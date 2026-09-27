@@ -33,6 +33,8 @@ interface ChatParticipant {
   isOnline: boolean;
   chatPermission: ChatMembershipPermission;
   description?: string | null;
+  /** The profile picture from Cevi.DB; missing without one, and in caches from before. */
+  pictureUrl?: string | undefined;
 }
 
 export interface ChatDetails {

@@ -83,7 +83,12 @@ export const ChatPreview: React.FC<{
             </div>
           )}
           {chat.chatType === ChatType.ONE_TO_ONE && (
-            <PersonAvatar seed={chat.id} name={chat.name} className="h-12 w-12 text-sm shadow-sm" />
+            <PersonAvatar
+              seed={chat.partner?.userId ?? chat.id}
+              name={chat.name}
+              pictureUrl={chat.partner?.pictureUrl}
+              className="h-12 w-12 text-sm shadow-sm"
+            />
           )}
           {chat.chatType === ChatType.EMERGENCY && (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-red-500">

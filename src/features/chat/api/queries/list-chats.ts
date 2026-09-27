@@ -10,10 +10,17 @@ import {
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
 } from '@/lib/chat-shared';
-import { ChatMembershipPermission, MessageEventType, MessageType, type Prisma } from '@/lib/prisma';
+import {
+  ChatMembershipPermission,
+  ChatType,
+  MessageEventType,
+  MessageType,
+  type Prisma,
+} from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import type { StaticTranslationString } from '@/types/types';
+import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -208,6 +215,7 @@ export const getChatList = trpcBaseProcedure
       const messagePreview = lastMessage ? getMessagePreviewText(lastMessage) : fallbackPreview;
 
       const currentUserMembership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
+      const partnerUser = chat.chatMemberships.find((m) => m.userId !== prismaUser.uuid)?.user;
       const isLarge = chat.chatMemberships.length >= LARGE_CHAT_THRESHOLD;
 
       const rawCount = unreadCountMap.get(chat.uuid) ?? 0;
@@ -248,6 +256,17 @@ export const getChatList = trpcBaseProcedure
         },
         userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
         isArchived: isChatArchived(chat),
+        ...(chat.type === ChatType.ONE_TO_ONE && partnerUser !== undefined
+          ? {
+              partner: {
+                userId: partnerUser.uuid,
+                pictureUrl: profilePictureUrlOrUndefined(
+                  partnerUser.uuid,
+                  partnerUser.profilePictureVersion,
+                ),
+              },
+            }
+          : {}),
       };
     });
   });

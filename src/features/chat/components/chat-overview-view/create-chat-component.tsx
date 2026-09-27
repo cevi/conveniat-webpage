@@ -320,6 +320,7 @@ export const CreateNewChatPage: React.FC = () => {
                           <PersonAvatar
                             seed={contact.userId}
                             name={contact.name}
+                            pictureUrl={contact.pictureUrl}
                             className="h-12 w-12 text-sm font-bold shadow-xs"
                           />
                           <button
@@ -401,6 +402,7 @@ export const CreateNewChatPage: React.FC = () => {
                       <PersonAvatar
                         seed={contact.userId}
                         name={contact.name}
+                        pictureUrl={contact.pictureUrl}
                         className="h-10 w-10 text-sm font-bold"
                       />
                       <div className="flex-1">

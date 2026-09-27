@@ -22,6 +22,8 @@ export interface GroupRoleHolder {
   firstName: string;
   lastName: string;
   nickname: string;
+  /** URL of the profile picture, or of Cevi.DB's placeholder; empty when missing */
+  picture: string;
 }
 
 /**
@@ -41,6 +43,7 @@ const PeopleJsonSchema = z.object({
           first_name: z.string().nullish(),
           last_name: z.string().nullish(),
           nickname: z.string().nullish(),
+          picture: z.string().nullish(),
           links: z
             .object({ roles: z.array(z.union([z.string(), z.number()])).nullish() })
             .nullish(),
@@ -175,6 +178,7 @@ export class GroupService {
           firstName: person.first_name ?? '',
           lastName: person.last_name ?? '',
           nickname: person.nickname ?? '',
+          picture: person.picture ?? '',
         });
       }
 

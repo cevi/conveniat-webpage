@@ -137,6 +137,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
                     <PersonAvatar
                       seed={contact.userId}
                       name={contact.name}
+                      pictureUrl={contact.pictureUrl}
                       className="h-8 w-8 text-xs"
                     />
                     <div className="flex flex-col">

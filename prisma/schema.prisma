@@ -23,6 +23,9 @@ model User {
   /// ids of the camp functions in Payload's `funktionen` collection the user holds, mirrored
   /// from the Payload user; no foreign key, the functions live in MongoDB
   funktionIds   String[] @default([])
+  /// version of the user's profile picture from Cevi.DB, cached in S3 under
+  /// `profile-pictures/<uuid>/<version>.webp`, mirrored from the Payload user; null when none
+  profilePictureVersion String?
 
   messages             Message[]
   chatMemberships      ChatMembership[]

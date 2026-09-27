@@ -5,6 +5,7 @@ import {
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { funktionenSyncStreamHandler } from '@/features/payload-cms/payload-cms/endpoints/funktionen-sync-stream';
+import { seedProfilePicturesHandler } from '@/features/payload-cms/payload-cms/endpoints/seed-profile-pictures';
 import { refreshUserFunktionen } from '@/features/payload-cms/payload-cms/utils/funktionen';
 import type { CollectionAfterDeleteHook, CollectionConfig } from 'payload';
 
@@ -59,7 +60,10 @@ export const FunktionenCollection: CollectionConfig = {
     },
   },
   defaultSort: 'order',
-  endpoints: [{ path: '/sync', method: 'post', handler: funktionenSyncStreamHandler }],
+  endpoints: [
+    { path: '/sync', method: 'post', handler: funktionenSyncStreamHandler },
+    { path: '/seed-profile-pictures', method: 'post', handler: seedProfilePicturesHandler },
+  ],
   hooks: { afterDelete: [refreshUsersOfDeletedFunktion] },
   access: {
     // the labels reach every participant through the chat, which reads them server-side;

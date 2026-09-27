@@ -609,6 +609,10 @@ export interface User {
    */
   funktionen?: (string | Funktion)[] | null;
   /**
+   * Version of the profile picture the person uploaded in the app; empty without one. Empty the field to remove an inappropriate picture.
+   */
+  profilePictureVersion?: string | null;
+  /**
    * An additional description of the user shown in the chat.
    */
   description?: string | null;
@@ -7225,6 +7229,7 @@ export interface UsersSelect<T extends boolean = true> {
   hoefe?: T;
   avpHoefe?: T;
   funktionen?: T;
+  profilePictureVersion?: T;
   description?: T;
   hidden?: T;
   presentAtCamp?: T;

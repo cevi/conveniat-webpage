@@ -41,6 +41,7 @@ const source = (overrides: Partial<FunktionenSource> = {}): FunktionenSource => 
             firstName: '',
             lastName: '',
             nickname: '',
+            picture: '',
           }))
         : [],
     ),
