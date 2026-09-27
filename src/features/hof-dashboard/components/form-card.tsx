@@ -140,7 +140,8 @@ const EntryBlock: React.FC<{
         locale={locale}
       />
     )}
-    {entry.withdrawable && (
+    {/* taking it back is the Hof's; a reviewer answers it above instead */}
+    {entry.withdrawable && reviewFor === undefined && (
       <WithdrawAction locale={locale} onWithdraw={() => onWithdraw(entry.id)} />
     )}
   </div>
