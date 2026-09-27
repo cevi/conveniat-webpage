@@ -1,4 +1,5 @@
 /* eslint-disable unicorn/no-null */
+import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
@@ -246,6 +247,7 @@ export const getChatList = trpcBaseProcedure
             : MessageEventType.STORED,
         },
         userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
+        isArchived: isChatArchived(chat),
       };
     });
   });

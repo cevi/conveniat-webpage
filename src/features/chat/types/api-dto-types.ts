@@ -26,4 +26,6 @@ export interface ChatWithMessagePreview {
   userChatPermission: ChatMembershipPermission;
   /** Optional because chat lists persisted before this field existed are restored without it. */
   isPinned?: boolean;
+  /** Optional because chat lists persisted before this field existed are restored without it. */
+  isArchived?: boolean;
 }

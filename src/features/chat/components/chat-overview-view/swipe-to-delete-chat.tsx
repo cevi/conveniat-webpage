@@ -25,7 +25,8 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
 
   const canDelete =
     chat.chatType !== ChatType.ANNOUNCEMENT &&
-    (chat.chatType === ChatType.EMERGENCY ||
+    (chat.isArchived === true ||
+      chat.chatType === ChatType.EMERGENCY ||
       (
         [
           ChatMembershipPermission.OWNER,
