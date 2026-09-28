@@ -114,11 +114,12 @@ export const MapLibreRenderer = ({
   const { data: updatedMapData } = trpc.map.getMapAnnotations.useQuery(
     { locale },
     {
-      enabled: true,
-      staleTime: 5 * 60 * 1000,
-
-      refetchOnMount: false,
-      refetchOnWindowFocus: false,
+      // every annotation and schedule entry in one answer, and the map is mounted in chats,
+      // the schedule and CMS pages too, so it is not asked for again within half an hour
+      staleTime: 30 * 60 * 1000,
+      // an installed app is resumed with the map still mounted, so returning to it is the only
+      // moment an edit made in the meantime can reach the user; nothing pushes map changes
+      refetchOnWindowFocus: true,
     },
   );
 

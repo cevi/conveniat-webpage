@@ -107,8 +107,6 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     { id },
     {
       staleTime: 1000 * 60 * 5,
-
-      refetchOnMount: false,
       refetchOnWindowFocus: false,
     },
   );
@@ -128,13 +126,12 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
       /**
-       * The global default is `refetchOnMount: false` with a 72h `gcTime` and disk persistence,
-       * so this status is fetched once per course and then served from IndexedDB for days. That
-       * is fine for the enrolment counts, which every mutation invalidates - but `isAdmin` is
-       * decided by the organiser relationship in the CMS, which changes without any mutation
-       * this client ever makes. Adding somebody as an organiser therefore never reached them:
-       * their cached `isAdmin: false` outlived the change and hid the admin actions and the
-       * participant list. Revalidate on every open - it is one small request on a deliberate
+       * The status is persisted to IndexedDB, and the default `refetchOnMount` trusts it for
+       * five minutes. That is fine for the enrolment counts, which every mutation invalidates -
+       * but `isAdmin` is decided by the organiser relationship in the CMS, which changes
+       * without any mutation this client ever makes. Somebody just added as an organiser would
+       * keep their cached `isAdmin: false` and miss the admin actions and the participant list.
+       * Revalidate on every open - it is one small request on a deliberate
        * navigation, and `networkMode: 'online'` still serves the cached value when offline.
        */
       refetchOnMount: 'always',

@@ -50,7 +50,9 @@ export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) 
 
   const { data: downloadData, isLoading } = trpc.chat.getDownloadUrl.useQuery(
     { chatId, key: url },
-    { enabled: isS3Key, staleTime: 1000 * 60 * 5 },
+    // The URL is signed for an hour. Signing it again sooner changes the URL, and the browser
+    // then downloads the same image a second time.
+    { enabled: isS3Key, staleTime: 1000 * 60 * 50 },
   );
 
   if (isS3Key && isLoading) {

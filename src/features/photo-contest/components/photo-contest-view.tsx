@@ -227,10 +227,9 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
   const [selectedImage, setSelectedImage] = useState<string>();
   const [localOverrides, setLocalOverrides] = useState<Record<string, number>>();
 
-  // The global query client sets refetchOnMount: false and keeps the persisted cache for 72h.
-  // A contest that is switched to ACTIVE would therefore stay invisible for days to anyone who
-  // had opened this page before. The cached value still renders instantly; it is only revalidated
-  // in the background.
+  // A contest that is switched to ACTIVE has to appear on the next visit, even one within the
+  // five minutes the default `refetchOnMount` would still trust the persisted list. The cached
+  // value still renders instantly; it is only revalidated in the background.
   const contestsQuery = trpc.photoContest.getContests.useQuery(undefined, {
     refetchOnMount: 'always',
   });
