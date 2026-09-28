@@ -1,5 +1,8 @@
-import { environmentVariables } from '@/config/environment-variables';
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
+import {
+  EMAIL_SENDER_ADDRESS,
+  EMAIL_SENDER_DOMAIN,
+} from '@/features/payload-cms/payload-cms/utils/email-sender';
 import type { Field, FieldAccess } from 'payload';
 
 /**
@@ -31,16 +34,8 @@ export const smtpResultsField: Field = {
       Field: {
         path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
         clientProps: {
-          smtpDomain:
-            typeof environmentVariables.SMTP_USER === 'string' &&
-            (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
-              ? environmentVariables.SMTP_USER.split('@')[1]
-              : 'cevi.tools',
-          systemEmails: [
-            typeof environmentVariables.SMTP_USER === 'string'
-              ? environmentVariables.SMTP_USER
-              : 'noreply@cevi.tools',
-          ].filter((email) => email.length > 0),
+          smtpDomain: EMAIL_SENDER_DOMAIN,
+          systemEmails: [EMAIL_SENDER_ADDRESS],
         },
       },
 
