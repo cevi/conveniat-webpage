@@ -92,7 +92,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       {/* Thread Header; a long-pressed reply gets its quote, thread and info actions here, the
           chat header being hidden under this overlay */}
       {selectedMessage === undefined ? (
-        <div className="mb-[32px] flex h-[60px] items-center gap-4 border-b-2 border-gray-200 bg-white px-4">
+        <div className="flex h-[60px] items-center gap-4 border-b-2 border-gray-200 bg-white px-4">
           <Button
             onClick={onClose}
             variant="ghost"

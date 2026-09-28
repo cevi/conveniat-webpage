@@ -30,7 +30,7 @@ export const AppAdvertisement: React.FC<{
   type?: 'map' | 'chat' | 'generic';
 }> = ({ locale, type = 'generic' }) => {
   return (
-    <div className="fixed bottom-0 left-0 z-40 flex h-20 w-dvw items-center justify-center border-t-2 border-gray-200 bg-[#f8fafc] px-4 text-center xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed bottom-0 left-(--app-content-left) z-40 flex h-20 w-[calc(100dvw-var(--app-content-left))] items-center justify-center border-t-2 border-gray-200 bg-[#f8fafc] px-4 text-center">
       <p className="text-sm text-gray-600">
         {appAdvertisementTextPart1[type][locale]} <strong>conveniat27 App</strong>.
         <br />
