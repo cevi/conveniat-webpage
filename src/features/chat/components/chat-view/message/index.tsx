@@ -7,11 +7,14 @@ import { ChatImage } from '@/features/chat/components/chat-view/message/chat-ima
 import { FailedMessageActions } from '@/features/chat/components/chat-view/message/failed-message-actions';
 import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
+import { MessageFrame } from '@/features/chat/components/chat-view/message/message-frame';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import {
   HoverToolbar,
+  ReactionBadge,
   ReactionBar,
 } from '@/features/chat/components/chat-view/message/message-reaction-menus';
+import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/message/reaction-details-dialog';
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
@@ -62,12 +65,6 @@ const sendingText: StaticTranslationString = {
   de: 'Wird gesendet',
   en: 'Sending',
   fr: 'Envoi en cours',
-};
-
-const clickToRemoveText: StaticTranslationString = {
-  de: 'Klicken zum Entfernen',
-  en: 'Click to remove',
-  fr: 'Cliquer pour supprimer',
 };
 
 interface MessageProperties {
@@ -134,6 +131,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [placeReactionsBelow, setPlaceReactionsBelow] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showReactors, setShowReactors] = useState(false);
   // touch has no hover: a tap reveals the time of a bubble that does not show it
   const [isTimeRevealed, setIsTimeRevealed] = useState(false);
   const isTimeRevealedOrHovered = isHovered || isSelected || isTimeRevealed;
@@ -314,16 +312,35 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     return <SystemMessage message={message} />;
   }
 
+  const frameProperties = {
+    message,
+    isCurrentUser,
+    senderFunktionen,
+    locale: activeLocale,
+  };
+
   if (message.type === MessageType.LOCATION_MSG) {
-    return <LocationMessage message={message} />;
+    return (
+      <MessageFrame {...frameProperties}>
+        <LocationMessage message={message} />
+      </MessageFrame>
+    );
   }
 
   if (message.type === ('ALERT_QUESTION' as unknown as MessageType)) {
-    return <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} />;
+    return (
+      <MessageFrame {...frameProperties}>
+        <AlertQuestionMessage message={message} isCurrentUser={isCurrentUser} />
+      </MessageFrame>
+    );
   }
 
   if (message.type === ('ALERT_RESPONSE' as unknown as MessageType)) {
-    return <AlertResponseMessage message={message} />;
+    return (
+      <MessageFrame {...frameProperties}>
+        <AlertResponseMessage message={message} />
+      </MessageFrame>
+    );
   }
 
   return (
@@ -527,40 +544,20 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 isCurrentUser ? 'justify-end' : 'justify-start',
               )}
             >
-              {groupedReactions.map((group) => {
-                const hasReacted = group.users.some((u) => u.id === currentUserId);
-                const userListNames = group.users.map((u) => u.name).join(', ');
-
-                return (
-                  <button
-                    key={group.emoji}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (canReact) {
-                        toggleReactionMutation.mutate({
-                          messageId: message.id,
-                          emoji: group.emoji,
-                        });
-                      }
-                    }}
-                    className={cn(
-                      'flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold shadow-2xs transition-all duration-150 hover:scale-105 focus:outline-none active:scale-95',
-                      hasReacted
-                        ? 'border-blue-200 bg-blue-50 text-blue-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500'
-                        : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100',
-                    )}
-                    title={
-                      hasReacted
-                        ? `${userListNames ? userListNames + '\n' : ''}(${clickToRemoveText[activeLocale]})`
-                        : userListNames
-                    }
-                  >
-                    <span>{group.emoji}</span>
-                    <span className="font-semibold">{group.users.length}</span>
-                  </button>
-                );
-              })}
+              {groupedReactions.map((group) => (
+                <ReactionBadge
+                  key={group.emoji}
+                  emoji={group.emoji}
+                  userNames={group.users.map((u) => u.name)}
+                  hasReacted={group.users.some((u) => u.id === currentUserId)}
+                  canReact={canReact}
+                  locale={activeLocale}
+                  onToggle={() =>
+                    toggleReactionMutation.mutate({ messageId: message.id, emoji: group.emoji })
+                  }
+                  onShowReactors={() => setShowReactors(true)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -602,6 +599,15 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           </div>
         )}
       </div>
+
+      {showReactors && (
+        <ReactionDetailsDialog
+          groups={groupedReactions}
+          currentUserId={currentUserId}
+          locale={activeLocale}
+          onClose={() => setShowReactors(false)}
+        />
+      )}
 
       {showInfo && (
         <MessageInfoDropdown
