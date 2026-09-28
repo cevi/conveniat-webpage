@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.24.0](https://github.com/cevi/conveniat-webpage/compare/v1.23.1...v1.24.0) (2026-09-28)
+
+
+### Features
+
+* **forms:** order materials in steps ([09d959e](https://github.com/cevi/conveniat-webpage/commit/09d959e843c8dc1bddeff889df9d3a9718a4ab51))
+* **forms:** order materials in steps ([2a55509](https://github.com/cevi/conveniat-webpage/commit/2a555092feeca981aebfb2a2770c82dad1bd93a3))
+* **material:** order step for articles ([d5f9074](https://github.com/cevi/conveniat-webpage/commit/d5f9074eba07a2e6f55bee3cb9147fd2a56527ec))
+* **material:** order step for articles ([e78f180](https://github.com/cevi/conveniat-webpage/commit/e78f180662c8b1a9c8e649cbaf4e73f2dd524c83))
+
+
+### Bug Fixes
+
+* **push:** keep links to another origin, like con27.ch, in native pushes ([349de88](https://github.com/cevi/conveniat-webpage/commit/349de886fdf72d9fc337ac2259e3887fd3be4879))
+* **push:** keep links to another origin, like con27.ch, in native pushes ([223ebe3](https://github.com/cevi/conveniat-webpage/commit/223ebe326d9efdfeeeec4a31e59c21c881325826))
+* **push:** open links to another origin, like con27.ch, as they are ([0ca2bc9](https://github.com/cevi/conveniat-webpage/commit/0ca2bc9a67557cc6a9c38eaf769127ee28c81f01))
+* **push:** open links to another origin, like con27.ch, as they are ([1e02c5a](https://github.com/cevi/conveniat-webpage/commit/1e02c5a6f4b6d7b9f31defb67a4f725362d2ee2a))
+* **sw:** leave plain API requests to the browser ([c90cd1b](https://github.com/cevi/conveniat-webpage/commit/c90cd1b45de94eae96b05f756dee69a300663481))
+* **sw:** leave plain API requests to the browser ([8158c92](https://github.com/cevi/conveniat-webpage/commit/8158c92441dee90172578c3863cccc9ff685c70d))
+
 ## [1.23.1](https://github.com/cevi/conveniat-webpage/compare/v1.23.0...v1.23.1) (2026-09-28)
 
 
