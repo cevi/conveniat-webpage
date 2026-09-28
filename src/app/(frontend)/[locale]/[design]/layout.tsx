@@ -118,6 +118,7 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
                     </Suspense>
                   }
                   inAppDesign={isInAppDesign}
+                  locale={locale}
                   navigationMode={navigationMode}
                 >
                   {children}

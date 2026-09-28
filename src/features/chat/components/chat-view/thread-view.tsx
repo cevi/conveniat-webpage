@@ -1,5 +1,6 @@
 'use client';
 
+import { OfflineBanner } from '@/components/offline-banner';
 import { Button } from '@/components/ui/buttons/button';
 import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
@@ -107,6 +108,7 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
       ) : (
         <ChatSelectionHeader />
       )}
+      <OfflineBanner locale={locale} />
 
       {/* Message List with Parent */}
       <div className="flex-1 overflow-hidden">
