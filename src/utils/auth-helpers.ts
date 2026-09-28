@@ -38,21 +38,25 @@ export async function getPayloadUserFromNextAuthUser(
     .then((response) => response.docs[0]);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
+/**
+ * Payload's auth strategy for a Cevi.DB session. No user is `null`, as Payload's contract has it:
+ * `payload.auth()` passes the value on, and its callers check for `null`.
+ */
 export const getAuthenticateUsingCeviDB: AuthStrategyFunction = async ({ payload }) => {
   const session = await getCachedSession();
   const validationResult = HitobitoNextAuthUserSchema.safeParse(session?.user);
 
   if (!validationResult.success) {
-    return { user: undefined };
+    // eslint-disable-next-line unicorn/no-null -- Payload's AuthStrategyResult
+    return { user: null };
   }
 
   const nextAuthUser = validationResult.data;
   const user = await getPayloadUserFromNextAuthUser(payload, nextAuthUser);
 
   if (!user) {
-    return { user: undefined };
+    // eslint-disable-next-line unicorn/no-null -- Payload's AuthStrategyResult
+    return { user: null };
   }
 
   return {
