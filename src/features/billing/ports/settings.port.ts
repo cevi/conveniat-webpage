@@ -22,6 +22,15 @@ export interface HofSyncWrite {
   addressManagers?: HofAddressManager[];
 }
 
+/** A Hof whose group left the conveniat27 parent group in Cevi.DB. */
+export interface HofRemoval {
+  groupId: string;
+  name: string;
+  deleted: boolean;
+  /** What still points at the Hof and kept it, e.g. "2 form submissions". Empty once deleted. */
+  references: string[];
+}
+
 export interface SettingsPort {
   getBillSettings(): Promise<BillSetting>;
   getRegistrationManagement(): Promise<RegistrationManagement>;
@@ -31,5 +40,10 @@ export interface SettingsPort {
   getHofEvents(): Promise<HofEventRow[]>;
   /** Creates or updates one Hof per entry, matched by `groupId`. */
   upsertHoefe(hoefe: HofSyncWrite[]): Promise<void>;
+  /**
+   * Deletes the Hof of each group unless something still points at it: a user, a form
+   * submission, a material loan, or a billing participant registered for one of its events.
+   */
+  deleteUnreferencedHoefe(groupIds: string[]): Promise<HofRemoval[]>;
   updateNextReferenceNumber(nextReferenceNumber: number): Promise<void>;
 }

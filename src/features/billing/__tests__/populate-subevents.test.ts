@@ -51,6 +51,7 @@ describe('populateSubeventsUseCase', () => {
       getHoefe: jest.fn().mockResolvedValue([]),
       getHofEvents: jest.fn(),
       upsertHoefe: jest.fn(),
+      deleteUnreferencedHoefe: jest.fn().mockResolvedValue([]),
       updateNextReferenceNumber: jest.fn(),
     };
 
@@ -184,11 +185,11 @@ describe('populateSubeventsUseCase', () => {
       },
       { eventId: 'e-2', eventName: 'conveniat27 Chur', groupId: '2' },
     ]);
-    // Neither the name nor the override of a known Hof is part of what the sync writes.
+    // The override of a known Hof is not part of what the sync writes; its name is.
     expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([
       {
         groupId: '1',
-        name: 'Hof Basel',
+        name: 'Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'neu@example.com, zweite@example.com',
         addressManagers: [manager('neu@example.com'), manager('zweite@example.com')],
@@ -207,6 +208,7 @@ describe('populateSubeventsUseCase', () => {
     mockSettingsRepo.getHoefe.mockResolvedValue([
       storedHof({
         groupId: '1',
+        name: 'Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'av@example.com',
         addressManagers: [{ id: 'row-1', ...manager('av@example.com') }],
@@ -248,6 +250,7 @@ describe('populateSubeventsUseCase', () => {
     mockSettingsRepo.getHoefe.mockResolvedValue([
       storedHof({
         groupId: '1',
+        name: 'Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'av@example.com',
         addressManagers: [
@@ -273,7 +276,7 @@ describe('populateSubeventsUseCase', () => {
     mockSettingsRepo.getHoefe.mockResolvedValue([
       storedHof({
         groupId: '1',
-        name: 'Hof Basel',
+        name: 'Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'av@example.com',
       }),
@@ -289,7 +292,7 @@ describe('populateSubeventsUseCase', () => {
     expect(mockSettingsRepo.upsertHoefe).toHaveBeenCalledWith([
       {
         groupId: '1',
-        name: 'Hof Basel',
+        name: 'Basel',
         events: [{ eventId: 'e-1', eventName: 'conveniat27 Basel' }],
         addressManagerEmails: 'av@example.com',
         addressManagers: [manager('av@example.com')],
@@ -419,6 +422,79 @@ describe('populateSubeventsUseCase', () => {
 
     expect(progress).toEqual([{ processedGroups: 0, totalGroups: 0, foundEvents: [] }]);
     expect(result.count).toBe(0);
+  });
+
+  it('renames a known Hof when its event is renamed in Cevi.DB', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        name: 'Wil',
+        events: [{ eventId: 'e-1', eventName: 'Hauptlager conveniat27 - Wil' }],
+        reminderRecipientsOverride: 'chef@example.com',
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'Hauptlager conveniat27 - Wil + Wängi' },
+    ]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    const [writes] = mockSettingsRepo.upsertHoefe.mock.calls[0] ?? [];
+    expect(writes?.map(({ groupId, name }) => ({ groupId, name }))).toEqual([
+      { groupId: '1', name: 'Wil + Wängi' },
+    ]);
+  });
+
+  it('removes the Höfe whose group left the parent group, and warns about those it keeps', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([
+      storedHof({
+        groupId: '1',
+        name: 'Wil',
+        events: [{ eventId: 'e-1', eventName: 'conveniat27 Wil' }],
+      }),
+      storedHof({
+        groupId: '2',
+        name: 'Wängi',
+        events: [{ eventId: 'e-2', eventName: 'conveniat27 Wängi' }],
+      }),
+      storedHof({
+        groupId: '3',
+        name: 'Teufen',
+        events: [{ eventId: 'e-3', eventName: 'conveniat27 Teufen' }],
+      }),
+    ]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue(['1']);
+    mockHitobitoService.fetchEventsForGroup.mockResolvedValue([
+      { id: 'e-1', name: 'conveniat27 Wil' },
+    ]);
+    mockSettingsRepo.deleteUnreferencedHoefe.mockResolvedValue([
+      { groupId: '2', name: 'Wängi', deleted: true, references: [] },
+      { groupId: '3', name: 'Teufen', deleted: false, references: ['1 form submissions'] },
+    ]);
+
+    const result = await populateSubeventsUseCase(
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(mockSettingsRepo.deleteUnreferencedHoefe).toHaveBeenCalledWith(['2', '3']);
+    // the deleted Hof's events are gone from the list the button shows, the kept one's stay
+    expect(result.allEvents.map(({ groupId }) => groupId)).toEqual(['3', '1']);
+    expect(mockLogger.warn).toHaveBeenCalledWith(
+      'Keeping a Hof whose group left Cevi.DB, because it is still referenced',
+      { 'billing.group_id': '3', 'hof.name': 'Teufen', 'hof.references': '1 form submissions' },
+    );
+  });
+
+  it('removes no Hof when Cevi.DB lists no subgroup at all', async () => {
+    mockSettingsRepo.getHoefe.mockResolvedValue([storedHof({ groupId: '1', name: 'Wil' })]);
+    mockHitobitoService.fetchSubgroupLinks.mockResolvedValue([]);
+
+    await populateSubeventsUseCase(mockHitobitoService, mockSettingsRepo, mockLogger);
+
+    expect(mockSettingsRepo.deleteUnreferencedHoefe).toHaveBeenCalledWith([]);
   });
 
   it('ignores Aufbau- and Abbaulager events and cleans them from the stored Höfe', async () => {
