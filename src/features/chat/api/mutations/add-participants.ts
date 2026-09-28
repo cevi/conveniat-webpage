@@ -2,14 +2,21 @@ import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-wri
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatMembershipPermission } from '@/lib/prisma';
+import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const logger = createLogger('chat:mutations');
+
+const privateChatText: StaticTranslationString = {
+  de: 'In einen privaten Chat kann niemand hinzugefügt werden. Erstelle stattdessen eine Gruppe.',
+  en: 'Nobody can be added to a private chat. Create a group instead.',
+  fr: 'Personne ne peut être ajouté à un chat privé. Crée plutôt un groupe.',
+};
 
 const addParticipantsSchema = z.object({
   chatId: z.string(),
@@ -20,7 +27,7 @@ export const addParticipants = trpcBaseProcedure
   .input(addParticipantsSchema)
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }) => {
-    const { prisma, user } = ctx;
+    const { locale, prisma, user } = ctx;
     const { chatId, participantIds } = input;
 
     const chat = await findChatByUuid(chatId, prisma);
@@ -34,6 +41,12 @@ export const addParticipants = trpcBaseProcedure
     }
 
     assertChatNotArchived(chat);
+
+    // A private chat is looked up by its two members, see `findOrCreatePrivateChat`. A third
+    // one would turn it into an unnamed group that neither side can find again.
+    if (chat.type === ChatType.ONE_TO_ONE) {
+      throw new TRPCError({ code: 'BAD_REQUEST', message: privateChatText[locale] });
+    }
 
     // check if user is ADMIN or OWNER of the chat
     const userMembership = chat.chatMemberships.find(

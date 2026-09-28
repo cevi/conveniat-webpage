@@ -28,6 +28,8 @@ jest.mock('@prisma/client', () => ({
 }));
 jest.mock('@/lib/db/redis', () => ({
   getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
+  // every rate limit counter at its first call
+  redis: { eval: (): Promise<number> => Promise.resolve(1) },
 }));
 // The capability check reads the chat through the shared client, the procedures through the
 // transaction; both see the same tables.
@@ -147,6 +149,7 @@ const mockPrisma = {
   messageReaction: {
     // eslint-disable-next-line unicorn/no-null
     findUnique: (): Promise<null> => Promise.resolve(null),
+    count: (): Promise<number> => Promise.resolve(0),
     create: record('messageReaction.create'),
     delete: record('messageReaction.delete'),
   },

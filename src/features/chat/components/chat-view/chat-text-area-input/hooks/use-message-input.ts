@@ -107,6 +107,11 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             }
           },
           onError: (error) => {
+            // The send waits in the outbox; the server's message says why, in the user's language.
+            if (error.data?.code === 'TOO_MANY_REQUESTS') {
+              setSendError(error.message);
+              return;
+            }
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
             // list with its own retry, so the text is not put back into the composer. Only a
             // disabled chat is worth a banner, because retrying cannot help there.

@@ -48,3 +48,18 @@ export type ChatImageUploadInput = z.infer<typeof chatImageUploadInputSchema>;
  * @returns `chat-images/<chatId>/`
  */
 export const chatImageKeyPrefix = (chatId: string): string => `chat-images/${chatId}/`;
+
+/**
+ * Whether `key` names an image directly under the chat's own prefix. The rest may not
+ * contain a slash or start with a dot, so `..` cannot step out of it once a browser
+ * normalises the URL path.
+ *
+ * @param key - the S3 key a message or a download asks for
+ * @param chatId - the chat the image has to belong to
+ * @returns true for a key such as `chat-images/<chatId>/1719830400000-k3j9x2.jpg`
+ */
+export const isImageKeyOfChat = (key: string, chatId: string): boolean => {
+  const prefix = chatImageKeyPrefix(chatId);
+  if (!key.startsWith(prefix)) return false;
+  return /^[^./][^/]*$/.test(key.slice(prefix.length));
+};

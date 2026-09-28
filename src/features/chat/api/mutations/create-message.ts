@@ -5,11 +5,14 @@ import {
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
+import { isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
+import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -59,6 +62,27 @@ const sendMessageInputSchema = z.object({
   messageId: z.string().optional(),
 });
 
+/**
+ * Everyone who wrote in a thread so far: the author of the message it answers and every
+ * earlier replier. A system message has no sender and adds nobody.
+ */
+const findThreadParticipantIds = async (
+  prisma: PrismaClientOrTransaction,
+  chatId: string,
+  parentId: string,
+): Promise<Set<string>> => {
+  const threadMessages = await prisma.message.findMany({
+    where: { chatId, OR: [{ uuid: parentId }, { parentId }] },
+    select: { senderId: true },
+    distinct: ['senderId'],
+  });
+  return new Set(
+    threadMessages
+      .map((message) => message.senderId)
+      .filter((senderId): senderId is string => senderId !== null),
+  );
+};
+
 const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
 /**
@@ -87,6 +111,20 @@ const extractMessagePayload = (
 // tRPC router for chat-related mutations
 export const createMessage = trpcBaseProcedure
   .input(sendMessageInputSchema)
+  .use(
+    // Every message pushes to every other member. A normal conversation stays far below
+    // this, and an offline outbox that drains faster is retried once the window ends.
+    rateLimit({
+      name: 'chat.sendMessage',
+      limit: 20,
+      windowMs: 10 * 1000,
+      message: {
+        de: 'Du sendest zu viele Nachrichten. Warte einen Moment, sie werden danach gesendet.',
+        en: 'You are sending too many messages. Wait a moment, they will be sent afterwards.',
+        fr: 'Tu envoies trop de messages. Attends un instant, ils seront envoyés ensuite.',
+      },
+    }),
+  )
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
   .mutation(async ({ input, ctx }) => {
     const { user, prisma } = ctx; // Destructure user and prisma from the tRPC context
@@ -105,6 +143,15 @@ export const createMessage = trpcBaseProcedure
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'Image uploading is not enabled in this chat.',
+        });
+      }
+
+      // Only an upload into this very chat, see `getUploadUrl`. Any other URL would be loaded
+      // by every member's phone, which is all a tracking pixel needs.
+      if (!isImageKeyOfChat(validatedMessage.content, validatedMessage.chatId)) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'An image message must name an image uploaded to this chat.',
         });
       }
     }
@@ -198,9 +245,28 @@ export const createMessage = trpcBaseProcedure
 
     // A member who deleted the chat never sees it in their list again, so a push for it
     // would lead nowhere.
-    const pushRecipientUserIds = chat.chatMemberships
+    const chatPushRecipientUserIds = chat.chatMemberships
       .filter((membership) => membership.userId !== user.uuid && !membership.hasDeleted)
       .map((membership) => membership.userId);
+
+    // A thread reply concerns the thread, not the whole chat: it pushes only to those who
+    // wrote in it. Everyone else still sees it live and in the thread counter. In an
+    // announcement channel guests may reply, and no reply there may wake the whole camp.
+    let pushRecipientUserIds = chatPushRecipientUserIds;
+    if (validatedMessage.parentId !== undefined) {
+      if (chat.type === ChatType.ANNOUNCEMENT) {
+        pushRecipientUserIds = [];
+      } else {
+        const threadParticipantIds = await findThreadParticipantIds(
+          prisma,
+          validatedMessage.chatId,
+          validatedMessage.parentId,
+        );
+        pushRecipientUserIds = chatPushRecipientUserIds.filter((userId) =>
+          threadParticipantIds.has(userId),
+        );
+      }
+    }
 
     // Fetch quoted message content if quotedMessageId is provided
     let quotedSnippet: string | undefined;
@@ -282,28 +348,30 @@ export const createMessage = trpcBaseProcedure
     // Neither the push fan-out nor the publish is awaited, so a slow push provider does
     // not hold the request or its pool connection.
     ctx.afterTransactionCommit(() => {
-      sendNotification(
-        validatedMessage.content,
-        pushRecipientUserIds,
-        validatedMessage.chatId,
-        createdMessage.uuid,
-        {
-          chatName: chat.name,
-          senderName: user.name,
-          // Every message in an emergency chat is part of a running alert, so the
-          // follow-ups reach the piket members on the siren channel too - a reply that
-          // only lands in the notification shade is exactly the failure mode the
-          // emergency channel exists to prevent. Support chats stay on the regular
-          // channel; they are not time critical in the same way.
-          ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
-        },
-      ).catch((error: unknown) => {
-        logger.error('Failed to send push notification', {
-          error,
-          'chat.id': validatedMessage.chatId,
-          'message.id': createdMessage.uuid,
+      if (pushRecipientUserIds.length > 0) {
+        sendNotification(
+          validatedMessage.content,
+          pushRecipientUserIds,
+          validatedMessage.chatId,
+          createdMessage.uuid,
+          {
+            chatName: chat.name,
+            senderName: user.name,
+            // Every message in an emergency chat is part of a running alert, so the
+            // follow-ups reach the piket members on the siren channel too - a reply that
+            // only lands in the notification shade is exactly the failure mode the
+            // emergency channel exists to prevent. Support chats stay on the regular
+            // channel; they are not time critical in the same way.
+            ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
+          },
+        ).catch((error: unknown) => {
+          logger.error('Failed to send push notification', {
+            error,
+            'chat.id': validatedMessage.chatId,
+            'message.id': createdMessage.uuid,
+          });
         });
-      });
+      }
 
       chatPubSub
         .publish({
