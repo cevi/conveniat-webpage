@@ -39,6 +39,8 @@ export interface HofOverviewRow {
   id: string;
   name: string;
   areas: Record<HofDashboardArea, HofAreaSummary>;
+  /** Files the Hof handed in with any submission of a form on the dashboard. */
+  files: number;
 }
 
 type OverviewSubmission = Pick<
@@ -82,6 +84,26 @@ export const getHofOverview = async (
   }
   const stored = submissions.docs as OverviewSubmission[];
 
+  const { docs: files } =
+    stored.length === 0
+      ? { docs: [] }
+      : await payload.find({
+          collection: 'form_collection',
+          where: { formSubmission: { in: stored.map((submission) => submission.id) } },
+          depth: 0,
+          pagination: false,
+          overrideAccess: true,
+          select: { formSubmission: true },
+        });
+  const hofOfSubmission = new Map(
+    stored.map((submission) => [submission.id, idOf(submission.hof)]),
+  );
+  const filesByHof = new Map<string, number>();
+  for (const file of files) {
+    const hofId = hofOfSubmission.get(idOf(file.formSubmission) ?? '');
+    if (hofId !== undefined) filesByHof.set(hofId, (filesByHof.get(hofId) ?? 0) + 1);
+  }
+
   const now = new Date();
   return hoefe.map((hof): HofOverviewRow => {
     const ofHof = stored.filter((submission) => idOf(submission.hof) === hof.id);
@@ -117,6 +139,6 @@ export const getHofOverview = async (
         return [area, summary];
       }),
     ) as Record<HofDashboardArea, HofAreaSummary>;
-    return { id: hof.id, name: hof.name, areas };
+    return { id: hof.id, name: hof.name, areas, files: filesByHof.get(hof.id) ?? 0 };
   });
 };
