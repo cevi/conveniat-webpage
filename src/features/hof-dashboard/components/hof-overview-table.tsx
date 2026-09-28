@@ -103,8 +103,10 @@ export const HofOverviewTable: React.FC<{
       {hoefe.length === 0 ? (
         <p className="text-sm text-gray-500">{translate('noHoefe', locale)}</p>
       ) : (
-        // the rows reach the panel's edges; long lists scroll within, the header stays
-        <div className="-mx-5 max-h-[32rem] overflow-y-auto border-y border-gray-100 @xl:-mx-6">
+        // the rows reach the panel's edges; long lists scroll within, the header stays.
+        // relative, so the sr-only area labels of the wide layout are clipped here too: an
+        // absolute element positioned outside a scroll box escapes it and lengthens the page
+        <div className="relative -mx-5 max-h-[32rem] overflow-y-auto border-y border-gray-100 @xl:-mx-6">
           {/* the column heads of the wide layout; a narrow one names each area in its card */}
           <div
             aria-hidden
