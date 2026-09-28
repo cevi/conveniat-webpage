@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.1](https://github.com/cevi/conveniat-webpage/compare/v1.23.0...v1.23.1) (2026-09-28)
+
+
+### chore
+
+* release dev into main ([4bec3c4](https://github.com/cevi/conveniat-webpage/commit/4bec3c48291478ddbdc3e561388585667532c9fd))
+
 ## [1.23.0](https://github.com/cevi/conveniat-webpage/compare/v1.22.1...v1.23.0) (2026-09-28)
 
 
