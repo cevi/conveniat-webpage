@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { EMAIL_SENDER_ADDRESS } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 
 /**
@@ -18,10 +19,7 @@ import { nodemailerAdapter } from '@payloadcms/email-nodemailer';
 export const emailSettings = environmentVariables.ENABLE_NODEMAILER
   ? {
       email: nodemailerAdapter({
-        defaultFromAddress:
-          typeof environmentVariables.SMTP_USER === 'string'
-            ? environmentVariables.SMTP_USER
-            : 'noreply@cevi.tools',
+        defaultFromAddress: EMAIL_SENDER_ADDRESS,
         defaultFromName: 'conveniat27',
         skipVerify: true,
         transportOptions: {

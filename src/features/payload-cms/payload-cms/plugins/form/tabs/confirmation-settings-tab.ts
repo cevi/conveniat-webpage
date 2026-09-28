@@ -1,5 +1,5 @@
-import { environmentVariables } from '@/config/environment-variables';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
+import { EMAIL_SENDER_DOMAIN } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import {
   defaultEditorLexicalConfig,
@@ -107,11 +107,7 @@ const formEmailField: Field = {
                 {
                   path: '@/features/payload-cms/payload-cms/components/fields/email-from-warning',
                   clientProps: {
-                    smtpDomain:
-                      typeof environmentVariables.SMTP_USER === 'string' &&
-                      (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
-                        ? environmentVariables.SMTP_USER.split('@')[1]
-                        : 'cevi.tools',
+                    smtpDomain: EMAIL_SENDER_DOMAIN,
                   },
                 },
               ],
