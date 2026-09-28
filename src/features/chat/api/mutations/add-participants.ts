@@ -74,7 +74,7 @@ export const addParticipants = trpcBaseProcedure
     );
 
     if (chat.type === ChatType.GROUP) {
-      await assertGroupSize(chat.chatMemberships.length + newParticipantIds.length);
+      await assertGroupSize(chat.chatMemberships.length + newParticipantIds.length, locale);
     }
 
     if (newParticipantIds.length > 0) {

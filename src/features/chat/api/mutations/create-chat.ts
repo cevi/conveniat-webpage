@@ -121,7 +121,7 @@ export const createChat = trpcBaseProcedure
       });
     }
 
-    await assertGroupSize(members.length + 1);
+    await assertGroupSize(members.length + 1, locale);
 
     const chat = await createNewChat(finalChatName, locale, user, members, prisma, {
       afterCommit: ctx.afterTransactionCommit,

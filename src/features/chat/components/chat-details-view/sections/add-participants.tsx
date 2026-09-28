@@ -21,7 +21,8 @@ interface AddParticipantsProperties {
   onAddParticipants: () => void;
   isLoadingContacts: boolean;
   isAdding: boolean;
-  hasAddFailed: boolean;
+  /** Why the last add failed, shown above the button. */
+  addError: string | undefined;
   /** Whether the selection already fills the group up to `maxGroupMembers`. */
   isAtGroupLimit: boolean;
   maxGroupMembers: number | undefined;
@@ -64,12 +65,6 @@ const groupLimitReachedText: StaticTranslationString = {
   fr: 'Un groupe compte au plus {max} membres.',
 };
 
-const addFailedText: StaticTranslationString = {
-  de: 'Die ausgewählten Personen konnten nicht hinzugefügt werden.',
-  en: 'The selected people could not be added.',
-  fr: "Les personnes sélectionnées n'ont pas pu être ajoutées.",
-};
-
 const addSelectedText: StaticTranslationString = {
   de: 'Ausgewählte hinzufügen',
   en: 'Add Selected',
@@ -85,7 +80,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
   onAddParticipants,
   isLoadingContacts,
   isAdding,
-  hasAddFailed,
+  addError,
   isAtGroupLimit,
   maxGroupMembers,
   locale,
@@ -201,9 +196,7 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
           ))}
       </div>
 
-      {hasAddFailed && (
-        <p className="font-body mb-2 text-xs text-red-600">{addFailedText[locale]}</p>
-      )}
+      {addError !== undefined && <p className="font-body mb-2 text-xs text-red-600">{addError}</p>}
 
       {/* Add Button */}
       <Button

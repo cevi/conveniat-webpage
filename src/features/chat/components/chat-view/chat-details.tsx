@@ -27,7 +27,7 @@ import {
 import { isChatArchived } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -39,6 +39,12 @@ const participantLines = (
   contact === undefined
     ? { funktionLine: '', hofLine: '' }
     : { funktionLine: describeContactFunktionen(contact), hofLine: describeContactHof(contact) };
+
+const addFailedText: StaticTranslationString = {
+  de: 'Die ausgewählten Personen konnten nicht hinzugefügt werden.',
+  en: 'The selected people could not be added.',
+  fr: "Les personnes sélectionnées n'ont pas pu être ajoutées.",
+};
 
 export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -90,6 +96,15 @@ export const ChatDetails: React.FC = () => {
       : undefined;
   const isAtGroupLimit =
     openGroupSlots !== undefined && selectedContactsToAdd.length >= openGroupSlots;
+
+  let addError: string | undefined;
+  if (addParticipantsMutation.error !== null) {
+    // a refusal is written for the user, in their language; anything else is not
+    addError =
+      addParticipantsMutation.error.data?.code === 'BAD_REQUEST'
+        ? addParticipantsMutation.error.message
+        : addFailedText[locale];
+  }
 
   // --- Start of new handlers for participant management ---
   const handleToggleContactSelection = (contact: Contact): void => {
@@ -182,7 +197,7 @@ export const ChatDetails: React.FC = () => {
               onAddParticipants={handleAddParticipants}
               isLoadingContacts={isLoadingContacts}
               isAdding={addParticipantsMutation.isPending}
-              hasAddFailed={addParticipantsMutation.isError}
+              addError={addError}
               isAtGroupLimit={isAtGroupLimit}
               maxGroupMembers={maxGroupMembers}
               locale={locale}
