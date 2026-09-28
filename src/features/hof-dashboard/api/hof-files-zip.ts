@@ -2,7 +2,7 @@ import { getHofDashboardData, idOf } from '@/features/hof-dashboard/api/hof-dash
 import { renderSubmissionPdf } from '@/features/hof-dashboard/api/render-submission-pdf';
 import { translate } from '@/features/hof-dashboard/texts';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
-import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { FORM_FILE_BUCKET_NAME, s3Client } from '@/lib/s3';
 import type { Locale } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
@@ -135,7 +135,9 @@ export const listHofZipEntries = async (
 
 const readFromBucket = async (key: string): Promise<ReadableStream<Uint8Array> | undefined> => {
   try {
-    const object = await s3Client.send(new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key }));
+    const object = await s3Client.send(
+      new GetObjectCommand({ Bucket: FORM_FILE_BUCKET_NAME, Key: key }),
+    );
     return object.Body?.transformToWebStream();
   } catch (error) {
     logger.warn('Left a missing file out of a Hof ZIP', { error });

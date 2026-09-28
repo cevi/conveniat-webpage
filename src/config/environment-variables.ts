@@ -110,6 +110,12 @@ export const environmentVariables = createEnv({
      * exist before this is set — nothing creates it.
      */
     S3_BILL_PDF_BUCKET_NAME: z.string().min(3).optional(),
+    /**
+     * Bucket for the files handed in with forms, kept apart from the public uploads. Optional:
+     * unset means they stay in `S3_BUCKET_NAME`. The bucket has to exist before this is set;
+     * the next start moves the existing form files into it.
+     */
+    S3_FORM_FILE_BUCKET_NAME: z.string().min(3).optional(),
     S3_HOST: z.string().url(),
     S3_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),

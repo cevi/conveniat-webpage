@@ -130,6 +130,17 @@ describe('POST /api/form-upload', () => {
     );
   });
 
+  it('stores the file under a key the sender does not choose, named as they handed it in', async () => {
+    const response = await upload(new File([PDF], 'image-2.jpg', { type: 'image/jpeg' }), 'all');
+
+    expect(response.status).toBe(200);
+    const [[created]] = mockPayload.create.mock.calls as [
+      [{ data: { originalFilename: string }; file: { name: string } }],
+    ];
+    expect(created.file.name).not.toBe('image-2.jpg');
+    expect(created.data.originalFilename).toBe('image-2.jpg');
+  });
+
   it('stores the type read from the file, not the one the browser declares', async () => {
     const response = await upload(new File([PDF], 'plan.pdf', { type: 'text/xml' }));
 

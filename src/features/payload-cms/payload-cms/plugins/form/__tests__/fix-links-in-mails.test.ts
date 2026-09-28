@@ -9,7 +9,10 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
-jest.mock('@/lib/s3', () => ({ S3_BUCKET_NAME: 'bucket', s3Client: { send: jest.fn() } }));
+jest.mock('@/lib/s3', () => ({
+  FORM_FILE_BUCKET_NAME: 'form-files',
+  s3Client: { send: jest.fn() },
+}));
 jest.mock('@aws-sdk/client-s3', () => ({ GetObjectCommand: jest.fn() }));
 jest.mock('@/features/payload-cms/payload-cms/utils/phone-link-html-converter', () => ({
   phoneLinkHTMLConverters: {},
