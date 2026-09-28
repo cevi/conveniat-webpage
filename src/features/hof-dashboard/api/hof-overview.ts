@@ -39,7 +39,10 @@ export interface HofOverviewRow {
   id: string;
   name: string;
   areas: Record<HofDashboardArea, HofAreaSummary>;
-  /** Files the Hof handed in with any submission of a form on the dashboard. */
+  /**
+   * What the Hof's ZIP holds: the files it handed in with any submission of a form on the
+   * dashboard, and a PDF of each such submission.
+   */
   files: number;
 }
 
@@ -99,6 +102,10 @@ export const getHofOverview = async (
     stored.map((submission) => [submission.id, idOf(submission.hof)]),
   );
   const filesByHof = new Map<string, number>();
+  for (const submission of stored) {
+    const hofId = idOf(submission.hof);
+    if (hofId !== undefined) filesByHof.set(hofId, (filesByHof.get(hofId) ?? 0) + 1);
+  }
   for (const file of files) {
     const hofId = hofOfSubmission.get(idOf(file.formSubmission) ?? '');
     if (hofId !== undefined) filesByHof.set(hofId, (filesByHof.get(hofId) ?? 0) + 1);
