@@ -167,7 +167,7 @@ export const BILLING_STATUS_LABELS_DE: Record<BillingStatus, string> = {
   needs_manual_review: 'Manuelle Prüfung nötig',
   bill_created: 'Rechnung erstellt',
   bill_sent: 'Rechnung gesendet',
-  removed: 'Entfernt',
+  removed: 'Storniert',
   re_added: 'Erneut hinzugefügt',
   updated: 'Aktualisiert',
   reminder_sent: 'Mahnung gesendet',

@@ -176,7 +176,7 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
       return Response.json(
         {
           error:
-            'Diese Anmeldung ist als „Entfernt“ markiert. Für eine entfernte Anmeldung wird keine ' +
+            'Diese Anmeldung ist storniert. Für eine stornierte Anmeldung wird keine ' +
             'Rechnung erstellt – die Anmeldung muss zuerst in der Cevi.DB wieder aktiviert werden.',
         },
         { status: 409 },
@@ -227,10 +227,7 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
       return Response.json({ error: 'Teilnehmer nicht gefunden.' }, { status: 404 });
 
     if (participant.status === 'removed') {
-      return Response.json(
-        { error: 'Diese Anmeldung ist bereits als „Entfernt“ markiert.' },
-        { status: 409 },
-      );
+      return Response.json({ error: 'Diese Anmeldung ist bereits storniert.' }, { status: 409 });
     }
 
     const actor = describeActor(request.user);

@@ -530,7 +530,7 @@ function describeRemoval(participant: {
   billSentDate?: string | null;
 }): string {
   const notListed = 'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden';
-  if (!hasRaisedBill(participant)) return `${notListed} und wurde deshalb auf „Entfernt“ gesetzt.`;
+  if (!hasRaisedBill(participant)) return `${notListed} und wurde deshalb storniert.`;
 
   const invoiceNumber = participant.invoiceNumber ?? '';
   const bill = invoiceNumber.trim() === '' ? 'Die Rechnung' : `Die Rechnung ${invoiceNumber}`;

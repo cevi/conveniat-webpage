@@ -68,9 +68,9 @@ const removeTitle: StaticTranslationString = {
 };
 
 const removeMessage: StaticTranslationString = {
-  de: 'Die Anmeldung wird auf „Entfernt“ gesetzt und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Der Grund erscheint im Sync-Verlauf. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
-  en: 'The registration is set to “Removed” and is no longer billed or synced. Any bill already raised is kept for the record. The reason appears in the sync history. This can only be undone by reactivating the registration in the Cevi.DB.',
-  fr: "L'inscription passe à « Supprimé » et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée. Le motif apparaît dans l'historique de synchronisation. Seule une réactivation de l'inscription dans la Cevi.DB permet d'annuler cette action.",
+  de: 'Die Anmeldung wird storniert und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Der Grund erscheint im Sync-Verlauf. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
+  en: 'The registration is cancelled and is no longer billed or synced. Any bill already raised is kept for the record. The reason appears in the sync history. This can only be undone by reactivating the registration in the Cevi.DB.',
+  fr: "L'inscription est annulée et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée. Le motif apparaît dans l'historique de synchronisation. Seule une réactivation de l'inscription dans la Cevi.DB permet d'annuler cette action.",
 };
 
 const removeReasonLabel: StaticTranslationString = {
