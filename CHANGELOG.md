@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.21.0](https://github.com/cevi/conveniat-webpage/compare/v1.20.0...v1.21.0) (2026-09-28)
+
+
+### Features
+
+* **chat:** leave group chats and confirm destructive swipes ([9c9eed0](https://github.com/cevi/conveniat-webpage/commit/9c9eed04aa3f538a9afde2113c0e0e0098ffe086))
+* **chat:** leave group chats and confirm destructive swipes ([2b0f092](https://github.com/cevi/conveniat-webpage/commit/2b0f092c306050dc349453ba99196ea042253713))
+* **hof-dashboard:** an overview of every Hof, and accepting an area at once ([059ca0d](https://github.com/cevi/conveniat-webpage/commit/059ca0db6230e00f8e8fe6b2f8e91d9903fbd074))
+* **hof-dashboard:** an overview of every Hof, and accepting an area at once ([421e8b2](https://github.com/cevi/conveniat-webpage/commit/421e8b283ea7f9fdd482f1cd2cc99d64d245dea1))
+* **hof-dashboard:** download everything a Hof handed in as a ZIP ([37caafe](https://github.com/cevi/conveniat-webpage/commit/37caafeb5f4769c0739e8ee61715e5da1784a7f4))
+* **hof-dashboard:** download everything a Hof handed in as a ZIP ([b0353de](https://github.com/cevi/conveniat-webpage/commit/b0353de3403df501c811021c808558bb15df9ae5))
+* **map:** open the camp map rotated along the valley ([aad74ec](https://github.com/cevi/conveniat-webpage/commit/aad74ec89ca751ad9f0e5b2a90120a12a9fc7977))
+* **map:** open the camp map rotated along the valley ([6f8218b](https://github.com/cevi/conveniat-webpage/commit/6f8218bb7c7010f5b43c13de44c44a3886601227))
+* **map:** paint the camp map as a watercolour plan ([7b8e51f](https://github.com/cevi/conveniat-webpage/commit/7b8e51f55030377ac01961ec8749e4067bf5acc4))
+* **map:** paint the camp map as a watercolour plan ([4424e70](https://github.com/cevi/conveniat-webpage/commit/4424e70098f211bb033c84fb71faccd4c4187b5c))
+
+
+### Bug Fixes
+
+* **announcements:** remove unauthenticated debug route ([dc0c04d](https://github.com/cevi/conveniat-webpage/commit/dc0c04d9cd4ed3eb73a7ecd0c984927248f632ee))
+* **chat:** deduplicate read events and index thread replies ([9fab137](https://github.com/cevi/conveniat-webpage/commit/9fab1372d77ec5388f39b0728656e5c51b58a340))
+* **chat:** deduplicate read events and index thread replies ([f6d9b89](https://github.com/cevi/conveniat-webpage/commit/f6d9b8904d9154e899906951cea1bca44edc54d3))
+* **chat:** end a removed member's live stream ([0675f2b](https://github.com/cevi/conveniat-webpage/commit/0675f2b4c045ea4d00371754e46b02d55d951856))
+* **chat:** end a removed member's live stream ([3a80121](https://github.com/cevi/conveniat-webpage/commit/3a801214ae6facb36a53c38bb29bafd12697b4e0))
+* **chat:** end the chat-list refetch storm ([21a21d9](https://github.com/cevi/conveniat-webpage/commit/21a21d9c588e89ae76fa3bf4abbff0fe5bc976b1))
+* **chat:** end the chat-list refetch storm ([401a904](https://github.com/cevi/conveniat-webpage/commit/401a904aeebf72a5cc6aee655c84a3b72a04b973))
+* **chat:** offline outbox keeps messages on transient failures ([1f2bc0a](https://github.com/cevi/conveniat-webpage/commit/1f2bc0a5b112dce32cc587c9c048df558bb7b731))
+* **chat:** offline outbox keeps messages on transient failures ([1a26241](https://github.com/cevi/conveniat-webpage/commit/1a26241c81e2e7d13edfeb5bcd5d0c70c921092c))
+* **chat:** only server code creates system and alert messages ([8a5ebc3](https://github.com/cevi/conveniat-webpage/commit/8a5ebc3cb4205799e09460ad58c53f8c6cf6f467))
+* **chat:** only server code creates system and alert messages ([5ae1f4b](https://github.com/cevi/conveniat-webpage/commit/5ae1f4b93fb71b27ab10fc00922ea7eb4c85599f))
+* **chat:** publish realtime events and pushes only after the transaction commits ([2bdddfc](https://github.com/cevi/conveniat-webpage/commit/2bdddfc466faa8da0e6c4f6c3eaf310be8a8b3b2))
+* **chat:** publish realtime events and pushes only after the transaction commits ([9d4c7ca](https://github.com/cevi/conveniat-webpage/commit/9d4c7ca78fd7703c2067afbc976138d2d2550836))
+* **chat:** queue the full send, per user, before the request goes out ([cfa3817](https://github.com/cevi/conveniat-webpage/commit/cfa381701e9c71042a9f87b35561b0c08b6d9d33))
+* **chat:** queue the full send, per user, before the request goes out ([f4523d5](https://github.com/cevi/conveniat-webpage/commit/f4523d5f5b4af56fa63e5f935cfe5c51fe993033))
+* **chat:** reject writes to archived chats on the server ([b8172b2](https://github.com/cevi/conveniat-webpage/commit/b8172b2cce2ab6b98c5390184f0b2eaf3798676b))
+* **chat:** reject writes to archived chats on the server ([54c8a07](https://github.com/cevi/conveniat-webpage/commit/54c8a07e9f7cece2c422e4e97586e8898a8b7e97))
+* **emails:** record and resend the plain-text body of outgoing emails ([587118a](https://github.com/cevi/conveniat-webpage/commit/587118a038cad08c0b19dc27f82890c67e1c1d10))
+* **emails:** record and resend the plain-text body of outgoing emails ([e9f46e4](https://github.com/cevi/conveniat-webpage/commit/e9f46e4e438d10421d09433de543b27820ccecac))
+* **hoefe:** sync renames Höfe and removes those whose group left Cevi.DB ([bd318e3](https://github.com/cevi/conveniat-webpage/commit/bd318e31d19e69faf40dfd59ffbf6b64fd3a7960))
+* **hoefe:** sync renames Höfe and removes those whose group left Cevi.DB ([921b024](https://github.com/cevi/conveniat-webpage/commit/921b02430d9c6654743de88e5b1f356c16ce38a4))
+* **payload-cms:** align poster hero text with the page body ([ecc6377](https://github.com/cevi/conveniat-webpage/commit/ecc6377350cda4f9224710b388618a4a606089f9))
+* **payload-cms:** align poster hero text with the page body ([5957024](https://github.com/cevi/conveniat-webpage/commit/595702464b60cc4e95907c7a73bb182516b5e0bf))
+* **schedule:** accept organisers populated without an email ([ea2cca0](https://github.com/cevi/conveniat-webpage/commit/ea2cca0828ad16a08a071720a9cad6b7df2ff5bb))
+* **schedule:** accept organisers populated without an email ([0a6a896](https://github.com/cevi/conveniat-webpage/commit/0a6a896791768e986b1b995e0f4b08a59be3ce3d)), closes [#1969](https://github.com/cevi/conveniat-webpage/issues/1969)
+* **settings:** profile picture actions unfold in place instead of floating ([3ca15eb](https://github.com/cevi/conveniat-webpage/commit/3ca15eb57b96256711a174adefc506d51b68fc6e))
+* **settings:** profile picture actions unfold in place instead of floating ([be0c1dc](https://github.com/cevi/conveniat-webpage/commit/be0c1dc09dad7a2734c06180935547d4be8caec0))
+
 ## [1.20.0](https://github.com/cevi/conveniat-webpage/compare/v1.19.1...v1.20.0) (2026-09-27)
 
 
