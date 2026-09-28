@@ -289,6 +289,12 @@ export const text = {
     fr: 'conveniat27 · Tableau de bord du Hof · créé le {date}',
   },
   pdfPage: { de: 'Seite {n} von {total}', en: 'Page {n} of {total}', fr: 'Page {n} sur {total}' },
+  statusLine: { de: 'Status: {status}', en: 'Status: {status}', fr: 'Statut : {status}' },
+  approvalLinkHint: {
+    de: 'Das ist dasselbe wie «{accepted}» im Hof-Dashboard. Rückmeldungen und Überarbeitungen gibst du dort.',
+    en: 'This is the same as "{accepted}" on the Hof dashboard. Feedback and requests for revision go there.',
+    fr: 'C’est la même chose que « {accepted} » dans le tableau de bord du Hof. Les retours et les demandes de révision se font là-bas.',
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 export type TextKey = keyof typeof text;
