@@ -3,8 +3,8 @@ import { archiveChat } from '@/features/chat/api/mutations/archive-chat';
 import { createChat } from '@/features/chat/api/mutations/create-chat';
 import { createChatInvite } from '@/features/chat/api/mutations/create-chat-invite';
 import { createMessage } from '@/features/chat/api/mutations/create-message';
-import { createMessageStatus } from '@/features/chat/api/mutations/create-message-status';
 import { getUploadUrl } from '@/features/chat/api/mutations/get-upload-url';
+import { leaveChat } from '@/features/chat/api/mutations/leave-chat';
 import { markChatAsRead } from '@/features/chat/api/mutations/mark-chat-as-read';
 import { markThreadAsRead } from '@/features/chat/api/mutations/mark-thread-as-read';
 import { onlinePing } from '@/features/chat/api/mutations/online-ping';
@@ -30,7 +30,7 @@ import { z } from 'zod';
 
 export const chatRouter = createTRPCRouter({
   archiveChat,
-  messageStatus: createMessageStatus,
+  leaveChat,
   markChatAsRead,
   markThreadAsRead,
   createChat: createChat,

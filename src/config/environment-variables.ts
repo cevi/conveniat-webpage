@@ -143,6 +143,8 @@ export const environmentVariables = createEnv({
     // Map Config
     CAMP_MAP_INITIAL_ZOOM: z.coerce.number(),
     CAMP_MAP_INITIAL_MAP_CENTER: z.string(),
+    // degrees clockwise from north, so a long campsite can fill a portrait screen
+    CAMP_MAP_INITIAL_BEARING: z.coerce.number().default(0),
     APP_SUPPORT_EMAIL: z.string().email(),
   },
   /*

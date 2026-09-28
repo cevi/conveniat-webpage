@@ -5,6 +5,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { getFailedChatMessages, getFailedSendInput } from '@/features/chat/utils/failed-sends';
+import { getOfflineOutbox } from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
 import { renderHook } from '@testing-library/react';
 
@@ -90,7 +91,13 @@ describe('useMessageSend when the server refuses a message', () => {
     // the exact input is kept, so a retry resends into the same thread
     expect(getFailedSendInput('msg-1')).toMatchObject({ parentId: 'thread-1', content: 'hello' });
     // and it outlives a refetch that drops it from the query cache
-    expect(getFailedChatMessages('chat-1', 'thread-1').map((m) => m.id)).toEqual(['msg-1']);
+    expect(getFailedChatMessages('chat-1', 'thread-1', 'user-1').map((m) => m.id)).toEqual([
+      'msg-1',
+    ]);
+    // but not for someone else logging in on the same phone
+    expect(getFailedChatMessages('chat-1', 'thread-1', 'user-2')).toEqual([]);
+    // and a send refused for good is not replayed from the outbox
+    expect(getOfflineOutbox()).toEqual([]);
   });
 
   test('a retry turns the failed bubble back into a pending one instead of adding a copy', async () => {

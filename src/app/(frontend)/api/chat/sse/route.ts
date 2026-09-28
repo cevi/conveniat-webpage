@@ -50,7 +50,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       : [];
 
   // Filter out user.uuid as they automatically subscribe to their own channel
-  const chatIds = rawChatIds.filter((id) => id !== user.uuid);
+  const requestedChatIds = rawChatIds.filter((id) => id !== user.uuid);
 
   // Verify membership for all requested chats (admins bypass membership check)
   const isAdmin = hasAccessToThisUser({
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Validate UUID format to prevent injection and invalid queries (except for 'all' channel)
   const validIdRegex =
     /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{24}|[a-z0-9_-]{1,64})$/i;
-  for (const id of chatIds) {
+  for (const id of requestedChatIds) {
     if (id === 'all') continue;
     if (!validIdRegex.test(id)) {
       recordSseStreamRejected('bad_request');
@@ -78,23 +78,24 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
-  if (!isAdmin && chatIds.length > 0) {
+  // Only chats the user is still a member of. A client that was removed from a chat keeps
+  // its id until it refetches the chat list, and rejecting the whole stream for that one id
+  // would cut every other chat off from realtime as well.
+  let chatIds = requestedChatIds;
+  if (!isAdmin && requestedChatIds.length > 0) {
     const memberships = await prisma.chatMembership.findMany({
-      where: {
-        userId: user.uuid,
-        chatId: { in: chatIds },
-      },
+      where: { userId: user.uuid, chatId: { in: requestedChatIds } },
+      select: { chatId: true },
     });
+    const memberOf = new Set(memberships.map((membership) => membership.chatId));
+    chatIds = requestedChatIds.filter((id) => memberOf.has(id));
 
-    if (memberships.length !== chatIds.length) {
-      recordSseStreamRejected('forbidden');
-      logger.warn('Subscription requested for chats the user is not a member of', {
+    if (chatIds.length !== requestedChatIds.length) {
+      // Debug: expected on every reconnect between a removal and the client's next refetch.
+      logger.debug('Skipping requested chats the user is not a member of', {
         'chat.user.id': user.uuid,
-        requested: chatIds.length,
-        allowed: memberships.length,
-      });
-      return new Response('Forbidden: You are not a member of all requested chats', {
-        status: 403,
+        requested: requestedChatIds.length,
+        allowed: chatIds.length,
       });
     }
   }
@@ -110,6 +111,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   const encoder = new TextEncoder();
   let keepAliveInterval: NodeJS.Timeout | undefined = undefined;
   const activeListeners = new Map<string, () => void>();
+  /** Chats revoked while this stream is open; nothing from them may reach the client. */
+  const revokedChatIds = new Set<string>();
   let unsubscribeConnectionRestored: (() => void) | undefined = undefined;
   let cleanedUp = false;
   const isCleanedUp = (): boolean => cleanedUp;
@@ -180,6 +183,17 @@ export async function GET(request: NextRequest): Promise<Response> {
       keepAliveInterval.unref();
 
       const listener = (event: ChatRealtimeEvent): void => {
+        // Membership is only checked when the stream opens. A user who leaves or is removed
+        // from a chat must stop receiving it now, not on the next reconnect.
+        if (event.type === 'membership_revoked' && event.channel === user.uuid) {
+          revokedChatIds.add(event.chatId);
+          activeListeners.get(event.chatId)?.();
+          activeListeners.delete(event.chatId);
+        } else if (revokedChatIds.has(event.channel ?? event.chatId)) {
+          // Already queued on the chat's channel when the revocation arrived.
+          return;
+        }
+
         try {
           const dataString = superjson.stringify(event);
           controller.enqueue(encoder.encode(`data: ${dataString}\n\n`));
@@ -254,6 +268,11 @@ export async function GET(request: NextRequest): Promise<Response> {
           if (isCleanedUp()) {
             unsubscribe();
             break;
+          }
+          // Revoked while the subscription was still being set up.
+          if (revokedChatIds.has(chatId)) {
+            unsubscribe();
+            continue;
           }
 
           activeListeners.set(chatId, unsubscribe);

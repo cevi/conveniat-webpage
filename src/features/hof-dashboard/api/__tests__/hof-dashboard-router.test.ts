@@ -4,6 +4,8 @@ import { createCallerFactory } from '@/trpc/init';
 const mockData = jest.fn();
 const mockWithdraw = jest.fn();
 const mockReview = jest.fn();
+const mockOverview = jest.fn();
+const mockAcceptArea = jest.fn();
 
 const HOEFE = [
   { id: 'hof-nord', name: 'Hof Nord', groupId: '990001' },
@@ -52,6 +54,10 @@ jest.mock('@/features/hof-dashboard/api/hof-dashboard-data', () => ({
 jest.mock('@/features/hof-dashboard/api/hof-dashboard-mutations', () => ({
   withdrawHofSubmission: (...parameters: unknown[]): unknown => mockWithdraw(...parameters),
   reviewHofSubmission: (...parameters: unknown[]): unknown => mockReview(...parameters),
+  acceptHofArea: (...parameters: unknown[]): unknown => mockAcceptArea(...parameters),
+}));
+jest.mock('@/features/hof-dashboard/api/hof-overview', () => ({
+  getHofOverview: (...parameters: unknown[]): unknown => mockOverview(...parameters),
 }));
 // see admin-router-access.test.ts: a direct caller never serializes anything
 jest.mock('superjson', () => ({
@@ -81,6 +87,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD = true;
   mockData.mockResolvedValue({ hof: { id: 'hof-sued', name: 'Hof Süd' } });
+  mockOverview.mockResolvedValue([]);
+  mockAcceptArea.mockResolvedValue(2);
 });
 
 describe('hofDashboardRouter', () => {
@@ -177,6 +185,41 @@ describe('hofDashboardRouter', () => {
       }),
     ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
     expect(mockReview).not.toHaveBeenCalled();
+  });
+
+  it("gives a Hof's own people no overview of the Höfe, and reads nothing for it", async () => {
+    await expect(hofNordAdmin.getHofOverview()).resolves.toEqual({ isReviewer: false, hoefe: [] });
+    expect(mockOverview).not.toHaveBeenCalled();
+  });
+
+  it('gives a reviewer the overview of every Hof', async () => {
+    await expect(reviewer.getHofOverview()).resolves.toEqual({ isReviewer: true, hoefe: [] });
+    expect(mockOverview).toHaveBeenCalledWith(
+      [
+        { id: 'hof-nord', name: 'Hof Nord' },
+        { id: 'hof-sued', name: 'Hof Süd' },
+      ],
+      'de',
+    );
+  });
+
+  it("leaves accepting a Hof's area at once to the reviewers", async () => {
+    await expect(
+      hofNordAdmin.acceptHofArea({ hofId: 'hof-nord', area: 'program' }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    expect(mockAcceptArea).not.toHaveBeenCalled();
+  });
+
+  it("accepts a Hof's area at once, signed with the reviewer's name", async () => {
+    await expect(
+      reviewer.acceptHofArea({ hofId: 'hof-sued', area: 'infrastructure' }),
+    ).resolves.toBe(2);
+    expect(mockAcceptArea).toHaveBeenCalledWith({
+      hof: { id: 'hof-sued', name: 'Hof Süd' },
+      area: 'infrastructure',
+      locale: 'de',
+      reviewer: { id: 'web-1', name: 'Sara Keller v/o Biber' },
+    });
   });
 
   it('answers nothing of the dashboard while it is switched off', async () => {

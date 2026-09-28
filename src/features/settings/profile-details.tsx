@@ -193,28 +193,29 @@ export const ProfileDetails: React.FC = async () => {
     <div className="space-y-6">
       {/* Profile Header */}
       <Card contentClassName="p-6">
-        <div className="flex items-center gap-4">
-          {isAuthenticated ? (
-            <ProfileAvatar
-              userId={user.uuid}
-              name={user.name}
-              pictureUrl={pictureUrl}
-              locale={locale}
-            />
-          ) : (
+        {isAuthenticated ? (
+          <ProfileAvatar
+            userId={user.uuid}
+            name={user.name}
+            pictureUrl={pictureUrl}
+            locale={locale}
+          >
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900">{getDetail(user.name)}</h2>
+              <p className="text-sm text-gray-500">{profileDetailsExplanation[locale]}</p>
+            </div>
+          </ProfileAvatar>
+        ) : (
+          <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
               <LogIn className="h-7 w-7 text-gray-400" />
             </div>
-          )}
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900">
-              {isAuthenticated ? getDetail(user.name) : guestTitle[locale]}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {isAuthenticated ? profileDetailsExplanation[locale] : guestDescription[locale]}
-            </p>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900">{guestTitle[locale]}</h2>
+              <p className="text-sm text-gray-500">{guestDescription[locale]}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         {isAuthenticated ? (
           <>

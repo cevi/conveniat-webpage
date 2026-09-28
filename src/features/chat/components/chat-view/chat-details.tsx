@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { DeleteChat } from '@/features/chat/components/chat-details-view/delete-chat';
+import { LeaveChat } from '@/features/chat/components/chat-details-view/leave-chat';
 import { AddParticipants } from '@/features/chat/components/chat-details-view/sections/add-participants';
 import { ChatCapabilities } from '@/features/chat/components/chat-details-view/sections/chat-capabilities';
 import { ChatCourseSection } from '@/features/chat/components/chat-details-view/sections/chat-course-section';
@@ -23,6 +24,7 @@ import {
   describeContactHof,
   matchesContactSearch,
 } from '@/features/chat/utils/contact-search';
+import { isChatArchived } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -78,6 +80,8 @@ export const ChatDetails: React.FC = () => {
   }
 
   const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
+  // mirrors the checks in `leaveChat`
+  const canLeave = chatDetails.type === ChatType.GROUP && !isChatArchived(chatDetails);
 
   // --- Start of new handlers for participant management ---
   const handleToggleContactSelection = (contact: Contact): void => {
@@ -175,6 +179,13 @@ export const ChatDetails: React.FC = () => {
             isAnnouncement={isAnnouncement}
             locale={locale}
           />
+
+          {/* --- Leave Chat Section --- */}
+          {canLeave && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6">
+              <LeaveChat />
+            </div>
+          )}
 
           {/* --- Archive Chat Section --- */}
           {!isAnnouncement && (

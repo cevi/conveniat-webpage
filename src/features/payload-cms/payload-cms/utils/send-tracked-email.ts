@@ -28,6 +28,7 @@ export const sendTrackedEmail = async (
     to?: string | string[];
     subject?: string;
     html?: string;
+    text?: string;
   };
   let to = 'unknown';
 
@@ -47,6 +48,7 @@ export const sendTrackedEmail = async (
       to: string;
       subject: string;
       html?: string;
+      text?: string;
       formSubmission?: string;
       billParticipant?: string;
       billParticipants?: string[];
@@ -55,6 +57,9 @@ export const sendTrackedEmail = async (
       to,
       subject,
       ...(options.html === undefined ? {} : { html: options.html }),
+      // Billing mails and the Pflichtangaben reminders are plain text only; without this
+      // their record shows no content and a resend goes out empty.
+      ...(options.text === undefined ? {} : { text: options.text }),
       deliveryStatus: 'pending',
     };
 

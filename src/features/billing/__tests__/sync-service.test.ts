@@ -179,6 +179,7 @@ describe('Sync Service', () => {
       getHoefe: jest.fn(),
       getHofEvents: jest.fn().mockResolvedValue([mockEvent]),
       upsertHoefe: jest.fn(),
+      deleteUnreferencedHoefe: jest.fn(),
       updateNextReferenceNumber: jest.fn(),
     };
 

@@ -1,6 +1,6 @@
 /* eslint-disable unicorn/no-null */
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
+import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
 import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-preview-text';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
@@ -9,32 +9,32 @@ import {
   SYSTEM_SENDER_ID,
   USER_RELEVANT_MESSAGE_EVENTS,
   getStatusFromMessageEvents,
+  isChatArchived,
 } from '@/lib/chat-shared';
-import {
-  ChatMembershipPermission,
-  ChatType,
-  MessageEventType,
-  MessageType,
-  type Prisma,
-} from '@/lib/prisma';
+import { ChatType, MessageEventType, MessageType, type Prisma } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
-import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import type { StaticTranslationString } from '@/types/types';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
-import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
-const logger = createLogger('chat:queries');
-
+/**
+ * The chat list of the caller.
+ *
+ * Every open client refetches this list when its stream resyncs, so its cost must not grow with
+ * the size of the chats in it: it reads the caller's own membership and a member count per chat,
+ * and other members only for one-to-one chats, which are named after the other person. It runs
+ * outside a transaction because it only reads, and a transaction would hold its pooled
+ * connection across every query and the Payload lookup.
+ */
 export const getChatList = trpcBaseProcedure
   .input(z.object({}))
-  .use(databaseTransactionWrapper)
   .query(async ({ ctx }): Promise<ChatWithMessagePreview[]> => {
     const { user, prisma } = ctx;
 
     const prismaUser = await prisma.user.findUnique({
       where: { uuid: user.uuid },
+      select: { uuid: true },
     });
 
     if (prismaUser === null) {
@@ -44,45 +44,41 @@ export const getChatList = trpcBaseProcedure
       });
     }
 
-    const _chats = await prisma.chat.findMany({
-      where: {
-        chatMemberships: {
-          some: {
-            userId: prismaUser.uuid,
-            hasDeleted: false,
-          },
-        },
-      },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
+    const memberships = await prisma.chatMembership.findMany({
+      where: { userId: prismaUser.uuid, hasDeleted: false },
+      select: {
+        lastReadMessageId: true,
+        chatPermission: true,
+        chat: {
           include: {
-            messageEvents: {
-              where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
-              orderBy: { uuid: 'desc' },
+            messages: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              include: {
+                messageEvents: {
+                  where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
+                  orderBy: { uuid: 'desc' },
+                },
+                contentVersions: {
+                  take: 1, // include only the latest content version
+                  orderBy: { revision: 'desc' },
+                },
+              },
             },
-            contentVersions: {
-              take: 1, // include only the latest content version
-              orderBy: { revision: 'desc' },
-            },
+            _count: { select: { messages: true, chatMemberships: true } },
           },
         },
-        chatMemberships: { include: { user: true } },
-        _count: { select: { messages: true } },
       },
-      orderBy: { lastUpdate: 'desc' },
+      orderBy: { chat: { lastUpdate: 'desc' } },
     });
+    const _chats = memberships.map(({ chat, ...membership }) => ({ ...chat, membership }));
 
     // 1. Prepare unread count conditions for all chats and fetch them in a single batch groupBy query
     const unreadCountMap = new Map<string, number>();
 
     if (_chats.length > 0) {
       const lastReadIds = _chats
-        .map((chat) => {
-          const membership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
-          return membership?.lastReadMessageId;
-        })
+        .map((chat) => chat.membership.lastReadMessageId)
         .filter((id): id is string => typeof id === 'string' && id.trim() !== '');
 
       const lastReadMessages =
@@ -97,10 +93,7 @@ export const getChatList = trpcBaseProcedure
 
       const unreadQueries = _chats
         .map((chat) => {
-          const currentUserMembership = chat.chatMemberships.find(
-            (m) => m.userId === prismaUser.uuid,
-          );
-          const lastReadId = currentUserMembership?.lastReadMessageId;
+          const lastReadId = chat.membership.lastReadMessageId;
           const lastMessage = chat.messages[0];
 
           const isReadUpToLatest =
@@ -176,31 +169,24 @@ export const getChatList = trpcBaseProcedure
       }
     }
 
-    const cmsUsersMap = new Map<
-      string,
-      { fullName?: string; nickname?: string | null | undefined }
-    >();
-    try {
-      const { getPayload } = await import('payload');
-      const { default: config } = await import('@payload-config');
-      const payload = await getPayload({ config });
-
-      const cmsUsers = await payload.find({
-        collection: 'users',
-        limit: 1000,
-        depth: 0,
-      });
-
-      for (const u of cmsUsers.docs) {
-        cmsUsersMap.set(u.id, {
-          fullName: u.fullName,
-          nickname: u.nickname,
-        });
-      }
-    } catch (error) {
-      // Fallback to the prisma user names if the Payload query fails.
-      logger.warn('Falling back to prisma user names, the Payload user query failed', { error });
-    }
+    // One-to-one chats are named after, and show the picture of, the other person.
+    const oneToOneChatIds = _chats
+      .filter((chat) => chat.type === ChatType.ONE_TO_ONE)
+      .map((chat) => chat.uuid);
+    const partnerMemberships =
+      oneToOneChatIds.length > 0
+        ? await prisma.chatMembership.findMany({
+            where: { chatId: { in: oneToOneChatIds }, userId: { not: prismaUser.uuid } },
+            select: {
+              chatId: true,
+              user: { select: { uuid: true, name: true, profilePictureVersion: true } },
+            },
+          })
+        : [];
+    const partnerMap = new Map(
+      partnerMemberships.map((membership) => [membership.chatId, membership.user]),
+    );
+    const cmsUsersMap = await findCmsUserNames(partnerMemberships.map((m) => m.user.uuid));
 
     // 2. Map retrieved chats synchronously to their DTO representation
     return _chats.map((chat): ChatWithMessagePreview => {
@@ -214,9 +200,8 @@ export const getChatList = trpcBaseProcedure
 
       const messagePreview = lastMessage ? getMessagePreviewText(lastMessage) : fallbackPreview;
 
-      const currentUserMembership = chat.chatMemberships.find((m) => m.userId === prismaUser.uuid);
-      const partnerUser = chat.chatMemberships.find((m) => m.userId !== prismaUser.uuid)?.user;
-      const isLarge = chat.chatMemberships.length >= LARGE_CHAT_THRESHOLD;
+      const partnerUser = partnerMap.get(chat.uuid);
+      const isLarge = chat._count.chatMemberships >= LARGE_CHAT_THRESHOLD;
 
       const rawCount = unreadCountMap.get(chat.uuid) ?? 0;
       const unreadCount = isLarge && rawCount > 0 ? 1 : rawCount;
@@ -226,15 +211,16 @@ export const getChatList = trpcBaseProcedure
         lastUpdate: chat.lastUpdate,
         name: resolveChatName(
           chat.name,
-          chat.chatMemberships.map((membership) => {
-            const cmsUser = cmsUsersMap.get(membership.user.uuid);
-            return {
-              name: membership.user.name,
-              uuid: membership.user.uuid,
-              fullName: cmsUser?.fullName,
-              nickname: cmsUser?.nickname,
-            };
-          }),
+          partnerUser === undefined
+            ? []
+            : [
+                {
+                  name: partnerUser.name,
+                  uuid: partnerUser.uuid,
+                  fullName: cmsUsersMap.get(partnerUser.uuid)?.fullName,
+                  nickname: cmsUsersMap.get(partnerUser.uuid)?.nickname,
+                },
+              ],
           user,
           chat.type,
         ),
@@ -244,6 +230,7 @@ export const getChatList = trpcBaseProcedure
         caseNumber: formatCaseNumber(chat.caseNumber),
         id: chat.uuid,
         messageCount: chat._count.messages,
+        isLarge,
         isPinned: chat.pinned,
         lastMessage: {
           id: lastMessage?.uuid ?? chat.uuid,
@@ -254,7 +241,7 @@ export const getChatList = trpcBaseProcedure
             ? getStatusFromMessageEvents(lastMessage.messageEvents)
             : MessageEventType.STORED,
         },
-        userChatPermission: currentUserMembership?.chatPermission ?? ChatMembershipPermission.GUEST,
+        userChatPermission: chat.membership.chatPermission,
         isArchived: isChatArchived(chat),
         ...(chat.type === ChatType.ONE_TO_ONE && partnerUser !== undefined
           ? {

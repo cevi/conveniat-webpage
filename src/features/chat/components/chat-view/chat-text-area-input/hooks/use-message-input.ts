@@ -107,19 +107,10 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             }
           },
           onError: (error) => {
-            const isOfflineError =
-              !navigator.onLine ||
-              error.message === 'Failed to fetch' ||
-              error.message.includes('Network request failed');
-
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
             // list with its own retry, so the text is not put back into the composer. Only a
             // disabled chat is worth a banner, because retrying cannot help there.
-            if (
-              isOfflineError ||
-              error.message !== 'Messaging is disabled in this chat or globally.'
-            )
-              return;
+            if (error.message !== 'Messaging is disabled in this chat or globally.') return;
             const errorMessage = 'Messaging is currently disabled. Please try again later.';
             setSendError(errorMessage);
           },

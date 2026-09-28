@@ -222,6 +222,48 @@ export const text = {
   saved: { de: 'Gespeichert', en: 'Saved', fr: 'Enregistré' },
   openCount: { de: '{n} offen', en: '{n} open', fr: '{n} en attente' },
   signOut: { de: 'Abmelden', en: 'Sign out', fr: 'Se déconnecter' },
+  allHoefe: { de: 'Alle Höfe', en: 'All Höfe', fr: 'Tous les Höfe' },
+  noHoefe: {
+    de: 'Es sind noch keine Höfe erfasst.',
+    en: 'No Höfe recorded yet.',
+    fr: 'Aucun Hof saisi pour le moment.',
+  },
+  files: { de: 'Dateien', en: 'Files', fr: 'Fichiers' },
+  openHof: {
+    de: 'Dashboard von {hof} öffnen',
+    en: 'Open the dashboard of {hof}',
+    fr: 'Ouvrir le tableau de bord de {hof}',
+  },
+  toReviewCount: { de: '{n} zu prüfen', en: '{n} to review', fr: '{n} à vérifier' },
+  overdueCount: { de: '{n} überfällig', en: '{n} overdue', fr: '{n} en retard' },
+  allAccepted: { de: 'Alles freigegeben', en: 'All accepted', fr: 'Tout validé' },
+  acceptArea: { de: 'Alle freigeben', en: 'Accept all', fr: 'Tout valider' },
+  acceptAreaLabel: {
+    de: '{area} von {hof} freigeben',
+    en: 'Accept {area} of {hof}',
+    fr: 'Valider {area} de {hof}',
+  },
+  acceptAreaQuestion: {
+    de: '{n} Abgaben von {hof} im Bereich {area} freigeben und als definitiv markieren? Der Hof kann danach keine neue Version mehr abgeben.',
+    en: 'Accept {n} submissions of {hof} in {area} and mark them as final? The Hof can then no longer hand in a new version.',
+    fr: 'Valider {n} dépôts de {hof} dans {area} et les marquer comme définitifs ? Le Hof ne pourra plus déposer de nouvelle version.',
+  },
+  acceptAreaDone: {
+    de: '{n} Abgaben freigegeben',
+    en: '{n} submissions accepted',
+    fr: '{n} dépôts validés',
+  },
+  acceptAreaFailed: {
+    de: 'Die Abgaben konnten nicht freigegeben werden.',
+    en: 'The submissions could not be accepted.',
+    fr: "Les dépôts n'ont pas pu être validés.",
+  },
+  zipFiles: { de: 'ZIP ({n})', en: 'ZIP ({n})', fr: 'ZIP ({n})' },
+  downloadFiles: {
+    de: 'Dateien von {hof} als ZIP herunterladen',
+    en: 'Download the files of {hof} as a ZIP',
+    fr: 'Télécharger les fichiers de {hof} en ZIP',
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 export type TextKey = keyof typeof text;

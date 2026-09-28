@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@/features/chat/api/types';
+import { CHAT_FAILED_SENDS_STORAGE_KEY } from '@/lib/chat-local-storage';
 import type { AppRouter } from '@/trpc/routers/_app';
 import type { inferProcedureInput } from '@trpc/server';
 
@@ -9,7 +10,7 @@ interface FailedSend {
   message: ChatMessage;
 }
 
-const FAILED_SENDS_KEY = 'conveniat-failed-sends';
+const FAILED_SENDS_KEY = CHAT_FAILED_SENDS_STORAGE_KEY;
 export const FAILED_SENDS_UPDATED_EVENT = 'conveniat:failed-sends-updated';
 
 /**
@@ -46,7 +47,9 @@ const writeFailedSends = (sends: FailedSend[]): void => {
 /** Records a send that failed, replacing an earlier failure of the same message. */
 export const rememberFailedSend = (message: ChatMessage, input: SendMessageInput): void => {
   const others = readFailedSends().filter((send) => send.message.id !== message.id);
-  writeFailedSends([...others, { input, message: { ...message, sendFailed: true } }]);
+  // a queued message that failed for good is no longer queued, and the queued clock would win
+  const failed = { ...message, sendFailed: true, isPendingOffline: false };
+  writeFailedSends([...others, { input, message: failed }]);
 };
 
 /** The input of a failed send, for a retry that replays it exactly. */
@@ -60,8 +63,21 @@ export const forgetFailedSend = (messageId: string): void => {
   writeFailedSends(sends.filter((send) => send.message.id !== messageId));
 };
 
-/** The failed messages of one chat (or thread), as bubbles to merge into the list. */
-export const getFailedChatMessages = (chatId: string, parentId?: string): ChatMessage[] =>
+/**
+ * The failed messages `currentUser` wrote in one chat (or thread), as bubbles to merge into
+ * the list. A bubble's sender is the user who wrote it, so another user logging in on the
+ * same phone does not see them.
+ */
+export const getFailedChatMessages = (
+  chatId: string,
+  parentId: string | undefined,
+  currentUser: string | undefined,
+): ChatMessage[] =>
   readFailedSends()
-    .filter((send) => send.input.chatId === chatId && send.input.parentId === parentId)
+    .filter(
+      (send) =>
+        send.message.senderId === currentUser &&
+        send.input.chatId === chatId &&
+        send.input.parentId === parentId,
+    )
     .map((send) => send.message);

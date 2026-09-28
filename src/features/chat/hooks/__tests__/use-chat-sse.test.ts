@@ -22,6 +22,10 @@ jest.mock('@/trpc/client', () => ({
   },
 }));
 
+jest.mock('@/features/chat/utils/realtime-message-notification', () => ({
+  notifyRealtimeChatMessage: jest.fn(),
+}));
+
 describe('useChatSSE', () => {
   let mockEventSourceConstructor: jest.Mock;
   const mockAddEventListener = jest.fn();
@@ -40,7 +44,11 @@ describe('useChatSSE', () => {
 
     (trpc.useUtils as unknown as jest.Mock).mockReturnValue({
       chat: {
-        chats: { invalidate: jest.fn().mockResolvedValue(true) },
+        chats: {
+          invalidate: jest.fn().mockResolvedValue(true),
+          getData: jest.fn(),
+          setData: jest.fn(),
+        },
         infiniteMessages: {
           invalidate: jest.fn().mockResolvedValue(true),
           setInfiniteData: jest.fn(),
@@ -110,6 +118,48 @@ describe('useChatSSE', () => {
     jest.advanceTimersByTime(1);
 
     expect(mockEventSourceConstructor).not.toHaveBeenCalled();
+
+    unmount();
+    jest.advanceTimersByTime(1);
+  });
+
+  it('patches the chat list for a new message instead of refetching it', () => {
+    const chatId = '550e8400-e29b-41d4-a716-446655440000';
+    const otherChatId = '550e8400-e29b-41d4-a716-446655440001';
+    const utils = (trpc.useUtils as unknown as jest.Mock)() as {
+      chat: { chats: { invalidate: jest.Mock; getData: jest.Mock; setData: jest.Mock } };
+    };
+    utils.chat.chats.getData.mockReturnValue([
+      { id: otherChatId, unreadCount: 0, messageCount: 1 },
+      { id: chatId, unreadCount: 0, messageCount: 1 },
+    ]);
+    const { unmount } = renderHook(() => useChatSSE([chatId]));
+    jest.advanceTimersByTime(1);
+
+    const onMessage = (
+      mockAddEventListener.mock.calls as [string, (event: unknown) => void][]
+    ).findLast(([type]) => type === 'message')?.[1];
+    onMessage?.({
+      data: JSON.stringify({
+        type: 'new_message',
+        chatId,
+        senderId: 'someone-else',
+        message: {
+          id: 'message-1',
+          createdAt: '2027-07-24T09:00:00Z',
+          messagePayload: { text: 'Znacht gibt es um sechs' },
+          senderId: 'someone-else',
+          status: 'STORED',
+          type: 'TEXT_MSG',
+        },
+      }),
+    });
+
+    expect(utils.chat.chats.invalidate).not.toHaveBeenCalled();
+    expect(utils.chat.chats.setData).toHaveBeenCalledWith({}, [
+      expect.objectContaining({ id: chatId, unreadCount: 1 }),
+      expect.objectContaining({ id: otherChatId, unreadCount: 0 }),
+    ]);
 
     unmount();
     jest.advanceTimersByTime(1);

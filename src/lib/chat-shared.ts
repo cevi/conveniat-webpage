@@ -55,3 +55,10 @@ export const getStatusFromMessageEvents = (
 export const LARGE_CHAT_THRESHOLD = 128;
 
 export const CHAT_PAGE_SIZE = 25;
+
+/**
+ * Whether a chat is archived. Archived chats stay readable, but nobody writes in them any more.
+ */
+export const isChatArchived = (chat: { archivedAt: Date | null }): boolean => {
+  return chat.archivedAt !== null && chat.archivedAt <= new Date();
+};

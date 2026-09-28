@@ -242,6 +242,7 @@ model Message {
   reactions MessageReaction[]
 
   @@index([chatId, createdAt(sort: Asc)])
+  @@index([parentId])
 }
 
 // we split the content of the message into a separate model to allow for versioning
@@ -302,8 +303,9 @@ model MessageEvent {
   messageContentId String?
   messageContent   MessageContent? @relation(fields: [messageContentId], references: [uuid])
 
-  // every message can only have one event per user, content version and event type
-  @@unique([messageId, userId, type, messageContentId], name: "unique_message_event")
+  // every message can only have one event per user and event type; events without a
+  // user (CREATED, STORED) are not constrained, since Postgres treats NULLs as distinct
+  @@unique([messageId, userId, type], name: "unique_message_event")
   @@index([messageId])
   @@index([userId])
 }

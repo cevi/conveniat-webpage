@@ -1,5 +1,6 @@
 'use client';
 
+import { ArchiveChatConfirmDialog } from '@/features/chat/components/archive-chat-confirm-dialog';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
@@ -22,6 +23,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
   const containerReference = useRef<HTMLDivElement>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pastThreshold, setPastThreshold] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const canDelete =
     chat.chatType !== ChatType.ANNOUNCEMENT &&
@@ -46,7 +48,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
     setPastThreshold(isPast);
   }, [draggingX]);
 
-  const handleDragEnd = async (_: unknown, info: { offset: { x: number } }): Promise<void> => {
+  const handleDragEnd = (_: unknown, info: { offset: { x: number } }): void => {
     setPastThreshold(false);
     if (isDeleting) return;
 
@@ -55,91 +57,98 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
     const isRightSwipe = info.offset.x > 0;
     const distanceMet = Math.abs(info.offset.x) >= threshold;
 
+    // A swipe only asks: for an owner or admin it archives the chat for every member,
+    // which is too much for a gesture made while scrolling.
     if (isRightSwipe && distanceMet && canDelete) {
-      setIsDeleting(true);
-
-      // Stage 1: Fast slide off-screen to the right
-      await animate(draggingX, containerWidth * 1.25, {
-        duration: 0.2,
-        ease: 'easeOut',
-      });
-
-      // Stage 2: Trigger mutation
-      deleteChatMutation.mutate({ chatUuid: chat.id });
-    } else {
-      // Snap back if threshold not met or delete not allowed
-      animate(draggingX, 0, { type: 'spring', stiffness: 500, damping: 35 });
+      setIsConfirmOpen(true);
     }
+    animate(draggingX, 0, { type: 'spring', stiffness: 500, damping: 35 });
+  };
+
+  const handleConfirm = (): void => {
+    setIsConfirmOpen(false);
+    setIsDeleting(true);
+    deleteChatMutation.mutate({ chatUuid: chat.id });
   };
 
   return (
-    <motion.div
-      ref={containerReference}
-      initial={false}
-      animate={
-        isDeleting
-          ? { height: 0, opacity: 0, marginTop: 0, marginBottom: 0 }
-          : { height: 'auto', opacity: 1 }
-      }
-      transition={{
-        height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
-        opacity: { duration: 0.18, ease: 'easeOut' },
-      }}
-      className="relative overflow-hidden rounded-md"
-      style={{ touchAction: 'pan-y' }}
-    >
-      {((): React.ReactElement => {
-        let trackBg = 'bg-gray-100';
-        let iconColor = 'text-gray-400';
-        if (canDelete) {
-          trackBg = pastThreshold ? 'bg-red-500' : 'bg-red-100';
-          iconColor = pastThreshold ? 'text-white' : 'text-red-600';
-        }
-        return (
-          <div
-            className={cn(
-              'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
-              trackBg,
-            )}
-          >
-            <motion.div style={{ opacity: binOpacity, scale: binScale }}>
-              <div className="relative">
-                <Trash2 className={cn('h-6 w-6 transition-colors duration-200', iconColor)} />
-                {canDelete ? undefined : (
-                  <svg
-                    className="absolute inset-0 h-6 w-6 text-gray-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="4" y1="4" x2="20" y2="20" />
-                  </svg>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        );
-      })()}
-
-      {/* Foreground Draggable Card */}
+    <>
       <motion.div
-        drag={isDeleting ? false : 'x'}
-        dragDirectionLock
-        dragConstraints={{ left: 0, right: canDelete ? 200 : 0 }}
-        dragElastic={{ left: 0, right: 0.35 }}
-        onDrag={handleDrag}
-        onDragEnd={(event_, info) => void handleDragEnd(event_, info)}
-        style={{
-          x: draggingX,
-          touchAction: 'pan-y',
+        ref={containerReference}
+        initial={false}
+        animate={
+          isDeleting
+            ? { height: 0, opacity: 0, marginTop: 0, marginBottom: 0 }
+            : { height: 'auto', opacity: 1 }
+        }
+        transition={{
+          height: { duration: 0.22, ease: [0.4, 0, 0.2, 1] },
+          opacity: { duration: 0.18, ease: 'easeOut' },
         }}
-        className="relative z-10 cursor-grab select-none active:cursor-grabbing"
+        className="relative overflow-hidden rounded-md"
+        style={{ touchAction: 'pan-y' }}
       >
-        {children}
+        {((): React.ReactElement => {
+          let trackBg = 'bg-gray-100';
+          let iconColor = 'text-gray-400';
+          if (canDelete) {
+            trackBg = pastThreshold ? 'bg-red-500' : 'bg-red-100';
+            iconColor = pastThreshold ? 'text-white' : 'text-red-600';
+          }
+          return (
+            <div
+              className={cn(
+                'absolute inset-y-0 left-0 flex w-full items-center justify-start rounded-md pl-6 transition-colors duration-200',
+                trackBg,
+              )}
+            >
+              <motion.div style={{ opacity: binOpacity, scale: binScale }}>
+                <div className="relative">
+                  <Trash2 className={cn('h-6 w-6 transition-colors duration-200', iconColor)} />
+                  {canDelete ? undefined : (
+                    <svg
+                      className="absolute inset-0 h-6 w-6 text-gray-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="4" y1="4" x2="20" y2="20" />
+                    </svg>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+
+        {/* Foreground Draggable Card */}
+        <motion.div
+          drag={isDeleting ? false : 'x'}
+          dragDirectionLock
+          dragConstraints={{ left: 0, right: canDelete ? 200 : 0 }}
+          dragElastic={{ left: 0, right: 0.35 }}
+          onDrag={handleDrag}
+          onDragEnd={handleDragEnd}
+          style={{
+            x: draggingX,
+            touchAction: 'pan-y',
+          }}
+          className="relative z-10 cursor-grab select-none active:cursor-grabbing"
+        >
+          {children}
+        </motion.div>
       </motion.div>
-    </motion.div>
+
+      <ArchiveChatConfirmDialog
+        open={isConfirmOpen}
+        onOpenChange={setIsConfirmOpen}
+        onConfirm={handleConfirm}
+        isPending={deleteChatMutation.isPending}
+        archivesForEveryone={chat.isArchived !== true}
+      />
+    </>
   );
 };

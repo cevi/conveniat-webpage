@@ -1,6 +1,6 @@
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
-import { ChatCapability } from '@/lib/chat-shared';
+import { ChatCapability, isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
@@ -8,9 +8,10 @@ import { TRPCError } from '@trpc/server';
 const logger = createLogger('chat:mutations');
 
 /**
- * Throws unless messaging is allowed in the chat (globally, by its capabilities and its
- * status) and, for a thread reply, threads are enabled. Shared by everything that writes
- * into a chat, so a typing signal is allowed exactly where the message would be.
+ * Throws unless messaging is allowed in the chat (globally, by its capabilities, its status
+ * and whether it is archived) and, for a thread reply, threads are enabled. Shared by
+ * everything that writes into a chat, so a typing signal is allowed exactly where the message
+ * would be.
  */
 export const assertWriteAbilities = async (
   chatId: string,
@@ -77,5 +78,15 @@ export const assertMembershipCanWrite: <C extends ChatForWriteCheck>(
         message: 'You do not have permission to send messages in this chat.',
       });
     }
+  }
+};
+
+/**
+ * Throws unless the chat is still writable. For the procedures that change a chat without
+ * sending a message into it, and therefore do not pass through {@link assertWriteAbilities}.
+ */
+export const assertChatNotArchived = (chat: { archivedAt: Date | null }): void => {
+  if (isChatArchived(chat)) {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'This chat is archived.' });
   }
 };

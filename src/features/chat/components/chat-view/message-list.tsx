@@ -89,6 +89,7 @@ export const MessageList: React.FC<{
     chatId,
     parentId: parentId ?? undefined,
     parentMessage: parentMessage ?? undefined,
+    currentUser,
   });
 
   const typists = useTypists(chatId, parentId);

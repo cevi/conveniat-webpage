@@ -1,5 +1,5 @@
-import { isChatArchived } from '@/features/chat/api/checks/is-chat-archived';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
+import { isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType } from '@/lib/prisma/client';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 

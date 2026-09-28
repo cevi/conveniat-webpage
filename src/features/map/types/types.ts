@@ -6,11 +6,13 @@ import type {
 
 /**
  * Interface for the initial map pose.
- * This is used to define the initial center and zoom level of the map.
+ * This is used to define the initial center, zoom level and rotation of the map.
  */
 export interface InitialMapPose {
   initialMapCenter: [number, number];
   zoom: number;
+  /** Rotation in degrees clockwise from north. North up when omitted. */
+  bearing?: number;
 }
 
 /**

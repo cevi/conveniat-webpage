@@ -1,3 +1,4 @@
+import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
 import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -44,6 +45,7 @@ export const toggleReaction = trpcBaseProcedure
       select: {
         uuid: true,
         capabilities: true,
+        archivedAt: true,
         chatMemberships: {
           where: { userId: user.uuid },
           select: {
@@ -60,6 +62,8 @@ export const toggleReaction = trpcBaseProcedure
         message: 'You are not a member of this chat.',
       });
     }
+
+    assertChatNotArchived(chat);
 
     // 3. Permission checks: Emoji reactions must be enabled for the chat
     if (!chat.capabilities.includes(ChatCapability.EMOJI_REACTIONS)) {
@@ -94,30 +98,33 @@ export const toggleReaction = trpcBaseProcedure
           },
         }));
 
-    // 5. Publish real-time event to all subscribers via SSE
     const content = message.contentVersions[0]?.payload ?? {};
-    await chatPubSub
-      .publish({
-        type: 'message_updated',
-        chatId: message.chatId,
-        senderId: user.uuid,
-        message: {
-          id: message.uuid,
-          createdAt: message.createdAt,
-          messagePayload: content,
-          senderId: message.senderId ?? undefined,
-          status: 'STORED',
-          type: message.type,
-          parentId: message.parentId ?? undefined,
-        },
-      })
-      .catch((error: unknown) => {
-        logger.error('Failed to publish the message_updated event', {
-          error,
-          'chat.id': message.chatId,
-          'message.id': message.uuid,
+    // 5. Publish the real-time event once the reaction is committed, so clients that
+    // refetch on it read the new reaction.
+    ctx.afterTransactionCommit(() => {
+      chatPubSub
+        .publish({
+          type: 'message_updated',
+          chatId: message.chatId,
+          senderId: user.uuid,
+          message: {
+            id: message.uuid,
+            createdAt: message.createdAt,
+            messagePayload: content,
+            senderId: message.senderId ?? undefined,
+            status: 'STORED',
+            type: message.type,
+            parentId: message.parentId ?? undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          logger.error('Failed to publish the message_updated event', {
+            error,
+            'chat.id': message.chatId,
+            'message.id': message.uuid,
+          });
         });
-      });
+    });
 
     return { success: true };
   });

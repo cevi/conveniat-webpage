@@ -79,7 +79,7 @@ export async function getActivePiketMembers(
 }
 
 /**
- * Syncs currently active piket members to all matching open chats.
+ * Syncs currently active piket members to all matching open chats that are not archived.
  * Note: Piket members are intentionally kept in the chat once added, even after their shift ends,
  * to ensure continuity of context and conversation history for the emergency/support ticket they responded to.
  */
@@ -133,10 +133,12 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
       continue;
     }
 
-    // Find all open chats matching the schedule target types
+    // Find all open, unarchived chats matching the schedule target types
     const openChats = await prisma.chat.findMany({
       where: {
         status: 'OPEN',
+        // eslint-disable-next-line unicorn/no-null
+        archivedAt: null,
         type: { in: chatTypes as ChatType[] },
       },
       include: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useField } from '@payloadcms/ui';
+import { useField, useFormFields } from '@payloadcms/ui';
 import React, { useRef } from 'react';
 
 export const EmailPreviewField: React.FC<{
@@ -8,6 +8,8 @@ export const EmailPreviewField: React.FC<{
   label?: Record<string, string> | string;
 }> = ({ path, label }) => {
   const { value } = useField<string | null | undefined>({ path });
+  // Plain-text mails have no HTML part; their body lives in the sibling `text` field.
+  const textValue = useFormFields(([fields]) => fields['text']?.value);
   const iframeReference = useRef<HTMLIFrameElement>(null);
 
   // We are not using a dynamic resize effect here.
@@ -23,6 +25,21 @@ export const EmailPreviewField: React.FC<{
     } else if (typeof label['de'] === 'string') {
       labelText = label['de'];
     }
+  }
+
+  if (
+    (value === null || value === undefined || value === '') &&
+    typeof textValue === 'string' &&
+    textValue !== ''
+  ) {
+    return (
+      <div className="field-type custom-field mb-4">
+        <label className="field-label">{labelText}</label>
+        <pre className="mt-1 rounded border border-(--theme-elevation-150) p-4 font-sans whitespace-pre-wrap">
+          {textValue}
+        </pre>
+      </div>
+    );
   }
 
   if (value === null || value === undefined || value === '') {

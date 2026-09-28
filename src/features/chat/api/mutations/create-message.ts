@@ -41,7 +41,13 @@ const sendMessageInputSchema = z.object({
       invalid_type_error: 'Timestamp must be a valid date.',
     }),
   ),
-  type: z.nativeEnum(MessageType).optional().default(MessageType.TEXT_MSG),
+  // System and alert messages render with authority (the emergency banner, a "call this
+  // number" button), so only server code creates them. Offline sends queued by older app
+  // versions carry no type or TEXT_MSG, and both still pass.
+  type: z
+    .enum([MessageType.TEXT_MSG, MessageType.IMAGE_MSG, MessageType.LOCATION_MSG])
+    .optional()
+    .default(MessageType.TEXT_MSG),
   parentId: z.string().uuid().optional(),
   quotedMessageId: z.string().uuid().optional(),
   // Client-generated identity of this message. Sending it makes the mutation idempotent:
@@ -114,6 +120,7 @@ export const createMessage = trpcBaseProcedure
           select: {
             userId: true,
             chatPermission: true,
+            hasDeleted: true,
           },
         },
       },
@@ -189,6 +196,12 @@ export const createMessage = trpcBaseProcedure
       .filter((membership) => membership.userId !== user.uuid)
       .map((membership) => membership.userId);
 
+    // A member who deleted the chat never sees it in their list again, so a push for it
+    // would lead nowhere.
+    const pushRecipientUserIds = chat.chatMemberships
+      .filter((membership) => membership.userId !== user.uuid && !membership.hasDeleted)
+      .map((membership) => membership.userId);
+
     // Fetch quoted message content if quotedMessageId is provided
     let quotedSnippet: string | undefined;
     if (validatedMessage.quotedMessageId) {
@@ -253,35 +266,7 @@ export const createMessage = trpcBaseProcedure
       'message.id': createdMessage.uuid,
     });
 
-    // TODO: the following should be done asynchronously,
-    //  so that the user does not have to wait for the push notification to be sent
-    //  --> consider using a queue system
-
-    // Send push notification (fire-and-forget, with error logging)
-    sendNotification(
-      validatedMessage.content,
-      recipientUserIds,
-      validatedMessage.chatId,
-      createdMessage.uuid,
-      {
-        chatName: chat.name,
-        senderName: user.name,
-        // Every message in an emergency chat is part of a running alert, so the
-        // follow-ups reach the piket members on the siren channel too - a reply that
-        // only lands in the notification shade is exactly the failure mode the
-        // emergency channel exists to prevent. Support chats stay on the regular
-        // channel; they are not time critical in the same way.
-        ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
-      },
-    ).catch((error: unknown) => {
-      logger.error('Failed to send push notification', {
-        error,
-        'chat.id': validatedMessage.chatId,
-        'message.id': createdMessage.uuid,
-      });
-    });
-
-    // Record DISTRIBUTED event after a successful notification attempt (only for chats with < LARGE_CHAT_THRESHOLD users)
+    // Record the DISTRIBUTED events (only for chats with < LARGE_CHAT_THRESHOLD users)
     if (recipientUserIds.length < LARGE_CHAT_THRESHOLD) {
       await prisma.messageEvent.createMany({
         data: recipientUserIds.map((userId) => ({
@@ -292,37 +277,65 @@ export const createMessage = trpcBaseProcedure
       });
     }
 
-    // Publish real-time event via PostgreSQL NOTIFY (fire-and-forget)
-    chatPubSub
-      .publish({
-        type: 'new_message',
-        chatId: validatedMessage.chatId,
-        senderId: user.uuid,
-        message: {
-          id: createdMessage.uuid,
-          createdAt: createdMessage.createdAt,
-          messagePayload:
-            validatedMessage.type === MessageType.IMAGE_MSG
-              ? { url: validatedMessage.content }
-              : {
-                  text: validatedMessage.content,
-                  quotedMessageId: validatedMessage.quotedMessageId,
-                  quotedSnippet,
-                },
-          senderId: user.uuid,
+    // Announce the message only once it is committed: a rolled-back send must not reach
+    // lock screens or live views, and a client refetching on the event must find it.
+    // Neither the push fan-out nor the publish is awaited, so a slow push provider does
+    // not hold the request or its pool connection.
+    ctx.afterTransactionCommit(() => {
+      sendNotification(
+        validatedMessage.content,
+        pushRecipientUserIds,
+        validatedMessage.chatId,
+        createdMessage.uuid,
+        {
+          chatName: chat.name,
           senderName: user.name,
-          status: MessageEventType.STORED,
-          type: validatedMessage.type,
-          parentId: validatedMessage.parentId ?? undefined,
+          // Every message in an emergency chat is part of a running alert, so the
+          // follow-ups reach the piket members on the siren channel too - a reply that
+          // only lands in the notification shade is exactly the failure mode the
+          // emergency channel exists to prevent. Support chats stay on the regular
+          // channel; they are not time critical in the same way.
+          ...(chat.type === ChatType.EMERGENCY ? { notificationType: 'emergency' as const } : {}),
         },
-      })
-      .catch((error: unknown) => {
-        logger.error('Failed to publish the new_message real-time event', {
+      ).catch((error: unknown) => {
+        logger.error('Failed to send push notification', {
           error,
           'chat.id': validatedMessage.chatId,
           'message.id': createdMessage.uuid,
         });
       });
+
+      chatPubSub
+        .publish({
+          type: 'new_message',
+          chatId: validatedMessage.chatId,
+          senderId: user.uuid,
+          message: {
+            id: createdMessage.uuid,
+            createdAt: createdMessage.createdAt,
+            messagePayload:
+              validatedMessage.type === MessageType.IMAGE_MSG
+                ? { url: validatedMessage.content }
+                : {
+                    text: validatedMessage.content,
+                    quotedMessageId: validatedMessage.quotedMessageId,
+                    quotedSnippet,
+                  },
+            senderId: user.uuid,
+            senderName: user.name,
+            status: MessageEventType.STORED,
+            type: validatedMessage.type,
+            parentId: validatedMessage.parentId ?? undefined,
+          },
+        })
+        .catch((error: unknown) => {
+          logger.error('Failed to publish the new_message real-time event', {
+            error,
+            'chat.id': validatedMessage.chatId,
+            'message.id': createdMessage.uuid,
+          });
+        });
+    });
 
     return {
       id: createdMessage.uuid,

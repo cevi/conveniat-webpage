@@ -31,6 +31,12 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], serviceWorkers: 'allow' },
     },
+    {
+      // iPhones run WebKit, which fails a fetch with its own wording ("Load failed")
+      name: 'webkit',
+      testMatch: /offline-.*\.spec\.ts/,
+      use: { ...devices['Desktop Safari'], serviceWorkers: 'allow' },
+    },
   ],
 
   /* Run local dev server before starting tests */

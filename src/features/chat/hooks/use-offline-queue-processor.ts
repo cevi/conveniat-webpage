@@ -1,16 +1,24 @@
 import type { ChatDetails, ChatMessage } from '@/features/chat/api/types';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { markMessageSendFailed } from '@/features/chat/hooks/use-message-send';
 import {
   dropCachedEntry,
   isServerCompatibleId,
   mergeStoredMessage,
   mergeStoredMessageAcrossPages,
 } from '@/features/chat/utils';
+import type { SendMessageInput } from '@/features/chat/utils/failed-sends';
+import { rememberFailedSend } from '@/features/chat/utils/failed-sends';
+import type { OfflineMessage } from '@/features/chat/utils/offline-outbox';
 import {
   getOfflineOutbox,
+  isOutboxItemOwnedBy,
+  isSendInFlight,
   removeMessageFromOutbox,
   saveOfflineOutbox,
+  toPendingChatMessage,
 } from '@/features/chat/utils/offline-outbox';
+import { isRetryableSendError } from '@/features/chat/utils/send-errors';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { AppRouter } from '@/trpc/routers/_app';
@@ -23,6 +31,21 @@ type InfiniteMessagesOutput = inferProcedureOutput<AppRouter['chat']['infiniteMe
 type InfiniteMessagesData = InfiniteData<InfiniteMessagesOutput, string | null>;
 
 let isGlobalQueueProcessing = false;
+
+/** The send a queued message replays, identical on every attempt and on a manual retry. */
+const toSendInput = (message: OfflineMessage): SendMessageInput => {
+  // Preserve the original composition time; fall back to now if the stored value is unparsable
+  const queuedAt = new Date(message.createdAt);
+  return {
+    chatId: message.chatId,
+    content: message.content,
+    type: message.messageType,
+    timestamp: Number.isNaN(queuedAt.getTime()) ? new Date() : queuedAt,
+    quotedMessageId: message.quotedMessageId,
+    parentId: message.parentId,
+    messageId: message.id,
+  };
+};
 
 /**
  * Hook to automatically monitor network connectivity and sequentialize synchronization
@@ -56,17 +79,29 @@ export const useOfflineQueueProcessor = (): void => {
     const processQueue = async (): Promise<void> => {
       if (!isOnline || isGlobalQueueProcessing) return;
 
-      const queue = getOfflineOutbox();
-      if (queue.length === 0) return;
+      if (getOfflineOutbox().length === 0) return;
 
       isGlobalQueueProcessing = true;
-      console.log(`[Offline Sync] Found ${queue.length} pending offline messages. Syncing...`);
-
       let abortedDueToNetwork = false;
       let syncedCount = 0;
 
       try {
+        // Only the sends of whoever is logged in: after a session expired on a shared
+        // phone, the outbox can still hold what the previous user queued.
+        let currentUser: string;
+        try {
+          currentUser = await trpcUtils.chat.user.ensureData({});
+        } catch {
+          return;
+        }
+        const queue = getOfflineOutbox().filter((item) => isOutboxItemOwnedBy(item, currentUser));
+        if (queue.length === 0) return;
+        console.log(`[Offline Sync] Found ${queue.length} pending offline messages. Syncing...`);
+
         for (const message of queue) {
+          // Sent right now by the page that queued it. Stop rather than skip, so nothing
+          // queued after it overtakes it; removing it from the outbox restarts the drain.
+          if (isSendInFlight(message.id)) break;
           try {
             if (message.type === 'CREATE_CHAT') {
               const createdChatId = await createChatMutateAsyncReference.current({
@@ -144,19 +179,8 @@ export const useOfflineQueueProcessor = (): void => {
               syncedCount++;
               console.log(`[Offline Sync] Sequenced chat created: ${message.id} -> ${realChatId}`);
             } else {
-              // Preserve the original composition time; fall back to now if the stored value is unparsable
-              const queuedAt = new Date(message.createdAt);
-              const timestamp = Number.isNaN(queuedAt.getTime()) ? new Date() : queuedAt;
-
               // Send message mutation sequentially to preserve order
-              const createdMessageData = await mutateAsyncReference.current({
-                chatId: message.chatId,
-                content: message.content,
-                timestamp,
-                quotedMessageId: message.quotedMessageId,
-                parentId: message.parentId,
-                messageId: message.id,
-              });
+              const createdMessageData = await mutateAsyncReference.current(toSendInput(message));
 
               const realMessage = createdMessageData as unknown as ChatMessage | undefined;
               if (!realMessage) {
@@ -213,28 +237,24 @@ export const useOfflineQueueProcessor = (): void => {
           } catch (error) {
             console.error(`[Offline Sync] Failed to sync offline item ${message.id}:`, error);
 
-            const errorString = String(error);
-            const isNetworkError =
-              !globalThis.navigator.onLine ||
-              errorString.includes('fetch') ||
-              errorString.includes('NetworkError') ||
-              errorString.includes('Failed to fetch') ||
-              errorString.includes('network_timeout') ||
-              errorString.includes('UNAUTHORIZED') ||
-              errorString.includes('401') ||
-              errorString.includes('503') ||
-              errorString.includes('500') ||
-              errorString.includes('502') ||
-              errorString.includes('504');
-
-            if (isNetworkError) {
-              // Stop queue processing and wait for connection to stabilize
+            if (isRetryableSendError(error)) {
+              // Stop here and replay from this item on the next drain, so the order holds
               abortedDueToNetwork = true;
               break;
             }
 
-            // For permanent client errors (e.g. 400 Bad Request, 403 Forbidden), remove from outbox to prevent blockages
+            // A permanent failure (e.g. 400 Bad Request, 403 Forbidden) leaves the queue so it
+            // does not block the items behind it. A message keeps its bubble as a failed send
+            // with its own retry and delete, so its text is never dropped without a trace.
             removeMessageFromOutbox(message.id);
+            if (message.type === 'MESSAGE') {
+              markMessageSendFailed(trpcUtils, {
+                chatId: message.chatId,
+                parentId: message.parentId,
+                messageId: message.id,
+              });
+              rememberFailedSend(toPendingChatMessage(message, currentUser), toSendInput(message));
+            }
           }
         }
       } finally {

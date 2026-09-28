@@ -16,6 +16,24 @@ interface MessageReadStatusProperties {
 // Module-level watermark cache to record confirmed read message IDs per chat
 const confirmedReadWatermarks = new Map<string, string>();
 
+/**
+ * The latest message the server can mark as read for `currentUser`: a system message or one
+ * someone else sent. Queued and failed bubbles are skipped, since the server has never
+ * stored them and refuses them as a read watermark, and the chat would be marked again on
+ * every render.
+ */
+export const findLatestMessageToRead = (
+  sortedMessages: ChatMessage[],
+  currentUser: string,
+): ChatMessage | undefined =>
+  [...sortedMessages].reverse().find((message) => {
+    if (message.isPendingOffline === true || message.sendFailed === true) return false;
+    if (message.type === MessageType.SYSTEM_MSG) return true;
+    if (message.senderId === SYSTEM_SENDER_ID) return true;
+    if (typeof message.senderId !== 'string') return true;
+    return message.senderId !== currentUser;
+  });
+
 export const useMessageReadStatus = ({
   chatId,
   currentUser,
@@ -33,7 +51,8 @@ export const useMessageReadStatus = ({
     onMutate: () => {
       // Optimistically update the chat overview
       trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) => {
-        if (!oldChats) return [];
+        // nothing cached (a chat opened by link): an empty list here would stay until it is stale
+        if (!oldChats) return oldChats;
         return oldChats.map((chat: ChatWithMessagePreview) => {
           if (chat.id === chatId) {
             return {
@@ -49,20 +68,16 @@ export const useMessageReadStatus = ({
       confirmedReadWatermarks.set(variables.chatId, variables.lastMessageId);
       lastMarkedReadIdReference.current = variables.lastMessageId;
     },
-    onSettled: () => {
+    // Only a failure needs the server's count back; on success the optimistic zero is the
+    // answer, and refetching here doubled the list queries of every message read live.
+    onError: () => {
       trpcUtils.chat.chats.invalidate().catch(console.error);
     },
   });
 
   useEffect(() => {
     if (currentUser !== undefined && sortedMessages.length > 0) {
-      // Find the latest message to mark as read (system message or message not sent by current user)
-      const latestMessageToRead = [...sortedMessages].reverse().find((message) => {
-        if (message.type === MessageType.SYSTEM_MSG) return true;
-        if (message.senderId === SYSTEM_SENDER_ID) return true;
-        if (typeof message.senderId !== 'string') return true;
-        return message.senderId !== currentUser;
-      });
+      const latestMessageToRead = findLatestMessageToRead(sortedMessages, currentUser);
 
       if (
         latestMessageToRead !== undefined &&

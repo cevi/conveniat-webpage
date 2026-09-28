@@ -12,7 +12,7 @@ import {
   type CapabilityContext,
   CapabilitySubject,
 } from '@/lib/capabilities/types';
-import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
+import { ChatCapability, ChatStatus, isChatArchived } from '@/lib/chat-shared';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
@@ -41,11 +41,12 @@ export class MessageCapabilities implements Capability {
     if (chatId) {
       const chat = await prisma.chat.findUnique({
         where: { uuid: chatId },
-        select: { capabilities: true, status: true },
+        select: { capabilities: true, status: true, archivedAt: true },
       });
 
       if (chat) {
-        if (chat.status === ChatStatus.CLOSED) {
+        // Archiving only sets `archivedAt` and leaves the status alone, so both are checked.
+        if (chat.status === ChatStatus.CLOSED || isChatArchived(chat)) {
           return false;
         }
         if (!chat.capabilities.includes(ChatCapability.CAN_SEND_MESSAGES)) {

@@ -224,7 +224,7 @@ export async function sendNotification(
       return { success: false, error: 'Failed to send notification' };
     }
 
-    logger.info('Push fan-out finished', outcome);
+    logger.debug('Push fan-out finished', outcome);
     return { success: true };
   } catch (error) {
     logger.error('Push fan-out aborted', { error, 'chat.id': chatId });

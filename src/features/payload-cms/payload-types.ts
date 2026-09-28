@@ -4753,6 +4753,7 @@ export interface OutgoingEmail {
   type?: ('formSubmission' | 'billParticipant' | 'other') | null;
   form?: (string | null) | Form;
   html?: string | null;
+  text?: string | null;
   smtpResults?:
     | {
         [k: string]: unknown;
@@ -7382,6 +7383,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   type?: T;
   form?: T;
   html?: T;
+  text?: T;
   smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;

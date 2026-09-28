@@ -6,6 +6,7 @@ import {
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
+import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
 import {
   ChatMembershipPermission,
   ChatType,
@@ -600,6 +601,9 @@ export const scheduleRouter = createTRPCRouter({
               },
             },
           });
+          ctx.afterTransactionCommit(() => {
+            void publishMembershipRevoked(user.uuid, fromCourseChat.uuid, user.uuid);
+          });
 
           await prisma.message.create({
             data: {
@@ -723,6 +727,9 @@ export const scheduleRouter = createTRPCRouter({
                 chatId: courseChat.uuid,
               },
             },
+          });
+          ctx.afterTransactionCommit(() => {
+            void publishMembershipRevoked(user.uuid, courseChat.uuid, user.uuid);
           });
 
           // Create system message for leaving

@@ -1,5 +1,6 @@
 'use client';
 
+import { clearUnsentChatData } from '@/lib/chat-local-storage';
 import { withKeyvalStore } from '@/lib/idb-keyval-store';
 import { starsCollection, userPreferencesCollection } from '@/lib/tanstack-db';
 
@@ -26,11 +27,18 @@ const LEGACY_STARS_KEY = 'starredItems';
  * - TanStack DB `stars` collection (personal starred items)
  * - TanStack DB `userPreferences` collection (onboarding state etc.)
  * - Legacy `starredItems` localStorage key
+ * - Unsent chat messages and drafts, unless `keepUnsentChatMessages` is set
  *
  * What is preserved:
  * - TanStack DB `schedule-entries` collection (public, non-personal)
+ *
+ * An expired session (a 401) keeps the unsent chat messages: the user did not choose to
+ * leave, and dropping their queue would lose what they wrote. Queued sends carry the id of
+ * their sender, so nobody else logging in on the phone sends them.
  */
-export function flushPersonalData(): void {
+export function flushPersonalData({
+  keepUnsentChatMessages = false,
+}: { keepUnsentChatMessages?: boolean } = {}): void {
   // 1. Remove persisted TanStack Query cache (mixed personal / public data) from localStorage.
   try {
     localStorage.removeItem(PERSISTED_QUERY_CACHE_KEY);
@@ -84,4 +92,7 @@ export function flushPersonalData(): void {
   } catch {
     // Ignore — same reason as above.
   }
+
+  // 4. Unsent chat messages and drafts.
+  if (!keepUnsentChatMessages) clearUnsentChatData();
 }

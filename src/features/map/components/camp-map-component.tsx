@@ -28,9 +28,16 @@ function parseEnvironmentMapCenter(): [number, number] {
   return [Number.parseFloat(parts[0] ?? ''), Number.parseFloat(parts[1] ?? '')];
 }
 
+function parseEnvironmentMapBearing(): number {
+  // production skips the env validation, so this arrives as a raw string or not at all
+  const bearing = Number.parseFloat(String(environmentVariables.CAMP_MAP_INITIAL_BEARING));
+  return Number.isNaN(bearing) ? 0 : bearing;
+}
+
 const initialMapPoseObergoms: InitialMapPose = {
   initialMapCenter: parseEnvironmentMapCenter(),
   zoom: environmentVariables.CAMP_MAP_INITIAL_ZOOM,
+  bearing: parseEnvironmentMapBearing(),
 };
 
 /**
@@ -148,6 +155,7 @@ const CampMapComponentCached: React.FC<{
           campMapAnnotationPoints={campMapAnnotationPoints}
           campMapAnnotationPolygons={campMapAnnotationPolygons}
           validateStyle={environmentVariables.NODE_ENV !== 'production'}
+          mapStyle="/vector-map/camp_style.json"
           schedules={schedulesPerAnnotations}
           enableSearch
         />
