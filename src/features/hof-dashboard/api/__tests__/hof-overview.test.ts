@@ -41,6 +41,12 @@ interface Submission {
 /** Newest first, as the query sorts them. */
 let mockSubmissions: Submission[] = [];
 
+const FILES = [
+  { id: 'file-1', formSubmission: 'plan-1' },
+  { id: 'file-2', formSubmission: 'stand-a' },
+  { id: 'file-3', formSubmission: 'sued-other' },
+];
+
 type Clause = Record<string, { equals?: string; in?: string[] }>;
 
 const matches = (document: Record<string, unknown>, clauses: Clause[]): boolean =>
@@ -59,8 +65,8 @@ const mockPayload = {
         return Promise.resolve({ docs: [planForm, standForm, orderForm] });
       }
       const clauses = where.and ?? [where];
-      const found = mockSubmissions.filter((document) =>
-        matches(document as unknown as Record<string, unknown>, clauses),
+      const found = (collection === 'form-submissions' ? mockSubmissions : FILES).filter(
+        (document) => matches(document as unknown as Record<string, unknown>, clauses),
       );
       return Promise.resolve({ docs: found, totalDocs: found.length });
     },
@@ -112,6 +118,7 @@ describe('getHofOverview', () => {
         program: { forms: 1, done: 1, overdue: 0, toReview: 1, toAccept: 1 },
         material: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
       },
+      files: 2,
     });
     expect(sued).toEqual({
       ...HOF_SUED,
@@ -120,6 +127,8 @@ describe('getHofOverview', () => {
         program: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
         material: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
       },
+      // a file of a form not on the dashboard is not the Hof's to download here
+      files: 0,
     });
   });
 });

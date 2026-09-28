@@ -15,7 +15,7 @@ import { useAcceptHofArea } from '@/features/hof-dashboard/hooks/use-accept-hof-
 import { translate } from '@/features/hof-dashboard/texts';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCheck } from 'lucide-react';
+import { CheckCheck, Download } from 'lucide-react';
 import type React from 'react';
 
 /** The areas a reviewer accepts at once; material orders are answered one by one. */
@@ -26,7 +26,7 @@ const ACCEPTED_AT_ONCE = new Set<HofDashboardArea>(['infrastructure', 'program']
  * with its areas stacked, so a phone never scrolls sideways.
  */
 const ROW_GRID =
-  '@3xl:grid @3xl:grid-cols-[minmax(9rem,1.2fr)_repeat(3,minmax(0,1fr))] @3xl:items-start @3xl:gap-x-4';
+  '@3xl:grid @3xl:grid-cols-[minmax(9rem,1.2fr)_repeat(3,minmax(0,1fr))_7rem] @3xl:items-start @3xl:gap-x-4';
 
 const LINK_CLASS =
   'text-conveniat-green inline-flex min-h-10 cursor-pointer items-center gap-1.5 text-sm font-semibold underline-offset-2 hover:underline disabled:cursor-wait disabled:opacity-50';
@@ -86,8 +86,8 @@ const AreaCell: React.FC<{
 
 /**
  * Where every Hof stands, for the reviewers: per area how much is handed in, overdue and
- * waiting for the Ressort, with a way to accept a Hof's Infrastruktur or Programm at once. A
- * Hof's name opens its dashboard below.
+ * waiting for the Ressort, with a way to accept a Hof's Infrastruktur or Programm at once and
+ * to download everything a Hof handed in. A Hof's name opens its dashboard below.
  */
 export const HofOverviewTable: React.FC<{
   hoefe: HofOverviewRow[];
@@ -117,6 +117,7 @@ export const HofOverviewTable: React.FC<{
             {HOF_DASHBOARD_AREAS.map((area) => (
               <span key={area}>{HOF_DASHBOARD_AREA_LABELS[area][locale]}</span>
             ))}
+            <span>{translate('files', locale)}</span>
           </div>
           <ul className="divide-y divide-gray-100">
             {hoefe.map((hof) => {
@@ -126,15 +127,32 @@ export const HofOverviewTable: React.FC<{
                   key={hof.id}
                   className={cn('px-5 py-3 text-sm @xl:px-6', ROW_GRID, selected && 'bg-green-50')}
                 >
-                  <button
-                    type="button"
-                    className={cn(LINK_CLASS, 'text-left')}
-                    aria-label={translate('openHof', locale, { hof: hof.name })}
-                    aria-current={selected ? 'true' : undefined}
-                    onClick={() => onOpen(hof.id)}
-                  >
-                    {hof.name}
-                  </button>
+                  <div className="flex items-center justify-between gap-3 @3xl:contents">
+                    <button
+                      type="button"
+                      className={cn(LINK_CLASS, 'text-left')}
+                      aria-label={translate('openHof', locale, { hof: hof.name })}
+                      aria-current={selected ? 'true' : undefined}
+                      onClick={() => onOpen(hof.id)}
+                    >
+                      {hof.name}
+                    </button>
+                    <div className="shrink-0 @3xl:order-last">
+                      {hof.files === 0 ? (
+                        <span className="text-gray-400">–</span>
+                      ) : (
+                        <a
+                          href={`/api/hof-dashboard/${encodeURIComponent(hof.id)}/files`}
+                          download
+                          className={LINK_CLASS}
+                          aria-label={translate('downloadFiles', locale, { hof: hof.name })}
+                        >
+                          <Download className="h-4 w-4" aria-hidden />
+                          {translate('zipFiles', locale, { n: hof.files })}
+                        </a>
+                      )}
+                    </div>
+                  </div>
                   <div className="mt-2 grid gap-3 @md:grid-cols-3 @3xl:contents">
                     {HOF_DASHBOARD_AREAS.map((area) => (
                       <div key={area} className="min-w-0">

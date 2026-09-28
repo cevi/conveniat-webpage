@@ -228,6 +228,7 @@ export const text = {
     en: 'No Höfe recorded yet.',
     fr: 'Aucun Hof saisi pour le moment.',
   },
+  files: { de: 'Dateien', en: 'Files', fr: 'Fichiers' },
   openHof: {
     de: 'Dashboard von {hof} öffnen',
     en: 'Open the dashboard of {hof}',
@@ -256,6 +257,12 @@ export const text = {
     de: 'Die Abgaben konnten nicht freigegeben werden.',
     en: 'The submissions could not be accepted.',
     fr: "Les dépôts n'ont pas pu être validés.",
+  },
+  zipFiles: { de: 'ZIP ({n})', en: 'ZIP ({n})', fr: 'ZIP ({n})' },
+  downloadFiles: {
+    de: 'Dateien von {hof} als ZIP herunterladen',
+    en: 'Download the files of {hof} as a ZIP',
+    fr: 'Télécharger les fichiers de {hof} en ZIP',
   },
 } satisfies Record<string, StaticTranslationString>;
 
