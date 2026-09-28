@@ -105,17 +105,21 @@ export interface RolePricing {
 }
 
 /**
- * One booking in the Banana import. The keys are Banana's column names.
+ * One bill in the finance export. The keys are the column headers: Banana's column names,
+ * followed by whether and why the bill was cancelled.
  */
 export interface FinanceCsvRow {
   Date: string;
   DocInvoice: string;
   ExternalReference: string;
-  Amount: number;
+  /** Empty for a bill replaced before `issuedBills` existed: its amount was overwritten. */
+  Amount: number | undefined;
   DateExpiration: string;
   Description: string;
   AccountDebit: string;
   AccountCredit: string;
+  Storniert: boolean;
+  Stornogrund: string;
 }
 
 /**

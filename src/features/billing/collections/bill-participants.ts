@@ -1,4 +1,5 @@
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
+import { recordIssuedBills } from '@/features/billing/collections/record-issued-bills';
 import {
   refreshHoefeAfterRegistrationChange,
   refreshHoefeAfterRegistrationDelete,
@@ -81,6 +82,7 @@ export const BillParticipantsCollection: CollectionConfig = {
 
         return data as Record<string, unknown>;
       },
+      recordIssuedBills,
     ],
     afterChange: [refreshHoefeAfterRegistrationChange],
     afterDelete: [refreshHoefeAfterRegistrationDelete],
@@ -569,6 +571,67 @@ export const BillParticipantsCollection: CollectionConfig = {
         disableListFilter: true,
         disableGroupBy: true,
       },
+    },
+    {
+      // The invoice fields above only hold the bill the row carries today, and "Neu
+      // generieren" overwrites them. This keeps every bill ever raised, so the finance export
+      // can still account for one that was replaced or cancelled. Written by `recordIssuedBills`.
+      name: 'issuedBills',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'array',
+      label: {
+        en: 'Issued Bills',
+        de: 'Ausgestellte Rechnungen',
+        fr: 'Factures émises',
+      },
+      admin: {
+        readOnly: true,
+        disableListColumn: true,
+        disableListFilter: true,
+        disableGroupBy: true,
+        description: {
+          en: 'Every bill raised for this registration, including replaced and cancelled ones.',
+          de: 'Alle Rechnungen, die für diese Anmeldung erstellt wurden, auch ersetzte und stornierte.',
+          fr: 'Toutes les factures établies pour cette inscription, y compris celles remplacées ou annulées.',
+        },
+      },
+      fields: [
+        {
+          name: 'invoiceNumber',
+          type: 'text',
+          required: true,
+          label: { en: 'Invoice Number', de: 'Rechnungsnummer', fr: 'Numéro de facture' },
+        },
+        {
+          name: 'referenceNumber',
+          type: 'text',
+          label: {
+            en: 'QR Reference Number',
+            de: 'QR-Referenznummer',
+            fr: 'Numéro de référence QR',
+          },
+        },
+        {
+          name: 'invoiceAmount',
+          type: 'number',
+          label: { en: 'Amount (CHF)', de: 'Betrag (CHF)', fr: 'Montant (CHF)' },
+        },
+        {
+          name: 'billCreatedDate',
+          type: 'date',
+          label: { en: 'Created', de: 'Erstellt am', fr: 'Créée le' },
+        },
+        {
+          name: 'cancelledDate',
+          type: 'date',
+          label: { en: 'Cancelled', de: 'Storniert am', fr: 'Annulée le' },
+        },
+        {
+          name: 'cancelReason',
+          type: 'text',
+          label: { en: 'Cancellation Reason', de: 'Stornogrund', fr: "Motif d'annulation" },
+        },
+      ],
     },
 
     // Status
