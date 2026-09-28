@@ -1,6 +1,10 @@
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import type { BillingLogger } from '@/features/billing/ports/logger.port';
-import type { HofSyncWrite, SettingsPort } from '@/features/billing/ports/settings.port';
+import type {
+  HofRemoval,
+  HofSyncWrite,
+  SettingsPort,
+} from '@/features/billing/ports/settings.port';
 import { flattenHofEvents } from '@/features/billing/services/hof-events';
 import type { HofAddressManager, HofEventRow } from '@/features/billing/types';
 import { isAufbauOrAbbaulager } from '@/features/billing/utils';
@@ -62,9 +66,10 @@ interface WorkingHof {
 
 /** What a sync write would change on a Hof, to tell the Höfe it has to touch from the rest. */
 const syncedState = (
-  hof: Pick<WorkingHof, 'events' | 'addressManagerEmails' | 'addressManagers'>,
+  hof: Pick<WorkingHof, 'name' | 'events' | 'addressManagerEmails' | 'addressManagers'>,
 ): string =>
   JSON.stringify({
+    name: hof.name,
     events: hof.events.map(({ eventId, eventName }) => ({ eventId, eventName })),
     addressManagerEmails: hof.addressManagerEmails ?? '',
     // a Hof synced before the names were kept has none yet, and is written once to get them
@@ -77,10 +82,11 @@ const syncedState = (
 /**
  * Merges the events a walk found into the stored Höfe.
  *
- * A known Hof keeps its document — most of all its name and `reminderRecipientsOverride`,
- * which an editor set by hand and a sync must never wipe — and has every field Cevi.DB owns
- * refreshed: the names of its events, new events appended, and its address managers unless
- * their lookup failed. A group without a Hof gets one, named after its first event.
+ * A known Hof keeps its document — most of all its `reminderRecipientsOverride`, which an
+ * editor set by hand and a sync must never wipe — and has every field Cevi.DB owns refreshed:
+ * its name, the names of its events, new events appended, and its address managers unless
+ * their lookup failed. A Hof is named after the first event the walk found for its group, a new
+ * one as much as a known one.
  *
  * Aufbau- and Abbaulager events are dropped from the stored Höfe as well, the same rule the
  * walk applies to what it finds.
@@ -121,13 +127,17 @@ export function mergeWalkIntoHoefe(
         hof.events = hof.events.filter((event) => event.eventId !== row.eventId);
     }
 
+    const groupEventNames = walked
+      .filter((candidate) => candidate.groupId === row.groupId)
+      .map((candidate) => candidate.eventName);
+    const name = deriveHofName(groupEventNames, row.groupId);
     let hof = hoefe.get(row.groupId);
     if (hof === undefined) {
-      const groupEventNames = walked
-        .filter((candidate) => candidate.groupId === row.groupId)
-        .map((candidate) => candidate.eventName);
-      hof = { name: deriveHofName(groupEventNames, row.groupId), groupId: row.groupId, events: [] };
+      hof = { name, groupId: row.groupId, events: [] };
       hoefe.set(row.groupId, hof);
+    } else {
+      // Renamed in Cevi.DB, e.g. when two Abteilungen merged into one Hof.
+      hof.name = name;
     }
 
     const existing = hof.events.find((event) => event.eventId === row.eventId);
@@ -193,6 +203,8 @@ export async function populateSubeventsUseCase(
   newEvents: HofEventRow[];
   /** Every event of every Hof once the walk is written, new and pre-existing alike. */
   allEvents: HofEventRow[];
+  /** The Höfe whose group left the conveniat27 parent group, deleted or kept. */
+  removedHoefe: HofRemoval[];
 }> {
   logger.info('Fetching the subgroups of the conveniat27 parent group from Cevi.DB', {
     'billing.parent_group_id': PARENT_GROUP_ID,
@@ -349,5 +361,36 @@ export async function populateSubeventsUseCase(
 
   await settingsRepo.upsertHoefe(writes);
 
-  return { success: true, count: newEvents.length, newEvents, allEvents };
+  // A group that left the parent group was deleted or merged into another Hof in Cevi.DB. A
+  // walk that listed no subgroup at all says nothing about the Höfe, so it removes none.
+  const subgroupIds = new Set(subgroupLinks);
+  const goneGroupIds =
+    subgroupIds.size === 0
+      ? []
+      : storedHoefe.map(({ groupId }) => groupId).filter((groupId) => !subgroupIds.has(groupId));
+  const removedHoefe = await settingsRepo.deleteUnreferencedHoefe(goneGroupIds);
+  for (const removal of removedHoefe) {
+    if (removal.deleted) continue;
+    // Needs a human: the references have to move to the Hof that took the group over first.
+    logger.warn('Keeping a Hof whose group left Cevi.DB, because it is still referenced', {
+      'billing.group_id': removal.groupId,
+      'hof.name': removal.name,
+      'hof.references': removal.references.join(', '),
+    });
+  }
+  const deletedGroupIds = new Set(
+    removedHoefe.filter(({ deleted }) => deleted).map(({ groupId }) => groupId),
+  );
+  logger.info('Removed the Höfe whose group left Cevi.DB', {
+    'billing.hoefe_gone': goneGroupIds.length,
+    'billing.hoefe_deleted': deletedGroupIds.size,
+  });
+
+  return {
+    success: true,
+    count: newEvents.length,
+    newEvents,
+    allEvents: allEvents.filter(({ groupId }) => !deletedGroupIds.has(groupId)),
+    removedHoefe,
+  };
 }
