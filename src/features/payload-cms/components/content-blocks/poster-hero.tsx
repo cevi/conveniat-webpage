@@ -96,51 +96,56 @@ export const PosterHeroBlock: React.FC<PosterHeroType> = ({
         </>
       )}
 
-      <div className="relative z-10 px-5 pb-8 md:px-10 md:pb-12">
-        <HeadlineH1 className="mt-0 mb-3 pt-0 text-4xl text-white md:pt-0 md:text-5xl">
-          {title}
-        </HeadlineH1>
+      {/* The block cancels the layout's `xl:px-12` to bleed to the edges, so
+      restore it here, then use the same column as the sections below it, so
+      the headline and links line up with the body text on every width. */}
+      <div className="relative z-10 pb-8 md:pb-12 xl:px-12">
+        <div className="mx-auto w-full max-w-[1920px] px-4 md:px-8 xl:px-16">
+          <HeadlineH1 className="mt-0 mb-3 pt-0 text-4xl text-white md:pt-0 md:text-5xl">
+            {title}
+          </HeadlineH1>
 
-        {badge != undefined && badge.trim() !== '' && (
-          <p className="font-heading mb-2 text-xs font-bold tracking-[0.18em] text-white/80 uppercase">
-            {badge}
-          </p>
-        )}
+          {badge != undefined && badge.trim() !== '' && (
+            <p className="font-heading mb-2 text-xs font-bold tracking-[0.18em] text-white/80 uppercase">
+              {badge}
+            </p>
+          )}
 
-        {description != undefined && description.trim() !== '' && (
-          <p className="font-body max-w-[46ch] text-lg leading-[1.55] font-medium text-pretty text-white/90 md:text-xl md:leading-[1.5]">
-            {description}
-          </p>
-        )}
+          {description != undefined && description.trim() !== '' && (
+            <p className="font-body max-w-[46ch] text-lg leading-[1.55] font-medium text-pretty text-white/90 md:text-xl md:leading-[1.5]">
+              {description}
+            </p>
+          )}
 
-        {(hasPrimary || hasSecondary) && (
-          <div className="mt-6 flex flex-wrap gap-2.5">
-            {hasPrimary && (
-              <LinkComponent
-                href={primaryCtaLink}
-                hideExternalIcon
-                className={cn(chipBase, 'bg-conveniat-green text-white hover:bg-green-700')}
-              >
-                {primaryCtaLabel}
-                <ArrowRight className="size-3.5" />
-              </LinkComponent>
-            )}
+          {(hasPrimary || hasSecondary) && (
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              {hasPrimary && (
+                <LinkComponent
+                  href={primaryCtaLink}
+                  hideExternalIcon
+                  className={cn(chipBase, 'bg-conveniat-green text-white hover:bg-green-700')}
+                >
+                  {primaryCtaLabel}
+                  <ArrowRight className="size-3.5" />
+                </LinkComponent>
+              )}
 
-            {hasSecondary && (
-              <LinkComponent
-                href={secondaryCtaLink}
-                hideExternalIcon
-                className={cn(
-                  chipBase,
-                  'border border-white/40 bg-white/10 text-white hover:border-white/70 hover:bg-white/20',
-                )}
-              >
-                {secondaryCtaLabel}
-                <ArrowRight className="size-3.5" />
-              </LinkComponent>
-            )}
-          </div>
-        )}
+              {hasSecondary && (
+                <LinkComponent
+                  href={secondaryCtaLink}
+                  hideExternalIcon
+                  className={cn(
+                    chipBase,
+                    'border border-white/40 bg-white/10 text-white hover:border-white/70 hover:bg-white/20',
+                  )}
+                >
+                  {secondaryCtaLabel}
+                  <ArrowRight className="size-3.5" />
+                </LinkComponent>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
