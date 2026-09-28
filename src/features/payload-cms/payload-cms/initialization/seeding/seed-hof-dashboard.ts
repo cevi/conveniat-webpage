@@ -239,10 +239,10 @@ const FORMS: DashboardFormSeed[] = [
     ],
     hofDashboard: {
       area: 'program',
-      entries: 'entries',
+      entries: 'versions',
       title: 'Stadtleben',
       description:
-        'Jeder Stand wird einzeln angemeldet. Freigegebene Stände erscheinen auf der Website.',
+        'Jeder Hof meldet einen Stand an. Freigegebene Stände erscheinen auf der Website.',
       deadline: '2027-01-31T12:00:00.000Z',
       titleField: 'name',
       onlyHofAdministrators: false,
