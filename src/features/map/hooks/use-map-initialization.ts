@@ -62,6 +62,7 @@ export const useMapInitialization = (
         touchPitch: false,
         center: initialMapPose.initialMapCenter,
         zoom: initialMapPose.zoom,
+        bearing: initialMapPose.bearing ?? 0,
         minZoom: minZoomLevelForSwitzerland,
         attributionControl: false,
       });
