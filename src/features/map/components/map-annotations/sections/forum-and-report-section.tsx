@@ -45,7 +45,11 @@ export const AnnotationForumAndReportSection: React.FC<{
   // eslint-disable-next-line react-hooks/set-state-in-effect
   React.useEffect(() => setIsRedirecting(false), []);
 
-  const { mutate: createReport, isPending } = trpc.chat.reportProblem.useMutation({
+  const {
+    mutate: createReport,
+    isPending,
+    error: reportError,
+  } = trpc.chat.reportProblem.useMutation({
     onSuccess: (chat) => {
       setIsRedirecting(true);
       router.push(`/${locale}/app/chat/${chat.uuid}`);
@@ -89,6 +93,10 @@ export const AnnotationForumAndReportSection: React.FC<{
             </div>
           </div>
         </button>
+        {/* the server words the rate limit in the user's language, with what to do instead */}
+        {reportError?.data?.code === 'TOO_MANY_REQUESTS' && (
+          <p className="text-sm text-red-600">{reportError.message}</p>
+        )}
       </div>
     </div>
   );

@@ -5,13 +5,30 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { MessageType } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 interface MessageReadStatusProperties {
   chatId: string;
   currentUser: string | undefined;
   sortedMessages: ChatMessage[];
+  /** Whether the reader is at the newest message, see `useChatScrollManager`. */
+  isAtBottom: boolean;
 }
+
+/** Messages arriving in a burst are marked read together, at most once per interval. */
+const MARK_READ_INTERVAL_MS = 1000;
+
+const subscribeToVisibility = (onChange: () => void): (() => void) => {
+  document.addEventListener('visibilitychange', onChange);
+  return (): void => document.removeEventListener('visibilitychange', onChange);
+};
+
+const useIsDocumentVisible = (): boolean =>
+  useSyncExternalStore(
+    subscribeToVisibility,
+    () => document.visibilityState === 'visible',
+    () => true,
+  );
 
 // Module-level watermark cache to record confirmed read message IDs per chat
 const confirmedReadWatermarks = new Map<string, string>();
@@ -34,13 +51,22 @@ export const findLatestMessageToRead = (
     return message.senderId !== currentUser;
   });
 
+/**
+ * Marks the chat read up to the newest message the reader can actually see: only while the
+ * page is visible and the list is scrolled to the bottom. A message that lands while the
+ * app is in the background or the reader is deep in the history stays unread until they
+ * come back to it.
+ */
 export const useMessageReadStatus = ({
   chatId,
   currentUser,
   sortedMessages,
+  isAtBottom,
 }: MessageReadStatusProperties): void => {
   const trpcUtils = trpc.useUtils();
+  const isVisible = useIsDocumentVisible();
   const lastMarkedReadIdReference = useRef<string | undefined>(confirmedReadWatermarks.get(chatId));
+  const lastMarkedAtReference = useRef(0);
 
   useEffect(() => {
     lastMarkedReadIdReference.current = confirmedReadWatermarks.get(chatId);
@@ -76,18 +102,28 @@ export const useMessageReadStatus = ({
   });
 
   useEffect(() => {
-    if (currentUser !== undefined && sortedMessages.length > 0) {
-      const latestMessageToRead = findLatestMessageToRead(sortedMessages, currentUser);
+    if (!isVisible || !isAtBottom || currentUser === undefined) return;
 
-      if (
-        latestMessageToRead !== undefined &&
-        lastMarkedReadIdReference.current !== latestMessageToRead.id
-      ) {
-        markChatAsRead({
-          chatId: chatId,
-          lastMessageId: latestMessageToRead.id,
-        });
-      }
+    const latestMessageToRead = findLatestMessageToRead(sortedMessages, currentUser);
+    if (
+      latestMessageToRead === undefined ||
+      lastMarkedReadIdReference.current === latestMessageToRead.id
+    ) {
+      return;
     }
-  }, [markChatAsRead, currentUser, sortedMessages, chatId]);
+
+    const markRead = (): void => {
+      lastMarkedAtReference.current = Date.now();
+      markChatAsRead({ chatId, lastMessageId: latestMessageToRead.id });
+    };
+
+    // at once unless one just went out, so a chat opened for a glance does not stay unread
+    const wait = lastMarkedAtReference.current + MARK_READ_INTERVAL_MS - Date.now();
+    if (wait <= 0) {
+      markRead();
+      return;
+    }
+    const timeout = setTimeout(markRead, wait);
+    return (): void => clearTimeout(timeout);
+  }, [markChatAsRead, currentUser, sortedMessages, chatId, isVisible, isAtBottom]);
 };

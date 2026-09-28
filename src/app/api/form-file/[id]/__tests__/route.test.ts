@@ -20,7 +20,7 @@ jest.mock('payload', () => ({
 }));
 
 jest.mock('@/lib/s3', () => ({
-  S3_BUCKET_NAME: 'bucket',
+  FORM_FILE_BUCKET_NAME: 'form-files',
   s3Client: {
     send: jest.fn(() =>
       Promise.resolve({
@@ -42,6 +42,7 @@ jest.mock('@/utils/server-logger', () => ({
 import { GET } from '@/app/api/form-file/[id]/route';
 import { environmentVariables } from '@/config/environment-variables';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
+import { s3Client } from '@/lib/s3';
 import { getPayload } from 'payload';
 
 const FILE_ID = '0123456789abcdef01234567';
@@ -153,6 +154,29 @@ describe('GET /api/form-file/[id]', () => {
     const response = await download(WEB_CORE_TEAM_MEMBER, fileOn({ approved: false }));
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('application/pdf');
+  });
+
+  it('reads the file from the bucket of the form files', async () => {
+    await download(ANONYMOUS, fileOn({ approved: true }));
+    const [[command]] = (s3Client.send as jest.Mock).mock.calls as [
+      [{ input: { Bucket: string } }],
+    ];
+    expect(command.input.Bucket).toBe('form-files');
+  });
+
+  it('shows a PDF in the browser', async () => {
+    const response = await download(ANONYMOUS, fileOn({ approved: true }));
+    expect(response.headers.get('Content-Disposition')).toMatch(/^inline;/);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('downloads a file of a type a browser could run, instead of showing it', async () => {
+    const response = await download(ANONYMOUS, {
+      ...fileOn({ approved: true }),
+      mimeType: 'text/xml',
+    });
+    expect(response.headers.get('Content-Disposition')).toMatch(/^attachment;/);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
   });
 
   it("serves a Hof's address administrator their own Hof's file, which the dashboard lists", async () => {

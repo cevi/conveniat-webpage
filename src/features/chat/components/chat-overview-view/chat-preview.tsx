@@ -1,5 +1,6 @@
 'use client';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { trpc } from '@/trpc/client';
@@ -26,10 +27,14 @@ export const ChatPreview: React.FC<{
   const searchParameters = useSearchParams();
   const trpcUtils = trpc.useUtils();
 
+  // On hover, which a phone emulates for a completed tap only. `touchstart` also fired for
+  // every chat a finger brushed while scrolling the list, each one a request.
   const handlePrefetch = useCallback(() => {
     trpcUtils.chat.chatDetails.prefetch({ chatId: chat.id }).catch(() => {});
+    // Only for a chat with nothing cached, so it opens with messages: the view refetches
+    // the list on mount anyway. The key has to match the view's, or nothing reads it.
     trpcUtils.chat.infiniteMessages
-      .prefetchInfinite({ chatId: chat.id, limit: 30 })
+      .prefetchInfinite({ chatId: chat.id, limit: CHAT_PAGE_SIZE }, { staleTime: Infinity })
       .catch(() => {});
   }, [chat.id, trpcUtils]);
 
@@ -63,12 +68,7 @@ export const ChatPreview: React.FC<{
   }
 
   return (
-    <Link
-      href={chatDetailLink}
-      className="block w-full"
-      onMouseEnter={handlePrefetch}
-      onTouchStart={handlePrefetch}
-    >
+    <Link href={chatDetailLink} className="block w-full" onMouseEnter={handlePrefetch}>
       <li
         className={cn(
           'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',

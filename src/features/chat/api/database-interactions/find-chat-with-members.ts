@@ -1,3 +1,4 @@
+import { ChatType } from '@/lib/prisma/client';
 import type { PrismaClientOrTransaction } from '@/types/types';
 
 export const findChatWithMembers = async (
@@ -22,6 +23,9 @@ export const findChatWithMembers = async (
 > => {
   return await prisma.chat.findFirst({
     where: {
+      // A group, support or course chat can have the same two members, and a message meant
+      // for the private chat must not land there.
+      type: ChatType.ONE_TO_ONE,
       // Ensure all requested members are present
       chatMemberships: {
         every: { user: { uuid: { in: requestedMemberUuids } } },

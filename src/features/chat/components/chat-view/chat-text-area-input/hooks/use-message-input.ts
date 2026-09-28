@@ -4,6 +4,7 @@ import { getChatDraftKey, useChatDraft } from '@/features/chat/hooks/use-chat-dr
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { useTypingSignal } from '@/features/chat/hooks/use-typing';
 import { generateMessageId } from '@/features/chat/utils';
+import { FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
 import { trpc } from '@/trpc/client';
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -32,6 +33,13 @@ import { useChatActions } from '@/features/chat/context/chat-actions-context';
 
 import { useSearchParams } from 'next/navigation';
 
+/** How often a composer rechecks whether sending was switched back on. */
+const DISABLED_MESSAGING_POLL_MS = 60_000;
+
+const isGlobalMessagingEnabledIn = (
+  featureFlags: { key: string; isEnabled: boolean }[] | undefined,
+): boolean => featureFlags?.find((f) => f.key === FEATURE_FLAG_SEND_MESSAGES)?.isEnabled ?? true;
+
 export const useMessageInput = (): UseMessageInputLogicResult => {
   const searchParameters = useSearchParams();
   const [newMessage, setNewMessage] = useState(() => {
@@ -54,17 +62,22 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
   const [draftKey] = useState(() => getChatDraftKey(chatId, activeThreadId));
   useChatDraft(draftKey, newMessage, setNewMessage);
 
+  const trpcUtils = trpc.useUtils();
+  // Fetched when a composer mounts and refetched by the realtime resync (`useChatSSE`),
+  // which also covers the app coming back to the foreground. Polled only while sending is
+  // off, the one state nothing else would bring the composer back from.
   const { data: featureFlags, isLoading: isLoadingFlags } = trpc.chat.getFeatureFlags.useQuery(
     undefined,
     {
-      refetchInterval: 30_000, // Poll every 30 seconds
-
-      staleTime: 1000 * 60 * 5,
+      staleTime: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+      refetchInterval: (query) =>
+        isGlobalMessagingEnabledIn(query.state.data) ? false : DISABLED_MESSAGING_POLL_MS,
     },
   );
 
-  const isGlobalMessagingEnabled =
-    featureFlags?.find((f) => f.key === 'send_messages')?.isEnabled ?? true;
+  const isGlobalMessagingEnabled = isGlobalMessagingEnabledIn(featureFlags);
 
   /** Sends `text` as a message, without touching the composer. */
   const sendText = useCallback(
@@ -107,10 +120,17 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
             }
           },
           onError: (error) => {
+            // The send waits in the outbox; the server's message says why, in the user's language.
+            if (error.data?.code === 'TOO_MANY_REQUESTS') {
+              setSendError(error.message);
+              return;
+            }
             // offline sends are queued by useMessageSend. Any other failed bubble stays in the
             // list with its own retry, so the text is not put back into the composer. Only a
             // disabled chat is worth a banner, because retrying cannot help there.
             if (error.message !== 'Messaging is disabled in this chat or globally.') return;
+            // the server knew before the flags did: disable the composer now
+            trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
             const errorMessage = 'Messaging is currently disabled. Please try again later.';
             setSendError(errorMessage);
           },
@@ -124,6 +144,7 @@ export const useMessageInput = (): UseMessageInputLogicResult => {
       activeThreadId,
       quotedMessageId,
       cancelQuote,
+      trpcUtils,
     ],
   );
 

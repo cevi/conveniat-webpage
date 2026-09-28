@@ -102,7 +102,7 @@ import { default as default_8d520ff6bc17ad01077b15db1b6b9440 } from '@/features/
 import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
 import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
-import { default as default_b1f955abb547154f4667abb221790e2b } from '@/features/payload-cms/payload-cms/views/all-chats-management'
+import { default as default_f72329dca34ac878c275d9291e68c35c } from '@/features/payload-cms/components/chat-manager/chat-list-manager-field'
 import { default as default_cd35b3d8d72e9d0e9e863a18826ee991 } from '@/features/presence/payload-cms/components/density-plot-field'
 import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/presence/payload-cms/components/open-people-list-field'
 import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
@@ -233,7 +233,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
   "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,
-  "@/features/payload-cms/payload-cms/views/all-chats-management#default": default_b1f955abb547154f4667abb221790e2b,
+  "@/features/payload-cms/components/chat-manager/chat-list-manager-field#default": default_f72329dca34ac878c275d9291e68c35c,
   "@/features/presence/payload-cms/components/density-plot-field#default": default_cd35b3d8d72e9d0e9e863a18826ee991,
   "@/features/presence/payload-cms/components/open-people-list-field#default": default_95aac01a1d24126400a908467acf9d8a,
   "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,

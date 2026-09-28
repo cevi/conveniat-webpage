@@ -3,22 +3,38 @@ import { ChatCapability } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
 const logger = createLogger('chat:mutations');
 
+/**
+ * Room for the longest emoji a picker offers: a ZWJ family or a flag with a skin tone takes
+ * up to 11 UTF-16 units. Anything longer is text, not an emoji.
+ */
+const EMOJI_MAX_LENGTH = 16;
+
+/** As many as the reaction menu offers, so the app never runs into it. */
+const MAX_REACTIONS_PER_USER_AND_MESSAGE = 6;
+
+const tooManyReactionsText: StaticTranslationString = {
+  de: `Du kannst auf eine Nachricht mit höchstens ${MAX_REACTIONS_PER_USER_AND_MESSAGE} verschiedenen Emojis reagieren.`,
+  en: `You can react to a message with at most ${MAX_REACTIONS_PER_USER_AND_MESSAGE} different emojis.`,
+  fr: `Tu peux réagir à un message avec au plus ${MAX_REACTIONS_PER_USER_AND_MESSAGE} emojis différents.`,
+};
+
 const toggleReactionInputSchema = z.object({
   messageId: z.string().uuid('Invalid message ID format.'),
-  emoji: z.string().min(1, 'Emoji cannot be empty.'),
+  emoji: z.string().min(1, 'Emoji cannot be empty.').max(EMOJI_MAX_LENGTH, 'Emoji is too long.'),
 });
 
 export const toggleReaction = trpcBaseProcedure
   .input(toggleReactionInputSchema)
   .use(databaseTransactionWrapper)
   .mutation(async ({ input, ctx }) => {
-    const { user, prisma } = ctx;
+    const { locale, user, prisma } = ctx;
     const { messageId, emoji } = input;
 
     // 1. Fetch the message to get its chatId
@@ -84,19 +100,28 @@ export const toggleReaction = trpcBaseProcedure
       },
     });
 
-    await (existingReaction
-      ? prisma.messageReaction.delete({
-          where: {
-            uuid: existingReaction.uuid,
-          },
-        })
-      : prisma.messageReaction.create({
-          data: {
-            messageId,
-            userId: user.uuid,
-            emoji,
-          },
-        }));
+    if (existingReaction) {
+      await prisma.messageReaction.delete({
+        where: {
+          uuid: existingReaction.uuid,
+        },
+      });
+    } else {
+      const reactionCount = await prisma.messageReaction.count({
+        where: { messageId, userId: user.uuid },
+      });
+      if (reactionCount >= MAX_REACTIONS_PER_USER_AND_MESSAGE) {
+        throw new TRPCError({ code: 'BAD_REQUEST', message: tooManyReactionsText[locale] });
+      }
+
+      await prisma.messageReaction.create({
+        data: {
+          messageId,
+          userId: user.uuid,
+          emoji,
+        },
+      });
+    }
 
     const content = message.contentVersions[0]?.payload ?? {};
     // 5. Publish the real-time event once the reaction is committed, so clients that

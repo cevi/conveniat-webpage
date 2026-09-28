@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { resolveBillPdfBucket } from '@/lib/storage-buckets';
+import { resolveOwnBucket } from '@/lib/storage-buckets';
 import { S3Client } from '@aws-sdk/client-s3';
 
 export const s3Client = new S3Client({
@@ -38,7 +38,16 @@ export const S3_BUCKET_NAME = environmentVariables.S3_BUCKET_NAME;
  * Bucket for bill PDFs — its own when configured, otherwise the shared one. Every reader
  * and writer of a bill PDF has to agree on this, so it is resolved once here.
  */
-export const BILL_PDF_BUCKET_NAME = resolveBillPdfBucket(
+export const BILL_PDF_BUCKET_NAME = resolveOwnBucket(
   environmentVariables.S3_BILL_PDF_BUCKET_NAME,
+  environmentVariables.S3_BUCKET_NAME,
+);
+
+/**
+ * Bucket for the files handed in with forms — its own when configured, otherwise the shared
+ * one. Every reader and writer of a form file has to agree on this, so it is resolved once here.
+ */
+export const FORM_FILE_BUCKET_NAME = resolveOwnBucket(
+  environmentVariables.S3_FORM_FILE_BUCKET_NAME,
   environmentVariables.S3_BUCKET_NAME,
 );

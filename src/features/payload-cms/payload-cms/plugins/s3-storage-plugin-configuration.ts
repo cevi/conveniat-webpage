@@ -1,5 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { resolveBillPdfBucket } from '@/lib/storage-buckets';
+import { resolveOwnBucket } from '@/lib/storage-buckets';
 import { s3Storage } from '@payloadcms/storage-s3';
 import type { Plugin } from 'payload';
 
@@ -24,8 +24,13 @@ const connection = {
   endpoint: S3_HOST,
 };
 
-const BILL_PDF_BUCKET = resolveBillPdfBucket(
+const BILL_PDF_BUCKET = resolveOwnBucket(
   environmentVariables.S3_BILL_PDF_BUCKET_NAME,
+  S3_BUCKET_NAME,
+);
+
+const FORM_FILE_BUCKET = resolveOwnBucket(
+  environmentVariables.S3_FORM_FILE_BUCKET_NAME,
   S3_BUCKET_NAME,
 );
 
@@ -40,13 +45,22 @@ const billPdfStorageConfiguration = s3Storage({
   config: connection,
 });
 
+/**
+ * Form files get their own instance for the same reason: what participants hand in is kept
+ * apart from the images and documents the website publishes.
+ */
+const formFileStorageConfiguration = s3Storage({
+  collections: { form_collection: true },
+  bucket: FORM_FILE_BUCKET,
+  config: connection,
+});
+
 export const s3StorageConfiguration = s3Storage({
   collections: {
     images: true,
     documents: true,
     userSubmittedImages: true,
     'chat-images': true,
-    form_collection: true,
 
     // The import/export plugin registers these two as upload collections without a staticDir, so
     // Payload defaults it to the collection slug - a *relative* path resolved against the process
@@ -61,8 +75,12 @@ export const s3StorageConfiguration = s3Storage({
 });
 
 /**
- * Both storage instances, in the order they should be registered. Everything except the
- * bill PDFs goes to the shared bucket; the bills go wherever
- * `S3_BILL_PDF_BUCKET_NAME` points, or the shared bucket when it is unset.
+ * Every storage instance, in the order they should be registered. Everything except the bill
+ * PDFs and the form files goes to the shared bucket; those go wherever
+ * `S3_BILL_PDF_BUCKET_NAME` and `S3_FORM_FILE_BUCKET_NAME` point, or the shared bucket when unset.
  */
-export const s3StoragePlugins: Plugin[] = [s3StorageConfiguration, billPdfStorageConfiguration];
+export const s3StoragePlugins: Plugin[] = [
+  s3StorageConfiguration,
+  billPdfStorageConfiguration,
+  formFileStorageConfiguration,
+];

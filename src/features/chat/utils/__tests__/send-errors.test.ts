@@ -1,4 +1,8 @@
-import { isRetryableSendError, isTransportError } from '@/features/chat/utils/send-errors';
+import {
+  isRateLimitError,
+  isRetryableSendError,
+  isTransportError,
+} from '@/features/chat/utils/send-errors';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
@@ -16,6 +20,12 @@ const router = t.router({
       throw new TRPCError({ code: 'UNAUTHORIZED', message: 'User not authenticated.' });
     }
     if (input.content === 'crash') throw new Error('database gone');
+    if (input.content === 'flood') {
+      throw new TRPCError({
+        code: 'TOO_MANY_REQUESTS',
+        message: 'Du sendest zu viele Nachrichten. Warte einen Moment.',
+      });
+    }
     if (input.content === 'disabled') {
       throw new TRPCError({
         code: 'FORBIDDEN',
@@ -88,6 +98,19 @@ describe('isTransportError / isRetryableSendError', () => {
 
     expect(isTransportError(error)).toBe(false);
     expect(isRetryableSendError(error)).toBe(true);
+  });
+
+  it('keeps a send queued that the rate limit turned away, and shows its message', async () => {
+    const error = await failSend(serveFromRouter, 'flood');
+
+    expect(isRetryableSendError(error)).toBe(true);
+    expect(isRateLimitError(error)).toBe(true);
+    expect((error as Error).message).toBe('Du sendest zu viele Nachrichten. Warte einen Moment.');
+  });
+
+  it('does not take a lost connection or a crash for the rate limit', async () => {
+    expect(isRateLimitError(await failSend(rejectWith('Load failed')))).toBe(false);
+    expect(isRateLimitError(await failSend(serveFromRouter, 'crash'))).toBe(false);
   });
 
   it('gives up on a send the input validation rejects', async () => {

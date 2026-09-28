@@ -1,6 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { listAccessibleHoefe } from '@/features/hof-dashboard/api/accessible-hoefe';
-import { listHofFiles, zipHofFiles } from '@/features/hof-dashboard/api/hof-files-zip';
+import {
+  isHofDashboardReviewer,
+  listAccessibleHoefe,
+} from '@/features/hof-dashboard/api/accessible-hoefe';
+import { listHofZipEntries, zipHofFiles } from '@/features/hof-dashboard/api/hof-files-zip';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
@@ -12,8 +15,8 @@ import { getPayload } from 'payload';
 const logger = createLogger('api:hof-dashboard-files');
 
 /**
- * Every file a Hof handed in, as one ZIP, for whoever may open the Hof's dashboard: the
- * reviewers any Hof, a Hof's address administrators their own.
+ * Everything a Hof handed in, its files and a PDF of each submission, as one ZIP, for whoever
+ * may open the Hof's dashboard: the reviewers any Hof, a Hof's address administrators their own.
  */
 export async function GET(
   _request: Request,
@@ -34,14 +37,18 @@ export async function GET(
   const hof = hoefe.find((candidate) => candidate.id === hofId);
   if (hof === undefined) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const files = await listHofFiles(hof.id, await getLocaleFromCookies());
+  const entries = await listHofZipEntries(
+    hof,
+    await getLocaleFromCookies(),
+    isHofDashboardReviewer(user),
+  );
   logger.info('Sent the files of a Hof as a ZIP', {
     'hof_dashboard.hof_id': hof.id,
-    'hof_dashboard.files': files.length,
+    'hof_dashboard.files': entries.length,
   });
 
   const filename = `${hof.name}.zip`;
-  return new Response(zipHofFiles(files), {
+  return new Response(zipHofFiles(entries), {
     headers: {
       'Content-Type': 'application/zip',
       // the plain name for old clients, the full one for everyone else

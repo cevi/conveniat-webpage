@@ -24,7 +24,9 @@ export const FormCollection: CollectionConfig = {
     groupBy: true,
     disableCopyToLocale: true,
     hidden: shouldHideInAdminPanel,
-    defaultColumns: ['filename', 'isTemporary', 'createdAt', 'formSubmission'],
+    // the stored filename is a random key; the name a file was handed in with is this one
+    useAsTitle: 'originalFilename',
+    defaultColumns: ['originalFilename', 'isTemporary', 'createdAt', 'formSubmission'],
   },
   access: {
     read: hasAdminOrWebAccess,

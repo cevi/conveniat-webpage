@@ -5,6 +5,7 @@ import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import type { StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { z } from 'zod';
@@ -24,6 +25,19 @@ export const reportProblem = trpcBaseProcedure
         location: z.tuple([z.number(), z.number()]).optional(), // [lng, lat]
       })
       .optional(),
+  )
+  .use(
+    // Every report pages all active piket members.
+    rateLimit({
+      name: 'chat.reportProblem',
+      limit: 3,
+      windowMs: 10 * 60 * 1000,
+      message: {
+        de: 'Du hast gerade mehrere Probleme gemeldet. Schreib weitere Details in einen der offenen Chats oder versuche es in ein paar Minuten wieder.',
+        en: 'You just reported several problems. Add further details in one of the open chats or try again in a few minutes.',
+        fr: "Tu viens de signaler plusieurs problèmes. Ajoute d'autres détails dans l'un des chats ouverts ou réessaie dans quelques minutes.",
+      },
+    }),
   )
   .use(databaseTransactionWrapper)
   .mutation(async ({ ctx, input }) => {

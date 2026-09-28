@@ -60,6 +60,11 @@ const sendFailedLabel: StaticTranslationString = {
   fr: "La notification push n'a pas pu être envoyée.",
   en: 'The push notification could not be sent.',
 };
+const subscriptionRemovedLabel: StaticTranslationString = {
+  de: 'Das Gerät hat die Push-Benachrichtigungen abbestellt oder das Abonnement ist abgelaufen. Es wurde deshalb gelöscht.',
+  fr: "L'appareil s'est désabonné des notifications push ou l'abonnement a expiré. Il a donc été supprimé.",
+  en: 'The device unsubscribed from push notifications or the subscription expired, so it was deleted.',
+};
 const historyTitle: StaticTranslationString = {
   de: 'Verlauf',
   fr: 'Historique',
@@ -179,6 +184,7 @@ const SendTestNotification: React.FC<{
     enterContentErrorText: enterContentLabel[locale],
     unknownErrorText: unknownErrorLabel[locale],
     sendFailedErrorText: sendFailedLabel[locale],
+    subscriptionRemovedText: subscriptionRemovedLabel[locale],
   });
 
   return (

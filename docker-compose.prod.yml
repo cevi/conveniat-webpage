@@ -242,7 +242,7 @@ services:
 
     environment:
       # Space separated list of buckets created on start.
-      SEAWEEDFS_BUCKETS: conveniat-files conveniat-bill-pdfs
+      SEAWEEDFS_BUCKETS: conveniat-files conveniat-bill-pdfs conveniat-form-files
 
     configs:
       - source: seaweedfs-entrypoint

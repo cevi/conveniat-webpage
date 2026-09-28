@@ -94,12 +94,6 @@ export const MessageList: React.FC<{
 
   const typists = useTypists(chatId, parentId);
 
-  useMessageReadStatus({
-    chatId,
-    currentUser,
-    sortedMessages,
-  });
-
   const {
     scrollContainerReference,
     messagesEndReference,
@@ -112,6 +106,13 @@ export const MessageList: React.FC<{
     isFetchingNextPage,
     currentUserId: currentUser,
     typingCount: typists.length,
+  });
+
+  useMessageReadStatus({
+    chatId,
+    currentUser,
+    sortedMessages,
+    isAtBottom,
   });
 
   if (isLoading || currentUser === undefined || chatDetails === undefined) {
@@ -179,10 +180,12 @@ export const MessageList: React.FC<{
             // each day is the containing block of its divider, so the divider sticks while
             // that day is on screen and hands over to the next one
             <section key={day.dayKey} className={isThread ? 'pb-2' : 'pb-4'}>
+              {/* a band in the list colour, not a lone pill: messages scroll out of sight
+                  under it instead of showing their text on both sides of the day */}
               <div
                 className={cn(
-                  'pointer-events-none sticky top-2 z-20 flex justify-center',
-                  isThread ? 'my-2' : 'my-4',
+                  'pointer-events-none sticky top-0 z-20 -mx-2 flex justify-center bg-gray-50',
+                  isThread ? 'py-2' : 'py-3',
                 )}
               >
                 <h3 className="font-body rounded-full bg-white px-3 py-1 text-[11px] font-semibold tracking-wider text-gray-500 uppercase shadow-sm ring-1 ring-gray-200 backdrop-blur-sm">

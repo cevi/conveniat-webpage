@@ -1,5 +1,8 @@
-import { findDashboardForms, idOf } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { getHofDashboardData, idOf } from '@/features/hof-dashboard/api/hof-dashboard-data';
+import { renderSubmissionPdf } from '@/features/hof-dashboard/api/render-submission-pdf';
+import { translate } from '@/features/hof-dashboard/texts';
+import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import { FORM_FILE_BUCKET_NAME, s3Client } from '@/lib/s3';
 import type { Locale } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
@@ -9,24 +12,11 @@ import { getPayload } from 'payload';
 
 const logger = createLogger('hof-dashboard:files-zip');
 
-/** Most submissions of one Hof read for its files, as its dashboard lists them. */
-const MAX_SUBMISSIONS = 500;
-
-/** A file a Hof handed in, and where it goes in the ZIP. */
-export interface HofZipFile {
-  /** The object in the bucket. */
-  key: string;
-  /** Folder and name in the ZIP: the form, then the day it was handed in and the file's name. */
-  path: string;
-  submittedAt: string;
-}
-
-const zurichDay = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Zurich',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
+/** What goes in the ZIP, and where: the form, then the name with its version at the end. */
+export type HofZipEntry = { path: string; submittedAt: string } & (
+  | { key: string } // a file handed in, read from the bucket
+  | { render: () => Promise<Uint8Array> } // a PDF of a submission, rendered as it goes out
+);
 
 /** A name that stays one folder or file on every system that unpacks it. */
 const safeName = (name: string): string => {
@@ -35,13 +25,16 @@ const safeName = (name: string): string => {
   return safe === '' ? '_' : safe;
 };
 
+/** A name split before its extension, `plan` and `.pdf`; a leading dot starts no extension. */
+const splitExtension = (name: string): [stem: string, extension: string] => {
+  const dot = name.lastIndexOf('.');
+  return dot > name.lastIndexOf('/') + 1 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
+};
+
 /** `name` or, once taken, `name (2)` and so on, with the extension kept at the end. */
 const uniquePath = (path: string, taken: Set<string>): string => {
+  const [stem, extension] = splitExtension(path);
   let candidate = path;
-  const dot = path.lastIndexOf('.');
-  const hasExtension = dot > path.lastIndexOf('/') + 1;
-  const stem = hasExtension ? path.slice(0, dot) : path;
-  const extension = hasExtension ? path.slice(dot) : '';
   for (let n = 2; taken.has(candidate.toLowerCase()); n += 1) {
     candidate = `${stem} (${n})${extension}`;
   }
@@ -50,70 +43,130 @@ const uniquePath = (path: string, taken: Set<string>): string => {
 };
 
 /**
- * Every file one Hof handed in with a form on the dashboard, earlier versions included, one
- * folder per form. The caller has checked that the user may open the Hof.
+ * Everything one Hof handed in with a form on the dashboard, earlier versions included, one
+ * folder per form: every file, named with the version it came with, `plan_v2.pdf`, and every
+ * submission as a PDF, `Hofbauten_v2.pdf`, with all its answers and the Ressort's answer. A form
+ * of entries numbers its entries instead, `stand_3.pdf`. The caller has checked that the user
+ * may open the Hof; the history of the review is only in it for a reviewer.
  */
-export const listHofFiles = async (hofId: string, locale: Locale): Promise<HofZipFile[]> => {
+export const listHofZipEntries = async (
+  hof: HofName,
+  locale: Locale,
+  isReviewer: boolean,
+): Promise<HofZipEntry[]> => {
+  const { forms } = await getHofDashboardData(hof.id, locale, isReviewer);
+  const submissionIds = forms.flatMap((form) => form.entries.map((entry) => entry.id));
+  if (submissionIds.length === 0) return [];
+
+  // by the submission they belong to, so a file whose field left the form is still in it
   const payload = await getPayload({ config });
-  const forms = await findDashboardForms(payload, locale);
-  if (forms.length === 0) return [];
-
-  const { docs: submissions } = await payload.find({
-    collection: 'form-submissions',
-    where: { and: [{ hof: { equals: hofId } }, { form: { in: forms.map((form) => form.id) } }] },
-    sort: '-createdAt',
-    depth: 0,
-    limit: MAX_SUBMISSIONS,
-    pagination: false,
-    overrideAccess: true,
-    select: { form: true, createdAt: true },
-  });
-  if (submissions.length === 0) return [];
-
-  const { docs: files } = await payload.find({
+  const { docs: storedFiles } = await payload.find({
     collection: 'form_collection',
-    where: { formSubmission: { in: submissions.map((submission) => submission.id) } },
+    where: { formSubmission: { in: submissionIds } },
     depth: 0,
     pagination: false,
     overrideAccess: true,
     select: { filename: true, originalFilename: true, formSubmission: true },
   });
 
-  const submissionById = new Map(submissions.map((submission) => [submission.id, submission]));
-  const titleOf = new Map(
-    forms.map((form) => [
-      form.id,
-      typeof form.hofDashboard?.title === 'string' && form.hofDashboard.title !== ''
-        ? form.hofDashboard.title
-        : form.title,
-    ]),
+  const submissions = forms.flatMap((form) => {
+    const folder = safeName(form.title);
+    // the dashboard lists them newest first and counts its versions from the oldest
+    return form.entries.map((entry, index) => {
+      const n = form.entries.length - index;
+      return {
+        form,
+        entry,
+        folder,
+        suffix: form.mode === 'versions' ? `_v${n}` : `_${n}`,
+        heading:
+          form.mode === 'versions'
+            ? translate('version', locale, { n })
+            : (entry.title ?? translate('entryNumbered', locale, { n })),
+      };
+    });
+  });
+  const submissionById = new Map(
+    submissions.map((submission) => [submission.entry.id, submission]),
   );
+
+  // the files take their names first, so only a PDF ever makes way with a "(2)"
   const taken = new Set<string>();
-  return files
+  const fileNames = new Map<string, string>();
+  const files = storedFiles
     .flatMap((file) => {
       const submission = submissionById.get(idOf(file.formSubmission) ?? '');
       if (submission === undefined || typeof file.filename !== 'string') return [];
-      const name = file.originalFilename ?? file.filename;
-      const folder = titleOf.get(idOf(submission.form) ?? '') ?? '_';
+      const [stem, extension] = splitExtension(safeName(file.originalFilename ?? file.filename));
       return [
         {
+          id: file.id,
           key: file.filename,
-          path: `${safeName(folder)}/${zurichDay.format(new Date(submission.createdAt))} ${safeName(name)}`,
-          submittedAt: submission.createdAt,
+          path: `${submission.folder}/${stem}${submission.suffix}${extension}`,
+          submittedAt: submission.entry.submittedAt,
         },
       ];
     })
     .toSorted((a, b) => a.path.localeCompare(b.path, 'de'))
-    .map((file) => ({ ...file, path: uniquePath(file.path, taken) }));
+    .map(({ id, ...file }) => {
+      const path = uniquePath(file.path, taken);
+      fileNames.set(id, path.slice(path.indexOf('/') + 1));
+      return { ...file, path };
+    });
+
+  const generatedAt = new Date();
+  const answers = submissions.map(({ form, entry, folder, suffix, heading }): HofZipEntry => ({
+    path: uniquePath(`${folder}/${safeName(form.title)}${suffix}.pdf`, taken),
+    submittedAt: entry.submittedAt,
+    render: () =>
+      renderSubmissionPdf({
+        hofName: hof.name,
+        form,
+        entry,
+        heading,
+        fileNames,
+        locale,
+        generatedAt,
+      }),
+  }));
+
+  return [...files, ...answers].toSorted((a, b) => a.path.localeCompare(b.path, 'de'));
+};
+
+const readFromBucket = async (key: string): Promise<ReadableStream<Uint8Array> | undefined> => {
+  try {
+    const object = await s3Client.send(
+      new GetObjectCommand({ Bucket: FORM_FILE_BUCKET_NAME, Key: key }),
+    );
+    return object.Body?.transformToWebStream();
+  } catch (error) {
+    logger.warn('Left a missing file out of a Hof ZIP', { error });
+    return undefined;
+  }
+};
+
+const renderPdf = async (
+  entry: Extract<HofZipEntry, { render: unknown }>,
+): Promise<ReadableStream<Uint8Array> | undefined> => {
+  try {
+    return new Blob([await entry.render()]).stream();
+  } catch (error) {
+    // one submission that does not render should not cost the Hof the rest of its ZIP
+    logger.error('Left a submission PDF that failed to render out of a Hof ZIP', {
+      error,
+      'hof_dashboard.zip_path': entry.path,
+    });
+    return undefined;
+  }
 };
 
 /**
- * The files as one ZIP, streamed: each file is read from the bucket only once the one before
- * it has gone out, so neither the server nor a slow download holds more than a chunk. Stored,
- * not compressed, since plans come as PDFs and images that compress no further. A file
- * missing in the bucket is left out rather than breaking the download.
+ * The entries as one ZIP, streamed: each file is read from the bucket, and each PDF rendered,
+ * only once the one before it has gone out, so neither the server nor a slow download holds
+ * more than a file. Stored, not compressed, since plans come as PDFs and images that compress
+ * no further. A file missing in the bucket is left out rather than breaking the download.
  */
-export const zipHofFiles = (files: readonly HofZipFile[]): ReadableStream<Uint8Array> => {
+export const zipHofFiles = (entries: readonly HofZipEntry[]): ReadableStream<Uint8Array> => {
   async function* chunks(): AsyncGenerator<Uint8Array, void> {
     const ready: Uint8Array[] = [];
     let failure: Error | undefined;
@@ -126,16 +179,8 @@ export const zipHofFiles = (files: readonly HofZipFile[]): ReadableStream<Uint8A
       yield* ready.splice(0);
     };
 
-    for (const file of files) {
-      let body: ReadableStream<Uint8Array> | undefined;
-      try {
-        const object = await s3Client.send(
-          new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: file.key }),
-        );
-        body = object.Body?.transformToWebStream();
-      } catch (error) {
-        logger.warn('Left a missing file out of a Hof ZIP', { error });
-      }
+    for (const file of entries) {
+      const body = 'key' in file ? await readFromBucket(file.key) : await renderPdf(file);
       if (body === undefined) continue;
 
       const entry = new ZipPassThrough(file.path);

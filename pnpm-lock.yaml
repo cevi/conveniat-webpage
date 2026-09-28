@@ -215,6 +215,9 @@ importers:
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+      file-type:
+        specifier: 21.3.4
+        version: 21.3.4
       firebase-admin:
         specifier: ^13.10.0
         version: 13.10.0(encoding@0.1.13)

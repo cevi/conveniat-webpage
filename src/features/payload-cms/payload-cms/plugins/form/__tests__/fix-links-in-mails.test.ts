@@ -9,7 +9,10 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
-jest.mock('@/lib/s3', () => ({ S3_BUCKET_NAME: 'bucket', s3Client: { send: jest.fn() } }));
+jest.mock('@/lib/s3', () => ({
+  FORM_FILE_BUCKET_NAME: 'form-files',
+  s3Client: { send: jest.fn() },
+}));
 jest.mock('@aws-sdk/client-s3', () => ({ GetObjectCommand: jest.fn() }));
 jest.mock('@/features/payload-cms/payload-cms/utils/phone-link-html-converter', () => ({
   phoneLinkHTMLConverters: {},
@@ -100,5 +103,79 @@ describe('beforeEmailChangeHook — reserved placeholders', () => {
     ]);
     expect(html).toContain('Antwort submission-1');
     expect(html).not.toContain('forged-id');
+  });
+});
+
+/** The text a mail client shows for the HTML, with the character references decoded. */
+const readerSees = (html: string): string =>
+  html.replaceAll(/&#(\d+);/g, (_match, code: string) => String.fromCodePoint(Number(code)));
+
+describe('beforeEmailChangeHook — placeholders in answers', () => {
+  const submittedPlaceholders = [
+    '{{approval-link}}',
+    '{{approval-link::ok}}',
+    '{{ approval-link : Freigeben }}',
+    '{{approvalUrl}}',
+    '{{formSubmissionID}}',
+    '{{*:table}}',
+  ];
+
+  it.each(submittedPlaceholders)('shows an answer of %s as text in the message', async (value) => {
+    const html = await sentHtmlFor('Name: {{name}}', [{ field: 'name', value }]);
+    expect(html).not.toContain('approve?token=');
+    expect(html).not.toContain('submission-1');
+    expect(html).not.toContain('<table');
+    expect(readerSees(html)).toContain(`Name: ${value}`);
+  });
+
+  it.each(submittedPlaceholders)(
+    'shows an answer of %s as text in the {{*:table}}',
+    async (value) => {
+      const html = await sentHtmlFor('{{*:table}}', [{ field: 'name', value }]);
+      expect(html).not.toContain('approve?token=');
+      expect(html).not.toContain('submission-1');
+      expect(readerSees(html)).toContain(`<td>${value}</td>`);
+    },
+  );
+
+  it('shows a field named {{approval-link}} as text in the {{*}} list', async () => {
+    const html = await sentHtmlFor('{{*}}', [{ field: '{{approval-link}}', value: 'Züri 11' }]);
+    expect(html).not.toContain('approve?token=');
+    expect(readerSees(html)).toContain('<strong>{{approval-link}}</strong>: Züri 11');
+  });
+
+  it('still links the approval placeholder the message itself contains', async () => {
+    const html = await sentHtmlFor('{{approval-link :: Freigeben}} für {{hof}}', [
+      { field: 'hof', value: '{{approval-link::ok}}' },
+    ]);
+    expect(html).toContain(`<a href="${APPROVAL_URL}">Freigeben</a> für `);
+    expect(html.split('approve?token=')).toHaveLength(2);
+  });
+
+  it('still lists every answer in the {{*:table}}', async () => {
+    const html = await sentHtmlFor('{{*:table}}', [
+      { field: 'hof', value: 'Cevi Uster' },
+      { field: 'anzahl', value: '42' },
+    ]);
+    expect(html).toContain('<tr><td><strong>hof</strong></td><td>Cevi Uster</td></tr>');
+    expect(html).toContain('<tr><td><strong>anzahl</strong></td><td>42</td></tr>');
+  });
+
+  it('leaves an answer the subject names as text', async () => {
+    mockPayload.findByID.mockResolvedValue(formWithMessage('Danke'));
+    // The form builder fills the subject in before the hook, in one pass
+    const email = { to: 'avp@example.com', subject: 'Anmeldung {{approval-link}}', html: '' };
+    await beforeEmailChangeHook([email as FormattedEmail], {
+      doc: {
+        id: 'submission-1',
+        form: 'form-1',
+        approvalToken: APPROVAL_TOKEN,
+        submissionData: [],
+      },
+    } as unknown as Parameters<typeof beforeEmailChangeHook>[1]);
+    const [[{ data }]] = mockPayload.create.mock.calls as unknown as [
+      [{ data: { subject: string } }],
+    ];
+    expect(data.subject).toBe('Anmeldung {{approval-link}}');
   });
 });

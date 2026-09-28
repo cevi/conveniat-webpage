@@ -8951,7 +8951,10 @@ export interface SupportChatManagement {
  */
 export interface AllChatsManagement {
   id: string;
-  dummy?: string | null;
+  /**
+   * How many members, the creator included, a group chat created by a participant may have. Groups set up by admins and announcement channels have no limit.
+   */
+  maxGroupMembers: number;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -9652,7 +9655,7 @@ export interface SupportChatManagementSelect<T extends boolean = true> {
  * via the `definition` "all-chats-management_select".
  */
 export interface AllChatsManagementSelect<T extends boolean = true> {
-  dummy?: T;
+  maxGroupMembers?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

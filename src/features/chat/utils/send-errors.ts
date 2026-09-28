@@ -28,3 +28,11 @@ export const isRetryableSendError = (error: unknown): boolean => {
   const code = (error as TRPCClientError<AppRouter>).data?.code;
   return code !== undefined && RETRYABLE_CODES.has(code);
 };
+
+/**
+ * Whether the server turned the call away because the user sent too much too fast. The
+ * error message is already in the user's language and says how to go on, so show it as is.
+ */
+export const isRateLimitError = (error: unknown): error is TRPCClientError<AppRouter> =>
+  error instanceof TRPCClientError &&
+  (error as TRPCClientError<AppRouter>).data?.code === 'TOO_MANY_REQUESTS';

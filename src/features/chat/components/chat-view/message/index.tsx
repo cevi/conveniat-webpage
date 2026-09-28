@@ -334,6 +334,10 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         isCurrentUser ? 'justify-end' : 'justify-start',
         isHighlighted && 'animate-message-highlight rounded-xl',
         isSelected && (isCurrentUser ? 'bg-blue-50' : 'bg-gray-50'),
+        // the swipe transform makes every bubble its own stacking context, so the reaction
+        // bar's z-index only counts inside this row; lift the row over its neighbours and
+        // the sticky day divider, or the next bubble covers a bar opened below
+        isSelected && 'z-30',
       )}
       onPointerEnter={(event) => {
         if (event.pointerType === 'mouse') setIsHovered(true);
@@ -421,7 +425,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           <div
             className={cn(
               'font-body relative rounded-2xl px-4 py-2.5 shadow-sm transition-transform duration-150',
-              'max-w-full min-w-[100px]',
+              // `anywhere`, not `break-word`: only it lowers the min-content width, so a long URL
+              // wraps inside the bubble instead of stretching it past the screen edge
+              'max-w-full min-w-[100px] wrap-anywhere',
               isCurrentUser
                 ? 'bg-cevi-blue text-white'
                 : 'border border-gray-100 bg-white text-gray-800',
@@ -434,9 +440,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               (isLongPressing || isSelected) && 'scale-[0.98]',
               isSelected && 'ring-cevi-blue/30 ring-2',
             )}
-            style={{
-              overflowWrap: 'break-word',
-            }}
           >
             {/* Thread Root Label */}
             {isThreadRoot && (

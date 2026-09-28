@@ -1,17 +1,22 @@
+import { ONLINE_WINDOW_MS } from '@/features/chat/constants';
 import { trpc } from '@/trpc/client';
 import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 
 /**
- *
- * useOnlinePing is a custom hook that pings the server at a specified interval
- * and set the online status of the current user.
- *
- * @param pingInterval
+ * Leaves each ping 5 s to reach the server before the last one drops out of the online
+ * window, and is no shorter than that: every ping is a row update on `User`.
  */
-export const useOnlinePing = (
-  pingInterval: number = 10_000, // Default to 10 seconds
-): void => {
+const ONLINE_PING_INTERVAL_MS = ONLINE_WINDOW_MS - 5000;
+
+/**
+ * Keeps the current user shown as online while the chat is on screen.
+ *
+ * Pings only while the page is visible: a phone with the chat open in the background is
+ * not someone who can answer, and at camp scale those pings kept Postgres busy all night.
+ * Coming back to the page pings at once instead of waiting for the next tick.
+ */
+export const useOnlinePing = (): void => {
   const { status } = useSession();
 
   const { mutate: ping } = trpc.chat.onlinePing.useMutation({
@@ -24,13 +29,26 @@ export const useOnlinePing = (
       return;
     }
 
-    // Immediately ping on mount
-    ping({});
+    let interval: ReturnType<typeof setInterval> | undefined;
 
-    // Set up the interval for continuous pings
-    const interval = setInterval(() => ping({}), pingInterval);
+    const stop = (): void => {
+      clearInterval(interval);
+      interval = undefined;
+    };
 
-    // Clean up the interval on unmount
-    return (): void => clearInterval(interval);
-  }, [pingInterval, ping, status]);
+    const handleVisibilityChange = (): void => {
+      stop();
+      if (document.visibilityState !== 'visible') return;
+      ping({});
+      interval = setInterval(() => ping({}), ONLINE_PING_INTERVAL_MS);
+    };
+
+    handleVisibilityChange();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return (): void => {
+      stop();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [ping, status]);
 };

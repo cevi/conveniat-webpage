@@ -4,7 +4,7 @@ import { AppFooterController } from '@/components/footer/hide-footer-context';
 import React from 'react';
 
 export const ChatDetailsPageSkeleton: React.FC = () => (
-  <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col bg-gray-50 xl:top-[62px] xl:left-[480px] xl:z-0 xl:h-[calc(100dvh-62px)] xl:w-[calc(100dvw-480px)]">
+  <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
     <AppFooterController hideAppFooter />
     {/* Header */}
     <div className="flex h-16 items-center gap-3 border-b-2 border-gray-200 bg-white px-4">

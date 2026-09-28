@@ -1,42 +1,34 @@
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { formFileKey } from '@/lib/form-file-key';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
+import { fileTypeFromBuffer } from 'file-type/core';
 import { NextResponse } from 'next/server';
 import { createLocalReq, getPayload } from 'payload';
 
 const logger = createLogger('api:form-upload');
 
+/** The types each preset takes, as read from a file's bytes. */
 const PRESET_MIME_TYPES: Record<string, string[]> = {
-  pdf: ['application/pdf', '.pdf'],
-  images: [
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-    '.jpg',
-    '.jpeg',
-    '.png',
-    '.webp',
-    '.gif',
-  ],
+  pdf: ['application/pdf'],
+  images: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   documents: [
     'application/pdf',
-    'application/msword',
+    // .doc and .xls are both Compound File Binary files, which is as far as their bytes tell
+    'application/x-cfb',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
-    '.pdf',
-    '.doc',
-    '.docx',
-    '.xls',
-    '.xlsx',
-    '.txt',
   ],
 };
 
+/**
+ * Whether a field takes a file. A preset is checked against the type read from the file's
+ * bytes, never the one the browser declares, which is the sender's word.
+ */
 function isFileTypeAllowed(
-  file: File,
+  fileName: string,
+  detectedType: string | undefined,
   allowedTypeConfig?: string,
   customTypesConfig?: string,
 ): boolean {
@@ -44,8 +36,7 @@ function isFileTypeAllowed(
     return true;
   }
 
-  const fileNameLower = file.name.toLowerCase();
-  const fileTypeLower = file.type.toLowerCase();
+  const fileNameLower = fileName.toLowerCase();
 
   if (allowedTypeConfig === 'custom') {
     if (customTypesConfig === undefined || customTypesConfig.trim() === '') return true;
@@ -59,10 +50,9 @@ function isFileTypeAllowed(
   const allowedPresets = PRESET_MIME_TYPES[allowedTypeConfig];
   if (allowedPresets === undefined) return true;
 
-  return (
-    allowedPresets.includes(fileTypeLower) ||
-    allowedPresets.some((preset) => preset.startsWith('.') && fileNameLower.endsWith(preset))
-  );
+  if (detectedType !== undefined) return allowedPresets.includes(detectedType);
+  // plain text carries no signature, so its name is all there is to go by
+  return allowedPresets.includes('text/plain') && fileNameLower.endsWith('.txt');
 }
 
 interface FormFieldObject {
@@ -230,8 +220,16 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    // Stored as the file's type and served with it, so a file claiming to be a PDF but holding
+    // markup never reaches a browser as markup. A file whose bytes say nothing downloads.
+    const detected = await fileTypeFromBuffer(buffer);
+    const detectedType = detected?.mime;
+    const mimeType = detectedType ?? 'application/octet-stream';
+
     const isAllowed = isFileTypeAllowed(
-      file,
+      file.name,
+      detectedType,
       matchedField.allowedFileTypes,
       matchedField.customAllowedFileTypes,
     );
@@ -241,9 +239,6 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 400 },
       );
     }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     const fileDocument = await payload.create({
       collection: 'form_collection',
@@ -255,8 +250,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
       file: {
         data: buffer,
-        mimetype: file.type.length > 0 ? file.type : 'application/octet-stream',
-        name: file.name,
+        mimetype: mimeType,
+        // The stored name is the object key, which the sender must not choose: named like a
+        // public image, it would overwrite it. Downloads are named after `originalFilename`.
+        name: formFileKey(file.name),
         size: file.size,
       },
       req: { user },
@@ -266,7 +263,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       docId: fileDocument.id,
       filename: file.name,
       filesize: file.size,
-      mimetype: file.type,
+      mimetype: mimeType,
       url: typeof fileDocument.url === 'string' ? fileDocument.url : undefined,
     });
   } catch (error) {

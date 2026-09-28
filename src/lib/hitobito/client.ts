@@ -5,7 +5,16 @@ import {
   extractFormFields,
 } from '@/lib/hitobito/html-parser';
 import type { Logger, RequestOptions } from '@/lib/hitobito/types';
+import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
+
+/**
+ * One line per request to Cevi.DB, at debug: a Hof sync alone sends several hundred. Written
+ * here rather than through the caller's logger, which may be pino or a billing logger with
+ * another signature, so every line has the same shape and filters as `hitobito:client`. It
+ * runs inside the request's span and carries its `trace_id`, which leads to the whole run.
+ */
+const requestLogger = createLogger('hitobito:client');
 
 export class FatalError extends Error {
   constructor(message: string) {
@@ -149,8 +158,7 @@ export class HitobitoClient {
         'http.url': url,
       });
 
-      this.logger?.info(`${method} ${url}`);
-
+      const startedAt = performance.now();
       const response = await this.fetchWithTimeout(url, {
         method,
         headers: {
@@ -169,6 +177,13 @@ export class HitobitoClient {
       } as RequestInit);
 
       span.setAttribute('http.status_code', response.status);
+      requestLogger.debug('Cevi.DB API request', {
+        'http.request.method': method,
+        // the path only: a person search puts names and email addresses in the query
+        'url.path': new URL(url).pathname,
+        'http.response.status_code': response.status,
+        'hitobito.duration_ms': Math.round(performance.now() - startedAt),
+      });
 
       if (!response.ok) {
         // Treat 404 on DELETE as success (idempotency)
@@ -229,8 +244,7 @@ export class HitobitoClient {
         headers.set('User-Agent', 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)');
       }
 
-      this.logger?.info(`Frontend ${method} ${url}`);
-
+      const startedAt = performance.now();
       const { response, finalUrl } = await this.fetchFollowingSameOriginRedirects(url, {
         ...options,
         method,
@@ -238,6 +252,13 @@ export class HitobitoClient {
       });
 
       span.setAttribute('http.status_code', response.status);
+      requestLogger.debug('Cevi.DB frontend request', {
+        'http.request.method': method,
+        // the path only: a person search puts names and email addresses in the query
+        'url.path': new URL(url).pathname,
+        'http.response.status_code': response.status,
+        'hitobito.duration_ms': Math.round(performance.now() - startedAt),
+      });
 
       // Drained before the check below, so a dead session does not leak the connection.
       const body = await response.text();
@@ -342,7 +363,12 @@ export class HitobitoClient {
       }
 
       const payloadString = payload.toString();
-      this.logger?.info(`submitRailsForm POST to ${postUrl} with ${payloadString.length} bytes`);
+      // the size only: the form carries a person's data and the authenticity token
+      requestLogger.debug('Submitting a Cevi.DB form', {
+        'http.request.method': method,
+        'url.path': postUrl,
+        'http.request.body.size': payloadString.length,
+      });
 
       const result = await this.frontendRequest('POST', postUrl, {
         headers: finalHeaders,

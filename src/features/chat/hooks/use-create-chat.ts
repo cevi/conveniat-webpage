@@ -6,7 +6,7 @@ import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { dropCachedEntry, generateChatId, generateMessageId } from '@/features/chat/utils';
 import { addMessageToOutbox } from '@/features/chat/utils/offline-outbox';
-import { isTransportError } from '@/features/chat/utils/send-errors';
+import { isRateLimitError, isTransportError } from '@/features/chat/utils/send-errors';
 import { ChatCapability, ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
@@ -74,9 +74,10 @@ export const useCreateChat = (): {
 
     onError: (error, variables) => {
       const optimisticChatId = variables.chatId;
-      if (isTransportError(error) && optimisticChatId !== undefined) {
+      if ((isTransportError(error) || isRateLimitError(error)) && optimisticChatId !== undefined) {
         // Keep the seeded caches in place: the chat stays open and writable, and the
-        // outbox replays the creation (under the very same id) once we are back online.
+        // outbox replays the creation (under the very same id) once we are back online,
+        // or once the rate limit lets this user create chats again.
         addMessageToOutbox({
           type: 'CREATE_CHAT',
           id: optimisticChatId,
@@ -85,7 +86,7 @@ export const useCreateChat = (): {
           createdAt: new Date().toISOString(),
           userId: currentUserId,
         });
-        toast.success('Chat queued. Will be created when online.');
+        if (isTransportError(error)) toast.success('Chat queued. Will be created when online.');
         return;
       }
 

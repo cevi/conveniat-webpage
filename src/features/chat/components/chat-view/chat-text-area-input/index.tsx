@@ -104,12 +104,6 @@ const emergencyLockedText: StaticTranslationString = {
   fr: "Cette alerte d'urgence a été marquée comme terminée. Plus aucun message ne peut être envoyé.",
 };
 
-const sendErrorMessageText: StaticTranslationString = {
-  de: 'Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.',
-  en: 'Failed to send message. Please try again.',
-  fr: "Échec de l'envoi du message. Veuillez réessayer.",
-};
-
 const messagingDisabledErrorText: StaticTranslationString = {
   de: 'Nachrichten sind derzeit deaktiviert. Bitte versuche es später erneut.',
   en: 'Messaging is currently disabled. Please try again later.',
@@ -147,7 +141,8 @@ export const ChatTextAreaInput: React.FC = () => {
       }
       return messagingDisabledErrorText[locale];
     }
-    return sendErrorMessageText[locale];
+    // anything else is a server message that already comes in the user's language
+    return error;
   };
 
   const isGuest =
