@@ -155,6 +155,21 @@ describe('GET /api/form-file/[id]', () => {
     expect(response.headers.get('Content-Type')).toBe('application/pdf');
   });
 
+  it('shows a PDF in the browser', async () => {
+    const response = await download(ANONYMOUS, fileOn({ approved: true }));
+    expect(response.headers.get('Content-Disposition')).toMatch(/^inline;/);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
+  it('downloads a file of a type a browser could run, instead of showing it', async () => {
+    const response = await download(ANONYMOUS, {
+      ...fileOn({ approved: true }),
+      mimeType: 'text/xml',
+    });
+    expect(response.headers.get('Content-Disposition')).toMatch(/^attachment;/);
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+  });
+
   it("serves a Hof's address administrator their own Hof's file, which the dashboard lists", async () => {
     const response = await download(
       HOF_NORD_ADMINISTRATOR,

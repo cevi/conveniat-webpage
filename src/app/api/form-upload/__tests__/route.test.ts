@@ -82,32 +82,40 @@ describe('GET /api/form-upload', () => {
 describe('POST /api/form-upload', () => {
   const mockPayload = { auth: jest.fn(), findByID: jest.fn(), create: jest.fn() };
 
+  const PDF = '%PDF-1.4\n%%EOF';
+  // markup a browser runs when it reads it as XHTML
+  const XHTML = '<html xmlns="http://www.w3.org/1999/xhtml"><script>alert(1)</script></html>';
+
+  /** Hands in a file on the form's upload field `plan`, which takes the given preset. */
+  const upload = (file: File, allowedFileTypes = 'pdf'): Promise<Response> => {
+    mockPayload.findByID.mockResolvedValue({
+      id: 'form-1',
+      sections: [
+        { formSection: { fields: [{ blockType: 'fileUpload', name: 'plan', allowedFileTypes }] } },
+      ],
+    });
+    const body = new FormData();
+    body.set('file', file);
+    body.set('formId', 'form-1');
+    body.set('fieldName', 'plan');
+    return POST(new Request('http://localhost/api/form-upload', { method: 'POST', body }));
+  };
+
+  /** The type the upload was stored with. */
+  const storedType = (): string => {
+    const [[created]] = mockPayload.create.mock.calls as [[{ file: { mimetype: string } }]];
+    return created.file.mimetype;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     (getPayload as jest.Mock).mockResolvedValue(mockPayload);
     mockPayload.auth.mockResolvedValue({ user: PARTICIPANT });
-    mockPayload.findByID.mockResolvedValue({
-      id: 'form-1',
-      sections: [
-        {
-          formSection: {
-            fields: [{ blockType: 'fileUpload', name: 'plan', allowedFileTypes: 'pdf' }],
-          },
-        },
-      ],
-    });
     mockPayload.create.mockResolvedValue({ id: FILE_ID });
   });
 
   it('records who uploaded the file, so only they can attach it', async () => {
-    const body = new FormData();
-    body.set('file', new File(['%PDF'], 'plan.pdf', { type: 'application/pdf' }));
-    body.set('formId', 'form-1');
-    body.set('fieldName', 'plan');
-
-    const response = await POST(
-      new Request('http://localhost/api/form-upload', { method: 'POST', body }),
-    );
+    const response = await upload(new File([PDF], 'plan.pdf', { type: 'application/pdf' }));
 
     expect(response.status).toBe(200);
     expect(mockPayload.create).toHaveBeenCalledWith(
@@ -120,5 +128,40 @@ describe('POST /api/form-upload', () => {
         }) as unknown,
       }),
     );
+  });
+
+  it('stores the type read from the file, not the one the browser declares', async () => {
+    const response = await upload(new File([PDF], 'plan.pdf', { type: 'text/xml' }));
+
+    expect(response.status).toBe(200);
+    expect(storedType()).toBe('application/pdf');
+  });
+
+  it('refuses markup on a PDF field, even named and declared as a PDF', async () => {
+    const response = await upload(new File([XHTML], 'plan.pdf', { type: 'application/pdf' }));
+
+    expect(response.status).toBe(400);
+    expect(mockPayload.create).not.toHaveBeenCalled();
+  });
+
+  it('stores a file whose bytes tell nothing as one to download, whatever it claims', async () => {
+    const response = await upload(new File([XHTML], 'plan.pdf', { type: 'text/xml' }), 'all');
+
+    expect(response.status).toBe(200);
+    expect(storedType()).toBe('application/octet-stream');
+  });
+
+  it('takes plain text and an old Word file on a documents field', async () => {
+    const text = await upload(new File(['Znacht um 18 Uhr'], 'notes.txt'), 'documents');
+    const word = await upload(
+      new File(
+        [Uint8Array.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), new Uint8Array(512)],
+        'plan.doc',
+      ),
+      'documents',
+    );
+
+    expect(text.status).toBe(200);
+    expect(word.status).toBe(200);
   });
 });
