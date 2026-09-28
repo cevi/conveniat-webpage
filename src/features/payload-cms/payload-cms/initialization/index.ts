@@ -1,5 +1,9 @@
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
+import {
+  migrateFormFiles,
+  s3FormFileStore,
+} from '@/features/payload-cms/payload-cms/initialization/migrate-form-files';
 import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
@@ -8,6 +12,7 @@ import {
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
 import { refreshUserHoefe } from '@/features/payload-cms/payload-cms/utils/hof-membership';
 import prisma from '@/lib/db/prisma';
+import { FORM_FILE_BUCKET_NAME, S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { withSpan } from '@/utils/tracing-helpers';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
@@ -190,6 +195,17 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // has its Höfe in the legacy bill settings. Only a seeded database can have those.
       await withSpan('payload.init.migrateLegacyHoefe', async () => {
         await migrateLegacyHoefe(payload);
+      });
+
+      // Awaited, so no request looks for a form file in the bucket it is being moved into.
+      // A failure leaves the files where they were and is retried on the next start.
+      await withSpan('payload.init.migrateFormFiles', async () => {
+        await migrateFormFiles(payload, s3FormFileStore(s3Client), {
+          formFiles: FORM_FILE_BUCKET_NAME,
+          shared: S3_BUCKET_NAME,
+        });
+      }).catch((error: unknown) => {
+        payload.logger.error({ err: error }, 'Moving the form files into their bucket failed');
       });
 
       // In the background: fills the Höfe of every user the first time, and afterwards

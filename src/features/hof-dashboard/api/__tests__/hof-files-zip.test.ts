@@ -93,7 +93,7 @@ const mockSend = jest.fn(({ input }: { input: { Key: string } }) => {
   });
 });
 jest.mock('@/lib/s3', () => ({
-  S3_BUCKET_NAME: 'bucket',
+  FORM_FILE_BUCKET_NAME: 'form-files',
   s3Client: {
     send: (command: unknown): unknown => mockSend(command as { input: { Key: string } }),
   },

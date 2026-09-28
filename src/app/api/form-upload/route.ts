@@ -1,4 +1,5 @@
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { formFileKey } from '@/lib/form-file-key';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { fileTypeFromBuffer } from 'file-type/core';
@@ -250,7 +251,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       file: {
         data: buffer,
         mimetype: mimeType,
-        name: file.name,
+        // The stored name is the object key, which the sender must not choose: named like a
+        // public image, it would overwrite it. Downloads are named after `originalFilename`.
+        name: formFileKey(file.name),
         size: file.size,
       },
       req: { user },

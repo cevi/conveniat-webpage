@@ -2,7 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { mayOpenHof } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { FormCollection, FormSubmission } from '@/features/payload-cms/payload-types';
-import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { FORM_FILE_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { createLogger } from '@/utils/server-logger';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
@@ -139,7 +139,7 @@ export async function GET(
     }
 
     const getCommand = new GetObjectCommand({
-      Bucket: S3_BUCKET_NAME,
+      Bucket: FORM_FILE_BUCKET_NAME,
       Key: fileDocument.filename,
     });
 
