@@ -323,20 +323,16 @@ export async function sendNotificationToSubscription(
         throw new Error(`Native push token is missing for platform: ${subscription.platform}`);
       }
 
+      // Only this deployment's own host is cut down to a path. A link to another host, like
+      // the short domain con27.ch, stays whole: the page follows it with a full navigation,
+      // and con27.ch redirects back here through `/go`. Its path alone, `/agbs`, is a 404.
       let normalizedUrl = urlToSend;
-      if (normalizedUrl) {
-        if (NEXT_PUBLIC_APP_HOST_URL && normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)) {
-          normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
-        } else {
-          try {
-            if (normalizedUrl.startsWith('http://') || normalizedUrl.startsWith('https://')) {
-              const parsed = new URL(normalizedUrl);
-              normalizedUrl = parsed.pathname + parsed.search;
-            }
-          } catch {
-            // ignore URL parse errors
-          }
-        }
+      if (
+        normalizedUrl !== undefined &&
+        NEXT_PUBLIC_APP_HOST_URL &&
+        normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)
+      ) {
+        normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
       }
 
       let chatIdFromUrl: string | undefined;

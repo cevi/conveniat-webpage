@@ -9,6 +9,7 @@ import {
   extractNotificationType,
   useNativePush,
 } from '@/hooks/use-native-push';
+import { assignLocation } from '@/utils/assign-location';
 import {
   notifyForegroundMessage,
   resetForegroundNotificationState,
@@ -18,6 +19,10 @@ import { act, renderHook } from '@testing-library/react';
 
 jest.mock('@/utils/reload-page', () => ({
   reloadPage: jest.fn(),
+}));
+
+jest.mock('@/utils/assign-location', () => ({
+  assignLocation: jest.fn(),
 }));
 
 const mockToast = jest.fn();
@@ -171,7 +176,9 @@ describe('useNativePush', () => {
     const event = new CustomEvent('app-webview-native-push-event', {
       detail: {
         type: 'native-push-open',
-        payload: { url: 'https://konekta.ch/app/chat/550e8400-e29b-41d4-a716-446655440000' },
+        payload: {
+          url: `${globalThis.location.origin}/app/chat/550e8400-e29b-41d4-a716-446655440000`,
+        },
       },
     });
 
@@ -180,6 +187,31 @@ describe('useNativePush', () => {
     });
 
     expect(mockPush).toHaveBeenCalledWith('/app/chat/550e8400-e29b-41d4-a716-446655440000');
+  });
+
+  it('opens a link to another origin, like the short domain, as a full navigation', () => {
+    sessionStorage.clear();
+    localStorage.clear();
+    renderHook(() => useNativePush());
+
+    act(() => {
+      globalThis.dispatchEvent(openEvent('https://con27.ch/agbs', false));
+    });
+
+    expect(assignLocation).toHaveBeenCalledWith('https://con27.ch/agbs');
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(localStorage.getItem('pending_push_redirect')).toBeNull();
+  });
+
+  it('falls back to /app/dashboard for a URL that is not http(s)', () => {
+    renderHook(() => useNativePush());
+
+    act(() => {
+      globalThis.dispatchEvent(openEvent('javascript:alert(1)', false));
+    });
+
+    expect(assignLocation).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
   });
 
   it('prioritizes chatId over generic fallback dashboard url', () => {
