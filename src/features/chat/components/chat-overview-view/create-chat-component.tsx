@@ -173,6 +173,11 @@ export const CreateNewChatPage: React.FC = () => {
       if (maxGroupMembers !== undefined && previous.length + 1 >= maxGroupMembers) return previous;
       return [...previous, contact];
     });
+    // the search found this contact; the next one is most likely someone else
+    const isAdded =
+      !selectedContacts.some((c) => c.userId === contact.userId) &&
+      (maxGroupMembers === undefined || selectedContacts.length + 1 < maxGroupMembers);
+    if (isAdded) setSearchQuery('');
   };
 
   const handleCreateChat = (): void => {

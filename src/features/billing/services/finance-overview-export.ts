@@ -1,4 +1,7 @@
-import { BANANA_COLUMNS, findFinanceCsvRows } from '@/features/billing/services/csv-export-service';
+import {
+  FINANCE_COLUMNS,
+  findFinanceCsvRows,
+} from '@/features/billing/services/csv-export-service';
 import type { FinanceCsvRow } from '@/features/billing/types';
 import ExcelJS from 'exceljs';
 import type { Payload } from 'payload';
@@ -12,23 +15,25 @@ const COLUMN_WIDTHS: Record<keyof FinanceCsvRow, number> = {
   Description: 60,
   AccountDebit: 14,
   AccountCredit: 14,
+  Storniert: 10,
+  Stornogrund: 60,
 };
 
 /**
- * Writes the Banana bookings into a workbook, with the same columns and values as the CSV
- * import.
+ * Writes every bill into a workbook, with the same columns and values as the CSV export.
  *
- * The finance team imports this file into Banana, so it carries nothing Banana would not
- * accept: no translated headers, no extra columns and no total row, which Banana would
- * book as one more transaction. Dates stay ISO text as in the CSV, and the reference stays
- * text so its 27 digits are not rounded to a float.
+ * The finance team imports this file into Banana, so the Banana columns keep their exact
+ * headers and there is no total row, which Banana would book as one more transaction.
+ * Cancelled bills are listed too, marked in `Storniert`, and have to be filtered out before
+ * an import. Dates stay ISO text as in the CSV, and the reference stays text so its 27
+ * digits are not rounded to a float.
  */
 export async function buildFinanceOverviewWorkbook(rows: FinanceCsvRow[]): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.created = new Date();
   const sheet = workbook.addWorksheet('Rechnungsübersicht');
 
-  sheet.columns = BANANA_COLUMNS.map((key) => ({
+  sheet.columns = FINANCE_COLUMNS.map((key) => ({
     header: key,
     key,
     width: COLUMN_WIDTHS[key],
@@ -46,7 +51,7 @@ export async function buildFinanceOverviewWorkbook(rows: FinanceCsvRow[]): Promi
   return Buffer.from(buffer);
 }
 
-/** Loads every raised bill and renders the Banana workbook for it. */
+/** Loads every bill ever raised and renders the workbook for it. */
 export async function generateFinanceOverviewWorkbook(payload: Payload): Promise<Buffer> {
   return buildFinanceOverviewWorkbook(await findFinanceCsvRows(payload));
 }

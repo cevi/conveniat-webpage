@@ -1,4 +1,3 @@
-import { ACCOUNTED_STATUSES } from '@/features/billing/services/billing-status';
 import { buildFinanceCsvRows } from '@/features/billing/services/csv-export-service';
 import { buildFinanceOverviewWorkbook } from '@/features/billing/services/finance-overview-export';
 import type { WeeklyReport } from '@/features/billing/services/weekly-report';
@@ -219,10 +218,9 @@ export async function sendWeeklyReport(
     // 2. Prepare Excel attachment if enabled and finance recipients exist
     let excelAttachment: { filename: string; content: Buffer } | undefined;
     if (config?.attachExcel !== false && financeRecipients.length > 0) {
-      const billed = participants.filter((participant) =>
-        (ACCOUNTED_STATUSES as readonly string[]).includes(participant.status),
-      );
-      const rows = buildFinanceCsvRows(billed, settings);
+      // Every registration: the rows carry every bill they were ever given, whatever their
+      // status today, and a row without a bill yields no line.
+      const rows = buildFinanceCsvRows(participants, settings);
       excelAttachment = {
         filename: `rechnungsuebersicht-${stamp}.xlsx`,
         content: await buildFinanceOverviewWorkbook(rows),

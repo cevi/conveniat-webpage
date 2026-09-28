@@ -7,12 +7,13 @@ import { DynamicAppTitleProvider } from '@/components/header/dynamic-app-title-n
 import { HeaderClientWrapper } from '@/components/header/header-client-wrapper';
 import { HideHeaderProvider } from '@/components/header/hide-header-context';
 import { NativePushProvider } from '@/components/native-push-provider';
+import { OfflineBanner } from '@/components/offline-banner';
 import { useHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { ClientProviders } from '@/context/client-providers';
 import { OfflineQueueSync } from '@/features/chat/hooks/use-offline-queue-processor';
 import { PostHogProvider } from '@/providers/post-hog-provider';
 import { TRPCProvider } from '@/trpc/client';
-import type { NavigationMode } from '@/types/types';
+import type { Locale, NavigationMode } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { ReactNode } from 'react';
 import React from 'react';
@@ -23,6 +24,7 @@ interface AppShellProperties {
   header: ReactNode;
   footer?: ReactNode;
   inAppDesign: boolean;
+  locale: Locale;
   swUrl?: string;
   navigationMode?: NavigationMode;
 }
@@ -35,6 +37,7 @@ export const AppShell: React.FC<AppShellProperties> = ({
   children,
   header,
   footer,
+  locale,
   navigationMode = 'side-nav',
 }) => {
   const { hideBackgroundLogo } = useHideBackgroundLogo();
@@ -77,6 +80,11 @@ export const AppShell: React.FC<AppShellProperties> = ({
                   )}
                 >
                   <main className="flex min-h-full flex-col justify-between">
+                    {/* below xl the round logo hangs out of the header, over the banner's start */}
+                    <OfflineBanner
+                      locale={locale}
+                      className="sticky top-(--app-header-height) z-40 pl-28 xl:pl-4"
+                    />
                     <div className="flex-1">
                       <ErrorBoundary FallbackComponent={AppErrorFallback}>{children}</ErrorBoundary>
                     </div>

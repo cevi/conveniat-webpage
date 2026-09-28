@@ -119,6 +119,13 @@ const billedRow = (overrides: Record<string, unknown> = {}): BillParticipant =>
     ...overrides,
   }) as unknown as BillParticipant;
 
+/** What the sync wrote to one row, if it wrote to it at all. */
+const updateOf = (
+  update: jest.Mocked<ParticipantRepositoryPort>['update'],
+  id: string,
+): Partial<BillParticipant> | undefined =>
+  update.mock.calls.find(([documentId]) => documentId === id)?.[1];
+
 describe('Sync Service', () => {
   let mockParticipantRepo: jest.Mocked<ParticipantRepositoryPort>;
   let mockHitobitoService: jest.Mocked<HitobitoServicePort>;
@@ -742,6 +749,96 @@ describe('Sync Service', () => {
       expect(update?.status).toBeUndefined();
       expect(summary.needsReviewCount).toBe(0);
       expect(summary.unchangedCount).toBe(1);
+    });
+  });
+
+  describe('a registration the Cevi.DB no longer lists', () => {
+    /** Four registrations stay, so losing one is well below the drop guard. */
+    const staying = ['part-2', 'part-3', 'part-4', 'part-5'];
+
+    const syncWithout = async (
+      vanished: BillParticipant,
+      listed: SyncedExternalParticipant[] = staying.map((id) =>
+        externalParticipant({ participationId: id, participantId: `user-${id}` }),
+      ),
+    ): Promise<Awaited<ReturnType<typeof syncParticipantsUseCase>>> => {
+      mockHitobitoService.fetchParticipations.mockResolvedValue(listed);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(null);
+      mockParticipantRepo.findRemovedParticipant.mockResolvedValue(null);
+      mockParticipantRepo.findActiveForEvent.mockResolvedValue([
+        vanished,
+        ...staying.map((id) =>
+          billedRow({ id: `doc-${id}`, participationUuid: id, status: 'new', invoiceNumber: null }),
+        ),
+      ]);
+      return syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+    };
+
+    it('cancels a bill that was already sent, and says so in the history', async () => {
+      const summary = await syncWithout(
+        billedRow({ status: 'bill_sent', billSentDate: '2027-01-06T10:00:00Z' }),
+      );
+
+      const removal = updateOf(mockParticipantRepo.update, 'doc-1');
+      expect(removal?.status).toBe('removed');
+      const history = removal?.syncHistory as unknown as {
+        action: string;
+        reviewReason?: string;
+      }[];
+      expect(history.at(-1)).toMatchObject({
+        action: 'removed_detected',
+        reviewReason:
+          'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden. Die Rechnung 2027-0001 war ' +
+          'bereits versendet und wurde deshalb storniert.',
+      });
+      expect(summary.removedCount).toBe(1);
+    });
+
+    it('cancels a bill parked for manual review as well', async () => {
+      await syncWithout(billedRow({ status: 'needs_manual_review', billSentDate: null }));
+
+      const removal = updateOf(mockParticipantRepo.update, 'doc-1');
+      expect(removal?.status).toBe('removed');
+      const history = removal?.syncHistory as unknown as { reviewReason?: string }[];
+      expect(history.at(-1)?.reviewReason).toContain(
+        'Die Rechnung 2027-0001 wurde deshalb storniert.',
+      );
+    });
+
+    it('removes nothing when one of the registrations could not be read', async () => {
+      const summary = await syncWithout(billedRow({ status: 'bill_sent' }), [
+        ...staying.map((id) =>
+          externalParticipant({ participationId: id, participantId: `user-${id}` }),
+        ),
+        externalParticipant({ participationId: 'part-6', participantId: '' }),
+      ]);
+
+      expect(updateOf(mockParticipantRepo.update, 'doc-1')).toBeUndefined();
+      expect(summary.removedCount).toBe(0);
+      expect(summary.errors.at(-1)).toContain('Abmeldungen wurden nicht übernommen');
+    });
+
+    it('removes nothing when the Cevi.DB list could not be read', async () => {
+      mockHitobitoService.fetchParticipations.mockRejectedValue(
+        new Error('Cevi.DB meldet für Anlass event-1 5 Anmeldungen, abgerufen wurden 4.'),
+      );
+      mockParticipantRepo.findActiveForEvent.mockResolvedValue([billedRow()]);
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(mockParticipantRepo.update).not.toHaveBeenCalled();
+      expect(summary.errors).toHaveLength(1);
     });
   });
 });

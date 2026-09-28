@@ -16,7 +16,8 @@ export const HOF_DASHBOARD_AREA_LABELS: Record<HofDashboardArea, StaticTranslati
 
 /**
  * How a form's submissions read on the dashboard: as versions of one thing, where only the
- * newest counts, like a plan, or as separate entries, like the stands of the Stadtleben.
+ * newest counts, like a plan or a Hof's one Stadtleben stand, or as separate entries, of which a
+ * Hof hands in several.
  */
 export const HOF_ENTRY_MODES = ['versions', 'entries'] as const;
 
@@ -24,14 +25,14 @@ export type HofEntryMode = (typeof HOF_ENTRY_MODES)[number];
 
 export const HOF_ENTRY_MODE_LABELS: Record<HofEntryMode, StaticTranslationString> = {
   versions: {
-    de: 'Versionen: nur die neueste Antwort zählt (z.B. eine Planung)',
-    en: 'Versions: only the newest submission counts (e.g. a plan)',
-    fr: 'Versions : seule la réponse la plus récente compte (p. ex. des plans)',
+    de: 'Versionen: nur die neueste Antwort zählt (z.B. eine Planung oder der Stand im Stadtleben)',
+    en: 'Versions: only the newest submission counts (e.g. a plan or the Stadtleben stand)',
+    fr: 'Versions : seule la réponse la plus récente compte (p. ex. des plans ou le stand du Stadtleben)',
   },
   entries: {
-    de: 'Einträge: jede Antwort zählt für sich (z.B. Stände im Stadtleben)',
-    en: 'Entries: every submission counts on its own (e.g. Stadtleben stands)',
-    fr: 'Entrées : chaque réponse compte pour elle-même (p. ex. stands du Stadtleben)',
+    de: 'Einträge: jede Antwort zählt für sich, ein Hof gibt mehrere ab',
+    en: 'Entries: every submission counts on its own, a Hof hands in several',
+    fr: 'Entrées : chaque réponse compte pour elle-même, un Hof en dépose plusieurs',
   },
 };
 

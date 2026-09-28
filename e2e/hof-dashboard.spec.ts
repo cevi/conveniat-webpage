@@ -162,17 +162,17 @@ const PROGRAM = dashboardForm('form-program', {
   ],
 });
 
-/** Stadtleben stands: every entry counts on its own. */
-const STANDS = dashboardForm('form-stands', {
+/** Schichteinsätze: a Hof hands in several, and every entry counts on its own. */
+const SHIFTS = dashboardForm('form-shifts', {
   area: 'program',
   mode: 'entries',
-  title: 'Stadtleben',
+  title: 'Schichteinsätze',
   deadline: inDays(60),
-  fields: [{ blockType: 'text', name: 'stand', label: 'Stand', required: true }],
+  fields: [{ blockType: 'text', name: 'einsatz', label: 'Einsatz', required: true }],
   entries: [
-    entry('stand-1', {
-      title: 'Crêpes',
-      answers: [{ field: 'stand', label: 'Stand', kind: 'text', text: 'Crêpes' }],
+    entry('shift-1', {
+      title: 'Küche',
+      answers: [{ field: 'einsatz', label: 'Einsatz', kind: 'text', text: 'Küche' }],
     }),
   ],
 });
@@ -690,7 +690,7 @@ test.describe('Hof dashboard', () => {
         [HOF_NORD.id]: {
           ...dashboardOf(
             HOF_NORD,
-            [PLAN, TENT, PROGRAM, STANDS, FINAL_ORDER].map((form) => forReviewer(form)),
+            [PLAN, TENT, PROGRAM, SHIFTS, FINAL_ORDER].map((form) => forReviewer(form)),
           ),
           isReviewer: true,
         },
@@ -751,10 +751,10 @@ test.describe('Hof dashboard', () => {
     const program = formCard(page, 'form-program');
     await expect(program.getByRole('button', { name: /abgeben/ })).toHaveCount(0);
     await expect(program.getByRole('button', { name: 'Zurückziehen' })).toHaveCount(0);
-    // each Stadtleben stand stands on its own: none is the last one
-    const stands = formCard(page, 'form-stands');
-    await expect(stands.getByRole('radio', { name: 'Eingereicht' })).toBeVisible();
-    await expect(stands.getByRole('checkbox')).toHaveCount(0);
+    // each entry stands on its own: none is the last one
+    const shifts = formCard(page, 'form-shifts');
+    await expect(shifts.getByRole('radio', { name: 'Eingereicht' })).toBeVisible();
+    await expect(shifts.getByRole('checkbox')).toHaveCount(0);
     const loadsBefore = backend.loads(HOF_NORD.id);
     // accepting is the approval the form builder knows
     await program.getByRole('radio', { name: 'Freigegeben' }).click();

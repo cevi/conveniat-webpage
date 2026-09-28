@@ -4667,6 +4667,20 @@ export interface BillParticipant {
       }[]
     | null;
   billPdfs?: (string | BillPdf)[] | null;
+  /**
+   * Every bill raised for this registration, including replaced and cancelled ones.
+   */
+  issuedBills?:
+    | {
+        invoiceNumber: string;
+        referenceNumber?: string | null;
+        invoiceAmount?: number | null;
+        billCreatedDate?: string | null;
+        cancelledDate?: string | null;
+        cancelReason?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   status:
     | 'new'
     | 'pflichtangaben_missing'
@@ -7317,6 +7331,17 @@ export interface BillParticipantsSelect<T extends boolean = true> {
         id?: T;
       };
   billPdfs?: T;
+  issuedBills?:
+    | T
+    | {
+        invoiceNumber?: T;
+        referenceNumber?: T;
+        invoiceAmount?: T;
+        billCreatedDate?: T;
+        cancelledDate?: T;
+        cancelReason?: T;
+        id?: T;
+      };
   status?: T;
   missingStammdaten?: T;
   missingAnmeldeangaben?: T;

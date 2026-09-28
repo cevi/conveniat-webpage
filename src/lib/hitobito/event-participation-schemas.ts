@@ -119,6 +119,12 @@ export const EventParticipationListResponseSchema = z.object({
       next: z.string().nullable().optional(),
     })
     .optional(),
+  /** Present when the request asks for `stats[total]=count`. */
+  meta: z
+    .object({
+      stats: z.object({ total: z.object({ count: z.number() }).optional() }).optional(),
+    })
+    .optional(),
 });
 
 /**

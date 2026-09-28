@@ -1,5 +1,6 @@
 'use client';
 import { AppFooterController } from '@/components/footer/hide-footer-context';
+import { OfflineBanner } from '@/components/offline-banner';
 import { ChatHeader, ChatHeaderSkeleton } from '@/features/chat/components/chat-view/chat-header';
 import { ChatSkeleton } from '@/features/chat/components/chat-view/chat-skeleton';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
@@ -102,6 +103,7 @@ const ChatNotMemberMessage: React.FC = () => {
 
 const ChatClientContent: React.FC = () => {
   const chatId = useChatId();
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const {
     data: chatDetails,
     isLoading,
@@ -134,6 +136,8 @@ const ChatClientContent: React.FC = () => {
     <div className="fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden bg-gray-50 xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <AppFooterController hideAppFooter />
       <ChatHeader />
+      {/* the chat covers the app shell and its banner on phones */}
+      <OfflineBanner locale={locale} />
       <RealtimeSyncBanner status={realtimeStatus} onReconnect={reconnectRealtime} />
       <div className="flex-1 overflow-hidden">
         <MessageList />

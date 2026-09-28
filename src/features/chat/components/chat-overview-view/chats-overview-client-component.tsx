@@ -67,8 +67,10 @@ const startConversationCTAText: StaticTranslationString = {
 const EmptyChatsState: React.FC<{
   searchQuery: string;
   onClearSearch: () => void;
+  /** Without it there is no way to start a chat, so the empty state offers none. */
+  canCreateChats: boolean;
   locale: Locale;
-}> = ({ searchQuery, onClearSearch, locale }) => {
+}> = ({ searchQuery, onClearSearch, canCreateChats, locale }) => {
   const isSearchActive = searchQuery !== '';
 
   return (
@@ -91,28 +93,32 @@ const EmptyChatsState: React.FC<{
         {isSearchActive ? noChatsFoundText[locale] : noChatsYetText[locale]}
       </h3>
 
-      <p className="font-body mt-2 max-w-xs text-sm leading-relaxed text-balance text-gray-500">
-        {isSearchActive ? adjustingSearchTermsText[locale] : newConversationText[locale]}
-      </p>
+      {(isSearchActive || canCreateChats) && (
+        <>
+          <p className="font-body mt-2 max-w-xs text-sm leading-relaxed text-balance text-gray-500">
+            {isSearchActive ? adjustingSearchTermsText[locale] : newConversationText[locale]}
+          </p>
 
-      <div className="mt-6 flex flex-col items-center gap-3">
-        {isSearchActive ? (
-          <Button
-            variant="outline"
-            className="font-body border-gray-300 hover:bg-gray-100"
-            onClick={onClearSearch}
-          >
-            {clearSearchText[locale]}
-          </Button>
-        ) : (
-          <Link href="/app/chat/new">
-            <Button className="bg-conveniat-green font-heading shadow-conveniat-green/20 rounded-xl px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
-              <MessageSquarePlus className="mr-2 h-4 w-4" />
-              {startConversationCTAText[locale]}
-            </Button>
-          </Link>
-        )}
-      </div>
+          <div className="mt-6 flex flex-col items-center gap-3">
+            {isSearchActive ? (
+              <Button
+                variant="outline"
+                className="font-body border-gray-300 hover:bg-gray-100"
+                onClick={onClearSearch}
+              >
+                {clearSearchText[locale]}
+              </Button>
+            ) : (
+              <Link href="/app/chat/new">
+                <Button className="bg-conveniat-green font-heading shadow-conveniat-green/20 rounded-xl px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 hover:bg-green-600">
+                  <MessageSquarePlus className="mr-2 h-4 w-4" />
+                  {startConversationCTAText[locale]}
+                </Button>
+              </Link>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -147,7 +153,6 @@ export const ChatsOverviewClientComponent: React.FC<{
     },
     {
       staleTime: 1000 * 60 * 5,
-      refetchOnMount: false,
       refetchOnWindowFocus: false,
     },
   );
@@ -267,6 +272,7 @@ export const ChatsOverviewClientComponent: React.FC<{
             <EmptyChatsState
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
+              canCreateChats={createChatsEnabled === true}
               locale={locale}
             />
           )}

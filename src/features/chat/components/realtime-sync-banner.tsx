@@ -1,6 +1,7 @@
 'use client';
 
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -33,6 +34,7 @@ interface RealtimeSyncBannerProperties {
  * moving - so without this the user keeps reading stale messages with no reason to
  * suspect it. Only `offline` is surfaced: `connecting` is transient and heals itself on
  * every navigation, and flashing a warning for it would train people to ignore the bar.
+ * Without any connection the offline banner already says why, and reconnecting cannot help.
  */
 export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
   status,
@@ -40,8 +42,9 @@ export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
   className,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const isOnline = useOnlineStatus();
 
-  if (status !== 'offline') return <></>;
+  if (status !== 'offline' || !isOnline) return <></>;
 
   return (
     <button

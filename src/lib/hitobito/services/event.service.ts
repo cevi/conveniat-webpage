@@ -248,7 +248,8 @@ export class EventService {
    *
    * Uses GET /api/event_participations with filter[event_id][eq] and
    * include=participant,roles to sideload person data and role types.
-   * Handles pagination automatically via links.next.
+   * Handles pagination automatically via links.next, and throws unless the pages add up
+   * to the total Cevi.DB reports.
    *
    * This replaces any browser-cookie-based scraping for reading event participants.
    * Falls back to legacy JSON API or HTML scraping if the participant profile is restricted.
@@ -269,8 +270,18 @@ export class EventService {
       const baseParameters: Record<string, string> = {
         'filter[event_id][eq]': eventId,
         include: 'participant,roles',
+        // Pages are cut from an ordered list. Without an order of its own a Hof's list is
+        // ordered by role and name, which ties, so a participation could land on two pages
+        // and another on none — and the one on none reads as a deregistration. The `next`
+        // link carries these parameters on to every later page.
+        sort: 'id',
+        'page[size]': '100',
+        // The total is what the pages are checked against below.
+        'stats[total]': 'count',
       };
 
+      const seenParticipationIds = new Set<string>();
+      let reportedTotal: number | undefined;
       let isFirstPage = true;
 
       while (nextUrl !== null) {
@@ -295,6 +306,21 @@ export class EventService {
           );
         }
 
+        const pageTotal = parsed.data.meta?.stats?.total?.count;
+        if (pageTotal === undefined) {
+          throw new Error(
+            `Cevi.DB hat für Anlass ${eventId} keine Gesamtzahl der Anmeldungen geliefert, ` +
+              'die Vollständigkeit der Liste lässt sich nicht prüfen.',
+          );
+        }
+        if (reportedTotal !== undefined && reportedTotal !== pageTotal) {
+          throw new Error(
+            `Die Anmeldungen für Anlass ${eventId} haben sich während des Abrufs geändert ` +
+              `(${String(reportedTotal)}, dann ${String(pageTotal)}).`,
+          );
+        }
+        reportedTotal = pageTotal;
+
         // Collect included people resources
         if (parsed.data.included) {
           for (const included of parsed.data.included) {
@@ -316,6 +342,9 @@ export class EventService {
 
         // Process participation data
         for (const participation of parsed.data.data) {
+          if (seenParticipationIds.has(participation.id)) continue;
+          seenParticipationIds.add(participation.id);
+
           let participantId = '';
           const participantData = participation.relationships?.participant?.data;
           if (participantData) {
@@ -373,6 +402,16 @@ export class EventService {
         // eslint-disable-next-line unicorn/no-null -- API may return null for last page
         nextUrl = parsed.data.links?.next ?? null;
         isFirstPage = false;
+      }
+
+      // The caller treats a participation missing from this list as deregistered, and a
+      // deregistration cancels a bill. A list short of the total Cevi.DB reports is a
+      // failed read, never a smaller event.
+      if (allParticipations.length !== reportedTotal) {
+        throw new Error(
+          `Cevi.DB meldet für Anlass ${eventId} ${String(reportedTotal)} Anmeldungen, ` +
+            `abgerufen wurden ${String(allParticipations.length)}.`,
+        );
       }
 
       this.logger?.info(`Fetched ${allParticipations.length} participations for event ${eventId}`);

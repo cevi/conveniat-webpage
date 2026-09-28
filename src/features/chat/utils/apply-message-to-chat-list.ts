@@ -41,6 +41,7 @@ export const applyMessageToChatList = (
     lastMessage: {
       id: message.id,
       senderId: message.senderId ?? SYSTEM_SENDER_ID,
+      ...(message.senderName === undefined ? {} : { senderName: message.senderName }),
       messagePreview: getMessagePreviewText({
         contentVersions: [{ payload: message.messagePayload }],
       }),

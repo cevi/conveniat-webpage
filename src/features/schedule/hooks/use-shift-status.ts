@@ -33,10 +33,8 @@ export const useShiftStatus = (shiftId: string | undefined): ShiftStatusResult =
       enabled: shiftId !== undefined && shiftId !== '',
       staleTime: 1000 * 60 * 5,
       gcTime: 1000 * 60 * 60 * 24 * 7,
-      // The global default is `refetchOnMount: false`, which meant a cached value was never
-      // revalidated by reopening the shift — only a reconnect or an unrelated enrollment could
-      // clear it. Combined with the 7-day `gcTime` and disk persistence, one bad value stuck.
-      // A plain `true` would still respect `staleTime`, so a value cached less than five minutes
+      // With the 7-day `gcTime` and disk persistence, one bad value used to stick for days.
+      // A plain `true` respects `staleTime`, so a value cached less than five minutes
       // ago would survive the next visit; an empty status is never worth keeping for a moment, so
       // refetch it unconditionally and leave real data on the normal staleness schedule.
       refetchOnMount: (query) => (query.state.data == undefined ? 'always' : true),

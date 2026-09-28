@@ -1,4 +1,12 @@
+import {
+  summarizeHofSubmission,
+  type HofSubmissionSummary,
+} from '@/features/hof-dashboard/api/hof-submission-summary';
+import { HOF_ENTRY_STATUS_LABELS, type HofEntryStatus } from '@/features/hof-dashboard/constants';
+import { translate as translateHof } from '@/features/hof-dashboard/texts';
 import { escapeHTML } from '@/features/payload-cms/payload-cms/utils/html-utils';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { revalidateTag } from 'next/cache';
@@ -9,10 +17,77 @@ const APPROVED_BY_LINK = 'Freigabe-Link (E-Mail)';
 
 const logger = createLogger('api:form-submission-approval');
 
+const TEXT = {
+  failedTitle: {
+    de: 'Freigabe fehlgeschlagen',
+    en: 'Approval failed',
+    fr: 'Échec de la validation',
+  },
+  noToken: {
+    de: 'Es wurde kein gültiger Freigabe-Token in der Anfrage übermittelt.',
+    en: 'The request carried no valid approval token.',
+    fr: 'La requête ne contient aucun jeton de validation valide.',
+  },
+  invalidTitle: {
+    de: 'Ungültiger Freigabe-Link',
+    en: 'Invalid approval link',
+    fr: 'Lien de validation invalide',
+  },
+  invalid: {
+    de: 'Der verwendete Link zur Freigabe der Formular-Antwort ist ungültig oder abgelaufen.',
+    en: 'This link to approve the form submission is invalid or has expired.',
+    fr: 'Ce lien pour valider la réponse au formulaire est invalide ou a expiré.',
+  },
+  confirmTitle: {
+    de: 'Formular-Antwort freigeben',
+    en: 'Approve form submission',
+    fr: 'Valider la réponse au formulaire',
+  },
+  confirm: {
+    de: 'Möchtest du diese Formular-Antwort freigeben?',
+    en: 'Do you want to approve this form submission?',
+    fr: 'Veux-tu valider cette réponse au formulaire ?',
+  },
+  confirmButton: { de: 'Jetzt freigeben', en: 'Approve now', fr: 'Valider maintenant' },
+  approvedTitle: {
+    de: 'Formular-Antwort freigegeben',
+    en: 'Form submission approved',
+    fr: 'Réponse au formulaire validée',
+  },
+  approved: {
+    de: 'Vielen Dank! Die Formular-Antwort wurde erfolgreich freigegeben.',
+    en: 'Thank you! The form submission is approved.',
+    fr: 'Merci ! La réponse au formulaire est validée.',
+  },
+  alreadyApproved: {
+    de: 'Diese Formular-Antwort wurde bereits freigegeben.',
+    en: 'This form submission was already approved.',
+    fr: 'Cette réponse au formulaire a déjà été validée.',
+  },
+  serverErrorTitle: { de: 'Serverfehler', en: 'Server error', fr: 'Erreur du serveur' },
+  serverError: {
+    de: 'Bei der Freigabe der Formular-Antwort ist ein Fehler aufgetreten. Bitte versuche es später erneut.',
+    en: 'Something went wrong while approving the form submission. Please try again later.',
+    fr: 'Une erreur est survenue lors de la validation de la réponse au formulaire. Réessaie plus tard.',
+  },
+  formDetail: { de: 'Formular: {title}', en: 'Form: {title}', fr: 'Formulaire : {title}' },
+  idDetail: { de: 'Antwort ID: {id}', en: 'Submission ID: {id}', fr: 'ID de la réponse : {id}' },
+} satisfies Record<string, StaticTranslationString>;
+
+const t = (key: keyof typeof TEXT, locale: Locale, values: Record<string, string> = {}): string =>
+  Object.entries(values).reduce(
+    (result, [name, value]) => result.replaceAll(`{${name}}`, value),
+    TEXT[key][locale],
+  );
+
 interface RenderHtmlOptions {
+  locale: Locale;
   title: string;
   message: string;
-  detail?: string;
+  /** Lines naming the submission, e.g. its form, or its Hof and version. */
+  details?: string[];
+  /** A note under the button. */
+  hint?: string | undefined;
   status?: number;
   variant?: 'success' | 'error' | 'confirm';
   formAction?: string;
@@ -21,9 +96,11 @@ interface RenderHtmlOptions {
 }
 
 function renderHtmlResponse({
+  locale,
   title,
   message,
-  detail,
+  details = [],
+  hint,
   status = 200,
   variant = 'success',
   formAction = '/api/form-submissions/approve',
@@ -32,8 +109,12 @@ function renderHtmlResponse({
 }: RenderHtmlOptions): Response {
   const safeTitle = escapeHTML(title);
   const safeMessage = escapeHTML(message);
-  const safeDetail =
-    typeof detail === 'string' && detail.length > 0 ? escapeHTML(detail) : undefined;
+  const detailHtml = details
+    .filter((line) => line.length > 0)
+    .map((line) => `<div>${escapeHTML(line)}</div>`)
+    .join('');
+  const hintHtml =
+    typeof hint === 'string' && hint.length > 0 ? `<p class="hint">${escapeHTML(hint)}</p>` : '';
   const safeFormAction = escapeHTML(formAction);
   const safeToken = typeof token === 'string' ? escapeHTML(token) : '';
   const safeId = typeof id === 'string' ? escapeHTML(id) : '';
@@ -59,12 +140,12 @@ function renderHtmlResponse({
       ? `<form method="POST" action="${safeFormAction}">
           <input type="hidden" name="token" value="${safeToken}" />
           <input type="hidden" name="id" value="${safeId}" />
-          <button type="submit" class="button">Jetzt freigeben</button>
+          <button type="submit" class="button">${escapeHTML(t('confirmButton', locale))}</button>
         </form>`
       : '';
 
   const html = `<!DOCTYPE html>
-<html lang="de">
+<html lang="${locale}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -167,6 +248,11 @@ function renderHtmlResponse({
     .button:hover {
       background-color: #37443c;
     }
+    .hint {
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      margin-bottom: 0;
+    }
     .footer {
       margin-top: 2rem;
       font-size: 0.8125rem;
@@ -181,8 +267,9 @@ function renderHtmlResponse({
     </div>
     <h1>${safeTitle}</h1>
     <p>${safeMessage}</p>
-    ${typeof safeDetail === 'string' && safeDetail.length > 0 ? `<div class="detail">${safeDetail}</div>` : ''}
+    ${detailHtml.length > 0 ? `<div class="detail">${detailHtml}</div>` : ''}
     ${actionFormHtml}
+    ${hintHtml}
     <div class="footer">
       conveniat27 — MIR SIND CEVI
     </div>
@@ -202,9 +289,10 @@ function renderHtmlResponse({
 
 /**
  * The approval page names the form by its internal title, which the `forms` default
- * populate leaves out because form blocks carry it into public pages.
+ * populate leaves out because form blocks carry it into public pages. Of a Hof it needs only
+ * the id, to name the submission as the Hof's dashboard does.
  */
-const FORM_TITLE_ONLY = { forms: { title: true } } as const;
+const FORM_TITLE_ONLY = { forms: { title: true }, hoefe: { name: true } } as const;
 
 async function findSubmissionByToken(
   token: string,
@@ -247,7 +335,67 @@ async function findSubmissionByToken(
   return { payload, submission: results.docs[0] as unknown as Record<string, unknown> | undefined };
 }
 
+const idOfReference = (value: unknown): string | undefined => {
+  if (typeof value === 'string' && value !== '') return value;
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    return String(value.id);
+  }
+  return undefined;
+};
+
+/**
+ * The lines naming a submission on the page. A Hof's is named in its dashboard's words, with
+ * the status the dashboard shows, so approving here reads as what it is: "Freigegeben" there.
+ * Any other submission, or a Hof's the dashboard cannot name, is named by its form.
+ */
+async function describeSubmission(
+  submission: Record<string, unknown>,
+  locale: Locale,
+  status?: HofEntryStatus,
+): Promise<{ details: string[]; hint: string | undefined }> {
+  const submissionId = String(submission['id']);
+  const hofId = idOfReference(submission['hof']);
+  let summary: HofSubmissionSummary | undefined;
+  if (hofId !== undefined) {
+    try {
+      summary = await summarizeHofSubmission(hofId, submissionId, locale);
+    } catch (error) {
+      logger.warn('Could not name a Hof submission on its approval page', {
+        error,
+        'hof_dashboard.hof_id': hofId,
+        'form_submission.id': submissionId,
+      });
+    }
+  }
+  if (summary !== undefined) {
+    return {
+      details: [
+        `${summary.form} · ${summary.hof} · ${summary.entry}`,
+        translateHof('statusLine', locale, {
+          status: HOF_ENTRY_STATUS_LABELS[status ?? summary.status][locale],
+        }),
+      ],
+      hint: translateHof('approvalLinkHint', locale, {
+        accepted: HOF_ENTRY_STATUS_LABELS.accepted[locale],
+      }),
+    };
+  }
+
+  const form = submission['form'];
+  const formTitle =
+    typeof form === 'object' && form !== null && 'title' in form ? form.title : undefined;
+  return {
+    details: [
+      typeof formTitle === 'string' && formTitle.length > 0
+        ? t('formDetail', locale, { title: formTitle })
+        : t('idDetail', locale, { id: submissionId }),
+    ],
+    hint: undefined,
+  };
+}
+
 export async function GET(request: Request): Promise<Response> {
+  const locale = await getLocaleFromCookies();
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
@@ -256,8 +404,9 @@ export async function GET(request: Request): Promise<Response> {
 
     if (trimmedToken.length === 0) {
       return renderHtmlResponse({
-        title: 'Freigabe fehlgeschlagen',
-        message: 'Es wurde kein gültiger Freigabe-Token in der Anfrage übermittelt.',
+        locale,
+        title: t('failedTitle', locale),
+        message: t('noToken', locale),
         status: 400,
         variant: 'error',
       });
@@ -267,53 +416,44 @@ export async function GET(request: Request): Promise<Response> {
 
     if (submission === undefined) {
       return renderHtmlResponse({
-        title: 'Ungültiger Freigabe-Link',
-        message:
-          'Der verwendete Link zur Freigabe der Formular-Antwort ist ungültig oder abgelaufen.',
+        locale,
+        title: t('invalidTitle', locale),
+        message: t('invalid', locale),
         status: 400,
         variant: 'error',
       });
     }
 
-    const formTitle =
-      typeof submission['form'] === 'object' &&
-      submission['form'] !== null &&
-      'title' in submission['form']
-        ? String((submission['form'] as Record<string, unknown>)['title'])
-        : undefined;
-
-    const submissionId = String(submission['id']);
-
-    const detailMessage =
-      typeof formTitle === 'string' && formTitle.length > 0
-        ? `Formular: ${formTitle}`
-        : `Antwort ID: ${submissionId}`;
+    const { details, hint } = await describeSubmission(submission, locale);
 
     if (submission['approved'] === true) {
       return renderHtmlResponse({
-        title: 'Formular-Antwort freigegeben',
-        message: 'Diese Formular-Antwort wurde bereits freigegeben.',
-        detail: detailMessage,
+        locale,
+        title: t('approvedTitle', locale),
+        message: t('alreadyApproved', locale),
+        details,
         status: 200,
         variant: 'success',
       });
     }
 
     return renderHtmlResponse({
-      title: 'Formular-Antwort freigeben',
-      message: 'Möchtest du diese Formular-Antwort freigeben?',
-      detail: detailMessage,
+      locale,
+      title: t('confirmTitle', locale),
+      message: t('confirm', locale),
+      details,
+      hint,
       status: 200,
       variant: 'confirm',
       token: trimmedToken,
-      id: submissionId,
+      id: String(submission['id']),
     });
   } catch (error) {
     logger.error('Failed to render the form submission approval page', { error });
     return renderHtmlResponse({
-      title: 'Serverfehler',
-      message:
-        'Bei der Freigabe der Formular-Antwort ist ein Fehler aufgetreten. Bitte versuche es später erneut.',
+      locale,
+      title: t('serverErrorTitle', locale),
+      message: t('serverError', locale),
       status: 500,
       variant: 'error',
     });
@@ -321,6 +461,7 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
+  const locale = await getLocaleFromCookies();
   try {
     let token: string | undefined;
     let id: string | undefined;
@@ -353,8 +494,9 @@ export async function POST(request: Request): Promise<Response> {
 
     if (trimmedToken.length === 0) {
       return renderHtmlResponse({
-        title: 'Freigabe fehlgeschlagen',
-        message: 'Es wurde kein gültiger Freigabe-Token in der Anfrage übermittelt.',
+        locale,
+        title: t('failedTitle', locale),
+        message: t('noToken', locale),
         status: 400,
         variant: 'error',
       });
@@ -364,9 +506,9 @@ export async function POST(request: Request): Promise<Response> {
 
     if (submission === undefined) {
       return renderHtmlResponse({
-        title: 'Ungültiger Freigabe-Link',
-        message:
-          'Der verwendete Link zur Freigabe der Formular-Antwort ist ungültig oder abgelaufen.',
+        locale,
+        title: t('invalidTitle', locale),
+        message: t('invalid', locale),
         status: 400,
         variant: 'error',
       });
@@ -394,35 +536,22 @@ export async function POST(request: Request): Promise<Response> {
       }
     }
 
-    const formTitle =
-      typeof submission['form'] === 'object' &&
-      submission['form'] !== null &&
-      'title' in submission['form']
-        ? String((submission['form'] as Record<string, unknown>)['title'])
-        : undefined;
-
-    const submissionId = String(submission['id']);
-
-    const detailMessage =
-      typeof formTitle === 'string' && formTitle.length > 0
-        ? `Formular: ${formTitle}`
-        : `Antwort ID: ${submissionId}`;
+    const { details } = await describeSubmission(submission, locale, 'accepted');
 
     return renderHtmlResponse({
-      title: 'Formular-Antwort freigegeben',
-      message: wasAlreadyApproved
-        ? 'Diese Formular-Antwort wurde bereits freigegeben.'
-        : 'Vielen Dank! Die Formular-Antwort wurde erfolgreich freigegeben.',
-      detail: detailMessage,
+      locale,
+      title: t('approvedTitle', locale),
+      message: wasAlreadyApproved ? t('alreadyApproved', locale) : t('approved', locale),
+      details,
       status: 200,
       variant: 'success',
     });
   } catch (error) {
     logger.error('Failed to approve a form submission', { error });
     return renderHtmlResponse({
-      title: 'Serverfehler',
-      message:
-        'Bei der Freigabe der Formular-Antwort ist ein Fehler aufgetreten. Bitte versuche es später erneut.',
+      locale,
+      title: t('serverErrorTitle', locale),
+      message: t('serverError', locale),
       status: 500,
       variant: 'error',
     });

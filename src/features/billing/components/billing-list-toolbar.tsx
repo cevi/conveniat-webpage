@@ -209,9 +209,9 @@ const changedCountLabel: StaticTranslationString = {
   fr: 'Mis à jour',
 };
 const removedCountLabel: StaticTranslationString = {
-  de: 'Entfernt',
-  en: 'Removed',
-  fr: 'Supprimés',
+  de: 'Storniert',
+  en: 'Cancelled',
+  fr: 'Annulés',
 };
 const reAddedCountLabel: StaticTranslationString = {
   de: 'Erneut',

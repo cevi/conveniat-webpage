@@ -30,14 +30,9 @@ const capabilityLabels: Record<string, StaticTranslationString> = {
     fr: 'Envoyer des messages',
   },
   THREADS: {
-    de: 'Threads & Antworten',
-    en: 'Threads & Replies',
-    fr: 'Fils de discussion et réponses',
-  },
-  THREAD_REPLIES: {
-    de: 'Antworten in Threads',
-    en: 'Replies in Threads',
-    fr: 'Réponses dans les fils',
+    de: 'Im Thread antworten',
+    en: 'Reply in thread',
+    fr: 'Répondre dans le fil',
   },
   EMOJI_REACTIONS: {
     de: 'Emoji-Reaktionen',
@@ -46,7 +41,13 @@ const capabilityLabels: Record<string, StaticTranslationString> = {
   },
 };
 
-const allPossibleCapabilities = Object.values(ChatCapability);
+/**
+ * THREAD_REPLIES only lets guests reply in threads, which members may do anyway, so it has no
+ * row of its own: it decides whether the thread row is ticked for a guest.
+ */
+const allPossibleCapabilities = Object.values(ChatCapability).filter(
+  (capability) => capability !== ChatCapability.THREAD_REPLIES,
+);
 
 const adminOnlyRemarkText: StaticTranslationString = {
   de: 'Diese Einstellungen können nicht geändert werden.',
@@ -91,6 +92,14 @@ export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
             chatPermission === ChatMembershipPermission.GUEST &&
             (capabilityKey === ChatCapability.CAN_SEND_MESSAGES ||
               capabilityKey === ChatCapability.PICTURE_UPLOAD)
+          ) {
+            isEnabled = false;
+          }
+
+          if (
+            capabilityKey === ChatCapability.THREADS &&
+            chatPermission === ChatMembershipPermission.GUEST &&
+            !capabilities.includes(ChatCapability.THREAD_REPLIES)
           ) {
             isEnabled = false;
           }
