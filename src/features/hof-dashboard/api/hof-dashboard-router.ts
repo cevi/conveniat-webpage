@@ -1,10 +1,12 @@
 import { hofDashboardProcedure } from '@/features/hof-dashboard/api/hof-dashboard-access';
 import { getHofDashboardData } from '@/features/hof-dashboard/api/hof-dashboard-data';
 import {
+  acceptHofArea,
   reviewHofSubmission,
   withdrawHofSubmission,
 } from '@/features/hof-dashboard/api/hof-dashboard-mutations';
-import { HOF_REVIEW_CHOICES } from '@/features/hof-dashboard/constants';
+import { getHofOverview } from '@/features/hof-dashboard/api/hof-overview';
+import { HOF_DASHBOARD_AREAS, HOF_REVIEW_CHOICES } from '@/features/hof-dashboard/constants';
 import { findHoefe } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import { createTRPCRouter, publicProcedure } from '@/trpc/init';
@@ -29,6 +31,16 @@ export const hofDashboardRouter = createTRPCRouter({
 
   /** The Höfe whose dashboard the user may open. */
   getMyHofList: hofDashboardProcedure.query(async ({ ctx }) => await ctx.accessibleHoefe()),
+
+  /**
+   * Where every Hof stands, for the reviewers. Asked by everyone who opens the dashboard, so
+   * a Hof's own people get an empty list rather than an error, and nothing is read for them.
+   */
+  getHofOverview: hofDashboardProcedure.query(async ({ ctx }) =>
+    ctx.isReviewer
+      ? { isReviewer: true, hoefe: await getHofOverview(await ctx.accessibleHoefe(), ctx.locale) }
+      : { isReviewer: false, hoefe: [] },
+  ),
 
   /** Everything one Hof's dashboard shows. */
   getHofDashboard: hofDashboardProcedure
@@ -73,6 +85,20 @@ export const hofDashboardRouter = createTRPCRouter({
         feedback: input.feedback,
         final: input.final,
         // the session's name already reads "First Last v/o Cevi name"
+        reviewer: { id: ctx.user.uuid, name: ctx.user.name },
+      });
+    }),
+
+  /** Accepts everything that counts of one Hof in one area at once, for the reviewers only. */
+  acceptHofArea: hofDashboardProcedure
+    .input(hofIdInput.extend({ area: z.enum(HOF_DASHBOARD_AREAS) }))
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.isReviewer) throw new TRPCError({ code: 'FORBIDDEN' });
+      const hof = await ctx.assertHofAccess(input.hofId);
+      return await acceptHofArea({
+        hof,
+        area: input.area,
+        locale: ctx.locale,
         reviewer: { id: ctx.user.uuid, name: ctx.user.name },
       });
     }),

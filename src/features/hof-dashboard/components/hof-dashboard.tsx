@@ -17,6 +17,7 @@ import {
   SECONDARY_BUTTON_CLASS,
 } from '@/features/hof-dashboard/components/dashboard-ui';
 import { DocumentsView } from '@/features/hof-dashboard/components/documents-view';
+import { HofOverviewTable } from '@/features/hof-dashboard/components/hof-overview-table';
 import { OverviewView } from '@/features/hof-dashboard/components/overview-view';
 import {
   HOF_DASHBOARD_AREA_LABELS,
@@ -27,6 +28,7 @@ import { useScrollToForm } from '@/features/hof-dashboard/hooks/use-scroll-to-fo
 import { useTabInAddress } from '@/features/hof-dashboard/hooks/use-tab-in-address';
 import { hasUnsavedWork } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { text, translate } from '@/features/hof-dashboard/texts';
+import { scrollBehavior } from '@/features/hof-dashboard/utils/scroll-behavior';
 import {
   getSubmissionProgress,
   isOpen,
@@ -196,8 +198,16 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
     refetchOnMount: true,
     meta: { persist: false },
   });
+  // for the reviewers every Hof at a glance; empty for a Hof's own people
+  const overview = trpc.hofDashboard.getHofOverview.useQuery(undefined, {
+    staleTime: 30_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    meta: { persist: false },
+  });
   const [selectedHofId, setSelectedHofId] = useRememberedHofId();
   const selectId = useId();
+  const dashboardStart = useRef<HTMLDivElement>(null);
 
   if (hoefe.isLoading) return <LoadingState locale={locale} />;
   if (hoefe.data === undefined) {
@@ -214,48 +224,63 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
   const hof = hoefe.data.find((candidate) => candidate.id === selectedHofId) ?? hoefe.data[0];
   if (hof === undefined) return <></>;
 
+  /** Whether the other Hof may replace this one's dashboard, and with it what was not saved. */
+  const maySwitch = (): boolean =>
+    !hasUnsavedWork() || globalThis.confirm(translate('discardUnsaved', locale));
+
   return (
     <div className="space-y-6">
-      {hoefe.data.length === 1 ? (
-        <h2 className="font-heading text-conveniat-green text-2xl font-extrabold">{hof.name}</h2>
-      ) : (
-        <div className="space-y-1">
-          {/* the select shows the name; the heading keeps the outline of the page intact */}
-          <h2 className="sr-only">{hof.name}</h2>
-          <label htmlFor={selectId} className="text-sm font-medium text-gray-600">
-            {translate('hof', locale)}
-          </label>
-          <Select
-            value={hof.id}
-            onValueChange={(hofId) => {
-              // the other Hof's dashboard replaces this one, and with it what was not saved
-              if (hasUnsavedWork() && !globalThis.confirm(translate('discardUnsaved', locale))) {
-                return;
-              }
-              setSelectedHofId(hofId);
-            }}
-          >
-            <SelectTrigger
-              id={selectId}
-              className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold focus-visible:ring-2 focus-visible:ring-green-600"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="max-w-(--radix-select-content-available-width) bg-white">
-              {hoefe.data.map((candidate) => (
-                <SelectItem
-                  key={candidate.id}
-                  value={candidate.id}
-                  className="min-h-11 whitespace-normal"
-                >
-                  {candidate.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {overview.data?.isReviewer === true && (
+        <HofOverviewTable
+          hoefe={overview.data.hoefe}
+          selectedHofId={hof.id}
+          locale={locale}
+          onOpen={(hofId) => {
+            if (hofId !== hof.id && !maySwitch()) return;
+            setSelectedHofId(hofId);
+            dashboardStart.current?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
+          }}
+        />
       )}
-      <DashboardForHof key={hof.id} hofId={hof.id} locale={locale} />
+      {/* where a Hof opened from the overview scrolls to, below the fixed header */}
+      <div ref={dashboardStart} className="scroll-mt-24 space-y-6">
+        {hoefe.data.length === 1 ? (
+          <h2 className="font-heading text-conveniat-green text-2xl font-extrabold">{hof.name}</h2>
+        ) : (
+          <div className="space-y-1">
+            {/* the select shows the name; the heading keeps the outline of the page intact */}
+            <h2 className="sr-only">{hof.name}</h2>
+            <label htmlFor={selectId} className="text-sm font-medium text-gray-600">
+              {translate('hof', locale)}
+            </label>
+            <Select
+              value={hof.id}
+              onValueChange={(hofId) => {
+                if (maySwitch()) setSelectedHofId(hofId);
+              }}
+            >
+              <SelectTrigger
+                id={selectId}
+                className="font-heading text-conveniat-green h-12 w-full max-w-sm bg-white text-lg font-extrabold focus-visible:ring-2 focus-visible:ring-green-600"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-(--radix-select-content-available-width) bg-white">
+                {hoefe.data.map((candidate) => (
+                  <SelectItem
+                    key={candidate.id}
+                    value={candidate.id}
+                    className="min-h-11 whitespace-normal"
+                  >
+                    {candidate.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <DashboardForHof key={hof.id} hofId={hof.id} locale={locale} />
+      </div>
     </div>
   );
 };
