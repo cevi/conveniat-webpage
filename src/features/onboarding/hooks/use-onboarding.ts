@@ -9,7 +9,11 @@ import {
   onboardingReducer,
 } from '@/features/onboarding/state/onboarding-finite-state-machine';
 import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
-import { extractTargetUrl, performReliablePushNavigation } from '@/hooks/use-native-push';
+import {
+  extractTargetUrl,
+  navigateToPushTarget,
+  performReliablePushNavigation,
+} from '@/hooks/use-native-push';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
@@ -251,7 +255,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
             '[Onboarding] Native push open event received, executing navigation to:',
             targetUrl,
           );
-          performReliablePushNavigation(router, targetUrl);
+          navigateToPushTarget(router, targetUrl);
         }
       }
     };
@@ -341,7 +345,8 @@ export const useOnboarding = (): UseOnboardingReturn => {
           sessionStorage.removeItem('pending_push_redirect');
           localStorage.removeItem('pending_push_redirect');
           console.log('[Onboarding] Pending push redirect found, navigating to:', pendingRedirect);
-          performReliablePushNavigation(router, pendingRedirect);
+          // Only push handlers write this key, see checkAndExecutePendingPushNavigation.
+          navigateToPushTarget(router, pendingRedirect);
           return;
         }
       } catch {

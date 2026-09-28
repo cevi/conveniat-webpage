@@ -175,14 +175,16 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
  */
 export function resolvePushTarget(rawUrl: string | undefined): string {
   const fallback = '/app/dashboard';
-  if (rawUrl === undefined || rawUrl === '') return fallback;
-  if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) return rawUrl;
+  const trimmed = rawUrl?.trim() ?? '';
+  if (trimmed === '') return fallback;
 
+  // Always parsed, never passed through because it starts with a slash: `/\evil.example`
+  // is a path to the eye and another host to the browser.
   try {
-    const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+    const parsedUrl = new URL(trimmed, globalThis.location.origin);
     if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return fallback;
     return parsedUrl.origin === globalThis.location.origin
-      ? parsedUrl.pathname + parsedUrl.search
+      ? parsedUrl.pathname + parsedUrl.search + parsedUrl.hash
       : parsedUrl.href;
   } catch {
     return fallback;
@@ -192,21 +194,38 @@ export function resolvePushTarget(rawUrl: string | undefined): string {
 /** Whether a target from {@link resolvePushTarget} is on another origin. */
 const isOtherOriginTarget = (target: string): boolean => !target.startsWith('/');
 
+/**
+ * Follows the URL a push carries: a path on this origin through the router, a link to another
+ * origin, like the short domain con27.ch, with one full navigation. Only for URLs taken from a
+ * push payload. A target from the query string goes to {@link performReliablePushNavigation},
+ * which never leaves this origin.
+ */
+export function navigateToPushTarget(
+  router: { push: (url: string) => void },
+  rawUrl: string | undefined,
+): void {
+  const target = resolvePushTarget(rawUrl);
+  if (isOtherOriginTarget(target)) {
+    console.log('[NativePush:PWA] Navigating to another origin:', target);
+    assignLocation(target);
+    return;
+  }
+  performReliablePushNavigation(router, target);
+}
+
+/**
+ * Navigates to a path on this origin, and falls back to a hard redirect if the router does not
+ * get there. The target can come from the query string (`/entrypoint?redirectTo=`), so anything
+ * that is not a path here, a `javascript:` URL or another host, goes to the dashboard instead.
+ */
 export function performReliablePushNavigation(
   router: { push: (url: string) => void },
   targetPath: string,
 ): void {
   if (typeof targetPath !== 'string' || targetPath.trim() === '') return;
 
-  const cleanPath = targetPath.trim();
-
-  // The router only moves within this origin, and a remembered target would be replayed on
-  // every resume, so another origin gets a single full navigation.
-  if (isOtherOriginTarget(cleanPath)) {
-    console.log('[NativePush:PWA] Navigating to another origin:', cleanPath);
-    assignLocation(cleanPath);
-    return;
-  }
+  const resolvedTarget = resolvePushTarget(targetPath);
+  const cleanPath = isOtherOriginTarget(resolvedTarget) ? '/app/dashboard' : resolvedTarget;
 
   try {
     sessionStorage.setItem('pending_push_redirect', cleanPath);
@@ -262,7 +281,16 @@ export function checkAndExecutePendingPushNavigation(router: {
 
     if (typeof pendingPath !== 'string' || pendingPath.trim() === '') return;
 
-    const cleanPath = pendingPath.trim();
+    // Only push handlers write this key, the onboarding layout's inline script with the raw
+    // push URL included, so a link to another origin here came from a push. It is followed
+    // once and forgotten, never replayed on the next resume.
+    const cleanPath = resolvePushTarget(pendingPath);
+    if (isOtherOriginTarget(cleanPath)) {
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      assignLocation(cleanPath);
+      return;
+    }
     const currentPathname = globalThis.location.pathname;
 
     let targetChatId: string | undefined;
@@ -753,7 +781,7 @@ export function useNativePush(): {
           }
 
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
-          performReliablePushNavigation(router, targetPath);
+          navigateToPushTarget(router, targetPath);
           break;
         }
         case 'native-push-received':

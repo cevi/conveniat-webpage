@@ -3,10 +3,13 @@
  */
 
 import {
+  checkAndExecutePendingPushNavigation,
   extractMessageIdentifier,
   extractNotificationLogId,
   extractNotificationTitleAndBody,
   extractNotificationType,
+  navigateToPushTarget,
+  performReliablePushNavigation,
   useNativePush,
 } from '@/hooks/use-native-push';
 import { assignLocation } from '@/utils/assign-location';
@@ -687,5 +690,71 @@ describe('useNativePush', () => {
 
       expect(reloadPage).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('push navigation targets', () => {
+  const router = { push: jest.fn() };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.clearAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  // `/entrypoint?redirectTo=` hands the query string to performReliablePushNavigation.
+  it.each([
+    ['a javascript: URL', 'javascript:alert(document.domain)'],
+    ['another host', 'https://evil.example/login'],
+    ['a protocol-relative URL', '//evil.example/login'],
+    ['a backslash path the browser reads as another host', String.raw`/\evil.example/login`],
+  ])('never leaves this origin for %s from the query string', (_label, target) => {
+    performReliablePushNavigation(router, target);
+
+    expect(assignLocation).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/app/dashboard');
+  });
+
+  it('follows a path on this origin, query and hash included', () => {
+    performReliablePushNavigation(router, '/app/chat/chat-1?focus=1#m-2');
+
+    expect(router.push).toHaveBeenCalledWith('/app/chat/chat-1?focus=1#m-2');
+  });
+
+  it('opens a push link to another origin, like the short domain, with a full navigation', () => {
+    navigateToPushTarget(router, 'https://con27.ch/agbs');
+
+    expect(assignLocation).toHaveBeenCalledWith('https://con27.ch/agbs');
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('does not run a javascript: URL that arrives in a push', () => {
+    navigateToPushTarget(router, 'javascript:alert(document.domain)');
+
+    expect(assignLocation).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/app/dashboard');
+  });
+
+  it('does not replay a stored javascript: URL', () => {
+    localStorage.setItem('pending_push_redirect', 'javascript:alert(document.domain)');
+
+    checkAndExecutePendingPushNavigation(router);
+
+    expect(assignLocation).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith('/app/dashboard');
+  });
+
+  it('follows a stored push link to another origin once and forgets it', () => {
+    localStorage.setItem('pending_push_redirect', 'https://con27.ch/agbs');
+
+    checkAndExecutePendingPushNavigation(router);
+
+    expect(assignLocation).toHaveBeenCalledWith('https://con27.ch/agbs');
+    expect(localStorage.getItem('pending_push_redirect')).toBeNull();
   });
 });
