@@ -8,6 +8,7 @@ import {
 } from '@/features/chat/utils/contact-search';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
+import { cn } from '@/utils/tailwindcss-override';
 import { Check, Loader2, Search, UserPlus, X } from 'lucide-react';
 import type React from 'react';
 
@@ -20,6 +21,10 @@ interface AddParticipantsProperties {
   onAddParticipants: () => void;
   isLoadingContacts: boolean;
   isAdding: boolean;
+  hasAddFailed: boolean;
+  /** Whether the selection already fills the group up to `maxGroupMembers`. */
+  isAtGroupLimit: boolean;
+  maxGroupMembers: number | undefined;
   locale: Locale;
 }
 
@@ -53,6 +58,18 @@ const addingText: StaticTranslationString = {
   fr: 'Ajout...',
 };
 
+const groupLimitReachedText: StaticTranslationString = {
+  de: 'Eine Gruppe hat höchstens {max} Mitglieder.',
+  en: 'A group can have at most {max} members.',
+  fr: 'Un groupe compte au plus {max} membres.',
+};
+
+const addFailedText: StaticTranslationString = {
+  de: 'Die ausgewählten Personen konnten nicht hinzugefügt werden.',
+  en: 'The selected people could not be added.',
+  fr: "Les personnes sélectionnées n'ont pas pu être ajoutées.",
+};
+
 const addSelectedText: StaticTranslationString = {
   de: 'Ausgewählte hinzufügen',
   en: 'Add Selected',
@@ -68,6 +85,9 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
   onAddParticipants,
   isLoadingContacts,
   isAdding,
+  hasAddFailed,
+  isAtGroupLimit,
+  maxGroupMembers,
   locale,
 }) => {
   return (
@@ -110,6 +130,12 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
         </div>
       )}
 
+      {isAtGroupLimit && maxGroupMembers !== undefined && (
+        <p className="font-body mb-2 text-xs text-gray-500">
+          {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
+        </p>
+      )}
+
       {/* Contacts List */}
       <div className="mb-4 space-y-1 rounded-md border p-2">
         {isLoadingContacts && (
@@ -128,9 +154,12 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
               return (
                 <div
                   key={contact.userId}
-                  className={`flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors ${
-                    isSelected ? 'text-conveniat-green bg-green-100' : 'hover:bg-gray-100'
-                  }`}
+                  className={cn(
+                    'flex cursor-pointer items-center justify-between space-x-3 rounded-lg p-3 transition-colors',
+                    isSelected && 'text-conveniat-green bg-green-100',
+                    !isSelected && !isAtGroupLimit && 'hover:bg-gray-100',
+                    !isSelected && isAtGroupLimit && 'cursor-not-allowed opacity-50',
+                  )}
                   onClick={() => onToggleSelection(contact)}
                 >
                   <div className="flex items-center gap-3">
@@ -171,6 +200,10 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
             })
           ))}
       </div>
+
+      {hasAddFailed && (
+        <p className="font-body mb-2 text-xs text-red-600">{addFailedText[locale]}</p>
+      )}
 
       {/* Add Button */}
       <Button

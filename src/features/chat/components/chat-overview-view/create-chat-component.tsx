@@ -96,6 +96,12 @@ const selectedCountText: StaticTranslationString = {
   fr: 'Sélectionné',
 };
 
+const groupLimitReachedText: StaticTranslationString = {
+  de: 'Eine Gruppe hat höchstens {max} Mitglieder, dich eingeschlossen.',
+  en: 'A group can have at most {max} members, including you.',
+  fr: 'Un groupe compte au plus {max} membres, toi compris.',
+};
+
 const groupChatNameLabel: StaticTranslationString = {
   de: 'Gruppen-Name',
   en: 'Group Chat Name',
@@ -105,6 +111,7 @@ const groupChatNameLabel: StaticTranslationString = {
 export const CreateNewChatPage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: allContacts, isLoading } = trpc.chat.contacts.useQuery({});
+  const { data: maxGroupMembers } = trpc.chat.getGroupMemberLimit.useQuery();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [groupChatName, setGroupChatName] = useState('');
@@ -134,6 +141,9 @@ export const CreateNewChatPage: React.FC = () => {
   }, [isOnCreateChatRoute, resetForm]);
 
   const isGroupChat = selectedContacts.length > 1;
+  // the creator is a member too
+  const isAtGroupLimit =
+    maxGroupMembers !== undefined && selectedContacts.length + 1 >= maxGroupMembers;
 
   const filteredContacts = allContacts?.filter((contact) =>
     matchesContactSearch(contact, searchQuery),
@@ -159,9 +169,9 @@ export const CreateNewChatPage: React.FC = () => {
   const handleContactToggle = (contact: Contact): void => {
     setSelectedContacts((previous) => {
       const isSelected = previous.some((c) => c.userId === contact.userId);
-      return isSelected
-        ? previous.filter((c) => c.userId !== contact.userId)
-        : [...previous, contact];
+      if (isSelected) return previous.filter((c) => c.userId !== contact.userId);
+      if (maxGroupMembers !== undefined && previous.length + 1 >= maxGroupMembers) return previous;
+      return [...previous, contact];
     });
   };
 
@@ -360,6 +370,11 @@ export const CreateNewChatPage: React.FC = () => {
               <h2 className="font-heading text-xs font-semibold tracking-wider text-gray-500 uppercase">
                 {selectContactsText[locale]}
               </h2>
+              {isAtGroupLimit && (
+                <p className="font-body mt-1 text-xs text-gray-500">
+                  {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
+                </p>
+              )}
             </div>
 
             <div className="min-h-[300px]">
@@ -396,7 +411,12 @@ export const CreateNewChatPage: React.FC = () => {
                   {unselectedContacts?.map((contact) => (
                     <div
                       key={contact.userId}
-                      className="flex cursor-pointer items-center space-x-3 rounded-xl p-3 transition-all hover:bg-gray-50/80"
+                      className={cn(
+                        'flex items-center space-x-3 rounded-xl p-3 transition-all',
+                        isAtGroupLimit
+                          ? 'cursor-not-allowed opacity-50'
+                          : 'cursor-pointer hover:bg-gray-50/80',
+                      )}
                       onClick={() => handleContactToggle(contact)}
                     >
                       <PersonAvatar

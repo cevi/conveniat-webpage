@@ -19,6 +19,7 @@ import { getChat } from '@/features/chat/api/queries/get-chat';
 import { getChatMessages } from '@/features/chat/api/queries/get-chat-messages';
 import { getDownloadUrl } from '@/features/chat/api/queries/get-download-url';
 import { getFeatureFlags } from '@/features/chat/api/queries/get-feature-flags';
+import { getGroupMemberLimit } from '@/features/chat/api/queries/get-group-member-limit';
 import { getMessage } from '@/features/chat/api/queries/get-message';
 import { getUser } from '@/features/chat/api/queries/get-user';
 import { getChatList } from '@/features/chat/api/queries/list-chats';
@@ -54,6 +55,7 @@ export const chatRouter = createTRPCRouter({
   addParticipants: addParticipants,
   removeParticipant: removeParticipant,
   getFeatureFlags: getFeatureFlags,
+  getGroupMemberLimit,
   checkCapability: trpcBaseProcedure
     .input(
       z.object({
