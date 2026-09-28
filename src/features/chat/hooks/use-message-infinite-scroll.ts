@@ -9,8 +9,29 @@ import {
 } from '@/features/chat/utils/failed-sends';
 import { getPendingOutboxChatMessages } from '@/features/chat/utils/offline-outbox';
 import { trpc } from '@/trpc/client';
+import type { InfiniteData } from '@tanstack/react-query';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+
+/** Pages kept of a chat nobody has open, see {@link keepNewestPages}. */
+const RESTING_PAGE_COUNT = 4;
+
+/**
+ * Drops all but the newest `count` pages of a message list.
+ *
+ * Every refetch of an infinite query walks all loaded pages again, one request after the
+ * other: reopening a chat, a realtime resync, and the offline chat sync. Someone reopening
+ * a chat lands at the bottom and needs only the newest pages, so the history they scrolled
+ * through is let go once the chat closes. `maxPages` cannot do this: the cursor only walks
+ * towards older messages, and at the cap it drops the newest page to keep an older one.
+ */
+export const keepNewestPages = <TData, TPageParameter>(
+  data: InfiniteData<TData, TPageParameter>,
+  count: number,
+): InfiniteData<TData, TPageParameter> => ({
+  pages: data.pages.slice(0, count),
+  pageParams: data.pageParams.slice(0, count),
+});
 
 interface MessageInfiniteScrollProperties {
   chatId: string;
@@ -44,11 +65,27 @@ export const useMessageInfiniteScroll = ({
       gcTime: 1000 * 60 * 60 * 24 * 7,
 
       refetchOnMount: 'always',
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
+      // Coming back to the app or back online is a gap in the realtime stream, and
+      // `useChatSSE` answers every gap with one resync that refetches this query. Refetching
+      // here as well walked every loaded page a second time.
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       enabled: chatId !== '',
     },
   );
+
+  const trpcUtils = trpc.useUtils();
+  useEffect(() => {
+    const input = { chatId, limit: CHAT_PAGE_SIZE, parentId: parentId ?? undefined };
+    return (): void => {
+      const data = trpcUtils.chat.infiniteMessages.getInfiniteData(input);
+      if (data === undefined || data.pages.length <= RESTING_PAGE_COUNT) return;
+      trpcUtils.chat.infiniteMessages.setInfiniteData(
+        input,
+        keepNewestPages(data, RESTING_PAGE_COUNT),
+      );
+    };
+  }, [chatId, parentId, trpcUtils]);
 
   const topSentinelReference = useRef<HTMLDivElement>(null);
 

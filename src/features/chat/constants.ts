@@ -5,3 +5,6 @@ export const CHAT_INVITE_LIFETIME_MS = 15 * 60 * 1000;
 
 /** How often an open QR dialog swaps in a new code, comfortably before the shown one expires. */
 export const CHAT_INVITE_REFRESH_MS = 10 * 60 * 1000;
+
+/** How recently a user must have pinged to show as online, see `getChat`. */
+export const ONLINE_WINDOW_MS = 30 * 1000;

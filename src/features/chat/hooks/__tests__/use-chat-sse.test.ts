@@ -58,6 +58,7 @@ describe('useChatSSE', () => {
           setData: jest.fn(),
         },
         getMessage: { setData: jest.fn(), invalidate: jest.fn().mockResolvedValue(true) },
+        getFeatureFlags: { invalidate: jest.fn().mockResolvedValue(true) },
       },
     });
 
@@ -160,6 +161,32 @@ describe('useChatSSE', () => {
       expect.objectContaining({ id: chatId, unreadCount: 1 }),
       expect.objectContaining({ id: otherChatId, unreadCount: 0 }),
     ]);
+
+    unmount();
+    jest.advanceTimersByTime(1);
+  });
+
+  it('refetches the open chat and the feature flags once after a delivery gap', () => {
+    const chatId = '550e8400-e29b-41d4-a716-446655440000';
+    const utils = (trpc.useUtils as unknown as jest.Mock)() as {
+      chat: {
+        infiniteMessages: { invalidate: jest.Mock };
+        getFeatureFlags: { invalidate: jest.Mock };
+      };
+    };
+    const { unmount } = renderHook(() => useChatSSE([chatId]));
+    jest.advanceTimersByTime(1);
+
+    const onResync = (
+      mockAddEventListener.mock.calls as [string, (event: unknown) => void][]
+    ).findLast(([type]) => type === 'resync')?.[1];
+    onResync?.({});
+    // the refetch is spread over a jitter window of up to 3 s
+    jest.advanceTimersByTime(3000);
+
+    expect(utils.chat.infiniteMessages.invalidate).toHaveBeenCalledTimes(1);
+    expect(utils.chat.infiniteMessages.invalidate).toHaveBeenCalledWith({ chatId });
+    expect(utils.chat.getFeatureFlags.invalidate).toHaveBeenCalledTimes(1);
 
     unmount();
     jest.advanceTimersByTime(1);

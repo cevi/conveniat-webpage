@@ -94,12 +94,6 @@ export const MessageList: React.FC<{
 
   const typists = useTypists(chatId, parentId);
 
-  useMessageReadStatus({
-    chatId,
-    currentUser,
-    sortedMessages,
-  });
-
   const {
     scrollContainerReference,
     messagesEndReference,
@@ -112,6 +106,13 @@ export const MessageList: React.FC<{
     isFetchingNextPage,
     currentUserId: currentUser,
     typingCount: typists.length,
+  });
+
+  useMessageReadStatus({
+    chatId,
+    currentUser,
+    sortedMessages,
+    isAtBottom,
   });
 
   if (isLoading || currentUser === undefined || chatDetails === undefined) {
