@@ -52,6 +52,17 @@ describe('applyMessageToChatList', () => {
     });
   });
 
+  it('keeps who wrote the message, for the sender in front of the preview', () => {
+    const patched = applyMessageToChatList(
+      [chat('a')],
+      'a',
+      message({ senderName: 'Anna Muster' }),
+      ME,
+    );
+
+    expect(patched?.[0]?.lastMessage?.senderName).toBe('Anna Muster');
+  });
+
   it('does not count the own message from another device as unread', () => {
     const patched = applyMessageToChatList([chat('a')], 'a', message({ senderId: ME }), ME);
 

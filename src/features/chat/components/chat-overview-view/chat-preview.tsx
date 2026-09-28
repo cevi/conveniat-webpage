@@ -3,13 +3,14 @@ import { PersonAvatar } from '@/components/ui/person-avatar';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
 import { Megaphone, Pin, Siren, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback } from 'react';
@@ -20,12 +21,53 @@ const pinnedText: StaticTranslationString = {
   fr: 'Épinglé',
 };
 
+/**
+ * What the unread badge says to a screen reader. A large chat caps its count at 1, so it only
+ * says that there is something new.
+ */
+const unreadText = (count: number, isLarge: boolean, locale: Locale): string => {
+  if (isLarge) {
+    if (locale === 'de') return 'Neue Nachrichten';
+    if (locale === 'fr') return 'Nouveaux messages';
+    return 'New messages';
+  }
+  if (count === 1) {
+    if (locale === 'de') return '1 ungelesene Nachricht';
+    if (locale === 'fr') return '1 message non lu';
+    return '1 unread message';
+  }
+  if (locale === 'de') return `${count} ungelesene Nachrichten`;
+  if (locale === 'fr') return `${count} messages non lus`;
+  return `${count} unread messages`;
+};
+
+/**
+ * The row of a chat, pulsing from the tap until the chat has opened, so a tap that takes a
+ * while, as it does offline, is not mistaken for one that did nothing.
+ */
+const ChatPreviewRow: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { pending } = useLinkStatus();
+  return (
+    <li
+      aria-busy={pending}
+      className={cn(
+        'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',
+        'hover:shadow-sm',
+        pending && 'animate-pulse',
+      )}
+    >
+      {children}
+    </li>
+  );
+};
+
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
 }> = ({ chat }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const trpcUtils = trpc.useUtils();
+  const { data: currentUserId } = trpc.chat.user.useQuery({});
 
   // On hover, which a phone emulates for a completed tap only. `touchstart` also fired for
   // every chat a finger brushed while scrolling the list, each one a request.
@@ -66,16 +108,11 @@ export const ChatPreview: React.FC<{
   } else if (rawPreview) {
     previewText = rawPreview[locale];
   }
+  const senderPrefix = previewSenderPrefix(chat.lastMessage, chat.chatType, currentUserId, locale);
 
   return (
     <Link href={chatDetailLink} className="block w-full" onMouseEnter={handlePrefetch}>
-      <li
-        className={cn(
-          'relative flex items-center space-x-4 rounded-lg p-4 transition-all duration-200',
-          'hover:shadow-sm',
-          {},
-        )}
-      >
+      <ChatPreviewRow>
         <div className="shrink-0">
           {chat.chatType === ChatType.GROUP && (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 shadow-sm">
@@ -152,16 +189,20 @@ export const ChatPreview: React.FC<{
               'text-red-500': chat.chatType === ChatType.EMERGENCY,
             })}
           >
+            {senderPrefix}
             {previewText}
           </p>
         </div>
 
         {hasUnread && (
           <div className="bg-conveniat-green font-body flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white shadow-sm">
-            {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+            <span aria-hidden="true">{chat.unreadCount > 99 ? '99+' : chat.unreadCount}</span>
+            <span className="sr-only">
+              {unreadText(chat.unreadCount, chat.isLarge === true, locale)}
+            </span>
           </div>
         )}
-      </li>
+      </ChatPreviewRow>
     </Link>
   );
 };
