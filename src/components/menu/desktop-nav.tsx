@@ -1,13 +1,85 @@
 'use client';
 
 import type { ProcessedMainMenuItem } from '@/components/menu/main-menu';
+import { useFittingItemCount } from '@/components/menu/use-fitting-item-count';
 import { LinkComponent } from '@/components/ui/link-component';
 import { languageOptions } from '@/config/language-options';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronDown, Languages, Search, X } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
+
+const overflowButtonLabel: StaticTranslationString = {
+  de: 'Mehr',
+  fr: 'Plus',
+  en: 'More',
+};
+
+/** The `openDropdownId` of the overflow flyout, which lists the items that did not fit. */
+const OVERFLOW_DROPDOWN_ID = 'overflow';
+
+const topLevelItemClassName =
+  'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap';
+const topLevelRowClassName = 'flex items-center gap-1 xl:gap-1.5';
+
+const hasSubMenu = (item: ProcessedMainMenuItem): boolean =>
+  Array.isArray(item.subMenu) && item.subMenu.length > 0;
+
+const DropdownButton: React.FC<{
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}> = ({ label, isOpen, onToggle }) => (
+  <button
+    type="button"
+    aria-expanded={isOpen}
+    onClick={onToggle}
+    className={cn(
+      topLevelItemClassName,
+      'transition-all duration-200',
+      isOpen
+        ? 'bg-conveniat-green/10 text-conveniat-green'
+        : 'hover:bg-conveniat-green/10 hover:text-conveniat-green text-gray-700',
+    )}
+  >
+    <span>{label}</span>
+    <ChevronDown
+      className={cn(
+        'size-4 text-gray-400 transition-transform duration-200',
+        isOpen && 'text-conveniat-green rotate-180',
+      )}
+    />
+  </button>
+);
+
+const TopLevelItem: React.FC<{
+  item: ProcessedMainMenuItem;
+  isOpen: boolean;
+  onToggle: () => void;
+}> = ({ item, isOpen, onToggle }) => {
+  if (hasSubMenu(item)) {
+    return <DropdownButton label={item.label} isOpen={isOpen} onToggle={onToggle} />;
+  }
+
+  if (typeof item.itemLink === 'string' && item.itemLink !== '') {
+    return (
+      <LinkComponent
+        href={item.itemLink}
+        openInNewTab={item.openInNewTab}
+        prefetch
+        className={cn(
+          topLevelItemClassName,
+          'hover:bg-conveniat-green/10 hover:text-conveniat-green text-gray-700 transition-all duration-200',
+        )}
+      >
+        {item.label}
+      </LinkComponent>
+    );
+  }
+
+  return <span className={cn(topLevelItemClassName, 'text-gray-400')}>{item.label}</span>;
+};
 
 const SubItemWithoutChildren: React.FC<{ subItem: ProcessedMainMenuItem }> = ({ subItem }) => {
   if (typeof subItem.itemLink === 'string' && subItem.itemLink !== '') {
@@ -70,6 +142,7 @@ export const DesktopNav: React.FC<{
   const [searchQuery, setSearchQuery] = useState('');
 
   const navReference = useRef<HTMLElement>(null);
+  const measureRowReference = useRef<HTMLDivElement>(null);
   const flyoutReference = useRef<HTMLDivElement>(null);
   const dismissReferences = [navReference, flyoutReference];
   const searchInputReference = useRef<HTMLInputElement>(null);
@@ -77,15 +150,29 @@ export const DesktopNav: React.FC<{
   const pathname = usePathname();
   const searchParameters = useSearchParams();
 
+  // Editors choose the labels, so no breakpoint guarantees they fit. The items that do not fit
+  // move into an overflow flyout instead of pushing the utilities off the screen.
+  const navItems = menuItems.filter((item) => item.isVisible);
+  const fittingCount = useFittingItemCount(navReference, measureRowReference, navItems.length);
+  const fittingItems = navItems.slice(0, fittingCount);
+  const overflowItems = navItems.slice(fittingCount);
+
   const activeItem = menuItems.find((item) => item.id === openDropdownId);
   const activeSubMenu = activeItem?.subMenu;
   const hasActiveSubMenu = Array.isArray(activeSubMenu) && activeSubMenu.length > 0;
+  const isOverflowOpen =
+    openDropdownId === OVERFLOW_DROPDOWN_ID ||
+    overflowItems.some((item) => item.id === openDropdownId);
 
   const closeDropdown = (): void => setOpenDropdownId(undefined);
 
   // Submenus open on click, not hover, so the flyout never closes under a cursor that overshoots.
   // It closes on a click outside, on Escape, and when a link is followed.
-  useDismissOnOutsideInteraction(dismissReferences, hasActiveSubMenu, closeDropdown);
+  useDismissOnOutsideInteraction(
+    dismissReferences,
+    hasActiveSubMenu || isOverflowOpen,
+    closeDropdown,
+  );
 
   const closeOnLinkClick = (event: React.MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('a') !== null) closeDropdown();
@@ -135,81 +222,90 @@ export const DesktopNav: React.FC<{
   };
 
   return (
-    <div className="hidden items-center gap-4 xl:flex">
-      {/* Main Navigation Bar */}
+    <div className="hidden min-w-0 flex-1 items-center gap-4 xl:flex">
+      {/* Main Navigation Bar: the items that fit, then the overflow button (priority+ pattern) */}
       <nav
         ref={navReference}
         onClick={closeOnLinkClick}
-        className="flex items-center gap-1 transition-all duration-300 xl:gap-1.5"
+        className={cn(
+          'relative min-w-0 flex-1 justify-end-safe overflow-hidden',
+          topLevelRowClassName,
+        )}
       >
-        {menuItems.map((item) => {
-          if (!item.isVisible) return;
-
-          const hasSubMenu = Array.isArray(item.subMenu) && item.subMenu.length > 0;
-
-          if (!hasSubMenu && typeof item.itemLink === 'string' && item.itemLink !== '') {
-            return (
-              <LinkComponent
-                key={item.id}
-                href={item.itemLink}
-                openInNewTab={item.openInNewTab}
-                prefetch
-                className="hover:bg-conveniat-green/10 hover:text-conveniat-green rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap text-gray-700 transition-all duration-200"
-              >
-                {item.label}
-              </LinkComponent>
-            );
-          }
-
-          if (hasSubMenu) {
-            const isOpen = openDropdownId === item.id;
-
-            return (
-              <div key={item.id} className="relative">
-                <button
-                  type="button"
-                  aria-expanded={isOpen}
-                  onClick={() => setOpenDropdownId(isOpen ? undefined : item.id)}
-                  className={cn(
-                    'flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all duration-200',
-                    isOpen
-                      ? 'bg-conveniat-green/10 text-conveniat-green'
-                      : 'hover:bg-conveniat-green/10 hover:text-conveniat-green text-gray-700',
-                  )}
-                >
-                  <span>{item.label}</span>
-                  <ChevronDown
-                    className={cn(
-                      'size-4 text-gray-400 transition-transform duration-200',
-                      isOpen && 'text-conveniat-green rotate-180',
-                    )}
-                  />
-                </button>
-              </div>
-            );
-          }
-
+        {fittingItems.map((item) => {
+          const isOpen = openDropdownId === item.id;
           return (
-            <span
+            <TopLevelItem
               key={item.id}
-              className="rounded-xl px-3 py-2 text-sm font-semibold whitespace-nowrap text-gray-400"
-            >
-              {item.label}
-            </span>
+              item={item}
+              isOpen={isOpen}
+              onToggle={() => setOpenDropdownId(isOpen ? undefined : item.id)}
+            />
           );
         })}
+
+        {overflowItems.length > 0 && (
+          <DropdownButton
+            label={overflowButtonLabel[locale]}
+            isOpen={isOverflowOpen}
+            onToggle={() => setOpenDropdownId(isOverflowOpen ? undefined : OVERFLOW_DROPDOWN_ID)}
+          />
+        )}
+
+        {/* Invisible copy of every item and the overflow button, measured by useFittingItemCount */}
+        <div
+          ref={measureRowReference}
+          aria-hidden
+          className={cn(
+            'pointer-events-none invisible absolute top-0 left-0',
+            topLevelRowClassName,
+          )}
+        >
+          {navItems.map((item) => (
+            <span key={item.id} className={topLevelItemClassName}>
+              <span>{item.label}</span>
+              {hasSubMenu(item) && <ChevronDown className="size-4" />}
+            </span>
+          ))}
+          <span className={topLevelItemClassName}>
+            <span>{overflowButtonLabel[locale]}</span>
+            <ChevronDown className="size-4" />
+          </span>
+        </div>
       </nav>
 
       {/* Modern Sleek Full-Width Submenu Flyout Panel (2px border-b matching header) */}
-      {hasActiveSubMenu && (
+      {(hasActiveSubMenu || isOverflowOpen) && (
         <div
           ref={flyoutReference}
           className="animate-in fade-in-0 slide-in-from-top-1 fixed top-16 right-0 left-0 z-50 w-full border-b-2 border-gray-200 bg-white/98 backdrop-blur-2xl transition-all duration-200"
           onClick={closeOnLinkClick}
         >
           <div className="w-full px-6 py-8 xl:px-12">
+            {isOverflowOpen && (
+              <div
+                className={cn(
+                  'flex-wrap',
+                  topLevelRowClassName,
+                  hasActiveSubMenu && 'mb-8 border-b border-gray-200 pb-4',
+                )}
+              >
+                {overflowItems.map((item) => {
+                  const isOpen = openDropdownId === item.id;
+                  return (
+                    <TopLevelItem
+                      key={item.id}
+                      item={item}
+                      isOpen={isOpen}
+                      onToggle={() => setOpenDropdownId(isOpen ? OVERFLOW_DROPDOWN_ID : item.id)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-8 xl:gap-12">
-              {activeSubMenu.map((subItem) => {
+              {(activeSubMenu ?? []).map((subItem) => {
                 if (!subItem.isVisible) return;
 
                 const hasSubSub = Array.isArray(subItem.subMenu) && subItem.subMenu.length > 0;
@@ -282,7 +378,7 @@ export const DesktopNav: React.FC<{
       )}
 
       {/* Utilities: Language Switcher & Responsive Search Input */}
-      <div className="relative flex h-8 items-center gap-2 border-l border-gray-200/80 pl-3">
+      <div className="relative flex h-8 shrink-0 items-center gap-2 border-l border-gray-200/80 pl-3">
         {/* Language Switcher */}
         <div
           className="relative"
