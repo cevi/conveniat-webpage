@@ -48,6 +48,7 @@ export const MapLibreRenderer = ({
   disableFlyTo = false,
   enableSearch = false,
   unavailableFallback,
+  mapStyle,
 }: {
   initialMapPose: InitialMapPose;
   ceviLogoMarkers: CeviLogoMarker[];
@@ -64,6 +65,8 @@ export const MapLibreRenderer = ({
   enableSearch?: boolean;
   /** Rendered instead of the map when it cannot be initialized on this device. */
   unavailableFallback?: React.ReactNode;
+  /** URL of the MapLibre style; the swisstopo base map when omitted. */
+  mapStyle?: string;
 }): React.JSX.Element => {
   const [mapContainer, setMapContainer] = useState<HTMLDivElement | undefined>();
   const [openAnnotation, setOpenAnnotation] = useState<
@@ -179,6 +182,7 @@ export const MapLibreRenderer = ({
     initialMapPose,
     limitUsage,
     validateStyle,
+    ...(mapStyle !== undefined && { style: mapStyle }),
   });
 
   useMapUrlSync(

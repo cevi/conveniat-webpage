@@ -1,5 +1,4 @@
 import { getMarkerLabelColor } from '@/features/map/utils/marker-label-color';
-import type { MarkerLabelPlacement } from '@/features/map/utils/marker-stacking';
 import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { formatHexColor } from '@/utils/format-hex-color';
 import { cn } from '@/utils/tailwindcss-override';
@@ -16,24 +15,6 @@ import {
   Utensils,
 } from 'lucide-react';
 import type React from 'react';
-
-/**
- * Selector for the label element inside a marker, used by the zoom listener to toggle its
- * visibility without re-rendering the whole marker.
- */
-export const MARKER_LABEL_SELECTOR = '[data-marker-label]';
-
-/** Selector for the tail of a marker, used to aim it at the marker's real coordinate. */
-export const MARKER_TAIL_SELECTOR = '[data-marker-tail]';
-
-/**
- * Turns the tail of an already rendered marker by the given angle (in degrees, clockwise from
- * straight down). Markers fanned out from a shared coordinate use this to keep pointing at the
- * position they actually belong to.
- */
-export const applyMarkerTailAngle = (tailElement: HTMLElement, degrees: number): void => {
-  tailElement.style.transform = degrees === 0 ? '' : `rotate(${degrees}deg)`;
-};
 
 /**
  * Solid white outline around the label, drawn as eight offset shadows plus a soft one. A blurred
@@ -53,46 +34,14 @@ const LABEL_OUTLINE_TEXT_SHADOW = [
 ].join(', ');
 
 /**
- * Where the label sits relative to its pin, for each placement. The circle of the pin is 36px
- * high, so `18px` from the top of the marker is its vertical centre.
+ * Where the label sits relative to its pin: to its right, vertically centred on the circle. The
+ * circle of the pin is 36px high, so `18px` from the top of the marker is its vertical centre.
  */
-const MARKER_LABEL_PLACEMENT_STYLES: Record<MarkerLabelPlacement, React.CSSProperties> = {
-  right: {
-    left: 'calc(100% + 6px)',
-    right: 'auto',
-    top: '18px',
-    bottom: 'auto',
-    transform: 'translateY(-50%)',
-    textAlign: 'left',
-  },
-  left: {
-    left: 'auto',
-    right: 'calc(100% + 6px)',
-    top: '18px',
-    bottom: 'auto',
-    transform: 'translateY(-50%)',
-    textAlign: 'right',
-  },
-  top: {
-    left: '50%',
-    right: 'auto',
-    top: 'auto',
-    bottom: 'calc(100% + 4px)',
-    transform: 'translateX(-50%)',
-    textAlign: 'center',
-  },
-};
-
-/**
- * Moves an already rendered label to the given side of its pin. The placement depends on how many
- * markers share a coordinate, which is only known once the visible markers are known — hence it is
- * applied to the DOM rather than passed as a prop.
- */
-export const applyMarkerLabelPlacement = (
-  labelElement: HTMLElement,
-  placement: MarkerLabelPlacement,
-): void => {
-  Object.assign(labelElement.style, MARKER_LABEL_PLACEMENT_STYLES[placement]);
+const MARKER_LABEL_POSITION_STYLE: React.CSSProperties = {
+  left: 'calc(100% + 6px)',
+  top: '18px',
+  transform: 'translateY(-50%)',
+  textAlign: 'left',
 };
 
 /**
@@ -112,6 +61,30 @@ export const SELECTED_MARKER_COLOR = '#dc2626';
  * that reached for it would put that symbol on the map for annotations nobody selected.
  */
 const UNSPECIFIED_ICON = Flag;
+
+const ANNOTATION_ICONS: Record<string, React.ElementType<LucideProps>> = {
+  Tent: Tent,
+  Utensils: Utensils,
+  Flag: Flag,
+  HelpCircle: HelpCircle,
+  Recycle: Recycle,
+  GlassWater: GlassWater,
+  Toilet: Toilet,
+  Stage: Theater,
+  BriefcaseMedical: BriefcaseMedical,
+};
+
+/**
+ * The lucide icon an annotation is drawn with, falling back to a flag for a missing or unknown one.
+ * @param icon the icon name stored on the annotation
+ * @returns the icon component
+ */
+export const getAnnotationIcon = (
+  icon: CampMapAnnotation['icon'] | undefined,
+): React.ElementType<LucideProps> =>
+  icon === undefined || icon === null
+    ? UNSPECIFIED_ICON
+    : (ANNOTATION_ICONS[icon] ?? UNSPECIFIED_ICON);
 
 /**
  * The selected annotation, drawn as a dropped pin.
@@ -149,10 +122,9 @@ const LocationPin = ({
 
     {label !== undefined && label !== '' && (
       <span
-        data-marker-label=""
         className="pointer-events-none absolute line-clamp-2 w-max max-w-40 text-[13px] leading-tight font-semibold text-balance"
         style={{
-          ...MARKER_LABEL_PLACEMENT_STYLES.right,
+          ...MARKER_LABEL_POSITION_STYLE,
           color: getMarkerLabelColor(color),
           textShadow: LABEL_OUTLINE_TEXT_SHADOW,
         }}
@@ -205,16 +177,8 @@ const CirclePin = ({
           {children}
         </div>
 
-        {/*
-        Pin tail (triangle). It spans the circle so that it rotates around the circle's centre:
-        a marker that had to be moved off its coordinate points its tail back at it, see
-        `applyMarkerTailAngle`.
-      */}
-        <div
-          data-marker-tail=""
-          className="absolute inset-x-0 top-0 z-0 h-9"
-          style={{ transformOrigin: 'center' }}
-        >
+        {/* Pin tail (triangle) */}
+        <div className="absolute inset-x-0 top-0 z-0 h-9">
           <div className="absolute top-[calc(100%-4px)] left-1/2 flex -translate-x-1/2 flex-col items-center">
             {/* Outer Triangle (White border) */}
             <div
@@ -240,14 +204,12 @@ const CirclePin = ({
       short titles across several lines — hence the explicit `max-content` width: titles keep to
       one line until they hit the maximum width, then wrap once and are cut off with an ellipsis.
 
-      Which side it ends up on is set on the DOM afterwards, see `applyMarkerLabelPlacement`.
     */}
       {label !== undefined && label !== '' && (
         <span
-          data-marker-label=""
           className="pointer-events-none absolute line-clamp-2 w-max max-w-40 text-[13px] leading-tight font-semibold text-balance"
           style={{
-            ...MARKER_LABEL_PLACEMENT_STYLES.right,
+            ...MARKER_LABEL_POSITION_STYLE,
             // the title picks up the colour of its marker, darkened where needed to stay legible
             color: getMarkerLabelColor(pinColor),
             textShadow: LABEL_OUTLINE_TEXT_SHADOW,
@@ -275,17 +237,6 @@ export const DynamicLucidIconRenderer: React.FC<{
   label,
 }): React.JSX.Element => {
   const hexColor = formatHexColor(color) as string;
-  const iconMap: Record<string, React.ElementType<LucideProps>> = {
-    Tent: Tent,
-    Utensils: Utensils,
-    Flag: Flag,
-    HelpCircle: HelpCircle,
-    Recycle: Recycle,
-    GlassWater: GlassWater,
-    Toilet: Toilet,
-    Stage: Theater,
-    BriefcaseMedical: BriefcaseMedical,
-  };
 
   /*
    * A selected marker shows a pin rather than what it is.
@@ -295,8 +246,8 @@ export const DynamicLucidIconRenderer: React.FC<{
    * it is the same thing every other map does with a dropped pin. What the annotation is stays
    * on screen anyway: its label sits next to the marker and its drawer is open below it.
    */
-  const categoryIcon: React.ElementType<LucideProps> =
-    icon === undefined || icon === null ? UNSPECIFIED_ICON : (iconMap[icon] ?? UNSPECIFIED_ICON);
+  const categoryIcon =
+    (icon === undefined || icon === null ? undefined : ANNOTATION_ICONS[icon]) ?? UNSPECIFIED_ICON;
 
   // What the annotation is stays readable from its label and its open drawer; while it is
   // selected the marker's job is to say where, not what.
