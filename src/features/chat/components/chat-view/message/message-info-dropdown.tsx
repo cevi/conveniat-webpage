@@ -12,7 +12,7 @@ import { MessageEventType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Clock } from 'lucide-react';
+import { Check, Clock, User } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -32,6 +32,12 @@ const sentText: StaticTranslationString = {
   de: 'Gesendet',
   en: 'Sent',
   fr: 'Envoyé',
+};
+
+const senderText: StaticTranslationString = {
+  de: 'Von',
+  en: 'From',
+  fr: 'De',
 };
 
 const dialogDescriptionText: StaticTranslationString = {
@@ -110,35 +116,54 @@ export const MessageInfoDropdown: React.FC<{
               <span className="font-body text-sm text-gray-500">{formatMessageTime(sentDate)}</span>
             </div>
 
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
-                  <Check className="text-conveniat-green h-4 w-4" />
-                </div>
-                <span className="font-body font-medium text-gray-700">{statusText[locale]}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {/* Visual Indicator for Status */}
-                {message.status === MessageEventType.READ && (
-                  <div className="flex">
+            {/* the delivery status belongs to the sender; on a received message it would
+                only ever say "sent" */}
+            {isCurrentUser ? (
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
                     <Check className="text-conveniat-green h-4 w-4" />
-                    <Check className="text-conveniat-green -ml-2 h-4 w-4" />
                   </div>
-                )}
-                {message.status === MessageEventType.RECEIVED && (
-                  <div className="flex">
+                  <span className="font-body font-medium text-gray-700">{statusText[locale]}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {/* Visual Indicator for Status */}
+                  {message.status === MessageEventType.READ && (
+                    <div className="flex">
+                      <Check className="text-conveniat-green h-4 w-4" />
+                      <Check className="text-conveniat-green -ml-2 h-4 w-4" />
+                    </div>
+                  )}
+                  {message.status === MessageEventType.RECEIVED && (
+                    <div className="flex">
+                      <Check className="h-4 w-4 text-gray-400" />
+                      <Check className="-ml-2 h-4 w-4 text-gray-400" />
+                    </div>
+                  )}
+                  {message.status === MessageEventType.STORED && (
                     <Check className="h-4 w-4 text-gray-400" />
-                    <Check className="-ml-2 h-4 w-4 text-gray-400" />
-                  </div>
-                )}
-                {message.status === MessageEventType.STORED && (
-                  <Check className="h-4 w-4 text-gray-400" />
-                )}
-                <span className="font-body text-sm text-gray-500">
-                  {localizedStatus(message.status, locale)}
-                </span>
+                  )}
+                  <span className="font-body text-sm text-gray-500">
+                    {localizedStatus(message.status, locale)}
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : (
+              message.senderName !== undefined &&
+              message.senderName !== '' && (
+                <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-conveniat-green/10 flex h-8 w-8 items-center justify-center rounded-full">
+                      <User className="text-conveniat-green h-4 w-4" />
+                    </div>
+                    <span className="font-body font-medium text-gray-700">
+                      {senderText[locale]}
+                    </span>
+                  </div>
+                  <span className="font-body text-sm text-gray-500">{message.senderName}</span>
+                </div>
+              )
+            )}
           </div>
         </div>
       </ChatDialogContent>

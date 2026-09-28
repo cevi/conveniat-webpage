@@ -89,7 +89,7 @@ export const LocationMessage: React.FC<{ message: ChatMessage }> = ({ message })
   const fallback = <LocationFallback latitude={latitude} longitude={longitude} />;
 
   return (
-    <div className="flex items-center justify-center p-4 text-gray-500">
+    <div className="flex items-center justify-center px-1.5 text-gray-500">
       <div className="h-[400px] w-full overflow-hidden rounded-sm">
         {/* A failing map must never take down the surrounding chat. */}
         <SafeErrorBoundary fallback={fallback}>

@@ -4,7 +4,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Info, MessageSquare, Quote, SmilePlus } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 /** The reaction set most chat apps settled on; more choice makes the common case slower. */
 export const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const;
@@ -45,6 +45,12 @@ const replyText: StaticTranslationString = {
   de: 'Im Thread antworten',
   en: 'Reply in thread',
   fr: 'Répondre dans le fil',
+};
+
+const clickToRemoveText: StaticTranslationString = {
+  de: 'Klicken zum Entfernen',
+  en: 'Click to remove',
+  fr: 'Cliquer pour supprimer',
 };
 
 const infoText: StaticTranslationString = {
@@ -231,5 +237,116 @@ export const HoverToolbar: React.FC<HoverToolbarProperties> = ({
         <Info className="h-4 w-4" />
       </ToolbarAction>
     </div>
+  );
+};
+
+/** How long a finger rests on a reaction badge before it lists the names instead of toggling. */
+const LONG_PRESS_MS = 500;
+
+/**
+ * Tells a tap from a press held for {@link LONG_PRESS_MS}. The click that ends a held press is
+ * swallowed, so holding a badge never also toggles the reaction.
+ */
+const useLongPress = (
+  onLongPress: () => void,
+): {
+  handlers: Pick<
+    React.HTMLAttributes<HTMLElement>,
+    'onPointerDown' | 'onPointerUp' | 'onPointerLeave' | 'onPointerCancel' | 'onContextMenu'
+  >;
+  consumeLongPress: () => boolean;
+} => {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const didLongPress = useRef(false);
+
+  const cancel = (): void => {
+    clearTimeout(timer.current);
+    timer.current = undefined;
+  };
+
+  const fire = (): void => {
+    cancel();
+    didLongPress.current = true;
+    if ('vibrate' in navigator) navigator.vibrate(50);
+    onLongPress();
+  };
+
+  return {
+    handlers: {
+      onPointerDown: (event): void => {
+        // the bubble around the badge starts its own long-press and swipe on pointer down
+        event.stopPropagation();
+        didLongPress.current = false;
+        cancel();
+        timer.current = setTimeout(fire, LONG_PRESS_MS);
+      },
+      onPointerUp: cancel,
+      onPointerLeave: cancel,
+      onPointerCancel: cancel,
+      // Android fires it for a held finger, desktop for a right click
+      onContextMenu: (event): void => {
+        event.preventDefault();
+        if (!didLongPress.current) fire();
+      },
+    },
+    consumeLongPress: (): boolean => {
+      const was = didLongPress.current;
+      didLongPress.current = false;
+      return was;
+    },
+  };
+};
+
+interface ReactionBadgeProperties {
+  emoji: string;
+  userNames: string[];
+  hasReacted: boolean;
+  canReact: boolean;
+  locale: Locale;
+  onToggle: () => void;
+  /** Opens the list of who reacted; a held press or a right click. */
+  onShowReactors: () => void;
+}
+
+/**
+ * One emoji under a bubble with the number of people who picked it. A tap toggles the own
+ * reaction, holding it lists the names.
+ */
+export const ReactionBadge: React.FC<ReactionBadgeProperties> = ({
+  emoji,
+  userNames,
+  hasReacted,
+  canReact,
+  locale,
+  onToggle,
+  onShowReactors,
+}) => {
+  const { handlers, consumeLongPress } = useLongPress(onShowReactors);
+  const names = userNames.join(', ');
+
+  return (
+    <button
+      type="button"
+      {...handlers}
+      onClick={(event) => {
+        stop(event);
+        if (consumeLongPress()) return;
+        if (canReact) onToggle();
+      }}
+      aria-label={`${emojiNames[emoji]?.[locale] ?? emoji}: ${names}`}
+      aria-pressed={hasReacted}
+      className={cn(
+        'flex cursor-pointer items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold shadow-2xs transition-all duration-150 hover:scale-105 focus:outline-none active:scale-95',
+        hasReacted
+          ? 'border-blue-200 bg-blue-50 text-blue-600 hover:border-red-200 hover:bg-red-50 hover:text-red-500'
+          : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100',
+      )}
+      title={
+        hasReacted ? `${names === '' ? '' : names + '\n'}(${clickToRemoveText[locale]})` : names
+      }
+    >
+      <span>{emoji}</span>
+      <span className="font-semibold">{userNames.length}</span>
+    </button>
   );
 };

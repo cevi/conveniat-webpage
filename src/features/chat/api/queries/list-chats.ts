@@ -55,6 +55,7 @@ export const getChatList = trpcBaseProcedure
               orderBy: { createdAt: 'desc' },
               take: 1,
               include: {
+                sender: { select: { name: true } },
                 messageEvents: {
                   where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },
                   orderBy: { uuid: 'desc' },
@@ -237,6 +238,9 @@ export const getChatList = trpcBaseProcedure
           createdAt: chat.lastUpdate,
           messagePreview,
           senderId: lastMessage?.senderId ?? SYSTEM_SENDER_ID,
+          ...(typeof lastMessage?.sender?.name === 'string' && lastMessage.sender.name !== ''
+            ? { senderName: lastMessage.sender.name }
+            : {}),
           status: lastMessage
             ? getStatusFromMessageEvents(lastMessage.messageEvents)
             : MessageEventType.STORED,

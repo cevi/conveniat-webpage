@@ -5,6 +5,8 @@ import type { StaticTranslationString } from '@/types/types';
 export interface PreviewMessage {
   id: string;
   senderId: string; // 'system' for system messages
+  /** Missing for system messages, and in chat lists persisted before this field existed. */
+  senderName?: string | undefined;
   messagePreview: string | StaticTranslationString;
   createdAt: Date;
   status: MessageEventType;
