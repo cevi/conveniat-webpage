@@ -2214,6 +2214,10 @@ export interface Form {
      */
     onlyHofAdministrators?: boolean | null;
     /**
+     * On: once a submission is approved, anyone can download its files without signing in, e.g. the concept of a Stadtleben stand the website shows. Leave it off for plans and orders: approving them only accepts them.
+     */
+    publishApprovedFiles?: boolean | null;
+    /**
      * Lower numbers show first within their area.
      */
     position?: number | null;
@@ -7968,6 +7972,7 @@ export interface FormsSelect<T extends boolean = true> {
         closesAtDeadline?: T;
         titleField?: T;
         onlyHofAdministrators?: T;
+        publishApprovedFiles?: T;
         position?: T;
       };
   submissions?: T;

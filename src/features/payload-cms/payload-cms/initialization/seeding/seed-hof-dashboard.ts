@@ -246,6 +246,7 @@ const FORMS: DashboardFormSeed[] = [
       deadline: '2027-01-31T12:00:00.000Z',
       titleField: 'name',
       onlyHofAdministrators: false,
+      publishApprovedFiles: true,
       position: 2,
     },
   },

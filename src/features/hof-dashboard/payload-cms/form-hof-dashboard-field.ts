@@ -197,6 +197,24 @@ export const formHofDashboardField: Field = {
       ],
     },
     {
+      name: 'publishApprovedFiles',
+      type: 'checkbox',
+      defaultValue: false,
+      label: {
+        en: 'Files of approved submissions are public',
+        de: 'Dateien freigegebener Abgaben sind öffentlich',
+        fr: 'Les fichiers des dépôts approuvés sont publics',
+      },
+      admin: {
+        condition: isOnDashboard,
+        description: {
+          en: 'On: once a submission is approved, anyone can download its files without signing in, e.g. the concept of a Stadtleben stand the website shows. Leave it off for plans and orders: approving them only accepts them.',
+          de: 'Ein: Sobald eine Abgabe freigegeben ist, kann jede Person ihre Dateien ohne Anmeldung herunterladen, z.B. das Konzept eines Stadtleben-Standes, den die Website zeigt. Für Planungen und Bestellungen ausgeschaltet lassen: Freigeben heisst dort nur akzeptieren.',
+          fr: 'Activé : dès qu’un dépôt est approuvé, tout le monde peut télécharger ses fichiers sans se connecter, p. ex. le concept d’un stand du Stadtleben que le site affiche. Le laisser désactivé pour les plans et les commandes : les approuver revient seulement à les accepter.',
+        },
+      },
+    },
+    {
       name: 'position',
       type: 'number',
       label: { en: 'Position', de: 'Reihenfolge', fr: 'Ordre' },

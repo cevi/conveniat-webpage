@@ -44,8 +44,8 @@ const submissionOf = async (
 /**
  * Whether an approved submission makes its files public. Approval publishes a submission, e.g.
  * a Stadtleben stand on the website, but it is also how the Ressort accepts a Hof's plan or
- * order, which stays the Hof's: files of a form only a Hof's administrators hand in are never
- * public.
+ * order, which stays the Hof's: a form on the Hof dashboard publishes its files only when its
+ * settings say so.
  */
 const isPublishedFile = async (
   payload: Payload,
@@ -65,7 +65,7 @@ const isPublishedFile = async (
   // a Hof's submission whose form is gone, e.g. in the trash, stays as private as it was
   if (form === null) return submission.hof === undefined || submission.hof === null;
   const linked = typeof form.hofDashboard?.area === 'string';
-  return !linked || form.hofDashboard?.onlyHofAdministrators === false;
+  return !linked || form.hofDashboard?.publishApprovedFiles === true;
 };
 
 /**

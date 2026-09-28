@@ -76,9 +76,13 @@ const FORMS: Record<string, object> = {
   'form-contact': { hofDashboard: { area: null } },
   // a Hof's plan, handed in by its address administrators only
   'form-plan': { hofDashboard: { area: 'infrastructure', entries: 'versions' } },
-  // Stadtleben stands, which any participant hands in and the website shows once approved
+  // Stadtleben stands, which a Hof hands in and the website shows once approved
   'form-stadtleben': {
-    hofDashboard: { area: 'program', entries: 'entries', onlyHofAdministrators: false },
+    hofDashboard: { area: 'program', entries: 'entries', publishApprovedFiles: true },
+  },
+  // an order anyone may hand in for any Hof, which approving only accepts
+  'form-open-order': {
+    hofDashboard: { area: 'material', entries: 'entries', onlyHofAdministrators: false },
   },
 };
 
@@ -218,6 +222,11 @@ describe('GET /api/form-file/[id]', () => {
     // until it is approved, it is the Hof's
     const handedIn = fileOn({ approved: false, hof: 'hof-sued', form: 'form-stadtleben' });
     await expect(download(ANONYMOUS, handedIn)).resolves.toMatchObject({ status: 401 });
+  });
+
+  it('keeps an approved file private when its form does not publish files, whoever hands it in', async () => {
+    const order = fileOn({ approved: true, hof: 'hof-sued', form: 'form-open-order' });
+    await expect(download(ANONYMOUS, order)).resolves.toMatchObject({ status: 401 });
   });
 
   it('publishes any approved submission on a deployment without the Hof dashboard', async () => {
