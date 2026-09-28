@@ -13,6 +13,7 @@ interface UseSendTestNotificationProperties {
   enterContentErrorText: string;
   unknownErrorText: string;
   sendFailedErrorText: string;
+  subscriptionRemovedText: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export function useSendTestNotification({
   enterContentErrorText,
   unknownErrorText,
   sendFailedErrorText,
+  subscriptionRemovedText,
 }: UseSendTestNotificationProperties): {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
@@ -60,6 +62,8 @@ export function useSendTestNotification({
         setContent('');
         setUrl('');
         toast.success(sentText);
+      } else if (result.subscriptionRemoved === true) {
+        toast.error(subscriptionRemovedText);
       } else {
         toast.error(
           result.error !== undefined && result.error !== '' ? result.error : unknownErrorText,

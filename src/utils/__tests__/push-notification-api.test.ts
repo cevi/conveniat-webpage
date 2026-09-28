@@ -7,10 +7,11 @@
  */
 jest.mock('@payload-config', () => ({}), { virtual: true });
 
+const mockPayloadDelete = jest.fn();
 jest.mock('payload', () => ({
   getPayload: (): { update: jest.Mock; delete: jest.Mock; findGlobal: jest.Mock } => ({
     update: jest.fn(),
-    delete: jest.fn(),
+    delete: mockPayloadDelete,
     findGlobal: jest.fn().mockResolvedValue({ appShortName: 'Konekta' }),
   }),
 }));
@@ -31,13 +32,23 @@ jest.mock('@/utils/auth-helpers', () => ({
   isValidNextAuthUser: (): boolean => false,
 }));
 
+const mockLogUpdate = jest.fn().mockResolvedValue({});
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   default: {
     pushNotificationLog: {
       create: jest.fn().mockResolvedValue({ id: 'log-1' }),
-      update: jest.fn().mockResolvedValue({}),
+      update: (...args: unknown[]): unknown => mockLogUpdate(...args),
     },
+  },
+}));
+
+const mockSendWebPush = jest.fn().mockResolvedValue({});
+jest.mock('web-push', () => ({
+  __esModule: true,
+  default: {
+    setVapidDetails: jest.fn(),
+    sendNotification: (...args: unknown[]): unknown => mockSendWebPush(...args),
   },
 }));
 
@@ -122,5 +133,64 @@ describe('sendNotificationToSubscription native handover', () => {
     await sendNotificationToSubscription(nativeSubscription, 'Hallo');
 
     expect(lastFcmPayload().title).toBe('Konekta');
+  });
+});
+
+/** The shape web-push rejects with: the message is the same for every status code. */
+const webPushError = (statusCode: number, body: string): Error =>
+  Object.assign(new Error('Received unexpected response code'), {
+    name: 'WebPushError',
+    statusCode,
+    body,
+    endpoint: webSubscription.endpoint,
+  });
+
+const webSubscription = {
+  id: 'sub-2',
+  platform: 'web' as const,
+  endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+  keys: { p256dh: 'p256dh', auth: 'auth' },
+};
+
+describe('sendNotificationToSubscription web push rejections', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // The history in the admin panel used to read "Received unexpected response code" for
+  // every failure, which hides whether the device left or we sent something broken.
+  it("records the push service's answer instead of web-push's generic message", async () => {
+    mockSendWebPush.mockRejectedValueOnce(webPushError(403, 'invalid JWT provided\n'));
+
+    const result = await sendNotificationToSubscription(webSubscription, 'Hallo', undefined, 'u1');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Push service answered 403: invalid JWT provided',
+    });
+    expect(mockLogUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: 'FAILED', error: 'Push service answered 403: invalid JWT provided' },
+      }),
+    );
+    expect(mockPayloadDelete).not.toHaveBeenCalled();
+  });
+
+  it('prunes a subscription the push service reports as gone', async () => {
+    mockSendWebPush.mockRejectedValueOnce(
+      webPushError(410, 'push subscription has unsubscribed or expired.\n'),
+    );
+
+    const result = await sendNotificationToSubscription(webSubscription, 'Hallo', undefined, 'u1');
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Push service answered 410: push subscription has unsubscribed or expired.',
+      subscriptionRemoved: true,
+    });
+    expect(mockPayloadDelete).toHaveBeenCalledWith({
+      collection: 'push-notification-subscriptions',
+      where: { endpoint: { equals: webSubscription.endpoint } },
+    });
   });
 });

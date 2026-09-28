@@ -51,6 +51,47 @@ async function getWebPush(): Promise<typeof webpush> {
   return webpushInstance;
 }
 
+/** Push services answer an unsubscribed or expired Web Push subscription with one of these. */
+const EXPIRED_WEB_PUSH_STATUS_CODES = new Set([404, 410]);
+
+/** Keeps a verbose push service body from filling the log row and the Loki line. */
+const MAX_RESPONSE_BODY_LENGTH = 300;
+
+interface PushServiceRejection {
+  statusCode: number;
+  body: string;
+}
+
+/**
+ * web-push rejects every non-2xx answer with a `WebPushError` whose message is always
+ * "Received unexpected response code". The push service's verdict lives only in
+ * `statusCode` and `body`, so they have to be read off the error explicitly.
+ */
+const pushServiceRejectionOf = (error: unknown): PushServiceRejection | undefined => {
+  if (typeof error !== 'object' || error === null) return undefined;
+  if (!('statusCode' in error) || typeof error.statusCode !== 'number') return undefined;
+  const body = 'body' in error && typeof error.body === 'string' ? error.body.trim() : '';
+  return { statusCode: error.statusCode, body: body.slice(0, MAX_RESPONSE_BODY_LENGTH) };
+};
+
+/** What went wrong, in words an admin reading the notification history can act on. */
+const describeSendError = (error: unknown, rejection: PushServiceRejection | undefined): string => {
+  if (rejection !== undefined) {
+    const answer = `Push service answered ${rejection.statusCode}`;
+    return rejection.body === '' ? answer : `${answer}: ${rejection.body}`;
+  }
+  return error instanceof Error ? error.message : 'Unknown error';
+};
+
+const endpointHostOf = (endpoint: unknown): string | undefined => {
+  if (typeof endpoint !== 'string') return undefined;
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return undefined;
+  }
+};
+
 const subscribedConfirmationPush: StaticTranslationString = {
   de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
   fr: 'Vous vous êtes inscrit avec succès aux notifications push.',
@@ -237,7 +278,7 @@ export async function sendNotificationToSubscription(
      */
     notificationType?: NotificationType;
   },
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; subscriptionRemoved?: boolean }> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
 
   // The operating system renders the notification verbatim, so the chat's markdown
@@ -268,7 +309,7 @@ export async function sendNotificationToSubscription(
       });
       logId = log.id;
     } catch (error) {
-      console.error('Failed to create push notification log', error);
+      logger.error('Failed to create push notification log', { error, 'user.id': userId });
       // We continue even if validation fails, but logging won't happen
     }
   }
@@ -405,14 +446,15 @@ export async function sendNotificationToSubscription(
     return { success: true };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error sending push notification:', error);
+    const rejection = pushServiceRejectionOf(error);
+    const errorDescription = describeSendError(error, rejection);
 
     if (logId) {
       await prisma.pushNotificationLog.update({
         where: { id: logId },
         data: {
           status: 'FAILED',
-          error: errorMessage,
+          error: errorDescription,
         },
       });
     }
@@ -424,7 +466,8 @@ export async function sendNotificationToSubscription(
     // hyphenated spellings, so neither matched: those subscriptions were never pruned and every
     // later notification retried them forever, filling the logs with the same two errors.
     // Prefer the machine-readable code and keep the message checks as a case-insensitive
-    // fallback for the web-push side.
+    // fallback. Web Push says the same thing with a 404 or 410 status, which never shows up in
+    // the error message, so it is read off the rejection instead.
     const fcmErrorCode = (error as { fcmErrorCode?: string } | undefined)?.fcmErrorCode;
     const normalizedMessage = errorMessage.toLowerCase();
 
@@ -444,48 +487,70 @@ export async function sendNotificationToSubscription(
       // bad payload can never delete healthy subscriptions.
       (fcmErrorCode === 'messaging/invalid-argument' && indicatesDeadToken) ||
       indicatesDeadToken ||
-      errorMessage.includes('410') ||
-      errorMessage.includes('404') ||
+      (rejection !== undefined && EXPIRED_WEB_PUSH_STATUS_CODES.has(rejection.statusCode)) ||
       normalizedMessage.includes('not found') ||
       normalizedMessage.includes('gone');
 
-    if (isExpired) {
-      logger.info('Auto-pruning expired push subscription');
-      try {
-        const payload = await getPayload({ config });
-        if (
-          'endpoint' in subscription &&
-          typeof subscription.endpoint === 'string' &&
-          subscription.endpoint !== ''
-        ) {
-          await payload.delete({
-            collection: 'push-notification-subscriptions',
-            where: { endpoint: { equals: subscription.endpoint } },
-          });
-        } else if (
-          'token' in subscription &&
-          typeof subscription.token === 'string' &&
-          subscription.token !== ''
-        ) {
-          await payload.delete({
-            collection: 'push-notification-subscriptions',
-            where: { token: { equals: subscription.token } },
-          });
-        } else if (
-          'id' in subscription &&
-          typeof subscription.id === 'string' &&
-          subscription.id !== ''
-        ) {
-          await payload.delete({
-            collection: 'push-notification-subscriptions',
-            id: subscription.id,
-          });
-        }
-      } catch (pruneError) {
-        console.warn('Failed to prune expired push subscription:', pruneError);
-      }
+    const logAttributes = {
+      'push.channel': channel,
+      'push.log_id': logId,
+      'push.fcm_error_code': fcmErrorCode,
+      'http.response.status_code': rejection?.statusCode,
+      'push.response_body': rejection?.body,
+      'server.address':
+        'endpoint' in subscription ? endpointHostOf(subscription.endpoint) : undefined,
+      'user.id': userId,
+      error,
+    };
+
+    // A device that unsubscribed is the normal end of a subscription, not a fault, and it
+    // is pruned below so it fires once per device. Anything else is worth a look.
+    if (!isExpired) {
+      logger.error('Sending push notification failed', logAttributes);
+      return { success: false, error: errorDescription };
     }
 
-    return { success: false, error: 'Failed to send notification' };
+    logger.info('Pruning expired push subscription', logAttributes);
+    try {
+      const payload = await getPayload({ config });
+      if (
+        'endpoint' in subscription &&
+        typeof subscription.endpoint === 'string' &&
+        subscription.endpoint !== ''
+      ) {
+        await payload.delete({
+          collection: 'push-notification-subscriptions',
+          where: { endpoint: { equals: subscription.endpoint } },
+        });
+      } else if (
+        'token' in subscription &&
+        typeof subscription.token === 'string' &&
+        subscription.token !== ''
+      ) {
+        await payload.delete({
+          collection: 'push-notification-subscriptions',
+          where: { token: { equals: subscription.token } },
+        });
+      } else if (
+        'id' in subscription &&
+        typeof subscription.id === 'string' &&
+        subscription.id !== ''
+      ) {
+        await payload.delete({
+          collection: 'push-notification-subscriptions',
+          id: subscription.id,
+        });
+      } else {
+        return { success: false, error: errorDescription };
+      }
+    } catch (pruneError) {
+      logger.warn('Failed to prune expired push subscription', {
+        ...logAttributes,
+        error: pruneError,
+      });
+      return { success: false, error: errorDescription };
+    }
+
+    return { success: false, error: errorDescription, subscriptionRemoved: true };
   }
 }
