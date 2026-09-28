@@ -32,6 +32,7 @@ interface EventApiResponse {
 }
 
 interface LegacyParticipationsResponse {
+  total_pages?: number;
   event_participations?: Array<{
     id: string | number;
     links?: {
@@ -173,20 +174,8 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
         let parsed = this.participationsJsonCache.get(cacheKey);
 
         if (parsed === undefined) {
-          const path = `/groups/${groupId}/events/${eventId}/participations.json`;
-          const { response, body } = await this.client.frontendRequest('GET', path, {
-            headers: {
-              ...this.client.getFrontendHeaders(),
-              'X-Token': this.client.config.apiToken,
-            },
-          });
-
-          if (response.ok) {
-            parsed = JSON.parse(body) as LegacyParticipationsResponse;
-            this.participationsJsonCache.set(cacheKey, parsed);
-          } else {
-            recordAttempt(`Fail Legacy API request (status ${response.status})`);
-          }
+          parsed = await this.fetchLegacyParticipations(groupId, eventId, recordAttempt);
+          if (parsed !== undefined) this.participationsJsonCache.set(cacheKey, parsed);
         }
 
         if (parsed !== undefined) {
@@ -238,6 +227,45 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     );
     recordAttempt(`Scraper complete (found ${Object.keys(finalAnswers).length} answers)`);
     return finalAnswers;
+  }
+
+  /**
+   * Reads every page of the legacy participation list. Cevi.DB pages it at 50, and reading
+   * only the first sent everyone past the fiftieth registration of a Hof to the scraper.
+   */
+  private async fetchLegacyParticipations(
+    groupId: string,
+    eventId: string,
+    recordAttempt: (message: string) => void,
+  ): Promise<LegacyParticipationsResponse | undefined> {
+    const path = `/groups/${groupId}/events/${eventId}/participations.json`;
+    const merged: LegacyParticipationsResponse = {
+      event_participations: [],
+      linked: { event_answers: [] },
+    };
+
+    let totalPages = 1;
+    for (let page = 1; page <= totalPages; page++) {
+      const { response, body } = await this.client.frontendRequest('GET', path, {
+        params: { page: String(page) },
+        headers: {
+          ...this.client.getFrontendHeaders(),
+          'X-Token': this.client.config.apiToken,
+        },
+      });
+
+      if (!response.ok) {
+        recordAttempt(`Fail Legacy API request (page ${String(page)}, status ${response.status})`);
+        return undefined;
+      }
+
+      const parsed = JSON.parse(body) as LegacyParticipationsResponse;
+      totalPages = parsed.total_pages ?? 1;
+      merged.event_participations?.push(...(parsed.event_participations ?? []));
+      merged.linked?.event_answers?.push(...(parsed.linked?.event_answers ?? []));
+    }
+
+    return merged;
   }
 
   async fetchSubgroupLinks(parentGroupId: string): Promise<string[]> {
