@@ -13,6 +13,32 @@ describe('notificationClickHandler', () => {
   let mockWaitUntil: jest.Mock;
   let mockFetch: jest.Mock;
 
+  /** Clicks a push that links to the short domain, from a worker on conveniat27.ch. */
+  const clickShortLink = async (client?: WindowClient): Promise<void> => {
+    mockServiceWorkerScope = {
+      ...mockServiceWorkerScope,
+      location: { origin: 'https://conveniat27.ch' } as Location,
+    };
+    mockEvent = {
+      ...mockEvent,
+      notification: {
+        ...mockNotification,
+        data: { url: 'https://con27.ch/agbs', notificationId: 'notif-123' },
+      } as Notification,
+    };
+    (mockServiceWorkerScope.clients?.matchAll as jest.Mock).mockResolvedValue(
+      client === undefined ? [] : [client],
+    );
+
+    const handler = notificationClickHandler(
+      mockServiceWorkerScope as unknown as ServiceWorkerGlobalScope,
+    );
+    handler(mockEvent as NotificationEvent);
+
+    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
+    await calls[0]?.[0];
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockNotificationClose = jest.fn();
@@ -135,6 +161,44 @@ describe('notificationClickHandler', () => {
     expect(openWindowSpy).toHaveBeenCalledWith(
       expect.stringContaining('/app/chat/550e8400-e29b-41d4-a716-446655440000'),
     );
+  });
+
+  describe('with a link to another origin', () => {
+    it('navigates the open window to the full URL instead of routing its path in-page', async () => {
+      const mockNavigate = jest.fn().mockResolvedValue(true);
+      const mockPostMessage = jest.fn();
+      await clickShortLink({
+        visibilityState: 'visible',
+        focus: jest.fn().mockResolvedValue(true),
+        navigate: mockNavigate,
+        postMessage: mockPostMessage,
+      } as unknown as WindowClient);
+
+      expect(mockNavigate).toHaveBeenCalledWith('https://con27.ch/agbs');
+      expect(mockPostMessage).not.toHaveBeenCalled();
+      expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
+    });
+
+    it('opens a new window when the open window cannot be navigated', async () => {
+      await clickShortLink({
+        visibilityState: 'visible',
+        focus: jest.fn().mockResolvedValue(true),
+        navigate: jest.fn().mockRejectedValue(new TypeError('not controlled')),
+        postMessage: jest.fn(),
+      } as unknown as WindowClient);
+
+      expect(mockServiceWorkerScope.clients?.openWindow).toHaveBeenCalledWith(
+        'https://con27.ch/agbs',
+      );
+    });
+
+    it('opens a new window with the full URL when no window is open', async () => {
+      await clickShortLink();
+
+      expect(mockServiceWorkerScope.clients?.openWindow).toHaveBeenCalledWith(
+        'https://con27.ch/agbs',
+      );
+    });
   });
 });
 

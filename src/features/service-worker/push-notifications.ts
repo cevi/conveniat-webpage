@@ -279,7 +279,14 @@ export const notificationClickHandler =
         : '/app/dashboard';
 
     const url = new URL(urlString, serviceWorkerScope.location.origin);
-    url.searchParams.set(DesignModeTriggers.QUERY_PARAM_IMPLICIT, 'true');
+    // A link to another origin, like the short domain con27.ch, has to be opened as it is.
+    // The page behind PUSH_NAVIGATE routes within this origin and keeps only the path, which
+    // turned https://con27.ch/agbs into a 404 at /agbs. con27.ch answers with an absolute
+    // redirect to this origin, so the reader still ends up here.
+    const isSameOrigin = url.origin === serviceWorkerScope.location.origin;
+    if (isSameOrigin) {
+      url.searchParams.set(DesignModeTriggers.QUERY_PARAM_IMPLICIT, 'true');
+    }
     const targetUrlString = url.toString();
 
     const trackingPromise = notificationData.notificationId
@@ -295,21 +302,34 @@ export const notificationClickHandler =
       const existingClient =
         clientList.find((client) => client.visibilityState === 'visible') ?? clientList[0];
 
-      if (existingClient) {
-        await existingClient.focus();
-        existingClient.postMessage({
-          type: ServiceWorkerMessages.PUSH_NAVIGATE,
-          payload: { url: targetUrlString },
-        });
-        if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
-          try {
-            await existingClient.navigate(targetUrlString);
-          } catch {
-            // navigation handled by PUSH_NAVIGATE postMessage
-          }
-        }
-      } else {
+      if (!existingClient) {
         await serviceWorkerScope.clients.openWindow(targetUrlString);
+        return;
+      }
+
+      await existingClient.focus();
+
+      if (!isSameOrigin) {
+        // navigate() rejects for a client this worker does not control, and then only a new
+        // window still gets the reader there.
+        try {
+          await existingClient.navigate(targetUrlString);
+        } catch {
+          await serviceWorkerScope.clients.openWindow(targetUrlString);
+        }
+        return;
+      }
+
+      existingClient.postMessage({
+        type: ServiceWorkerMessages.PUSH_NAVIGATE,
+        payload: { url: targetUrlString },
+      });
+      if ('navigate' in existingClient && typeof existingClient.navigate === 'function') {
+        try {
+          await existingClient.navigate(targetUrlString);
+        } catch {
+          // navigation handled by PUSH_NAVIGATE postMessage
+        }
       }
     })();
 
