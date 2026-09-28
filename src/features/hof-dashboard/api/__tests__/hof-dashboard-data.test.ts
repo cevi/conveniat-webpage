@@ -29,7 +29,27 @@ const planForm = {
           {
             blockType: 'conditionedBlock',
             fields: [
-              { blockType: 'checkbox', name: 'strom', label: 'Stromanschluss' },
+              // the form builder writes a checkbox's label as rich text
+              {
+                blockType: 'checkbox',
+                name: 'strom',
+                label: {
+                  root: {
+                    type: 'root',
+                    children: [
+                      {
+                        type: 'paragraph',
+                        children: [
+                          { type: 'text', text: 'Stromanschluss (siehe ' },
+                          { type: 'link', children: [{ type: 'text', text: 'Leitungsplan' }] },
+                          { type: 'text', text: ')' },
+                        ],
+                      },
+                      { type: 'paragraph', children: [] },
+                    ],
+                  },
+                },
+              },
               {
                 blockType: 'select',
                 name: 'dach',
@@ -494,7 +514,7 @@ describe('getHofDashboardData', () => {
     ]);
     expect(newest?.answers).toContainEqual({
       field: 'strom',
-      label: 'Stromanschluss',
+      label: 'Stromanschluss (siehe Leitungsplan)',
       kind: 'text',
       text: 'Ja',
     });
