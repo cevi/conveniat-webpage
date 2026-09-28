@@ -21,13 +21,22 @@ const swissIntlPattern = String.raw`(?:(?:\+41|0041)[\s\-\./]*(?:\(0\)[\s\-\./]*
 const swissDomPattern = String.raw`(?:0[1-9](?:[\s\-\./]*\d){8})`;
 const swissPhonePattern = `(?<![\\d\\+\\w])(?:${swissIntlPattern}|${swissDomPattern})(?![\\d\\w])`;
 
-const splitFormattingLinkAndPhoneRegex = new RegExp(
-  `(\\*.*?\\*|_.*?_|~.*?~|\\[[^\\]]+\\]\\(https?:\\/\\/[^\\s)]+\\)|https?:\\/\\/[^\\s)]+|${swissPhonePattern})`,
-  'g',
+// Links are cut out of a line before any formatting is looked for, so an underscore in
+// `utm_source=chat` or a tilde in a path never turns part of a URL into italics.
+const splitLinkRegex = /(\[[^\]]+\]\(https?:\/\/[^\s)]+\)|https?:\/\/[^\s)]+)/g;
+
+// `_` only opens and closes at a word boundary, hugging its text, so `plan_v2_final.pdf`
+// and `__init__` stay as they are
+const italicBody = String.raw`(?![\s_]).*?(?<![\s_])`;
+const italicPattern = String.raw`(?<![\p{L}\p{N}_])_${italicBody}_(?![\p{L}\p{N}_])`;
+
+const splitFormattingAndPhoneRegex = new RegExp(
+  `(\\*.*?\\*|${italicPattern}|~.*?~|${swissPhonePattern})`,
+  'gu',
 );
 
 const boldRegex = /^\*(.+)\*$/;
-const italicRegex = /^_(.+)_$/;
+const italicRegex = new RegExp(String.raw`^_(${italicBody})_$`, 'u');
 const strikethroughRegex = /^~(.+)~$/;
 const markdownLinkRegex = /^\[(.+?)\]\((https?:\/\/[^\s)]+)\)$/;
 const urlRegex = /^(https?:\/\/[^\s)]+)$/;
@@ -151,7 +160,13 @@ export const formatMessageContent = (
   const lines = text.split('\n');
 
   return lines.flatMap((line, lineIndex) => {
-    const parts = line.split(splitFormattingLinkAndPhoneRegex).filter(Boolean);
+    const parts = line
+      .split(splitLinkRegex)
+      // split keeps the captured links at the odd indices
+      .flatMap((segment, segmentIndex) =>
+        segmentIndex % 2 === 1 ? [segment] : segment.split(splitFormattingAndPhoneRegex),
+      )
+      .filter(Boolean);
     const formattedParts = parts.map((part, partIndex) => {
       let match;
       match = part.match(boldRegex);

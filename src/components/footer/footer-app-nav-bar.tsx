@@ -50,7 +50,7 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({ locale, i
   const currentLoadingHref = isPending ? loadingHref : undefined;
 
   return (
-    <div className="fixed bottom-0 left-0 z-40 flex h-20 w-dvw border-t-2 border-gray-200 bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed bottom-0 left-(--app-content-left) z-40 flex h-20 w-[calc(100dvw-var(--app-content-left))] border-t-2 border-gray-200 bg-[#f8fafc]">
       <nav className="flex w-full items-center justify-around px-4">
         {navItems.map((item) => {
           const isActive = longestMatch === item.href || currentLoadingHref === item.href;

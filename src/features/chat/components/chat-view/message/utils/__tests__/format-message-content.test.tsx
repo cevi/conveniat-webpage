@@ -119,3 +119,63 @@ describe('formatMessageContent line breaks', () => {
     ]);
   });
 });
+
+type RenderedElement = React.ReactElement<{ href?: string; children?: React.ReactNode }>;
+
+const elementsOfType = (nodes: React.ReactNode[], type: string): RenderedElement[] =>
+  nodes.filter(
+    (node): node is RenderedElement =>
+      typeof node === 'object' && node !== null && (node as React.ReactElement).type === type,
+  );
+
+const links = (nodes: React.ReactNode[]): RenderedElement[] =>
+  nodes.filter(
+    (node): node is RenderedElement =>
+      typeof node === 'object' &&
+      node !== null &&
+      typeof (node as RenderedElement).props.href === 'string',
+  );
+
+describe('formatMessageContent underscores', () => {
+  it('keeps the underscores of a URL and links all of it', () => {
+    const url = 'https://example.com/infos_abteilungen?utm_source=chat&ref=a_b_c';
+    const result = formatMessageContent(`Hier ist der Infobrief: ${url}`, 'de');
+
+    expect(elementsOfType(result, 'em')).toHaveLength(0);
+    expect(links(result).map((link) => link.props.href)).toEqual([url]);
+    expect(links(result)[0]?.props.children).toBe(url);
+  });
+
+  it('does not open italics before a URL and close them inside it', () => {
+    const url = 'https://example.com/a_b';
+    const result = formatMessageContent(`_Wichtig_ und _siehe ${url}`, 'de');
+
+    expect(elementsOfType(result, 'em').map((em) => em.props.children)).toEqual(['Wichtig']);
+    expect(links(result).map((link) => link.props.href)).toEqual([url]);
+  });
+
+  it('keeps the underscores of a file name', () => {
+    const text = 'Das Formular heisst anmeldung_hof_final_v2.pdf, bitte ausfüllen';
+    expect(formatMessageContent(text, 'de')).toEqual([text]);
+  });
+
+  it('keeps a name wrapped in double underscores', () => {
+    const text = 'siehe __init__.py';
+    expect(formatMessageContent(text, 'de')).toEqual([text]);
+  });
+
+  it('still renders italics between word boundaries', () => {
+    const result = formatMessageContent('Bitte _pünktlich_ sein, _alle zusammen_!', 'de');
+
+    expect(elementsOfType(result, 'em').map((em) => em.props.children)).toEqual([
+      'pünktlich',
+      'alle zusammen',
+    ]);
+    expect(result.at(-1)).toBe('!');
+  });
+
+  it('does not italicise an underscore next to a letter', () => {
+    const text = 'Grüsse_aus_Uster';
+    expect(formatMessageContent(text, 'de')).toEqual([text]);
+  });
+});

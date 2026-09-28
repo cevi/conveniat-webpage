@@ -10,7 +10,7 @@ import type React from 'react';
  */
 export default function ChatLoading(): React.ReactNode {
   return (
-    <div className="fixed top-[62px] left-0 z-30 flex h-[calc(100dvh-62px-0px)] w-full flex-col overflow-y-hidden bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="fixed top-(--app-content-top) left-(--app-content-left) z-30 flex h-[calc(100dvh-var(--app-content-top))] w-[calc(100dvw-var(--app-content-left))] flex-col overflow-y-hidden bg-[#f8fafc]">
       <div className="flex-1 overflow-y-auto px-4 py-4">
         <ChatsOverviewSkeleton />
       </div>
