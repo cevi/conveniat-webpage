@@ -17,6 +17,7 @@ import { HOF_ENTRY_STATUS_LABELS, type HofEntryStatus } from '@/features/hof-das
 import { useWarnBeforeLeaving } from '@/features/hof-dashboard/hooks/use-warn-before-leaving';
 import { useWithdrawSubmission } from '@/features/hof-dashboard/hooks/use-withdraw-submission';
 import { formatDate, translate, type TextKey } from '@/features/hof-dashboard/texts';
+import { entryHeading } from '@/features/hof-dashboard/utils/entry-heading';
 import type { SubmissionProgress } from '@/features/hof-dashboard/utils/submission-progress';
 import AccordionItem from '@/features/payload-cms/components/accordion/accordion-item';
 import { FormBlock } from '@/features/payload-cms/components/form';
@@ -192,8 +193,6 @@ export const FormCard: React.FC<{
   const presetValues = useMemo(() => ({ [form.hofField]: hofId }), [form.hofField, hofId]);
 
   const [current, ...earlier] = form.entries;
-  const versionHeading = (index: number): string =>
-    translate('version', locale, { n: form.entries.length - index });
   const revisionAsked = progress.gap === 'revision';
 
   return (
@@ -223,7 +222,7 @@ export const FormCard: React.FC<{
         <>
           <EntryBlock
             entry={current}
-            heading={versionHeading(0)}
+            heading={entryHeading(form, 0, locale)}
             showStatus={false}
             reviewFor={isReviewer ? hofId : undefined}
             canFinalize
@@ -249,7 +248,7 @@ export const FormCard: React.FC<{
                     <div key={entry.id} className="py-4 first:pt-0 last:pb-0">
                       <EntryBlock
                         entry={entry}
-                        heading={versionHeading(index + 1)}
+                        heading={entryHeading(form, index + 1, locale)}
                         locale={locale}
                         reviewFor={isReviewer ? hofId : undefined}
                         onWithdraw={withdraw}
@@ -265,11 +264,11 @@ export const FormCard: React.FC<{
 
       {form.mode === 'entries' && form.entries.length > 0 && (
         <div className="divide-y divide-gray-100 border-y border-gray-100">
-          {form.entries.map((entry) => (
+          {form.entries.map((entry, index) => (
             <div key={entry.id} className="py-4">
               <EntryBlock
                 entry={entry}
-                heading={entry.title ?? translate('entryUntitled', locale)}
+                heading={entryHeading(form, index, locale)}
                 locale={locale}
                 reviewFor={isReviewer ? hofId : undefined}
                 onWithdraw={withdraw}

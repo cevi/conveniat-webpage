@@ -360,6 +360,7 @@ import {
   getHofDashboardData,
   type HofDashboardForm,
 } from '@/features/hof-dashboard/api/hof-dashboard-data';
+import { summarizeHofSubmission } from '@/features/hof-dashboard/api/hof-submission-summary';
 
 const formOf = async (formId: string, isReviewer = false): Promise<HofDashboardForm> => {
   const { forms } = await getHofDashboardData('hof-nord', 'de', isReviewer);
@@ -731,5 +732,29 @@ describe('getHofDashboardData', () => {
     expect(data.documents).toEqual([
       { id: 'doc-1', title: 'Merkblatt', url: '/m.pdf', filesize: 100, area: 'infrastructure' },
     ]);
+  });
+});
+
+describe('summarizeHofSubmission', () => {
+  it('names a version as the dashboard heads it, counted from the oldest', async () => {
+    await expect(summarizeHofSubmission('hof-nord', 'plan-1', 'de')).resolves.toEqual({
+      form: 'Hofbauten',
+      hof: 'Hof Nord',
+      entry: 'Version 1',
+      status: 'submitted',
+    });
+  });
+
+  it('names an entry by its answer, with the status the dashboard shows', async () => {
+    await expect(summarizeHofSubmission('hof-nord', 'stand-b', 'de')).resolves.toEqual({
+      form: 'Stadtleben',
+      hof: 'Hof Nord',
+      entry: 'Crêpes',
+      status: 'accepted',
+    });
+  });
+
+  it('names nothing the dashboard does not list', async () => {
+    await expect(summarizeHofSubmission('hof-nord', 'elsewhere', 'de')).resolves.toBeUndefined();
   });
 });
