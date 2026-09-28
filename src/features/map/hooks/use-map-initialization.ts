@@ -1,10 +1,13 @@
 import type { InitialMapPose } from '@/features/map/types/types';
+import { addPaperImage, PAPER_IMAGE_ID } from '@/features/map/utils/camp-map-images';
 import { configureMapLibreWorker } from '@/lib/maplibre-worker';
 import { AttributionControl, Map as MapLibre } from 'maplibre-gl';
 
 import { useEffect, useState } from 'react';
 
 const minZoomLevelForSwitzerland = 4;
+
+const BASE_MAP_STYLE = '/vector-map/base_style.json';
 
 export interface MapInitialization {
   /** The MapLibre instance, or `undefined` while initializing or after a failure. */
@@ -36,11 +39,13 @@ export const useMapInitialization = (
     initialMapPose: InitialMapPose;
     limitUsage: boolean;
     validateStyle: boolean;
+    /** URL of the MapLibre style, the swisstopo base map by default. */
+    style?: string;
   },
 ): MapInitialization => {
   const [map, setMap] = useState<MapLibre | undefined>();
   const [initializationFailed, setInitializationFailed] = useState(false);
-  const { initialMapPose, limitUsage, validateStyle } = options;
+  const { initialMapPose, limitUsage, validateStyle, style = BASE_MAP_STYLE } = options;
 
   useEffect(() => {
     if (!mapContainer || map) return;
@@ -52,7 +57,7 @@ export const useMapInitialization = (
       mapInstance = new MapLibre({
         container: mapContainer,
         validateStyle,
-        style: '/vector-map/base_style.json',
+        style,
         ...(!limitUsage && {
           cooperativeGestures: true,
           touchZoomRotate: false,
@@ -68,6 +73,10 @@ export const useMapInitialization = (
       });
 
       mapInstance.addControl(new AttributionControl({ compact: true }));
+      // the camp style paints its background with a texture drawn at runtime
+      mapInstance.on('styleimagemissing', ({ id }) => {
+        if (id === PAPER_IMAGE_ID) addPaperImage(mapInstance);
+      });
     } catch (error) {
       console.warn('Failed to initialize the map, rendering fallback instead:', error);
       // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -10,7 +10,7 @@ const setWorkerUrlMock = jest.fn();
 jest.mock('maplibre-gl', () => ({
   Map: jest.fn().mockImplementation((options: unknown) => {
     mapConstructor(options);
-    return { addControl: addControlMock, remove: removeMock };
+    return { addControl: addControlMock, remove: removeMock, on: jest.fn() };
   }),
   AttributionControl: jest.fn().mockImplementation(() => ({})),
   setWorkerUrl: (url: string): void => {

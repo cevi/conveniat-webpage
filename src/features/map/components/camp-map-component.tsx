@@ -155,6 +155,7 @@ const CampMapComponentCached: React.FC<{
           campMapAnnotationPoints={campMapAnnotationPoints}
           campMapAnnotationPolygons={campMapAnnotationPolygons}
           validateStyle={environmentVariables.NODE_ENV !== 'production'}
+          mapStyle="/vector-map/camp_style.json"
           schedules={schedulesPerAnnotations}
           enableSearch
         />

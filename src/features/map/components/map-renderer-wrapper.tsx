@@ -58,6 +58,8 @@ export interface MapLibreRendererProperties {
   campMapAnnotationPolygons?: CampMapAnnotationPolygon[];
   schedules: { [id: string]: CampScheduleEntry[] };
   limitUsage?: boolean;
+  /** URL of the MapLibre style; the swisstopo base map when omitted. */
+  mapStyle?: string;
   validateStyle?: boolean;
   mapControlOptions?: MapControlOptions;
   selectedAnnotationId?: string;
@@ -84,6 +86,7 @@ export const MapLibreRenderer = ({
   disableFlyTo,
   enableSearch,
   unavailableFallback,
+  mapStyle,
 }: MapLibreRendererProperties): React.JSX.Element => {
   const reference = useRef<HTMLDivElement>(null);
   const isVisible = useIntersectionObserver(reference);
@@ -111,6 +114,7 @@ export const MapLibreRenderer = ({
             {...(disableFlyTo !== undefined && { disableFlyTo })}
             {...(enableSearch !== undefined && { enableSearch })}
             {...(unavailableFallback !== undefined && { unavailableFallback })}
+            {...(mapStyle !== undefined && { mapStyle })}
           />
         </Suspense>
       ) : (
@@ -135,6 +139,7 @@ export const MiniMapLibreRenderer = ({
   disableFlyTo,
   enableSearch,
   unavailableFallback,
+  mapStyle,
 }: MapLibreRendererProperties): React.JSX.Element => {
   const reference = useRef<HTMLDivElement>(null);
   const isVisible = useIntersectionObserver(reference);
@@ -162,6 +167,7 @@ export const MiniMapLibreRenderer = ({
             {...(disableFlyTo !== undefined && { disableFlyTo })}
             {...(enableSearch !== undefined && { enableSearch })}
             {...(unavailableFallback !== undefined && { unavailableFallback })}
+            {...(mapStyle !== undefined && { mapStyle })}
           />
         </Suspense>
       ) : (
