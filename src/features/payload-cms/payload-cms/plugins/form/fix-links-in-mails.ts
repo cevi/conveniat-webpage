@@ -20,6 +20,20 @@ import {
 } from '@payloadcms/richtext-lexical/html';
 import { randomUUID } from 'node:crypto';
 import { getPayload, type PayloadRequest, type Where } from 'payload';
+
+// Submitted text keeps these in place of its braces until the mail is finished, so no pass that
+// fills in `{{approval-link}}` or `{{*}}` can read a submitter's braces as a placeholder. They
+// become HTML entities only at the end, because Lexical escapes an entity in a text node. They are
+// private-use characters: one typed by a submitter also ends up as a brace entity, which is inert.
+const SUBMITTED_OPENING_BRACE = '\uE000';
+const SUBMITTED_CLOSING_BRACE = '\uE001';
+
+const neutralisePlaceholderSyntax = (submittedText: string): string =>
+  submittedText.replaceAll('{', SUBMITTED_OPENING_BRACE).replaceAll('}', SUBMITTED_CLOSING_BRACE);
+
+const restoreSubmittedBraces = (html: string): string =>
+  html.replaceAll(SUBMITTED_OPENING_BRACE, '&#123;').replaceAll(SUBMITTED_CLOSING_BRACE, '&#125;');
+
 export const beforeEmailChangeHook: BeforeEmail = async (
   emailsToSend,
   beforeChangeParameters: unknown,
@@ -291,7 +305,10 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     approvalUrl: approvalUrl,
     'approval-link': approvalUrl,
   };
+  // The answers as submitted, which the send conditions compare against
   const submissionDict: Record<string, string> = {};
+  // What a `{{fieldName}}` in the message becomes
+  const placeholderValues: Record<string, string> = {};
 
   const extractStringValue = (val: unknown): string => {
     if (typeof val === 'string') return val;
@@ -313,15 +330,18 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     ) {
       const stringValue = extractStringValue(item.value);
       submissionDict[item.field] = stringValue;
+      const submittedValue = neutralisePlaceholderSyntax(stringValue);
+      placeholderValues[item.field] = submittedValue;
 
-      const fieldName = escapeHTML(item.field);
-      const fieldValue = escapeHTML(stringValue).replaceAll('\n', '<br />');
+      // The field names are submitted too, and a form does not reject one it does not have
+      const fieldName = escapeHTML(neutralisePlaceholderSyntax(item.field));
+      const fieldValue = escapeHTML(submittedValue).replaceAll('\n', '<br />');
       wildcardHtmlText += `<strong>${fieldName}</strong>: ${fieldValue}<br />\n`;
       wildcardHtmlTable += `<tr><td><strong>${fieldName}</strong></td><td>${fieldValue}</td></tr>\n`;
     }
   }
   wildcardHtmlTable += '</table>';
-  Object.assign(submissionDict, reservedPlaceholders);
+  Object.assign(placeholderValues, reservedPlaceholders);
 
   interface MinimalLexicalNode {
     type: string;
@@ -334,7 +354,7 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       if (node.type === 'text' && typeof node.text === 'string') {
         node.text = node.text.replaceAll(/\{\{([^}]+)\}\}/g, (match: string, p1: string) => {
           const key = p1.trim();
-          return submissionDict[key] ?? match;
+          return placeholderValues[key] ?? match;
         });
       }
       if (Array.isArray(node.children)) {
@@ -438,6 +458,9 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       const label = rawLabel.length > 0 ? rawLabel : 'Bestätigen';
       return `<a href="${approvalUrl}">${escapeHTML(label)}</a>`;
     });
+
+    // Last, once no placeholder is filled in any more
+    updatedHtml = restoreSubmittedBraces(updatedHtml);
 
     const shouldAttachFiles =
       originalEmailConfig === undefined
