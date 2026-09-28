@@ -13,6 +13,8 @@ export interface SyncHistoryEntry {
   value?: string;
   /** Why an already-billed row was parked for manual inspection. */
   reviewReason?: string;
+  /** The operator's own words for a manual cancellation, which the finance export shows. */
+  cancelReason?: string;
 }
 
 /** A single entry, shown in full. */

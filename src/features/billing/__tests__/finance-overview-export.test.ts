@@ -65,6 +65,8 @@ describe('buildFinanceOverviewWorkbook', () => {
       'Teilnehmendenbeitrag, Max Mustermann, Bern',
       '11000',
       '[CA]',
+      false,
+      '',
     ]);
   });
 
