@@ -433,6 +433,8 @@ export const useChatSSE = (chatIds: string[]): ChatRealtimeSync => {
       // only realtime update is the reply-count patch below. Missing that would leave
       // them stale for the full 5 minute `staleTime`.
       trpcUtils.chat.getMessage.invalidate().catch(console.error);
+      // the composers no longer poll the flags, this is how they notice a change
+      trpcUtils.chat.getFeatureFlags.invalidate().catch(console.error);
       for (const chatId of ids) {
         trpcUtils.chat.infiniteMessages.invalidate({ chatId }).catch(console.error);
         trpcUtils.chat.chatDetails.invalidate({ chatId }).catch(console.error);

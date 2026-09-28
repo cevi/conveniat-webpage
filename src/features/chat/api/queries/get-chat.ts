@@ -5,6 +5,7 @@ import { formatCaseNumber } from '@/features/chat/api/utils/case-number-utils';
 import { findCmsUserNames } from '@/features/chat/api/utils/find-cms-user-names';
 import { getStatusFromMessageEvents } from '@/features/chat/api/utils/get-status-from-message-events';
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
+import { ONLINE_WINDOW_MS } from '@/features/chat/constants';
 import { ChatType, MessageEventType } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
@@ -122,7 +123,7 @@ export const getChat = trpcBaseProcedure
       participants: chatMemberships.map((membership) => ({
         id: membership.user.uuid,
         name: membership.user.name,
-        isOnline: membership.user.lastSeen > new Date(Date.now() - 30 * 1000),
+        isOnline: membership.user.lastSeen > new Date(Date.now() - ONLINE_WINDOW_MS),
         chatPermission: membership.chatPermission,
         description: membership.user.description,
         pictureUrl: profilePictureUrlOrUndefined(
