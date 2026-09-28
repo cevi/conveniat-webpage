@@ -62,14 +62,17 @@ describe('recordIssuedBills', () => {
     ]);
   });
 
-  it('cancels the standing bill with the reason recorded for the removal', async () => {
+  it('cancels the standing bill with the reason the operator gave for Stornieren', async () => {
     const result = await runHook(billed(), {
       status: 'removed',
       syncHistory: [
         {
           date: '2026-06-10T08:00:00.000Z',
           action: 'manually_removed',
-          reviewReason: 'Manuell auf „Entfernt“ gesetzt durch Hans Muster.',
+          cancelReason: 'Doppelt angemeldet, bleibt bei Cevi Uster.',
+          reviewReason:
+            'Storniert durch Hans Muster. Grund: Doppelt angemeldet, bleibt bei Cevi Uster.\n' +
+            'Eine allfällige Rechnung bleibt zur Nachvollziehbarkeit erhalten.',
         },
       ],
     });
@@ -77,9 +80,27 @@ describe('recordIssuedBills', () => {
     expect(result.issuedBills).toEqual([
       expect.objectContaining({
         invoiceNumber: '2026-001',
-        cancelReason: 'Manuell auf „Entfernt“ gesetzt durch Hans Muster.',
+        cancelReason: 'Doppelt angemeldet, bleibt bei Cevi Uster.',
       }),
     ]);
+  });
+
+  it("cancels the standing bill with the sync's note when the Cevi.DB dropped the registration", async () => {
+    const result = await runHook(billed(), {
+      status: 'removed',
+      syncHistory: [
+        {
+          date: '2026-06-10T08:00:00.000Z',
+          action: 'removed_detected',
+          reviewReason:
+            'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden. Die Rechnung 2026-001 wurde deshalb storniert.',
+        },
+      ],
+    });
+
+    expect(result.issuedBills?.[0]?.cancelReason).toBe(
+      'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden. Die Rechnung 2026-001 wurde deshalb storniert.',
+    );
   });
 
   it('leaves a bill that was already cancelled alone when a new one replaces it', async () => {
@@ -90,14 +111,14 @@ describe('recordIssuedBills', () => {
           {
             invoiceNumber: '2026-001',
             cancelledDate: '2026-06-10T08:00:00.000Z',
-            cancelReason: 'Anmeldung entfernt.',
+            cancelReason: 'Anmeldung storniert.',
           },
         ],
       }),
       { status: 'bill_created', invoiceNumber: '2026-009' },
     );
 
-    expect(result.issuedBills?.[0]).toMatchObject({ cancelReason: 'Anmeldung entfernt.' });
+    expect(result.issuedBills?.[0]).toMatchObject({ cancelReason: 'Anmeldung storniert.' });
     expect(result.issuedBills?.[1]).toMatchObject({ invoiceNumber: '2026-009' });
   });
 

@@ -242,6 +242,7 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
         {
           date: now,
           action: 'manually_removed',
+          cancelReason: parseResult.data.reason,
           reviewReason:
             `Storniert durch ${actor}. Grund: ${parseResult.data.reason}\n` +
             `Eine allfällige Rechnung bleibt zur Nachvollziehbarkeit erhalten, wird aber nicht ` +

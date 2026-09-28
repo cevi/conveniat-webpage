@@ -29,22 +29,27 @@ type BillSource = Pick<
 /** The history actions that mean a registration was cancelled. */
 const REMOVAL_ACTIONS = new Set(['removed_detected', 'manually_removed']);
 
-const FALLBACK_REMOVAL_REASON = 'Anmeldung entfernt.';
+const FALLBACK_REMOVAL_REASON = 'Anmeldung storniert.';
 
 /** Matches the name the bill generator gives a PDF: `Rechnung-<invoice>-<Date.now()>.pdf`. */
 const PDF_FILENAME = /^Rechnung-(.+)-(\d{13})(?:-\d+)?\.pdf$/;
 
-/** Why a registration was cancelled, as its most recent removal entry in the history says. */
+/**
+ * Why a registration was cancelled, as its most recent removal entry in the history says.
+ *
+ * A manual cancellation carries the operator's reason on its own; the sync only writes a
+ * `reviewReason`, and so did a manual one before the reason was asked for.
+ */
 export const describeRemoval = (syncHistory: unknown): string => {
   if (!Array.isArray(syncHistory)) return FALLBACK_REMOVAL_REASON;
   for (const entry of syncHistory.toReversed() as unknown[]) {
     if (entry === null || typeof entry !== 'object') continue;
-    const { action, reviewReason } = entry as { action?: unknown; reviewReason?: unknown };
-    if (typeof action === 'string' && REMOVAL_ACTIONS.has(action)) {
-      return typeof reviewReason === 'string' && reviewReason !== ''
-        ? reviewReason
-        : FALLBACK_REMOVAL_REASON;
+    const { action, cancelReason, reviewReason } = entry as Record<string, unknown>;
+    if (typeof action !== 'string' || !REMOVAL_ACTIONS.has(action)) continue;
+    for (const reason of [cancelReason, reviewReason]) {
+      if (typeof reason === 'string' && reason.trim() !== '') return reason.trim();
     }
+    return FALLBACK_REMOVAL_REASON;
   }
   return FALLBACK_REMOVAL_REASON;
 };
