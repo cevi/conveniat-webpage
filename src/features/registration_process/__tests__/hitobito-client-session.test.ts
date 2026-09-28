@@ -1,5 +1,18 @@
+// built inside the factory: `jest.mock` runs before this file's own constants exist, and the
+// client creates its logger as soon as it is imported
+jest.mock('@/utils/server-logger', () => {
+  const logger = { debug: jest.fn(), info: jest.fn() };
+  return { createLogger: (): typeof logger => logger };
+});
+
 import { FatalError, HitobitoClient } from '@/lib/hitobito/client';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
+import type { ServerLogger } from '@/utils/server-logger';
+
+const { createLogger } = jest.requireMock<{
+  createLogger: () => jest.Mocked<Pick<ServerLogger, 'debug' | 'info'>>;
+}>('@/utils/server-logger');
+const requestLog = createLogger();
 
 const BASE_URL = 'https://db.cevi.ch';
 const EDIT_PATH = '/groups/4540/events/5430/participations/110111/edit';
@@ -138,6 +151,28 @@ describe('HitobitoClient.apiRequest', () => {
   const originalFetch = globalThis.fetch;
   afterEach(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  it('logs each request once at debug, with its path but not its query', async () => {
+    fetchAnswering(respond(`${BASE_URL}/api/people`, 200, '{"data":[]}'));
+    requestLog.debug.mockClear();
+
+    await client().apiRequest('GET', '/api/people', {
+      params: { 'filter[email][eq]': 'hans.muster@example.com' },
+    });
+
+    // a Hof sync sends hundreds of these; at info they buried everything else in Loki
+    expect(requestLog.info).not.toHaveBeenCalled();
+    expect(requestLog.debug).toHaveBeenCalledTimes(1);
+    const [message, attributes] = requestLog.debug.mock.calls[0] ?? [];
+    expect(message).toBe('Cevi.DB API request');
+    expect(attributes).toMatchObject({
+      'http.request.method': 'GET',
+      'url.path': '/api/people',
+      'http.response.status_code': 200,
+    });
+    expect(attributes?.['hitobito.duration_ms']).toEqual(expect.any(Number));
+    expect(JSON.stringify(attributes)).not.toContain('hans.muster');
   });
 
   it('follows a pagination link on the same origin with the token', async () => {
