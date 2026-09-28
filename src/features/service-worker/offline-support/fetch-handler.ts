@@ -173,7 +173,6 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     request.headers.has('Next-Router-Prefetch');
 
   const isServerAction = request.headers.has('Next-Action');
-  const isApi = url.pathname.startsWith('/api/');
 
   // Strategy A: Server Actions
   // Server Actions fail with native Response.error() so React Flight client handles errors cleanly via Error Boundary
@@ -195,23 +194,6 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     // cache miss turns into a retry loop. `Response.error()` is a clean network failure that
     // the router and the error boundary both already handle.
     return Response.error();
-  }
-
-  // Strategy E: API Fallback
-  if (isApi) {
-    console.warn(`[SW] API offline fallback for: ${url.pathname}`);
-    return new Response(
-      JSON.stringify({
-        error: 'offline',
-        message: 'You are offline. This request requires an internet connection.',
-        url: url.toString(),
-      }),
-      {
-        status: 503,
-        statusText: 'Service Unavailable',
-        headers: { 'Content-Type': 'application/json' },
-      },
-    );
   }
 
   const isManifestOrIcon =
@@ -381,7 +363,6 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     url.searchParams.has('_rsc') ||
     event.request.headers.has('RSC') ||
     event.request.headers.has('Next-Router-Prefetch');
-  const isApi = url.pathname.startsWith('/api/');
   const isDocument = event.request.destination === 'document';
 
   let requestToHandle = event.request;
@@ -401,18 +382,6 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   // regardless of SW state, client ID tracking, or query params.
   const userAgent = event.request.headers.get('user-agent') ?? '';
   const isNativeAppWebView = isNativeAppUserAgent(userAgent);
-
-  if (isApi) {
-    try {
-      return await fetch(event.request);
-    } catch {
-      return offlineFallback(
-        event.request,
-        url,
-        isAppModeClient || isNativeAppWebView || url.searchParams.get('app-mode') === 'true',
-      );
-    }
-  }
 
   // Synchronously register resultingClientId during navigation if in App Mode
   if (isNavigation) {
@@ -465,7 +434,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   try {
     const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
-    // Fast-path offline fallback for documents, RSC, and API requests when network is off
+    // Fast-path offline fallback for documents and RSC requests when network is off
     if (isOffline) {
       console.log(`[SW] Fast Offline Fallback for ${url.pathname}`);
       return offlineFallback(event.request, url, isAppMode);
@@ -583,9 +552,16 @@ export const handleFetchEvent =
     const isAuthRequest = url.pathname.startsWith('/api/auth/');
     const isIngestRequest = url.pathname.startsWith('/ingest');
     const isTrpcRequest = url.pathname.startsWith('/api/trpc/');
+    // Auth and tRPC are the only API routes with an offline answer below. For every other
+    // one the worker could only forward the network response, and forwarding a stream is
+    // harmful: Firefox terminates a worker 30 s after its last event and cuts the body it is
+    // still relaying, which surfaced as "Error in input stream" on the NDJSON admin endpoints
+    // and drops the chat EventSource every 30 s.
+    const isApiWithoutOfflineStrategy =
+      url.pathname.startsWith('/api/') && !isAuthRequest && !isTrpcRequest;
 
-    // avoid the service worker for admin panel and ingest requests
-    if (isAdminPanel || isIngestRequest) {
+    // avoid the service worker for admin panel, ingest and plain API requests
+    if (isAdminPanel || isIngestRequest || isApiWithoutOfflineStrategy) {
       return;
     }
 
