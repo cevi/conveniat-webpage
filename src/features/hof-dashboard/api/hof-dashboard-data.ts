@@ -218,19 +218,47 @@ interface FormField {
   items?: { id?: string | null }[];
 }
 
+/** The text of a rich-text node and everything under it, links included. */
+const textOf = (node: unknown): string => {
+  if (typeof node !== 'object' || node === null) return '';
+  const { text, children } = node as { text?: unknown; children?: unknown };
+  if (typeof text === 'string') return text;
+  return Array.isArray(children) ? children.map((child) => textOf(child)).join('') : '';
+};
+
+/**
+ * A field's label as text. Most are plain, but the form builder writes a checkbox's as rich text,
+ * which would otherwise leave the answer headed by the field's name.
+ */
+const labelOf = (label: unknown, name: string): string => {
+  if (typeof label === 'string') return label;
+  const paragraphs = (label as { root?: { children?: unknown } } | null | undefined)?.root
+    ?.children;
+  const text = Array.isArray(paragraphs)
+    ? paragraphs
+        .map((paragraph) => textOf(paragraph))
+        .join(' ')
+        .trim()
+    : '';
+  return text === '' ? name : text;
+};
+
 /** Every named field of a form in the order it asks them, conditioned ones included. */
 const fieldsOf = (form: Pick<Form, 'sections'>): FormField[] => {
   const collect = (fields: unknown[] | null | undefined): FormField[] =>
     (fields ?? []).flatMap((field): FormField[] => {
       if (field === null || typeof field !== 'object') return [];
-      const block = field as Partial<FormField> & { fields?: unknown[] | null };
+      const block = field as Partial<Omit<FormField, 'label'>> & {
+        label?: unknown;
+        fields?: unknown[] | null;
+      };
       if (block.blockType === 'conditionedBlock') return collect(block.fields);
       if (typeof block.blockType !== 'string' || typeof block.name !== 'string') return [];
       return [
         {
           blockType: block.blockType,
           name: block.name,
-          label: typeof block.label === 'string' ? block.label : block.name,
+          label: labelOf(block.label, block.name),
           ...(Array.isArray(block.options) ? { options: block.options } : {}),
           ...(Array.isArray(block.items) ? { items: block.items } : {}),
         },
