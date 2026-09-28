@@ -3,6 +3,7 @@
 import type { NotificationType } from '@/lib/notification-type';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
+import { assignLocation } from '@/utils/assign-location';
 import {
   notifyForegroundMessage,
   setForegroundNotificationNavigator,
@@ -166,6 +167,31 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
   return undefined;
 }
 
+/**
+ * Turns the URL a push carries into where the page goes: a path when the target is on this
+ * origin, the full URL when it is on another one. The short domain con27.ch is another origin
+ * that redirects back here through `/go`, and cutting it down to its path sent `/agbs` to a
+ * 404. Anything that is not http(s) falls back to the dashboard.
+ */
+export function resolvePushTarget(rawUrl: string | undefined): string {
+  const fallback = '/app/dashboard';
+  if (rawUrl === undefined || rawUrl === '') return fallback;
+  if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) return rawUrl;
+
+  try {
+    const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+    if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return fallback;
+    return parsedUrl.origin === globalThis.location.origin
+      ? parsedUrl.pathname + parsedUrl.search
+      : parsedUrl.href;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Whether a target from {@link resolvePushTarget} is on another origin. */
+const isOtherOriginTarget = (target: string): boolean => !target.startsWith('/');
+
 export function performReliablePushNavigation(
   router: { push: (url: string) => void },
   targetPath: string,
@@ -173,6 +199,14 @@ export function performReliablePushNavigation(
   if (typeof targetPath !== 'string' || targetPath.trim() === '') return;
 
   const cleanPath = targetPath.trim();
+
+  // The router only moves within this origin, and a remembered target would be replayed on
+  // every resume, so another origin gets a single full navigation.
+  if (isOtherOriginTarget(cleanPath)) {
+    console.log('[NativePush:PWA] Navigating to another origin:', cleanPath);
+    assignLocation(cleanPath);
+    return;
+  }
 
   try {
     sessionStorage.setItem('pending_push_redirect', cleanPath);
@@ -483,7 +517,9 @@ export function useNativePush(): {
   // Foreground notifications are raised from non-React code (SSE listener, bridge
   // events), so hand them the client-side router instead of a hard navigation.
   useEffect(() => {
-    setForegroundNotificationNavigator((path: string) => router.push(path));
+    setForegroundNotificationNavigator((target: string) =>
+      isOtherOriginTarget(target) ? assignLocation(target) : router.push(target),
+    );
     return (): void => setForegroundNotificationNavigator(undefined);
   }, [router]);
 
@@ -697,24 +733,7 @@ export function useNativePush(): {
         }
 
         case 'native-push-open': {
-          let targetPath = '/app/dashboard';
-          const rawUrl = extractTargetUrl(payload);
-
-          if (typeof rawUrl === 'string' && rawUrl !== '') {
-            if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
-              targetPath = rawUrl;
-            } else {
-              try {
-                const parsedUrl = new URL(rawUrl, globalThis.location.origin);
-                targetPath = parsedUrl.pathname + parsedUrl.search;
-              } catch {
-                console.warn(
-                  '[NativePush:PWA] Could not parse URL, falling back to /app/dashboard:',
-                  rawUrl,
-                );
-              }
-            }
-          }
+          const targetPath = resolvePushTarget(extractTargetUrl(payload));
 
           let targetChatId: string | undefined;
           if (targetPath.includes('/app/chat/')) {
@@ -762,19 +781,7 @@ export function useNativePush(): {
           const { title: notificationTitle, body: notificationBody } =
             extractNotificationTitleAndBody(payload);
 
-          let targetPath = '/app/dashboard';
-          if (typeof rawUrl === 'string' && rawUrl !== '') {
-            if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) {
-              targetPath = rawUrl;
-            } else {
-              try {
-                const parsedUrl = new URL(rawUrl, globalThis.location.origin);
-                targetPath = parsedUrl.pathname + parsedUrl.search;
-              } catch {
-                // Fall back if parse fails
-              }
-            }
-          }
+          let targetPath = resolvePushTarget(rawUrl);
           if (
             targetPath === '/app/dashboard' &&
             typeof targetChatId === 'string' &&

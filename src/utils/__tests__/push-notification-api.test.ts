@@ -94,6 +94,22 @@ describe('sendNotificationToSubscription native handover', () => {
     expect(lastFcmPayload().data['notificationType']).toBe('emergency');
   });
 
+  it("cuts this deployment's own host down to a path", async () => {
+    await sendNotificationToSubscription(
+      nativeSubscription,
+      'Neues Programm',
+      'https://example.test/programm?tag=2',
+    );
+
+    expect(lastFcmPayload().data['url']).toBe('/programm?tag=2');
+  });
+
+  it('keeps a link to another host, like the short domain, whole', async () => {
+    await sendNotificationToSubscription(nativeSubscription, 'AGB', 'https://con27.ch/agbs');
+
+    expect(lastFcmPayload().data['url']).toBe('https://con27.ch/agbs');
+  });
+
   it('leaves the type unset for a regular chat message', async () => {
     await sendNotificationToSubscription(
       nativeSubscription,
