@@ -339,8 +339,83 @@ const feedbackAuthor = (submission: StoredSubmission): { name: string; at: strin
 };
 
 /** Where a submission stands: accepted is the form builder's approval. */
-const statusOf = (submission: StoredSubmission): HofEntryStatus =>
+export const statusOf = (
+  submission: Pick<StoredSubmission, 'approved' | 'hofReviewStatus'>,
+): HofEntryStatus =>
   submission.approved === true ? 'accepted' : (submission.hofReviewStatus ?? 'submitted');
+
+/** The field that asks for the Hof; a form without one is not on the dashboard. */
+export const hofFieldOf = (form: Pick<Form, 'sections'>): string | undefined =>
+  fieldsOf(form).find((field) => field.blockType === 'hofSelection')?.name;
+
+/** Whether a form closed at its due date and takes nothing anymore. */
+export const isClosedAtDeadline = (
+  settings: Form['hofDashboard'] | undefined,
+  now: Date,
+): boolean =>
+  settings?.closesAtDeadline === true &&
+  typeof settings.deadline === 'string' &&
+  daysUntil(settings.deadline, now) < 0;
+
+/**
+ * The forms on the dashboard, read in `locale`: linked to an area, asking for the Hof, and
+ * published in that language or in German, the fallback. A form not yet translated reads in
+ * German, as the settings do, rather than vanishing with the Hof's submissions of it.
+ */
+export const findDashboardForms = async (payload: Payload, locale: Locale): Promise<Form[]> => {
+  const [linkedForms, publishedInGerman] = await Promise.all([
+    payload.find({
+      collection: 'forms',
+      where: { 'hofDashboard.area': { exists: true } },
+      locale,
+      fallbackLocale: LOCALE.DE,
+      depth: 0,
+      limit: MAX_FORMS,
+      pagination: false,
+      overrideAccess: true,
+    }),
+    payload.find({
+      collection: 'forms',
+      where: { 'hofDashboard.area': { exists: true } },
+      locale: LOCALE.DE,
+      depth: 0,
+      limit: MAX_FORMS,
+      pagination: false,
+      overrideAccess: true,
+      select: { _localized_status: true },
+    }),
+  ]);
+  const germanIds = new Set(
+    publishedInGerman.docs.filter((form) => isPublished(form)).map((form) => form.id),
+  );
+  return linkedForms.docs.filter(
+    (form) =>
+      typeof form.hofDashboard?.area === 'string' &&
+      (isPublished(form) || germanIds.has(form.id)) &&
+      hofFieldOf(form) !== undefined,
+  );
+};
+
+/**
+ * The submissions that count for a Hof, newest first: of a form of versions only the newest,
+ * of a form of entries every one.
+ */
+export const countedSubmissions = <T extends { form: string | { id: string } }>(
+  form: Pick<Form, 'id' | 'hofDashboard'>,
+  submissionsOfHof: readonly T[],
+): T[] => {
+  const own = submissionsOfHof.filter((submission) => idOf(submission.form) === form.id);
+  return form.hofDashboard?.entries === 'entries' ? own : own.slice(0, 1);
+};
+
+/**
+ * Whether accepting an area would change a submission that counts: not yet accepted, or for a
+ * form of versions not yet final.
+ */
+export const needsAcceptance = (
+  submission: { approved?: boolean | null; hofFinal?: boolean | null },
+  versions: boolean,
+): boolean => submission.approved !== true || (versions && submission.hofFinal !== true);
 
 /** The form, trimmed to what its block renders, as the page would hand it over. */
 const toRenderedForm = (form: Form): ExtendedFormType =>
@@ -369,7 +444,7 @@ export const getHofDashboardData = async (
 ): Promise<HofDashboardData> => {
   const payload = await getPayload({ config });
 
-  const [hof, settings, linkedForms, publishedInGerman] = await Promise.all([
+  const [hof, settings, forms] = await Promise.all([
     payload.findByID({
       collection: 'hoefe',
       id: hofId,
@@ -387,37 +462,8 @@ export const getHofDashboardData = async (
       populate: { documents: { title: true, filename: true, url: true, filesize: true } },
       overrideAccess: true,
     }),
-    payload.find({
-      collection: 'forms',
-      where: { 'hofDashboard.area': { exists: true } },
-      locale,
-      fallbackLocale: LOCALE.DE,
-      depth: 0,
-      limit: MAX_FORMS,
-      pagination: false,
-      overrideAccess: true,
-    }),
-    // German is the fallback: a form not yet translated reads in German, as the settings do,
-    // rather than vanishing with the Hof's submissions of it
-    payload.find({
-      collection: 'forms',
-      where: { 'hofDashboard.area': { exists: true } },
-      locale: LOCALE.DE,
-      depth: 0,
-      limit: MAX_FORMS,
-      pagination: false,
-      overrideAccess: true,
-      select: { _localized_status: true },
-    }),
+    findDashboardForms(payload, locale),
   ]);
-
-  const germanIds = new Set(
-    publishedInGerman.docs.filter((form) => isPublished(form)).map((form) => form.id),
-  );
-  const forms = linkedForms.docs.filter(
-    (form) =>
-      typeof form.hofDashboard?.area === 'string' && (isPublished(form) || germanIds.has(form.id)),
-  );
 
   const submissions = (
     forms.length === 0
@@ -587,10 +633,7 @@ export const getHofDashboardData = async (
               : form.title,
           description: settingsOfForm?.description ?? undefined,
           deadline,
-          closed:
-            settingsOfForm?.closesAtDeadline === true &&
-            deadline !== undefined &&
-            daysUntil(deadline, now) < 0,
+          closed: isClosedAtDeadline(settingsOfForm, now),
           finalized: mode === 'versions' && own[0]?.hofFinal === true,
           mode,
           hofField,

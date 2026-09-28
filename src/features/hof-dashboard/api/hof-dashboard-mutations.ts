@@ -1,7 +1,13 @@
-import { idOf } from '@/features/hof-dashboard/api/hof-dashboard-data';
-import type { HofReviewChoice } from '@/features/hof-dashboard/constants';
+import {
+  countedSubmissions,
+  findDashboardForms,
+  idOf,
+  needsAcceptance,
+} from '@/features/hof-dashboard/api/hof-dashboard-data';
+import type { HofDashboardArea, HofReviewChoice } from '@/features/hof-dashboard/constants';
 import type { HofReviewer } from '@/features/hof-dashboard/payload-cms/hooks/record-hof-review';
 import type { HofName } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
+import type { Locale } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
@@ -143,4 +149,70 @@ export const reviewHofSubmission = async ({
     'hof_dashboard.review_status': status ?? 'submitted',
     'hof_dashboard.review_final': final,
   });
+};
+
+/**
+ * Accepts everything that counts of one Hof in one area at once, as a reviewer would one by
+ * one: every entry, and the newest version of a form of versions, which is also made final so
+ * the Hof hands in no further one. Earlier versions and the feedback stay as they are. A form
+ * the Hof has not handed in stays missing. Returns how many submissions changed.
+ */
+export const acceptHofArea = async ({
+  hof,
+  area,
+  locale,
+  reviewer,
+}: {
+  hof: HofName;
+  area: HofDashboardArea;
+  /** The reader's language, so the forms are the ones their dashboard shows. */
+  locale: Locale;
+  reviewer: HofReviewer;
+}): Promise<number> => {
+  const payload = await getPayload({ config });
+  const dashboardForms = await findDashboardForms(payload, locale);
+  const forms = dashboardForms.filter((form) => form.hofDashboard?.area === area);
+  if (forms.length === 0) return 0;
+
+  const { docs } = await payload.find({
+    collection: 'form-submissions',
+    where: {
+      and: [{ hof: { equals: hof.id } }, { form: { in: forms.map((form) => form.id) } }],
+    },
+    sort: '-createdAt',
+    depth: 0,
+    pagination: false,
+    overrideAccess: true,
+    select: { form: true, approved: true, hofFinal: true },
+  });
+
+  let accepted = 0;
+  for (const form of forms) {
+    const versions = form.hofDashboard?.entries !== 'entries';
+    for (const submission of countedSubmissions(form, docs)) {
+      if (!needsAcceptance(submission, versions)) continue;
+      // one at a time, so the review history names the reviewer on every one of them
+      await payload.update({
+        collection: 'form-submissions',
+        id: submission.id,
+        data: {
+          approved: true,
+          // eslint-disable-next-line unicorn/no-null -- Payload clears a field only with null
+          hofReviewStatus: null,
+          ...(versions ? { hofFinal: true } : {}),
+        },
+        depth: 0,
+        overrideAccess: true,
+        context: { hofReviewer: reviewer },
+      });
+      accepted += 1;
+    }
+  }
+
+  logger.info('A reviewer accepted an area of a Hof at once', {
+    'hof_dashboard.hof_id': hof.id,
+    'hof_dashboard.area': area,
+    'hof_dashboard.accepted': accepted,
+  });
+  return accepted;
 };
