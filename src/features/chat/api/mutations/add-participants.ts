@@ -1,4 +1,5 @@
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
+import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -68,7 +69,13 @@ export const addParticipants = trpcBaseProcedure
     // Add participants
     // Filter out already existing members to avoid unique constraint errors if any
     const existingMemberIds = new Set(chat.chatMemberships.map((m) => m.userId));
-    const newParticipantIds = participantIds.filter((id) => !existingMemberIds.has(id));
+    const newParticipantIds = [...new Set(participantIds)].filter(
+      (id) => !existingMemberIds.has(id),
+    );
+
+    if (chat.type === ChatType.GROUP) {
+      await assertGroupSize(chat.chatMemberships.length + newParticipantIds.length, locale);
+    }
 
     if (newParticipantIds.length > 0) {
       await prisma.chatMembership.createMany({

@@ -1,3 +1,4 @@
+import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
 import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-duplicate-members';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { assertChatNameLength, verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
@@ -119,6 +120,8 @@ export const createChat = trpcBaseProcedure
         message: 'Chat creation is currently disabled.',
       });
     }
+
+    await assertGroupSize(members.length + 1, locale);
 
     const chat = await createNewChat(finalChatName, locale, user, members, prisma, {
       afterCommit: ctx.afterTransactionCommit,

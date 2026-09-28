@@ -2,6 +2,13 @@ import type { Context } from '@/trpc/init';
 import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
+// `createChat` and `addParticipants` read the group size limit; an unsaved global leaves the
+// default.
+jest.mock('@payload-config', () => ({}), { virtual: true });
+jest.mock('payload', () => ({
+  getPayload: (): Promise<unknown> =>
+    Promise.resolve({ findGlobal: (): Promise<unknown> => Promise.resolve({}) }),
+}));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),

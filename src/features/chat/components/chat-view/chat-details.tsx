@@ -27,7 +27,7 @@ import {
 import { isChatArchived } from '@/lib/chat-shared';
 import { ChatType } from '@/lib/prisma/client';
 import { trpc } from '@/trpc/client';
-import type { Locale } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -39,6 +39,12 @@ const participantLines = (
   contact === undefined
     ? { funktionLine: '', hofLine: '' }
     : { funktionLine: describeContactFunktionen(contact), hofLine: describeContactHof(contact) };
+
+const addFailedText: StaticTranslationString = {
+  de: 'Die ausgewählten Personen konnten nicht hinzugefügt werden.',
+  en: 'The selected people could not be added.',
+  fr: "Les personnes sélectionnées n'ont pas pu être ajoutées.",
+};
 
 export const ChatDetails: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -53,6 +59,7 @@ export const ChatDetails: React.FC = () => {
   const addParticipantsMutation = useAddParticipants();
   const removeParticipantMutation = useRemoveParticipants();
   const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: maxGroupMembers } = trpc.chat.getGroupMemberLimit.useQuery();
 
   const isGroupChat = (chatDetails?.participants.length ?? 0) > 2;
   const isAnnouncement = chatDetails?.type === ChatType.ANNOUNCEMENT;
@@ -82,22 +89,44 @@ export const ChatDetails: React.FC = () => {
   const currentUserMembership = chatDetails.participants.find((p) => p.id === currentUser);
   // mirrors the checks in `leaveChat`
   const canLeave = chatDetails.type === ChatType.GROUP && !isChatArchived(chatDetails);
+  // mirrors the check in `addParticipants`: only groups created by participants are capped
+  const openGroupSlots =
+    chatDetails.type === ChatType.GROUP && maxGroupMembers !== undefined
+      ? Math.max(0, maxGroupMembers - chatDetails.participants.length)
+      : undefined;
+  const isAtGroupLimit =
+    openGroupSlots !== undefined && selectedContactsToAdd.length >= openGroupSlots;
+
+  let addError: string | undefined;
+  if (addParticipantsMutation.error !== null) {
+    // a refusal is written for the user, in their language; anything else is not
+    addError =
+      addParticipantsMutation.error.data?.code === 'BAD_REQUEST'
+        ? addParticipantsMutation.error.message
+        : addFailedText[locale];
+  }
 
   // --- Start of new handlers for participant management ---
   const handleToggleContactSelection = (contact: Contact): void => {
-    setSelectedContactsToAdd((previous) =>
-      previous.some((c) => c.userId === contact.userId)
-        ? previous.filter((c) => c.userId !== contact.userId)
-        : [...previous, contact],
-    );
+    setSelectedContactsToAdd((previous) => {
+      if (previous.some((c) => c.userId === contact.userId)) {
+        return previous.filter((c) => c.userId !== contact.userId);
+      }
+      if (openGroupSlots !== undefined && previous.length >= openGroupSlots) return previous;
+      return [...previous, contact];
+    });
   };
 
   const handleAddParticipants = (): void => {
     if (selectedContactsToAdd.length === 0) return;
-    addParticipantsMutation.mutate({
-      chatId: chatDetails.id,
-      participantIds: selectedContactsToAdd.map((c) => c.userId),
-    });
+    addParticipantsMutation.mutate(
+      {
+        chatId: chatDetails.id,
+        participantIds: selectedContactsToAdd.map((c) => c.userId),
+      },
+      // the added people are members now and would otherwise still count against the limit
+      { onSuccess: () => setSelectedContactsToAdd([]) },
+    );
   };
 
   const handleRemoveParticipant = (participantId: string): void => {
@@ -168,6 +197,9 @@ export const ChatDetails: React.FC = () => {
               onAddParticipants={handleAddParticipants}
               isLoadingContacts={isLoadingContacts}
               isAdding={addParticipantsMutation.isPending}
+              addError={addError}
+              isAtGroupLimit={isAtGroupLimit}
+              maxGroupMembers={maxGroupMembers}
               locale={locale}
             />
           )}
