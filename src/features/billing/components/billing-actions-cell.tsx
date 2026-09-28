@@ -10,7 +10,7 @@ import {
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
 import type { StaticTranslationString } from '@/types/types';
-import { useLocale } from '@payloadcms/ui';
+import { TextareaInput, useLocale } from '@payloadcms/ui';
 import React from 'react';
 
 const regenerateTitle: StaticTranslationString = {
@@ -68,9 +68,21 @@ const removeTitle: StaticTranslationString = {
 };
 
 const removeMessage: StaticTranslationString = {
-  de: 'Die Anmeldung wird auf „Entfernt“ gesetzt und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
-  en: 'The registration is set to “Removed” and is no longer billed or synced. Any bill already raised is kept for the record. This can only be undone by reactivating the registration in the Cevi.DB.',
-  fr: "L'inscription passe à « Supprimé » et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée.",
+  de: 'Die Anmeldung wird storniert und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Der Grund erscheint im Sync-Verlauf. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
+  en: 'The registration is cancelled and is no longer billed or synced. Any bill already raised is kept for the record. The reason appears in the sync history. This can only be undone by reactivating the registration in the Cevi.DB.',
+  fr: "L'inscription est annulée et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée. Le motif apparaît dans l'historique de synchronisation. Seule une réactivation de l'inscription dans la Cevi.DB permet d'annuler cette action.",
+};
+
+const removeReasonLabel: StaticTranslationString = {
+  de: 'Grund der Stornierung',
+  en: 'Reason for the cancellation',
+  fr: "Motif de l'annulation",
+};
+
+const removeReasonPlaceholder: StaticTranslationString = {
+  de: 'z.B. Abmeldung per E-Mail der AVP von Cevi Uster',
+  en: 'e.g. deregistered by email from the AVP of Cevi Uster',
+  fr: "p. ex. désinscription par e-mail de l'AVP de Cevi Uster",
 };
 
 const removeConfirm: StaticTranslationString = {
@@ -136,6 +148,7 @@ export const BillingActionsCell: React.FC<{
   >();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
+  const [removeReason, setRemoveReason] = React.useState('');
 
   const hasPdf = Array.isArray(rowData.billPdfs) && rowData.billPdfs.length > 0;
   // Only a registration the sync parked as incomplete has anything to remind about.
@@ -165,14 +178,18 @@ export const BillingActionsCell: React.FC<{
    * was left believing the mail had gone out. A rejected promise is not the failure mode
    * that matters here; a non-2xx response is.
    */
-  const runAction = async (path: string, failureMessage: string): Promise<void> => {
+  const runAction = async (
+    path: string,
+    failureMessage: string,
+    extraBody: Record<string, string> = {},
+  ): Promise<void> => {
     setLoading(true);
     setError(undefined);
     try {
       const response = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId: rowData.id }),
+        body: JSON.stringify({ participantId: rowData.id, ...extraBody }),
       });
       const result = (await response.json().catch(() => ({}))) as {
         success?: boolean;
@@ -254,6 +271,7 @@ export const BillingActionsCell: React.FC<{
     await runAction(
       '/api/confidential/billing/remove-participant',
       'Die Anmeldung konnte nicht storniert werden.',
+      { reason: removeReason.trim() },
     );
   };
 
@@ -322,6 +340,7 @@ export const BillingActionsCell: React.FC<{
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(): void => {
+              setRemoveReason('');
               setConfirmAction('remove');
             }}
             className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
@@ -372,7 +391,23 @@ export const BillingActionsCell: React.FC<{
         isSubmitting={loading}
         locale={locale}
         confirmVariant="danger"
-      />
+        confirmDisabled={confirmAction === 'remove' && removeReason.trim() === ''}
+      >
+        {/* `undefined` rather than `false` otherwise, or the modal reserves the slot. */}
+        {confirmAction === 'remove' ? (
+          <TextareaInput
+            path="cancellationReason"
+            label={removeReasonLabel[locale]}
+            placeholder={removeReasonPlaceholder[locale]}
+            required
+            rows={3}
+            value={removeReason}
+            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>): void =>
+              setRemoveReason(event.target.value)
+            }
+          />
+        ) : undefined}
+      </ConfirmationModal>
     </>
   );
 };

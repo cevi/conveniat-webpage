@@ -22,6 +22,10 @@ export const ConfirmationModal: React.FC<{
   submittingText: string;
   confirmVariant?: 'primary' | 'danger';
   hideCancel?: boolean;
+  /** Keeps confirm off until the input rendered in `children` is complete. */
+  confirmDisabled?: boolean;
+  /** Input the action needs, rendered between the message and the buttons. */
+  children?: React.ReactNode;
 }> = ({
   isOpen,
   onClose,
@@ -34,6 +38,8 @@ export const ConfirmationModal: React.FC<{
   submittingText,
   confirmVariant = 'primary',
   hideCancel = false,
+  confirmDisabled = false,
+  children,
 }) => {
   if (!isOpen) return <></>;
 
@@ -59,6 +65,7 @@ export const ConfirmationModal: React.FC<{
       <div className="w-full max-w-md rounded-lg border border-(--theme-elevation-150) bg-(--theme-elevation-0) p-6 shadow-2xl">
         <h3 className="mb-4 text-xl font-semibold text-(--theme-elevation-900)">{title}</h3>
         <p className="mb-6 whitespace-pre-line text-(--theme-elevation-600)">{message}</p>
+        {children !== undefined && <div className="mb-6">{children}</div>}
         <div className="flex justify-end gap-3">
           {!hideCancel && (
             <button
@@ -73,7 +80,7 @@ export const ConfirmationModal: React.FC<{
           <button
             type="button"
             onClick={() => void onConfirm()}
-            disabled={isSubmitting}
+            disabled={isSubmitting || confirmDisabled}
             className={confirmClasses({ variant: confirmVariant })}
           >
             {isSubmitting ? (

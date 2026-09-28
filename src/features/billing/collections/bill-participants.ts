@@ -409,9 +409,9 @@ export const BillParticipantsCollection: CollectionConfig = {
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'date',
       label: {
-        en: 'Removed Date',
-        de: 'Entfernt am',
-        fr: 'Date de suppression',
+        en: 'Cancelled on',
+        de: 'Storniert am',
+        fr: "Date d'annulation",
       },
       admin: {
         disableGroupBy: true,
@@ -615,7 +615,7 @@ export const BillParticipantsCollection: CollectionConfig = {
           label: { en: 'Bill Sent', de: 'Rechnung gesendet', fr: 'Facture envoyée' },
           value: 'bill_sent',
         },
-        { label: { en: 'Removed', de: 'Entfernt', fr: 'Supprimé' }, value: 'removed' },
+        { label: { en: 'Cancelled', de: 'Storniert', fr: 'Annulé' }, value: 'removed' },
         {
           label: { en: 'Re-Added', de: 'Erneut hinzugefügt', fr: 'Ré-ajouté' },
           value: 're_added',

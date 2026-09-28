@@ -45,6 +45,14 @@ const ParticipantIdSchema = z.object({
   participantId: z.string().trim().min(1, 'Missing participantId'),
 });
 
+const RemoveParticipantSchema = ParticipantIdSchema.extend({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'Bitte gib einen Grund für die Stornierung an.')
+    .max(1000, 'Der Grund darf höchstens 1000 Zeichen lang sein.'),
+});
+
 const SyncStatusQuerySchema = z.object({
   jobId: z.string().trim().min(1).nullable().optional(),
 });
@@ -168,7 +176,7 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
       return Response.json(
         {
           error:
-            'Diese Anmeldung ist als „Entfernt“ markiert. Für eine entfernte Anmeldung wird keine ' +
+            'Diese Anmeldung ist storniert. Für eine stornierte Anmeldung wird keine ' +
             'Rechnung erstellt – die Anmeldung muss zuerst in der Cevi.DB wieder aktiviert werden.',
         },
         { status: 409 },
@@ -190,6 +198,9 @@ export const billingRegenerateSingleHandler: PayloadHandler = async (request) =>
 /**
  * POST /api/confidential/billing/remove-participant – cancel a registration by hand.
  *
+ * Takes the operator's reason for the cancellation, which the participant's history shows
+ * next to who cancelled it.
+ *
  * The counterpart to the sync's own removal detection, for the cases it cannot see: a
  * participation cancelled outside the Cevi.DB, or one left stranded because a bill was
  * regenerated for someone who had already dropped out. Everything about the bill is kept —
@@ -202,7 +213,7 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
     if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     const bodyJson = (await (request as unknown as Request).json()) as unknown;
-    const parseResult = ParticipantIdSchema.safeParse(bodyJson);
+    const parseResult = RemoveParticipantSchema.safeParse(bodyJson);
     if (!parseResult.success) {
       return Response.json(
         { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
@@ -216,10 +227,7 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
       return Response.json({ error: 'Teilnehmer nicht gefunden.' }, { status: 404 });
 
     if (participant.status === 'removed') {
-      return Response.json(
-        { error: 'Diese Anmeldung ist bereits als „Entfernt“ markiert.' },
-        { status: 409 },
-      );
+      return Response.json({ error: 'Diese Anmeldung ist bereits storniert.' }, { status: 409 });
     }
 
     const actor = describeActor(request.user);
@@ -235,8 +243,9 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
           date: now,
           action: 'manually_removed',
           reviewReason:
-            `Manuell auf „Entfernt“ gesetzt durch ${actor}. Eine allfällige Rechnung bleibt zur ` +
-            `Nachvollziehbarkeit erhalten, wird aber nicht mehr als offen geführt.`,
+            `Storniert durch ${actor}. Grund: ${parseResult.data.reason}\n` +
+            `Eine allfällige Rechnung bleibt zur Nachvollziehbarkeit erhalten, wird aber nicht ` +
+            `mehr als offen geführt.`,
         },
       ],
     } as never);
