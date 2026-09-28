@@ -11,6 +11,15 @@ import { createLocalReq, getPayload, type Payload, type PayloadRequest } from 'p
 
 const logger = createLogger('api:form-file');
 
+/** Types a browser shows without running anything of the file; every other file downloads. */
+const INLINE_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 /** The submission a permanent form file belongs to; a temporary file belongs to none yet. */
 const submissionOf = async (
   payload: Payload,
@@ -150,12 +159,17 @@ export async function GET(
         ? fileDocument.originalFilename
         : fileDocument.filename;
 
+    const disposition = INLINE_MIME_TYPES.has(mimeType) ? 'inline' : 'attachment';
+
     return new Response(webStream, {
       status: 200,
       headers: {
         'Content-Type': mimeType,
-        'Content-Disposition': `inline; filename="${encodeURIComponent(originalFilename)}"`,
+        'Content-Disposition': `${disposition}; filename="${encodeURIComponent(originalFilename)}"`,
         'Cache-Control': 'private, max-age=3600',
+        // Files uploaded before their type was read from their bytes carry the type the sender
+        // declared; without this a browser may still read one as markup.
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (error) {
