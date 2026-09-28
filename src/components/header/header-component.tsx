@@ -62,7 +62,7 @@ const TopNavHeader: React.FC<{
             href={`/${languagePrefix}`}
             aria-label={landingPageAreaLinktText[locale]}
             prefetch
-            className="group flex items-center gap-3 focus:outline-hidden"
+            className="group flex shrink-0 items-center gap-3 focus:outline-hidden"
           >
             {/* Mobile Logo */}
             <ConveniatLogo className="absolute top-[12px] left-[24px] z-[105] xl:hidden" />
@@ -81,8 +81,8 @@ const TopNavHeader: React.FC<{
             <DynamicAppTitleName />
           </span>
 
-          {/* Full Width Desktop Top Navigation */}
-          <div className="ml-auto flex items-center pr-4">
+          {/* Full Width Desktop Top Navigation, taking whatever width the logo leaves */}
+          <div className="flex min-w-0 flex-1 items-center justify-end pr-4">
             <React.Suspense fallback={undefined}>
               <TopNavContent locale={locale} />
             </React.Suspense>
