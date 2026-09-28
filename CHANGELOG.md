@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.22.0](https://github.com/cevi/conveniat-webpage/compare/v1.21.0...v1.22.0) (2026-09-28)
+
+
+### Features
+
+* **chat:** cap the size of groups participants create ([8e7b9b1](https://github.com/cevi/conveniat-webpage/commit/8e7b9b1a952b077782862241708931d5f98f2c38))
+* **chat:** cap the size of groups participants create ([e3e067a](https://github.com/cevi/conveniat-webpage/commit/e3e067a091649c188417a0113b799851daa2ede1))
+* **hof-dashboard:** Hof ZIP holds a PDF of every submission, files named by version ([e8f6111](https://github.com/cevi/conveniat-webpage/commit/e8f6111fb4ae1e4af7f3ba69c93e81f35432e355))
+* **hof-dashboard:** Hof ZIP holds a PDF of every submission, files named by version ([46f9ed8](https://github.com/cevi/conveniat-webpage/commit/46f9ed89db634b0f7c1a2fe124f2ee3c1dce7bc5))
+
+
+### Bug Fixes
+
+* **chat:** desktop chat sits below the top-nav header, without empty margins ([4a2441d](https://github.com/cevi/conveniat-webpage/commit/4a2441d29a713c6a5acc3acba74130cba0c37314))
+* **chat:** long links wrap inside the bubble and the reaction bar stays on top ([4f894e8](https://github.com/cevi/conveniat-webpage/commit/4f894e89636741b2967ccf2e8ed18f60c6a4d59a))
+* **chat:** message bubble wrapping, italics in links, reaction bar and desktop layout ([e9dd0aa](https://github.com/cevi/conveniat-webpage/commit/e9dd0aa72127c2a6192ed5d34e7dd574d8252d24))
+* **chat:** rate-limit chat writes and narrow who a reply notifies ([6e52481](https://github.com/cevi/conveniat-webpage/commit/6e52481a8d5ead53d678c96ea49f2cd8639f9ec1))
+* **chat:** rate-limit chat writes and narrow who a reply notifies ([32c307b](https://github.com/cevi/conveniat-webpage/commit/32c307b374abedd9099283a8ccf2c291ac345eb4))
+* **chat:** refuse an oversized group in the user's language ([6c95d3c](https://github.com/cevi/conveniat-webpage/commit/6c95d3c28cab025ec8f65039d5557acfa59bb08a))
+* **chat:** underscores in links and file names no longer turn into italics ([e50ea80](https://github.com/cevi/conveniat-webpage/commit/e50ea800e4ab764f384a8aa9b4269dae64a8d309))
+* **forms:** answers can no longer expand into approval links in mails ([5254ff5](https://github.com/cevi/conveniat-webpage/commit/5254ff5de5e23399c59e7b9e1079c9d5a7d64d3a))
+* **forms:** answers can no longer expand into approval links in mails ([9477022](https://github.com/cevi/conveniat-webpage/commit/9477022327327b9a8d44e244ae47c8a7995b5fc1))
+* **forms:** form files live in their own bucket under random keys ([88c4cdc](https://github.com/cevi/conveniat-webpage/commit/88c4cdc1a4e2de45a960a732e9acf9c2e69fc163))
+* **forms:** form files live in their own bucket under random keys ([8ac4cd4](https://github.com/cevi/conveniat-webpage/commit/8ac4cd4b8e94d710eba72ab7c120b94c8a215ce5))
+* **forms:** read an uploaded file's type from its bytes, download what could run ([fc71515](https://github.com/cevi/conveniat-webpage/commit/fc715158930ebc87fb6f262a8f66e4dc5a5cfe23))
+* **forms:** read an uploaded file's type from its bytes, download what could run ([f2e54bb](https://github.com/cevi/conveniat-webpage/commit/f2e54bb328d622a9457e787d2e75a736fb0ab872))
+* **hitobito:** log Cevi.DB requests at debug, with structured attributes ([5d50368](https://github.com/cevi/conveniat-webpage/commit/5d50368ed9d48fc02e4742fbe4d31cd87fa93f32))
+* **hitobito:** log Cevi.DB requests at debug, with structured attributes ([15c187b](https://github.com/cevi/conveniat-webpage/commit/15c187bd333d5e7200c623902e39a2a14a4b7783))
+* **hof-dashboard:** answers show a checkbox's rich-text label, not its field name ([750be6a](https://github.com/cevi/conveniat-webpage/commit/750be6a8b57e02822b9420ee78e5d3d418ae4675))
+* **hof-dashboard:** answers show a checkbox's rich-text label, not its field name ([2586595](https://github.com/cevi/conveniat-webpage/commit/2586595c53fec0186c1c9ae55664b524b85f9781))
+* **hof-dashboard:** overview list no longer stretches the page below the footer ([2ad8c6e](https://github.com/cevi/conveniat-webpage/commit/2ad8c6e8a9d0a92eade9a77bc8579e96cdce3e55))
+* **hof-dashboard:** overview list no longer stretches the page below the footer ([dac3e66](https://github.com/cevi/conveniat-webpage/commit/dac3e667e3e83b312570f5c07c9ef098cc4ae236))
+* **menu:** move top-level items that do not fit into a "Mehr" menu ([f58b556](https://github.com/cevi/conveniat-webpage/commit/f58b5560bd77f249a9a84ecdbcd050dfd47ce920))
+* **menu:** move top-level items that do not fit into a "Mehr" menu ([68b7684](https://github.com/cevi/conveniat-webpage/commit/68b768489632945e5805da96abe958d764e87ec0))
+* **push:** report and prune web push subscriptions the push service rejects ([902074e](https://github.com/cevi/conveniat-webpage/commit/902074e4cae726f02a38028e7f5e6784be0d2d1c))
+* **push:** report and prune web push subscriptions the push service rejects ([e904300](https://github.com/cevi/conveniat-webpage/commit/e904300f78dbf7d8d8642155ebee504881b65b6b))
+
+
+### Performance
+
+* **chat:** stop background pings and duplicate refetches ([515c3e5](https://github.com/cevi/conveniat-webpage/commit/515c3e56bf1a259f478341a82b476882a643d840))
+* **chat:** stop background pings and duplicate refetches ([ef0bf9e](https://github.com/cevi/conveniat-webpage/commit/ef0bf9e335db2fd51a67989c9d257dd9ab9530bf))
+
 ## [1.21.0](https://github.com/cevi/conveniat-webpage/compare/v1.20.0...v1.21.0) (2026-09-28)
 
 
