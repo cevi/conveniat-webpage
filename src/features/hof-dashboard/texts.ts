@@ -260,10 +260,35 @@ export const text = {
   },
   zipFiles: { de: 'ZIP ({n})', en: 'ZIP ({n})', fr: 'ZIP ({n})' },
   downloadFiles: {
-    de: 'Dateien von {hof} als ZIP herunterladen',
-    en: 'Download the files of {hof} as a ZIP',
-    fr: 'Télécharger les fichiers de {hof} en ZIP',
+    de: 'Abgaben und Dateien von {hof} als ZIP herunterladen',
+    en: 'Download the submissions and files of {hof} as a ZIP',
+    fr: 'Télécharger les dépôts et fichiers de {hof} en ZIP',
   },
+  entryNumbered: { de: 'Eintrag {n}', en: 'Entry {n}', fr: 'Entrée {n}' },
+  pdfArea: { de: 'Bereich', en: 'Area', fr: 'Rubrique' },
+  pdfSubmittedAt: { de: 'Eingereicht am', en: 'Submitted on', fr: 'Déposé le' },
+  pdfAnswers: { de: 'Antworten', en: 'Answers', fr: 'Réponses' },
+  pdfNoAnswers: {
+    de: 'Diese Abgabe enthält keine Antworten.',
+    en: 'This submission contains no answers.',
+    fr: 'Ce dépôt ne contient aucune réponse.',
+  },
+  pdfNoReview: {
+    de: 'Das Ressort hat diese Abgabe noch nicht beantwortet.',
+    en: 'The Ressort has not answered this submission yet.',
+    fr: "Le Ressort n'a pas encore répondu à ce dépôt.",
+  },
+  pdfNoFeedback: {
+    de: 'Ohne Rückmeldung an den Hof.',
+    en: 'No feedback to the Hof.',
+    fr: 'Sans retour au Hof.',
+  },
+  pdfFooter: {
+    de: 'conveniat27 · Hof-Dashboard · erstellt am {date}',
+    en: 'conveniat27 · Hof dashboard · created on {date}',
+    fr: 'conveniat27 · Tableau de bord du Hof · créé le {date}',
+  },
+  pdfPage: { de: 'Seite {n} von {total}', en: 'Page {n} of {total}', fr: 'Page {n} sur {total}' },
 } satisfies Record<string, StaticTranslationString>;
 
 export type TextKey = keyof typeof text;

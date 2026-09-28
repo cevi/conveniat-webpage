@@ -118,7 +118,8 @@ describe('getHofOverview', () => {
         program: { forms: 1, done: 1, overdue: 0, toReview: 1, toAccept: 1 },
         material: { forms: 1, done: 0, overdue: 0, toReview: 0, toAccept: 0 },
       },
-      files: 2,
+      // two files handed in, and a PDF of each of the four submissions
+      files: 6,
     });
     expect(sued).toEqual({
       ...HOF_SUED,
