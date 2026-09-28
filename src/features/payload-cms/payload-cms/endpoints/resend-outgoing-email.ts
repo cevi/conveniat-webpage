@@ -32,7 +32,12 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
     const emailOptions = {
       to: emailDocument.to,
       subject: emailDocument.subject,
-      html: emailDocument.html,
+      ...(typeof emailDocument.html === 'string' && emailDocument.html.length > 0
+        ? { html: emailDocument.html }
+        : {}),
+      ...(typeof emailDocument.text === 'string' && emailDocument.text.length > 0
+        ? { text: emailDocument.text }
+        : {}),
       ...(typeof environmentVariables.SMTP_USER === 'string' &&
       environmentVariables.SMTP_USER.length > 0
         ? {
