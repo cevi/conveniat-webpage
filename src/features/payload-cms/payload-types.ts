@@ -1712,6 +1712,10 @@ export interface Form {
                    * Optional heading the line is listed under, e.g. "Wood".
                    */
                   section?: string | null;
+                  /**
+                   * Ordered only in multiples of it, e.g. 10. Empty means 1.
+                   */
+                  step?: number | null;
                   id?: string | null;
                 }[];
                 required?: boolean | null;
@@ -2035,6 +2039,10 @@ export interface Form {
                              * Optional heading the line is listed under, e.g. "Wood".
                              */
                             section?: string | null;
+                            /**
+                             * Ordered only in multiples of it, e.g. 10. Empty means 1.
+                             */
+                            step?: number | null;
                             id?: string | null;
                           }[];
                           required?: boolean | null;
@@ -7706,6 +7714,7 @@ export interface FormsSelect<T extends boolean = true> {
                             | {
                                 name?: T;
                                 section?: T;
+                                step?: T;
                                 id?: T;
                               };
                           required?: T;
@@ -7916,6 +7925,7 @@ export interface FormsSelect<T extends boolean = true> {
                                         | {
                                             name?: T;
                                             section?: T;
+                                            step?: T;
                                             id?: T;
                                           };
                                       required?: T;

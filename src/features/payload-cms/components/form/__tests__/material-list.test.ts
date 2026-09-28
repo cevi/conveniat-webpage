@@ -1,8 +1,10 @@
 import {
   isAllowedQuantity,
   MATERIAL_LIST_MAX_QUANTITY,
+  materialStep,
   parseMaterialAnswer,
   serializeMaterialAnswer,
+  stepQuantity,
 } from '@/features/payload-cms/components/form/utils/material-list';
 
 describe('material list answers', () => {
@@ -57,4 +59,34 @@ describe('isAllowedQuantity', () => {
       expect(isAllowedQuantity(quantity)).toBe(false);
     },
   );
+});
+
+describe('ordering in steps', () => {
+  it('takes only multiples of the step', () => {
+    expect(isAllowedQuantity(20, 10)).toBe(true);
+    expect(isAllowedQuantity(0, 10)).toBe(true);
+    expect(isAllowedQuantity(15, 10)).toBe(false);
+    expect(isAllowedQuantity(7, 5)).toBe(false);
+  });
+
+  // eslint-disable-next-line unicorn/no-null -- a step the CMS left empty is stored as null
+  it.each([undefined, null, 0, -5, 2.5, '10'])('orders one by one for a step of %p', (step) => {
+    expect(materialStep(step)).toBe(1);
+    expect(isAllowedQuantity(7, step)).toBe(true);
+  });
+
+  it('steps from a quantity off the steps onto the next one', () => {
+    expect(stepQuantity(0, 10, 1)).toBe(10);
+    expect(stepQuantity(20, 10, 1)).toBe(30);
+    expect(stepQuantity(20, 10, -1)).toBe(10);
+    expect(stepQuantity(7, 5, 1)).toBe(10);
+    expect(stepQuantity(7, 5, -1)).toBe(5);
+  });
+
+  it('stops at 0 and at the most a line takes', () => {
+    expect(stepQuantity(0, 5, -1)).toBe(0);
+    expect(stepQuantity(MATERIAL_LIST_MAX_QUANTITY, 1, 1)).toBe(MATERIAL_LIST_MAX_QUANTITY);
+    expect(stepQuantity(9998, 3, 1)).toBe(9999);
+    expect(stepQuantity(20_000, 1, -1)).toBe(MATERIAL_LIST_MAX_QUANTITY);
+  });
 });
