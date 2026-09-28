@@ -158,7 +158,7 @@ describe('query errors', () => {
 });
 
 describe('getItemFormProblems', () => {
-  const valid = { code: 'JS-WOLL', imageUrl: '', maxLoanQuantity: 1 };
+  const valid = { code: 'JS-WOLL', imageUrl: '', maxLoanQuantity: 1, orderStep: 1 };
 
   it('accepts a valid article', () => {
     expect(getItemFormProblems(valid).size).toBe(0);
@@ -173,6 +173,14 @@ describe('getItemFormProblems', () => {
     );
     expect(getItemFormProblems({ ...valid, maxLoanQuantity: 0 })).toEqual(
       new Set(['maxLoanQuantity']),
+    );
+    expect(getItemFormProblems({ ...valid, orderStep: 0 })).toEqual(new Set(['orderStep']));
+  });
+
+  it('takes a step up to the most per loan, and no further', () => {
+    expect(getItemFormProblems({ ...valid, maxLoanQuantity: 100, orderStep: 10 }).size).toBe(0);
+    expect(getItemFormProblems({ ...valid, maxLoanQuantity: 8, orderStep: 10 })).toEqual(
+      new Set(['orderStep']),
     );
   });
 });

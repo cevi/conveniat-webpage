@@ -34,6 +34,7 @@ import {
   useNow,
   type MaterialItemDetail,
 } from '@/features/material/hooks/use-material';
+import { orderStepOf } from '@/features/material/utils/basket';
 import { groupByHolder, holderSearch } from '@/features/material/utils/holders';
 import { itemPath } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
@@ -361,6 +362,9 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
     [labels.damaged[locale], data.damagedQuantity, 'text-red-600'],
     [labels.inRepair[locale], data.inRepairQuantity, 'text-purple-700'],
     [labels.maxPerLoan[locale], data.maxLoanQuantity, 'text-gray-900'],
+    ...(orderStepOf(data.orderStep) > 1
+      ? [[labels.orderStep[locale], data.orderStep, 'text-gray-900'] as [string, number, string]]
+      : []),
   ];
 
   return (

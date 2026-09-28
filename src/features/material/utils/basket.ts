@@ -41,6 +41,28 @@ export const basketLineCap = ({
   held?: number;
 }): number => Math.max(0, Math.min(available + held, maxLoanQuantity));
 
+/**
+ * The step a participant asks for an article in. Anything but a whole number from 1 reads as 1,
+ * such as a catalogue a phone restored from before the step existed.
+ */
+export const orderStepOf = (step: unknown): number =>
+  typeof step === 'number' && Number.isInteger(step) && step >= 1 ? step : 1;
+
+/** Whether a participant may ask for this many: a multiple of the article's step. */
+export const isOnOrderStep = (quantity: number, step: unknown): boolean =>
+  quantity % orderStepOf(step) === 0;
+
+/**
+ * The quantity one step up or down: 7 in steps of 5 goes up to 10 and down to 5. The caller
+ * keeps it inside its bounds.
+ */
+export const stepQuantity = (quantity: number, step: unknown, direction: 1 | -1): number => {
+  const size = orderStepOf(step);
+  return direction === 1
+    ? (Math.floor(quantity / size) + 1) * size
+    : (Math.ceil(quantity / size) - 1) * size;
+};
+
 /** "3 lines, 36 pieces" for the basket's button. */
 export const basketTotals = (
   lines: readonly { quantity: number }[],

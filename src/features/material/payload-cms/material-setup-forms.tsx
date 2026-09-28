@@ -37,9 +37,9 @@ const text = {
     fr: 'Vraiment supprimer « {name} » ?',
   },
   importHint: {
-    de: 'Zeilen aus einer Tabelle einfügen, getrennt durch Tabulator oder Semikolon. Spalten: code; name; category; total; max; unit; consumable (ja/nein); reservable (ja/nein); description; returnInstructions; imageUrl. Ein bestehender Code wird aktualisiert, Schäden und Reparaturen bleiben erhalten. Fehlende Kategorien werden angelegt.',
-    en: 'Paste rows from a spreadsheet, separated by tabs or semicolons. Columns: code; name; category; total; max; unit; consumable (yes/no); reservable (yes/no); description; returnInstructions; imageUrl. An existing code is updated, damage and repairs are kept. Missing categories are created.',
-    fr: 'Colle des lignes d’un tableur, séparées par tabulation ou point-virgule. Colonnes : code; name; category; total; max; unit; consumable (oui/non); reservable (oui/non); description; returnInstructions; imageUrl. Un code existant est mis à jour, dégâts et réparations sont conservés. Les catégories manquantes sont créées.',
+    de: 'Zeilen aus einer Tabelle einfügen, getrennt durch Tabulator oder Semikolon. Spalten: code; name; category; total; max; unit; consumable (ja/nein); reservable (ja/nein); description; returnInstructions; imageUrl; step (Bestellschritt, z. B. 10). Ein bestehender Code wird aktualisiert, Schäden und Reparaturen bleiben erhalten. Fehlende Kategorien werden angelegt.',
+    en: 'Paste rows from a spreadsheet, separated by tabs or semicolons. Columns: code; name; category; total; max; unit; consumable (yes/no); reservable (yes/no); description; returnInstructions; imageUrl; step (order step, e.g. 10). An existing code is updated, damage and repairs are kept. Missing categories are created.',
+    fr: 'Colle des lignes d’un tableur, séparées par tabulation ou point-virgule. Colonnes : code; name; category; total; max; unit; consumable (oui/non); reservable (oui/non); description; returnInstructions; imageUrl; step (pas de commande, p. ex. 10). Un code existant est mis à jour, dégâts et réparations sont conservés. Les catégories manquantes sont créées.',
   },
   runImport: { de: 'Importieren', en: 'Import', fr: 'Importer' },
 } satisfies Record<string, StaticTranslationString>;

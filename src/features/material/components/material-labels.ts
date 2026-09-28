@@ -69,6 +69,13 @@ export const labels = {
     en: 'Maximum per loan',
     fr: 'Quantité maximale par prêt',
   },
+  orderStep: { de: 'Bestellschritt', en: 'Order step', fr: 'Pas de commande' },
+  inSteps: { de: 'in {n}er-Schritten', en: 'in steps of {n}', fr: 'par {n}' },
+  offStep: {
+    de: 'Nur in {n}er-Schritten.',
+    en: 'Only in steps of {n}.',
+    fr: 'Seulement par {n}.',
+  },
   quantity: { de: 'Menge', en: 'Quantity', fr: 'Quantité' },
   hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
   unknownHof: { de: 'Unbekannter Hof', en: 'Unknown Hof', fr: 'Hof inconnu' },

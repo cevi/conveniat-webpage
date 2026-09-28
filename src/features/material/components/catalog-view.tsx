@@ -26,7 +26,7 @@ import { RoleGate } from '@/features/material/components/role-gate';
 import { usePagination } from '@/features/material/hooks/use-list-state';
 import { materialQueryOptions, useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
-import { basketTotals } from '@/features/material/utils/basket';
+import { basketTotals, orderStepOf } from '@/features/material/utils/basket';
 import { catalogItemPath, itemPath, parseScan } from '@/features/material/utils/scan';
 import type { MaterialItemStatus } from '@/features/material/utils/stock';
 import { trpc, type RouterOutputs } from '@/trpc/client';
@@ -100,7 +100,7 @@ export interface RequestLine {
 /** What the request button needs to know about an article. */
 type RequestableItem = Pick<
   CatalogItem,
-  'id' | 'name' | 'isDisabled' | 'isReservable' | 'maxLoanQuantity' | 'stock'
+  'id' | 'name' | 'isDisabled' | 'isReservable' | 'maxLoanQuantity' | 'orderStep' | 'stock'
 >;
 
 type SetQuantity = (item: RequestableItem, quantity: number) => void;
@@ -116,6 +116,7 @@ const RequestAction: React.FC<{
   wide?: boolean;
 }> = ({ item, quantity, onChange, wide = false }) => {
   const locale = useMaterialLocale();
+  const step = orderStepOf(item.orderStep);
   if (item.isDisabled || item.stock.usable === 0) {
     return (
       <MaterialButton variant="secondary" disabled className={cn(wide && 'w-full')}>
@@ -138,6 +139,7 @@ const RequestAction: React.FC<{
           label={`${labels.quantity[locale]}: ${item.name}`}
           value={quantity}
           max={item.maxLoanQuantity}
+          step={step}
           onChange={(next) => onChange(item, next)}
         />
       </div>
@@ -147,7 +149,7 @@ const RequestAction: React.FC<{
     <MaterialButton
       variant="secondary"
       className={cn(wide && 'h-12 w-full text-base')}
-      onClick={() => onChange(item, 1)}
+      onClick={() => onChange(item, Math.min(step, item.maxLoanQuantity))}
     >
       <Plus aria-hidden />
       {text.request[locale]}
@@ -295,6 +297,9 @@ const CatalogItemView: React.FC<{
     [labels.reserved[locale], data.stock.reserved, 'text-blue-700'],
     [labels.issued[locale], data.stock.issued, 'text-orange-600'],
     [labels.maxPerLoan[locale], data.maxLoanQuantity, 'text-gray-900'],
+    ...(orderStepOf(data.orderStep) > 1
+      ? [[labels.orderStep[locale], data.orderStep, 'text-gray-900'] as [string, number, string]]
+      : []),
   ];
 
   return (

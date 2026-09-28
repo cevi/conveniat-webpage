@@ -40,6 +40,7 @@ export const loanInclude = {
       isConsumable: true,
       returnInstructions: true,
       maxLoanQuantity: true,
+      orderStep: true,
     },
   },
   person: { select: { uuid: true, name: true } },
@@ -64,6 +65,11 @@ const errors = {
     de: '{item}: für diesen Zeitraum sind nur noch {n} verfügbar.',
     en: '{item}: only {n} are available for this period.',
     fr: '{item} : seulement {n} disponibles pour cette période.',
+  },
+  offStep: {
+    de: '{item}: nur in {n}er-Schritten.',
+    en: '{item}: only in steps of {n}.',
+    fr: '{item} : seulement par {n}.',
   },
   overMax: {
     de: '{item}: pro Ausleihe sind höchstens {n} erlaubt.',
@@ -204,6 +210,7 @@ export interface MaterialItemWithStock {
   category: { id: string; name: string };
   totalQuantity: number;
   maxLoanQuantity: number;
+  orderStep: number;
   damagedQuantity: number;
   inRepairQuantity: number;
   lowStockThreshold: number;
@@ -240,6 +247,7 @@ export const loadItemsWithStock = async (
       category: { select: { id: true, name: true } },
       totalQuantity: true,
       maxLoanQuantity: true,
+      orderStep: true,
       damagedQuantity: true,
       inRepairQuantity: true,
       lowStockThreshold: true,

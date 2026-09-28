@@ -9,6 +9,7 @@ import {
 } from '@/features/material/components/material-ui';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useQrScanner } from '@/features/material/hooks/use-qr-scanner';
+import { stepQuantity } from '@/features/material/utils/basket';
 import type { LoanHolder } from '@/features/material/utils/holders';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -112,15 +113,21 @@ export const StickyAction: React.FC<{ children: React.ReactNode; className?: str
   </div>
 );
 
-/** − value +, with a field in between to type a count; buttons stay 44 px for a cold thumb. */
+/**
+ * − value +, with a field in between to type a count; buttons stay 44 px for a cold thumb. The
+ * buttons move by `step`, onto its multiples; what is typed is the caller's to check.
+ */
 export const Stepper: React.FC<{
   value: number;
   min?: number;
   max: number;
+  step?: number;
   onChange: (value: number) => void;
   label: string;
-}> = ({ value, min = 0, max, onChange, label }) => {
+}> = ({ value, min = 0, max, step = 1, onChange, label }) => {
   const locale = useMaterialLocale();
+  const down = stepQuantity(value, step, -1);
+  const up = stepQuantity(value, step, 1);
   const button = cn(
     'flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40',
     focusRing,
@@ -131,8 +138,8 @@ export const Stepper: React.FC<{
         type="button"
         className={button}
         aria-label={`${text.less[locale]}: ${label}`}
-        disabled={value <= min}
-        onClick={() => onChange(Math.max(min, value - 1))}
+        disabled={down < min}
+        onClick={() => onChange(down)}
       >
         <Minus className="size-4" aria-hidden />
       </button>
@@ -148,8 +155,8 @@ export const Stepper: React.FC<{
         type="button"
         className={button}
         aria-label={`${text.more[locale]}: ${label}`}
-        disabled={value >= max}
-        onClick={() => onChange(Math.min(max, value + 1))}
+        disabled={up > max}
+        onClick={() => onChange(up)}
       >
         <Plus className="size-4" aria-hidden />
       </button>
