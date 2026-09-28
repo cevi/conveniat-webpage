@@ -319,6 +319,15 @@ export const OutgoingEmails: CollectionConfig = {
               },
             },
             {
+              // The plain-text part. Shown by the preview above when a mail has no HTML part.
+              name: 'text',
+              type: 'textarea',
+              admin: {
+                readOnly: true,
+                hidden: true,
+              },
+            },
+            {
               name: 'smtpResults',
               type: 'json',
               hooks: {
