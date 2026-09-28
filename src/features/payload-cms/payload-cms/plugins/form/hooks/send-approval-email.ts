@@ -1,4 +1,4 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { EMAIL_SENDER_ADDRESS } from '@/features/payload-cms/payload-cms/utils/email-sender';
 import {
   escapeHTML,
   type CustomAutoLinkNode,
@@ -323,11 +323,7 @@ export const sendApprovalEmail: CollectionAfterChangeHook = async ({
 
     const formattedEmail = {
       to: emailTo,
-      from:
-        emailFrom ??
-        (typeof environmentVariables.SMTP_USER === 'string'
-          ? environmentVariables.SMTP_USER
-          : 'noreply@cevi.tools'),
+      from: emailFrom ?? EMAIL_SENDER_ADDRESS,
       subject,
       html,
       ...(cc !== undefined && cc.length > 0 ? { cc } : {}),

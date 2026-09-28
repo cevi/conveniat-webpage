@@ -1,4 +1,3 @@
-import { environmentVariables } from '@/config/environment-variables';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import {
   convertLexicalToHTML,
@@ -173,11 +172,6 @@ export const confirmationMessageStep: TaskConfig<{
           subject: 'Conveniat Helper Registration / Helferanmeldung',
           html: htmlContent,
           text: plainTextContent,
-          from:
-            typeof environmentVariables.SMTP_USER === 'string' &&
-            environmentVariables.SMTP_USER.length > 0
-              ? environmentVariables.SMTP_USER
-              : 'noreply@cevi.tools',
         },
         input.formSubmissionId,
       );

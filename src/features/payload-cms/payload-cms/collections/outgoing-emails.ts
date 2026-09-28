@@ -4,6 +4,10 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { overrideOutgoingEmailStatusHandler } from '@/features/payload-cms/payload-cms/endpoints/override-outgoing-email';
 import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
 import { parseSmtpResultsHook } from '@/features/payload-cms/payload-cms/hooks/parse-smtp-results';
+import {
+  EMAIL_SENDER_ADDRESS,
+  EMAIL_SENDER_DOMAIN,
+} from '@/features/payload-cms/payload-cms/utils/email-sender';
 import type { CollectionConfig, FieldHook } from 'payload';
 
 export const OutgoingEmails: CollectionConfig = {
@@ -339,16 +343,8 @@ export const OutgoingEmails: CollectionConfig = {
                   Field: {
                     path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-field',
                     clientProps: {
-                      smtpDomain:
-                        typeof environmentVariables.SMTP_USER === 'string' &&
-                        (environmentVariables.SMTP_USER.split('@')[1] ?? '').length > 0
-                          ? environmentVariables.SMTP_USER.split('@')[1]
-                          : 'cevi.tools',
-                      systemEmails: [
-                        typeof environmentVariables.SMTP_USER === 'string'
-                          ? environmentVariables.SMTP_USER
-                          : 'noreply@cevi.tools',
-                      ].filter((email) => email.length > 0),
+                      smtpDomain: EMAIL_SENDER_DOMAIN,
+                      systemEmails: [EMAIL_SENDER_ADDRESS],
                     },
                   },
                   Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
