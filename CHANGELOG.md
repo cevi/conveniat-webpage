@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.22.1](https://github.com/cevi/conveniat-webpage/compare/v1.22.0...v1.22.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **auth:** a visitor without a session is no user, null, as Payload expects ([e6ab1ab](https://github.com/cevi/conveniat-webpage/commit/e6ab1ab28b4e5a78357b9e4f778f3fff2975124e))
+* **auth:** a visitor without a session is no user, null, as Payload expects ([131857c](https://github.com/cevi/conveniat-webpage/commit/131857cefc0c207fe3e2191f2961f5d6c2b1143e))
+* **forms:** a Hof dashboard form can publish the files of approved submissions ([e3000a6](https://github.com/cevi/conveniat-webpage/commit/e3000a6cc23c0e7153ee0d320305a3ba49cc901c))
+* **forms:** a Hof dashboard form can publish the files of approved submissions ([342d042](https://github.com/cevi/conveniat-webpage/commit/342d0423f1397337d8f95e6f2353dadd43e86769))
+
 ## [1.22.0](https://github.com/cevi/conveniat-webpage/compare/v1.21.0...v1.22.0) (2026-09-28)
 
 
