@@ -15,12 +15,9 @@ export type MaterialLoan = MaterialItemDetail['openLoans'][number];
 export type MaterialHolderGroup = RouterOutputs['material']['getCounterQueue']['pickups'][number];
 
 /**
- * Options every material query shares. The app-wide client neither refetches on mount nor
- * forgets for 72 hours, which suits content but not stock: a depot view has to ask again
- * every time it opens. A 4xx is not retried, so "not signed in" shows at once.
+ * Options every material query shares. A 4xx is not retried, so "not signed in" shows at once.
  */
 export const materialQueryOptions = {
-  refetchOnMount: true,
   retry: shouldRetryMaterialQuery,
 } as const;
 

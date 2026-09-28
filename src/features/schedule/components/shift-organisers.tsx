@@ -25,9 +25,9 @@ export const ShiftOrganisers: React.FC<{
   /**
    * Optional against the type of the shift it comes from: the card renders whatever the
    * persisted React Query cache holds, and that blob can have been written by a build that
-   * predates this field. With `refetchOnMount: false` and a 24h persist window, a helper who
-   * opens the app right after an update renders the old shape for the rest of the session, so
-   * reading `.length` off it took the whole helper portal down to the error boundary.
+   * predates this field. A helper who opens the app right after an update renders the old
+   * shape until the refetch lands, and for as long as they stay offline, so reading `.length`
+   * off it took the whole helper portal down to the error boundary.
    */
   organisers: HelperShiftOrganiser[] | undefined;
   locale: Locale;

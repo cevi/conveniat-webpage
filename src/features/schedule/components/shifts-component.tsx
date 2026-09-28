@@ -43,8 +43,6 @@ const foundShiftsText: StaticTranslationString = {
 export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
-
-    refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
 
