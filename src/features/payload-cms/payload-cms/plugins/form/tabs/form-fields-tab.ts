@@ -3,6 +3,7 @@ import {
   DEFAULT_MAXIMUM_RANGES,
   DEFAULT_MINIMUM_DAYS,
 } from '@/features/payload-cms/components/form/utils/date-slots';
+import { MATERIAL_LIST_MAX_QUANTITY } from '@/features/payload-cms/components/form/utils/material-list';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
 import { minimalEditorFeatures } from '@/features/payload-cms/payload-cms/plugins/lexical-editor';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
@@ -1181,7 +1182,7 @@ const formMaterialListBlock: Block = {
               required: true,
               localized: true,
               label: { en: 'Material', de: 'Material', fr: 'Matériel' },
-              admin: { width: '60%' },
+              admin: { width: '45%' },
             },
             {
               name: 'section',
@@ -1189,11 +1190,28 @@ const formMaterialListBlock: Block = {
               localized: true,
               label: { en: 'Section', de: 'Rubrik', fr: 'Rubrique' },
               admin: {
-                width: '40%',
+                width: '35%',
                 description: {
                   en: 'Optional heading the line is listed under, e.g. "Wood".',
                   de: 'Optionale Überschrift, unter der die Zeile erscheint, z.B. "Holz".',
                   fr: 'Titre facultatif sous lequel la ligne apparaît, p. ex. « Bois ».',
+                },
+              },
+            },
+            {
+              name: 'step',
+              type: 'number',
+              min: 1,
+              max: MATERIAL_LIST_MAX_QUANTITY,
+              label: { en: 'Step', de: 'Schritt', fr: 'Pas' },
+              admin: {
+                width: '20%',
+                step: 1,
+                placeholder: '1',
+                description: {
+                  en: 'Ordered only in multiples of it, e.g. 10. Empty means 1.',
+                  de: 'Bestellt wird nur ein Vielfaches davon, z.B. 10. Leer heisst 1.',
+                  fr: 'Commandé seulement par multiples, p. ex. 10. Vide signifie 1.',
                 },
               },
             },
