@@ -85,3 +85,22 @@ describe('MessageInfoDropdown status label', () => {
     expect(within(statusRow('Status')).getByText('SOME_NEW_EVENT')).toBeInTheDocument();
   });
 });
+
+describe('MessageInfoDropdown on a received message', () => {
+  beforeEach(() => {
+    mockLocale = 'de';
+  });
+
+  it('names the sender instead of a delivery status that would only ever say "sent"', () => {
+    render(
+      <MessageInfoDropdown
+        message={{ ...message('STORED'), senderName: 'Anna Muster' }}
+        isCurrentUser={false}
+        onClose={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Status')).not.toBeInTheDocument();
+    expect(within(statusRow('Von')).getByText('Anna Muster')).toBeInTheDocument();
+  });
+});
