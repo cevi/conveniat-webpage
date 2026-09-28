@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.23.0](https://github.com/cevi/conveniat-webpage/compare/v1.22.1...v1.23.0) (2026-09-28)
+
+
+### Features
+
+* **billing:** ask for a reason when cancelling, and name the cancelled bill ([a3a0942](https://github.com/cevi/conveniat-webpage/commit/a3a094253eb5c0afc185de9ac5c5452190e287f7))
+* **billing:** call a cancelled registration Storniert, like the action that cancels it ([739803b](https://github.com/cevi/conveniat-webpage/commit/739803b3b679aa2b81a51236b44e23cead3ec8d7))
+* **billing:** finance overview lists every bill, replaced and cancelled ones marked ([208ad97](https://github.com/cevi/conveniat-webpage/commit/208ad97d19c6f26ecf3f8c1f7636c47d1c7a9ece))
+* **billing:** finance overview lists every bill, replaced and cancelled ones marked ([cf54a84](https://github.com/cevi/conveniat-webpage/commit/cf54a84d79699d05931dc11684b12822ec4e73f6))
+* **billing:** reason for Stornieren, and never cancel a bill from an incomplete Cevi.DB read ([affbdc7](https://github.com/cevi/conveniat-webpage/commit/affbdc7f448ab4de73f0b47539fd4efb87a2a301))
+* **billing:** Stornogrund shows the reason given for Stornieren ([9335a9d](https://github.com/cevi/conveniat-webpage/commit/9335a9d14229f85b8f917691a4e8cac9a31dc7bf))
+
+
+### Bug Fixes
+
+* **billing:** read every Cevi.DB page and refuse an incomplete participation list ([28c85b6](https://github.com/cevi/conveniat-webpage/commit/28c85b6b36b3ac873c44b2c99c30f5135d222303))
+* **offline:** refresh persisted data when a screen opens and on Update ([6e38768](https://github.com/cevi/conveniat-webpage/commit/6e387684b4f7b8149c0aa3e8ea2414562d2156fb))
+* **offline:** refresh persisted data when a screen opens and on Update ([5327ba0](https://github.com/cevi/conveniat-webpage/commit/5327ba07708f95cfd53c6444f2c8e24361732d8a))
+
 ## [1.22.1](https://github.com/cevi/conveniat-webpage/compare/v1.22.0...v1.22.1) (2026-09-28)
 
 
