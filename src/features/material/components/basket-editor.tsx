@@ -26,7 +26,7 @@ import {
   type MaterialItem,
   type MaterialLoan,
 } from '@/features/material/hooks/use-material';
-import { basketLineCap, basketTotals } from '@/features/material/utils/basket';
+import { basketLineCap, basketTotals, orderStepOf } from '@/features/material/utils/basket';
 import {
   CAMP_END,
   fromDateInput,
@@ -378,6 +378,8 @@ const BasketLineRow: React.FC<{
           value={line.quantity}
           min={1}
           max={Math.max(cap, line.quantity, 1)}
+          // the team may type any number, e.g. to hand out the last few
+          step={orderStepOf(item?.orderStep)}
           onChange={(quantity) => onChange({ ...line, quantity })}
         />
       </div>

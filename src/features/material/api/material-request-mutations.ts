@@ -15,7 +15,7 @@ import {
   PENDING_STATUSES,
   visibleLoansWhere,
 } from '@/features/material/api/material-shared';
-import { mergeBasketLines } from '@/features/material/utils/basket';
+import { isOnOrderStep, mergeBasketLines } from '@/features/material/utils/basket';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { Locale } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
@@ -86,6 +86,9 @@ export const createLoanRequest = materialProcedure
       for (const line of lines) {
         const item = await tx.materialItem.findUnique({ where: { id: line.itemId } });
         if (!item) throw materialError('NOT_FOUND', 'itemNotFound', ctx.locale);
+        if (!isOnOrderStep(line.quantity, item.orderStep)) {
+          throw materialError('BAD_REQUEST', 'offStep', ctx.locale, item.orderStep, item.name);
+        }
         const booking: Booking = {
           item,
           quantity: line.quantity,
@@ -135,6 +138,16 @@ export const updateLoanRequest = materialProcedure
     await ctx.prisma.$transaction(async (tx) => {
       const loan = await lockLoan(tx, input.id, ctx.locale, visible);
       if (loan.status !== 'REQUESTED') throw materialError('CONFLICT', 'wrongStatus', ctx.locale);
+      // only a changed quantity: a request from before the step keeps its dates editable
+      if (input.quantity !== undefined && !isOnOrderStep(input.quantity, loan.item.orderStep)) {
+        throw materialError(
+          'BAD_REQUEST',
+          'offStep',
+          ctx.locale,
+          loan.item.orderStep,
+          loan.item.name,
+        );
+      }
       const booking: Booking = {
         item: loan.item,
         quantity: input.quantity ?? loan.quantity,

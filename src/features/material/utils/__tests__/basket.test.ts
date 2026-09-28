@@ -1,4 +1,11 @@
-import { basketLineCap, basketTotals, mergeBasketLines } from '@/features/material/utils/basket';
+import {
+  basketLineCap,
+  basketTotals,
+  isOnOrderStep,
+  mergeBasketLines,
+  orderStepOf,
+  stepQuantity,
+} from '@/features/material/utils/basket';
 
 describe('mergeBasketLines', () => {
   it('adds up the same article and sorts by article id, the order the server locks in', () => {
@@ -40,5 +47,28 @@ describe('basketTotals', () => {
       positions: 2,
       pieces: 36,
     });
+  });
+});
+
+describe('order steps', () => {
+  it('asks for multiples of the step', () => {
+    expect(isOnOrderStep(30, 10)).toBe(true);
+    expect(isOnOrderStep(25, 10)).toBe(false);
+    expect(isOnOrderStep(7, 1)).toBe(true);
+  });
+
+  // eslint-disable-next-line unicorn/no-null -- the column reads as null nowhere, a stale cache as undefined
+  it.each([undefined, null, 0, -5, 2.5, '10'])('asks one by one for a step of %p', (step) => {
+    expect(orderStepOf(step)).toBe(1);
+    expect(isOnOrderStep(7, step)).toBe(true);
+  });
+
+  it('steps from a quantity off the steps onto the next one', () => {
+    expect(stepQuantity(0, 10, 1)).toBe(10);
+    expect(stepQuantity(20, 10, 1)).toBe(30);
+    expect(stepQuantity(20, 10, -1)).toBe(10);
+    expect(stepQuantity(7, 5, 1)).toBe(10);
+    expect(stepQuantity(7, 5, -1)).toBe(5);
+    expect(stepQuantity(3, 1, -1)).toBe(2);
   });
 });

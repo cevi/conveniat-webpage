@@ -530,6 +530,9 @@ model MaterialItem {
   totalQuantity     Int
   /// most pieces a single loan may ask for
   maxLoanQuantity   Int
+  /// a participant asks for multiples of it, e.g. 10 for Zelttücher; the material team books
+  /// any number, so it can hand out the last few
+  orderStep         Int @default(1)
   damagedQuantity   Int @default(0)
   inRepairQuantity  Int @default(0)
   /// the dashboard warns once the free pieces drop to this number

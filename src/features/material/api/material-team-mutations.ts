@@ -24,6 +24,7 @@ const itemFields = z.object({
   unit: z.string().trim().min(1).max(40),
   totalQuantity: z.number().int().min(0).max(1_000_000),
   maxLoanQuantity: z.number().int().min(1).max(1_000_000),
+  orderStep: z.number().int().min(1).max(1_000_000),
   lowStockThreshold: z.number().int().min(0).max(1_000_000),
   isConsumable: z.boolean(),
   isReservable: z.boolean(),

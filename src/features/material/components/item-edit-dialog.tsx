@@ -16,6 +16,7 @@ import {
   useMaterialLocale,
   type MaterialItemDetail,
 } from '@/features/material/hooks/use-material';
+import { orderStepOf } from '@/features/material/utils/basket';
 import { getItemFormProblems, type ItemFormProblem } from '@/features/material/utils/item-form';
 import { itemPath } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
@@ -70,6 +71,11 @@ const problemText: Record<ItemFormProblem, StaticTranslationString> = {
     en: 'At least 1.',
     fr: 'Au moins 1.',
   },
+  orderStep: {
+    de: 'Mindestens 1 und höchstens die maximale Ausleihmenge.',
+    en: 'At least 1 and at most the maximum per loan.',
+    fr: 'Au moins 1 et au plus la quantité maximale par prêt.',
+  },
 };
 
 interface FormState {
@@ -83,6 +89,7 @@ interface FormState {
   unit: string;
   totalQuantity: number;
   maxLoanQuantity: number;
+  orderStep: number;
   lowStockThreshold: number;
   isConsumable: boolean;
   isReservable: boolean;
@@ -103,6 +110,7 @@ const fromItem = (item: EditableItem | undefined): FormState => ({
   unit: item?.unit ?? 'Stück',
   totalQuantity: item?.totalQuantity ?? 0,
   maxLoanQuantity: item?.maxLoanQuantity ?? 1,
+  orderStep: orderStepOf(item?.orderStep),
   lowStockThreshold: item?.lowStockThreshold ?? 0,
   isConsumable: item?.isConsumable ?? false,
   isReservable: item?.isReservable ?? true,
@@ -130,10 +138,10 @@ export const ItemEditDialog: React.FC<{
     setForm((current) => ({ ...current, [key]: value }));
 
   const numberInput = (
-    key: 'totalQuantity' | 'maxLoanQuantity' | 'lowStockThreshold',
+    key: 'totalQuantity' | 'maxLoanQuantity' | 'orderStep' | 'lowStockThreshold',
   ): React.ReactNode => (
     <NumberInput
-      min={key === 'maxLoanQuantity' ? 1 : 0}
+      min={key === 'maxLoanQuantity' || key === 'orderStep' ? 1 : 0}
       value={form[key]}
       onChange={(value) => set(key, value)}
     />
@@ -208,6 +216,9 @@ export const ItemEditDialog: React.FC<{
         <Field label={labels.total[locale]}>{numberInput('totalQuantity')}</Field>
         <Field label={labels.maxPerLoan[locale]} error={problem('maxLoanQuantity')}>
           {numberInput('maxLoanQuantity')}
+        </Field>
+        <Field label={labels.orderStep[locale]} error={problem('orderStep')}>
+          {numberInput('orderStep')}
         </Field>
         <Field label={text.unit[locale]}>
           <input
