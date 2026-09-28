@@ -110,6 +110,7 @@ const materialForm = {
                 items: [
                   { id: 'latte', name: 'Dachlatte' },
                   { id: 'brett', name: 'Brett' },
+                  { id: 'zelttuch', name: 'Zelttuch', step: 10 },
                 ],
               },
             ],
@@ -150,6 +151,15 @@ describe('validateFormSubmission — material list', () => {
     await expect(
       materialErrorsOf(order({ id: 'latte', quantity: 12 }, { id: 'brett', quantity: 1 })),
     ).resolves.toBeUndefined();
+  });
+
+  it('takes a material in its steps, and refuses a quantity off them', async () => {
+    await expect(
+      materialErrorsOf(order({ id: 'zelttuch', quantity: 30 })),
+    ).resolves.toBeUndefined();
+    await expect(materialErrorsOf(order({ id: 'zelttuch', quantity: 25 }))).resolves.toEqual(
+      invalid,
+    );
   });
 
   it('rejects a material the list does not offer', async () => {

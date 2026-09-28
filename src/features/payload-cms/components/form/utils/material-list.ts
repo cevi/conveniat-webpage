@@ -44,6 +44,33 @@ export const serializeMaterialAnswer = (lines: readonly MaterialLine[]): string 
   return ordered.length === 0 ? '' : JSON.stringify(ordered);
 };
 
-/** Whether a quantity is one a material list takes: a whole number from 0 to the maximum. */
-export const isAllowedQuantity = (quantity: number): boolean =>
-  Number.isInteger(quantity) && quantity >= 0 && quantity <= MATERIAL_LIST_MAX_QUANTITY;
+/**
+ * The step a line is ordered in, e.g. 10 for Zelttücher that are handed out in bundles of ten.
+ * A line without one, or with one a draft let through, is ordered one by one.
+ */
+export const materialStep = (step: unknown): number =>
+  typeof step === 'number' && Number.isInteger(step) && step >= 1 ? step : 1;
+
+/**
+ * Whether a quantity is one a material list takes: a whole multiple of the line's step, from 0
+ * to the maximum.
+ */
+export const isAllowedQuantity = (quantity: number, step: unknown = 1): boolean =>
+  Number.isInteger(quantity) &&
+  quantity >= 0 &&
+  quantity <= MATERIAL_LIST_MAX_QUANTITY &&
+  quantity % materialStep(step) === 0;
+
+/**
+ * The quantity one step up or down from the given one, on the line's steps: 7 in steps of 5
+ * goes up to 10 and down to 5, never past 0 or the most the line takes.
+ */
+export const stepQuantity = (quantity: number, step: unknown, direction: 1 | -1): number => {
+  const size = materialStep(step);
+  const next =
+    direction === 1
+      ? (Math.floor(quantity / size) + 1) * size
+      : (Math.ceil(quantity / size) - 1) * size;
+  const most = Math.floor(MATERIAL_LIST_MAX_QUANTITY / size) * size;
+  return Math.min(most, Math.max(0, next));
+};

@@ -21,7 +21,8 @@ export interface MaterialListBlock {
   name: string;
   label?: string;
   required?: boolean;
-  items?: { id?: string | null; name: string; section?: string | null }[] | null;
+  items?:
+    { id?: string | null; name: string; section?: string | null; step?: number | null }[] | null;
   placement?: 'sidebar' | 'main';
 }
 

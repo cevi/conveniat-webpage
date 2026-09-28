@@ -361,12 +361,15 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
         break;
       }
       case 'materialList': {
-        // only the listed materials, each a whole number within the limit
-        const listed = new Set(fieldConfig.items.map((item) => item.id));
+        // only the listed materials, each a whole number within the limit and on its steps
+        const listed = new Map(fieldConfig.items.map((item) => [item.id, item]));
         const lines = parseMaterialAnswer(value);
         if (
           lines === undefined ||
-          lines.some((line) => !listed.has(line.id) || !isAllowedQuantity(line.quantity))
+          lines.some((line) => {
+            const item = listed.get(line.id);
+            return item === undefined || !isAllowedQuantity(line.quantity, item.step);
+          })
         ) {
           fieldErrors.push({ field: fieldName, message: 'invalid_number' });
         }

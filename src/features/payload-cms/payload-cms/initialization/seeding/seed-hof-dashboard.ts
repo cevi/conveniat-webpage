@@ -40,10 +40,11 @@ const SAFETY_RISK_CRITERIA = [
 ];
 
 const INFRASTRUCTURE_MATERIAL = [
-  { name: 'Bindestrick' },
+  { name: 'Bindestrick', step: 5 },
   { name: 'Manipulierseil (10–15 m)' },
-  { name: 'Zelttuch inkl. Zeltschnur' },
-  { name: 'Ausschusszelttuch' },
+  { name: 'Zelttuch', step: 10 },
+  { name: 'Ausschusszelttuch', step: 10 },
+  { name: 'Zeltschnur', step: 5 },
   { name: 'Zelttasche zu Zelttuch' },
   { name: 'Handbeil' },
   { name: 'Spaten' },

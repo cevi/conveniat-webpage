@@ -21,6 +21,8 @@ interface SeedItem {
   description: string;
   total: number;
   max: number;
+  /** what a participant asks for multiples of */
+  step?: number;
   unit?: string;
   image?: string;
   usageNotes?: string;
@@ -36,6 +38,7 @@ const ITEMS: SeedItem[] = [
     code: 'JS-BINDE',
     name: 'Bindestrick',
     category: 'js',
+    step: 5,
     description: 'Sisalstrick für Lagerbauten, Pionierbauten und Seilbrücken. Länge ca. 4 m.',
     total: 200,
     max: 60,
@@ -133,6 +136,7 @@ const ITEMS: SeedItem[] = [
     description: 'Klassisches Zelttuch der Armee mit Zeltschnur. Mehrere Tücher ergeben ein Zelt.',
     total: 400,
     max: 100,
+    step: 10,
     image: jsImage(
       '7nQ99EHqLH8a/Zelttuch%20inkl.%20Zeltschnur%20(bitte%20St%C3%BCckanzahl%20ben%C3%B6tigter%20Zeltt%C3%BCcher%20eintragen).jpg',
     ),
@@ -148,6 +152,7 @@ const ITEMS: SeedItem[] = [
     description: 'Ausgemustertes Zelttuch, darf für Bastelarbeiten und Böden verwendet werden.',
     total: 25,
     max: 10,
+    step: 10,
     image: jsImage('uehimp5veHCd/Ausschusszelttuch.jpg'),
   },
   {
@@ -560,6 +565,7 @@ export const seedMaterial = async (payload: Payload, userIds: string[]): Promise
         categoryId: categories[item.category].id,
         totalQuantity: item.total,
         maxLoanQuantity: item.max,
+        orderStep: item.step ?? 1,
         damagedQuantity: item.damaged ?? 0,
         inRepairQuantity: item.inRepair ?? 0,
         lowStockThreshold: item.lowStock ?? 0,

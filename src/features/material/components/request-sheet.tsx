@@ -19,7 +19,12 @@ import {
   useMaterialLocale,
   useNow,
 } from '@/features/material/hooks/use-material';
-import { basketLineCap, basketTotals } from '@/features/material/utils/basket';
+import {
+  basketLineCap,
+  basketTotals,
+  isOnOrderStep,
+  orderStepOf,
+} from '@/features/material/utils/basket';
 import {
   CAMP_END,
   fromDateInput,
@@ -128,7 +133,9 @@ export const RequestSheet: React.FC<{
           maxLoanQuantity: item.maxLoanQuantity,
         });
   };
+  const stepOf = (itemId: string): number => orderStepOf(byId.get(itemId)?.orderStep);
   const overCap = lines.some((line) => line.quantity > capOf(line.itemId));
+  const offStep = lines.some((line) => !isOnOrderStep(line.quantity, stepOf(line.itemId)));
   const totals = basketTotals(lines);
   const canSend =
     periodValid &&
@@ -136,6 +143,7 @@ export const RequestSheet: React.FC<{
     responsibleName.trim() !== '' &&
     lines.length > 0 &&
     !overCap &&
+    !offStep &&
     !period.isFetching;
 
   const submit = (): void => {
@@ -220,6 +228,7 @@ export const RequestSheet: React.FC<{
           const item = byId.get(line.itemId);
           const name = item?.name ?? '…';
           const cap = capOf(line.itemId);
+          const step = stepOf(line.itemId);
           return (
             <li key={line.itemId} className="space-y-2 px-3 py-3">
               <div className="flex items-center gap-3">
@@ -235,6 +244,7 @@ export const RequestSheet: React.FC<{
                       n: item?.availableForPeriod ?? 0,
                       max: item?.maxLoanQuantity ?? 0,
                     })}
+                    {step > 1 && ` · ${format(labels.inSteps, locale, { n: step })}`}
                   </div>
                 </div>
                 <button
@@ -253,8 +263,9 @@ export const RequestSheet: React.FC<{
                 <Stepper
                   label={`${labels.quantity[locale]}: ${name}`}
                   value={line.quantity}
-                  min={1}
+                  min={step}
                   max={Math.max(cap, line.quantity, 1)}
+                  step={step}
                   onChange={(quantity) =>
                     onLinesChange(
                       lines.map((entry) => (entry === line ? { ...entry, quantity } : entry)),
@@ -265,6 +276,11 @@ export const RequestSheet: React.FC<{
               {line.quantity > cap && (
                 <p className="text-right text-xs font-semibold text-red-700">
                   {format(text.tooMany, locale, { n: cap })}
+                </p>
+              )}
+              {!isOnOrderStep(line.quantity, step) && (
+                <p className="text-right text-xs font-semibold text-red-700">
+                  {format(labels.offStep, locale, { n: step })}
                 </p>
               )}
             </li>

@@ -99,6 +99,7 @@ const IMPORT_COLUMNS = [
   'description',
   'returnInstructions',
   'imageUrl',
+  'step',
 ] as const;
 
 const truthy = (value: string): boolean => ['1', 'ja', 'oui', 'yes', 'true', 'x'].includes(value);
@@ -119,6 +120,7 @@ const importRowSchema = z.object({
   description: z.string().trim().max(5000),
   returnInstructions: z.string().trim().max(2000),
   imageUrl: z.union([z.literal(''), z.string().trim().url()]),
+  step: z.union([z.literal(''), z.coerce.number().int().min(1).max(1_000_000)]),
 });
 
 /** Splits one line at tabs or `;`, the separators a copy out of a spreadsheet produces. */
@@ -176,6 +178,7 @@ export const importMaterialCatalogue = async (text: string): Promise<SetupResult
       ...(row.description === '' ? {} : { description: row.description }),
       ...(row.returnInstructions === '' ? {} : { returnInstructions: row.returnInstructions }),
       ...(row.imageUrl === '' ? {} : { imageUrl: row.imageUrl }),
+      ...(row.step === '' ? {} : { orderStep: row.step }),
     };
 
     // `undefined` once written, otherwise the smallest total the article may have

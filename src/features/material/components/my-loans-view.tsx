@@ -25,7 +25,7 @@ import {
   useNow,
 } from '@/features/material/hooks/use-material';
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
-import { basketLineCap } from '@/features/material/utils/basket';
+import { basketLineCap, isOnOrderStep, orderStepOf } from '@/features/material/utils/basket';
 import { fromDateInput, toDateInput } from '@/features/material/utils/dates';
 import { dayKey } from '@/features/material/utils/holders';
 import { getLoanDisplayStatus } from '@/features/material/utils/stock';
@@ -147,6 +147,8 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
     available: availability.data?.available ?? loan.quantity,
     maxLoanQuantity: loan.item.maxLoanQuantity,
   });
+  const step = orderStepOf(loan.item.orderStep);
+  const onStep = isOnOrderStep(quantity, step);
 
   return (
     <MaterialSheet
@@ -164,15 +166,22 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
               n: availability.data?.available ?? '…',
               max: loan.item.maxLoanQuantity,
             })}
+            {step > 1 && ` · ${format(labels.inSteps, locale, { n: step })}`}
           </span>
           <Stepper
             label={labels.quantity[locale]}
             value={quantity}
-            min={1}
+            min={step}
             max={Math.max(cap, 1)}
+            step={step}
             onChange={setQuantity}
           />
         </div>
+        {!onStep && (
+          <p className="text-right text-xs font-semibold text-red-700">
+            {format(labels.offStep, locale, { n: step })}
+          </p>
+        )}
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field as="group" label={text.pickup[locale]}>
@@ -194,7 +203,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
         <MaterialButton
           className="w-full"
           loading={update.isPending}
-          disabled={!periodValid || quantity > cap}
+          disabled={!periodValid || quantity > cap || !onStep}
           onClick={() =>
             update.mutate(
               { id: loan.id, quantity, startDate, endDate, comment },
