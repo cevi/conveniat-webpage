@@ -20,6 +20,7 @@ const ACTION_LABELS: Record<string, string> = {
   sync_confirmed: 'Abgleich bestätigt',
   manual_review_required: 'Manuelle Prüfung nötig',
   removed_detected: 'In der Cevi.DB entfernt',
+  manually_removed: 'Storniert',
   anmeldestatus_written_to_cevidb: 'Anmeldestatus in der Cevi.DB gesetzt',
   anmeldestatus_writeback_failed: 'Anmeldestatus konnte in der Cevi.DB nicht gesetzt werden',
 };
@@ -61,7 +62,7 @@ const EntryRow: React.FC<{ entry: SyncHistoryEntry }> = ({ entry }) => (
       </span>
     </div>
     {entry.reviewReason !== undefined && entry.reviewReason !== '' && (
-      <p className="mt-2 rounded border border-fuchsia-200 bg-fuchsia-50 p-2 text-xs text-fuchsia-900 dark:border-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-100">
+      <p className="mt-2 rounded border border-fuchsia-200 bg-fuchsia-50 p-2 text-xs whitespace-pre-line text-fuchsia-900 dark:border-fuchsia-800 dark:bg-fuchsia-900/30 dark:text-fuchsia-100">
         {entry.reviewReason}
       </p>
     )}

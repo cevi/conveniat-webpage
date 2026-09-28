@@ -104,11 +104,13 @@ async function syncSingleEvent(
 ): Promise<void> {
   const participations = await hitobitoService.fetchParticipations(event.groupId, event.eventId);
   const fetchedParticipationIds = new Set<string>();
+  let unreadableParticipations = 0;
 
   for (const participation of participations) {
     fetchedParticipationIds.add(participation.participationId);
 
     if (participation.participantId.length === 0) {
+      unreadableParticipations++;
       summary.errors.push(
         `Teilnahme ${participation.participationId} konnte nicht synchronisiert werden: Personen-ID fehlt. Bitte stelle sicher, dass ein gültiger Browser-Cookie in den Registrierungs-Einstellungen eingetragen ist.`,
       );
@@ -483,6 +485,17 @@ async function syncSingleEvent(
     allExistingForEvent.length >= MIN_PARTICIPANTS_FOR_DROP_GUARD &&
     vanished.length / allExistingForEvent.length > MAX_REMOVED_FRACTION_PER_SYNC;
 
+  // A removal cancels whatever bill the row carries, so it is only drawn from a read that
+  // went through cleanly. One participation that could not be read says the Cevi.DB was
+  // not answering properly for this event, and the rest of its list is not trusted either.
+  if (vanished.length > 0 && unreadableParticipations > 0) {
+    summary.errors.push(
+      `Anlass ${event.eventId} (${event.eventName ?? '–'}): ${String(vanished.length)} ` +
+        'Abmeldungen wurden nicht übernommen, weil nicht alle Anmeldungen gelesen werden konnten.',
+    );
+    return;
+  }
+
   if (isSuspiciousDrop) {
     throw new Error(
       `Cevi.DB meldet für Anlass ${event.eventId} (${event.eventName}) nur noch ` +
@@ -493,25 +506,37 @@ async function syncSingleEvent(
   }
 
   for (const document_ of vanished) {
-    {
-      const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
-      await participantRepo.update(document_.id, {
-        status: 'removed',
-        removedDate: now,
-        lastSyncDate: now,
-        syncHistory: [
-          ...history,
-          {
-            date: now,
-            action: 'removed_detected',
-            reviewReason:
-              'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden und wurde deshalb auf „Entfernt“ gesetzt.',
-          },
-        ],
-      });
-      summary.removedCount++;
-    }
+    const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+    await participantRepo.update(document_.id, {
+      status: 'removed',
+      removedDate: now,
+      lastSyncDate: now,
+      syncHistory: [
+        ...history,
+        { date: now, action: 'removed_detected', reviewReason: describeRemoval(document_) },
+      ],
+    });
+    summary.removedCount++;
   }
+}
+
+/**
+ * Why a row the Cevi.DB no longer lists was set to `removed`. For a billed row that is the
+ * cancellation of its bill, and the history says which bill and whether it had gone out.
+ */
+function describeRemoval(participant: {
+  invoiceNumber?: string | null;
+  billCreatedDate?: string | null;
+  billSentDate?: string | null;
+}): string {
+  const notListed = 'Die Anmeldung ist in der Cevi.DB nicht mehr vorhanden';
+  if (!hasRaisedBill(participant)) return `${notListed} und wurde deshalb auf „Entfernt“ gesetzt.`;
+
+  const invoiceNumber = participant.invoiceNumber ?? '';
+  const bill = invoiceNumber.trim() === '' ? 'Die Rechnung' : `Die Rechnung ${invoiceNumber}`;
+  // The date, not the status: a sent bill parked for manual review has gone out as well.
+  const wasSent = (participant.billSentDate ?? '').trim() !== '';
+  return `${notListed}. ${bill}${wasSent ? ' war bereits versendet und' : ''} wurde deshalb storniert.`;
 }
 
 /**
