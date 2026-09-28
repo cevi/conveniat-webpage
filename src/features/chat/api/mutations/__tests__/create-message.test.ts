@@ -15,6 +15,10 @@ jest.mock('superjson', () => ({
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
 }));
+jest.mock('@/lib/db/redis', () => ({
+  // every rate limit counter at its first call
+  redis: { eval: (): Promise<number> => Promise.resolve(1) },
+}));
 jest.mock('@/lib/ability', () => ({
   Ability: { can: (): Promise<boolean> => Promise.resolve(true) },
 }));
@@ -90,7 +94,7 @@ const anna = createCaller({
 const send = (type?: MessageType): Promise<unknown> =>
   anna.sendMessage({
     chatId: CHAT_ID,
-    content: 'Hoi zäme',
+    content: type === MessageType.IMAGE_MSG ? `chat-images/${CHAT_ID}/1-abc.jpg` : 'Hoi zäme',
     timestamp: new Date(),
     // cast, because the input type already rules out what the server has to reject
     ...(type === undefined ? {} : { type: type as typeof MessageType.TEXT_MSG }),

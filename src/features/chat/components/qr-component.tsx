@@ -14,6 +14,7 @@ import {
   ChatDialogTitle,
 } from '@/features/chat/components/ui/chat-dialog';
 import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
+import { isRateLimitError } from '@/features/chat/utils/send-errors';
 import { FormSubmit } from '@payloadcms/ui';
 import { useQuery } from '@tanstack/react-query';
 import { QrCode } from 'lucide-react';
@@ -76,6 +77,10 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
   });
 
   const isError = inviteUrl.isError || qrImage.isError;
+  // the rate limit's message is already in the user's language and says how long to wait
+  const errorText = isRateLimitError(inviteUrl.error)
+    ? inviteUrl.error.message
+    : qrCodeErrorText[locale];
 
   return (
     <div className="flex flex-col items-center gap-3 p-2">
@@ -86,9 +91,7 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
         locale={locale}
         isError={isError}
       />
-      {isError && (
-        <p className="px-2 text-center text-xs text-red-500">{qrCodeErrorText[locale]}</p>
-      )}
+      {isError && <p className="px-2 text-center text-xs text-red-500">{errorText}</p>}
     </div>
   );
 };

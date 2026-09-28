@@ -13,7 +13,7 @@ import {
   removeMessageFromOutbox,
   setSendInFlight,
 } from '@/features/chat/utils/offline-outbox';
-import { isTransportError } from '@/features/chat/utils/send-errors';
+import { isRateLimitError, isTransportError } from '@/features/chat/utils/send-errors';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
@@ -282,7 +282,9 @@ export const useMessageSend = (): UseMessageSendMutation => {
 
     onError: (error, variables, context) => {
       const { chatId, parentId } = variables;
-      if (isTransportError(error)) {
+      // A rate-limited send is not refused for good: the outbox replays it once the window
+      // has passed, and the composer tells the user why it waits.
+      if (isTransportError(error) || isRateLimitError(error)) {
         // the send stays in the outbox it was queued in on mutate
         if (context?.optimisticMessageId) {
           const optimisticMessageId = context.optimisticMessageId;
@@ -320,7 +322,7 @@ export const useMessageSend = (): UseMessageSendMutation => {
         if (context?.optimisticMessageId !== undefined) {
           forgetFailedSend(context.optimisticMessageId);
         }
-        toast.success('Message queued. Will be sent when online.');
+        if (isTransportError(error)) toast.success('Message queued. Will be sent when online.');
         return;
       }
 

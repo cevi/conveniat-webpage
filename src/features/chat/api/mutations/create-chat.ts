@@ -1,10 +1,11 @@
 import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-duplicate-members';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
-import { verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
+import { assertChatNameLength, verifyChatName } from '@/features/chat/api/checks/verify-chat-name';
 import { createNewChat } from '@/features/chat/api/database-interactions/create-new-chat';
 import { findOrCreatePrivateChat } from '@/features/chat/api/database-interactions/find-or-create-private-chat';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
+import { rateLimit } from '@/trpc/middleware/rate-limit';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
@@ -29,6 +30,19 @@ const createChatInputSchema = z.object({
 
 export const createChat = trpcBaseProcedure
   .input(createChatInputSchema)
+  .use(
+    // Replays of an offline creation count too; the outbox retries them once the window ends.
+    rateLimit({
+      name: 'chat.createChat',
+      limit: 20,
+      windowMs: 10 * 60 * 1000,
+      message: {
+        de: 'Du hast in kurzer Zeit zu viele Chats erstellt. Versuche es in ein paar Minuten wieder.',
+        en: 'You created too many chats in a short time. Try again in a few minutes.',
+        fr: 'Tu as créé trop de chats en peu de temps. Réessaie dans quelques minutes.',
+      },
+    }),
+  )
   .use(databaseTransactionWrapper) // use a DB transaction for this mutation
   .mutation(async ({ input, ctx }) => {
     const { locale, prisma, user } = ctx;
@@ -44,6 +58,7 @@ export const createChat = trpcBaseProcedure
     // additional validation checks
     checkForDuplicateMembers(members);
     verifyChatName(chatName, members);
+    assertChatNameLength(chatName, locale);
 
     const finalChatName = chatName?.trim() ?? '';
 
