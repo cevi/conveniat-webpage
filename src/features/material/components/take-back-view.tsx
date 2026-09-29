@@ -125,7 +125,8 @@ const DueCard: React.FC<{
   return (
     <Panel className="space-y-3 p-3">
       <div className="flex items-start gap-3">
-        <HolderAvatar name={name} alert={overdue} />
+        {/* the badge and the date say "overdue" already, a red tile would say it a third time */}
+        <HolderAvatar name={name} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {group.holder.kind === 'PERSON' && (
@@ -145,7 +146,6 @@ const DueCard: React.FC<{
           </div>
           <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
           <p className={cn('text-xs', overdue ? 'font-semibold text-red-700' : 'text-gray-500')}>
-            {lines} ·{' '}
             {oldest !== undefined && overdue
               ? format(labels.overdueSince, locale, { day: formatDay(oldest.endDate, locale) })
               : format(labels.dueOn, locale, { day: formatDay(oldest?.endDate ?? now, locale) })}

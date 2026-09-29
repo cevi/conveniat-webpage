@@ -60,7 +60,7 @@ const text = {
   },
   search: { de: 'Artikel suchen …', en: 'Search items …', fr: 'Chercher un article …' },
   freeMax: {
-    de: 'frei {free} · max {max}',
+    de: '{free} frei · max. {max}',
     en: '{free} free · max {max}',
     fr: '{free} libres · max {max}',
   },

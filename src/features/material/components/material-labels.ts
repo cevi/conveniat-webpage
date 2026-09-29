@@ -128,6 +128,12 @@ export const labels = {
     fr: 'Prêt n° {n} introuvable.',
   },
   maxShort: { de: 'max. {n}', en: 'max {n}', fr: 'max {n}' },
+  ofTotal: { de: 'von {n} {unit}', en: 'of {n} {unit}', fr: 'sur {n} {unit}' },
+  maxPerRequest: {
+    de: 'Höchstens {n} {unit} pro Anfrage',
+    en: 'At most {n} {unit} per request',
+    fr: 'Au plus {n} {unit} par demande',
+  },
   pieces: { de: '{n} Stück', en: '{n} pieces', fr: '{n} pièces' },
   positions: { de: '{n} Positionen', en: '{n} lines', fr: '{n} positions' },
   onePosition: { de: '1 Position', en: '1 line', fr: '1 position' },

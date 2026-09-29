@@ -169,10 +169,14 @@ const PickupCard: React.FC<{
           </div>
           <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
           <p className="text-xs text-gray-500">
-            {lines}
-            {first !== undefined &&
-              ` · ${format(text.pickupFrom, locale, { day: formatDay(first.startDate, locale) })}`}
-            {group.loans.some((loan) => loan.isConsumption) && ` · ${text.consumption[locale]}`}
+            {[
+              first === undefined
+                ? ''
+                : format(text.pickupFrom, locale, { day: formatDay(first.startDate, locale) }),
+              group.loans.some((loan) => loan.isConsumption) ? text.consumption[locale] : '',
+            ]
+              .filter((part) => part !== '')
+              .join(' · ')}
           </p>
         </div>
       </div>
@@ -239,7 +243,7 @@ const RequestCard: React.FC<{
   };
 
   return (
-    <Panel className="space-y-3 border-amber-300 p-3">
+    <Panel className="space-y-3 p-3">
       <div className="flex items-start gap-3">
         <HolderAvatar name={name} />
         <div className="min-w-0 flex-1">
@@ -252,7 +256,6 @@ const RequestCard: React.FC<{
           <p className="line-clamp-2 text-sm text-gray-600">{loanSummary(group.loans)}</p>
           {first !== undefined && (
             <p className="text-xs text-gray-500">
-              {lines} ·{' '}
               {format(text.pickupReturn, locale, {
                 start: formatDay(first.startDate, locale),
                 end: formatDay(first.endDate, locale),
