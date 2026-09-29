@@ -1,7 +1,7 @@
 'use client';
 
 // eslint-disable-next-line import/no-restricted-paths
-import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { CACHE_NAMES, OFFLINE_ENABLED_FLAG } from '@/features/service-worker/constants';
 import { Cookie } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,12 +23,14 @@ export const hasCachedAppShell = async (pagesCache: Pick<Cache, 'keys'>): Promis
 interface UseOnboardingStorageResult {
   offlineContentHandled: boolean;
   hasCachedContent: boolean;
+  hasDownloadedContent: boolean;
   handleOfflineContent: (accepted: boolean) => void;
 }
 
 export const useOnboardingStorage = (): UseOnboardingStorageResult => {
   const [offlineContentHandled, setOfflineContentHandled] = useState(false);
   const [hasCachedContent, setHasCachedContent] = useState(false);
+  const [hasDownloadedContent, setHasDownloadedContent] = useState(false);
   const isMounted = useRef(true);
 
   useEffect(() => {
@@ -50,9 +52,12 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
 
       // 2. Cache Content
       let hasCache = false;
+      let hasDownload = false;
       if (typeof caches !== 'undefined') {
         try {
           hasCache = await hasCachedAppShell(await caches.open(CACHE_NAMES.PAGES));
+          const statusCache = await caches.open(CACHE_NAMES.OFFLINE_STATUS);
+          hasDownload = (await statusCache.match(OFFLINE_ENABLED_FLAG)) !== undefined;
         } catch (error) {
           console.warn('Failed to check cache', error);
         }
@@ -61,6 +66,7 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
       if (isMounted.current) {
         setOfflineContentHandled(isHandled);
         setHasCachedContent(hasCache);
+        setHasDownloadedContent(hasDownload);
       }
     };
 
@@ -85,6 +91,7 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
   return {
     offlineContentHandled,
     hasCachedContent,
+    hasDownloadedContent,
     handleOfflineContent,
   };
 };

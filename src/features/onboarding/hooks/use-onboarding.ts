@@ -36,6 +36,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
   const {
     offlineContentHandled,
     hasCachedContent,
+    hasDownloadedContent,
     handleOfflineContent: handleOfflineContentStorage,
   } = useOnboardingStorage();
 
@@ -111,6 +112,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
         isOnline,
         offlineContentHandled,
         hasCachedContent,
+        hasDownloadedContent,
         pushPermission,
         // In native mode, derive hasPushSubscription from the native bridge status
         // (which reports FCM token + authorization). In web mode, use the Web Push
@@ -123,6 +125,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     isOnline,
     offlineContentHandled,
     hasCachedContent,
+    hasDownloadedContent,
     hasPushSubscription,
     hasNativePushSubscription,
   ]);

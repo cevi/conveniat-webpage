@@ -18,6 +18,9 @@ export const CACHE_NAMES = {
   AUTH_SESSION: 'next-auth-session-cache',
 } as const;
 
+/** Key in the `OFFLINE_STATUS` cache that records a completed offline download. */
+export const OFFLINE_ENABLED_FLAG = 'offline-enabled';
+
 export const TIMEOUTS = {
   DEFAULT_FETCH: 10_000, // 10 seconds
   RSC_FETCH: 3000, // 3 seconds
