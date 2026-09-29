@@ -410,7 +410,8 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   }
 
   // 2. Targeted Injection (Header Strategy)
-  // User Requirement: Use Header for everything (Documents, API, RSC). Never Query Param.
+  // App Mode travels as a header, never as a query param. Only documents and RSC requests
+  // get it: API requests never reach the router, handleFetchEvent leaves them to the browser.
   const hasAppModeParameter = url.searchParams.get('app-mode') === 'true';
   const isAppMode = hasAppModeParameter || isAppModeClient || isNativeAppWebView;
 
