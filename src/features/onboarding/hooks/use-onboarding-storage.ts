@@ -6,6 +6,20 @@ import { Cookie } from '@/types/types';
 import Cookies from 'js-cookie';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+/**
+ * Whether the page the entrypoint hands over to is cached, so the app can start without a
+ * connection.
+ *
+ * Counting pages is not enough: a user who declined the offline download still has the pages
+ * they opened, often fewer than a handful, and was sent to the "no internet" screen even though
+ * the dashboard would have rendered from the cache. The entrypoint sends everyone to the
+ * dashboard, so whether that page is cached decides whether the app can start.
+ */
+export const hasCachedAppShell = async (pagesCache: Pick<Cache, 'keys'>): Promise<boolean> => {
+  const keys = await pagesCache.keys();
+  return keys.some((request) => new URL(request.url).pathname.endsWith('/app/dashboard'));
+};
+
 interface UseOnboardingStorageResult {
   offlineContentHandled: boolean;
   hasCachedContent: boolean;
@@ -38,11 +52,7 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
       let hasCache = false;
       if (typeof caches !== 'undefined') {
         try {
-          const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-          const keys = await pagesCache.keys();
-          if (keys.length > 5) {
-            hasCache = true;
-          }
+          hasCache = await hasCachedAppShell(await caches.open(CACHE_NAMES.PAGES));
         } catch (error) {
           console.warn('Failed to check cache', error);
         }
