@@ -3,7 +3,11 @@ import { createCallerFactory } from '@/trpc/init';
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 
-jest.mock('payload', () => ({ getPayload: jest.fn() }));
+const mockPayloadFind = jest.fn();
+const mockPayloadUpdate = jest.fn();
+jest.mock('payload', () => ({
+  getPayload: (): unknown => ({ find: mockPayloadFind, update: mockPayloadUpdate }),
+}));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
@@ -123,5 +127,57 @@ describe('pushTrackingRouter access', () => {
       callerAs(signedOut).markInteracted({ id: 'log-1', type: 'CLICK' }),
     ).resolves.toEqual({ success: true });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'log-1' } }));
+  });
+});
+
+describe('pushTrackingRouter.renewWebPushSubscription', () => {
+  const oldSubscription = {
+    endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/old',
+    keys: { p256dh: 'old-p256dh', auth: 'old-auth' },
+  };
+  const newSubscription = {
+    endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/new',
+    keys: { p256dh: 'new-p256dh', auth: 'new-auth' },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('points the stored row at the new subscription, without a session', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [{ id: 'sub-1', user: 'user-1' }] });
+
+    await expect(
+      callerAs(signedOut).renewWebPushSubscription({ oldSubscription, newSubscription }),
+    ).resolves.toEqual({ renewed: true });
+
+    expect(mockPayloadFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          and: [
+            { endpoint: { equals: oldSubscription.endpoint } },
+            { 'keys.auth': { equals: 'old-auth' } },
+          ],
+        },
+      }),
+    );
+    expect(mockPayloadUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'sub-1',
+        data: expect.objectContaining({
+          endpoint: newSubscription.endpoint,
+          keys: newSubscription.keys,
+        }) as unknown,
+      }),
+    );
+  });
+
+  it('changes nothing when no row holds the old endpoint and auth secret', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [] });
+
+    await expect(
+      callerAs(signedOut).renewWebPushSubscription({ oldSubscription, newSubscription }),
+    ).resolves.toEqual({ renewed: false });
+    expect(mockPayloadUpdate).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { DesignModeTriggers } from '@/utils/design-codes';
+import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 interface NotificationPayload {
@@ -334,6 +335,43 @@ export const notificationClickHandler =
     })();
 
     event.waitUntil(Promise.all([openOrFocusPromise, trackingPromise]));
+  };
+
+/** `lib.webworker` types this event as a plain `Event`; these are its fields per the Push API. */
+interface PushSubscriptionChangeEvent extends ExtendableEvent {
+  readonly oldSubscription?: PushSubscription | null;
+  readonly newSubscription?: PushSubscription | null;
+}
+
+/**
+ * Reports a subscription the browser replaced on its own. Without the report, every later
+ * push goes to an endpoint that answers 410, the server prunes the row, and the device stays
+ * silent until someone switches notifications off and on again.
+ *
+ * Firefox fires this when its push service drops a subscription, with the old one set and no
+ * new one, so the worker subscribes again with the old options. Without an old subscription
+ * there is no stored row to match, and the change waits for the next subscribe from the page.
+ */
+export const pushSubscriptionChangeHandler =
+  (serviceWorkerScope: ServiceWorkerGlobalScope) =>
+  (event: Event): void => {
+    const changeEvent = event as PushSubscriptionChangeEvent;
+    const { oldSubscription, newSubscription } = changeEvent;
+    if (!oldSubscription) {
+      console.warn('[SW Push] Subscription changed without the old one, nothing to renew.');
+      return;
+    }
+
+    changeEvent.waitUntil(
+      (async (): Promise<void> => {
+        const renewedSubscription =
+          newSubscription ??
+          (await serviceWorkerScope.registration.pushManager.subscribe(oldSubscription.options));
+        await reportRenewedPushSubscription(oldSubscription.toJSON(), renewedSubscription.toJSON());
+      })().catch((error: unknown) => {
+        console.error('[SW Push] Failed to renew the push subscription', error);
+      }),
+    );
   };
 
 export function notificationCloseHandler(event: NotificationEvent): void {

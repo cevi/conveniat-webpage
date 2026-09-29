@@ -3,6 +3,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { useAppMode } from '@/hooks/use-app-mode';
 import { performReliablePushNavigation } from '@/hooks/use-native-push';
+import { usePushSubscriptionKeyRenewal } from '@/hooks/use-push-subscription-key-renewal';
 import { useServiceWorkerClientUrlResponder } from '@/hooks/use-service-worker-client-url-responder';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { useServiceWorkerRegistration } from '@/hooks/use-service-worker-registration';
@@ -46,6 +47,7 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   const trpcUtils = useOptionalTrpcUtils();
 
   useServiceWorkerClientUrlResponder();
+  usePushSubscriptionKeyRenewal();
 
   useServiceWorkerMessage<{ url?: string; payload?: Record<string, unknown> }>(
     ServiceWorkerMessages.PUSH_NAVIGATE,

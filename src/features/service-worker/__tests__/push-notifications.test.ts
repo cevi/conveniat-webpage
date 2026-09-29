@@ -2,6 +2,7 @@
 import {
   notificationClickHandler,
   pushNotificationHandler,
+  pushSubscriptionChangeHandler,
 } from '@/features/service-worker/push-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
@@ -338,5 +339,97 @@ describe('pushNotificationHandler', () => {
     await dispatchPush(makeScope([client]));
 
     expect(mockShowNotification).toHaveBeenCalledTimes(1);
+  });
+});
+
+const subscriptionOf = (name: string): PushSubscription =>
+  ({
+    options: { userVisibleOnly: true, applicationServerKey: new Uint8Array([1, 2, 3]).buffer },
+    toJSON: (): PushSubscriptionJSON => ({
+      endpoint: `https://updates.push.services.mozilla.com/wpush/v2/${name}`,
+      keys: { p256dh: `${name}-p256dh`, auth: `${name}-auth` },
+    }),
+  }) as unknown as PushSubscription;
+
+describe('pushSubscriptionChangeHandler', () => {
+  let mockSubscribe: jest.Mock;
+  let mockFetch: jest.Mock;
+  let mockWaitUntil: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSubscribe = jest.fn().mockResolvedValue(subscriptionOf('resubscribed'));
+    mockFetch = jest.fn().mockResolvedValue({ ok: true });
+    globalThis.fetch = mockFetch;
+    mockWaitUntil = jest.fn((promise: Promise<unknown>) => promise);
+  });
+
+  const dispatchChange = async (change: {
+    oldSubscription?: PushSubscription | null;
+    newSubscription?: PushSubscription | null;
+  }): Promise<void> => {
+    const scope = {
+      registration: { pushManager: { subscribe: mockSubscribe } },
+    } as unknown as ServiceWorkerGlobalScope;
+    pushSubscriptionChangeHandler(scope)({
+      ...change,
+      waitUntil: mockWaitUntil,
+    } as unknown as Event);
+    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
+    await calls[0]?.[0];
+  };
+
+  const reportedBody = (): unknown => {
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    return JSON.parse(init.body as string) as unknown;
+  };
+
+  it('subscribes again with the old options when the browser only dropped the subscription', async () => {
+    const oldSubscription = subscriptionOf('old');
+
+    // eslint-disable-next-line unicorn/no-null -- what Firefox sends when it only dropped the subscription
+    await dispatchChange({ oldSubscription, newSubscription: null });
+
+    expect(mockSubscribe).toHaveBeenCalledWith(oldSubscription.options);
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/trpc/pushTracking.renewWebPushSubscription?batch=1',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(reportedBody()).toEqual({
+      0: {
+        json: {
+          oldSubscription: subscriptionOf('old').toJSON(),
+          newSubscription: subscriptionOf('resubscribed').toJSON(),
+        },
+      },
+    });
+  });
+
+  it('reports the new subscription the browser already created', async () => {
+    await dispatchChange({
+      oldSubscription: subscriptionOf('old'),
+      newSubscription: subscriptionOf('new'),
+    });
+
+    expect(mockSubscribe).not.toHaveBeenCalled();
+    expect(reportedBody()).toEqual({
+      0: {
+        json: {
+          oldSubscription: subscriptionOf('old').toJSON(),
+          newSubscription: subscriptionOf('new').toJSON(),
+        },
+      },
+    });
+  });
+
+  it('reports nothing when the browser does not say which subscription changed', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // eslint-disable-next-line unicorn/no-null -- what the browser sends when it does not know
+    await dispatchChange({ oldSubscription: null, newSubscription: subscriptionOf('new') });
+
+    expect(mockWaitUntil).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
