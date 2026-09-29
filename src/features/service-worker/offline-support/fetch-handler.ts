@@ -701,22 +701,15 @@ export const handleFetchEvent =
             const cachedSession = await cachedSessionFor(event.request);
             if (cachedSession) return cachedSession;
 
-            // Return minimal offline mock session to prevent unwanted logout redirects
-            return new Response(
-              JSON.stringify({
-                user: {
-                  id: 'offline-user',
-                  uuid: 'offline-user-uuid',
-                  name: 'Offline User',
-                  email: 'offline@conveniat.ch',
-                },
-                expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
+            // No cached session: answer what next-auth answers for nobody, `null`. This used to
+            // invent an "Offline User", which showed up by that name in the UI, filled forms
+            // with a made-up email address and made a logged-out phone look logged in. A user
+            // who was logged in has their real session cached above, so this only reaches
+            // devices without one.
+            return new Response('null', {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            });
           }
         })(),
       );
