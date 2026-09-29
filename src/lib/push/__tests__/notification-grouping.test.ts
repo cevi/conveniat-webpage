@@ -15,6 +15,13 @@ describe('notification grouping', () => {
     });
   });
 
+  // Reading the emergency chat closes its notifications by the chat in the tag, the alert too.
+  it('tags the alert that opens an emergency chat under that chat', () => {
+    expect(notificationGroupingOf('EMERGENCY', 'chat-9')).toEqual({
+      tag: 'emergency:chat-9:alert',
+    });
+  });
+
   it('stacks a problem report under its support chat', () => {
     expect(notificationGroupingOf('SUPPORT', 'chat-3', 'message-4')).toEqual({
       tag: 'chat:chat-3',

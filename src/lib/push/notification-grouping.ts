@@ -18,15 +18,16 @@ import {
 export const notificationGroupingOf = (
   kind: PushNotificationKind,
   chatId: string | undefined,
-  messageId: string | undefined,
+  messageId?: string,
 ): { tag?: string; stack?: boolean } => {
   if (kind === PushNotificationKind.ANNOUNCEMENT) {
     return messageId === undefined ? {} : { tag: announcementNotificationTag(messageId) };
   }
   if (kind === PushNotificationKind.EMERGENCY) {
-    return chatId === undefined || messageId === undefined
+    // The alert that opens an emergency chat carries no message id; there is one per chat.
+    return chatId === undefined
       ? {}
-      : { tag: emergencyNotificationTag(chatId, messageId) };
+      : { tag: emergencyNotificationTag(chatId, messageId ?? 'alert') };
   }
   if (kind === PushNotificationKind.SYSTEM || chatId === undefined) return {};
   return { tag: chatNotificationTag(chatId), stack: true };
