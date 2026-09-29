@@ -66,9 +66,12 @@ describe('switching the Cevi.DB login in a form', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Benutzer wechseln' }));
 
-    await waitFor(() => {
-      expect(signIn).toHaveBeenCalled();
-    });
+    await waitFor(
+      () => {
+        expect(signIn).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
     expect(flushPersonalData).toHaveBeenCalled();
     // the persister would otherwise write the in-memory cache straight back to IndexedDB
     expect(queryClient.getQueryData(['chat', 'chats'])).toBeUndefined();

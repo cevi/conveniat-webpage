@@ -9,6 +9,7 @@ import {
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
+import { PERSISTER_THROTTLE_MS } from '@/trpc/query-persistence';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -93,8 +94,12 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     // their data), and the in-memory cache goes too, or the persister writes it straight back.
     void releasePushSubscriptions()
       .then(() => signOut({ redirect: false }))
-      .then(() => {
+      .then(async () => {
         queryClient.clear();
+        // Clearing makes the persister write once per removed query, throttled: the first write
+        // still holds most of the cache, the last one is empty. Wait for that last write, or the
+        // stored blob outlives the flush and the next account restores this one's data.
+        await new Promise((resolve) => setTimeout(resolve, PERSISTER_THROTTLE_MS + 200));
         flushPersonalData();
         void signIn('cevi-db', signInOptions);
       })

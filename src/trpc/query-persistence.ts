@@ -44,6 +44,13 @@ export const shouldPersistQuery = (query: Query): boolean => {
  */
 export const PERSISTED_QUERY_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * The persister writes the cache at most once per this interval: the first change at once, the
+ * last one when the interval ends. Whoever needs the stored cache to reflect a change, like
+ * clearing it before another user logs in, has to wait this long.
+ */
+export const PERSISTER_THROTTLE_MS = 1000;
+
 const emptyPersistedClient = (): PersistedClient => ({
   timestamp: Date.now(),
   buster: '',

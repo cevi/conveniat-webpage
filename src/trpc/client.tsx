@@ -7,6 +7,7 @@ import { makeQueryClient } from '@/trpc/query-client';
 import {
   deserializePersistedClient,
   PERSISTED_QUERY_CACHE_MAX_AGE,
+  PERSISTER_THROTTLE_MS,
   serializePersistedClient,
   shouldPersistQuery,
 } from '@/trpc/query-persistence';
@@ -148,6 +149,7 @@ const persister: Persister =
       }
     : createAsyncStoragePersister({
         storage: indexedDBStorage,
+        throttleTime: PERSISTER_THROTTLE_MS,
         serialize: serializePersistedClient,
         deserialize: deserializePersistedClient,
         key: 'conveniat-query-cache-idb',
