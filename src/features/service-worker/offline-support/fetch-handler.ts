@@ -569,6 +569,15 @@ export const handleFetchEvent =
       return;
     }
 
+    // The only HEAD request the app sends is the Next.js router asking whether the network is
+    // back (`experimental.useOffline`). A cached answer tells it yes while the device is still
+    // offline, so it retries the failed navigation or prefetch at once, fails, and asks again
+    // in a tight loop. It has to reach the network, and its empty body must never be stored as
+    // the page's RSC payload.
+    if (event.request.method === 'HEAD') {
+      return;
+    }
+
     if (
       isAuthRequest &&
       (url.pathname.includes('/auth/signout') || url.pathname.includes('/auth/signin'))
