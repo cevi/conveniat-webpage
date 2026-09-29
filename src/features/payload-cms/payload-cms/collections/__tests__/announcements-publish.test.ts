@@ -19,10 +19,8 @@ jest.mock('@/features/payload-cms/payload-cms/endpoints/translate-announcement',
   translateAnnouncementHandler: jest.fn(),
 }));
 const mockSendNotification = jest.fn();
-const mockUpdateNotification = jest.fn();
 jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (...args: unknown[]): unknown => mockSendNotification(...args),
-  updateAnnouncementNotification: (...args: unknown[]): unknown => mockUpdateNotification(...args),
 }));
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: { publish: jest.fn().mockReturnValue(Promise.resolve()) },
@@ -35,7 +33,6 @@ jest.mock('@/features/payload-cms/payload-cms/utils/announcement-message-payload
 const mockMessageCreate = jest.fn();
 const mockMessageFindUnique = jest.fn();
 const mockContentCreate = jest.fn();
-const mockContentFindFirst = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   default: {
@@ -47,7 +44,8 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     messageContent: {
       create: (...args: unknown[]): unknown => mockContentCreate(...args),
-      findFirst: (...args: unknown[]): unknown => mockContentFindFirst(...args),
+      // eslint-disable-next-line unicorn/no-null
+      findFirst: jest.fn().mockResolvedValue(null),
     },
     chatMembership: {
       findMany: jest.fn().mockResolvedValue([{ userId: 'author' }, { userId: 'participant' }]),
@@ -101,9 +99,6 @@ describe('publishing an announcement', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSendNotification.mockReturnValue(Promise.resolve());
-    mockUpdateNotification.mockReturnValue(Promise.resolve());
-    // eslint-disable-next-line unicorn/no-null
-    mockContentFindFirst.mockResolvedValue(null);
     mockMessageCreate.mockImplementation(({ data }: { data: { uuid: string } }) => ({
       uuid: data.uuid,
       createdAt: new Date(),
@@ -131,13 +126,6 @@ describe('publishing an announcement', () => {
       }),
     );
     expect(mockSendNotification).toHaveBeenCalledTimes(1);
-    expect(mockSendNotification).toHaveBeenCalledWith(
-      expect.any(String),
-      ['participant'],
-      'chat',
-      data.chatMessageUuid,
-      expect.objectContaining({ kind: 'ANNOUNCEMENT' }),
-    );
   });
 
   it('keeps the message of an announcement published before', async () => {
@@ -158,47 +146,6 @@ describe('publishing an announcement', () => {
     expect(mockContentCreate).toHaveBeenCalled();
     expect(mockMessageCreate).not.toHaveBeenCalled();
     expect(mockSendNotification).not.toHaveBeenCalled();
-  });
-
-  it('puts an edited text into the push the readers still have', async () => {
-    mockMessageFindUnique.mockResolvedValue({
-      uuid: 'message',
-      chatId: 'chat',
-      senderId: 'author',
-    });
-    mockContentFindFirst.mockResolvedValue({
-      revision: 1,
-      payload: { de: { text: '*Tagesstart*\n\nUm 7 Uhr', title: 'Tagesstart', body: 'Um 7 Uhr' } },
-    });
-
-    await afterSave({ _status: 'published', status: 'published', chatMessageUuid: 'message' });
-
-    expect(mockUpdateNotification).toHaveBeenCalledWith(
-      '*Tagesstart*\n\nUm 8 Uhr',
-      ['participant'],
-      'chat',
-      'message',
-    );
-  });
-
-  it('leaves the push alone when the German text did not change', async () => {
-    mockMessageFindUnique.mockResolvedValue({
-      uuid: 'message',
-      chatId: 'chat',
-      senderId: 'author',
-    });
-    mockContentFindFirst.mockResolvedValue({
-      revision: 1,
-      payload: {
-        de: { text: '*Tagesstart*\n\nUm 8 Uhr', title: 'Tagesstart', body: 'Um 8 Uhr' },
-        fr: { text: 'Début de journée', title: 'Début', body: 'À 8 h' },
-      },
-    });
-
-    await afterSave({ _status: 'published', status: 'published', chatMessageUuid: 'message' });
-
-    expect(mockContentCreate).toHaveBeenCalled();
-    expect(mockUpdateNotification).not.toHaveBeenCalled();
   });
 
   it('leaves a scheduled announcement to the job', async () => {

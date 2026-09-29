@@ -533,9 +533,14 @@ describe('pushNotificationHandler grouping', () => {
     data: unknown;
   }
 
+  const chromeUserAgent = 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0 Safari/537.36';
+
   /** A notification tray that keeps one notification per tag, like the browser does. */
-  const makeTray = (): { scope: ServiceWorkerGlobalScope; shown: ShownNotification[] } => {
+  const makeTray = (
+    userAgent: string = chromeUserAgent,
+  ): { scope: ServiceWorkerGlobalScope; shown: ShownNotification[]; closed: string[] } => {
     const shown: ShownNotification[] = [];
+    const closed: string[] = [];
     const remove = (notification: ShownNotification): void => {
       const index = shown.indexOf(notification);
       if (index !== -1) shown.splice(index, 1);
@@ -554,7 +559,10 @@ describe('pushNotificationHandler grouping', () => {
             title,
             options,
             data: options.data,
-            close: () => remove(notification),
+            close: () => {
+              closed.push(String(options.body));
+              remove(notification);
+            },
           };
           shown.push(notification);
           return Promise.resolve();
@@ -564,10 +572,10 @@ describe('pushNotificationHandler grouping', () => {
     const scope = {
       location: { origin: 'https://konekta.ch' },
       clients: { matchAll: jest.fn().mockResolvedValue([]) },
-      navigator: { userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0 Safari/537.36' },
+      navigator: { userAgent },
       registration,
     } as unknown as ServiceWorkerGlobalScope;
-    return { scope, shown };
+    return { scope, shown, closed };
   };
 
   beforeEach(() => {
@@ -614,34 +622,43 @@ describe('pushNotificationHandler grouping', () => {
     expect(shown.every((notification) => notification.options.renotify !== true)).toBe(true);
   });
 
-  it('quietly puts an edit into an announcement that is still shown and keeps its log id', async () => {
+  // The queue retries a send that timed out, and the device may have got the first one after all.
+  it('shows a retried push in place, without a second line or a second alert', async () => {
     const { scope, shown } = makeTray();
-    await push(scope, {
-      title: 'conveniat27',
-      body: 'Znacht um 18 Uhr',
-      data: { tag: 'announcement:1', notificationId: 'log-1', url: '/app/chat/x' },
-    });
-    await push(scope, {
-      title: 'conveniat27',
-      body: 'Znacht um 19 Uhr',
-      data: { tag: 'announcement:1', replaceOnly: true, url: '/app/chat/x' },
-    });
+    const message = {
+      title: 'Züri 11',
+      body: 'Anna: hoi',
+      data: { tag: 'chat:1', stack: true, notificationId: 'log-1' },
+    };
+    await push(scope, message);
+    await push(scope, message);
 
     expect(shown).toHaveLength(1);
-    expect(shown[0]?.options.body).toBe('Znacht um 19 Uhr');
+    expect(shown[0]?.options.body).toBe('Anna: hoi');
     expect(shown[0]?.options.renotify).not.toBe(true);
-    expect(shown[0]?.data).toEqual(expect.objectContaining({ notificationId: 'log-1' }));
   });
 
-  it('does not bring back an announcement the reader dismissed', async () => {
-    const { scope, shown } = makeTray();
-    await push(scope, {
-      title: 'conveniat27',
-      body: 'Znacht um 19 Uhr',
-      data: { tag: 'announcement:1', replaceOnly: true },
-    });
+  // Firefox and Safari ignore renotify, so a new message has to be a new notification.
+  it('closes the previous notification on Firefox so the next message alerts', async () => {
+    const { scope, shown, closed } = makeTray(
+      'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0',
+    );
+    await push(scope, { title: 'A', body: 'Anna: one', data: { tag: 'chat:1', stack: true } });
+    await push(scope, { title: 'A', body: 'Ben: two', data: { tag: 'chat:1', stack: true } });
 
-    expect(shown).toHaveLength(0);
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(closed).toEqual(['Anna: one']);
+    expect(shown[0]?.options.body).toBe('Anna: one\nBen: two');
+  });
+
+  // Two pushes of one chat arriving together must not both read an empty tray.
+  it('keeps both messages when two pushes for one chat arrive at the same time', async () => {
+    const { scope, shown } = makeTray();
+    await Promise.all([
+      push(scope, { title: 'A', body: 'Anna: one', data: { tag: 'chat:1', stack: true } }),
+      push(scope, { title: 'A', body: 'Ben: two', data: { tag: 'chat:1', stack: true } }),
+    ]);
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0]?.options.body).toBe('Anna: one\nBen: two');
   });
 });

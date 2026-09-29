@@ -11,10 +11,10 @@ interface NotificationData {
   tag?: string;
   /** Lists the newest pushes under the tag in one notification and alerts again, like a messenger. */
   stack?: boolean;
-  /** Updates the notification under the tag without alerting, and shows nothing once it was dismissed. */
-  replaceOnly?: boolean;
   /** The bodies a stacked notification lists, oldest first. Set by this worker, not by the server. */
   lines?: string[];
+  /** The log ids of the pushes listed in `lines`. Set by this worker, not by the server. */
+  ids?: string[];
 }
 
 interface NotificationPayload {
@@ -39,11 +39,11 @@ const MAX_STACKED_LINES = 5;
  *
  * @returns whether a notification is now showing for this push
  */
-async function presentNotification(
+async function showUnderTag(
   serviceWorkerScope: ServiceWorkerGlobalScope,
   payload: NotificationPayload,
 ): Promise<boolean> {
-  const { tag, stack, replaceOnly } = payload.data;
+  const { tag, stack, notificationId } = payload.data;
   const hasTag = typeof tag === 'string' && tag !== '';
   const [existing] = hasTag ? await serviceWorkerScope.registration.getNotifications({ tag }) : [];
   const existingData = (existing?.data as NotificationData | undefined) ?? {};
@@ -57,29 +57,63 @@ async function presentNotification(
     data: payload.data,
   };
 
-  if (replaceOnly === true) {
-    // An edit must not bring back what the reader already dismissed.
-    if (existing === undefined) return false;
-    // Same tag and no renotify: the browser swaps the content in without a sound. The edit
-    // carries no log id of its own, so a click still counts for the push that was delivered.
-    options.data = {
-      ...existingData,
-      ...payload.data,
-      notificationId: existingData.notificationId,
-    };
-  } else if (stack === true && hasTag) {
+  if (stack === true && hasTag) {
     const previousLines = Array.isArray(existingData.lines) ? existingData.lines : [];
-    const lines = [...previousLines, payload.body].slice(-MAX_STACKED_LINES);
-    options.body = lines.join('\n');
-    options.data = { ...payload.data, lines };
-    // Firefox and Safari ignore renotify and would replace the notification silently, so
-    // the old one is closed first and the new one arrives as new, with sound.
-    options.renotify = true;
-    existing?.close();
+    const previousIds = Array.isArray(existingData.ids) ? existingData.ids : [];
+    const isRepeat =
+      notificationId !== undefined && notificationId !== '' && previousIds.includes(notificationId);
+
+    if (isRepeat) {
+      // The queue retries a send that timed out, and the device may have got the first one after
+      // all. Show the notification again as it is, in place and without a sound: dropping the
+      // push instead would count as a silent push on WebKit.
+      options.body = previousLines.join('\n');
+      options.data = existingData;
+    } else {
+      const lines = [...previousLines, payload.body].slice(-MAX_STACKED_LINES);
+      const ids = [
+        ...previousIds,
+        ...(notificationId === undefined || notificationId === '' ? [] : [notificationId]),
+      ].slice(-MAX_STACKED_LINES);
+      options.body = lines.join('\n');
+      options.data = { ...payload.data, lines, ids };
+      // Firefox and Safari ignore renotify and would replace the notification silently, so
+      // the old one is closed first and the new one arrives as new, with sound.
+      options.renotify = true;
+      existing?.close();
+    }
   }
 
   await serviceWorkerScope.registration.showNotification(payload.title, options);
   return true;
+}
+
+/** Pushes being shown, per tag. */
+const presentationsByTag = new Map<string, Promise<boolean>>();
+
+/**
+ * Shows a push, one at a time per tag.
+ *
+ * Two pushes for the same chat that arrive together would otherwise both read the tray before
+ * either shows anything, and the second would replace the first, silently on Firefox and Safari
+ * and with the first one's line lost.
+ */
+function presentNotification(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  payload: NotificationPayload,
+): Promise<boolean> {
+  const { tag } = payload.data;
+  if (typeof tag !== 'string' || tag === '') return showUnderTag(serviceWorkerScope, payload);
+
+  const previous = presentationsByTag.get(tag) ?? Promise.resolve(true);
+  const current = previous.catch(() => false).then(() => showUnderTag(serviceWorkerScope, payload));
+  presentationsByTag.set(tag, current);
+  void current
+    .catch(() => false)
+    .then(() => {
+      if (presentationsByTag.get(tag) === current) presentationsByTag.delete(tag);
+    });
+  return current;
 }
 
 type PushTrackingEvent =
@@ -338,10 +372,8 @@ export const pushNotificationHandler =
           }
         }
 
-        // An update only touches a notification that is still on screen, so it applies
-        // whether or not the app is open.
         let isShown = false;
-        if (shouldShowNotification || data.data.replaceOnly === true) {
+        if (shouldShowNotification) {
           isShown = await presentNotification(serviceWorkerScope, data);
         }
         if (!isShown && revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
@@ -349,7 +381,7 @@ export const pushNotificationHandler =
         }
         // A suppressed push still reached the device, so it is reported as delivered too.
         // Before, it left no trace at all, and a chat the user was reading looked like a
-        // push that never arrived. A quiet update carries no id of its own.
+        // push that never arrived.
         if (data.data.notificationId) {
           await trackPushEvent(data.data.notificationId, {
             type: 'DELIVERED',

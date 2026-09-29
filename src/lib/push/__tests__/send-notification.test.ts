@@ -7,19 +7,6 @@ jest.mock('@/lib/push/push-queue', () => ({
   enqueuePushNotification: (...args: unknown[]): unknown => mockEnqueue(...args),
 }));
 
-const mockFindSubscriptions = jest.fn();
-jest.mock('@payload-config', () => ({ default: {} }), { virtual: true });
-jest.mock('payload', () => ({
-  getPayload: (): Promise<unknown> =>
-    Promise.resolve({ find: (...args: unknown[]): unknown => mockFindSubscriptions(...args) }),
-}));
-
-const mockSendPushToDevice = jest.fn().mockResolvedValue({ outcome: 'accepted' });
-jest.mock('@/lib/push/push-transport', () => ({
-  composePushText: (text: { title: string; body: string }): unknown => text,
-  sendPushToDevice: (...args: unknown[]): unknown => mockSendPushToDevice(...args),
-}));
-
 jest.mock('@/utils/get-app-short-name', () => ({
   getAppShortName: (): Promise<string> => Promise.resolve('conveniat27'),
 }));
@@ -29,7 +16,7 @@ jest.mock('@/utils/server-logger', () => {
   return { createLogger: (): typeof logger => logger, __logger: logger };
 });
 
-import { sendNotification, updateAnnouncementNotification } from '@/lib/push/send-notification';
+import { sendNotification } from '@/lib/push/send-notification';
 
 const lastQueuedPush = (): Record<string, unknown> =>
   (mockEnqueue.mock.calls as unknown[][]).at(-1)?.[0] as Record<string, unknown>;
@@ -88,31 +75,5 @@ describe('sendNotification', () => {
     await expect(
       sendNotification('Hallo', ['anna'], 'chat-1', undefined, { kind: 'CHAT' }),
     ).resolves.toEqual({ success: false, error: 'Failed to send notification' });
-  });
-});
-
-describe('updateAnnouncementNotification', () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  it('updates an announcement quietly, and only on browsers that allow it', async () => {
-    mockFindSubscriptions.mockResolvedValue({
-      docs: [
-        { id: 'chrome', user: 'anna', platform: 'web', endpoint: 'https://fcm.googleapis.com/x' },
-        { id: 'safari', user: 'anna', platform: 'web', endpoint: 'https://web.push.apple.com/x' },
-        { id: 'android', user: 'anna', platform: 'android', token: 'token' },
-      ],
-    });
-
-    await updateAnnouncementNotification('Znacht um 19 Uhr', ['anna'], 'chat-1', 'message-1');
-
-    const calls = mockSendPushToDevice.mock.calls as unknown[][];
-    expect(calls.map((call) => (call[0] as { id: string }).id)).toEqual(['chrome']);
-    expect(calls[0]?.[1]).toMatchObject({
-      body: 'Znacht um 19 Uhr',
-      tag: 'announcement:message-1',
-      replaceOnly: true,
-    });
-    // No log row: the update is not a notification of its own.
-    expect(calls[0]?.[2]).not.toHaveProperty('logId');
   });
 });
