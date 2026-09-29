@@ -36,8 +36,6 @@ const SuggestionRow: React.FC<{ person: Suggestion; onPick: (name: string) => vo
     <li>
       <button
         type="button"
-        // keeps the focus in the input, so the list is not closed before the tap lands
-        onMouseDown={(event) => event.preventDefault()}
         onClick={() => onPick(person.name)}
         className={cn(
           'flex min-h-12 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-gray-50',
@@ -63,43 +61,46 @@ const SuggestionRow: React.FC<{ person: Suggestion; onPick: (name: string) => vo
 /**
  * Who picks a Hof's material up: any name, with the people registered in the app suggested
  * while it is typed. A name nobody registered is kept as typed, and so is a picked one: the
- * loan stores the name, not the person.
+ * loan stores the name, not the person. Like the article search, the list stays in the page
+ * until a pick or Escape closes it, so nothing moves under a tap that leaves the field.
  */
 export const ResponsibleNameField: React.FC<{
   label: string;
   value: string;
   onChange: (value: string) => void;
 }> = ({ label, value, onChange }) => {
-  const [open, setOpen] = useState(false);
+  // the text the list was closed for; typing anything else opens it again
+  const [dismissed, setDismissed] = useState<string | undefined>();
   const query = value.trim();
   const debounced = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const people = trpc.material.searchPersonList.useQuery(
     { query: debounced },
-    // the previous matches stay while the next are asked, so the page below does not jump
-    { ...materialQueryOptions, enabled: debounced !== '', placeholderData: keepPreviousData },
+    {
+      ...materialQueryOptions,
+      enabled: debounced !== '' && debounced !== dismissed,
+      // the previous matches stay while the next are asked, so the page below does not jump
+      placeholderData: keepPreviousData,
+    },
   );
+  const needle = query.toLowerCase();
+  // previous matches only while they still fit what is typed, e.g. not while offline
   const suggestions: Suggestion[] =
-    open && query !== '' ? (people.data ?? []).slice(0, SUGGESTIONS) : [];
+    query === '' || query === dismissed
+      ? []
+      : (people.data ?? [])
+          .filter((person) => person.name.toLowerCase().includes(needle))
+          .slice(0, SUGGESTIONS);
 
   return (
-    <div
-      className="space-y-2"
-      onFocus={() => setOpen(true)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
-      }}
-    >
+    <div className="space-y-2">
       <Field label={label}>
         <input
           className={inputClass}
           value={value}
           autoComplete="off"
-          onChange={(event) => {
-            onChange(event.target.value);
-            setOpen(true);
-          }}
+          onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === 'Escape') setOpen(false);
+            if (event.key === 'Escape') setDismissed(query);
           }}
         />
       </Field>
@@ -111,7 +112,7 @@ export const ResponsibleNameField: React.FC<{
               person={person}
               onPick={(name) => {
                 onChange(name);
-                setOpen(false);
+                setDismissed(name.trim());
               }}
             />
           ))}
