@@ -210,3 +210,21 @@ describe('sendNotificationToSubscription web push rejections', () => {
     });
   });
 });
+
+describe('sendNotificationToSubscription payload size', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  // RFC 8291 leaves 3993 bytes of plaintext; above that the push service refuses the send
+  // for every recipient. The whole text is one tap away, in the chat the push opens.
+  it('sends a long announcement as a preview that fits the push service', async () => {
+    const announcement = 'Liebe Leitende, morgen startet das Gesamtlager! 🎉\n'.repeat(200);
+
+    await sendNotificationToSubscription(webSubscription, announcement, '/app/chat/chat-1', 'u1');
+
+    const sentPayload = (mockSendWebPush.mock.calls as unknown[][]).at(-1)?.[1] as string;
+    expect(new TextEncoder().encode(sentPayload).length).toBeLessThanOrEqual(3993);
+    expect((JSON.parse(sentPayload) as { body: string }).body.endsWith('…')).toBe(true);
+  });
+});

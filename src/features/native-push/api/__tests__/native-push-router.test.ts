@@ -21,13 +21,16 @@ jest.mock('@/utils/auth-helpers', () => ({
   getPayloadUserFromNextAuthUser: jest.fn().mockResolvedValue({ id: 'user-1' }),
 }));
 
-const mockSendFcmNotification = jest.fn().mockResolvedValue('sent');
+const mockSendFcmNotification = jest.fn().mockResolvedValue({ success: true });
 jest.mock('@/lib/firebase-admin', () => ({
   sendFcmNotification: (...args: unknown[]): unknown => mockSendFcmNotification(...args),
 }));
 
 jest.mock('@/config/environment-variables', () => ({
-  environmentVariables: { APP_HOST_URL: 'https://example.test' },
+  environmentVariables: {
+    APP_HOST_URL: 'https://example.test',
+    NEXT_PUBLIC_APP_HOST_URL: 'https://example.test',
+  },
 }));
 
 // `superjson` ships untranspiled ESM and is only the wire transformer; a direct caller never

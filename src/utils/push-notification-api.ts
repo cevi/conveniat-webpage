@@ -10,6 +10,11 @@ import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAppShortName } from '@/utils/get-app-short-name';
+import {
+  fitPushText,
+  PUSH_BODY_MAX_BYTES,
+  PUSH_TITLE_MAX_BYTES,
+} from '@/utils/push-notifications/fit-push-text';
 import { createLogger } from '@/utils/server-logger';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import config from '@payload-config';
@@ -285,9 +290,13 @@ export async function sendNotificationToSubscription(
   // markers would show up as literal `*` and `_` on the lock screen. Stripping
   // happens here rather than in the callers because this is the single hop every
   // push goes through - chat messages, announcements, emergency alerts and the CMS
-  // test send alike.
-  const bodyToSend = stripMarkdownFormatting(message);
-  const titleToSend = stripMarkdownFormatting(options?.title ?? (await getAppShortName()));
+  // test send alike. The same goes for the size cap: a push over the service's limit is
+  // rejected for every recipient, so long texts are cut to a preview here.
+  const bodyToSend = fitPushText(stripMarkdownFormatting(message), PUSH_BODY_MAX_BYTES);
+  const titleToSend = fitPushText(
+    stripMarkdownFormatting(options?.title ?? (await getAppShortName())),
+    PUSH_TITLE_MAX_BYTES,
+  );
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
 
