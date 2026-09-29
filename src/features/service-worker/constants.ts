@@ -2,7 +2,6 @@ export const CACHE_NAMES = {
   // Runtime
   PAGES: 'pages-cache-v1',
   RSC: 'next-rsc-cache-v1',
-  API: 'next-api-cache-v1',
 
   // Assets
   CSS: 'next-css-cache-v1',

@@ -46,6 +46,8 @@ describe('service worker API routing', () => {
     ['the chat event stream', '/api/chat/sse', 'GET'],
     ['a Hof files zip download', '/api/hof-dashboard/000000000000000000000001/files', 'GET'],
     ['a Payload REST call from the admin panel', '/api/form-submissions', 'POST'],
+    // Next.js redirects it to /api/users; answering it would cache that response.
+    ['an API path with repeated slashes', '//api/users', 'GET'],
   ])('leaves %s to the browser', (_label, path, method) => {
     expect(dispatch(path, { method }).respondWith).not.toHaveBeenCalled();
   });

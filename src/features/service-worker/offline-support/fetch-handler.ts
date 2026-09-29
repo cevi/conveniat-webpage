@@ -548,17 +548,20 @@ export const handleFetchEvent =
       isDraftMode(event.request.headers.get('cookie')) ||
       url.searchParams.get('preview') === 'true';
 
-    const isAdminPanel = url.pathname.startsWith('/admin');
-    const isAuthRequest = url.pathname.startsWith('/api/auth/');
-    const isIngestRequest = url.pathname.startsWith('/ingest');
-    const isTrpcRequest = url.pathname.startsWith('/api/trpc/');
+    // Match on the path Next.js routes: it answers `//api/users` with a 308 to `/api/users`,
+    // so the raw path would slip past the API bypass and into the runtime caches.
+    const routedPath = url.pathname.replaceAll(/\/{2,}/g, '/');
+    const isAdminPanel = routedPath.startsWith('/admin');
+    const isAuthRequest = routedPath.startsWith('/api/auth/');
+    const isIngestRequest = routedPath.startsWith('/ingest');
+    const isTrpcRequest = routedPath.startsWith('/api/trpc/');
     // Auth and tRPC are the only API routes with an offline answer below. For every other
     // one the worker could only forward the network response, and forwarding a stream is
     // harmful: Firefox terminates a worker 30 s after its last event and cuts the body it is
     // still relaying, which surfaced as "Error in input stream" on the NDJSON admin endpoints
     // and drops the chat EventSource every 30 s.
     const isApiWithoutOfflineStrategy =
-      url.pathname.startsWith('/api/') && !isAuthRequest && !isTrpcRequest;
+      routedPath.startsWith('/api/') && !isAuthRequest && !isTrpcRequest;
 
     // avoid the service worker for admin panel, ingest and plain API requests
     if (isAdminPanel || isIngestRequest || isApiWithoutOfflineStrategy) {

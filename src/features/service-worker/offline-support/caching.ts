@@ -129,23 +129,6 @@ const nextImageCaching: RuntimeCaching = {
       }),
 };
 
-const apiCaching: RuntimeCaching = {
-  matcher: (options) => /\/api\/.*/.test(options.url.pathname),
-  handler: new NetworkFirst({
-    cacheName: CACHE_NAMES.API,
-    networkTimeoutSeconds: 1.5,
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [200],
-      }) as SerwistPlugin,
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 7 * 24 * 60 * 60,
-      }),
-    ],
-  }),
-};
-
 const pageCaching: RuntimeCaching = {
   matcher: ({ request }: { request: Request }): boolean =>
     request.method === 'GET' && request.destination === 'document',
@@ -173,7 +156,6 @@ const runtimeCaching: RuntimeCaching[] = [
   nextFontCaching,
   imageCaching,
   nextImageCaching,
-  apiCaching,
   pageCaching,
   ...offlineRegistry.getRuntimeCaching(),
   ...defaultCache,
