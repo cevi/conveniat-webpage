@@ -34,6 +34,7 @@ import {
   isOpen,
   type SubmissionProgress,
 } from '@/features/hof-dashboard/utils/submission-progress';
+import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -289,22 +290,28 @@ const DashboardForUser: React.FC<{ locale: Locale }> = ({ locale }) => {
  * Who is signed in, and the way out: the dashboard shows one person's Höfe, so on a shared
  * phone the next person needs to see whose they are and switch.
  */
-const SignedInLine: React.FC<{ name: string; locale: Locale }> = ({ name, locale }) => (
-  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-gray-600">
-    <span>{translate('signedInAs', locale, { name })}</span>
-    <button
-      type="button"
-      className="text-conveniat-green inline-flex min-h-10 cursor-pointer items-center gap-1.5 font-semibold underline-offset-2 hover:underline"
-      onClick={() => {
-        flushPersonalData();
-        void signOut({ redirectTo: globalThis.location.href });
-      }}
-    >
-      <LogOut className="h-4 w-4" aria-hidden />
-      {translate('signOut', locale)}
-    </button>
-  </div>
-);
+const SignedInLine: React.FC<{ name: string; locale: Locale }> = ({ name, locale }) => {
+  const releasePushSubscriptions = useReleasePushSubscriptions();
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm text-gray-600">
+      <span>{translate('signedInAs', locale, { name })}</span>
+      <button
+        type="button"
+        className="text-conveniat-green inline-flex min-h-10 cursor-pointer items-center gap-1.5 font-semibold underline-offset-2 hover:underline"
+        onClick={() => {
+          void releasePushSubscriptions().then(() => {
+            flushPersonalData();
+            return signOut({ redirectTo: globalThis.location.href });
+          });
+        }}
+      >
+        <LogOut className="h-4 w-4" aria-hidden />
+        {translate('signOut', locale)}
+      </button>
+    </div>
+  );
+};
 
 const HofDashboardContent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
