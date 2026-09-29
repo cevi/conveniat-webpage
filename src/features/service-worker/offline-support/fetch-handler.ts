@@ -4,7 +4,7 @@ import {
   isClientInAppMode,
   persistAppModeClients,
 } from '@/features/service-worker/app-mode';
-import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
   findReplayableSiblingKey,
@@ -613,8 +613,14 @@ export const handleFetchEvent =
     if (isAuthRequest && url.pathname.endsWith('/session')) {
       event.respondWith(
         (async (): Promise<Response> => {
+          // Without a deadline a hanging connection (a captive portal, a weak camp wifi) kept
+          // this request open until the entrypoint gave up and showed the login screen to a
+          // logged-in user, on a network where the Cevi.DB login cannot complete either.
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.SESSION_FETCH);
           try {
-            const networkResponse = await fetch(event.request);
+            const networkResponse = await fetch(event.request, { signal: controller.signal });
+            clearTimeout(timeoutId);
             if (networkResponse.ok) {
               const clone = networkResponse.clone();
               try {
@@ -633,6 +639,7 @@ export const handleFetchEvent =
             }
             return networkResponse;
           } catch {
+            clearTimeout(timeoutId);
             const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
             const cachedSession =
               (await authCache.match(event.request, { ignoreSearch: true, ignoreVary: true })) ??

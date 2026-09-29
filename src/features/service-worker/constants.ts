@@ -21,6 +21,9 @@ export const CACHE_NAMES = {
 export const TIMEOUTS = {
   DEFAULT_FETCH: 10_000, // 10 seconds
   RSC_FETCH: 3000, // 3 seconds
+  // The entrypoint gives up on a session check that is still loading after 3 s and treats the
+  // user as logged out, so the worker has to answer from its cache before that.
+  SESSION_FETCH: 2500,
   PREFETCH_CONCURRENCY: 20, // High concurrency to utilize HTTP/2 streams for map tiles
   ASSET_FETCH: 15_000, // 15 seconds per asset
   PROGRESS_STALL: 25_000, // 25 seconds without progress = stall
