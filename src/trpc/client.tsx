@@ -6,6 +6,7 @@ import { withKeyvalStore } from '@/lib/idb-keyval-store';
 import { makeQueryClient } from '@/trpc/query-client';
 import {
   deserializePersistedClient,
+  PERSISTED_QUERY_CACHE_MAX_AGE,
   serializePersistedClient,
   shouldPersistQuery,
 } from '@/trpc/query-persistence';
@@ -154,6 +155,7 @@ const persister: Persister =
 
 const persistOptions = {
   persister,
+  maxAge: PERSISTED_QUERY_CACHE_MAX_AGE,
   dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
 };
 
