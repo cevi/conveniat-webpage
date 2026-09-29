@@ -6,6 +6,7 @@ import { Config } from '@/features/payload-cms/payload-types';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { StaticTranslationString } from '@/types/types';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
+import { unsubscribeFromPushNotifications } from '@/utils/push-notifications/push-subscription';
 import { useLocale } from '@payloadcms/ui';
 import Cookies from 'js-cookie';
 import { signOut } from 'next-auth/react';
@@ -22,6 +23,13 @@ const Page = () => {
 
   useEffect(() => {
     const doLogout = async () => {
+      // The browser's push subscription outlives the session and would keep delivering this
+      // user's chats to the next person on the machine. The admin panel has no tRPC provider,
+      // so the device-wide release the app does on logout is out of reach here.
+      await unsubscribeFromPushNotifications().catch((error: unknown) => {
+        console.warn('Releasing the push subscription on logout failed', error);
+      });
+
       // Flush all cached personal data before logging out
       flushPersonalData();
 

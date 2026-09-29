@@ -7,6 +7,7 @@ import {
   loginWithCeviDatabaseText,
 } from '@/features/payload-cms/components/form/static-form-texts';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
+import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -47,6 +48,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const { data: session } = useSession();
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
+  const releasePushSubscriptions = useReleasePushSubscriptions();
 
   const handleLogin = (): void => {
     const values = getValues();
@@ -82,9 +84,11 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     if (typeof callbackUrl === 'string' && callbackUrl !== '') {
       signInOptions.callbackUrl = callbackUrl;
     }
-    void signOut({ redirect: false }).then(() => {
-      void signIn('cevi-db', signInOptions);
-    });
+    void releasePushSubscriptions()
+      .then(() => signOut({ redirect: false }))
+      .then(() => {
+        void signIn('cevi-db', signInOptions);
+      });
   };
 
   const fieldMappingString = fieldMapping ? JSON.stringify(fieldMapping) : undefined;

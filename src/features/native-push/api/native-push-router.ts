@@ -255,6 +255,38 @@ export const nativePushRouter = createTRPCRouter({
       return { success: true };
     }),
 
+  /**
+   * Ends every subscription the signed-in user holds on this device, native and web, so a
+   * shared phone stops receiving their chats once they log out. Keyed on the device id rather
+   * than the token: the page does not know the native token, and the id is on every row a
+   * registration has touched since #1427. Called before the sign out, while the session that
+   * proves ownership still exists.
+   */
+  releaseDevice: trpcBaseProcedure
+    .input(z.object({ deviceId: z.string().trim().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const payload = await getPayload({ config });
+      const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
+
+      if (!payloadUser) {
+        logger.warn('Device release rejected, the user was not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      const deleted = await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: {
+          and: [{ user: { equals: payloadUser.id } }, { deviceId: { equals: input.deviceId } }],
+        },
+      });
+
+      logger.debug('Device released', {
+        'user.id': payloadUser.id,
+        'subscription.removed.count': deleted.docs.length,
+      });
+      return { success: true };
+    }),
+
   sendWebPushNotification: trpcAdminProcedure
     .input(
       z.object({

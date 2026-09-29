@@ -227,3 +227,35 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
     expect(create).toHaveBeenCalledTimes(2);
   });
 });
+
+/**
+ * Logout ends the device's subscriptions so a shared phone stops receiving the previous
+ * user's chats. The device id comes from the client, so it must only ever reach the rows of
+ * whoever is signed in: another account on the same device keeps its own.
+ */
+describe('nativePushRouter.releaseDevice', () => {
+  const deleteMany = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    deleteMany.mockResolvedValue({ docs: [{ id: 'sub-1' }, { id: 'sub-2' }] });
+    (getPayload as jest.Mock).mockResolvedValue({ delete: deleteMany });
+  });
+
+  it("deletes only the signed-in user's subscriptions on this device", async () => {
+    await expect(caller().releaseDevice({ deviceId: ' device-1 ' })).resolves.toEqual({
+      success: true,
+    });
+
+    expect(deleteMany).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledWith({
+      collection: 'push-notification-subscriptions',
+      where: { and: [{ user: { equals: 'user-1' } }, { deviceId: { equals: 'device-1' } }] },
+    });
+  });
+
+  it('refuses an empty device id instead of matching every row without one', async () => {
+    await expect(caller().releaseDevice({ deviceId: '  ' })).rejects.toBeInstanceOf(TRPCError);
+    expect(deleteMany).not.toHaveBeenCalled();
+  });
+});
