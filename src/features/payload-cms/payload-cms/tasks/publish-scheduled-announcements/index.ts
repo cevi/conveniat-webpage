@@ -1,4 +1,3 @@
-import { publishAnnouncementToPostgres } from '@/features/payload-cms/payload-cms/collections/announcements';
 import {
   cleanupCompletedScheduledJobs,
   cleanupStaleScheduledJobs,
@@ -8,7 +7,6 @@ import {
   scheduleUnlessQueued,
   type ScheduleDecision,
 } from '@/features/payload-cms/payload-cms/tasks/schedule-decision';
-import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-cms/utils/announcement-message-payload';
 import type { PayloadRequest, TaskConfig } from 'payload';
 import { countRunnableOrActiveJobsForQueue } from 'payload';
 
@@ -70,37 +68,19 @@ export const publishScheduledAnnouncementsTask: TaskConfig<'publishScheduledAnno
 
     for (const announcement of scheduledAnnouncements.docs) {
       try {
-        const authorValue = announcement.author;
-        const authorUuid = typeof authorValue === 'string' ? authorValue : '';
-
-        const channelValue = announcement.channel;
-        const channelId = typeof channelValue === 'string' ? channelValue : '';
-
         const announcementTitle = announcement.displayTitle;
 
         logger.info(`Publishing scheduled announcement "${announcementTitle}"...`);
 
-        const localizedPayload = await buildAnnouncementMessagePayload({
-          payload,
-          announcement,
-          imageReferences: announcement.images,
-        });
-
-        const { messageUuid, publishedAt } = await publishAnnouncementToPostgres(
-          channelId,
-          localizedPayload,
-          authorUuid,
-          request,
-        );
-
-        // Update the announcement document status to published
-        await payload.update({
+        // The same update an editor's publish makes: the collection hooks send the message
+        // and the push only once Payload has validated and saved the announcement, so an
+        // announcement that fails validation sends nothing and stays scheduled.
+        const { chatMessageUuid: messageUuid } = await payload.update({
           collection: 'announcements',
           id: announcement.id,
           data: {
+            _status: 'published',
             status: 'published',
-            chatMessageUuid: messageUuid,
-            publishedAt: publishedAt.toISOString(),
           },
         });
 
