@@ -37,10 +37,10 @@ export const shouldPersistQuery = (query: Query): boolean => {
 /**
  * How long the IndexedDB blob stays usable after it was last written.
  *
- * TanStack discards an older blob at startup, and its default is 24 hours, shorter than every
- * `gcTime` the app configures (72 hours by default, 7 days for the chat queries). A phone left
- * unopened for a day, on a hike or switched off overnight, started with an empty cache. This
- * matches the longest `gcTime`, so no query is dropped before its own time runs out.
+ * TanStack discards an older blob at startup, and its default is 24 hours, shorter than the
+ * default `gcTime` of 72 hours and the 7 days the chat queries keep. A phone left unopened for a
+ * day, on a hike or switched off overnight, started with an empty cache. This matches the
+ * longest `gcTime`, so no query is dropped before its own time runs out.
  */
 export const PERSISTED_QUERY_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
