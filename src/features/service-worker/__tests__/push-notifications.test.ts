@@ -229,12 +229,16 @@ describe('pushNotificationHandler', () => {
   const chatUrl = `https://konekta.ch/app/chat/${chatId}`;
 
   let mockShowNotification: jest.Mock;
+  let mockGetNotifications: jest.Mock;
+  let mockCloseNotification: jest.Mock;
   let mockMatchAll: jest.Mock;
   let mockWaitUntil: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockShowNotification = jest.fn().mockResolvedValue(true);
+    mockCloseNotification = jest.fn();
+    mockGetNotifications = jest.fn().mockResolvedValue([{ close: mockCloseNotification }]);
     mockMatchAll = jest.fn();
     mockWaitUntil = jest.fn((promise: Promise<unknown>) => promise);
     globalThis.fetch = jest.fn().mockResolvedValue({ ok: true });
@@ -245,11 +249,24 @@ describe('pushNotificationHandler', () => {
     transferredPorts.length = 0;
   });
 
-  const makeScope = (clients: WindowClient[]): ServiceWorkerGlobalScope =>
+  const chromeUserAgent =
+    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
+  /** An installed web app on an iPhone, where WebKit's silent push rule applies. */
+  const iosWebAppUserAgent =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+
+  const makeScope = (
+    clients: WindowClient[],
+    userAgent: string = chromeUserAgent,
+  ): ServiceWorkerGlobalScope =>
     ({
       location: { origin: 'https://konekta.ch' },
+      navigator: { userAgent },
       clients: { matchAll: mockMatchAll.mockResolvedValue(clients) },
-      registration: { showNotification: mockShowNotification },
+      registration: {
+        showNotification: mockShowNotification,
+        getNotifications: mockGetNotifications,
+      },
     }) as unknown as ServiceWorkerGlobalScope;
 
   const dispatchPush = async (scope: ServiceWorkerGlobalScope): Promise<void> => {
@@ -290,6 +307,32 @@ describe('pushNotificationHandler', () => {
     expect(client.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'notification' }),
     );
+  });
+
+  it('shows and closes a suppressed notification at once on WebKit, which revokes on silent pushes', async () => {
+    const client = makeClient('https://konekta.ch/app/chat', chatUrl);
+    await dispatchPush(makeScope([client], iosWebAppUserAgent));
+
+    expect(mockShowNotification).toHaveBeenCalledTimes(1);
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      'Chat',
+      expect.objectContaining({ tag: 'conveniat27-suppressed', silent: true }),
+    );
+    expect(mockGetNotifications).toHaveBeenCalledWith({ tag: 'conveniat27-suppressed' });
+    expect(mockCloseNotification).toHaveBeenCalled();
+    // Nobody saw it, so it is not reported as delivered.
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it('shows a notification the user should see on WebKit as usual', async () => {
+    const client = makeClient(chatUrl, 'https://konekta.ch/app/chat');
+    await dispatchPush(makeScope([client], iosWebAppUserAgent));
+
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      'Chat',
+      expect.objectContaining({ tag: 'conveniat27' }),
+    );
+    expect(mockCloseNotification).not.toHaveBeenCalled();
   });
 
   it('suppresses the notification for a locale-prefixed variant of the target chat URL', async () => {
