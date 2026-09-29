@@ -11,6 +11,7 @@ import {
   handleFetchEvent,
 } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
+import { clearPersonalCaches } from '@/features/service-worker/offline-support/personal-caches';
 import {
   cachePageAndScrape,
   isOfflineSupportEnabled,
@@ -202,6 +203,16 @@ self.addEventListener('message', (event) => {
       (async (): Promise<void> => {
         await forgetCachedSession();
         console.log('[SW] Cleared next-auth-session-cache.');
+      })(),
+    );
+  }
+
+  // Sent by flushPersonalData on an explicit logout or a switch to another account.
+  if (data?.type === ServiceWorkerMessages.CLEAR_PERSONAL_CACHES) {
+    event.waitUntil(
+      (async (): Promise<void> => {
+        await clearPersonalCaches();
+        console.log('[SW] Cleared the page and RSC caches of the previous user.');
       })(),
     );
   }

@@ -133,6 +133,24 @@ export async function setOfflineSupportEnabled(enabled: boolean): Promise<void> 
     : cache.delete(OFFLINE_ENABLED_FLAG));
 }
 
+/**
+ * Bumped when the offline download is thrown away, on a logout. A download still running then
+ * stops writing pages it fetched with the previous user's cookie and does not report itself as
+ * done.
+ */
+let downloadGeneration = 0;
+
+/** Page fetches in progress, shared by concurrent requests for the same page. */
+const inFlightPageRequests = new Map<string, Promise<void>>();
+
+/** Stops a running offline download from writing any further pages or setting its flag. */
+export function cancelRunningDownload(): void {
+  downloadGeneration++;
+  // The cancelled fetches keep running but no longer write; a new download must not wait on
+  // them and end up with those pages missing.
+  inFlightPageRequests.clear();
+}
+
 const inFlightAssetRequests = new Map<string, Promise<void>>();
 
 async function cacheAsset(url: string): Promise<void> {
@@ -259,14 +277,13 @@ function extractAssetUrls(htmlText: string, rscText?: string): string[] {
   return [...assets];
 }
 
-const inFlightPageRequests = new Map<string, Promise<void>>();
-
 async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   if (inFlightPageRequests.has(pageUrl)) {
     return inFlightPageRequests.get(pageUrl);
   }
 
   const doPageCache = async (): Promise<void> => {
+    const generation = downloadGeneration;
     console.log(`[SW] Fetching HTML for: ${pageUrl}`);
     const pagesCache = await caches.open(CACHE_NAMES.PAGES);
     const rscCache = await caches.open(CACHE_NAMES.RSC);
@@ -293,6 +310,7 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
     const htmlText = await response.text();
     const safeHeaders = cleanHeaders(response.headers);
 
+    if (generation !== downloadGeneration) return;
     await pagesCache.put(
       pageUrl,
       new Response(htmlText, {
@@ -362,6 +380,7 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
               headers: safeRscHeaders,
             });
 
+            if (generation !== downloadGeneration) return;
             await rscCache.put(rscUrl, safeRscResponse.clone());
             // Also store under clean path variant for fast O(1) matching
             const cleanUrl = `${urlObject.origin}${getCleanAppPath(pageUrl)}`;
@@ -404,7 +423,7 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   try {
     await promise;
   } finally {
-    inFlightPageRequests.delete(pageUrl);
+    if (inFlightPageRequests.get(pageUrl) === promise) inFlightPageRequests.delete(pageUrl);
   }
 }
 
@@ -416,6 +435,7 @@ export async function prefetchOfflinePages(
   clientId?: string,
   onProgress?: (total: number, current: number) => void,
 ): Promise<void> {
+  const generation = downloadGeneration;
   // Use Type assertion for global Serwist config (injected by Webpack)
   const swManifest =
     (globalThis as unknown as { __SW_MANIFEST?: ({ url: string } | string)[] }).__SW_MANIFEST ?? [];
@@ -472,6 +492,11 @@ export async function prefetchOfflinePages(
       }),
     ),
   );
+
+  if (generation !== downloadGeneration) {
+    console.log('[SW] Offline download was cancelled by a logout.');
+    return;
+  }
 
   // Set the "offline enabled" flag after successful prefetch
   await setOfflineSupportEnabled(true);

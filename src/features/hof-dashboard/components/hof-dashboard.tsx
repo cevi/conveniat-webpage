@@ -301,7 +301,7 @@ const SignedInLine: React.FC<{ name: string; locale: Locale }> = ({ name, locale
         className="text-conveniat-green inline-flex min-h-10 cursor-pointer items-center gap-1.5 font-semibold underline-offset-2 hover:underline"
         onClick={() => {
           void releasePushSubscriptions().then(() => {
-            flushPersonalData();
+            flushPersonalData({ clearCachedPages: true });
             return signOut({ redirectTo: globalThis.location.href });
           });
         }}

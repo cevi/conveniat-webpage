@@ -31,7 +31,7 @@ export const LogoutButton: React.FC = () => {
         setIsLoading(true);
         void releasePushSubscriptions()
           .then(() => {
-            flushPersonalData();
+            flushPersonalData({ clearCachedPages: true });
             return signOut({
               redirect: true,
               redirectTo: '/',

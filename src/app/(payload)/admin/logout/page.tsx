@@ -31,7 +31,7 @@ const Page = () => {
       });
 
       // Flush all cached personal data before logging out
-      flushPersonalData();
+      flushPersonalData({ clearCachedPages: true });
 
       // Clear the preview session cookie before logging out
       Cookies.remove(PREVIEW_SESSION_COOKIE, { path: '/' });
