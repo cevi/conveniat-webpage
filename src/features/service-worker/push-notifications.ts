@@ -2,22 +2,84 @@ import { DesignModeTriggers } from '@/utils/design-codes';
 import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
-interface NotificationPayload {
-  title: string;
-  body: string;
-  data: {
-    url?: string;
-    notificationId?: string;
-    ignoreIfAppOpen?: boolean | string;
-    ignoreIfUrlMatches?: boolean | string;
-  };
-}
-
 interface NotificationData {
   url?: string;
   notificationId?: string;
   ignoreIfAppOpen?: boolean | string;
   ignoreIfUrlMatches?: boolean | string;
+  /** Replaces the notification already shown under the same tag. Without one, every push stands alone. */
+  tag?: string;
+  /** Lists the newest pushes under the tag in one notification and alerts again, like a messenger. */
+  stack?: boolean;
+  /** Updates the notification under the tag without alerting, and shows nothing once it was dismissed. */
+  replaceOnly?: boolean;
+  /** The bodies a stacked notification lists, oldest first. Set by this worker, not by the server. */
+  lines?: string[];
+}
+
+interface NotificationPayload {
+  title: string;
+  body: string;
+  data: NotificationData;
+}
+
+/**
+ * Chrome's options type lost `renotify` because Firefox and Safari never implemented it, but
+ * Chrome still honours it.
+ */
+interface NotificationOptionsWithRenotify extends NotificationOptions {
+  renotify?: boolean;
+}
+
+/** A stacked chat notification lists at most this many of the newest messages. */
+const MAX_STACKED_LINES = 5;
+
+/**
+ * Shows a push, taking into account what is already on screen under its tag.
+ *
+ * @returns whether a notification is now showing for this push
+ */
+async function presentNotification(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  payload: NotificationPayload,
+): Promise<boolean> {
+  const { tag, stack, replaceOnly } = payload.data;
+  const hasTag = typeof tag === 'string' && tag !== '';
+  const [existing] = hasTag ? await serviceWorkerScope.registration.getNotifications({ tag }) : [];
+  const existingData = (existing?.data as NotificationData | undefined) ?? {};
+
+  const options: NotificationOptionsWithRenotify = {
+    body: payload.body,
+    icon: '/favicon.svg',
+    badge: '/notification-icon.png',
+    requireInteraction: true,
+    ...(hasTag && { tag }),
+    data: payload.data,
+  };
+
+  if (replaceOnly === true) {
+    // An edit must not bring back what the reader already dismissed.
+    if (existing === undefined) return false;
+    // Same tag and no renotify: the browser swaps the content in without a sound. The edit
+    // carries no log id of its own, so a click still counts for the push that was delivered.
+    options.data = {
+      ...existingData,
+      ...payload.data,
+      notificationId: existingData.notificationId,
+    };
+  } else if (stack === true && hasTag) {
+    const previousLines = Array.isArray(existingData.lines) ? existingData.lines : [];
+    const lines = [...previousLines, payload.body].slice(-MAX_STACKED_LINES);
+    options.body = lines.join('\n');
+    options.data = { ...payload.data, lines };
+    // Firefox and Safari ignore renotify and would replace the notification silently, so
+    // the old one is closed first and the new one arrives as new, with sound.
+    options.renotify = true;
+    existing?.close();
+  }
+
+  await serviceWorkerScope.registration.showNotification(payload.title, options);
+  return true;
 }
 
 type PushTrackingEvent =
@@ -157,7 +219,7 @@ function clientUrlMatchesTarget(clientUrlString: string, targetUrl: URL): boolea
   return false;
 }
 
-/** Kept apart from `conveniat27`, so closing it cannot close a notification the user still sees. */
+/** Kept apart from the chat and announcement tags, so closing it cannot close a notification the user still sees. */
 const SUPPRESSED_NOTIFICATION_TAG = 'conveniat27-suppressed';
 
 /**
@@ -210,15 +272,6 @@ export const pushNotificationHandler =
     if (!event.data) return;
 
     const data = event.data.json() as NotificationPayload;
-
-    const options: NotificationOptions = {
-      body: data.body,
-      icon: '/favicon.svg',
-      badge: '/notification-icon.png',
-      requireInteraction: true,
-      tag: 'conveniat27',
-      data: data.data,
-    };
 
     event.waitUntil(
       (async (): Promise<void> => {
@@ -285,18 +338,22 @@ export const pushNotificationHandler =
           }
         }
 
-        if (shouldShowNotification) {
-          await serviceWorkerScope.registration.showNotification(data.title, options);
-        } else if (revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
+        // An update only touches a notification that is still on screen, so it applies
+        // whether or not the app is open.
+        let isShown = false;
+        if (shouldShowNotification || data.data.replaceOnly === true) {
+          isShown = await presentNotification(serviceWorkerScope, data);
+        }
+        if (!isShown && revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
           await showAndCloseSuppressedNotification(serviceWorkerScope, data);
         }
         // A suppressed push still reached the device, so it is reported as delivered too.
         // Before, it left no trace at all, and a chat the user was reading looked like a
-        // push that never arrived.
+        // push that never arrived. A quiet update carries no id of its own.
         if (data.data.notificationId) {
           await trackPushEvent(data.data.notificationId, {
             type: 'DELIVERED',
-            presentation: shouldShowNotification ? 'SHOWN' : 'SUPPRESSED',
+            presentation: isShown ? 'SHOWN' : 'SUPPRESSED',
           });
         }
       })(),

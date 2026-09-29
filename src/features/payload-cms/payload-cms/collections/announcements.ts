@@ -10,7 +10,7 @@ import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
-import { sendNotification } from '@/lib/push/send-notification';
+import { sendNotification, updateAnnouncementNotification } from '@/lib/push/send-notification';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -27,6 +27,13 @@ import type {
  * through this alias is safe.
  */
 type PrismaJsonPayload = Parameters<typeof prisma.messageContent.create>[0]['data']['payload'];
+
+/**
+ * One push goes out to everyone, so it carries German, the one language every published
+ * announcement has.
+ */
+const pushTextOf = (localizedPayload: Record<string, AnnouncementLocalePayload>): string =>
+  localizedPayload['de']?.text ?? Object.values(localizedPayload)[0]?.text ?? '';
 
 interface PublishAnnouncementArguments {
   /** The id reserved for the message when the announcement was published. */
@@ -129,10 +136,7 @@ const publishAnnouncementToPostgres = async ({
     });
 
   // 7. Trigger Native & Web Push Notifications
-  // One push goes out to everyone, so it carries German, the one language every
-  // published announcement has.
-  const defaultText =
-    localizedPayload['de']?.text ?? Object.values(localizedPayload)[0]?.text ?? '';
+  const defaultText = pushTextOf(localizedPayload);
   if (recipientUserIds.length > 0 && defaultText !== '') {
     sendNotification(defaultText, recipientUserIds, chatUuid, createdMessage.uuid, {
       kind: PushNotificationKind.ANNOUNCEMENT,
@@ -161,10 +165,14 @@ const rememberDraftSave: CollectionBeforeOperationHook = ({ args, operation, req
   return args;
 };
 
-/** Adds the current content of an announcement as a new revision of its chat message. */
+/**
+ * Adds the current content of an announcement as a new revision of its chat message, and
+ * puts the new text into the push its readers still have on screen.
+ */
 const reviseAnnouncementMessage = async (
   chatMessage: { uuid: string; chatId: string; senderId: string | null },
   localizedPayload: Record<string, AnnouncementLocalePayload>,
+  authorUuid: string,
   request: PayloadRequest,
 ): Promise<void> => {
   const latestRevision = await prisma.messageContent.findFirst({
@@ -216,6 +224,35 @@ const reviseAnnouncementMessage = async (
         'Failed to publish the message_updated event for an announcement',
       );
     });
+
+  // A reader who has not dismissed the push yet sees the corrected text in it, without
+  // being alerted a second time. A change to a translation or an image leaves the German
+  // push text as it was and needs no update.
+  const updatedText = pushTextOf(localizedPayload);
+  const previousText =
+    latestRevision === null
+      ? ''
+      : pushTextOf(latestRevision.payload as unknown as Record<string, AnnouncementLocalePayload>);
+  if (updatedText === '' || updatedText === previousText) return;
+
+  const chatMemberships = await prisma.chatMembership.findMany({
+    where: { chatId: chatMessage.chatId },
+    select: { userId: true },
+  });
+  const recipientUserIds = chatMemberships
+    .map((membership) => membership.userId)
+    .filter((userId) => userId !== authorUuid);
+  updateAnnouncementNotification(
+    updatedText,
+    recipientUserIds,
+    chatMessage.chatId,
+    chatMessage.uuid,
+  ).catch((error: unknown) => {
+    request.payload.logger.error(
+      { error, 'chat.id': chatMessage.chatId, 'message.id': chatMessage.uuid },
+      'Failed to update the push notifications for an announcement',
+    );
+  });
 };
 
 /** The id of a relationship value, whether Payload populated it or not. */
@@ -227,7 +264,8 @@ const relationId = (value: string | { id: string } | null | undefined): string |
  *
  * Every language lives on the same document, so one publish sends one chat message and
  * one push that already carry every translation. Publishing again after an edit adds a
- * revision to that message without a second push; unpublishing deletes it.
+ * revision to that message and quietly updates the push where it is still on screen,
+ * without a second alert; unpublishing deletes it.
  *
  * Publishing only reserves the message id and leaves the sending to
  * {@link afterAnnouncementChange}: Payload validates the document after `beforeChange`,
@@ -327,7 +365,12 @@ const afterAnnouncementChange: CollectionAfterChangeHook<Announcement> = async (
     });
 
     if (chatMessage !== null) {
-      await reviseAnnouncementMessage(chatMessage, localizedPayload, request);
+      await reviseAnnouncementMessage(
+        chatMessage,
+        localizedPayload,
+        relationId(doc.author) ?? request.user?.id ?? '',
+        request,
+      );
       return doc;
     }
 

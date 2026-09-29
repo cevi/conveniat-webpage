@@ -12,6 +12,7 @@ import {
   recordPushSend,
   registerPushQueueGauges,
 } from '@/lib/push-metrics';
+import { notificationGroupingOf } from '@/lib/push/notification-grouping';
 import {
   isUrgentKind,
   MAX_DELIVERY_ATTEMPTS,
@@ -363,6 +364,11 @@ const messageOf = (notification: PushNotification): PushMessage => ({
   messageId: notification.messageId ?? undefined,
   notificationType: notification.notificationType === 'emergency' ? 'emergency' : undefined,
   ignoreIfUrlMatches: notification.ignoreIfUrlMatches,
+  ...notificationGroupingOf(
+    notification.kind,
+    notification.chatId ?? undefined,
+    notification.messageId ?? undefined,
+  ),
 });
 
 /** How a row ends its turn: settled for good, or back to PENDING for a retry. */

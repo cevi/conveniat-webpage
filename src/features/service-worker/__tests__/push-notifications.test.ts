@@ -346,7 +346,7 @@ describe('pushNotificationHandler', () => {
 
     expect(mockShowNotification).toHaveBeenCalledWith(
       'Chat',
-      expect.objectContaining({ tag: 'conveniat27' }),
+      expect.objectContaining({ body: 'New message', requireInteraction: true }),
     );
     expect(mockCloseNotification).not.toHaveBeenCalled();
   });
@@ -508,5 +508,140 @@ describe('pushSubscriptionChangeHandler', () => {
     expect(mockWaitUntil).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+});
+
+/** Delivers one push to the handler and waits for it to finish. */
+const push = async (
+  scope: ServiceWorkerGlobalScope,
+  payload: { title: string; body: string; data: Record<string, unknown> },
+): Promise<void> => {
+  const waitUntil = jest.fn((promise: Promise<unknown>) => promise);
+  pushNotificationHandler(scope)({
+    data: { json: (): unknown => payload },
+    waitUntil,
+  } as unknown as PushEvent);
+  const calls = waitUntil.mock.calls as Promise<unknown>[][];
+  await calls[0]?.[0];
+};
+
+describe('pushNotificationHandler grouping', () => {
+  interface ShownNotification {
+    title: string;
+    options: NotificationOptions & { renotify?: boolean };
+    close: () => void;
+    data: unknown;
+  }
+
+  /** A notification tray that keeps one notification per tag, like the browser does. */
+  const makeTray = (): { scope: ServiceWorkerGlobalScope; shown: ShownNotification[] } => {
+    const shown: ShownNotification[] = [];
+    const remove = (notification: ShownNotification): void => {
+      const index = shown.indexOf(notification);
+      if (index !== -1) shown.splice(index, 1);
+    };
+    const registration = {
+      getNotifications: jest.fn(({ tag }: { tag: string }) =>
+        Promise.resolve(shown.filter((notification) => notification.options.tag === tag)),
+      ),
+      showNotification: jest.fn(
+        (title: string, options: NotificationOptions & { renotify?: boolean }) => {
+          const replaced = shown.find(
+            (notification) => options.tag !== undefined && notification.options.tag === options.tag,
+          );
+          if (replaced !== undefined) remove(replaced);
+          const notification: ShownNotification = {
+            title,
+            options,
+            data: options.data,
+            close: () => remove(notification),
+          };
+          shown.push(notification);
+          return Promise.resolve();
+        },
+      ),
+    };
+    const scope = {
+      location: { origin: 'https://konekta.ch' },
+      clients: { matchAll: jest.fn().mockResolvedValue([]) },
+      navigator: { userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0 Safari/537.36' },
+      registration,
+    } as unknown as ServiceWorkerGlobalScope;
+    return { scope, shown };
+  };
+
+  beforeEach(() => {
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true });
+  });
+
+  it('lists the newest messages of a chat in one notification that alerts again', async () => {
+    const { scope, shown } = makeTray();
+    for (let index = 1; index <= 7; index++) {
+      await push(scope, {
+        title: 'Züri 11',
+        body: `Anna: message ${index}`,
+        data: { tag: 'chat:1', stack: true, notificationId: `log-${index}` },
+      });
+    }
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0]?.options.body).toBe(
+      [
+        'Anna: message 3',
+        'Anna: message 4',
+        'Anna: message 5',
+        'Anna: message 6',
+        'Anna: message 7',
+      ].join('\n'),
+    );
+    expect(shown[0]?.options.renotify).toBe(true);
+  });
+
+  it('keeps the notifications of different chats apart', async () => {
+    const { scope, shown } = makeTray();
+    await push(scope, { title: 'A', body: 'one', data: { tag: 'chat:1', stack: true } });
+    await push(scope, { title: 'B', body: 'two', data: { tag: 'chat:2', stack: true } });
+
+    expect(shown.map((notification) => notification.options.body)).toEqual(['one', 'two']);
+  });
+
+  it('shows every announcement as a notification of its own', async () => {
+    const { scope, shown } = makeTray();
+    await push(scope, { title: 'conveniat27', body: 'first', data: { tag: 'announcement:1' } });
+    await push(scope, { title: 'conveniat27', body: 'second', data: { tag: 'announcement:2' } });
+
+    expect(shown.map((notification) => notification.options.body)).toEqual(['first', 'second']);
+    expect(shown.every((notification) => notification.options.renotify !== true)).toBe(true);
+  });
+
+  it('quietly puts an edit into an announcement that is still shown and keeps its log id', async () => {
+    const { scope, shown } = makeTray();
+    await push(scope, {
+      title: 'conveniat27',
+      body: 'Znacht um 18 Uhr',
+      data: { tag: 'announcement:1', notificationId: 'log-1', url: '/app/chat/x' },
+    });
+    await push(scope, {
+      title: 'conveniat27',
+      body: 'Znacht um 19 Uhr',
+      data: { tag: 'announcement:1', replaceOnly: true, url: '/app/chat/x' },
+    });
+
+    expect(shown).toHaveLength(1);
+    expect(shown[0]?.options.body).toBe('Znacht um 19 Uhr');
+    expect(shown[0]?.options.renotify).not.toBe(true);
+    expect(shown[0]?.data).toEqual(expect.objectContaining({ notificationId: 'log-1' }));
+  });
+
+  it('does not bring back an announcement the reader dismissed', async () => {
+    const { scope, shown } = makeTray();
+    await push(scope, {
+      title: 'conveniat27',
+      body: 'Znacht um 19 Uhr',
+      data: { tag: 'announcement:1', replaceOnly: true },
+    });
+
+    expect(shown).toHaveLength(0);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

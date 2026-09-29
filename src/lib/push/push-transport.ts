@@ -87,6 +87,15 @@ export interface PushMessage {
   notificationType?: NotificationType | undefined;
   ignoreIfAppOpen?: boolean | undefined;
   ignoreIfUrlMatches?: boolean | undefined;
+  /**
+   * How the web notification sits next to the ones already shown; only the service worker reads
+   * these, see `presentNotification` there. `tag` replaces what is shown under the same tag,
+   * `stack` lists the newest pushes under it and alerts again, `replaceOnly` updates what is
+   * still on screen without alerting and shows nothing once it was dismissed.
+   */
+  tag?: string | undefined;
+  stack?: boolean | undefined;
+  replaceOnly?: boolean | undefined;
 }
 
 /** How this one delivery travels. */
@@ -294,6 +303,9 @@ async function sendWeb(
           ...(message.messageId !== undefined && { messageId: message.messageId }),
           ...(ignoreIfAppOpen !== undefined && { ignoreIfAppOpen }),
           ...(ignoreIfUrlMatches !== undefined && { ignoreIfUrlMatches }),
+          ...(message.tag !== undefined && { tag: message.tag }),
+          ...(message.stack === true && { stack: true }),
+          ...(message.replaceOnly === true && { replaceOnly: true }),
         },
       }),
       {
