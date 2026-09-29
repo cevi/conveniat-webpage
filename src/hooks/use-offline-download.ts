@@ -199,6 +199,9 @@ export const useOfflineDownload = (
       CACHE_NAMES.MAP_TILES,
       CACHE_NAMES.OFFLINE_ASSETS,
       CACHE_NAMES.RSC,
+      // Holds the "download done" flag. Left behind, the app still reported the content as
+      // downloaded, and every service worker update downloaded all of it again.
+      CACHE_NAMES.OFFLINE_STATUS,
     ];
     for (const name of cacheNamesToDelete) {
       try {
