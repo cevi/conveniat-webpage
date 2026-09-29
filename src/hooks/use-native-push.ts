@@ -1,6 +1,8 @@
 'use client';
 
+import { usePreference } from '@/hooks/use-preference';
 import type { NotificationType } from '@/lib/notification-type';
+import { readPreference, writePreference } from '@/lib/preferences';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { assignLocation } from '@/utils/assign-location';
@@ -471,6 +473,8 @@ export function useNativePush(): {
   hasToken: boolean;
   isRegisteredOnBackend: boolean;
   isUnauthenticated: boolean;
+  /** The user turned push off on this device. Kept across restarts, logouts and new tokens. */
+  isOptedOut: boolean;
   requestPermission: () => void;
   deleteToken: () => void;
   openSettings: () => void;
@@ -498,6 +502,9 @@ export function useNativePush(): {
    */
   const registeredTokenReference = useRef<string | undefined>(undefined);
   const registrationInFlightReference = useRef<string | undefined>(undefined);
+  /** Token already removed from the backend because it arrived while push is opted out. */
+  const optedOutTokenReference = useRef<string | undefined>(undefined);
+  const isOptedOut = usePreference('native-push-opted-out');
 
   const addLog = (message: string, data?: unknown): void => {
     const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -708,7 +715,17 @@ export function useNativePush(): {
           const platform = payload['platform'];
           console.log('[NativePush:PWA] token received: platform =', platform);
           if (typeof token === 'string' && typeof platform === 'string') {
-            void handleRegisterDevice(token, platform as 'ios' | 'android');
+            // The native shell has Firebase issue a new token right after deleting one and
+            // reports it on every resume, so a token turning up is no sign the user wants
+            // push. While they opted out it is not registered, and removed from the backend
+            // once in case an earlier build or a failed delete left it there.
+            if (!readPreference('native-push-opted-out')) {
+              optedOutTokenReference.current = undefined;
+              void handleRegisterDevice(token, platform as 'ios' | 'android');
+            } else if (optedOutTokenReference.current !== token) {
+              optedOutTokenReference.current = token;
+              void handleUnregisterDevice(token, platform as 'ios' | 'android');
+            }
             setStatus('granted');
             setHasToken(true);
             setLastError(undefined);
@@ -908,6 +925,7 @@ export function useNativePush(): {
 
   const requestPermission = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    writePreference('native-push-opted-out', false);
     addLog('requestPermission() called');
     setLastError(undefined);
     if (isNativeApp || nativePushBridge.isSupported()) {
@@ -944,6 +962,8 @@ export function useNativePush(): {
 
   const deleteToken = (): void => {
     addLog('deleteToken() called');
+    writePreference('native-push-opted-out', true);
+    setIsRegisteredOnBackend(false);
     setLastError(undefined);
     if (isNativeApp) {
       console.log('[NativePush:PWA] deleteToken called');
@@ -970,6 +990,7 @@ export function useNativePush(): {
 
   const openSettings = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    writePreference('native-push-opted-out', false);
     addLog('openSettings() called');
     setLastError(undefined);
     if (isNativeApp) {
@@ -984,6 +1005,7 @@ export function useNativePush(): {
     hasToken,
     isRegisteredOnBackend,
     isUnauthenticated,
+    isOptedOut,
     requestPermission,
     deleteToken,
     openSettings,
