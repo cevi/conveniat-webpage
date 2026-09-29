@@ -37,7 +37,7 @@ jest.mock('@/lib/db/chat-pubsub', () => ({
     },
   },
 }));
-jest.mock('@/features/chat/api/utils/send-push-notifications', () => ({
+jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (): Promise<{ success: boolean }> => {
     pushedAt.push(committed);
     return Promise.resolve({ success: true });

@@ -14,8 +14,7 @@ import { getMessagePreviewText } from '@/features/chat/api/utils/get-message-pre
 import { getJoinGroupMessagePayload } from '@/features/chat/api/utils/system-message-helpers';
 // eslint-disable-next-line import/no-restricted-paths
 import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
-// eslint-disable-next-line import/no-restricted-paths
-import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
+import { sendNotification } from '@/lib/push/send-notification';
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';

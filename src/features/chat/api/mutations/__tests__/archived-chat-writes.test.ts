@@ -45,7 +45,7 @@ const mockSendNotification = jest.fn((): Promise<void> => Promise.resolve());
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: { publish: (...args: unknown[]): unknown => mockPublish(...(args as [])) },
 }));
-jest.mock('@/features/chat/api/utils/send-push-notifications', () => ({
+jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (...args: unknown[]): unknown => mockSendNotification(...(args as [])),
 }));
 

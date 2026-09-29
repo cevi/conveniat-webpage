@@ -1,4 +1,3 @@
-import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { translateAnnouncementHandler } from '@/features/payload-cms/payload-cms/endpoints/translate-announcement';
@@ -11,6 +10,7 @@ import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
+import { sendNotification } from '@/lib/push/send-notification';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
 import { randomUUID } from 'node:crypto';
 import type {

@@ -1,23 +1,16 @@
 'use server';
 
-import { environmentVariables } from '@/config/environment-variables';
-import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
-import { sendFcmNotification } from '@/lib/firebase-admin';
 import type { NotificationType } from '@/lib/notification-type';
-import { PushNotificationChannel, PushNotificationKind } from '@/lib/prisma';
-import { recordPushSend, type PushSendOutcome } from '@/lib/push-metrics';
-import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
+import { PushNotificationKind } from '@/lib/prisma';
+import { recordPushSend } from '@/lib/push-metrics';
+import { isUrgentKind, PUSH_TIME_TO_LIVE_SECONDS } from '@/lib/push/push-delivery-policy';
+import type { PushDevice } from '@/lib/push/push-transport';
+import { channelOf, composePushText, sendPushToDevice } from '@/lib/push/push-transport';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAppShortName } from '@/utils/get-app-short-name';
-import {
-  fitPushText,
-  PUSH_BODY_MAX_BYTES,
-  PUSH_TITLE_MAX_BYTES,
-} from '@/utils/push-notifications/fit-push-text';
 import { createLogger } from '@/utils/server-logger';
-import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
 import { withSpan } from '@/utils/tracing-helpers';
 import { SpanStatusCode } from '@opentelemetry/api';
 import config from '@payload-config';
@@ -28,68 +21,6 @@ import type webpush from 'web-push';
 type WebPushSubscription = webpush.PushSubscription;
 
 const logger = createLogger('push:api');
-
-const NEXT_PUBLIC_APP_HOST_URL = environmentVariables.NEXT_PUBLIC_APP_HOST_URL;
-
-// vapid subject must be mailto or https, thus we fall back to https://conveniat27.ch
-// if the NEXT_PUBLIC_APP_HOST_URL is not set or localhost
-const subject: string =
-  NEXT_PUBLIC_APP_HOST_URL !== '' && NEXT_PUBLIC_APP_HOST_URL.includes('https://')
-    ? NEXT_PUBLIC_APP_HOST_URL
-    : 'https://conveniat27.ch';
-const publicKey: string = environmentVariables.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const privateKey: string = environmentVariables.VAPID_PRIVATE_KEY;
-
-// Lazy-init web-push to avoid top-level side effects that break
-// client-side module evaluation (web-push is Node.js-only).
-let webpushInstance: typeof webpush | undefined;
-async function getWebPush(): Promise<typeof webpush> {
-  if (!webpushInstance) {
-    const module_ = await import('web-push');
-    webpushInstance = module_.default;
-    const validatedPublicKey = typeof publicKey === 'string' ? publicKey.trim() : '';
-    const validatedPrivateKey = typeof privateKey === 'string' ? privateKey.trim() : '';
-    if (!validatedPublicKey || !validatedPrivateKey) {
-      throw new Error(
-        'Missing or invalid VAPID configuration: NEXT_PUBLIC_VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be non-empty strings.',
-      );
-    }
-    webpushInstance.setVapidDetails(subject, validatedPublicKey, validatedPrivateKey);
-  }
-  return webpushInstance;
-}
-
-/** Push services answer an unsubscribed or expired Web Push subscription with one of these. */
-const EXPIRED_WEB_PUSH_STATUS_CODES = new Set([404, 410]);
-
-/** Keeps a verbose push service body from filling the log row and the Loki line. */
-const MAX_RESPONSE_BODY_LENGTH = 300;
-
-interface PushServiceRejection {
-  statusCode: number;
-  body: string;
-}
-
-/**
- * web-push rejects every non-2xx answer with a `WebPushError` whose message is always
- * "Received unexpected response code". The push service's verdict lives only in
- * `statusCode` and `body`, so they have to be read off the error explicitly.
- */
-const pushServiceRejectionOf = (error: unknown): PushServiceRejection | undefined => {
-  if (typeof error !== 'object' || error === null) return undefined;
-  if (!('statusCode' in error) || typeof error.statusCode !== 'number') return undefined;
-  const body = 'body' in error && typeof error.body === 'string' ? error.body.trim() : '';
-  return { statusCode: error.statusCode, body: body.slice(0, MAX_RESPONSE_BODY_LENGTH) };
-};
-
-/** What went wrong, in words an admin reading the notification history can act on. */
-const describeSendError = (error: unknown, rejection: PushServiceRejection | undefined): string => {
-  if (rejection !== undefined) {
-    const answer = `Push service answered ${rejection.statusCode}`;
-    return rejection.body === '' ? answer : `${answer}: ${rejection.body}`;
-  }
-  return error instanceof Error ? error.message : 'Unknown error';
-};
 
 const endpointHostOf = (endpoint: unknown): string | undefined => {
   if (typeof endpoint !== 'string') return undefined;
@@ -263,12 +194,6 @@ export async function unsubscribeUser(sub: WebPushSubscription): Promise<{ succe
   return { success: true };
 }
 
-type SendableSubscription =
-  | webpush.PushSubscription
-  | PushNotificationSubscription
-  | SchemaPushSubscription
-  | DatabasePushSubscription;
-
 interface SendOptions {
   ignoreIfAppOpen?: boolean;
   ignoreIfUrlMatches?: boolean;
@@ -290,25 +215,17 @@ interface SendResult {
   subscriptionRemoved?: boolean;
 }
 
-const channelOf = (subscription: SendableSubscription): PushNotificationChannel =>
-  'platform' in subscription &&
-  (subscription.platform === 'ios' || subscription.platform === 'android')
-    ? PushNotificationChannel.NATIVE_FCM
-    : PushNotificationChannel.WEB_PUSH;
-
-const outcomeOf = (result: SendResult): PushSendOutcome => {
-  if (result.success) return 'accepted';
-  return result.subscriptionRemoved === true ? 'expired' : 'failed';
-};
-
 /**
- * Sends one push to one device, and writes its log row when a `userId` is given.
+ * Sends one push to one device right away, and writes its log row when a `userId` is given.
  *
- * Every send is a `push.send` span and a `push_sends_total` sample, so a fan-out shows
- * up in Tempo and Prometheus with one entry per device.
+ * For the sends someone waits on: the confirmation after subscribing and the test send from
+ * the admin panel. Nothing retries them, so a push service that asks to come back later
+ * counts as a failure here. Pushes to many people go through `@/lib/push/send-notification`.
+ *
+ * Every send is a `push.send` span and a `push_sends_total` sample.
  */
 export async function sendNotificationToSubscription(
-  subscription: SendableSubscription,
+  subscription: PushDevice,
   message: string,
   url?: string,
   userId?: string,
@@ -318,321 +235,127 @@ export async function sendNotificationToSubscription(
 ): Promise<SendResult> {
   const channel = channelOf(subscription);
   const kind = options?.kind ?? PushNotificationKind.SYSTEM;
-  const startedAt = performance.now();
-  const secondsSinceStart = (): number => (performance.now() - startedAt) / 1000;
 
   return withSpan(
     'push.send',
     async (span) => {
-      let result: SendResult;
-      try {
-        result = await deliverToSubscription(
-          subscription,
-          message,
-          url,
-          userId,
-          existingLogId,
-          logContent,
-          options,
-          channel,
-          kind,
-        );
-      } catch (error) {
-        recordPushSend(channel, kind, 'failed', secondsSinceStart());
-        throw error;
+      const text = composePushText({
+        title: options?.title ?? (await getAppShortName()),
+        body: message,
+      });
+      const { default: prisma } = await import('@/lib/db/prisma');
+
+      let logId = existingLogId;
+      if (userId !== undefined && userId !== '' && logId === undefined) {
+        try {
+          const log = await prisma.pushNotificationLog.create({
+            data: { userId, content: logContent ?? text.body, status: 'PENDING', channel, kind },
+          });
+          logId = log.id;
+        } catch (error) {
+          // The push still goes out, it only leaves no trace in the history.
+          logger.error('Failed to create push notification log', { error, 'user.id': userId });
+        }
       }
 
-      const outcome = outcomeOf(result);
-      recordPushSend(channel, kind, outcome, secondsSinceStart());
+      const startedAt = performance.now();
+      const result = await sendPushToDevice(
+        subscription,
+        {
+          ...text,
+          url,
+          messageId: options?.messageId,
+          notificationType: options?.notificationType,
+          ignoreIfAppOpen: options?.ignoreIfAppOpen,
+          ignoreIfUrlMatches: options?.ignoreIfUrlMatches,
+        },
+        { logId, timeToLiveSeconds: PUSH_TIME_TO_LIVE_SECONDS[kind], urgent: isUrgentKind(kind) },
+      );
+      const outcome = result.outcome === 'retry' ? 'failed' : result.outcome;
+      recordPushSend(channel, kind, outcome, (performance.now() - startedAt) / 1000);
       span.setAttribute('push.outcome', outcome);
-      if (outcome === 'failed') {
-        span.setStatus({ code: SpanStatusCode.ERROR, message: result.error ?? 'Unknown error' });
+
+      if (outcome === 'accepted') {
+        // Accepted is not delivered: only the device can say that it received the push, see
+        // `pushTrackingRouter.markDelivered`. A fast device can report back before this line
+        // runs, so the update must not overwrite its DELIVERED.
+        if (logId !== undefined) {
+          await prisma.pushNotificationLog.updateMany({
+            where: { id: logId, status: 'PENDING' },
+            data: { status: 'SENT' },
+          });
+        }
+        return { success: true };
       }
-      return result;
+
+      const error = result.error ?? 'Unknown error';
+      if (logId !== undefined) {
+        await prisma.pushNotificationLog.update({
+          where: { id: logId },
+          data: { status: 'FAILED', error },
+        });
+      }
+
+      const logAttributes = {
+        'push.channel': channel,
+        'push.log_id': logId,
+        'push.fcm_error_code': result.fcmErrorCode,
+        'http.response.status_code': result.statusCode,
+        'push.response_body': result.responseBody,
+        'server.address':
+          'endpoint' in subscription ? endpointHostOf(subscription.endpoint) : undefined,
+        'user.id': userId,
+        error: result.cause ?? error,
+      };
+
+      // A device that unsubscribed is the normal end of a subscription, not a fault, and it
+      // is pruned below so it fires once per device. Anything else is worth a look.
+      if (outcome === 'failed') {
+        span.setStatus({ code: SpanStatusCode.ERROR, message: error });
+        logger.error('Sending push notification failed', logAttributes);
+        return { success: false, error };
+      }
+
+      logger.info('Pruning expired push subscription', logAttributes);
+      const pruned = await pruneSubscription(subscription).catch((pruneError: unknown) => {
+        logger.warn('Failed to prune expired push subscription', {
+          ...logAttributes,
+          error: pruneError,
+        });
+        return false;
+      });
+      return pruned
+        ? { success: false, error, subscriptionRemoved: true }
+        : { success: false, error };
     },
     { 'push.channel': channel, 'push.kind': kind },
   );
 }
 
-async function deliverToSubscription(
-  subscription: SendableSubscription,
-  message: string,
-  url: string | undefined,
-  userId: string | undefined,
-  existingLogId: string | undefined,
-  logContent: string | undefined,
-  options: SendOptions | undefined,
-  channel: PushNotificationChannel,
-  kind: PushNotificationKind,
-): Promise<SendResult> {
-  const urlToSend = url === '' ? undefined : url; // empty url is undefined
-
-  // The operating system renders the notification verbatim, so the chat's markdown
-  // markers would show up as literal `*` and `_` on the lock screen. Stripping
-  // happens here rather than in the callers because this is the single hop every
-  // push goes through - chat messages, announcements, emergency alerts and the CMS
-  // test send alike. The same goes for the size cap: a push over the service's limit is
-  // rejected for every recipient, so long texts are cut to a preview here.
-  const bodyToSend = fitPushText(stripMarkdownFormatting(message), PUSH_BODY_MAX_BYTES);
-  const titleToSend = fitPushText(
-    stripMarkdownFormatting(options?.title ?? (await getAppShortName())),
-    PUSH_TITLE_MAX_BYTES,
-  );
-  const { default: prisma } = await import('@/lib/db/prisma');
-  let logId = existingLogId;
-
-  // If userId is provided and no existingLogId, create a new log entry
-  if (userId && !logId) {
-    try {
-      const log = await prisma.pushNotificationLog.create({
-        data: {
-          userId,
-          content: logContent ?? bodyToSend,
-          status: 'PENDING',
-          channel,
-          kind,
-        },
-      });
-      logId = log.id;
-    } catch (error) {
-      logger.error('Failed to create push notification log', { error, 'user.id': userId });
-      // We continue even if validation fails, but logging won't happen
-    }
+/** Deletes the stored subscription of a device that unsubscribed. */
+async function pruneSubscription(subscription: PushDevice): Promise<boolean> {
+  const payload = await getPayload({ config });
+  let where: Where | undefined;
+  if (
+    'endpoint' in subscription &&
+    typeof subscription.endpoint === 'string' &&
+    subscription.endpoint !== ''
+  ) {
+    where = { endpoint: { equals: subscription.endpoint } };
+  } else if (
+    'token' in subscription &&
+    typeof subscription.token === 'string' &&
+    subscription.token !== ''
+  ) {
+    where = { token: { equals: subscription.token } };
+  } else if (
+    'id' in subscription &&
+    typeof subscription.id === 'string' &&
+    subscription.id !== ''
+  ) {
+    where = { id: { equals: subscription.id } };
   }
-
-  try {
-    if (
-      'platform' in subscription &&
-      (subscription.platform === 'ios' || subscription.platform === 'android')
-    ) {
-      if (!subscription.token) {
-        throw new Error(`Native push token is missing for platform: ${subscription.platform}`);
-      }
-
-      // Only this deployment's own host is cut down to a path. A link to another host, like
-      // the short domain con27.ch, stays whole: the page follows it with a full navigation,
-      // and con27.ch redirects back here through `/go`. Its path alone, `/agbs`, is a 404.
-      let normalizedUrl = urlToSend;
-      if (
-        normalizedUrl !== undefined &&
-        NEXT_PUBLIC_APP_HOST_URL &&
-        normalizedUrl.startsWith(NEXT_PUBLIC_APP_HOST_URL)
-      ) {
-        normalizedUrl = normalizedUrl.replace(NEXT_PUBLIC_APP_HOST_URL, '');
-      }
-
-      let chatIdFromUrl: string | undefined;
-      if (typeof normalizedUrl === 'string' && normalizedUrl.includes('/app/chat/')) {
-        const parts = normalizedUrl.split('/app/chat/');
-        const firstPart = parts[1];
-        if (typeof firstPart === 'string' && firstPart !== '') {
-          chatIdFromUrl = firstPart.split('?')[0];
-        }
-      }
-
-      const result = await sendFcmNotification(subscription.token, {
-        title: titleToSend,
-        body: bodyToSend,
-        data: {
-          ...(normalizedUrl !== undefined && { url: normalizedUrl }),
-          ...(normalizedUrl !== undefined && { path: normalizedUrl }),
-          ...(normalizedUrl !== undefined && { link: normalizedUrl }),
-          ...(chatIdFromUrl !== undefined && { chatId: chatIdFromUrl }),
-          ...(options?.messageId !== undefined && { messageId: options.messageId }),
-          ...(logId !== undefined && { notificationId: logId }),
-          ...(options?.ignoreIfAppOpen !== undefined && {
-            ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
-          }),
-          ...(options?.ignoreIfUrlMatches !== undefined && {
-            ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
-          }),
-          ...(options?.notificationType !== undefined && {
-            notificationType: options.notificationType,
-          }),
-        },
-      });
-      if (!result.success) {
-        const fcmError: Error & { fcmErrorCode?: string } = new Error(
-          result.error ?? 'FCM send failed',
-        );
-        if (result.errorCode !== undefined) fcmError.fcmErrorCode = result.errorCode;
-        throw fcmError;
-      }
-    } else {
-      let webSub = subscription as webpush.PushSubscription;
-      // If it's a Payload subscription, format it for web-push
-      if ('endpoint' in subscription && 'keys' in subscription) {
-        const keys = subscription.keys;
-        if (!subscription.endpoint || !keys?.p256dh || !keys.auth) {
-          throw new Error('Web Push subscription is missing required fields (endpoint or keys).');
-        }
-        webSub = {
-          endpoint: subscription.endpoint,
-          keys: {
-            p256dh: keys.p256dh,
-            auth: keys.auth,
-          },
-        };
-      }
-
-      const wp = await getWebPush();
-      await wp.sendNotification(
-        webSub,
-        JSON.stringify({
-          title: titleToSend,
-          body: bodyToSend,
-          data: {
-            url: urlToSend,
-            notificationId: logId,
-            ...(options?.messageId !== undefined && { messageId: options.messageId }),
-            ...(options?.ignoreIfAppOpen !== undefined && {
-              ignoreIfAppOpen: options.ignoreIfAppOpen ? 'true' : 'false',
-            }),
-            ...(options?.ignoreIfUrlMatches !== undefined && {
-              ignoreIfUrlMatches: options.ignoreIfUrlMatches ? 'true' : 'false',
-            }),
-          },
-        }),
-      );
-    }
-
-    // Accepted is not delivered: only the device can say that it received the push, see
-    // `pushTrackingRouter.markDelivered`. A fast device can report back before this line
-    // runs, so the update must not overwrite its DELIVERED.
-    if (logId) {
-      await prisma.pushNotificationLog.updateMany({
-        where: { id: logId, status: 'PENDING' },
-        data: { status: 'SENT' },
-      });
-    }
-
-    if (
-      'id' in subscription &&
-      typeof subscription.id === 'string' &&
-      subscription.id.trim() !== ''
-    ) {
-      try {
-        const payload = await getPayload({ config });
-        await payload.update({
-          collection: 'push-notification-subscriptions',
-          id: subscription.id,
-          data: {
-            lastUsedAt: new Date().toISOString(),
-          },
-        });
-      } catch {
-        // Non-critical background update
-      }
-    }
-
-    return { success: true };
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const rejection = pushServiceRejectionOf(error);
-    const errorDescription = describeSendError(error, rejection);
-
-    if (logId) {
-      await prisma.pushNotificationLog.update({
-        where: { id: logId },
-        data: {
-          status: 'FAILED',
-          error: errorDescription,
-        },
-      });
-    }
-
-    // Auto-prune dead/expired tokens from Payload CMS.
-    //
-    // FCM reports a dead token as the bare message `NotRegistered`, and a dead APNs token as
-    // `APNs device token is disabled.`. The previous checks were case-sensitive and expected
-    // hyphenated spellings, so neither matched: those subscriptions were never pruned and every
-    // later notification retried them forever, filling the logs with the same two errors.
-    // Prefer the machine-readable code and keep the message checks as a case-insensitive
-    // fallback. Web Push says the same thing with a 404 or 410 status, which never shows up in
-    // the error message, so it is read off the rejection instead.
-    const fcmErrorCode = (error as { fcmErrorCode?: string } | undefined)?.fcmErrorCode;
-    const normalizedMessage = errorMessage.toLowerCase();
-
-    const indicatesDeadToken =
-      normalizedMessage.includes('notregistered') ||
-      normalizedMessage.includes('not-registered') ||
-      normalizedMessage.includes('invalid-registration-token') ||
-      normalizedMessage.includes('registration-token-not-registered') ||
-      normalizedMessage.includes('device token is disabled') ||
-      normalizedMessage.includes('not a valid fcm registration token');
-
-    const isExpired =
-      fcmErrorCode === 'messaging/registration-token-not-registered' ||
-      fcmErrorCode === 'messaging/invalid-registration-token' ||
-      // `invalid-argument` is also raised for a malformed payload, which is our bug and not the
-      // subscriber's - only treat it as fatal when the message actually names the token, so a
-      // bad payload can never delete healthy subscriptions.
-      (fcmErrorCode === 'messaging/invalid-argument' && indicatesDeadToken) ||
-      indicatesDeadToken ||
-      (rejection !== undefined && EXPIRED_WEB_PUSH_STATUS_CODES.has(rejection.statusCode)) ||
-      normalizedMessage.includes('not found') ||
-      normalizedMessage.includes('gone');
-
-    const logAttributes = {
-      'push.channel': channel,
-      'push.log_id': logId,
-      'push.fcm_error_code': fcmErrorCode,
-      'http.response.status_code': rejection?.statusCode,
-      'push.response_body': rejection?.body,
-      'server.address':
-        'endpoint' in subscription ? endpointHostOf(subscription.endpoint) : undefined,
-      'user.id': userId,
-      error,
-    };
-
-    // A device that unsubscribed is the normal end of a subscription, not a fault, and it
-    // is pruned below so it fires once per device. Anything else is worth a look.
-    if (!isExpired) {
-      logger.error('Sending push notification failed', logAttributes);
-      return { success: false, error: errorDescription };
-    }
-
-    logger.info('Pruning expired push subscription', logAttributes);
-    try {
-      const payload = await getPayload({ config });
-      if (
-        'endpoint' in subscription &&
-        typeof subscription.endpoint === 'string' &&
-        subscription.endpoint !== ''
-      ) {
-        await payload.delete({
-          collection: 'push-notification-subscriptions',
-          where: { endpoint: { equals: subscription.endpoint } },
-        });
-      } else if (
-        'token' in subscription &&
-        typeof subscription.token === 'string' &&
-        subscription.token !== ''
-      ) {
-        await payload.delete({
-          collection: 'push-notification-subscriptions',
-          where: { token: { equals: subscription.token } },
-        });
-      } else if (
-        'id' in subscription &&
-        typeof subscription.id === 'string' &&
-        subscription.id !== ''
-      ) {
-        await payload.delete({
-          collection: 'push-notification-subscriptions',
-          id: subscription.id,
-        });
-      } else {
-        return { success: false, error: errorDescription };
-      }
-    } catch (pruneError) {
-      logger.warn('Failed to prune expired push subscription', {
-        ...logAttributes,
-        error: pruneError,
-      });
-      return { success: false, error: errorDescription };
-    }
-
-    return { success: false, error: errorDescription, subscriptionRemoved: true };
-  }
+  if (where === undefined) return false;
+  await payload.delete({ collection: 'push-notification-subscriptions', where });
+  return true;
 }

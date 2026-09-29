@@ -49,6 +49,8 @@ export const PushNotificationSubscriptions: CollectionConfig = {
               name: 'endpoint',
               label: { en: 'Endpoint', de: 'Endpunkt', fr: 'Point de terminaison' },
               required: false,
+              // Looked up on every subscribe, renewal and pruned delivery.
+              index: true,
               admin: {
                 readOnly: true,
               },
@@ -113,6 +115,9 @@ export const PushNotificationSubscriptions: CollectionConfig = {
       label: { en: 'User', de: 'Benutzer', fr: 'Utilisateur' },
       relationTo: 'users',
       type: 'relationship',
+      // Every push looks its recipients' devices up by user; without an index that read
+      // scanned the whole collection once per chat message.
+      index: true,
       admin: {
         position: 'sidebar',
       },

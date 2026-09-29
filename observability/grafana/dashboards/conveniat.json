@@ -770,6 +770,228 @@
       }
     },
     {
+      "id": 153,
+      "title": "Push queue backlog",
+      "description": "PENDING deliveries on the queue. Every replica reports the same table, hence max. 'scheduled' waits for a retry.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 62,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "max by (state) (push_queue_deliveries)",
+          "legendFormat": "{{state}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 154,
+      "title": "Oldest due push delivery",
+      "description": "How long the oldest due delivery has waited for a worker. Seconds is healthy; minutes means nobody works the queue.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 62,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "max(push_queue_oldest_due_seconds)",
+          "legendFormat": "oldest due",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 155,
+      "title": "Time for a push to reach every device",
+      "description": "From queuing a push to its last delivery being settled, including retries.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 62,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, sum by (le, kind) (rate(push_notification_completion_seconds_bucket[1h])))",
+          "legendFormat": "p50 {{kind}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, kind) (rate(push_notification_completion_seconds_bucket[1h])))",
+          "legendFormat": "p95 {{kind}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 156,
+      "title": "Push deliveries queued and dropped/sec",
+      "description": "Dropped: the queue gave up without the push service having the last word (expired, attempts exhausted, device gone).",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 70,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (kind) (rate(push_deliveries_enqueued_total[5m]))",
+          "legendFormat": "queued {{kind}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (kind, reason) (rate(push_deliveries_dropped_total[5m]))",
+          "legendFormat": "dropped {{kind}} {{reason}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "ops"
+        }
+      }
+    },
+    {
+      "id": 157,
+      "title": "Push send latency (p95)",
+      "description": "How long one push service call takes.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 70,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, channel) (rate(push_send_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{channel}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "s"
+        }
+      }
+    },
+    {
+      "id": 158,
+      "title": "Push queue logs",
+      "type": "logs",
+      "gridPos": {
+        "x": 16,
+        "y": 70,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{container=~\".*payload.*\"} |~ \"Push (queued|completed|reached no device|deliveries failed|deliveries given up)\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
       "id": 5,
       "title": "Database infrastructure",
       "type": "row",
@@ -781,7 +1003,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 63,
+            "y": 79,
             "w": 12,
             "h": 8
           },
@@ -817,7 +1039,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 12,
-            "y": 63,
+            "y": 79,
             "w": 12,
             "h": 8
           },
@@ -853,7 +1075,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 71,
+            "y": 87,
             "w": 12,
             "h": 8
           },
@@ -889,7 +1111,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 12,
-            "y": 71,
+            "y": 87,
             "w": 12,
             "h": 8
           },
@@ -925,7 +1147,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 79,
+            "y": 95,
             "w": 12,
             "h": 8
           },
@@ -961,7 +1183,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 12,
-            "y": 79,
+            "y": 95,
             "w": 12,
             "h": 8
           },
@@ -997,7 +1219,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 87,
+            "y": 103,
             "w": 12,
             "h": 8
           },
@@ -1030,7 +1252,7 @@
       ],
       "gridPos": {
         "x": 0,
-        "y": 62,
+        "y": 78,
         "w": 24,
         "h": 1
       }
@@ -1043,7 +1265,7 @@
       "panels": [],
       "gridPos": {
         "x": 0,
-        "y": 95,
+        "y": 111,
         "w": 24,
         "h": 1
       }
@@ -1054,7 +1276,7 @@
       "type": "logs",
       "gridPos": {
         "x": 0,
-        "y": 96,
+        "y": 112,
         "w": 24,
         "h": 10
       },

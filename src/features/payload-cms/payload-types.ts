@@ -234,6 +234,7 @@ export interface Config {
       checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
+      drainPushQueue: TaskDrainPushQueue;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       syncParticipants: TaskSyncParticipants;
@@ -5158,6 +5159,7 @@ export interface PayloadJob {
           | 'checkHitobitoApprovals'
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
+          | 'drainPushQueue'
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
           | 'syncParticipants'
@@ -5217,6 +5219,7 @@ export interface PayloadJob {
         | 'checkHitobitoApprovals'
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
+        | 'drainPushQueue'
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
         | 'syncParticipants'
@@ -10113,6 +10116,14 @@ export interface TaskGeneratePdfThumbnail {
  * via the `definition` "TaskPublishScheduledAnnouncements".
  */
 export interface TaskPublishScheduledAnnouncements {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskDrainPushQueue".
+ */
+export interface TaskDrainPushQueue {
   input?: unknown;
   output?: unknown;
 }
