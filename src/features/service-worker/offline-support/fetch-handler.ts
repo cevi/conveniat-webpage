@@ -147,17 +147,9 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 10. GENERAL DASHBOARD FALLBACK
-  if (cleanPath.startsWith('/app/')) {
-    const dashKey = keys.find(
-      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/dashboard',
-    );
-    if (dashKey) {
-      match = await pagesCache.match(dashKey, { ignoreVary: true, ignoreSearch: true });
-      if (match) return match;
-    }
-  }
-
+  // No fallback to another section's page: answering /app/material with the dashboard showed
+  // the dashboard under the material URL, with the tab bar pointing at a page that was not
+  // there. The caller answers with the offline page instead, which says what is going on.
   return undefined;
 }
 
