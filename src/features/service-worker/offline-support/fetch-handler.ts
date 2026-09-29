@@ -154,6 +154,28 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
 }
 
 /**
+ * The cached answer to a page request, or undefined when there is none.
+ *
+ * A deep link to a schedule entry gets a redirect to `/app/schedule?id=…` instead of the cached
+ * schedule shell: served under the `[[...id]]` address, the shell's RSC tree does not match the
+ * route, and the router falls over (the offline schedule deep-link hotfix).
+ */
+async function cachedDocumentFor(url: URL): Promise<Response | undefined> {
+  const cleanPath = getCleanAppPath(url.pathname);
+  if (cleanPath.startsWith('/app/schedule/') && cleanPath !== '/app/schedule/') {
+    const id = cleanPath.replace('/app/schedule/', '');
+    return new Response(
+      `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/app/schedule?id=${id}"></head><body>Redirecting...</body></html>`,
+      {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      },
+    );
+  }
+  return matchCachedPage(url.toString());
+}
+
+/**
  * Whether an RSC request asks for the page its client was showing when it sent the request, like
  * a `router.replace` that only changes the query or a `router.refresh`.
  *
@@ -251,22 +273,7 @@ async function offlineFallback(
 
   // Strategy B: Cached HTML Page
   if (request.destination === 'document') {
-    const cleanPath = getCleanAppPath(url.pathname);
-
-    // [HOTFIX]: Redirect offline visits for deep linked schedule entries to use query param
-    // to avoid Next.js RSC router mismatch on optional catch-all segments.
-    if (cleanPath.startsWith('/app/schedule/') && cleanPath !== '/app/schedule/') {
-      const id = cleanPath.replace('/app/schedule/', '');
-      return new Response(
-        `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/app/schedule?id=${id}"></head><body>Redirecting...</body></html>`,
-        {
-          status: 200,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        },
-      );
-    }
-
-    const cachedPage = await matchCachedPage(url.toString());
+    const cachedPage = await cachedDocumentFor(url);
     if (cachedPage) return cachedPage;
 
     // Generic Offline Page (final fallback for documents)
@@ -398,6 +405,13 @@ async function offlineFallback(
 /** How long an App Mode page or RSC request may take before the cached copy is shown. */
 const APP_MODE_NETWORK_TIMEOUT_MS = 3000;
 
+/**
+ * How long a request without a cached copy waits for a slow network before the offline page
+ * answers. Wifi that is up but has no working uplink leaves a request open until the browser's
+ * own timeout, which can be minutes.
+ */
+const APP_MODE_NETWORK_GIVE_UP_MS = 15_000;
+
 const noop = (): void => {};
 
 /**
@@ -519,7 +533,8 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // APP_MODE_NETWORK_TIMEOUT_MS, the cached copy is served, but the request keeps running and
     // refreshes the cache when it lands; aborting it meant a slow network never refreshed
     // anything. Without a cached copy there is nothing better to show, so the worker keeps
-    // waiting for the network instead of giving up on a page that would have arrived.
+    // waiting for the network, up to APP_MODE_NETWORK_GIVE_UP_MS, instead of giving up on a page
+    // that would have arrived.
     if (isAppMode && (isDocument || isRsc)) {
       // Only navigation payloads are cached. Offline, `matchCachedRsc` answers a navigation
       // with any entry for the same path, and a prefetch response there (a route tree or a
@@ -547,9 +562,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         // navigation payload in a shape it does not expect.
         let cached: Response | undefined;
         if (!isPrefetch) {
-          cached = isRsc
-            ? await matchCachedRsc(url.toString())
-            : await matchCachedPage(url.toString());
+          cached = isRsc ? await matchCachedRsc(url.toString()) : await cachedDocumentFor(url);
         }
         if (cached) {
           console.log(`[SW] Slow network for ${url.pathname}, serving the cached copy meanwhile`);
@@ -557,8 +570,20 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
           return cached;
         }
 
-        const lateResponse = await fromNetwork;
-        return isRsc ? sanitizeRscResponse(lateResponse) : lateResponse;
+        const givingUp = new Promise<'give-up'>((resolve) => {
+          timeoutId = setTimeout(
+            () => resolve('give-up'),
+            APP_MODE_NETWORK_GIVE_UP_MS - APP_MODE_NETWORK_TIMEOUT_MS,
+          );
+        });
+        const late = await Promise.race([fromNetwork, givingUp]);
+        clearTimeout(timeoutId);
+        if (late === 'give-up') {
+          console.warn(`[SW] No answer for ${url.pathname}, answering with the offline fallback`);
+          event.waitUntil(fromNetwork.then(noop, noop));
+          return offlineFallback(event.request, url, isAppMode, event.clientId);
+        }
+        return isRsc ? sanitizeRscResponse(late) : late;
       } catch (error) {
         clearTimeout(timeoutId);
         console.warn(

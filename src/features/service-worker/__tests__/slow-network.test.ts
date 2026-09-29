@@ -132,4 +132,21 @@ describe('app navigation on a slow network', () => {
     expect(shown.status).toBe(200);
     await expect(shown.text()).resolves.toBe('fresh schedule');
   });
+
+  it('stops waiting after a while on wifi that has no working uplink', async () => {
+    const { storage } = cachesWith(new Map());
+    globalThis.caches = storage;
+    globalThis.fetch = jest.fn(() => new Promise<Response>(() => {}));
+
+    const { answer } = navigateInApp();
+    let answered = false;
+    void answer.then(() => {
+      answered = true;
+    });
+
+    await jest.advanceTimersByTimeAsync(10_000);
+    expect(answered).toBe(false);
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(answered).toBe(true);
+  });
 });
