@@ -1,0 +1,44 @@
+enum CourseType {
+  /// a program schedule entry (workshop, general event, etc.)
+  PROGRAM
+
+  /// a helper shift (Schichteinsatz)
+  SHIFT
+}
+
+model Enrollment {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  // links to the objectID in the courses/shifts collection in MongoDB
+  courseId String
+
+  /// discriminates between program schedule entries and helper shifts
+  courseType CourseType @default(PROGRAM)
+
+  @@unique([courseId, courseType, userId]) // every user can only be enrolled once per course and course type
+  @@index([courseId])
+  @@index([userId])
+  @@index([courseType])
+}
+
+model Star {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  courseId String
+
+  /// discriminates between program schedule entries and helper shifts
+  courseType CourseType @default(PROGRAM)
+
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, userId, courseType])
+  @@index([courseId])
+  @@index([userId])
+  @@index([courseType])
+}
