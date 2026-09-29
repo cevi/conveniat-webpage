@@ -12,6 +12,7 @@ import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { useQueryClient } from '@tanstack/react-query';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
@@ -50,6 +51,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
   const releasePushSubscriptions = useReleasePushSubscriptions();
+  const queryClient = useQueryClient();
 
   const handleLogin = (): void => {
     const values = getValues();
@@ -85,14 +87,19 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     if (typeof callbackUrl === 'string' && callbackUrl !== '') {
       signInOptions.callbackUrl = callbackUrl;
     }
-    // Switching to another person has to drop what was cached for this one, exactly like a
-    // logout: without it the next account saw the previous user's chats, emergency cards and
-    // shifts from the persisted cache, and their pages from the service worker.
-    flushPersonalData();
+    // Switching to another person has to drop what was cached for this one, like a logout does:
+    // without it the next account saw the previous user's chats, emergency cards and shifts.
+    // Only once the sign-out went through (offline it fails, and the user stays signed in with
+    // their data), and the in-memory cache goes too, or the persister writes it straight back.
     void releasePushSubscriptions()
       .then(() => signOut({ redirect: false }))
       .then(() => {
+        queryClient.clear();
+        flushPersonalData();
         void signIn('cevi-db', signInOptions);
+      })
+      .catch((switchError: unknown) => {
+        console.warn('Switching the Cevi.DB login failed', switchError);
       });
   };
 
