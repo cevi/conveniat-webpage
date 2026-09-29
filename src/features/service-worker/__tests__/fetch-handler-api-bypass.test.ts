@@ -52,6 +52,12 @@ describe('service worker API routing', () => {
     expect(dispatch(path, { method }).respondWith).not.toHaveBeenCalled();
   });
 
+  // Next.js probes for connectivity with it; a cached answer would report the device online.
+  test('leaves the router connectivity probe to the browser', () => {
+    const probe = dispatch('/app/dashboard', { method: 'HEAD', headers: { RSC: '1' } });
+    expect(probe.respondWith).not.toHaveBeenCalled();
+  });
+
   test.each([
     ['tRPC, which falls back to the persisted query cache', '/api/trpc/getChatList'],
     ['auth, which keeps a session offline', '/api/auth/providers'],
