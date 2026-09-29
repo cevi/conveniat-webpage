@@ -141,9 +141,15 @@ export async function setOfflineSupportEnabled(enabled: boolean): Promise<void> 
  */
 let downloadGeneration = 0;
 
+/** Page fetches in progress, shared by concurrent requests for the same page. */
+const inFlightPageRequests = new Map<string, Promise<void>>();
+
 /** Stops a running offline download from writing any further pages or setting its flag. */
 export function cancelRunningDownload(): void {
   downloadGeneration++;
+  // The cancelled fetches keep running but no longer write; a new download must not wait on
+  // them and end up with those pages missing.
+  inFlightPageRequests.clear();
 }
 
 const inFlightAssetRequests = new Map<string, Promise<void>>();
@@ -271,8 +277,6 @@ function extractAssetUrls(htmlText: string, rscText?: string): string[] {
 
   return [...assets];
 }
-
-const inFlightPageRequests = new Map<string, Promise<void>>();
 
 async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   if (inFlightPageRequests.has(pageUrl)) {
@@ -420,7 +424,7 @@ async function cacheSinglePageAndScrape(pageUrl: string): Promise<void> {
   try {
     await promise;
   } finally {
-    inFlightPageRequests.delete(pageUrl);
+    if (inFlightPageRequests.get(pageUrl) === promise) inFlightPageRequests.delete(pageUrl);
   }
 }
 

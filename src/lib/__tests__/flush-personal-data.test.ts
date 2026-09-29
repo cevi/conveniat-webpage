@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { flushPersonalData } from '@/lib/flush-personal-data';
+import Cookies from 'js-cookie';
 
 jest.mock('@/lib/tanstack-db', () => ({
   starsCollection: {
@@ -70,6 +71,23 @@ describe('flushPersonalData', () => {
 
     const sentTypes = (): unknown[] =>
       postMessage.mock.calls.map(([message]) => (message as { type: string }).type);
+
+    it('offers the offline download to the next person after an explicit logout', () => {
+      Cookies.set('skip-offline-content', 'true');
+
+      flushPersonalData({ clearCachedPages: true });
+
+      expect(Cookies.get('skip-offline-content')).toBeUndefined();
+    });
+
+    it('keeps the skipped download when the session merely expired', () => {
+      Cookies.set('skip-offline-content', 'true');
+
+      flushPersonalData({ keepUnsentChatMessages: true });
+
+      expect(Cookies.get('skip-offline-content')).toBe('true');
+      Cookies.remove('skip-offline-content');
+    });
 
     it('are cleared on an explicit logout', () => {
       flushPersonalData({ clearCachedPages: true });

@@ -4,7 +4,9 @@ import { clearUnsentChatData } from '@/lib/chat-local-storage';
 import { withKeyvalStore } from '@/lib/idb-keyval-store';
 import { clearPersonalPreferences } from '@/lib/preferences';
 import { starsCollection } from '@/lib/tanstack-db';
+import { Cookie } from '@/types/types';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
+import Cookies from 'js-cookie';
 
 /**
  * Storage keys used by @tanstack/react-query-persist-client to persist
@@ -63,6 +65,12 @@ export function flushPersonalData({
   void withKeyvalStore('readwrite', (store) => {
     store.delete(PERSISTED_QUERY_CACHE_IDB_KEY);
   });
+
+  // The offline download goes with the cached pages, so the next person must be offered it
+  // again instead of inheriting "skipped" from the previous one.
+  if (clearCachedPages) {
+    Cookies.remove(Cookie.OFFLINE_CONTENT_HANDLED);
+  }
 
   // Clear Service Worker NextAuth session cache
   if (typeof globalThis !== 'undefined' && 'caches' in globalThis) {
