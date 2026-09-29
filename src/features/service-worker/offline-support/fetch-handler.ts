@@ -756,22 +756,6 @@ export const handleFetchEvent =
       event.waitUntil(forgetCachedSession());
     }
 
-    if (isAuthRequest && url.pathname.endsWith('/csrf')) {
-      event.respondWith(
-        (async (): Promise<Response> => {
-          try {
-            return await fetch(event.request);
-          } catch {
-            return new Response(JSON.stringify({ csrfToken: 'offline-csrf-token' }), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            });
-          }
-        })(),
-      );
-      return;
-    }
-
     if (isAuthRequest && url.pathname.endsWith('/session')) {
       event.respondWith(
         (async (): Promise<Response> => {
@@ -825,6 +809,12 @@ export const handleFetchEvent =
 
     // Proxy bypass: We still want the SW to intercept these to provide the automatic
     // HTML retry wrapper on connection drops, but we skip cache lookup strategies.
+    //
+    // `/api/auth/csrf` deliberately takes this path rather than a fallback of its own. It used
+    // to answer an unreachable network with a made-up `offline-csrf-token`. That changed
+    // nothing: next-auth's `getCsrfToken()` already turns a failed fetch into an empty token,
+    // and the server rejects an empty token and a made-up one alike with `MissingCSRF`. It only
+    // hid that the request had failed.
     const bypassSWProxy = isPreviewRequest || isAuthRequest || isTrpcRequest;
 
     if (bypassSWProxy) {
