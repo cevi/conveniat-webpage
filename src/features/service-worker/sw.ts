@@ -8,6 +8,7 @@ import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { serwist } from '@/features/service-worker/offline-support/caching';
 import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
+import { clearPersonalCaches } from '@/features/service-worker/offline-support/personal-caches';
 import {
   cachePageAndScrape,
   isOfflineSupportEnabled,
@@ -194,11 +195,12 @@ self.addEventListener('message', (event) => {
     );
   }
 
+  // Sent by flushPersonalData on logout and when the session expired.
   if (data?.type === 'CLEAR_AUTH_CACHE') {
     event.waitUntil(
       (async (): Promise<void> => {
-        await caches.delete(CACHE_NAMES.AUTH_SESSION);
-        console.log('[SW] Cleared next-auth-session-cache.');
+        await clearPersonalCaches();
+        console.log('[SW] Cleared the session, page and RSC caches.');
       })(),
     );
   }

@@ -24,7 +24,9 @@ const LEGACY_STARS_KEY = 'starredItems';
  *
  * What gets cleared:
  * - Persisted TanStack Query cache in localStorage (`conveniat-query-cache`) and IndexedDB (`conveniat-query-cache-idb`)
- * - Cached NextAuth session in Service Worker cache (`next-auth-session-cache`)
+ * - Cached NextAuth session in Service Worker cache (`next-auth-session-cache`), and through the
+ *   `CLEAR_AUTH_CACHE` message the worker's page and RSC caches, which hold pages rendered for
+ *   the user, together with the offline download made with their cookie
  * - TanStack DB `stars` collection (personal starred items)
  * - Personal preferences (onboarding state etc.), see `clearPersonalPreferences`
  * - Legacy `starredItems` localStorage key
