@@ -1,4 +1,5 @@
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
+import { formatHofRoles } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 
 /**
  * The Hof line under a contact, one part per Hof, e.g. "AVP, Cevi Uster, Quartier 3"
@@ -8,15 +9,7 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
  * falls back to the plain Höfe and Quartiere then.
  */
 export const describeContactHof = (contact: Contact): string => {
-  if (contact.hofRoles !== undefined) {
-    return contact.hofRoles
-      .map(({ hof, quartier, isAvp }) =>
-        [isAvp ? 'AVP' : undefined, hof, quartier]
-          .filter((part) => part !== undefined && part !== '')
-          .join(', '),
-      )
-      .join(' · ');
-  }
+  if (contact.hofRoles !== undefined) return formatHofRoles(contact.hofRoles);
   return [(contact.hoefe ?? []).join(', '), (contact.quartiere ?? []).join(', ')]
     .filter((part) => part !== '')
     .join(' · ');

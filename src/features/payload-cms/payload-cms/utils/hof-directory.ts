@@ -71,3 +71,16 @@ export const describeHofRoles = (
     if (label === undefined) return [];
     return [{ hof: label.name, quartier: label.quartier?.name, isAvp: avpHofIds.includes(id) }];
   });
+
+/**
+ * The Hof line under a person, one part per Hof, e.g. "AVP, Cevi Uster, Quartier 3" for the
+ * Hof's AVP and "Züri 11, Quartier 1" for everyone else. Empty for someone at no Hof.
+ */
+export const formatHofRoles = (roles: readonly HofRole[]): string =>
+  roles
+    .map(({ hof, quartier, isAvp }) =>
+      [isAvp ? 'AVP' : undefined, hof, quartier]
+        .filter((part) => part !== undefined && part !== '')
+        .join(', '),
+    )
+    .join(' · ');

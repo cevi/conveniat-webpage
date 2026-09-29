@@ -18,6 +18,7 @@ import {
   NativeSelect,
   Panel,
 } from '@/features/material/components/material-ui';
+import { ResponsibleNameField } from '@/features/material/components/responsible-name-field';
 import {
   materialQueryOptions,
   useInvalidateMaterial,
@@ -593,14 +594,11 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
             </Field>
           )}
           {start.holder.kind === 'HOF' && !adjusting && (
-            <Field label={text.responsible[locale]}>
-              <input
-                className={inputClass}
-                value={responsibleName}
-                autoComplete="off"
-                onChange={(event) => setResponsibleName(event.target.value)}
-              />
-            </Field>
+            <ResponsibleNameField
+              label={text.responsible[locale]}
+              value={responsibleName}
+              onChange={setResponsibleName}
+            />
           )}
         </Panel>
       </section>
