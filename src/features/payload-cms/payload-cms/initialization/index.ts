@@ -333,6 +333,7 @@ export const deleteEverything = async (payload: Payload): Promise<void> => {
   await prisma
     .$transaction([
       prisma.pushNotificationLog.deleteMany(),
+      prisma.pushNotification.deleteMany(),
       // material loans and incidents point at users, so they go first
       prisma.materialIncident.deleteMany(),
       prisma.materialLoan.deleteMany(),

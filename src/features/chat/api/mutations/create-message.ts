@@ -2,13 +2,13 @@ import {
   assertMembershipCanWrite,
   assertWriteAbilities,
 } from '@/features/chat/api/checks/assert-can-write-in-chat';
-import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
+import { sendNotification } from '@/lib/push/send-notification';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';

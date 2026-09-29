@@ -1,8 +1,8 @@
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
-import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { ChatCapability, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma';
+import { sendNotification } from '@/lib/push/send-notification';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';

@@ -5,6 +5,7 @@ import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import { PushNotificationKind } from '@/lib/prisma';
+import { sendNotification } from '@/lib/push/send-notification';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -13,8 +14,6 @@ import type { Prisma } from '@prisma/client';
 import { ChatMembershipPermission, ChatType, MessageEventType, MessageType } from '@prisma/client';
 import { getPayload } from 'payload';
 import { z } from 'zod';
-// eslint-disable-next-line import/no-restricted-paths
-import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 // eslint-disable-next-line import/no-restricted-paths
 import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 

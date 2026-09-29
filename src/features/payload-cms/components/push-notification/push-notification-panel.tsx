@@ -2,6 +2,7 @@
 import { useSendTestNotification } from '@/features/payload-cms/components/push-notification/use-send-test-notification';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
+import { MAX_DELIVERY_ATTEMPTS } from '@/lib/push/push-delivery-policy';
 import { trpc, TRPCProvider } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -100,6 +101,11 @@ const noUserLabel: StaticTranslationString = {
   fr: "Aucune personne n'est liée à cet abonnement, il n'y a donc pas d'historique.",
   en: 'No person is linked to this subscription, so there is no history.',
 };
+const attemptLabel = (attempts: number): StaticTranslationString => ({
+  de: `Versuch ${String(attempts)} von ${String(MAX_DELIVERY_ATTEMPTS)}: `,
+  fr: `Essai ${String(attempts)} sur ${String(MAX_DELIVERY_ATTEMPTS)} : `,
+  en: `Attempt ${String(attempts)} of ${String(MAX_DELIVERY_ATTEMPTS)}: `,
+});
 const chatMessageLabel: StaticTranslationString = {
   de: 'Chat-Nachricht',
   fr: 'Message de chat',
@@ -116,7 +122,8 @@ const columnLabels: Record<
   interaction: { de: 'Interaktion', fr: 'Interaction', en: 'Interaction' },
 };
 
-type LogStatus = 'failed' | 'interacted' | 'suppressed' | 'delivered' | 'sent' | 'pending';
+type LogStatus =
+  'failed' | 'interacted' | 'suppressed' | 'delivered' | 'sent' | 'retrying' | 'pending';
 
 const statusLabels: Record<LogStatus, StaticTranslationString> = {
   failed: { de: 'Fehlgeschlagen', fr: 'Échoué', en: 'Failed' },
@@ -124,6 +131,7 @@ const statusLabels: Record<LogStatus, StaticTranslationString> = {
   suppressed: { de: 'App war offen', fr: 'App ouverte', en: 'App was open' },
   delivered: { de: 'Zugestellt', fr: 'Livré', en: 'Delivered' },
   sent: { de: 'Gesendet', fr: 'Envoyé', en: 'Sent' },
+  retrying: { de: 'Wird wiederholt', fr: 'Nouvel essai prévu', en: 'Retrying' },
   pending: { de: 'Ausstehend', fr: 'En attente', en: 'Pending' },
 };
 
@@ -136,6 +144,7 @@ const statusPillStyles: Record<
   suppressed: 'light',
   delivered: 'success',
   sent: 'light',
+  retrying: 'warning',
   pending: 'light-gray',
 };
 
@@ -264,7 +273,9 @@ const NotificationHistory: React.FC<{ userId: string; locale: Locale }> = ({ use
     }
     return logs.map((log) => {
       let status: LogStatus = 'pending';
-      if (log.status === 'FAILED' || log.error !== null) status = 'failed';
+      if (log.status === 'FAILED') status = 'failed';
+      // Still queued after a failed attempt: the error is the last one, not the verdict.
+      else if (log.status === 'PENDING' && log.error !== null) status = 'retrying';
       else if (log.interactedAt !== null) status = 'interacted';
       // The device received it but showed nothing, because the app was open on the chat.
       else if (log.interactionType === 'SUPPRESSED') status = 'suppressed';
@@ -285,7 +296,16 @@ const NotificationHistory: React.FC<{ userId: string; locale: Locale }> = ({ use
               {isChat ? chatMessageLabel[locale] : log.content}
             </div>
             {log.error !== null && (
-              <div className="mt-1 truncate text-sm text-(--theme-error-500)" title={log.error}>
+              <div
+                className={cn(
+                  'mt-1 truncate text-sm',
+                  status === 'retrying'
+                    ? 'text-(--theme-elevation-500)'
+                    : 'text-(--theme-error-500)',
+                )}
+                title={log.error}
+              >
+                {status === 'retrying' ? attemptLabel(log.attempts)[locale] : ''}
                 {log.error}
               </div>
             )}
