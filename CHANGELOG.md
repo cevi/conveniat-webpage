@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.25.0](https://github.com/cevi/conveniat-webpage/compare/v1.24.0...v1.25.0) (2026-09-29)
+
+
+### Features
+
+* **push:** trace push notifications from send to device ([2e69a0e](https://github.com/cevi/conveniat-webpage/commit/2e69a0edb86a007d0888b42164b56015bd9bf3fa))
+* **push:** trace push notifications from send to device ([2dd51d2](https://github.com/cevi/conveniat-webpage/commit/2dd51d25f865d096d0c19b945be1db3e12d5b2c2))
+
+
+### Bug Fixes
+
+* **announcements:** push only after the announcement is validated and saved ([aa33f68](https://github.com/cevi/conveniat-webpage/commit/aa33f6825a5201cbac690ce3226dd642fbdf7195))
+* **announcements:** push only after the announcement is validated and saved ([0e04eb6](https://github.com/cevi/conveniat-webpage/commit/0e04eb6478e6120ac644562bb4563276c8d507ca))
+* **push:** cut long messages to a preview so the push is delivered ([6166625](https://github.com/cevi/conveniat-webpage/commit/6166625140067606e490935cc53c99b5098b6a17))
+* **push:** cut long messages to a preview so the push is delivered ([508434d](https://github.com/cevi/conveniat-webpage/commit/508434d5eca0160b0e2e0b50390de662e3929f6f))
+* **push:** keep WebKit from revoking subscriptions after suppressed pushes ([abc9108](https://github.com/cevi/conveniat-webpage/commit/abc9108d80662a306a53619e16f6ae43d7a367a8))
+* **push:** keep WebKit from revoking subscriptions after suppressed pushes ([ae2fcdc](https://github.com/cevi/conveniat-webpage/commit/ae2fcdc0af8132b410e72226e5b873af39b7767a))
+* **push:** logout ends this device's push subscriptions ([597598b](https://github.com/cevi/conveniat-webpage/commit/597598be627b674c32c761ffb5602044378d910a))
+* **push:** logout ends this device's push subscriptions ([f2e840d](https://github.com/cevi/conveniat-webpage/commit/f2e840d559e6be0cc4cbf20249bebbfc41632987))
+* **push:** report subscriptions the browser renews or a VAPID key change strands ([5939923](https://github.com/cevi/conveniat-webpage/commit/5939923585294bee9b2071a879d1af9e6851479f))
+* **push:** report subscriptions the browser renews or a VAPID key change strands ([d605208](https://github.com/cevi/conveniat-webpage/commit/d605208017d44f84f21ecde5996f42dc85dd1f1e))
+* **push:** stop deleting web push subscriptions on every boot ([84fe4d3](https://github.com/cevi/conveniat-webpage/commit/84fe4d32041de0a6296058658c848a416cc5605e))
+* **push:** stop deleting web push subscriptions on every boot ([a93aae7](https://github.com/cevi/conveniat-webpage/commit/a93aae7af8a78c85a520ca48b593ee879b48b8bc))
+* **push:** turning native push off survives app restarts ([5096288](https://github.com/cevi/conveniat-webpage/commit/509628858b37432c0928bdccf8b84cd760558d1b))
+* **push:** turning native push off survives app restarts ([a100e6c](https://github.com/cevi/conveniat-webpage/commit/a100e6c214fb28ab8266276805ab34e87c096802))
+* **sw:** keep repeated-slash API paths out of the runtime caches ([6c5cb09](https://github.com/cevi/conveniat-webpage/commit/6c5cb094d042fdf2c427c5153fb3532b68c43183))
+
 ## [1.24.0](https://github.com/cevi/conveniat-webpage/compare/v1.23.1...v1.24.0) (2026-09-28)
 
 
