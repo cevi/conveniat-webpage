@@ -25,13 +25,7 @@ const cacheOf = (entries: Record<string, string>): Cache =>
 const fetchTileFromMapWorker = (url: string): Promise<Response> => {
   let answer: Promise<Response> | undefined;
   const event = {
-    request: {
-      url,
-      method: 'GET',
-      mode: 'cors',
-      destination: '',
-      headers: new Headers(),
-    },
+    request: new Request(url, { mode: 'cors' }),
     clientId: 'maplibre-worker',
     resultingClientId: '',
     respondWith: (response: Promise<Response>): void => {
@@ -49,6 +43,10 @@ describe('offline map tiles', () => {
   const originalNavigator = globalThis.navigator;
 
   beforeEach(() => {
+    Object.defineProperty(globalThis, 'self', {
+      value: { location: { origin: 'https://conveniat27.ch' } },
+      configurable: true,
+    });
     const tiles = cacheOf({ [CACHED_TILE]: 'the tile' });
     const empty = cacheOf({});
     globalThis.caches = {
@@ -67,6 +65,7 @@ describe('offline map tiles', () => {
       value: originalNavigator,
       configurable: true,
     });
+    Reflect.deleteProperty(globalThis, 'self');
   });
 
   it('serves a downloaded tile to the map worker, from whichever tile server it asks', async () => {
