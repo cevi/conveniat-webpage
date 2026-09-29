@@ -8,7 +8,10 @@ export interface OnboardingContext {
   pushPermission: NotificationPermission;
   hasPushSubscription: boolean;
   offlineContentHandled: boolean;
+  /** The app can start without a connection: the page the entrypoint hands over to is cached. */
   hasCachedContent: boolean;
+  /** The offline download ran to the end, so there is nothing left to offer. */
+  hasDownloadedContent: boolean;
   hasSkippedOffline: boolean;
   isOnline: boolean;
 }
@@ -35,6 +38,7 @@ export const initialOnboardingContext: OnboardingContext = {
   hasPushSubscription: false,
   offlineContentHandled: false,
   hasCachedContent: false,
+  hasDownloadedContent: false,
   hasSkippedOffline: false,
   isOnline: true,
 };
@@ -57,6 +61,7 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
     hasPushSubscription,
     offlineContentHandled,
     hasCachedContent,
+    hasDownloadedContent,
     hasSkippedOffline,
     isOnline,
   } = context;
@@ -85,20 +90,14 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
     return OnboardingStep.PushNotifications;
   }
 
-  // Offline Content check
-  const showOffline = !offlineContentHandled && !hasCachedContent && !hasSkippedOffline;
-  if (showOffline) {
-    // If we are about to show offline content screen, BUT we are actually offline and have NO content,
-    // we should show a "No Internet" screen instead of asking them if they want to download content they can't reach.
-    // Or if we generally want to block access if offline and no cache.
-    // The requirement says: If !isOnline AND !hasCachedContent -> NoInternet
-    if (!isOnline) {
-      return OnboardingStep.NoInternet;
-    }
+  // Offer the offline download until it was handled, skipped or has run. Offline there is
+  // nothing to download, so the offer waits for the connection.
+  const showOffline = !offlineContentHandled && !hasDownloadedContent && !hasSkippedOffline;
+  if (showOffline && isOnline) {
     return OnboardingStep.OfflineContent;
   }
 
-  // General check: If we are effectively "done" (Loading), but offline and no cache, we can't load the app.
+  // Offline, the app can only start from the cache.
   if (!isOnline && !hasCachedContent) {
     return OnboardingStep.NoInternet;
   }

@@ -1,11 +1,10 @@
-import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
+import { CACHE_NAMES, OFFLINE_ENABLED_FLAG, TIMEOUTS } from '@/features/service-worker/constants';
 import { offlinePages } from '@/features/service-worker/offline-support/offline-pages';
 import { offlineRegistry } from '@/features/service-worker/offline-support/offline-registry';
 import { getCleanAppPath } from '@/features/service-worker/offline-support/rsc-utils';
 import { DesignModeTriggers } from '@/utils/design-codes';
 
 export const OFFLINE_STATUS_CACHE = CACHE_NAMES.OFFLINE_STATUS;
-export const OFFLINE_ENABLED_FLAG = 'offline-enabled';
 
 // Simple p-limit implementation to avoid dependencies
 const pLimit = (concurrency: number) => {
