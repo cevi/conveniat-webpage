@@ -1,0 +1,51 @@
+model User {
+  uuid                  String   @id
+  lastSeen              DateTime @default(now())
+  name                  String
+  description           String?
+  hidden                Boolean  @default(false)
+  presentAtCamp         Boolean  @default(false)
+  /// ids of the Höfe in Payload's `hoefe` collection the user is registered at, mirrored from
+  /// the Payload user; no foreign key, the Höfe live in MongoDB
+  hofIds                String[] @default([])
+  /// the subset of `hofIds` where the user holds the Hauptleitung, i.e. is the Hof's AVP
+  avpHofIds             String[] @default([])
+  /// ids of the camp functions in Payload's `funktionen` collection the user holds, mirrored
+  /// from the Payload user; no foreign key, the functions live in MongoDB
+  funktionIds           String[] @default([])
+  /// version of the user's profile picture from Cevi.DB, cached in S3 under
+  /// `profile-pictures/<uuid>/<version>.webp`, mirrored from the Payload user; null when none
+  profilePictureVersion String?
+
+  messages             Message[]
+  chatMemberships      ChatMembership[]
+  messagesEvents       MessageEvent[]
+  Enrollments          Enrollment[]
+  Stars                Star[]
+  pushNotificationLogs PushNotificationLog[]
+  reactions            MessageReaction[]
+  presenceLogs         PresenceLog[]
+  photoContestImages   PhotoContestImage[]
+  photoContestVotes    PhotoContestVote[]
+  materialLoans        MaterialLoan[]        @relation("MaterialLoanPerson")
+  createdMaterialLoans MaterialLoan[]        @relation("MaterialLoanCreatedBy")
+  materialIncidents    MaterialIncident[]    @relation("MaterialIncidentReportedBy")
+  addressBook          AddressBookEntry[]    @relation("AddressBookOwner")
+  inAddressBooksOf     AddressBookEntry[]    @relation("AddressBookContact")
+  issuedChatInvites    ChatInvite[]          @relation("ChatInviteIssuer")
+  redeemedChatInvites  ChatInvite[]          @relation("ChatInviteRedeemer")
+
+  @@index([name])
+}
+
+model PresenceLog {
+  uuid      String   @id @default(uuid(7))
+  userUuid  String
+  isPresent Boolean
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([userUuid])
+  @@index([timestamp])
+}

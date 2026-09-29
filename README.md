@@ -371,11 +371,11 @@ export DB_PASSWORD=
 export CHAT_DATABASE_URL="postgres://konekta:$DB_PASSWORD@localhost:5433/konekta"
 
 # Check status
-npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma
+npx prisma migrate diff --from-config-datasource --to-schema prisma/schema
 
 # Create/Apply migrations
-npx prisma migrate dev --schema prisma/schema.prisma # for dev
-npx prisma migrate deploy --schema prisma/schema.prisma # for prod
+npx prisma migrate dev # for dev
+npx prisma migrate deploy # for prod
 ```
 
 ### Database Maintenance
