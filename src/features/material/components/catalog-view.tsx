@@ -65,7 +65,7 @@ const text = {
     fr: '{lines} · {pieces} pièces',
   },
   toRequest: { de: 'Weiter zur Anfrage', en: 'Go to the request', fr: 'Vers la demande' },
-  toRequestShort: { de: 'Zur Anfrage', en: 'To request', fr: 'Demande' },
+  toRequestShort: { de: 'Zur Anfrage', en: 'View request', fr: 'Voir la demande' },
   back: { de: 'Zum Material', en: 'To the material', fr: 'Vers le matériel' },
   notAnItem: {
     de: 'Das ist kein Artikel-Etikett.',
@@ -238,7 +238,8 @@ const CatalogList: React.FC<{
               aria-label={text.sort[locale]}
               value={sort}
               onChange={(event) => setSort(event.target.value as Sort)}
-              className="w-auto border-transparent bg-transparent text-sm font-semibold text-gray-700"
+              // stays at the field's 16 px: anything smaller makes iOS zoom in on a tap
+              className="w-auto border-transparent bg-transparent font-semibold text-gray-700"
             >
               {Object.entries(sortLabel).map(([value, label]) => (
                 <option key={value} value={value}>

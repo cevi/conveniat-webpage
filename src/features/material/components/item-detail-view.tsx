@@ -399,11 +399,11 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
                     )}
                     <span className="break-words hyphens-auto">{label}</span>
                   </dt>
-                  {/* a zero is worth knowing, not worth looking at */}
+                  {/* a zero is worth knowing, not worth looking at; grey 500 still reads in sunlight */}
                   <dd
                     className={cn(
-                      'mt-0.5 text-xl font-semibold tabular-nums',
-                      value === 0 ? 'text-gray-300' : 'text-gray-900',
+                      'mt-0.5 text-xl tabular-nums',
+                      value === 0 ? 'font-normal text-gray-500' : 'font-semibold text-gray-900',
                     )}
                   >
                     {value}

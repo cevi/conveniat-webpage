@@ -19,7 +19,9 @@ export const MaterialItemImage: React.FC<{
   imageUrl: string | null;
   className?: string;
 }> = ({ name, imageUrl, className }) => {
-  const [failed, setFailed] = useState(false);
+  // the link that failed, not a flag: a fixed link on the same mounted page loads again
+  const [failedUrl, setFailedUrl] = useState<string | undefined>();
+  const failed = imageUrl !== null && imageUrl === failedUrl;
   const tile =
     'flex shrink-0 items-center justify-center rounded-lg ring-1 ring-gray-200 ring-inset';
   if (imageUrl === null || imageUrl === '' || failed) {
@@ -37,7 +39,7 @@ export const MaterialItemImage: React.FC<{
         alt={name}
         loading="lazy"
         decoding="async"
-        onError={() => setFailed(true)}
+        onError={() => setFailedUrl(imageUrl)}
         className="size-full object-contain"
       />
     </div>

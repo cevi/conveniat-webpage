@@ -74,7 +74,8 @@ export const ItemRow: React.FC<{
         )}
       </div>
       <div className="mt-2 flex flex-wrap items-end justify-end gap-x-3 gap-y-2">
-        {/* narrow enough that "Anfragen" fits beside it on a 360 px phone */}
+        {/* narrow enough that the round "+" or a short "why not" fits beside it on a 360 px
+            phone; the wider stepper wraps below */}
         <div className="min-w-28 flex-1">
           <MaterialStockBar
             stock={item.stock}

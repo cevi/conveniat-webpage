@@ -13,8 +13,9 @@ import type React from 'react';
  * The top of an article page, the same for the material team and everybody else: photo,
  * shelf and code, the name, and right under it what decides whether the article is of use,
  * which the page passes as `children`. With `hero`, the photo leads across the full width of a
- * phone, it is how a participant tells the Kompass Recta from the Silva; an article without
- * one skips it there rather than showing a large empty tile.
+ * phone, it is how a participant tells the Kompass Recta from the Silva; an article without a
+ * photo link skips it there rather than showing a large empty tile. A link that does not load
+ * still gets the tile, the header cannot know before the browser tries.
  */
 export const ItemHeader: React.FC<{
   item: {
