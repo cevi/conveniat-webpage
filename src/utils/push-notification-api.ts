@@ -4,14 +4,22 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import { sendFcmNotification } from '@/lib/firebase-admin';
 import type { NotificationType } from '@/lib/notification-type';
-import { PushNotificationChannel } from '@/lib/prisma';
+import { PushNotificationChannel, PushNotificationKind } from '@/lib/prisma';
+import { recordPushSend, type PushSendOutcome } from '@/lib/push-metrics';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAppShortName } from '@/utils/get-app-short-name';
+import {
+  fitPushText,
+  PUSH_BODY_MAX_BYTES,
+  PUSH_TITLE_MAX_BYTES,
+} from '@/utils/push-notifications/fit-push-text';
 import { createLogger } from '@/utils/server-logger';
 import { stripMarkdownFormatting } from '@/utils/strip-markdown-formatting';
+import { withSpan } from '@/utils/tracing-helpers';
+import { SpanStatusCode } from '@opentelemetry/api';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
@@ -255,46 +263,123 @@ export async function unsubscribeUser(sub: WebPushSubscription): Promise<{ succe
   return { success: true };
 }
 
+type SendableSubscription =
+  | webpush.PushSubscription
+  | PushNotificationSubscription
+  | SchemaPushSubscription
+  | DatabasePushSubscription;
+
+interface SendOptions {
+  ignoreIfAppOpen?: boolean;
+  ignoreIfUrlMatches?: boolean;
+  title?: string;
+  /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
+  messageId?: string;
+  /**
+   * How urgently the notification should be presented. `emergency` routes native
+   * pushes to the siren channel; see {@link NotificationType}.
+   */
+  notificationType?: NotificationType;
+  /** What the push is about, recorded on its log row. Omitted, it is a system push. */
+  kind?: PushNotificationKind;
+}
+
+interface SendResult {
+  success: boolean;
+  error?: string;
+  subscriptionRemoved?: boolean;
+}
+
+const channelOf = (subscription: SendableSubscription): PushNotificationChannel =>
+  'platform' in subscription &&
+  (subscription.platform === 'ios' || subscription.platform === 'android')
+    ? PushNotificationChannel.NATIVE_FCM
+    : PushNotificationChannel.WEB_PUSH;
+
+const outcomeOf = (result: SendResult): PushSendOutcome => {
+  if (result.success) return 'accepted';
+  return result.subscriptionRemoved === true ? 'expired' : 'failed';
+};
+
+/**
+ * Sends one push to one device, and writes its log row when a `userId` is given.
+ *
+ * Every send is a `push.send` span and a `push_sends_total` sample, so a fan-out shows
+ * up in Tempo and Prometheus with one entry per device.
+ */
 export async function sendNotificationToSubscription(
-  subscription:
-    | webpush.PushSubscription
-    | PushNotificationSubscription
-    | SchemaPushSubscription
-    | DatabasePushSubscription,
+  subscription: SendableSubscription,
   message: string,
   url?: string,
   userId?: string,
   existingLogId?: string,
   logContent?: string,
-  options?: {
-    ignoreIfAppOpen?: boolean;
-    ignoreIfUrlMatches?: boolean;
-    title?: string;
-    /** Id of the underlying chat message, used by clients to de-duplicate push vs. SSE. */
-    messageId?: string;
-    /**
-     * How urgently the notification should be presented. `emergency` routes native
-     * pushes to the siren channel; see {@link NotificationType}.
-     */
-    notificationType?: NotificationType;
-  },
-): Promise<{ success: boolean; error?: string; subscriptionRemoved?: boolean }> {
+  options?: SendOptions,
+): Promise<SendResult> {
+  const channel = channelOf(subscription);
+  const kind = options?.kind ?? PushNotificationKind.SYSTEM;
+  const startedAt = performance.now();
+  const secondsSinceStart = (): number => (performance.now() - startedAt) / 1000;
+
+  return withSpan(
+    'push.send',
+    async (span) => {
+      let result: SendResult;
+      try {
+        result = await deliverToSubscription(
+          subscription,
+          message,
+          url,
+          userId,
+          existingLogId,
+          logContent,
+          options,
+          channel,
+          kind,
+        );
+      } catch (error) {
+        recordPushSend(channel, kind, 'failed', secondsSinceStart());
+        throw error;
+      }
+
+      const outcome = outcomeOf(result);
+      recordPushSend(channel, kind, outcome, secondsSinceStart());
+      span.setAttribute('push.outcome', outcome);
+      if (outcome === 'failed') {
+        span.setStatus({ code: SpanStatusCode.ERROR, message: result.error ?? 'Unknown error' });
+      }
+      return result;
+    },
+    { 'push.channel': channel, 'push.kind': kind },
+  );
+}
+
+async function deliverToSubscription(
+  subscription: SendableSubscription,
+  message: string,
+  url: string | undefined,
+  userId: string | undefined,
+  existingLogId: string | undefined,
+  logContent: string | undefined,
+  options: SendOptions | undefined,
+  channel: PushNotificationChannel,
+  kind: PushNotificationKind,
+): Promise<SendResult> {
   const urlToSend = url === '' ? undefined : url; // empty url is undefined
 
   // The operating system renders the notification verbatim, so the chat's markdown
   // markers would show up as literal `*` and `_` on the lock screen. Stripping
   // happens here rather than in the callers because this is the single hop every
   // push goes through - chat messages, announcements, emergency alerts and the CMS
-  // test send alike.
-  const bodyToSend = stripMarkdownFormatting(message);
-  const titleToSend = stripMarkdownFormatting(options?.title ?? (await getAppShortName()));
+  // test send alike. The same goes for the size cap: a push over the service's limit is
+  // rejected for every recipient, so long texts are cut to a preview here.
+  const bodyToSend = fitPushText(stripMarkdownFormatting(message), PUSH_BODY_MAX_BYTES);
+  const titleToSend = fitPushText(
+    stripMarkdownFormatting(options?.title ?? (await getAppShortName())),
+    PUSH_TITLE_MAX_BYTES,
+  );
   const { default: prisma } = await import('@/lib/db/prisma');
   let logId = existingLogId;
-
-  const isNative =
-    'platform' in subscription &&
-    (subscription.platform === 'ios' || subscription.platform === 'android');
-  const channel = isNative ? PushNotificationChannel.NATIVE_FCM : PushNotificationChannel.WEB_PUSH;
 
   // If userId is provided and no existingLogId, create a new log entry
   if (userId && !logId) {
@@ -305,6 +390,7 @@ export async function sendNotificationToSubscription(
           content: logContent ?? bodyToSend,
           status: 'PENDING',
           channel,
+          kind,
         },
       });
       logId = log.id;
@@ -410,13 +496,13 @@ export async function sendNotificationToSubscription(
       );
     }
 
+    // Accepted is not delivered: only the device can say that it received the push, see
+    // `pushTrackingRouter.markDelivered`. A fast device can report back before this line
+    // runs, so the update must not overwrite its DELIVERED.
     if (logId) {
-      await prisma.pushNotificationLog.update({
-        where: { id: logId },
-        data: {
-          status: 'DELIVERED',
-          deliveredAt: new Date(),
-        },
+      await prisma.pushNotificationLog.updateMany({
+        where: { id: logId, status: 'PENDING' },
+        data: { status: 'SENT' },
       });
     }
 

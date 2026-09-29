@@ -21,13 +21,16 @@ jest.mock('@/utils/auth-helpers', () => ({
   getPayloadUserFromNextAuthUser: jest.fn().mockResolvedValue({ id: 'user-1' }),
 }));
 
-const mockSendFcmNotification = jest.fn().mockResolvedValue('sent');
+const mockSendFcmNotification = jest.fn().mockResolvedValue({ success: true });
 jest.mock('@/lib/firebase-admin', () => ({
   sendFcmNotification: (...args: unknown[]): unknown => mockSendFcmNotification(...args),
 }));
 
 jest.mock('@/config/environment-variables', () => ({
-  environmentVariables: { APP_HOST_URL: 'https://example.test' },
+  environmentVariables: {
+    APP_HOST_URL: 'https://example.test',
+    NEXT_PUBLIC_APP_HOST_URL: 'https://example.test',
+  },
 }));
 
 // `superjson` ships untranspiled ESM and is only the wire transformer; a direct caller never
@@ -225,5 +228,37 @@ describe('nativePushRouter.registerDevice under concurrent registrations', () =>
 
     await expect(register()).rejects.toBeInstanceOf(TRPCError);
     expect(create).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * Logout ends the device's subscriptions so a shared phone stops receiving the previous
+ * user's chats. The device id comes from the client, so it must only ever reach the rows of
+ * whoever is signed in: another account on the same device keeps its own.
+ */
+describe('nativePushRouter.releaseDevice', () => {
+  const deleteMany = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    deleteMany.mockResolvedValue({ docs: [{ id: 'sub-1' }, { id: 'sub-2' }] });
+    (getPayload as jest.Mock).mockResolvedValue({ delete: deleteMany });
+  });
+
+  it("deletes only the signed-in user's subscriptions on this device", async () => {
+    await expect(caller().releaseDevice({ deviceId: ' device-1 ' })).resolves.toEqual({
+      success: true,
+    });
+
+    expect(deleteMany).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledWith({
+      collection: 'push-notification-subscriptions',
+      where: { and: [{ user: { equals: 'user-1' } }, { deviceId: { equals: 'device-1' } }] },
+    });
+  });
+
+  it('refuses an empty device id instead of matching every row without one', async () => {
+    await expect(caller().releaseDevice({ deviceId: '  ' })).rejects.toBeInstanceOf(TRPCError);
+    expect(deleteMany).not.toHaveBeenCalled();
   });
 });

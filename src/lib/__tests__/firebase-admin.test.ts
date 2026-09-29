@@ -19,6 +19,11 @@ jest.mock('firebase-admin', () => ({
 }));
 
 import { sendFcmNotification } from '@/lib/firebase-admin';
+import {
+  fitPushText,
+  PUSH_BODY_MAX_BYTES,
+  PUSH_TITLE_MAX_BYTES,
+} from '@/utils/push-notifications/fit-push-text';
 
 interface SentMessage {
   data?: Record<string, string>;
@@ -40,6 +45,10 @@ const lastSentMessage = (): SentMessage => {
   const calls = mockSend.mock.calls as unknown[][];
   return calls.at(-1)?.[0] as SentMessage;
 };
+
+/** Size of `value` on the wire, which is what FCM and APNs hold against their limit. */
+const jsonBytes = (value: unknown): number =>
+  new TextEncoder().encode(JSON.stringify(value)).length;
 
 const sendEmergency = (): Promise<unknown> =>
   sendFcmNotification('token-1', {
@@ -134,5 +143,37 @@ describe('sendFcmNotification', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  /**
+   * FCM and APNs reject anything above 4096 bytes. What APNs receives is `apns.payload` with
+   * the FCM data keys merged into its root, and FCM adds keys of its own (`gcm.message_id`,
+   * `google.c.*`) on top, which is what the reserve is for.
+   */
+  it('stays under the 4096 byte limit with a title and body at their caps', async () => {
+    const worstCaseText = '"Grüezi" 😀\n'.repeat(500);
+    await sendFcmNotification('token-1', {
+      title: fitPushText(worstCaseText, PUSH_TITLE_MAX_BYTES),
+      body: fitPushText(worstCaseText, PUSH_BODY_MAX_BYTES),
+      data: {
+        url: '/app/chat/0b6e1c52-9a57-4bbf-9f8e-2d1c4a7e3f10',
+        chatId: '0b6e1c52-9a57-4bbf-9f8e-2d1c4a7e3f10',
+        messageId: '5f2d8a41-7c3e-4b9a-8e16-9d0f2c7b4a63',
+        notificationId: 'cmg4x9k2p0001qz8h3v7w5t1e',
+        ignoreIfAppOpen: 'false',
+        ignoreIfUrlMatches: 'true',
+        notificationType: 'emergency',
+      },
+    });
+
+    const message = lastSentMessage();
+    const fcmReserve = 300;
+    const apnsPayload = { ...message.apns?.payload, ...message.data };
+    const androidMessage = {
+      notification: message.android?.notification,
+      data: { ...message.data, ...message.android?.data },
+    };
+    expect(jsonBytes(apnsPayload) + fcmReserve).toBeLessThanOrEqual(4096);
+    expect(jsonBytes(androidMessage) + fcmReserve).toBeLessThanOrEqual(4096);
   });
 });

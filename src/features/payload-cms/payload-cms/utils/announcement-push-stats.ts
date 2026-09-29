@@ -3,7 +3,7 @@ import prisma from '@/lib/db/prisma';
 /** The fields of a push log row the summary needs. */
 export interface PushLogSummaryRow {
   userId: string;
-  status: 'PENDING' | 'DELIVERED' | 'FAILED';
+  status: 'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED';
   deliveredAt: Date | null;
   interactionType: string | null;
 }
@@ -15,7 +15,13 @@ export interface PushLogSummaryRow {
 export interface AnnouncementPushStats {
   /** People at least one push was sent to. */
   recipients: number;
-  /** People with at least one push that reached their device. */
+  /** People with at least one push the push service accepted. */
+  accepted: number;
+  /**
+   * People with at least one push their device confirmed. Before the SENT status existed,
+   * an accepted push was recorded as delivered too, so older announcements count the same
+   * people here as under {@link accepted}.
+   */
   delivered: number;
   /** People who opened the announcement by tapping a push. */
   clicked: number;
@@ -35,6 +41,7 @@ export const summarizePushLogs = (
   readInChat: number,
 ): AnnouncementPushStats => {
   const recipients = new Set<string>();
+  const accepted = new Set<string>();
   const delivered = new Set<string>();
   const clicked = new Set<string>();
   const dismissed = new Set<string>();
@@ -42,8 +49,11 @@ export const summarizePushLogs = (
 
   for (const log of logs) {
     recipients.add(log.userId);
+    // A device can only confirm a push the push service accepted.
+    const isDelivered = log.status === 'DELIVERED' || log.deliveredAt !== null;
     if (log.status === 'FAILED') failed.add(log.userId);
-    else if (log.status === 'DELIVERED' || log.deliveredAt !== null) delivered.add(log.userId);
+    if (isDelivered || log.status === 'SENT') accepted.add(log.userId);
+    if (isDelivered) delivered.add(log.userId);
     if (log.interactionType === 'CLICK') clicked.add(log.userId);
     if (log.interactionType === 'DISMISS') dismissed.add(log.userId);
   }
@@ -53,10 +63,11 @@ export const summarizePushLogs = (
 
   return {
     recipients: recipients.size,
+    accepted: accepted.size,
     delivered: delivered.size,
     clicked: clicked.size,
     dismissed: countWithout(dismissed, clicked),
-    failed: countWithout(failed, delivered),
+    failed: countWithout(failed, accepted),
     readInChat,
   };
 };

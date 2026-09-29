@@ -1,5 +1,6 @@
 import { LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import prisma from '@/lib/db/prisma';
+import { PushNotificationKind, PushNotificationStatus } from '@/lib/prisma';
 import { fakerDE as faker } from '@faker-js/faker';
 import type { Payload } from 'payload';
 
@@ -53,6 +54,8 @@ export const seedPushNotifications = async (payload: Payload, userIds: string[])
         userId,
         content: faker.lorem.sentence(),
         sentAt,
+        status: deliveredAt ? PushNotificationStatus.DELIVERED : PushNotificationStatus.SENT,
+        kind: faker.helpers.arrayElement(Object.values(PushNotificationKind)),
         // eslint-disable-next-line unicorn/no-null
         deliveredAt: deliveredAt ?? null,
         // eslint-disable-next-line unicorn/no-null

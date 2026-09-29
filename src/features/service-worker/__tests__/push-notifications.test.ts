@@ -2,6 +2,7 @@
 import {
   notificationClickHandler,
   pushNotificationHandler,
+  pushSubscriptionChangeHandler,
 } from '@/features/service-worker/push-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
@@ -107,6 +108,10 @@ describe('notificationClickHandler', () => {
       '/api/trpc/pushTracking.markInteracted?batch=1',
       expect.objectContaining({ method: 'POST' }),
     );
+    expect(mockPostMessage).toHaveBeenCalledWith({
+      type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+      payload: { event: 'push_notification_opened', properties: { channel: 'web' } },
+    });
   });
 
   it('falls back to postMessage when client navigate throws', async () => {
@@ -175,7 +180,9 @@ describe('notificationClickHandler', () => {
       } as unknown as WindowClient);
 
       expect(mockNavigate).toHaveBeenCalledWith('https://con27.ch/agbs');
-      expect(mockPostMessage).not.toHaveBeenCalled();
+      expect(mockPostMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: ServiceWorkerMessages.PUSH_NAVIGATE }),
+      );
       expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
     });
 
@@ -224,17 +231,30 @@ const makeClient = (creationUrl: string, liveUrl?: string): WindowClient =>
     }),
   }) as unknown as WindowClient;
 
+/** The body of the delivery report the worker posted, if any. */
+const deliveryReport = (): unknown => {
+  const calls = (globalThis.fetch as jest.Mock).mock.calls as [string, { body: string }][];
+  const call = calls.find(([url]) => url.includes('pushTracking.markDelivered'));
+  return call === undefined
+    ? undefined
+    : (JSON.parse(call[1].body) as Record<string, { json: unknown }>)['0']?.json;
+};
+
 describe('pushNotificationHandler', () => {
   const chatId = '550e8400-e29b-41d4-a716-446655440000';
   const chatUrl = `https://konekta.ch/app/chat/${chatId}`;
 
   let mockShowNotification: jest.Mock;
+  let mockGetNotifications: jest.Mock;
+  let mockCloseNotification: jest.Mock;
   let mockMatchAll: jest.Mock;
   let mockWaitUntil: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockShowNotification = jest.fn().mockResolvedValue(true);
+    mockCloseNotification = jest.fn();
+    mockGetNotifications = jest.fn().mockResolvedValue([{ close: mockCloseNotification }]);
     mockMatchAll = jest.fn();
     mockWaitUntil = jest.fn((promise: Promise<unknown>) => promise);
     globalThis.fetch = jest.fn().mockResolvedValue({ ok: true });
@@ -245,11 +265,24 @@ describe('pushNotificationHandler', () => {
     transferredPorts.length = 0;
   });
 
-  const makeScope = (clients: WindowClient[]): ServiceWorkerGlobalScope =>
+  const chromeUserAgent =
+    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
+  /** An installed web app on an iPhone, where WebKit's silent push rule applies. */
+  const iosWebAppUserAgent =
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148';
+
+  const makeScope = (
+    clients: WindowClient[],
+    userAgent: string = chromeUserAgent,
+  ): ServiceWorkerGlobalScope =>
     ({
       location: { origin: 'https://konekta.ch' },
+      navigator: { userAgent },
       clients: { matchAll: mockMatchAll.mockResolvedValue(clients) },
-      registration: { showNotification: mockShowNotification },
+      registration: {
+        showNotification: mockShowNotification,
+        getNotifications: mockGetNotifications,
+      },
     }) as unknown as ServiceWorkerGlobalScope;
 
   const dispatchPush = async (scope: ServiceWorkerGlobalScope): Promise<void> => {
@@ -290,6 +323,32 @@ describe('pushNotificationHandler', () => {
     expect(client.postMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'notification' }),
     );
+  });
+
+  it('shows and closes a suppressed notification at once on WebKit, which revokes on silent pushes', async () => {
+    const client = makeClient('https://konekta.ch/app/chat', chatUrl);
+    await dispatchPush(makeScope([client], iosWebAppUserAgent));
+
+    expect(mockShowNotification).toHaveBeenCalledTimes(1);
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      'Chat',
+      expect.objectContaining({ tag: 'conveniat27-suppressed', silent: true }),
+    );
+    expect(mockGetNotifications).toHaveBeenCalledWith({ tag: 'conveniat27-suppressed' });
+    expect(mockCloseNotification).toHaveBeenCalled();
+    // It reached the device, so it is reported, but as suppressed: nobody saw it.
+    expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SUPPRESSED' });
+  });
+
+  it('shows a notification the user should see on WebKit as usual', async () => {
+    const client = makeClient(chatUrl, 'https://konekta.ch/app/chat');
+    await dispatchPush(makeScope([client], iosWebAppUserAgent));
+
+    expect(mockShowNotification).toHaveBeenCalledWith(
+      'Chat',
+      expect.objectContaining({ tag: 'conveniat27' }),
+    );
+    expect(mockCloseNotification).not.toHaveBeenCalled();
   });
 
   it('suppresses the notification for a locale-prefixed variant of the target chat URL', async () => {
@@ -338,5 +397,116 @@ describe('pushNotificationHandler', () => {
     await dispatchPush(makeScope([client]));
 
     expect(mockShowNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a shown notification as delivered', async () => {
+    const client = makeClient(chatUrl, 'https://konekta.ch/app/chat');
+    await dispatchPush(makeScope([client]));
+
+    expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SHOWN' });
+  });
+
+  /**
+   * The push reached the device even though the user never saw it in the shade. Without
+   * the report, a push to someone reading the chat looks exactly like one that was lost.
+   */
+  it('reports a suppressed notification as delivered and suppressed', async () => {
+    const client = makeClient('https://konekta.ch/app/chat', chatUrl);
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+    expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SUPPRESSED' });
+  });
+});
+
+const subscriptionOf = (name: string): PushSubscription =>
+  ({
+    options: { userVisibleOnly: true, applicationServerKey: new Uint8Array([1, 2, 3]).buffer },
+    toJSON: (): PushSubscriptionJSON => ({
+      endpoint: `https://updates.push.services.mozilla.com/wpush/v2/${name}`,
+      keys: { p256dh: `${name}-p256dh`, auth: `${name}-auth` },
+    }),
+  }) as unknown as PushSubscription;
+
+describe('pushSubscriptionChangeHandler', () => {
+  let mockSubscribe: jest.Mock;
+  let mockFetch: jest.Mock;
+  let mockWaitUntil: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSubscribe = jest.fn().mockResolvedValue(subscriptionOf('resubscribed'));
+    mockFetch = jest.fn().mockResolvedValue({ ok: true });
+    globalThis.fetch = mockFetch;
+    mockWaitUntil = jest.fn((promise: Promise<unknown>) => promise);
+  });
+
+  const dispatchChange = async (change: {
+    oldSubscription?: PushSubscription | null;
+    newSubscription?: PushSubscription | null;
+  }): Promise<void> => {
+    const scope = {
+      registration: { pushManager: { subscribe: mockSubscribe } },
+    } as unknown as ServiceWorkerGlobalScope;
+    pushSubscriptionChangeHandler(scope)({
+      ...change,
+      waitUntil: mockWaitUntil,
+    } as unknown as Event);
+    const calls = mockWaitUntil.mock.calls as Promise<unknown>[][];
+    await calls[0]?.[0];
+  };
+
+  const reportedBody = (): unknown => {
+    const [, init] = mockFetch.mock.calls[0] as [string, RequestInit];
+    return JSON.parse(init.body as string) as unknown;
+  };
+
+  it('subscribes again with the old options when the browser only dropped the subscription', async () => {
+    const oldSubscription = subscriptionOf('old');
+
+    // eslint-disable-next-line unicorn/no-null -- what Firefox sends when it only dropped the subscription
+    await dispatchChange({ oldSubscription, newSubscription: null });
+
+    expect(mockSubscribe).toHaveBeenCalledWith(oldSubscription.options);
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/trpc/pushTracking.renewWebPushSubscription?batch=1',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(reportedBody()).toEqual({
+      0: {
+        json: {
+          oldSubscription: subscriptionOf('old').toJSON(),
+          newSubscription: subscriptionOf('resubscribed').toJSON(),
+        },
+      },
+    });
+  });
+
+  it('reports the new subscription the browser already created', async () => {
+    await dispatchChange({
+      oldSubscription: subscriptionOf('old'),
+      newSubscription: subscriptionOf('new'),
+    });
+
+    expect(mockSubscribe).not.toHaveBeenCalled();
+    expect(reportedBody()).toEqual({
+      0: {
+        json: {
+          oldSubscription: subscriptionOf('old').toJSON(),
+          newSubscription: subscriptionOf('new').toJSON(),
+        },
+      },
+    });
+  });
+
+  it('reports nothing when the browser does not say which subscription changed', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    // eslint-disable-next-line unicorn/no-null -- what the browser sends when it does not know
+    await dispatchChange({ oldSubscription: null, newSubscription: subscriptionOf('new') });
+
+    expect(mockWaitUntil).not.toHaveBeenCalled();
+    expect(mockFetch).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

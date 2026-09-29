@@ -116,12 +116,14 @@ const columnLabels: Record<
   interaction: { de: 'Interaktion', fr: 'Interaction', en: 'Interaction' },
 };
 
-type LogStatus = 'failed' | 'interacted' | 'delivered' | 'pending';
+type LogStatus = 'failed' | 'interacted' | 'suppressed' | 'delivered' | 'sent' | 'pending';
 
 const statusLabels: Record<LogStatus, StaticTranslationString> = {
   failed: { de: 'Fehlgeschlagen', fr: 'Échoué', en: 'Failed' },
   interacted: { de: 'Interagiert', fr: 'Interagi', en: 'Interacted' },
+  suppressed: { de: 'App war offen', fr: 'App ouverte', en: 'App was open' },
   delivered: { de: 'Zugestellt', fr: 'Livré', en: 'Delivered' },
+  sent: { de: 'Gesendet', fr: 'Envoyé', en: 'Sent' },
   pending: { de: 'Ausstehend', fr: 'En attente', en: 'Pending' },
 };
 
@@ -131,7 +133,9 @@ const statusPillStyles: Record<
 > = {
   failed: 'error',
   interacted: 'success',
+  suppressed: 'light',
   delivered: 'success',
+  sent: 'light',
   pending: 'light-gray',
 };
 
@@ -262,7 +266,10 @@ const NotificationHistory: React.FC<{ userId: string; locale: Locale }> = ({ use
       let status: LogStatus = 'pending';
       if (log.status === 'FAILED' || log.error !== null) status = 'failed';
       else if (log.interactedAt !== null) status = 'interacted';
+      // The device received it but showed nothing, because the app was open on the chat.
+      else if (log.interactionType === 'SUPPRESSED') status = 'suppressed';
       else if (log.status === 'DELIVERED' || log.deliveredAt !== null) status = 'delivered';
+      else if (log.status === 'SENT') status = 'sent';
 
       const isChat = isChatPayload(log.content);
 

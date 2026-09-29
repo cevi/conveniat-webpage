@@ -4,6 +4,7 @@ import { getAlertSettingsCached } from '@/features/payload-cms/api/cached-global
 import type { AlertSetting } from '@/features/payload-cms/payload-types';
 import { ChatCapability, SYSTEM_MSG_TYPE_EMERGENCY_ALERT } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
+import { PushNotificationKind } from '@/lib/prisma';
 import { createTRPCRouter, publicProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { createLogger } from '@/utils/server-logger';
@@ -312,6 +313,7 @@ export const emergencyRouter = createTRPCRouter({
 
         ctx.afterTransactionCommit(() => {
           sendNotification(localizedAlertMessage, piketRecipientIds, chatUuid, undefined, {
+            kind: PushNotificationKind.EMERGENCY,
             chatName,
             // The alert that starts the emergency chat is the one push that has to wake a
             // piket member up, so it goes out on the siren channel rather than the regular

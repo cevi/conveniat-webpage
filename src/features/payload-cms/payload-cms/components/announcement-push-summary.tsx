@@ -27,9 +27,9 @@ const sentTo = (count: number): StaticTranslationString => ({
   fr: `Envoyée à ${String(count)} ${count === 1 ? 'personne' : 'personnes'}`,
 });
 const explanation: StaticTranslationString = {
-  en: 'Counted per person across all of their devices. Only people who allowed notifications get a push; chat reads include everyone.',
-  de: 'Pro Person über alle ihre Geräte gezählt. Nur wer Benachrichtigungen erlaubt hat, erhält einen Push; im Chat gelesen zählt alle.',
-  fr: 'Compté par personne sur tous ses appareils. Seules les personnes ayant autorisé les notifications reçoivent un push ; les lectures dans le chat comptent tout le monde.',
+  en: 'Counted per person across all of their devices. Only people who allowed notifications get a push; chat reads include everyone. The iPhone and Android apps confirm a push only while they are open.',
+  de: 'Pro Person über alle ihre Geräte gezählt. Nur wer Benachrichtigungen erlaubt hat, erhält einen Push; im Chat gelesen zählt alle. Die Apps für iPhone und Android bestätigen einen Push nur, solange sie geöffnet sind.',
+  fr: "Compté par personne sur tous ses appareils. Seules les personnes ayant autorisé les notifications reçoivent un push ; les lectures dans le chat comptent tout le monde. Les applications iPhone et Android ne confirment un push que lorsqu'elles sont ouvertes.",
 };
 const readInChatLabel: StaticTranslationString = {
   en: 'Read in chat',
@@ -37,10 +37,19 @@ const readInChatLabel: StaticTranslationString = {
   fr: 'Lue dans le chat',
 };
 
-type PushMetric = 'delivered' | 'clicked' | 'dismissed' | 'failed';
+type PushMetric = 'accepted' | 'delivered' | 'clicked' | 'dismissed' | 'failed';
 
 const metricLabels: Record<PushMetric, StaticTranslationString> = {
-  delivered: { en: 'Delivered', de: 'Zugestellt', fr: 'Livrée' },
+  accepted: {
+    en: 'Accepted by the push service',
+    de: 'Vom Push-Dienst angenommen',
+    fr: 'Acceptée par le service push',
+  },
+  delivered: {
+    en: 'Confirmed by the device',
+    de: 'Vom Gerät bestätigt',
+    fr: "Confirmée par l'appareil",
+  },
   clicked: { en: 'Opened from push', de: 'Über Push geöffnet', fr: 'Ouverte via push' },
   dismissed: { en: 'Dismissed', de: 'Weggewischt', fr: 'Ignorée' },
   failed: { en: 'Failed', de: 'Fehlgeschlagen', fr: 'Échouée' },
@@ -48,6 +57,7 @@ const metricLabels: Record<PushMetric, StaticTranslationString> = {
 
 /** Bar colours from Payload's theme, so the summary follows light and dark mode. */
 const metricColors: Record<PushMetric, string> = {
+  accepted: 'var(--theme-success-300)',
   delivered: 'var(--theme-success-500)',
   clicked: 'var(--theme-elevation-800)',
   dismissed: 'var(--theme-elevation-400)',
@@ -86,7 +96,7 @@ const Summary: React.FC<{ stats: AnnouncementPushStats; locale: Locale }> = ({ s
   <>
     <p className="m-0 mb-3">{sentTo(stats.recipients)[locale]}</p>
     <ul className="m-0 flex list-none flex-col gap-3 p-0">
-      {(['delivered', 'clicked', 'dismissed', 'failed'] as const).map((metric) => (
+      {(['accepted', 'delivered', 'clicked', 'dismissed', 'failed'] as const).map((metric) => (
         <MetricRow
           key={metric}
           label={metricLabels[metric][locale]}

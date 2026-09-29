@@ -2,7 +2,8 @@
 
 import { clearUnsentChatData } from '@/lib/chat-local-storage';
 import { withKeyvalStore } from '@/lib/idb-keyval-store';
-import { starsCollection, userPreferencesCollection } from '@/lib/tanstack-db';
+import { clearPersonalPreferences } from '@/lib/preferences';
+import { starsCollection } from '@/lib/tanstack-db';
 
 /**
  * Storage keys used by @tanstack/react-query-persist-client to persist
@@ -25,12 +26,13 @@ const LEGACY_STARS_KEY = 'starredItems';
  * - Persisted TanStack Query cache in localStorage (`conveniat-query-cache`) and IndexedDB (`conveniat-query-cache-idb`)
  * - Cached NextAuth session in Service Worker cache (`next-auth-session-cache`)
  * - TanStack DB `stars` collection (personal starred items)
- * - TanStack DB `userPreferences` collection (onboarding state etc.)
+ * - Personal preferences (onboarding state etc.), see `clearPersonalPreferences`
  * - Legacy `starredItems` localStorage key
  * - Unsent chat messages and drafts, unless `keepUnsentChatMessages` is set
  *
  * What is preserved:
  * - TanStack DB `schedule-entries` collection (public, non-personal)
+ * - Preferences declared `keepOnLogout`, which belong to the device, like a push opt-out
  *
  * An expired session (a 401) keeps the unsent chat messages: the user did not choose to
  * leave, and dropping their queue would lose what they wrote. Queued sends carry the id of
@@ -77,11 +79,7 @@ export function flushPersonalData({
   }
 
   try {
-    const userPrefsItems = [...userPreferencesCollection.state.values()];
-    for (const item of userPrefsItems) {
-      userPreferencesCollection.delete(item.key);
-    }
-    localStorage.removeItem('tanstack-db-user-preferences');
+    clearPersonalPreferences();
   } catch {
     // Collection may not be initialised yet — safe to ignore.
   }

@@ -1,6 +1,8 @@
 'use client';
 
+import { usePreference } from '@/hooks/use-preference';
 import type { NotificationType } from '@/lib/notification-type';
+import { readPreference, writePreference } from '@/lib/preferences';
 import { trpc, useOptionalTrpcUtils } from '@/trpc/client';
 import { Cookie } from '@/types/types';
 import { assignLocation } from '@/utils/assign-location';
@@ -458,6 +460,21 @@ export function extractNotificationType(payload: Record<string, unknown>): Notif
   return 'default';
 }
 
+/**
+ * Records a tap on a push in PostHog, so what people do after opening one shows up in
+ * their session. The push log row records the same tap, but it cannot show what happened
+ * next.
+ */
+function capturePushOpened(properties: {
+  channel: 'native';
+  notification_type: NotificationType;
+  target: 'chat' | 'other';
+}): void {
+  void import('posthog-js')
+    .then(({ default: posthog }) => posthog.capture('push_notification_opened', properties))
+    .catch((error: unknown) => console.error('Failed to load posthog-js', error));
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -471,6 +488,8 @@ export function useNativePush(): {
   hasToken: boolean;
   isRegisteredOnBackend: boolean;
   isUnauthenticated: boolean;
+  /** The user turned push off on this device. Kept across restarts, logouts and new tokens. */
+  isOptedOut: boolean;
   requestPermission: () => void;
   deleteToken: () => void;
   openSettings: () => void;
@@ -498,6 +517,9 @@ export function useNativePush(): {
    */
   const registeredTokenReference = useRef<string | undefined>(undefined);
   const registrationInFlightReference = useRef<string | undefined>(undefined);
+  /** Token already removed from the backend because it arrived while push is opted out. */
+  const optedOutTokenReference = useRef<string | undefined>(undefined);
+  const isOptedOut = usePreference('native-push-opted-out');
 
   const addLog = (message: string, data?: unknown): void => {
     const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
@@ -513,6 +535,7 @@ export function useNativePush(): {
   const { mutateAsync: registerDevice } = trpc.nativePush.registerDevice.useMutation();
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
   const { mutate: markInteracted } = trpc.pushTracking.markInteracted.useMutation();
+  const { mutate: markDelivered } = trpc.pushTracking.markDelivered.useMutation();
 
   // Foreground notifications are raised from non-React code (SSE listener, bridge
   // events), so hand them the client-side router instead of a hard navigation.
@@ -708,7 +731,17 @@ export function useNativePush(): {
           const platform = payload['platform'];
           console.log('[NativePush:PWA] token received: platform =', platform);
           if (typeof token === 'string' && typeof platform === 'string') {
-            void handleRegisterDevice(token, platform as 'ios' | 'android');
+            // The native shell has Firebase issue a new token right after deleting one and
+            // reports it on every resume, so a token turning up is no sign the user wants
+            // push. While they opted out it is not registered, and removed from the backend
+            // once in case an earlier build or a failed delete left it there.
+            if (!readPreference('native-push-opted-out')) {
+              optedOutTokenReference.current = undefined;
+              void handleRegisterDevice(token, platform as 'ios' | 'android');
+            } else if (optedOutTokenReference.current !== token) {
+              optedOutTokenReference.current = token;
+              void handleUnregisterDevice(token, platform as 'ios' | 'android');
+            }
             setStatus('granted');
             setHasToken(true);
             setLastError(undefined);
@@ -751,6 +784,11 @@ export function useNativePush(): {
           if (notificationLogId !== undefined) {
             markInteracted({ id: notificationLogId, type: 'CLICK' });
           }
+          capturePushOpened({
+            channel: 'native',
+            notification_type: extractNotificationType(payload),
+            target: targetChatId === undefined ? 'other' : 'chat',
+          });
 
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
           performReliablePushNavigation(router, targetPath);
@@ -774,6 +812,13 @@ export function useNativePush(): {
           console.log(
             `[Chat][FCM] Foreground push message received (chat: ${targetChatId ?? 'unknown'}).`,
           );
+
+          // The only receipt a native push can report: in the background the OS renders it
+          // without running any app code.
+          const receivedLogId = extractNotificationLogId(payload);
+          if (receivedLogId !== undefined) {
+            markDelivered({ id: receivedLogId });
+          }
 
           // Refresh query cache in background
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
@@ -904,10 +949,11 @@ export function useNativePush(): {
       globalThis.removeEventListener('focus', handleAppResume);
       globalThis.removeEventListener('pageshow', handleAppResume);
     };
-  }, [router, registerDevice, unregisterDevice, markInteracted, trpcUtils]);
+  }, [router, registerDevice, unregisterDevice, markInteracted, markDelivered, trpcUtils]);
 
   const requestPermission = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    writePreference('native-push-opted-out', false);
     addLog('requestPermission() called');
     setLastError(undefined);
     if (isNativeApp || nativePushBridge.isSupported()) {
@@ -944,6 +990,8 @@ export function useNativePush(): {
 
   const deleteToken = (): void => {
     addLog('deleteToken() called');
+    writePreference('native-push-opted-out', true);
+    setIsRegisteredOnBackend(false);
     setLastError(undefined);
     if (isNativeApp) {
       console.log('[NativePush:PWA] deleteToken called');
@@ -970,6 +1018,7 @@ export function useNativePush(): {
 
   const openSettings = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    writePreference('native-push-opted-out', false);
     addLog('openSettings() called');
     setLastError(undefined);
     if (isNativeApp) {
@@ -984,6 +1033,7 @@ export function useNativePush(): {
     hasToken,
     isRegisteredOnBackend,
     isUnauthenticated,
+    isOptedOut,
     requestPermission,
     deleteToken,
     openSettings,

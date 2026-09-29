@@ -29,8 +29,20 @@ const openSettingsButtonText: StaticTranslationString = {
   fr: 'Ouvrir les paramètres',
 };
 
+/**
+ * Enabling push here overrides an opt-out made earlier in the settings, which is kept
+ * across logouts. Left in place, the app would never register the token the user just
+ * allowed. Imported on demand to keep the database library out of the onboarding bundle.
+ */
+const clearPushOptOut = (): void => {
+  void import('@/lib/preferences')
+    .then(({ writePreference }) => writePreference('native-push-opted-out', false))
+    .catch((error: unknown) => console.warn('Failed to clear the push opt-out', error));
+};
+
 const handleOpenSettings = (): void => {
   Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+  clearPushOptOut();
   globalThis.AppWebViewNativePush?.openSettings();
 };
 
@@ -131,6 +143,7 @@ export const NativePushSubscriptionManager: React.FC<{
 
   const handleEnable = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
+    clearPushOptOut();
     userRequestedEnableReference.current = true;
     if (isAuthorized) {
       advance();

@@ -1,4 +1,5 @@
 'use client';
+import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -22,19 +23,24 @@ const loggingOutText: StaticTranslationString = {
 export const LogoutButton: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [isLoading, setIsLoading] = useState(false);
+  const releasePushSubscriptions = useReleasePushSubscriptions();
 
   return (
     <button
       onClick={() => {
         setIsLoading(true);
-        flushPersonalData();
-        signOut({
-          redirect: true,
-          redirectTo: '/',
-        }).catch((error: unknown) => {
-          console.error(error);
-          setIsLoading(false);
-        });
+        void releasePushSubscriptions()
+          .then(() => {
+            flushPersonalData();
+            return signOut({
+              redirect: true,
+              redirectTo: '/',
+            });
+          })
+          .catch((error: unknown) => {
+            console.error(error);
+            setIsLoading(false);
+          });
       }}
       disabled={isLoading}
       className="font-heading mt-10 w-full cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"

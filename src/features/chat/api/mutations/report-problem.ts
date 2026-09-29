@@ -2,7 +2,7 @@ import { getActivePiketMembers } from '@/features/chat/api/utils/piket-service';
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
 import { ChatCapability, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma';
+import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -127,6 +127,7 @@ export const reportProblem = trpcBaseProcedure
 
       ctx.afterTransactionCommit(() => {
         sendNotification(localizedAlertMessage, piketRecipientIds, chat.uuid, undefined, {
+          kind: PushNotificationKind.SUPPORT,
           chatName: chat.name,
         }).catch((error: unknown) => {
           logger.error('Failed to send the support push notification to the piket members', {

@@ -1,4 +1,5 @@
 import { DesignModeTriggers } from '@/utils/design-codes';
+import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
 interface NotificationPayload {
@@ -19,16 +20,18 @@ interface NotificationData {
   ignoreIfUrlMatches?: boolean | string;
 }
 
+type PushTrackingEvent =
+  { type: 'DELIVERED'; presentation: 'SHOWN' | 'SUPPRESSED' } | { type: 'CLICK' | 'DISMISS' };
+
 /**
  * Tracks push notification events (delivery, click, dismiss) via TRPC.
  */
-async function trackPushEvent(
-  notificationId: string,
-  eventType: 'DELIVERED' | 'CLICK' | 'DISMISS',
-): Promise<void> {
-  const method = eventType === 'DELIVERED' ? 'markDelivered' : 'markInteracted';
+async function trackPushEvent(notificationId: string, event: PushTrackingEvent): Promise<void> {
+  const method = event.type === 'DELIVERED' ? 'markDelivered' : 'markInteracted';
   const body =
-    eventType === 'DELIVERED' ? { id: notificationId } : { id: notificationId, type: eventType };
+    event.type === 'DELIVERED'
+      ? { id: notificationId, presentation: event.presentation }
+      : { id: notificationId, type: event.type };
 
   try {
     // here we cannot use the normal trpc bindings because
@@ -45,7 +48,7 @@ async function trackPushEvent(
       }),
     });
   } catch (error) {
-    console.error(`Failed to track push event ${eventType}`, error);
+    console.error(`Failed to track push event ${event.type}`, error);
   }
 }
 
@@ -154,13 +157,51 @@ function clientUrlMatchesTarget(clientUrlString: string, targetUrl: URL): boolea
   return false;
 }
 
+/** Kept apart from `conveniat27`, so closing it cannot close a notification the user still sees. */
+const SUPPRESSED_NOTIFICATION_TAG = 'conveniat27-suppressed';
+
+/**
+ * WebKit counts every push that does not call `showNotification` within 30 seconds. After the
+ * third, it removes every push subscription of the origin. The count never resets, and a visible
+ * app is no exemption, so three suppressed chat pushes silence an iPhone for good. Chrome and
+ * Firefox exempt a push that arrives while a page of the origin is visible.
+ */
+const revokesSubscriptionOnSilentPush = (serviceWorkerScope: ServiceWorkerGlobalScope): boolean => {
+  const { userAgent } = serviceWorkerScope.navigator;
+  return userAgent.includes('AppleWebKit') && !/Chrome|Chromium/.test(userAgent);
+};
+
+/**
+ * Satisfies WebKit's silent push rule for a push the user should not see: the notification is
+ * shown silently and closed straight away. WebKit counts the push as shown once the request is
+ * added, however briefly it stays.
+ */
+async function showAndCloseSuppressedNotification(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  data: NotificationPayload,
+): Promise<void> {
+  const { registration } = serviceWorkerScope;
+  await registration.showNotification(data.title, {
+    body: data.body,
+    icon: '/favicon.svg',
+    badge: '/notification-icon.png',
+    tag: SUPPRESSED_NOTIFICATION_TAG,
+    silent: true,
+  });
+  const shownNotifications = await registration.getNotifications({
+    tag: SUPPRESSED_NOTIFICATION_TAG,
+  });
+  for (const notification of shownNotifications) notification.close();
+}
+
 /**
  * Handles incoming push notifications (Web Push transport — native FCM pushes
  * never reach this service worker handler).
  * Displays notifications by default (including test notifications sent from admin panel
  * and subscription confirmation push notifications).
  * Only suppresses notifications if `ignoreIfAppOpen` is true or if `ignoreIfUrlMatches`
- * matches the URL a visible client is currently showing.
+ * matches the URL a visible client is currently showing. On WebKit a suppressed notification is
+ * still shown and closed at once, see {@link revokesSubscriptionOnSilentPush}.
  */
 export const pushNotificationHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
@@ -246,9 +287,17 @@ export const pushNotificationHandler =
 
         if (shouldShowNotification) {
           await serviceWorkerScope.registration.showNotification(data.title, options);
-          if (data.data.notificationId) {
-            await trackPushEvent(data.data.notificationId, 'DELIVERED');
-          }
+        } else if (revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
+          await showAndCloseSuppressedNotification(serviceWorkerScope, data);
+        }
+        // A suppressed push still reached the device, so it is reported as delivered too.
+        // Before, it left no trace at all, and a chat the user was reading looked like a
+        // push that never arrived.
+        if (data.data.notificationId) {
+          await trackPushEvent(data.data.notificationId, {
+            type: 'DELIVERED',
+            presentation: shouldShowNotification ? 'SHOWN' : 'SUPPRESSED',
+          });
         }
       })(),
     );
@@ -290,7 +339,7 @@ export const notificationClickHandler =
     const targetUrlString = url.toString();
 
     const trackingPromise = notificationData.notificationId
-      ? trackPushEvent(notificationData.notificationId, 'CLICK')
+      ? trackPushEvent(notificationData.notificationId, { type: 'CLICK' })
       : Promise.resolve();
 
     const openOrFocusPromise = (async (): Promise<void> => {
@@ -308,6 +357,13 @@ export const notificationClickHandler =
       }
 
       await existingClient.focus();
+
+      // Relayed to PostHog by the page, see `PostHogProvider`. A window opened above has no
+      // PostHog running yet when the message arrives, so only a tap into an open app counts.
+      existingClient.postMessage({
+        type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+        payload: { event: 'push_notification_opened', properties: { channel: 'web' } },
+      });
 
       if (!isSameOrigin) {
         // navigate() rejects for a client this worker does not control, and then only a new
@@ -336,11 +392,48 @@ export const notificationClickHandler =
     event.waitUntil(Promise.all([openOrFocusPromise, trackingPromise]));
   };
 
+/** `lib.webworker` types this event as a plain `Event`; these are its fields per the Push API. */
+interface PushSubscriptionChangeEvent extends ExtendableEvent {
+  readonly oldSubscription?: PushSubscription | null;
+  readonly newSubscription?: PushSubscription | null;
+}
+
+/**
+ * Reports a subscription the browser replaced on its own. Without the report, every later
+ * push goes to an endpoint that answers 410, the server prunes the row, and the device stays
+ * silent until someone switches notifications off and on again.
+ *
+ * Firefox fires this when its push service drops a subscription, with the old one set and no
+ * new one, so the worker subscribes again with the old options. Without an old subscription
+ * there is no stored row to match, and the change waits for the next subscribe from the page.
+ */
+export const pushSubscriptionChangeHandler =
+  (serviceWorkerScope: ServiceWorkerGlobalScope) =>
+  (event: Event): void => {
+    const changeEvent = event as PushSubscriptionChangeEvent;
+    const { oldSubscription, newSubscription } = changeEvent;
+    if (!oldSubscription) {
+      console.warn('[SW Push] Subscription changed without the old one, nothing to renew.');
+      return;
+    }
+
+    changeEvent.waitUntil(
+      (async (): Promise<void> => {
+        const renewedSubscription =
+          newSubscription ??
+          (await serviceWorkerScope.registration.pushManager.subscribe(oldSubscription.options));
+        await reportRenewedPushSubscription(oldSubscription.toJSON(), renewedSubscription.toJSON());
+      })().catch((error: unknown) => {
+        console.error('[SW Push] Failed to renew the push subscription', error);
+      }),
+    );
+  };
+
 export function notificationCloseHandler(event: NotificationEvent): void {
   console.log('Notification closed (dismissed).');
   const notificationData = event.notification.data as NotificationData;
 
   if (notificationData.notificationId) {
-    event.waitUntil(trackPushEvent(notificationData.notificationId, 'DISMISS'));
+    event.waitUntil(trackPushEvent(notificationData.notificationId, { type: 'DISMISS' }));
   }
 }

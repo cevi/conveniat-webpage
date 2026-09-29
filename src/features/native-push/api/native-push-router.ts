@@ -1,6 +1,5 @@
 import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
-import { getAppShortName } from '@/utils/get-app-short-name';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
@@ -187,7 +186,7 @@ export const nativePushRouter = createTRPCRouter({
       // Send welcome confirmation push notification ONLY when creating a brand new subscription
       if (isNewSubscription) {
         try {
-          const { sendFcmNotification } = await import('@/lib/firebase-admin');
+          const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
           const targetLocale: 'de' | 'fr' | 'en' =
             ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
           const welcomeMessages: Record<'de' | 'fr' | 'en', string> = {
@@ -197,13 +196,11 @@ export const nativePushRouter = createTRPCRouter({
           };
           const bodyText = welcomeMessages[targetLocale];
 
-          const result = await sendFcmNotification(input.token, {
-            title: await getAppShortName(),
-            body: bodyText,
-            data: {
-              url: '/app/settings',
-            },
-          });
+          const result = await sendNotificationToSubscription(
+            { platform: input.platform, token: input.token },
+            bodyText,
+            '/app/settings',
+          );
           logger.debug('Welcome notification sent', {
             'user.id': payloadUser.id,
             'notification.result': result,
@@ -249,6 +246,38 @@ export const nativePushRouter = createTRPCRouter({
       });
 
       logger.debug('Device unregistered', {
+        'user.id': payloadUser.id,
+        'subscription.removed.count': deleted.docs.length,
+      });
+      return { success: true };
+    }),
+
+  /**
+   * Ends every subscription the signed-in user holds on this device, native and web, so a
+   * shared phone stops receiving their chats once they log out. Keyed on the device id rather
+   * than the token: the page does not know the native token, and the id is on every row a
+   * registration has touched since #1427. Called before the sign out, while the session that
+   * proves ownership still exists.
+   */
+  releaseDevice: trpcBaseProcedure
+    .input(z.object({ deviceId: z.string().trim().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const payload = await getPayload({ config });
+      const payloadUser = await getPayloadUserFromNextAuthUser(payload, ctx.user);
+
+      if (!payloadUser) {
+        logger.warn('Device release rejected, the user was not found');
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found' });
+      }
+
+      const deleted = await payload.delete({
+        collection: 'push-notification-subscriptions',
+        where: {
+          and: [{ user: { equals: payloadUser.id } }, { deviceId: { equals: input.deviceId } }],
+        },
+      });
+
+      logger.debug('Device released', {
         'user.id': payloadUser.id,
         'subscription.removed.count': deleted.docs.length,
       });

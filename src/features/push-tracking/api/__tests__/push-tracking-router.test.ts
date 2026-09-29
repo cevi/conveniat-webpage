@@ -3,7 +3,11 @@ import { createCallerFactory } from '@/trpc/init';
 
 jest.mock('@payload-config', () => ({}), { virtual: true });
 
-jest.mock('payload', () => ({ getPayload: jest.fn() }));
+const mockPayloadFind = jest.fn();
+const mockPayloadUpdate = jest.fn();
+jest.mock('payload', () => ({
+  getPayload: (): unknown => ({ find: mockPayloadFind, update: mockPayloadUpdate }),
+}));
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
@@ -27,6 +31,11 @@ jest.mock('superjson', () => ({
     serialize: (value: unknown): { json: unknown } => ({ json: value }),
     deserialize: (value: { json: unknown }): unknown => value.json,
   },
+}));
+
+const mockHeaders = new Headers({ 'user-agent': 'Mozilla/5.0 (iPhone) Safari/604.1' });
+jest.mock('next/headers', () => ({
+  headers: (): Promise<Headers> => Promise.resolve(mockHeaders),
 }));
 
 const mockSendNotificationToSubscription = jest.fn();
@@ -65,6 +74,7 @@ const testSend = {
 describe('pushTrackingRouter access', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdate.mockResolvedValue({ channel: 'WEB_PUSH', kind: 'CHAT' });
   });
 
   it('refuses the notification history to anyone signed out', async () => {
@@ -123,5 +133,102 @@ describe('pushTrackingRouter access', () => {
       callerAs(signedOut).markInteracted({ id: 'log-1', type: 'CLICK' }),
     ).resolves.toEqual({ success: true });
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'log-1' } }));
+  });
+});
+
+describe('pushTrackingRouter.renewWebPushSubscription', () => {
+  const oldSubscription = {
+    endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/old',
+    keys: { p256dh: 'old-p256dh', auth: 'old-auth' },
+  };
+  const newSubscription = {
+    endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/new',
+    keys: { p256dh: 'new-p256dh', auth: 'new-auth' },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('points the stored row at the new subscription, without a session', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [{ id: 'sub-1', user: 'user-1' }] });
+
+    await expect(
+      callerAs(signedOut).renewWebPushSubscription({ oldSubscription, newSubscription }),
+    ).resolves.toEqual({ renewed: true });
+
+    expect(mockPayloadFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          and: [
+            { endpoint: { equals: oldSubscription.endpoint } },
+            { 'keys.auth': { equals: 'old-auth' } },
+          ],
+        },
+      }),
+    );
+    expect(mockPayloadUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'sub-1',
+        data: expect.objectContaining({
+          endpoint: newSubscription.endpoint,
+          keys: newSubscription.keys,
+        }) as unknown,
+      }),
+    );
+  });
+
+  it('changes nothing when no row holds the old endpoint and auth secret', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [] });
+
+    await expect(
+      callerAs(signedOut).renewWebPushSubscription({ oldSubscription, newSubscription }),
+    ).resolves.toEqual({ renewed: false });
+    expect(mockPayloadUpdate).not.toHaveBeenCalled();
+  });
+});
+
+/** The `data` of the first row update. */
+const updateData = (): Record<string, unknown> =>
+  (mockUpdate.mock.calls as [{ data: Record<string, unknown> }][])[0]?.[0].data ?? {};
+
+describe('pushTrackingRouter delivery reports', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUpdate.mockResolvedValue({ channel: 'WEB_PUSH', kind: 'CHAT' });
+  });
+
+  /**
+   * The server only learns that the push service accepted a send. A row reaching
+   * DELIVERED is the device's word that the push arrived, and the user agent says which
+   * device that was.
+   */
+  it('marks the row delivered and records the reporting device', async () => {
+    await callerAs(signedOut).markDelivered({ id: 'log-1', presentation: 'SHOWN' });
+
+    expect(updateData()).toEqual(
+      expect.objectContaining({
+        status: 'DELIVERED',
+        deliveredAt: expect.any(Date) as unknown,
+        userAgent: 'Mozilla/5.0 (iPhone) Safari/604.1',
+      }),
+    );
+    expect(updateData()).not.toHaveProperty('interactionType');
+  });
+
+  it('records a push the device kept out of the notification shade', async () => {
+    await callerAs(signedOut).markDelivered({ id: 'log-1', presentation: 'SUPPRESSED' });
+
+    expect(updateData()).toEqual(
+      expect.objectContaining({ status: 'DELIVERED', interactionType: 'SUPPRESSED' }),
+    );
+  });
+
+  /** A service worker installed before the field existed keeps reporting deliveries. */
+  it('accepts a report without a presentation', async () => {
+    await expect(callerAs(signedOut).markDelivered({ id: 'log-1' })).resolves.toEqual({
+      success: true,
+    });
+    expect(updateData()).toEqual(expect.objectContaining({ status: 'DELIVERED' }));
   });
 });
