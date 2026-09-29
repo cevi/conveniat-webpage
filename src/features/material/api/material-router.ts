@@ -46,11 +46,24 @@ import {
   isAnnounced,
 } from '@/features/material/utils/holders';
 import { getAvailableForPeriod, getPeakHeldQuantity } from '@/features/material/utils/stock';
+import {
+  describeFunktionen,
+  getFunktionDirectory,
+} from '@/features/payload-cms/payload-cms/utils/funktionen';
+import {
+  describeHofRoles,
+  getHofDirectory,
+  type HofLabel,
+} from '@/features/payload-cms/payload-cms/utils/hof-directory';
+import { getFeatureFlag } from '@/lib/db/redis';
+import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
 import type { Prisma } from '@/lib/prisma/client';
 import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter } from '@/trpc/init';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 import { z } from 'zod';
 
 export type MaterialStockAlert =
@@ -332,19 +345,35 @@ export const materialRouter = createTRPCRouter({
       return { ...entry.item, openLoans: await withHof(openLoans) };
     }),
 
-  /** People to lend to by name. */
+  /**
+   * People to lend to by name, with their functions and Höfe as the address book shows them,
+   * so the counter tells two people of the same name apart.
+   */
   searchPersonList: materialTeamProcedure
     .input(z.object({ query: z.string().trim().max(100) }))
     .query(async ({ ctx, input }) => {
-      return await ctx.prisma.user.findMany({
+      const people = await ctx.prisma.user.findMany({
         where: {
           hidden: false,
           ...(input.query === '' ? {} : { name: { contains: input.query, mode: 'insensitive' } }),
         },
-        select: { uuid: true, name: true },
+        select: { uuid: true, name: true, hofIds: true, avpHofIds: true, funktionIds: true },
         orderBy: { name: 'asc' },
         take: 20,
       });
+      if (people.length === 0) return [];
+      const payload = await getPayload({ config });
+      const hideHofAndQuartier = await getFeatureFlag(FEATURE_HIDE_HOF_AND_QUARTIER);
+      const [hofDirectory, funktionDirectory] = await Promise.all([
+        hideHofAndQuartier ? new Map<string, HofLabel>() : getHofDirectory(payload),
+        getFunktionDirectory(payload, ctx.locale),
+      ]);
+      return people.map((person) => ({
+        uuid: person.uuid,
+        name: person.name,
+        funktionen: describeFunktionen(person.funktionIds, funktionDirectory),
+        hofRoles: describeHofRoles(person.hofIds, person.avpHofIds, hofDirectory),
+      }));
     }),
 
   /**
