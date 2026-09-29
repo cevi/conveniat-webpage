@@ -451,7 +451,12 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
         const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
         clearTimeout(timeoutId);
 
-        if (networkResponse.ok) {
+        // Only navigation payloads are cached. Offline, `matchCachedRsc` answers a navigation
+        // with any entry for the same path, and a prefetch response there (a route tree or a
+        // single segment) is one the router cannot use, so it reloaded the whole page.
+        const isPrefetch = event.request.headers.has('Next-Router-Prefetch');
+
+        if (networkResponse.ok && !isPrefetch) {
           const targetCacheName = isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES;
           const cache = await caches.open(targetCacheName);
           if (isRsc) {
