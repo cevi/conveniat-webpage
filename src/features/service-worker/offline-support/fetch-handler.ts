@@ -226,7 +226,9 @@ async function offlineFallback(
     // A non-OK response is what the router treats as "load this page the classic way": the
     // navigation turns into a document request, which this worker answers from the page cache
     // or with the offline page, and a prefetch is rejected with a ten-second backoff.
-    return new Response(undefined, { status: 503, statusText: 'Offline' });
+    // An empty body rather than none: the router reads `res.body` and treats a missing one as
+    // a failed fetch, which would park the navigation again.
+    return new Response('', { status: 503, statusText: 'Offline' });
   }
 
   const isManifestOrIcon =
