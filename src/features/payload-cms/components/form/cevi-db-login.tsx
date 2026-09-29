@@ -8,6 +8,7 @@ import {
 } from '@/features/payload-cms/components/form/static-form-texts';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
+import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -84,6 +85,10 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
     if (typeof callbackUrl === 'string' && callbackUrl !== '') {
       signInOptions.callbackUrl = callbackUrl;
     }
+    // Switching to another person has to drop what was cached for this one, exactly like a
+    // logout: without it the next account saw the previous user's chats, emergency cards and
+    // shifts from the persisted cache, and their pages from the service worker.
+    flushPersonalData();
     void releasePushSubscriptions()
       .then(() => signOut({ redirect: false }))
       .then(() => {
