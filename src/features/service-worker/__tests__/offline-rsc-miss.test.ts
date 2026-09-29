@@ -21,8 +21,15 @@ const emptyCaches = (): CacheStorage => {
   } as unknown as CacheStorage;
 };
 
-/** Fetches `path` the way the Next.js router does, from a page showing `currentPage`. */
-const routerFetchOffline = (currentPage: string, path: string): Promise<Response> => {
+/**
+ * Fetches `path` the way the Next.js router does. `sentFrom` is the page that sent the request
+ * (its referrer); `currentPage` what the client shows by the time the worker handles it.
+ */
+const routerFetchOffline = (
+  currentPage: string,
+  path: string,
+  sentFrom?: string,
+): Promise<Response> => {
   Object.defineProperty(globalThis, 'self', {
     value: {
       location: { origin: ORIGIN },
@@ -34,7 +41,10 @@ const routerFetchOffline = (currentPage: string, path: string): Promise<Response
   });
   let answer: Promise<Response> | undefined;
   const event = {
-    request: new Request(`${ORIGIN}${path}`, { headers: { RSC: '1' } }),
+    request: new Request(`${ORIGIN}${path}`, {
+      headers: { RSC: '1' },
+      ...(sentFrom === undefined ? {} : { referrer: `${ORIGIN}${sentFrom}` }),
+    }),
     clientId: 'client-1',
     resultingClientId: '',
     respondWith: (response: Promise<Response>): void => {
@@ -87,5 +97,17 @@ describe('offline RSC request for a page that is not cached', () => {
     );
 
     expect(response.type).toBe('error');
+  });
+
+  // The router commits the new URL while its request is still on the way, so by the time the
+  // worker handles it the client can already show the page being navigated to.
+  it('treats a tap as a navigation even when the client already shows the new address', async () => {
+    const response = await routerFetchOffline(
+      '/app/material',
+      '/app/material?_rsc=abc12',
+      '/app/dashboard',
+    );
+
+    expect(response.status).toBe(503);
   });
 });

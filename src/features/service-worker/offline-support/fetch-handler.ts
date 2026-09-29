@@ -162,14 +162,26 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
 }
 
 /**
- * Whether an RSC request asks for the page its client is already showing, like a
- * `router.replace` that only changes the query or a `router.refresh`.
+ * Whether an RSC request asks for the page its client was showing when it sent the request, like
+ * a `router.replace` that only changes the query or a `router.refresh`.
+ *
+ * The referrer is fixed when the page calls `fetch()`. The client's current URL is not: on a
+ * navigation the router commits the new URL while this request is still on its way, so reading
+ * it here can mistake a navigation to another page for a same-page update.
  */
-async function isRequestForCurrentPage(clientId: string, url: URL): Promise<boolean> {
-  if (clientId === '') return false;
-  const client = await self.clients.get(clientId);
-  if (client === undefined) return false;
-  return getCleanAppPath(new URL(client.url).pathname) === getCleanAppPath(url.pathname);
+async function isRequestForCurrentPage(
+  request: Request,
+  clientId: string,
+  url: URL,
+): Promise<boolean> {
+  let pageUrl = request.referrer;
+  if (pageUrl === '' || pageUrl === 'about:client') {
+    if (clientId === '') return false;
+    const client = await self.clients.get(clientId);
+    if (client === undefined) return false;
+    pageUrl = client.url;
+  }
+  return getCleanAppPath(new URL(pageUrl).pathname) === getCleanAppPath(url.pathname);
 }
 
 async function offlineFallback(
@@ -206,7 +218,7 @@ async function offlineFallback(
     // `experimental.useOffline` the router then keeps the page as it is and retries once the
     // connection returns, which is right for a query update or a refresh. Loading the page as
     // a document instead would only reload what the user is looking at.
-    if (await isRequestForCurrentPage(clientId, url)) {
+    if (await isRequestForCurrentPage(request, clientId, url)) {
       console.warn(`[SW] RSC Cache Miss for the current page: ${url.toString()}.`);
       return Response.error();
     }
