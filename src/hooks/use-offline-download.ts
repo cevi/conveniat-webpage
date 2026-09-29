@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 // eslint-disable-next-line import/no-restricted-paths
-import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { CACHE_NAMES, OFFLINE_ENABLED_FLAG } from '@/features/service-worker/constants';
 import { useServiceWorkerMessage } from '@/hooks/use-service-worker-message';
 import { useServiceWorkerStatus } from '@/hooks/use-service-worker-status';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
@@ -79,10 +79,11 @@ export const useOfflineDownload = (
 
     const checkCache = async (): Promise<void> => {
       try {
-        const pagesCache = await caches.open(CACHE_NAMES.PAGES);
-        const keys = await pagesCache.keys();
-        // Arbitrary threshold to assume "downloaded"
-        if (keys.length > 5) {
+        // The service worker's "download done" flag, the same signal onboarding uses. Counting
+        // cached pages called a user who only browsed a few pages "downloaded", and turned a
+        // deleted download back on after a handful of page loads.
+        const statusCache = await caches.open(CACHE_NAMES.OFFLINE_STATUS);
+        if ((await statusCache.match(OFFLINE_ENABLED_FLAG)) !== undefined) {
           setStatus('has-content');
         }
       } catch {
