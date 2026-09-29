@@ -52,6 +52,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     hasToken,
     isRegisteredOnBackend,
     isUnauthenticated: nativeIsUnauthenticated,
+    isOptedOut: isNativeOptedOut,
     requestPermission,
     deleteToken,
     openSettings,
@@ -93,7 +94,11 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
 
   const isNativeSupported = true; // WebView bridge handles support
   const isNativeSubscribed =
-    hasToken && status === 'granted' && isRegisteredOnBackend && isAuthenticated;
+    !isNativeOptedOut &&
+    hasToken &&
+    status === 'granted' &&
+    isRegisteredOnBackend &&
+    isAuthenticated;
   const isNativeLoading = status === 'unknown';
 
   const isSupported = isNativeApp ? isNativeSupported : isWebSupported;
@@ -175,6 +180,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       isBridgePresent,
       nativeStatus: status,
       hasToken,
+      isNativeOptedOut,
       isWebSupported,
       isWebSubscribed,
       browserPermission: notificationPermission,
@@ -219,6 +225,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
     isBridgePresent,
     status,
     hasToken,
+    isNativeOptedOut,
     isWebSupported,
     isWebSubscribed,
     notificationPermission,

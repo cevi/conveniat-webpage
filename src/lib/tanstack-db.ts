@@ -130,15 +130,23 @@ const userPreferenceSchema = z.object({
 });
 
 /**
- * Initialize the local TanStack DB collection for user preferences.
+ * Initialize the local TanStack DB collection for user preferences. Read and write it through
+ * `@/lib/preferences`, which knows what each key holds.
+ *
+ * Loaded eagerly and never collected. A collection only reads localStorage once something
+ * subscribes, and preferences are read with `get()`, which does not subscribe: after an app
+ * restart every preference read as unset, and the first write replaced all stored ones with
+ * itself.
  */
-export const userPreferencesCollection = createCollection(
-  localStorageCollectionOptions({
+export const userPreferencesCollection = createCollection({
+  ...localStorageCollectionOptions({
     id: 'user-preferences',
     storageKey: 'tanstack-db-user-preferences',
     getKey: (item) => item.key,
     schema: userPreferenceSchema,
   }),
-);
+  startSync: true,
+  gcTime: 0,
+});
 
 export type UserPreferenceRecord = z.infer<typeof userPreferenceSchema>;

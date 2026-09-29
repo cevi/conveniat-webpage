@@ -28,8 +28,8 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
       // 1. Offline Content (DB Check)
       let isHandled = false;
       try {
-        const { userPreferencesCollection } = await import('@/lib/tanstack-db');
-        isHandled = !!userPreferencesCollection.get('offline-content-handled');
+        const { readPreference } = await import('@/lib/preferences');
+        isHandled = readPreference('offline-content-handled');
       } catch (error) {
         console.warn('Failed to check offline preferences', error);
       }
@@ -58,28 +58,12 @@ export const useOnboardingStorage = (): UseOnboardingStorageResult => {
   }, []);
 
   const handleOfflineContent = useCallback((accepted: boolean) => {
-    // Store preference in TanStack DB
-    void import('@/lib/tanstack-db').then(({ userPreferencesCollection }) => {
-      const setPreference = (key: string, value: boolean): void => {
-        try {
-          const existing = userPreferencesCollection.get(key);
-          if (existing) {
-            // The callback has to mutate the draft - TanStack DB tracks property assignments
-            // and discards the returned value.
-            userPreferencesCollection.update(key, (previous) => {
-              previous.value = value;
-            });
-          } else {
-            userPreferencesCollection.insert({ key, value });
-          }
-        } catch {
-          // Ignore duplicate insert errors
-        }
-      };
-
-      setPreference('offline-content-handled', true);
-      setPreference('offline-content-accepted', accepted);
-    });
+    void import('@/lib/preferences')
+      .then(({ writePreference }) => {
+        writePreference('offline-content-handled', true);
+        writePreference('offline-content-accepted', accepted);
+      })
+      .catch((error: unknown) => console.warn('Failed to store offline preferences', error));
 
     // Store skip preference in cookies as well for a fast secondary check
     Cookies.set(Cookie.OFFLINE_CONTENT_HANDLED, 'true', { expires: 730 });

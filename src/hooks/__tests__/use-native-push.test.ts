@@ -9,6 +9,7 @@ import {
   extractNotificationType,
   useNativePush,
 } from '@/hooks/use-native-push';
+import { writePreference } from '@/lib/preferences';
 import { assignLocation } from '@/utils/assign-location';
 import {
   notifyForegroundMessage,
@@ -107,6 +108,7 @@ const openEvent = (url: string, bubbles: boolean): CustomEvent =>
 describe('useNativePush', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    writePreference('native-push-opted-out', false);
     Object.defineProperty(navigator, 'userAgent', {
       value: 'KonektaApp/1.0',
       configurable: true,
@@ -397,6 +399,92 @@ describe('useNativePush', () => {
 
       expect(navigationsPerDelivery).toBeGreaterThan(0);
       expect(mockPush).toHaveBeenCalledTimes(navigationsPerDelivery);
+    });
+  });
+
+  /**
+   * The native shell has Firebase issue a new token right after deleting one, and reports
+   * a token on every resume. Registering whatever token turned up switched push straight
+   * back on, and sent another "successfully subscribed" push with it.
+   */
+  describe('turning push off', () => {
+    const mockRegisterDevice = jest.fn().mockResolvedValue({ success: true });
+    const mockUnregisterDevice = jest.fn().mockResolvedValue({ success: true });
+
+    beforeEach(() => {
+      mockRegisterDevice.mockClear();
+      mockUnregisterDevice.mockClear();
+      sessionStorage.removeItem('pending_push_redirect');
+      localStorage.removeItem('pending_push_redirect');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const trpcMock = jest.requireMock('@/trpc/client');
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+      trpcMock.trpc.nativePush.registerDevice.useMutation.mockReturnValue({
+        mutateAsync: mockRegisterDevice,
+      });
+      trpcMock.trpc.nativePush.unregisterDevice.useMutation.mockReturnValue({
+        mutateAsync: mockUnregisterDevice,
+      });
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+    });
+
+    it('does not register the new token the shell reports after the delete', async () => {
+      const { result } = renderHook(() => useNativePush());
+      await dispatchToken('token-before');
+
+      act(() => {
+        result.current.deleteToken();
+      });
+      await act(async () => {
+        globalThis.dispatchEvent(
+          new CustomEvent('app-webview-native-push-event', {
+            detail: {
+              type: 'native-push-token-deleted',
+              payload: { token: 'token-before', platform: 'android' },
+            },
+          }),
+        );
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      await dispatchToken('token-after');
+
+      expect(globalThis.AppWebViewNativePush?.deleteToken).toHaveBeenCalledTimes(1);
+      expect(mockRegisterDevice).toHaveBeenCalledTimes(1);
+      expect(mockRegisterDevice).not.toHaveBeenCalledWith(
+        expect.objectContaining({ token: 'token-after' }),
+      );
+      expect(result.current.isOptedOut).toBe(true);
+    });
+
+    it('stays off on the next launch and removes a token the backend still holds once', async () => {
+      writePreference('native-push-opted-out', true);
+      const { result } = renderHook(() => useNativePush());
+
+      await dispatchToken('token-on-launch');
+      await dispatchToken('token-on-launch');
+
+      expect(mockRegisterDevice).not.toHaveBeenCalled();
+      expect(mockUnregisterDevice).toHaveBeenCalledTimes(1);
+      expect(mockUnregisterDevice).toHaveBeenCalledWith({
+        token: 'token-on-launch',
+        platform: 'android',
+      });
+      expect(result.current.isOptedOut).toBe(true);
+    });
+
+    it('registers the token again once the user turns push back on', async () => {
+      writePreference('native-push-opted-out', true);
+      const { result } = renderHook(() => useNativePush());
+
+      act(() => {
+        result.current.requestPermission();
+      });
+      await dispatchToken('token-reenabled');
+
+      expect(mockRegisterDevice).toHaveBeenCalledWith(
+        expect.objectContaining({ token: 'token-reenabled', platform: 'android' }),
+      );
+      expect(result.current.isOptedOut).toBe(false);
     });
   });
 
