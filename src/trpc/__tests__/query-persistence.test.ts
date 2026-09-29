@@ -1,6 +1,7 @@
 import { makeQueryClient } from '@/trpc/query-client';
 import {
   deserializePersistedClient,
+  PERSISTED_QUERY_CACHE_MAX_AGE,
   serializePersistedClient,
   shouldPersistQuery,
 } from '@/trpc/query-persistence';
@@ -26,6 +27,7 @@ const restore = async (blob: string): Promise<{ client: QueryClient; removed: bo
   let removed = false;
   await persistQueryClientRestore({
     queryClient: client,
+    maxAge: PERSISTED_QUERY_CACHE_MAX_AGE,
     persister: {
       persistClient: (): Promise<void> => Promise.resolve(),
       restoreClient: (): Promise<PersistedClient> =>
@@ -81,6 +83,22 @@ describe('persisted query cache', () => {
       clientState: dehydrate(previousSession, { shouldDehydrateQuery: () => true }),
     });
     onlineManager.setOnline(true);
+
+    const { client, removed } = await restore(blob);
+
+    expect(removed).toBe(false);
+    expect(client.getQueryData(CACHED_KEY)).toEqual(['a cached chat']);
+  });
+
+  it('keeps the cached data of a phone that was not opened for two days', async () => {
+    const previousSession = newClient();
+    previousSession.setQueryData(CACHED_KEY, ['a cached chat']);
+    const twoDaysAgo = Date.now() - 2 * 24 * 60 * 60 * 1000;
+    const blob = serializePersistedClient({
+      timestamp: twoDaysAgo,
+      buster: '',
+      clientState: dehydrate(previousSession, { shouldDehydrateQuery: shouldPersistQuery }),
+    });
 
     const { client, removed } = await restore(blob);
 
