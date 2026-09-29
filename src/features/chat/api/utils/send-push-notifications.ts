@@ -1,7 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import type { NotificationType } from '@/lib/notification-type';
+import { PushNotificationKind } from '@/lib/prisma';
+import { recordPushRecipients } from '@/lib/push-metrics';
 import { createLogger } from '@/utils/server-logger';
+import { withSpan } from '@/utils/tracing-helpers';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 
@@ -17,9 +20,28 @@ const logger = createLogger('push:fanout');
 interface FanoutOutcome {
   /** Sends that threw, i.e. never reached a verdict. */
   thrown: number;
-  /** Sends that completed but were rejected by the push service (expired device, …). */
-  rejected: number;
+  /** Sends the push service turned away because the device had unsubscribed. */
+  expired: number;
+  /** Sends that completed but failed for any other reason. */
+  failed: number;
 }
+
+interface SendOutcome {
+  success: boolean;
+  subscriptionRemoved?: boolean;
+}
+
+/**
+ * Kinds whose fan-out is logged at info even when it went well. They are rare, and when
+ * someone asks whether the piket was woken up, the answer must not depend on trace
+ * sampling. A chat message fires per request, so its summary stays at debug and
+ * `push_sends_total` counts it instead.
+ */
+const KINDS_ALWAYS_LOGGED = new Set<PushNotificationKind>([
+  PushNotificationKind.EMERGENCY,
+  PushNotificationKind.SUPPORT,
+  PushNotificationKind.ANNOUNCEMENT,
+]);
 
 /**
  * Fan-out size that is worth a log line. Every subscription above this is another
@@ -45,11 +67,12 @@ const PUSH_FANOUT_CONCURRENCY = 25;
  */
 async function dispatchBounded(
   subscriptions: PushNotificationSubscription[],
-  send: (subscription: PushNotificationSubscription) => Promise<{ success: boolean }>,
+  send: (subscription: PushNotificationSubscription) => Promise<SendOutcome>,
 ): Promise<FanoutOutcome> {
   let nextIndex = 0;
   let thrown = 0;
-  let rejected = 0;
+  let expired = 0;
+  let failed = 0;
 
   const worker = async (): Promise<void> => {
     while (nextIndex < subscriptions.length) {
@@ -58,7 +81,8 @@ async function dispatchBounded(
       if (subscription === undefined) continue;
       try {
         const result = await send(subscription);
-        if (!result.success) rejected++;
+        if (result.subscriptionRemoved === true) expired++;
+        else if (!result.success) failed++;
       } catch (error) {
         // One unreachable device must not cut the fan-out short for everyone
         // queued behind it.
@@ -72,8 +96,11 @@ async function dispatchBounded(
     Array.from({ length: Math.min(PUSH_FANOUT_CONCURRENCY, subscriptions.length) }, () => worker()),
   );
 
-  return { thrown, rejected };
+  return { thrown, expired, failed };
 }
+
+const recipientIdOf = (subscription: PushNotificationSubscription): string | undefined =>
+  typeof subscription.user === 'object' ? subscription.user?.id : (subscription.user ?? undefined);
 
 async function getSubscriptions(
   recipientUserIds: string[],
@@ -114,37 +141,29 @@ async function processSubscription(
   subscription: PushNotificationSubscription,
   message: string,
   chatURL: string,
-  messageId?: string,
-  chatId?: string,
-  options?: {
-    chatName?: string;
-    senderName?: string;
-    title?: string;
-    notificationType?: NotificationType;
-  },
-): Promise<{ success: boolean; error?: string }> {
+  messageId: string | undefined,
+  chatId: string,
+  options: SendNotificationOptions,
+): Promise<SendOutcome> {
   const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
 
-  const userId =
-    typeof subscription.user === 'object'
-      ? subscription.user?.id
-      : (subscription.user ?? undefined);
+  const userId = recipientIdOf(subscription);
 
   // Use chatName/title for push notification title if available
-  const notificationTitle = options?.chatName ?? options?.title;
+  const notificationTitle = options.chatName ?? options.title;
 
   // Format body as "SenderName: Message" if senderName is provided
-  const notificationBody = options?.senderName ? `${options.senderName}: ${message}` : message;
+  const notificationBody = options.senderName ? `${options.senderName}: ${message}` : message;
 
   // For chat messages, we log a JSON object instead of the actual message content for privacy
   const logContent =
-    messageId !== undefined && chatId !== undefined
-      ? JSON.stringify({
+    messageId === undefined
+      ? undefined
+      : JSON.stringify({
           type: 'chat_message',
           messageId,
           chatId,
-        })
-      : undefined;
+        });
 
   // We delegate logging to sendNotificationToSubscription by passing userId
   return sendNotificationToSubscription(
@@ -160,74 +179,110 @@ async function processSubscription(
       // push channel and the realtime (SSE) stream.
       ...(messageId === undefined ? {} : { messageId }),
       ...(typeof notificationTitle === 'string' ? { title: notificationTitle } : {}),
-      ...(options?.notificationType === undefined
+      ...(options.notificationType === undefined
         ? {}
         : { notificationType: options.notificationType }),
+      kind: options.kind,
     },
   );
 }
 
+interface SendNotificationOptions {
+  /** What the push is about; recorded on every log row, span and metric of the send. */
+  kind: PushNotificationKind;
+  chatName?: string;
+  senderName?: string;
+  title?: string;
+  notificationType?: NotificationType;
+}
+
 /**
- * Sends a push notification to the user.
- * This function remains largely the same, but it's now a utility within the tRPC context.
+ * Sends a push notification to every device of the given people.
+ *
+ * The whole fan-out is one `push.fanout` span, with a `push.send` span per device below it,
+ * and ends in one summary log line; see {@link KINDS_ALWAYS_LOGGED} for its level.
+ *
  * @param message - The message content to send in the notification.
  * @param recipientUserIds - An array of user IDs to whom the notification should be sent.
  * @param chatId - The ID of the chat, used to construct the deep link URL.
  * @param messageId - Optional ID of the message for logging purposes.
- * @param options - Optional formatting configuration (chatName, senderName, title) and
- *   the notification type, which decides whether native clients present the push on the
- *   regular chat channel or on the emergency channel with its siren.
+ * @param options - What the push is about, optional formatting (chatName, senderName,
+ *   title), and the notification type, which decides whether native clients present the
+ *   push on the regular chat channel or on the emergency channel with its siren.
  */
 export async function sendNotification(
   message: string,
   recipientUserIds: string[],
   chatId: string,
-  messageId?: string,
-  options?: {
-    chatName?: string;
-    senderName?: string;
-    title?: string;
-    notificationType?: NotificationType;
-  },
+  messageId: string | undefined,
+  options: SendNotificationOptions,
 ): Promise<{ success: boolean; error?: string }> {
-  const subscriptions = await getSubscriptions(recipientUserIds);
+  return withSpan(
+    'push.fanout',
+    async (span) => {
+      const subscriptions = await getSubscriptions(recipientUserIds);
 
-  if (subscriptions.length === 0) {
-    return {
-      success: true,
-      error: 'No push notification subscriptions found.',
-    };
-  }
+      const recipients = new Set(recipientUserIds);
+      const recipientsWithDevice = new Set(
+        subscriptions.map((subscription) => recipientIdOf(subscription)),
+      );
+      const withoutDevice = [...recipients].filter((id) => !recipientsWithDevice.has(id)).length;
+      recordPushRecipients(options.kind, recipients.size - withoutDevice, withoutDevice);
 
-  const chatURL = environmentVariables.APP_HOST_URL + '/app/chat/' + chatId;
+      const summary = {
+        'push.kind': options.kind,
+        'push.recipients': recipients.size,
+        'push.recipients_without_device': withoutDevice,
+        'push.subscriptions': subscriptions.length,
+        'chat.id': chatId,
+        'message.id': messageId,
+      };
+      span.setAttributes(summary);
 
-  try {
-    const { thrown, rejected } = await dispatchBounded(subscriptions, (subscription) =>
-      processSubscription(subscription, message, chatURL, messageId, chatId, options),
-    );
+      if (subscriptions.length === 0) {
+        if (KINDS_ALWAYS_LOGGED.has(options.kind)) {
+          logger.info('Push fan-out reached no device', summary);
+        } else {
+          logger.debug('Push fan-out reached no device', summary);
+        }
+        return { success: true, error: 'No push notification subscriptions found.' };
+      }
 
-    // One line per send, carrying the whole shape of the fan-out: how many devices it
-    // reached, how many the push service turned away, and how many never got a
-    // verdict. `rejected` is mostly expired devices and is not by itself a failure -
-    // it is, however, the number that says whether a chat notified anybody.
-    const outcome = {
-      'push.subscriptions': subscriptions.length,
-      'push.recipients': recipientUserIds.length,
-      'push.delivered': subscriptions.length - thrown - rejected,
-      'push.rejected': rejected,
-      'push.thrown': thrown,
-      'chat.id': chatId,
-    };
+      const chatURL = environmentVariables.APP_HOST_URL + '/app/chat/' + chatId;
 
-    if (thrown > 0) {
-      logger.error('Push fan-out finished with failed sends', outcome);
-      return { success: false, error: 'Failed to send notification' };
-    }
+      try {
+        const { thrown, expired, failed } = await dispatchBounded(subscriptions, (subscription) =>
+          processSubscription(subscription, message, chatURL, messageId, chatId, options),
+        );
 
-    logger.debug('Push fan-out finished', outcome);
-    return { success: true };
-  } catch (error) {
-    logger.error('Push fan-out aborted', { error, 'chat.id': chatId });
-    return { success: false, error: 'Failed to send notification' };
-  }
+        // One line per send, carrying the whole shape of the fan-out. `expired` is the
+        // normal end of a subscription; `accepted` is the number that says whether the
+        // chat notified anybody.
+        const outcome = {
+          ...summary,
+          'push.accepted': subscriptions.length - thrown - expired - failed,
+          'push.expired': expired,
+          'push.failed': failed,
+          'push.thrown': thrown,
+        };
+        span.setAttributes(outcome);
+
+        if (thrown > 0) {
+          logger.error('Push fan-out finished with failed sends', outcome);
+          return { success: false, error: 'Failed to send notification' };
+        }
+
+        if (KINDS_ALWAYS_LOGGED.has(options.kind) || failed > 0 || outcome['push.accepted'] === 0) {
+          logger.info('Push fan-out finished', outcome);
+        } else {
+          logger.debug('Push fan-out finished', outcome);
+        }
+        return { success: true };
+      } catch (error) {
+        logger.error('Push fan-out aborted', { error, ...summary });
+        return { success: false, error: 'Failed to send notification' };
+      }
+    },
+    { 'push.kind': options.kind, 'chat.id': chatId },
+  );
 }

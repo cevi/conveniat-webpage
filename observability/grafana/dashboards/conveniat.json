@@ -649,6 +649,127 @@
       }
     },
     {
+      "id": 7,
+      "title": "Push notifications",
+      "type": "row",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "id": 150,
+      "title": "Push sends/sec by outcome",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (channel, outcome) (rate(push_sends_total[5m]))",
+          "legendFormat": "{{channel}} {{outcome}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      }
+    },
+    {
+      "id": 151,
+      "title": "Push recipients/sec by device",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 8,
+        "y": 54,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (kind, device) (rate(push_recipients_total[5m]))",
+          "legendFormat": "{{kind}} device={{device}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      }
+    },
+    {
+      "id": 152,
+      "title": "Push device reports/sec",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 16,
+        "y": 54,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (channel, event) (rate(push_tracking_events_total[5m]))",
+          "legendFormat": "{{channel}} {{event}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        }
+      }
+    },
+    {
       "id": 5,
       "title": "Database infrastructure",
       "type": "row",
@@ -660,7 +781,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 54,
+            "y": 63,
             "w": 12,
             "h": 8
           },
@@ -696,7 +817,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 12,
-            "y": 54,
+            "y": 63,
             "w": 12,
             "h": 8
           },
@@ -732,7 +853,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 62,
+            "y": 71,
             "w": 12,
             "h": 8
           },
@@ -768,7 +889,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 12,
-            "y": 62,
+            "y": 71,
             "w": 12,
             "h": 8
           },
@@ -804,7 +925,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 70,
+            "y": 79,
             "w": 12,
             "h": 8
           },
@@ -840,7 +961,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 12,
-            "y": 70,
+            "y": 79,
             "w": 12,
             "h": 8
           },
@@ -876,7 +997,7 @@
           "type": "timeseries",
           "gridPos": {
             "x": 0,
-            "y": 78,
+            "y": 87,
             "w": 12,
             "h": 8
           },
@@ -909,7 +1030,7 @@
       ],
       "gridPos": {
         "x": 0,
-        "y": 53,
+        "y": 62,
         "w": 24,
         "h": 1
       }
@@ -922,7 +1043,7 @@
       "panels": [],
       "gridPos": {
         "x": 0,
-        "y": 86,
+        "y": 95,
         "w": 24,
         "h": 1
       }
@@ -933,7 +1054,7 @@
       "type": "logs",
       "gridPos": {
         "x": 0,
-        "y": 87,
+        "y": 96,
         "w": 24,
         "h": 10
       },

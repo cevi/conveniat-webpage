@@ -16,7 +16,7 @@ import {
   resetForegroundNotificationState,
 } from '@/utils/foreground-notifications';
 import { reloadPage } from '@/utils/reload-page';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
 jest.mock('@/utils/reload-page', () => ({
   reloadPage: jest.fn(),
@@ -36,6 +36,13 @@ jest.mock('sonner', () => ({
 const mockPush = jest.fn();
 const mockNotification = jest.fn();
 const mockMarkInteracted = jest.fn();
+const mockMarkDelivered = jest.fn();
+const mockPostHogCapture = jest.fn();
+
+jest.mock('posthog-js', () => ({
+  __esModule: true,
+  default: { capture: (...args: unknown[]): unknown => mockPostHogCapture(...args) },
+}));
 
 beforeAll(() => {
   // @ts-expect-error Mocking global Notification constructor
@@ -68,6 +75,9 @@ jest.mock('@/trpc/client', () => ({
     pushTracking: {
       markInteracted: {
         useMutation: (): { mutate: jest.Mock } => ({ mutate: mockMarkInteracted }),
+      },
+      markDelivered: {
+        useMutation: (): { mutate: jest.Mock } => ({ mutate: mockMarkDelivered }),
       },
     },
   },
@@ -160,6 +170,48 @@ describe('useNativePush', () => {
     });
 
     expect(mockMarkInteracted).toHaveBeenCalledWith({ id: 'log-123', type: 'CLICK' });
+  });
+
+  it('records a tap on a native notification in PostHog', async () => {
+    renderHook(() => useNativePush());
+
+    act(() => {
+      globalThis.dispatchEvent(openEvent('/app/chat/123', false));
+    });
+
+    await waitFor(() =>
+      expect(mockPostHogCapture).toHaveBeenCalledWith('push_notification_opened', {
+        channel: 'native',
+        notification_type: 'default',
+        target: 'chat',
+      }),
+    );
+  });
+
+  /**
+   * In the foreground the WebView is the only code that sees a native push arrive; in the
+   * background the OS renders it without running any. This is the one receipt the server
+   * gets for a native push.
+   */
+  it('reports a native push received in the foreground as delivered', () => {
+    renderHook(() => useNativePush());
+
+    act(() => {
+      globalThis.dispatchEvent(
+        new CustomEvent('app-webview-native-push-event', {
+          detail: {
+            type: 'native-push-message',
+            payload: {
+              messageId: 'fcm-delivery-id',
+              notification: { title: 'Cevi Uster', body: 'Mia: Treffpunkt beim Tor' },
+              data: { chatId: 'chat-abc', messageId: 'message-1', notificationId: 'log-456' },
+            },
+          },
+        }),
+      );
+    });
+
+    expect(mockMarkDelivered).toHaveBeenCalledWith({ id: 'log-456' });
   });
 
   it('records nothing when a native notification carries no push log id', () => {

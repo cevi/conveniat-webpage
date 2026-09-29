@@ -8,7 +8,7 @@ import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { LARGE_CHAT_THRESHOLD } from '@/lib/chat-shared';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
-import { ChatType, MessageEventType, MessageType } from '@/lib/prisma/client';
+import { ChatType, MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { databaseTransactionWrapper } from '@/trpc/middleware/database-transaction-wrapper';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
@@ -355,6 +355,10 @@ export const createMessage = trpcBaseProcedure
           validatedMessage.chatId,
           createdMessage.uuid,
           {
+            kind:
+              chat.type === ChatType.EMERGENCY
+                ? PushNotificationKind.EMERGENCY
+                : PushNotificationKind.CHAT,
             chatName: chat.name,
             senderName: user.name,
             // Every message in an emergency chat is part of a running alert, so the

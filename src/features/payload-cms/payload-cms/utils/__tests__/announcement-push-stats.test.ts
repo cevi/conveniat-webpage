@@ -39,6 +39,22 @@ describe('summarizePushLogs', () => {
     expect(stats).toMatchObject({ recipients: 2, delivered: 1, failed: 1 });
   });
 
+  /**
+   * The push service accepting a send says nothing about the phone. Counting it as
+   * delivered would show an editor a push as having arrived on a phone that was off.
+   */
+  it('counts a push the device never confirmed as accepted, not delivered', () => {
+    const stats = summarizePushLogs([log('anna', 'SENT'), log('ben', 'DELIVERED')], 0);
+
+    expect(stats).toMatchObject({ recipients: 2, accepted: 2, delivered: 1, failed: 0 });
+  });
+
+  it('does not count a person as failed when one of their pushes was accepted', () => {
+    const stats = summarizePushLogs([log('anna', 'FAILED'), log('anna', 'SENT')], 0);
+
+    expect(stats).toMatchObject({ accepted: 1, delivered: 0, failed: 0 });
+  });
+
   it('treats a push the device confirmed as delivered even if the send was not', () => {
     const confirmedByDevice: PushLogSummaryRow = {
       userId: 'anna',
@@ -48,12 +64,13 @@ describe('summarizePushLogs', () => {
       interactionType: null,
     };
 
-    expect(summarizePushLogs([confirmedByDevice], 0).delivered).toBe(1);
+    expect(summarizePushLogs([confirmedByDevice], 0)).toMatchObject({ accepted: 1, delivered: 1 });
   });
 
   it('passes the chat read count through', () => {
     expect(summarizePushLogs([], 7)).toEqual({
       recipients: 0,
+      accepted: 0,
       delivered: 0,
       clicked: 0,
       dismissed: 0,

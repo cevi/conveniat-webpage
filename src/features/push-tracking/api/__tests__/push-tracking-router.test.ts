@@ -33,6 +33,11 @@ jest.mock('superjson', () => ({
   },
 }));
 
+const mockHeaders = new Headers({ 'user-agent': 'Mozilla/5.0 (iPhone) Safari/604.1' });
+jest.mock('next/headers', () => ({
+  headers: (): Promise<Headers> => Promise.resolve(mockHeaders),
+}));
+
 const mockSendNotificationToSubscription = jest.fn();
 jest.mock('@/utils/push-notification-api', () => ({
   sendNotificationToSubscription: (...args: unknown[]): unknown =>
@@ -69,6 +74,7 @@ const testSend = {
 describe('pushTrackingRouter access', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdate.mockResolvedValue({ channel: 'WEB_PUSH', kind: 'CHAT' });
   });
 
   it('refuses the notification history to anyone signed out', async () => {
@@ -179,5 +185,50 @@ describe('pushTrackingRouter.renewWebPushSubscription', () => {
       callerAs(signedOut).renewWebPushSubscription({ oldSubscription, newSubscription }),
     ).resolves.toEqual({ renewed: false });
     expect(mockPayloadUpdate).not.toHaveBeenCalled();
+  });
+});
+
+/** The `data` of the first row update. */
+const updateData = (): Record<string, unknown> =>
+  (mockUpdate.mock.calls as [{ data: Record<string, unknown> }][])[0]?.[0].data ?? {};
+
+describe('pushTrackingRouter delivery reports', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUpdate.mockResolvedValue({ channel: 'WEB_PUSH', kind: 'CHAT' });
+  });
+
+  /**
+   * The server only learns that the push service accepted a send. A row reaching
+   * DELIVERED is the device's word that the push arrived, and the user agent says which
+   * device that was.
+   */
+  it('marks the row delivered and records the reporting device', async () => {
+    await callerAs(signedOut).markDelivered({ id: 'log-1', presentation: 'SHOWN' });
+
+    expect(updateData()).toEqual(
+      expect.objectContaining({
+        status: 'DELIVERED',
+        deliveredAt: expect.any(Date) as unknown,
+        userAgent: 'Mozilla/5.0 (iPhone) Safari/604.1',
+      }),
+    );
+    expect(updateData()).not.toHaveProperty('interactionType');
+  });
+
+  it('records a push the device kept out of the notification shade', async () => {
+    await callerAs(signedOut).markDelivered({ id: 'log-1', presentation: 'SUPPRESSED' });
+
+    expect(updateData()).toEqual(
+      expect.objectContaining({ status: 'DELIVERED', interactionType: 'SUPPRESSED' }),
+    );
+  });
+
+  /** A service worker installed before the field existed keeps reporting deliveries. */
+  it('accepts a report without a presentation', async () => {
+    await expect(callerAs(signedOut).markDelivered({ id: 'log-1' })).resolves.toEqual({
+      success: true,
+    });
+    expect(updateData()).toEqual(expect.objectContaining({ status: 'DELIVERED' }));
   });
 });
