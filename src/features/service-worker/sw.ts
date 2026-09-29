@@ -79,6 +79,13 @@ self.addEventListener('activate', (event) => {
         }),
       );
 
+      // An RSC payload only works in the build that rendered it: the router compares the build
+      // id inside it with its own and reloads the whole page on a mismatch. The cache keys
+      // survive a deploy (the `_rsc` hash covers only request headers), so nothing would ever
+      // replace an entry the previous build wrote, and every offline navigation that hit one
+      // flashed a blank page. The re-download below and the next online visits refill it.
+      await caches.delete(CACHE_NAMES.RSC);
+
       // Handle offline cache update if previously enabled
       const offlineEnabled = await isOfflineSupportEnabled();
       if (offlineEnabled) {
