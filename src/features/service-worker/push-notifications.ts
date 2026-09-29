@@ -155,13 +155,51 @@ function clientUrlMatchesTarget(clientUrlString: string, targetUrl: URL): boolea
   return false;
 }
 
+/** Kept apart from `conveniat27`, so closing it cannot close a notification the user still sees. */
+const SUPPRESSED_NOTIFICATION_TAG = 'conveniat27-suppressed';
+
+/**
+ * WebKit counts every push that does not call `showNotification` within 30 seconds. After the
+ * third, it removes every push subscription of the origin. The count never resets, and a visible
+ * app is no exemption, so three suppressed chat pushes silence an iPhone for good. Chrome and
+ * Firefox exempt a push that arrives while a page of the origin is visible.
+ */
+const revokesSubscriptionOnSilentPush = (serviceWorkerScope: ServiceWorkerGlobalScope): boolean => {
+  const { userAgent } = serviceWorkerScope.navigator;
+  return userAgent.includes('AppleWebKit') && !/Chrome|Chromium/.test(userAgent);
+};
+
+/**
+ * Satisfies WebKit's silent push rule for a push the user should not see: the notification is
+ * shown silently and closed straight away. WebKit counts the push as shown once the request is
+ * added, however briefly it stays.
+ */
+async function showAndCloseSuppressedNotification(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  data: NotificationPayload,
+): Promise<void> {
+  const { registration } = serviceWorkerScope;
+  await registration.showNotification(data.title, {
+    body: data.body,
+    icon: '/favicon.svg',
+    badge: '/notification-icon.png',
+    tag: SUPPRESSED_NOTIFICATION_TAG,
+    silent: true,
+  });
+  const shownNotifications = await registration.getNotifications({
+    tag: SUPPRESSED_NOTIFICATION_TAG,
+  });
+  for (const notification of shownNotifications) notification.close();
+}
+
 /**
  * Handles incoming push notifications (Web Push transport — native FCM pushes
  * never reach this service worker handler).
  * Displays notifications by default (including test notifications sent from admin panel
  * and subscription confirmation push notifications).
  * Only suppresses notifications if `ignoreIfAppOpen` is true or if `ignoreIfUrlMatches`
- * matches the URL a visible client is currently showing.
+ * matches the URL a visible client is currently showing. On WebKit a suppressed notification is
+ * still shown and closed at once, see {@link revokesSubscriptionOnSilentPush}.
  */
 export const pushNotificationHandler =
   (serviceWorkerScope: ServiceWorkerGlobalScope) =>
@@ -250,6 +288,8 @@ export const pushNotificationHandler =
           if (data.data.notificationId) {
             await trackPushEvent(data.data.notificationId, 'DELIVERED');
           }
+        } else if (revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
+          await showAndCloseSuppressedNotification(serviceWorkerScope, data);
         }
       })(),
     );
