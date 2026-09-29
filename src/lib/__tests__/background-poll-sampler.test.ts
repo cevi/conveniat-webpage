@@ -32,12 +32,18 @@ describe('BackgroundPollSampler', () => {
     expect(sample(spanName).decision).toBe(SamplingDecision.NOT_RECORD);
   });
 
-  it("does not record the scheduler's bookkeeping write", () => {
-    const result = sample('mongoose.globals.updateOne', {
-      attributes: {
-        'db.statement': 'updateOne {"condition":{"globalType":"payload-jobs-stats"},"updates":{}}',
-      },
-    });
+  // Statements as the mongoose instrumentation records them in production.
+  it.each([
+    [
+      'mongoose.globals.findOne',
+      'findOne {"condition":{"$and":[{"globalType":{"$eq":"payload-jobs-stats"}}]},"options":{},"fields":{}}',
+    ],
+    [
+      'mongoose.globals.updateOne',
+      'updateOne {"condition":{"globalType":"payload-jobs-stats"},"updates":{"globalType":"payload-jobs-stats","stats":{}}}',
+    ],
+  ])("does not record the scheduler's bookkeeping %s", (spanName, statement) => {
+    const result = sample(spanName, { attributes: { 'db.statement': statement } });
 
     expect(result.decision).toBe(SamplingDecision.NOT_RECORD);
   });

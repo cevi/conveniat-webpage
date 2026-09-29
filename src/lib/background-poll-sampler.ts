@@ -6,20 +6,25 @@ import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 /**
  * Collections the job runner and the worker heartbeat poll on their own schedule, outside any
  * request: `payload-jobs` for due jobs, `payload-workers` for the heartbeat that spares a job a
- * live worker is still running.
+ * live worker is still running. Only `payload-workers` is one of our collections, so only it
+ * also gets `payload.*` spans.
  */
 const POLLED_SPAN_PREFIXES = [
   'mongoose.payload-jobs.',
   'mongoose.payload-workers.',
-  'payload.payload-jobs.',
   'payload.payload-workers.',
 ] as const;
 
-/** The scheduler writes its bookkeeping into this global on every tick. */
-const SCHEDULER_STATS_GLOBAL = '"globalType":"payload-jobs-stats"';
+/**
+ * The scheduler reads and writes its bookkeeping in this global on every tick. Only the slug is
+ * matched: the read filters with `{"globalType":{"$eq":"payload-jobs-stats"}}`, the write with
+ * `{"globalType":"payload-jobs-stats"}`.
+ */
+const SCHEDULER_STATS_GLOBAL = '"payload-jobs-stats"';
+const GLOBAL_QUERY_SPANS = new Set(['mongoose.globals.findOne', 'mongoose.globals.updateOne']);
 
-const isSchedulerStatsWrite = (spanName: string, attributes: Attributes): boolean => {
-  if (spanName !== 'mongoose.globals.updateOne') return false;
+const isSchedulerStatsQuery = (spanName: string, attributes: Attributes): boolean => {
+  if (!GLOBAL_QUERY_SPANS.has(spanName)) return false;
   const statement = attributes['db.statement'];
   return typeof statement === 'string' && statement.includes(SCHEDULER_STATS_GLOBAL);
 };
@@ -52,7 +57,7 @@ export class BackgroundPollSampler implements Sampler {
     const isRoot = parent === undefined || !isSpanContextValid(parent);
     const isPoll =
       POLLED_SPAN_PREFIXES.some((prefix) => spanName.startsWith(prefix)) ||
-      isSchedulerStatsWrite(spanName, attributes);
+      isSchedulerStatsQuery(spanName, attributes);
 
     if (isRoot && isPoll) return { decision: SamplingDecision.NOT_RECORD };
 
