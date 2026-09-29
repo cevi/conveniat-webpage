@@ -4,9 +4,16 @@ import { environmentVariables } from '@/config/environment-variables';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { withKeyvalStore } from '@/lib/idb-keyval-store';
 import { makeQueryClient } from '@/trpc/query-client';
+import {
+  deserializePersistedClient,
+  PERSISTED_QUERY_CACHE_MAX_AGE,
+  PERSISTER_THROTTLE_MS,
+  serializePersistedClient,
+  shouldPersistQuery,
+} from '@/trpc/query-persistence';
 import type { AppRouter } from '@/trpc/routers/_app';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { defaultShouldDehydrateQuery, QueryClientContext } from '@tanstack/react-query';
+import { QueryClientContext } from '@tanstack/react-query';
 import type { Persister } from '@tanstack/react-query-persist-client';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { httpBatchLink } from '@trpc/client';
@@ -142,50 +149,16 @@ const persister: Persister =
       }
     : createAsyncStoragePersister({
         storage: indexedDBStorage,
-        serialize: (data) => superjson.stringify(data),
-        deserialize: (data) => {
-          try {
-            return superjson.parse(data);
-          } catch (error) {
-            console.error('[TRPCPersister] Failed to parse query cache:', error);
-            return {
-              timestamp: Date.now(),
-              buster: '',
-              clientState: { queries: [], mutations: [] },
-            };
-          }
-        },
+        throttleTime: PERSISTER_THROTTLE_MS,
+        serialize: serializePersistedClient,
+        deserialize: deserializePersistedClient,
         key: 'conveniat-query-cache-idb',
       });
 
 const persistOptions = {
   persister,
-  dehydrateOptions: {
-    shouldDehydrateQuery: (query: Parameters<typeof defaultShouldDehydrateQuery>[0]): boolean => {
-      if (query.meta?.['persist'] === false) {
-        return false;
-      }
-      if (query.queryKey[0] === 'qrCodeSvgImage') {
-        return false;
-      }
-      // The offline sync calls schedule.getById.setData() for every entry, which duplicates the
-      // whole schedule a second time inside this blob — roughly 500 entries carrying Lexical
-      // descriptions. The blob is written and parsed as a single unit, so that duplication is
-      // paid again on every persist and on every startup, and until the parse completes no
-      // cached value is available and the schedule view loses the race to the network.
-      // Nothing is lost offline: the entry list itself is still persisted, the detail views
-      // already fall back to finding the entry in that list, and TanStack DB keeps its own copy.
-      const trpcPath = Array.isArray(query.queryKey[0]) ? (query.queryKey[0] as string[]) : [];
-      if (trpcPath[0] === 'schedule' && trpcPath[1] === 'getById') {
-        return false;
-      }
-      return (
-        defaultShouldDehydrateQuery(query) ||
-        query.state.fetchStatus === 'paused' ||
-        query.state.data !== undefined
-      );
-    },
-  },
+  maxAge: PERSISTED_QUERY_CACHE_MAX_AGE,
+  dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
 };
 
 export const TRPCProvider: React.FC<{

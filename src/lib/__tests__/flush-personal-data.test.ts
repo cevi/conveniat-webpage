@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { flushPersonalData } from '@/lib/flush-personal-data';
+import Cookies from 'js-cookie';
 
 jest.mock('@/lib/tanstack-db', () => ({
   starsCollection: {
@@ -51,5 +52,56 @@ describe('flushPersonalData', () => {
 
     expect(localStorage.getItem('conveniat-offline-outbox')).toBe('[]');
     expect(localStorage.getItem('conveniat:chat-draft:chat-1:main')).toBe('half a sentence');
+  });
+
+  describe("the service worker's cached pages", () => {
+    const postMessage = jest.fn();
+
+    beforeEach(() => {
+      postMessage.mockClear();
+      Object.defineProperty(navigator, 'serviceWorker', {
+        value: { controller: { postMessage } },
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, 'serviceWorker');
+    });
+
+    const sentTypes = (): unknown[] =>
+      postMessage.mock.calls.map(([message]) => (message as { type: string }).type);
+
+    it('offers the offline download to the next person after an explicit logout', () => {
+      Cookies.set('skip-offline-content', 'true');
+
+      flushPersonalData({ clearCachedPages: true });
+
+      expect(Cookies.get('skip-offline-content')).toBeUndefined();
+    });
+
+    it('keeps the skipped download when the session merely expired', () => {
+      Cookies.set('skip-offline-content', 'true');
+
+      flushPersonalData({ keepUnsentChatMessages: true });
+
+      expect(Cookies.get('skip-offline-content')).toBe('true');
+      Cookies.remove('skip-offline-content');
+    });
+
+    it('are cleared on an explicit logout', () => {
+      flushPersonalData({ clearCachedPages: true });
+
+      expect(sentTypes()).toContain('CLEAR_PERSONAL_CACHES');
+    });
+
+    // A 401 and skipping the login also run for someone who was never logged in, and the offline
+    // download triggers a 401 for them: clearing there wiped the download while it ran.
+    it('are kept when the session merely expired or the login was skipped', () => {
+      flushPersonalData({ keepUnsentChatMessages: true });
+      flushPersonalData();
+
+      expect(sentTypes()).not.toContain('CLEAR_PERSONAL_CACHES');
+    });
   });
 });

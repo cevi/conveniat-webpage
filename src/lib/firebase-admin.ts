@@ -96,6 +96,11 @@ export async function sendFcmNotification(
   payload: {
     title: string;
     body: string;
+    /**
+     * How long FCM and APNs keep the push for a device that is offline. Without it FCM keeps
+     * a push for four weeks.
+     */
+    timeToLiveSeconds?: number;
     data: {
       url?: string;
       chatId?: string;
@@ -135,6 +140,7 @@ export async function sendFcmNotification(
     // app is in the foreground. All three have to agree or an emergency alert sirens on
     // some devices and not on others.
     const isEmergency = payload.data.notificationType === 'emergency';
+    const timeToLiveSeconds = payload.timeToLiveSeconds;
     await adminInstance.messaging().send({
       token,
       notification: {
@@ -161,6 +167,9 @@ export async function sendFcmNotification(
           'apns-collapse-id': notificationId,
           'apns-push-type': 'alert',
           'apns-priority': '10',
+          ...(timeToLiveSeconds !== undefined && {
+            'apns-expiration': String(Math.floor(Date.now() / 1000 + timeToLiveSeconds)),
+          }),
         },
         payload: {
           aps: {
@@ -199,6 +208,7 @@ export async function sendFcmNotification(
       },
       android: {
         priority: 'high',
+        ...(timeToLiveSeconds !== undefined && { ttl: timeToLiveSeconds * 1000 }),
         notification: {
           title: payload.title,
           body: payload.body,
@@ -238,7 +248,9 @@ export async function sendFcmNotification(
     // to be returned, which left the caller string-matching on text like `NotRegistered` and
     // unable to tell a permanently dead token from a transient failure.
     const errorCode = (error as { errorInfo?: { code?: unknown } } | undefined)?.errorInfo?.code;
-    logger.error('Failed to send the FCM notification', { error, 'error.code': errorCode });
+    // Not an error line: the caller decides whether this is a dead token, a retry or a fault,
+    // and logs it at that level. Logging every dead token as an error here drowned the real ones.
+    logger.debug('The FCM send was rejected', { error, 'error.code': errorCode });
     return {
       success: false,
       error: errorMessage,

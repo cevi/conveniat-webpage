@@ -9,7 +9,7 @@ jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
 jest.mock('@/lib/db/redis', () => ({ getFeatureFlag: jest.fn(), setFeatureFlag: jest.fn() }));
 jest.mock('@/lib/db/chat-pubsub', () => ({ chatPubSub: { publish: jest.fn() } }));
 jest.mock('@/lib/s3', () => ({ S3_BUCKET_NAME: 'bucket', s3ClientPublic: {} }));
-jest.mock('@/features/chat/api/utils/send-push-notifications', () => ({
+jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: jest.fn(),
 }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({

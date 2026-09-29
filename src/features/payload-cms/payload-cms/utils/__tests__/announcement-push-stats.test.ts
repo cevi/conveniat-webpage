@@ -7,12 +7,14 @@ const log = (
   userId: string,
   status: PushLogSummaryRow['status'],
   interactionType?: string,
+  error?: string,
 ): PushLogSummaryRow => ({
   userId,
   status,
   /* eslint-disable unicorn/no-null -- mirrors the Prisma row */
   deliveredAt: status === 'DELIVERED' ? new Date() : null,
   interactionType: interactionType ?? null,
+  error: error ?? null,
   /* eslint-enable unicorn/no-null */
 });
 
@@ -60,8 +62,10 @@ describe('summarizePushLogs', () => {
       userId: 'anna',
       status: 'PENDING',
       deliveredAt: new Date(),
-      // eslint-disable-next-line unicorn/no-null -- mirrors the Prisma row
+      /* eslint-disable unicorn/no-null -- mirrors the Prisma row */
       interactionType: null,
+      error: null,
+      /* eslint-enable unicorn/no-null */
     };
 
     expect(summarizePushLogs([confirmedByDevice], 0)).toMatchObject({ accepted: 1, delivered: 1 });
@@ -75,7 +79,40 @@ describe('summarizePushLogs', () => {
       clicked: 0,
       dismissed: 0,
       failed: 0,
+      pending: 0,
+      retrying: 0,
       readInChat: 7,
     });
+  });
+
+  /**
+   * A person whose push is still on the queue has not failed yet, even if their other device
+   * refused it. Counting them as failed would show an editor a loss that fixes itself.
+   */
+  it('counts a person still waiting on the queue as pending, not failed', () => {
+    const stats = summarizePushLogs(
+      [log('anna', 'FAILED'), log('anna', 'PENDING'), log('ben', 'PENDING'), log('cleo', 'SENT')],
+      0,
+    );
+
+    expect(stats).toMatchObject({ recipients: 3, accepted: 1, failed: 0, pending: 2 });
+  });
+
+  it('counts a pending push with an error as a retry', () => {
+    const stats = summarizePushLogs(
+      [log('anna', 'PENDING', undefined, 'Push service answered 503'), log('ben', 'PENDING')],
+      0,
+    );
+
+    expect(stats).toMatchObject({ pending: 2, retrying: 1 });
+  });
+
+  it('stops counting a person as pending once one of their devices got the push', () => {
+    const stats = summarizePushLogs(
+      [log('anna', 'PENDING', undefined, 'timeout'), log('anna', 'SENT')],
+      0,
+    );
+
+    expect(stats).toMatchObject({ accepted: 1, pending: 0, retrying: 0 });
   });
 });

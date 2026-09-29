@@ -1,8 +1,11 @@
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
-import type { AnnouncementPushStats } from '@/features/payload-cms/payload-cms/utils/announcement-push-stats';
+import type {
+  AnnouncementPushDelivery,
+  AnnouncementPushStats,
+} from '@/features/payload-cms/payload-cms/utils/announcement-push-stats';
 import { getAnnouncementPushStats } from '@/features/payload-cms/payload-cms/utils/announcement-push-stats';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { FieldLabel } from '@payloadcms/ui';
+import { FieldLabel, Pill } from '@payloadcms/ui';
 import type { UIFieldServerProps } from 'payload';
 import type React from 'react';
 
@@ -31,13 +34,28 @@ const explanation: StaticTranslationString = {
   de: 'Pro Person über alle ihre Geräte gezählt. Nur wer Benachrichtigungen erlaubt hat, erhält einen Push; im Chat gelesen zählt alle. Die Apps für iPhone und Android bestätigen einen Push nur, solange sie geöffnet sind.',
   fr: "Compté par personne sur tous ses appareils. Seules les personnes ayant autorisé les notifications reçoivent un push ; les lectures dans le chat comptent tout le monde. Les applications iPhone et Android ne confirment un push que lorsqu'elles sont ouvertes.",
 };
+const inProgressLabel: StaticTranslationString = {
+  en: 'Still being delivered. The numbers are as of when this page was opened.',
+  de: 'Wird noch zugestellt. Die Zahlen zeigen den Stand beim Öffnen der Seite.',
+  fr: "Encore en cours d'envoi. Les chiffres datent de l'ouverture de la page.",
+};
+const retryingLabel = (count: number): StaticTranslationString => ({
+  en: `${String(count)} of them after a failed attempt, retried automatically`,
+  de: `${String(count)} davon nach einem fehlgeschlagenen Versuch, wird automatisch wiederholt`,
+  fr: `dont ${String(count)} après un essai échoué, renvoyé automatiquement`,
+});
+const completedIn = (duration: string): StaticTranslationString => ({
+  en: `Every device handled within ${duration}.`,
+  de: `Alle Geräte innert ${duration} bedient.`,
+  fr: `Tous les appareils traités en ${duration}.`,
+});
 const readInChatLabel: StaticTranslationString = {
   en: 'Read in chat',
   de: 'Im Chat gelesen',
   fr: 'Lue dans le chat',
 };
 
-type PushMetric = 'accepted' | 'delivered' | 'clicked' | 'dismissed' | 'failed';
+type PushMetric = 'accepted' | 'delivered' | 'clicked' | 'dismissed' | 'failed' | 'pending';
 
 const metricLabels: Record<PushMetric, StaticTranslationString> = {
   accepted: {
@@ -53,6 +71,7 @@ const metricLabels: Record<PushMetric, StaticTranslationString> = {
   clicked: { en: 'Opened from push', de: 'Über Push geöffnet', fr: 'Ouverte via push' },
   dismissed: { en: 'Dismissed', de: 'Weggewischt', fr: 'Ignorée' },
   failed: { en: 'Failed', de: 'Fehlgeschlagen', fr: 'Échouée' },
+  pending: { en: 'Waiting to be sent', de: 'Noch ausstehend', fr: "En attente d'envoi" },
 };
 
 /** Bar colours from Payload's theme, so the summary follows light and dark mode. */
@@ -62,6 +81,14 @@ const metricColors: Record<PushMetric, string> = {
   clicked: 'var(--theme-elevation-800)',
   dismissed: 'var(--theme-elevation-400)',
   failed: 'var(--theme-error-500)',
+  pending: 'var(--theme-warning-500)',
+};
+
+/** A duration short enough to read at a glance: seconds, minutes or hours. */
+const formatDuration = (seconds: number): string => {
+  if (seconds < 90) return `${String(Math.max(1, Math.round(seconds)))} s`;
+  if (seconds < 90 * 60) return `${String(Math.round(seconds / 60))} min`;
+  return `${String(Math.round(seconds / 3600))} h`;
 };
 
 const MetricRow: React.FC<{
@@ -92,19 +119,55 @@ const MetricRow: React.FC<{
   );
 };
 
-const Summary: React.FC<{ stats: AnnouncementPushStats; locale: Locale }> = ({ stats, locale }) => (
+const DeliveryProgress: React.FC<{
+  stats: AnnouncementPushStats;
+  delivery: AnnouncementPushDelivery | undefined;
+  locale: Locale;
+}> = ({ stats, delivery, locale }) => {
+  if (stats.pending > 0) {
+    return (
+      <div className="mb-3 flex flex-col gap-1">
+        <Pill pillStyle="warning" size="small" className="self-start">
+          {metricLabels.pending[locale]}
+        </Pill>
+        <p className="m-0 text-sm text-(--theme-elevation-500)">{inProgressLabel[locale]}</p>
+        {stats.retrying > 0 && (
+          <p className="m-0 text-sm text-(--theme-elevation-500)">
+            {retryingLabel(stats.retrying)[locale]}
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (delivery?.completedAt === undefined) return <></>;
+  const seconds = (delivery.completedAt.getTime() - delivery.queuedAt.getTime()) / 1000;
+  return (
+    <p className="m-0 mb-3 text-sm text-(--theme-elevation-500)">
+      {completedIn(formatDuration(seconds))[locale]}
+    </p>
+  );
+};
+
+const Summary: React.FC<{
+  stats: AnnouncementPushStats;
+  delivery: AnnouncementPushDelivery | undefined;
+  locale: Locale;
+}> = ({ stats, delivery, locale }) => (
   <>
     <p className="m-0 mb-3">{sentTo(stats.recipients)[locale]}</p>
+    <DeliveryProgress stats={stats} delivery={delivery} locale={locale} />
     <ul className="m-0 flex list-none flex-col gap-3 p-0">
-      {(['accepted', 'delivered', 'clicked', 'dismissed', 'failed'] as const).map((metric) => (
-        <MetricRow
-          key={metric}
-          label={metricLabels[metric][locale]}
-          count={stats[metric]}
-          total={stats.recipients}
-          color={metricColors[metric]}
-        />
-      ))}
+      {(['accepted', 'delivered', 'clicked', 'dismissed', 'failed', 'pending'] as const)
+        .filter((metric) => metric !== 'pending' || stats.pending > 0)
+        .map((metric) => (
+          <MetricRow
+            key={metric}
+            label={metricLabels[metric][locale]}
+            count={stats[metric]}
+            total={stats.recipients}
+            color={metricColors[metric]}
+          />
+        ))}
     </ul>
     <div className="mt-4 flex items-baseline justify-between gap-2 border-t border-(--theme-elevation-100) pt-3">
       <span>{readInChatLabel[locale]}</span>
@@ -125,10 +188,10 @@ export const AnnouncementPushSummaryField = async ({
   const chatMessageUuid: unknown = (data as Record<string, unknown> | undefined)?.[
     'chatMessageUuid'
   ];
-  const stats =
+  const { stats, delivery } =
     typeof chatMessageUuid === 'string' && chatMessageUuid !== ''
       ? await getAnnouncementPushStats(chatMessageUuid)
-      : undefined;
+      : { stats: undefined, delivery: undefined };
 
   let body: React.ReactNode;
   if (stats === undefined) {
@@ -138,7 +201,7 @@ export const AnnouncementPushSummaryField = async ({
   } else {
     body = (
       <>
-        <Summary stats={stats} locale={locale} />
+        <Summary stats={stats} delivery={delivery} locale={locale} />
         <p className="m-0 mt-3 text-sm text-(--theme-elevation-500)">{explanation[locale]}</p>
       </>
     );

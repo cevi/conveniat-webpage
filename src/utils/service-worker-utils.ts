@@ -3,7 +3,25 @@ import { environmentVariables } from '@/config/environment-variables';
 /**
  * URL of the service worker to register.
  */
-const SW_URL = '/sw.js' as const;
+export const SW_URL = '/sw.js' as const;
+
+/**
+ * Options for every registration of {@link SW_URL}.
+ *
+ * The worker is registered from two places: here, and through `SerwistProvider` in the
+ * service worker manager. The browser compares each registration against the installed worker,
+ * and a different `type` counts as a new worker even when the script is byte-for-byte the same.
+ * With the provider defaulting to `module` and this function to `classic`, every launch through
+ * `/entrypoint` installed and activated a fresh worker. That re-ran the full offline download
+ * on each launch and hung the navigations that were in flight during the takeover.
+ *
+ * The build emits a classic script, so `classic` is the type to use.
+ */
+export const SW_REGISTRATION_OPTIONS = {
+  scope: '/',
+  type: 'classic',
+  updateViaCache: 'none',
+} as const satisfies RegistrationOptions;
 
 /**
  * Registers the Service Worker.
@@ -45,10 +63,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       console.log('Service worker already registered, byte-to-byte update check triggered');
     }
 
-    const registration = await navigator.serviceWorker.register(SW_URL, {
-      scope: '/',
-      updateViaCache: 'none',
-    });
+    const registration = await navigator.serviceWorker.register(SW_URL, SW_REGISTRATION_OPTIONS);
 
     // Wait for ready, but handle timeout gracefully without crashing the app in production
     const timeoutPromise = new Promise<void>((resolve) => setTimeout(resolve, 15_000));

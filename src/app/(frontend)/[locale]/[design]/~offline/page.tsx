@@ -1,3 +1,4 @@
+import { ReloadWhenOnline } from '@/app/(frontend)/[locale]/[design]/~offline/reload-when-online';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { DesignCodes } from '@/utils/design-codes';
@@ -31,6 +32,7 @@ export default async function OfflinePage({
   return (
     <>
       <title>{offlineTitle[locale]}</title>
+      <ReloadWhenOnline />
       <div className="flex min-h-[50vh] items-center justify-center p-4">
         <div className="max-w-lg text-center">
           <div className="mb-8 flex justify-center">

@@ -116,3 +116,77 @@ groups:
           summary: 'p99 latency for {{ $labels.service }} is {{ $values.query }}s'
         labels:
           severity: warning
+
+      # The replica that queues a push sends it at once, and the drainPushQueue task sweeps the
+      # queue every minute, so a due delivery waits seconds. One waiting five minutes means no
+      # replica is working the queue: an announcement or an alert is not going out.
+      - uid: push-queue-stuck
+        title: Push queue not draining
+        condition: threshold
+        data:
+          - refId: query
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              # Every replica reads the same table, so max rather than sum.
+              expr: max(push_queue_oldest_due_seconds)
+              instant: true
+              refId: query
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [300]
+                    type: gt
+              expression: query
+              refId: threshold
+              type: threshold
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: 'The oldest due push delivery has waited {{ $values.query }}s'
+          description:
+            Push deliveries are due but no worker claims them. Check the drainPushQueue job in
+            payload-jobs and the "push:queue" logs.
+        labels:
+          severity: critical
+
+      - uid: push-deliveries-failing
+        title: Push deliveries failing above 20%
+        condition: threshold
+        data:
+          - refId: query
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prometheus
+            model:
+              # Retries and unsubscribed devices are normal; only a refusal for good counts.
+              expr: sum by (channel) (rate(push_sends_total{outcome="failed"}[15m]))
+                / clamp_min(sum by (channel) (rate(push_sends_total[15m])), 0.001)
+              instant: true
+              refId: query
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0.2]
+                    type: gt
+              expression: query
+              refId: threshold
+              type: threshold
+        noDataState: OK
+        execErrState: OK
+        for: 15m
+        annotations:
+          summary: '{{ $values.query }} of {{ $labels.channel }} push sends fail for good'
+          description:
+            A push service refuses sends it will never accept, often a VAPID key or Firebase
+            credential problem. The batch log line "Push deliveries failed" names the errors.
+        labels:
+          severity: warning

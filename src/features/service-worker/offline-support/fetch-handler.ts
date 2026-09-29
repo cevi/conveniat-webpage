@@ -4,7 +4,7 @@ import {
   isClientInAppMode,
   persistAppModeClients,
 } from '@/features/service-worker/app-mode';
-import { CACHE_NAMES } from '@/features/service-worker/constants';
+import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
   findReplayableSiblingKey,
@@ -147,21 +147,63 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
     }
   }
 
-  // 10. GENERAL DASHBOARD FALLBACK
-  if (cleanPath.startsWith('/app/')) {
-    const dashKey = keys.find(
-      (keyRequest) => getCleanAppPath(new URL(keyRequest.url).pathname) === '/app/dashboard',
-    );
-    if (dashKey) {
-      match = await pagesCache.match(dashKey, { ignoreVary: true, ignoreSearch: true });
-      if (match) return match;
-    }
-  }
-
+  // No fallback to another section's page: answering /app/material with the dashboard showed
+  // the dashboard under the material URL, with the tab bar pointing at a page that was not
+  // there. The caller answers with the offline page instead, which says what is going on.
   return undefined;
 }
 
-async function offlineFallback(request: Request, url: URL, isAppMode: boolean): Promise<Response> {
+/**
+ * The cached answer to a page request, or undefined when there is none.
+ *
+ * A deep link to a schedule entry gets a redirect to `/app/schedule?id=…` instead of the cached
+ * schedule shell: served under the `[[...id]]` address, the shell's RSC tree does not match the
+ * route, and the router falls over (the offline schedule deep-link hotfix).
+ */
+async function cachedDocumentFor(url: URL): Promise<Response | undefined> {
+  const cleanPath = getCleanAppPath(url.pathname);
+  if (cleanPath.startsWith('/app/schedule/') && cleanPath !== '/app/schedule/') {
+    const id = cleanPath.replace('/app/schedule/', '');
+    return new Response(
+      `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/app/schedule?id=${id}"></head><body>Redirecting...</body></html>`,
+      {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      },
+    );
+  }
+  return matchCachedPage(url.toString());
+}
+
+/**
+ * Whether an RSC request asks for the page its client was showing when it sent the request, like
+ * a `router.replace` that only changes the query or a `router.refresh`.
+ *
+ * The referrer is fixed when the page calls `fetch()`. The client's current URL is not: on a
+ * navigation the router commits the new URL while this request is still on its way, so reading
+ * it here can mistake a navigation to another page for a same-page update.
+ */
+async function isRequestForCurrentPage(
+  request: Request,
+  clientId: string,
+  url: URL,
+): Promise<boolean> {
+  let pageUrl = request.referrer;
+  if (pageUrl === '' || pageUrl === 'about:client') {
+    if (clientId === '') return false;
+    const client = await self.clients.get(clientId);
+    if (client === undefined) return false;
+    pageUrl = client.url;
+  }
+  return getCleanAppPath(new URL(pageUrl).pathname) === getCleanAppPath(url.pathname);
+}
+
+async function offlineFallback(
+  request: Request,
+  url: URL,
+  isAppMode: boolean,
+  clientId = '',
+): Promise<Response> {
   // PostHog Analytics: Fail silently (no cache lookup, no error logs)
   if (url.pathname.startsWith('/ingest/')) {
     return Response.error();
@@ -186,14 +228,33 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
-    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Failing the request.`);
+    // A request for the page already on screen stays a network error. With
+    // `experimental.useOffline` the router then keeps the page as it is and retries once the
+    // connection returns, which is right for a query update or a refresh. Loading the page as
+    // a document instead would only reload what the user is looking at.
+    if (await isRequestForCurrentPage(request, clientId, url)) {
+      console.warn(`[SW] RSC Cache Miss for the current page: ${url.toString()}.`);
+      return Response.error();
+    }
 
-    // Fail like the Server Action branch above rather than redirecting to the document route.
+    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Answering 503.`);
+
+    // Navigating to another page: an empty 503, not a network error and not a redirect.
+    //
     // A redirect answers a request carrying `RSC: 1` with HTML, which the Flight client cannot
     // parse; the router then treats the prefetch as unresolved and re-issues it, so a single
-    // cache miss turns into a retry loop. `Response.error()` is a clean network failure that
-    // the router and the error boundary both already handle.
-    return Response.error();
+    // cache miss turns into a retry loop.
+    //
+    // A network error is worse here: the router takes it as "offline", parks the navigation
+    // until the connection returns and never falls back, so tapping a page that is not cached
+    // left the app on its loading state.
+    //
+    // A non-OK response is what the router treats as "load this page the classic way": the
+    // navigation turns into a document request, which this worker answers from the page cache
+    // or with the offline page, and a prefetch is rejected with a ten-second backoff.
+    // An empty body rather than none: the router reads `res.body` and treats a missing one as
+    // a failed fetch, which would park the navigation again.
+    return new Response('', { status: 503, statusText: 'Offline' });
   }
 
   const isManifestOrIcon =
@@ -212,22 +273,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
 
   // Strategy B: Cached HTML Page
   if (request.destination === 'document') {
-    const cleanPath = getCleanAppPath(url.pathname);
-
-    // [HOTFIX]: Redirect offline visits for deep linked schedule entries to use query param
-    // to avoid Next.js RSC router mismatch on optional catch-all segments.
-    if (cleanPath.startsWith('/app/schedule/') && cleanPath !== '/app/schedule/') {
-      const id = cleanPath.replace('/app/schedule/', '');
-      return new Response(
-        `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/app/schedule?id=${id}"></head><body>Redirecting...</body></html>`,
-        {
-          status: 200,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        },
-      );
-    }
-
-    const cachedPage = await matchCachedPage(url.toString());
+    const cachedPage = await cachedDocumentFor(url);
     if (cachedPage) return cachedPage;
 
     // Generic Offline Page (final fallback for documents)
@@ -247,7 +293,7 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
 
     console.warn(`[SW] Returning inline HTML offline fallback for document: ${url.toString()}`);
     return new Response(
-      `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | conveniat</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#090d16;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:16px}h1{font-size:24px;margin-bottom:8px}p{color:#9ca3af;margin-bottom:24px}button{background:#2563eb;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer}</style></head><body><div><h1>Du bist offline</h1><p>Diese Seite ist offline noch nicht verfügbar.</p><button onclick="window.location.reload()">Erneut versuchen</button></div></body></html>`,
+      `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | conveniat</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#090d16;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:16px}h1{font-size:24px;margin-bottom:8px}p{color:#9ca3af;margin-bottom:24px}button{background:#2563eb;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer}</style></head><body><div><h1>Du bist offline</h1><p>Diese Seite ist offline noch nicht verfügbar.</p><button onclick="window.location.reload()">Erneut versuchen</button></div><script>addEventListener('online',function(){location.reload()})</script></body></html>`,
       {
         status: 200,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
@@ -356,6 +402,45 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
   return Response.error();
 }
 
+/** How long an App Mode page or RSC request may take before the cached copy is shown. */
+const APP_MODE_NETWORK_TIMEOUT_MS = 3000;
+
+/**
+ * How long a request without a cached copy waits for a slow network before the offline page
+ * answers. Wifi that is up but has no working uplink leaves a request open until the browser's
+ * own timeout, which can be minutes.
+ */
+const APP_MODE_NETWORK_GIVE_UP_MS = 15_000;
+
+const noop = (): void => {};
+
+/**
+ * Stores an App Mode page or RSC payload for offline use. RSC payloads are buffered and stored
+ * without `Vary`, so later lookups match regardless of the request headers.
+ */
+async function storeAppModeResponse(response: Response, url: URL, isRsc: boolean): Promise<void> {
+  try {
+    const cache = await caches.open(isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES);
+    if (!isRsc) {
+      await cache.put(url.toString(), response);
+      return;
+    }
+    const buffer = await response.arrayBuffer();
+    const cleanHeaders = new Headers(response.headers);
+    cleanHeaders.delete('Vary');
+    await cache.put(
+      url.toString(),
+      new Response(buffer, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: cleanHeaders,
+      }),
+    );
+  } catch (error) {
+    console.warn('[SW] App Mode cache write failed:', error);
+  }
+}
+
 async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   const url = new URL(event.request.url);
   const isNavigation = event.request.mode === 'navigate';
@@ -438,55 +523,74 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // Fast-path offline fallback for documents and RSC requests when network is off
     if (isOffline) {
       console.log(`[SW] Fast Offline Fallback for ${url.pathname}`);
-      return offlineFallback(event.request, url, isAppMode);
+      return offlineFallback(event.request, url, isAppMode, event.clientId);
     }
 
     // If we are in App Mode and requesting a Document or RSC payload, bypass Serwist's
-    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 3s timeout.
+    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch.
+    //
+    // Camp wifi is often slow rather than down. When the network has not answered after
+    // APP_MODE_NETWORK_TIMEOUT_MS, the cached copy is served, but the request keeps running and
+    // refreshes the cache when it lands; aborting it meant a slow network never refreshed
+    // anything. Without a cached copy there is nothing better to show, so the worker keeps
+    // waiting for the network, up to APP_MODE_NETWORK_GIVE_UP_MS, instead of giving up on a page
+    // that would have arrived.
     if (isAppMode && (isDocument || isRsc)) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      // Only navigation payloads are cached. Offline, `matchCachedRsc` answers a navigation
+      // with any entry for the same path, and a prefetch response there (a route tree or a
+      // single segment) is one the router cannot use, so it reloaded the whole page.
+      const isPrefetch = event.request.headers.has('Next-Router-Prefetch');
+
+      const fromNetwork = fetch(requestToHandle).then((networkResponse) => {
+        if (networkResponse.ok && !isPrefetch) {
+          event.waitUntil(storeAppModeResponse(networkResponse.clone(), url, isRsc));
+        }
+        return networkResponse;
+      });
+
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const slowNetwork = new Promise<'slow'>((resolve) => {
+        timeoutId = setTimeout(() => resolve('slow'), APP_MODE_NETWORK_TIMEOUT_MS);
+      });
 
       try {
-        const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
+        const first = await Promise.race([fromNetwork, slowNetwork]);
         clearTimeout(timeoutId);
+        if (first !== 'slow') return isRsc ? sanitizeRscResponse(first) : first;
 
-        if (networkResponse.ok) {
-          const targetCacheName = isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES;
-          const cache = await caches.open(targetCacheName);
-          if (isRsc) {
-            void (async (): Promise<void> => {
-              try {
-                const cloned = networkResponse.clone();
-                const buffer = await cloned.arrayBuffer();
-                const cleanHeaders = new Headers(networkResponse.headers);
-                cleanHeaders.delete('Vary');
-                await cache.put(
-                  url.toString(),
-                  new Response(buffer, {
-                    status: networkResponse.status,
-                    statusText: networkResponse.statusText,
-                    headers: cleanHeaders,
-                  }),
-                );
-              } catch (error) {
-                console.warn('[SW] App Mode RSC stream buffer write failed:', error);
-              }
-            })();
-          } else {
-            void cache.put(url.toString(), networkResponse.clone()).catch(console.warn);
-          }
+        // A prefetch blocks nobody, so it waits for the network rather than getting a cached
+        // navigation payload in a shape it does not expect.
+        let cached: Response | undefined;
+        if (!isPrefetch) {
+          cached = isRsc ? await matchCachedRsc(url.toString()) : await cachedDocumentFor(url);
+        }
+        if (cached) {
+          console.log(`[SW] Slow network for ${url.pathname}, serving the cached copy meanwhile`);
+          event.waitUntil(fromNetwork.then(noop, noop));
+          return cached;
         }
 
-        if (isRsc) return sanitizeRscResponse(networkResponse);
-        return networkResponse;
+        const givingUp = new Promise<'give-up'>((resolve) => {
+          timeoutId = setTimeout(
+            () => resolve('give-up'),
+            APP_MODE_NETWORK_GIVE_UP_MS - APP_MODE_NETWORK_TIMEOUT_MS,
+          );
+        });
+        const late = await Promise.race([fromNetwork, givingUp]);
+        clearTimeout(timeoutId);
+        if (late === 'give-up') {
+          console.warn(`[SW] No answer for ${url.pathname}, answering with the offline fallback`);
+          event.waitUntil(fromNetwork.then(noop, noop));
+          return offlineFallback(event.request, url, isAppMode, event.clientId);
+        }
+        return isRsc ? sanitizeRscResponse(late) : late;
       } catch (error) {
         clearTimeout(timeoutId);
         console.warn(
-          `[SW] App Mode fetch timed out or failed for ${url.pathname}, bailing to offline fallback`,
+          `[SW] App Mode fetch failed for ${url.pathname}, bailing to offline fallback`,
           error,
         );
-        return offlineFallback(event.request, url, isAppMode);
+        return offlineFallback(event.request, url, isAppMode, event.clientId);
       }
     }
 
@@ -499,7 +603,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     if (response) {
       if (!response.ok && response.status === 504) {
         console.warn(`[SW] Serwist returned 504 for ${url.pathname}, bailing to offline fallback`);
-        return offlineFallback(event.request, url, isAppMode);
+        return offlineFallback(event.request, url, isAppMode, event.clientId);
       }
 
       if (isRsc) {
@@ -536,7 +640,74 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     if (error instanceof Error) {
       console.debug(`[SW] Network/MW failed for ${url.pathname}`, error);
     }
-    return offlineFallback(event.request, url, isAppMode);
+    return offlineFallback(event.request, url, isAppMode, event.clientId);
+  }
+}
+
+/**
+ * Counts how often the cached session was thrown away. A session request may now outlive the
+ * answer it gave (see the session check below); when it lands after a logout, writing it would
+ * sign the previous user back in on this phone as far as the offline UI is concerned.
+ */
+let sessionGeneration = 0;
+
+/** Drops the cached session, and any session answer still on its way in. */
+export async function forgetCachedSession(): Promise<void> {
+  sessionGeneration++;
+  await caches.delete(CACHE_NAMES.AUTH_SESSION);
+}
+
+/** Keeps the session of a logged-in user for offline use and forgets it on a logout. */
+async function rememberSession(
+  request: Request,
+  networkResponse: Response,
+  generation: number,
+): Promise<void> {
+  if (generation !== sessionGeneration) return;
+  if (networkResponse.ok) {
+    try {
+      const sessionData = (await networkResponse.clone().json()) as { user?: unknown };
+      if (generation !== sessionGeneration) return;
+      if (sessionData.user !== undefined && sessionData.user !== null) {
+        const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
+        await authCache.put(request, networkResponse.clone());
+      } else {
+        await caches.delete(CACHE_NAMES.AUTH_SESSION);
+      }
+    } catch {
+      await caches.delete(CACHE_NAMES.AUTH_SESSION);
+    }
+  } else if (networkResponse.status === 401 || networkResponse.status === 403) {
+    await caches.delete(CACHE_NAMES.AUTH_SESSION);
+  }
+}
+
+/**
+ * The cached session of the user logged in on this device, with its expiry moved 30 days ahead
+ * so the next-auth client does not log them out while offline. Undefined when nobody is.
+ */
+async function cachedSessionFor(request: Request): Promise<Response | undefined> {
+  const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
+  const cachedSession =
+    (await authCache.match(request, { ignoreSearch: true, ignoreVary: true })) ??
+    (await authCache.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true })) ??
+    (await caches.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true }));
+  if (!cachedSession) return undefined;
+
+  try {
+    const sessionData = (await cachedSession.clone().json()) as {
+      expires?: string;
+      user?: unknown;
+      [key: string]: unknown;
+    };
+    if (sessionData.user === undefined || sessionData.user === null) return undefined;
+    sessionData.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    return new Response(JSON.stringify(sessionData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {
+    return cachedSession;
   }
 }
 
@@ -569,24 +740,64 @@ export const handleFetchEvent =
       return;
     }
 
+    // The only HEAD request the app sends is the Next.js router asking whether the network is
+    // back (`experimental.useOffline`). A cached answer tells it yes while the device is still
+    // offline, so it retries the failed navigation or prefetch at once, fails, and asks again
+    // in a tight loop. It has to reach the network, and its empty body must never be stored as
+    // the page's RSC payload.
+    if (event.request.method === 'HEAD') {
+      return;
+    }
+
     if (
       isAuthRequest &&
       (url.pathname.includes('/auth/signout') || url.pathname.includes('/auth/signin'))
     ) {
-      event.waitUntil(
-        (async (): Promise<void> => {
-          await caches.delete(CACHE_NAMES.AUTH_SESSION);
-        })(),
-      );
+      event.waitUntil(forgetCachedSession());
     }
 
-    if (isAuthRequest && url.pathname.endsWith('/csrf')) {
+    if (isAuthRequest && url.pathname.endsWith('/session')) {
       event.respondWith(
         (async (): Promise<Response> => {
+          // A hanging connection (a captive portal, a weak camp wifi) kept this request open
+          // until the entrypoint gave up and showed the login screen to a logged-in user, on a
+          // network where the Cevi.DB login cannot complete either. After SESSION_FETCH the
+          // cached session answers instead, but only for a user who has one, and the request is
+          // never aborted: it may carry a rotated session cookie, and its answer refreshes the
+          // cache when it lands.
+          const generation = sessionGeneration;
+          const fromNetwork = fetch(event.request).then(async (networkResponse) => {
+            await rememberSession(event.request, networkResponse, generation);
+            return networkResponse;
+          });
+
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          const slowNetwork = new Promise<'slow'>((resolve) => {
+            timeoutId = setTimeout(() => resolve('slow'), TIMEOUTS.SESSION_FETCH);
+          });
+
           try {
-            return await fetch(event.request);
+            const first = await Promise.race([fromNetwork, slowNetwork]);
+            clearTimeout(timeoutId);
+            if (first !== 'slow') return first;
+
+            const cachedSession = await cachedSessionFor(event.request);
+            if (cachedSession) {
+              event.waitUntil(fromNetwork.catch(() => {}));
+              return cachedSession;
+            }
+            return await fromNetwork;
           } catch {
-            return new Response(JSON.stringify({ csrfToken: 'offline-csrf-token' }), {
+            clearTimeout(timeoutId);
+            const cachedSession = await cachedSessionFor(event.request);
+            if (cachedSession) return cachedSession;
+
+            // No cached session: answer what next-auth answers for nobody, `null`. This used to
+            // invent an "Offline User", which showed up by that name in the UI, filled forms
+            // with a made-up email address and made a logged-out phone look logged in. A user
+            // who was logged in has their real session cached above, so this only reaches
+            // devices without one.
+            return new Response('null', {
               status: 200,
               headers: { 'Content-Type': 'application/json' },
             });
@@ -596,84 +807,14 @@ export const handleFetchEvent =
       return;
     }
 
-    if (isAuthRequest && url.pathname.endsWith('/session')) {
-      event.respondWith(
-        (async (): Promise<Response> => {
-          try {
-            const networkResponse = await fetch(event.request);
-            if (networkResponse.ok) {
-              const clone = networkResponse.clone();
-              try {
-                const sessionData = (await clone.json()) as { user?: unknown };
-                if (sessionData.user !== undefined && sessionData.user !== null) {
-                  const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
-                  await authCache.put(event.request, networkResponse.clone());
-                } else {
-                  await caches.delete(CACHE_NAMES.AUTH_SESSION);
-                }
-              } catch {
-                await caches.delete(CACHE_NAMES.AUTH_SESSION);
-              }
-            } else if (networkResponse.status === 401 || networkResponse.status === 403) {
-              await caches.delete(CACHE_NAMES.AUTH_SESSION);
-            }
-            return networkResponse;
-          } catch {
-            const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
-            const cachedSession =
-              (await authCache.match(event.request, { ignoreSearch: true, ignoreVary: true })) ??
-              (await authCache.match('/api/auth/session', {
-                ignoreSearch: true,
-                ignoreVary: true,
-              })) ??
-              (await caches.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true }));
-
-            if (cachedSession) {
-              try {
-                const sessionData = (await cachedSession.clone().json()) as {
-                  expires?: string;
-                  user?: unknown;
-                  [key: string]: unknown;
-                };
-                if (sessionData.user !== undefined && sessionData.user !== null) {
-                  // Extend session expiry for 30 days offline so NextAuth client doesn't force logout
-                  sessionData.expires = new Date(
-                    Date.now() + 30 * 24 * 60 * 60 * 1000,
-                  ).toISOString();
-                  return new Response(JSON.stringify(sessionData), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                  });
-                }
-              } catch {
-                return cachedSession;
-              }
-            }
-
-            // Return minimal offline mock session to prevent unwanted logout redirects
-            return new Response(
-              JSON.stringify({
-                user: {
-                  id: 'offline-user',
-                  uuid: 'offline-user-uuid',
-                  name: 'Offline User',
-                  email: 'offline@conveniat.ch',
-                },
-                expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-              }),
-              {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-              },
-            );
-          }
-        })(),
-      );
-      return;
-    }
-
     // Proxy bypass: We still want the SW to intercept these to provide the automatic
     // HTML retry wrapper on connection drops, but we skip cache lookup strategies.
+    //
+    // `/api/auth/csrf` deliberately takes this path rather than a fallback of its own. It used
+    // to answer an unreachable network with a made-up `offline-csrf-token`. That changed
+    // nothing: next-auth's `getCsrfToken()` already turns a failed fetch into an empty token,
+    // and the server rejects an empty token and a made-up one alike with `MissingCSRF`. It only
+    // hid that the request had failed.
     const bypassSWProxy = isPreviewRequest || isAuthRequest || isTrpcRequest;
 
     if (bypassSWProxy) {
@@ -728,7 +869,7 @@ export const handleFetchEvent =
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
-        return offlineFallback(event.request, url, false);
+        return offlineFallback(event.request, url, false, event.clientId);
       }),
     );
   };

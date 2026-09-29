@@ -6,12 +6,11 @@ import {
   Stepper,
   StickyAction,
 } from '@/features/material/components/counter-ui';
-import { ItemRow } from '@/features/material/components/item-row';
-import { MaterialItemImage } from '@/features/material/components/material-item-image';
-import { format, itemStatusLabel, labels } from '@/features/material/components/material-labels';
+import { itemListClass, ItemRow } from '@/features/material/components/item-row';
+import { ItemHeader, ItemTexts } from '@/features/material/components/item-sections';
+import { format, labels } from '@/features/material/components/material-labels';
 import { ListPager } from '@/features/material/components/material-list-controls';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
-import { ItemStatusBadge } from '@/features/material/components/material-status-badge';
 import { MaterialStockBar } from '@/features/material/components/material-stock-bar';
 import {
   EmptyState,
@@ -28,9 +27,8 @@ import { materialQueryOptions, useMaterialLocale } from '@/features/material/hoo
 import { useSearchHistory } from '@/features/material/hooks/use-search-history';
 import { basketTotals, orderStepOf } from '@/features/material/utils/basket';
 import { catalogItemPath, itemPath, parseScan } from '@/features/material/utils/scan';
-import type { MaterialItemStatus } from '@/features/material/utils/stock';
 import { trpc, type RouterOutputs } from '@/trpc/client';
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft, Plus, Send } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
@@ -43,7 +41,6 @@ type CatalogItem = RouterOutputs['material']['getCatalog'][number];
 const text = {
   search: { de: 'Material suchen …', en: 'Search material …', fr: 'Chercher du matériel …' },
   filters: { de: 'Filter', en: 'Filters', fr: 'Filtres' },
-  allStatus: { de: 'Alle Status', en: 'All statuses', fr: 'Tous les statuts' },
   onlyAvailable: { de: 'Nur verfügbare', en: 'Available only', fr: 'Disponibles' },
   sort: { de: 'Sortierung', en: 'Sort', fr: 'Tri' },
   sortName: { de: 'Name A–Z', en: 'Name A–Z', fr: 'Nom A–Z' },
@@ -62,13 +59,13 @@ const text = {
     en: 'This item is only handed out at the material depot.',
     fr: 'Cet article est remis uniquement au dépôt de matériel.',
   },
-  inRequest: { de: 'In der Anfrage', en: 'In the request', fr: 'Dans la demande' },
   basket: {
     de: '{lines} · {pieces} Stück',
     en: '{lines} · {pieces} pieces',
     fr: '{lines} · {pieces} pièces',
   },
   toRequest: { de: 'Weiter zur Anfrage', en: 'Go to the request', fr: 'Vers la demande' },
+  toRequestShort: { de: 'Zur Anfrage', en: 'View request', fr: 'Voir la demande' },
   back: { de: 'Zum Material', en: 'To the material', fr: 'Vers le matériel' },
   notAnItem: {
     de: 'Das ist kein Artikel-Etikett.',
@@ -107,7 +104,9 @@ type SetQuantity = (item: RequestableItem, quantity: number) => void;
 
 /**
  * What a participant can do with an article: ask for it, change how many while it is in the
- * request, or learn why not.
+ * request, or learn why not. In a list row it is a round "+" and a word of why not, so the
+ * figures beside it keep their line; the article page, where it is the one thing to do, spells
+ * it out.
  */
 const RequestAction: React.FC<{
   item: RequestableItem;
@@ -117,40 +116,45 @@ const RequestAction: React.FC<{
 }> = ({ item, quantity, onChange, wide = false }) => {
   const locale = useMaterialLocale();
   const step = orderStepOf(item.orderStep);
-  if (item.isDisabled || item.stock.usable === 0) {
-    return (
-      <MaterialButton variant="secondary" disabled className={cn(wide && 'w-full')}>
-        {text.noneFree[locale]}
+  let unavailable: StaticTranslationString | undefined;
+  if (item.isDisabled || item.stock.usable === 0) unavailable = text.noneFree;
+  else if (!item.isReservable) unavailable = text.depotOnly;
+  if (unavailable !== undefined) {
+    return wide ? (
+      <MaterialButton variant="secondary" disabled className="h-12 w-full text-base">
+        {unavailable[locale]}
       </MaterialButton>
-    );
-  }
-  if (!item.isReservable) {
-    return (
-      <MaterialButton variant="secondary" disabled className={cn(wide && 'w-full')}>
-        {text.depotOnly[locale]}
-      </MaterialButton>
+    ) : (
+      <span className="block py-1 text-xs font-semibold text-gray-500">{unavailable[locale]}</span>
     );
   }
   if (quantity > 0) {
     return (
-      <div className={cn('flex items-center gap-2', wide && 'w-full justify-between')}>
-        <span className="text-xs font-semibold text-gray-600">{text.inRequest[locale]}</span>
-        <Stepper
-          label={`${labels.quantity[locale]}: ${item.name}`}
-          value={quantity}
-          max={item.maxLoanQuantity}
-          step={step}
-          onChange={(next) => onChange(item, next)}
-        />
-      </div>
+      <Stepper
+        label={`${labels.quantity[locale]}: ${item.name}`}
+        value={quantity}
+        max={item.maxLoanQuantity}
+        step={step}
+        onChange={(next) => onChange(item, next)}
+      />
+    );
+  }
+  const add = (): void => onChange(item, Math.min(step, item.maxLoanQuantity));
+  if (!wide) {
+    return (
+      <MaterialButton
+        variant="secondary"
+        className="w-11 rounded-full px-0"
+        aria-label={`${text.request[locale]}: ${item.name}`}
+        title={text.request[locale]}
+        onClick={add}
+      >
+        <Plus aria-hidden />
+      </MaterialButton>
     );
   }
   return (
-    <MaterialButton
-      variant="secondary"
-      className={cn(wide && 'h-12 w-full text-base')}
-      onClick={() => onChange(item, Math.min(step, item.maxLoanQuantity))}
-    >
+    <MaterialButton className="h-12 w-full text-base" onClick={add}>
       <Plus aria-hidden />
       {text.request[locale]}
     </MaterialButton>
@@ -168,7 +172,6 @@ const CatalogList: React.FC<{
   const categories = trpc.material.getCategoryList.useQuery(undefined, materialQueryOptions);
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [status, setStatus] = useState<MaterialItemStatus | ''>('');
   const [sort, setSort] = useState<Sort>('name');
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const listTop = useRef<HTMLDivElement>(null);
@@ -182,14 +185,13 @@ const CatalogList: React.FC<{
             item.name.toLowerCase().includes(needle) ||
             item.code.toLowerCase().includes(needle)) &&
           (categoryId === '' || item.category.id === categoryId) &&
-          (status === '' || item.status === status) &&
           (!onlyAvailable || item.stock.available > 0),
       )
       .toSorted(SORTS[sort]);
-  }, [items, query, categoryId, status, onlyAvailable, sort]);
+  }, [items, query, categoryId, onlyAvailable, sort]);
   const pagination = usePagination(
     visible.length,
-    JSON.stringify([query.trim(), categoryId, status, onlyAvailable, sort]),
+    JSON.stringify([query.trim(), categoryId, onlyAvailable, sort]),
   );
   const pageItems = visible.slice(pagination.slice.start, pagination.slice.end);
 
@@ -226,44 +228,35 @@ const CatalogList: React.FC<{
           {text.onlyAvailable[locale]}
         </FilterChip>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <NativeSelect
-          aria-label={labels.status[locale]}
-          value={status}
-          onChange={(event) => setStatus(event.target.value as MaterialItemStatus | '')}
-        >
-          <option value="">{text.allStatus[locale]}</option>
-          {Object.entries(itemStatusLabel).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label[locale]}
-            </option>
-          ))}
-        </NativeSelect>
-        <NativeSelect
-          aria-label={text.sort[locale]}
-          value={sort}
-          onChange={(event) => setSort(event.target.value as Sort)}
-        >
-          {Object.entries(sortLabel).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label[locale]}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
       <div ref={listTop} className="@container scroll-mt-20">
         <Panel>
-          <p className="border-b border-gray-100 px-4 py-2 text-xs text-gray-500 tabular-nums">
-            {format(text.count, locale, { n: visible.length, total: items.length })}
-          </p>
+          <div className="flex items-center justify-between gap-3 border-b border-gray-100 py-1 pr-1 pl-4">
+            <p className="text-sm text-gray-500 tabular-nums">
+              {format(text.count, locale, { n: visible.length, total: items.length })}
+            </p>
+            <NativeSelect
+              aria-label={text.sort[locale]}
+              value={sort}
+              onChange={(event) => setSort(event.target.value as Sort)}
+              // stays at the field's 16 px: anything smaller makes iOS zoom in on a tap
+              className="w-auto border-transparent bg-transparent font-semibold text-gray-700"
+            >
+              {Object.entries(sortLabel).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label[locale]}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
           {visible.length === 0 && <EmptyState text={labels.empty[locale]} />}
-          <ul className="divide-y divide-gray-100">
+          <ul className={itemListClass}>
             {pageItems.map((item) => (
               <ItemRow
                 key={item.id}
                 item={item}
                 href={catalogItemPath(item.code)}
                 locale={locale}
+                breakdown={false}
                 action={
                   <RequestAction item={item} quantity={quantityOf(item.id)} onChange={onChange} />
                 }
@@ -280,27 +273,36 @@ const CatalogList: React.FC<{
   );
 };
 
-/** One article for a participant: its numbers and texts, read only, and "request". */
+/** "1 Position · 10 Stück", what the request holds so far. */
+const basketLabel = (lines: RequestLine[], locale: Locale): string => {
+  const totals = basketTotals(lines);
+  return format(text.basket, locale, {
+    lines:
+      totals.positions === 1
+        ? labels.onePosition[locale]
+        : format(labels.positions, locale, { n: totals.positions }),
+    pieces: totals.pieces,
+  });
+};
+
+/**
+ * One article for a participant: what is free right under the name, the texts below, and
+ * "request" held at the bottom of the screen, where it stays in reach while they read.
+ */
 const CatalogItemView: React.FC<{
   code: string;
-  quantityOf: (itemId: string) => number;
+  lines: RequestLine[];
   onChange: SetQuantity;
   onBack: () => void;
-}> = ({ code, quantityOf, onChange, onBack }) => {
+  onRequest: () => void;
+}> = ({ code, lines, onChange, onBack, onRequest }) => {
   const locale = useMaterialLocale();
   const item = trpc.material.getCatalogItem.useQuery({ code }, materialQueryOptions);
   if (item.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!item.data) return <MaterialQueryError error={item.error} />;
   const data = item.data;
-  const numbers: [string, number, string][] = [
-    [labels.available[locale], data.stock.available, 'text-green-700'],
-    [labels.reserved[locale], data.stock.reserved, 'text-blue-700'],
-    [labels.issued[locale], data.stock.issued, 'text-orange-600'],
-    [labels.maxPerLoan[locale], data.maxLoanQuantity, 'text-gray-900'],
-    ...(orderStepOf(data.orderStep) > 1
-      ? [[labels.orderStep[locale], data.orderStep, 'text-gray-900'] as [string, number, string]]
-      : []),
-  ];
+  const step = orderStepOf(data.orderStep);
+  const quantity = lines.find((line) => line.itemId === data.id)?.quantity ?? 0;
 
   return (
     <div className="space-y-4">
@@ -315,66 +317,48 @@ const CatalogItemView: React.FC<{
         <ArrowLeft className="size-4" aria-hidden />
         {text.back[locale]}
       </button>
-      <div className="flex items-start gap-4">
-        <MaterialItemImage
-          name={data.name}
-          imageUrl={data.imageUrl}
-          className="size-24 rounded-2xl text-3xl sm:size-32"
+      <ItemHeader item={data} locale={locale} hero>
+        <MaterialStockBar
+          stock={data.stock}
+          totalQuantity={data.totalQuantity}
+          unavailable={data.damagedQuantity + data.inRepairQuantity}
+          unit={data.unit}
+          locale={locale}
+          size="lg"
+          breakdown={false}
         />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-mono text-xs tracking-wider text-gray-500 uppercase">
-            {data.category.name} · {data.code}
+        <p className="text-sm text-gray-500">
+          {format(labels.maxPerRequest, locale, { n: data.maxLoanQuantity, unit: data.unit })}
+          {step > 1 && ` · ${format(labels.inSteps, locale, { n: step })}`}
+        </p>
+      </ItemHeader>
+      <ItemTexts item={data} locale={locale} />
+      <StickyAction className="space-y-2">
+        {/* the count and the way on side by side, as on the counter of a shop */}
+        <div className="flex items-center gap-3">
+          <div className={cn(quantity === 0 ? 'min-w-0 flex-1' : 'shrink-0')}>
+            <RequestAction item={data} quantity={quantity} onChange={onChange} wide />
           </div>
-          <h1 className="text-conveniat-green mt-1 text-xl font-bold break-words sm:text-2xl">
-            {data.name}
-          </h1>
-          <div className="mt-2">
-            <ItemStatusBadge status={data.status} locale={locale} />
-          </div>
+          {lines.length > 0 && (
+            <MaterialButton
+              variant={quantity > 0 ? 'primary' : 'secondary'}
+              className={cn('h-12', quantity > 0 && 'flex-1')}
+              onClick={onRequest}
+            >
+              <Send aria-hidden />
+              {text.toRequestShort[locale]}
+            </MaterialButton>
+          )}
         </div>
-      </div>
-      <Panel>
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-t-2xl bg-gray-100 sm:grid-cols-4">
-          {numbers.map(([label, value, tone]) => (
-            <div key={label} className="min-w-0 bg-white px-4 py-3">
-              <dt className="truncate text-xs text-gray-500">{label}</dt>
-              <dd className={cn('text-xl font-bold tabular-nums', tone)}>
-                {value} {data.unit}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <div className="p-4">
-          <MaterialStockBar
-            stock={data.stock}
-            totalQuantity={data.totalQuantity}
-            unavailable={data.damagedQuantity + data.inRepairQuantity}
-            unit={data.unit}
-            locale={locale}
-            size="lg"
-          />
-        </div>
-      </Panel>
-      <RequestAction item={data} quantity={quantityOf(data.id)} onChange={onChange} wide />
-      {!data.isReservable && (
-        <p className="text-center text-xs text-gray-500">{text.depotOnlyHint[locale]}</p>
-      )}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title={labels.description[locale]}>
-          <div className="space-y-3 p-4 text-sm text-gray-700">
-            <p className="whitespace-pre-line">{data.description}</p>
-            {data.usageNotes !== null && data.usageNotes !== '' && (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
-                <span className="font-semibold">{labels.usageNotes[locale]}: </span>
-                {data.usageNotes}
-              </p>
-            )}
-          </div>
-        </Panel>
-        <Panel title={labels.returnInstructions[locale]}>
-          <p className="p-4 text-sm whitespace-pre-line text-gray-700">{data.returnInstructions}</p>
-        </Panel>
-      </div>
+        {!data.isReservable && (
+          <p className="text-center text-xs text-gray-500">{text.depotOnlyHint[locale]}</p>
+        )}
+        {lines.length > 0 && (
+          <p className="text-center text-xs text-gray-500 tabular-nums">
+            {basketLabel(lines, locale)}
+          </p>
+        )}
+      </StickyAction>
     </div>
   );
 };
@@ -399,39 +383,36 @@ const CatalogScreen: React.FC = () => {
       const others = current.filter((line) => line.itemId !== item.id);
       return quantity <= 0 ? others : [...others, { itemId: item.id, quantity }];
     });
-  const totals = basketTotals(lines);
 
   if (catalog.isLoading) return <LoadingState text={labels.loading[locale]} />;
   if (!catalog.data) return <MaterialQueryError error={catalog.error} />;
 
+  const itemCode = code !== null && code !== '' ? code : undefined;
+
   return (
     <div>
-      {code !== null && code !== '' ? (
-        <CatalogItemView
-          key={code}
-          code={code}
-          quantityOf={quantityOf}
-          onChange={setQuantity}
-          onBack={history.close}
-        />
-      ) : (
+      {itemCode === undefined ? (
         <CatalogList
           items={catalog.data}
           quantityOf={quantityOf}
           onChange={setQuantity}
           onOpen={(next) => history.open(`item=${encodeURIComponent(next)}`)}
         />
+      ) : (
+        // brings its own bar at the bottom, with the article's button next to the request's
+        <CatalogItemView
+          key={itemCode}
+          code={itemCode}
+          lines={lines}
+          onChange={setQuantity}
+          onBack={history.close}
+          onRequest={() => setRequesting(true)}
+        />
       )}
-      {totals.positions > 0 && (
+      {itemCode === undefined && lines.length > 0 && (
         <StickyAction className="flex items-center gap-3">
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">
-            {format(text.basket, locale, {
-              lines:
-                totals.positions === 1
-                  ? labels.onePosition[locale]
-                  : format(labels.positions, locale, { n: totals.positions }),
-              pieces: totals.pieces,
-            })}
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800 tabular-nums">
+            {basketLabel(lines, locale)}
           </span>
           <MaterialButton className="h-12" onClick={() => setRequesting(true)}>
             <Send aria-hidden />

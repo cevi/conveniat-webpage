@@ -163,12 +163,7 @@ const ReturnLine: React.FC<{
           >
             {loan.item.name}
           </div>
-          <div
-            className={cn(
-              'truncate text-xs',
-              overdue ? 'font-semibold text-red-700' : 'text-gray-500',
-            )}
-          >
+          <div className={cn('text-xs', overdue ? 'font-semibold text-red-700' : 'text-gray-500')}>
             {format(text.out, locale, { n: line.issued })} ·{' '}
             {overdue
               ? format(labels.overdueSince, locale, { day: formatDay(loan.endDate, locale) })
@@ -182,7 +177,7 @@ const ReturnLine: React.FC<{
           onClick={onShowLabel}
           aria-label={`${text.loanLabel[locale]} #${loan.number}`}
           className={cn(
-            'flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 font-mono text-xs text-gray-500 hover:bg-gray-100',
+            'flex h-11 shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 text-xs text-gray-500 tabular-nums hover:bg-gray-100',
             focusRing,
           )}
         >

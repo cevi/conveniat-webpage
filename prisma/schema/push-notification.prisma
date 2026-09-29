@@ -1,0 +1,97 @@
+model PushNotificationLog {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid])
+
+  content String
+
+  sentAt          DateTime                @default(now())
+  deliveredAt     DateTime?
+  interactedAt    DateTime?
+  interactionType String?
+  userAgent       String?
+  channel         PushNotificationChannel @default(WEB_PUSH)
+  status          PushNotificationStatus  @default(PENDING)
+  error           String?
+  /// Empty on rows written before the column existed.
+  kind            PushNotificationKind?
+
+  /// The push this row delivers to one device. Empty on a push sent straight to one device,
+  /// like a test send, and on rows written before the delivery queue existed.
+  notificationId String?
+  notification   PushNotification? @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  /// The `push-notification-subscriptions` document in Mongo this row is delivered to.
+  subscriptionId String?
+  /// Rows with a higher priority are claimed first. Copied from the kind of the push, so the
+  /// claim can sort on an index.
+  priority       Int               @default(0)
+  /// Delivery attempts started so far, counting one that is still in flight.
+  attempts       Int               @default(0)
+  /// When the queue may next try a PENDING row.
+  nextAttemptAt  DateTime?
+  /// A worker holds the row until then. A row still PENDING after it was abandoned by a
+  /// worker that stopped, and is claimed again.
+  leaseUntil     DateTime?
+
+  @@unique([notificationId, subscriptionId])
+  @@index([userId])
+  @@index([kind, sentAt])
+  @@index([status, priority, nextAttemptAt])
+}
+
+/// One push, addressed to every device of its recipients. It holds what each device is sent,
+/// so a retry sends exactly what the first attempt did. Every device gets a
+/// PushNotificationLog row, and those rows are the delivery queue, see `src/lib/push`.
+model PushNotification {
+  id                 String               @id @default(uuid(7))
+  kind               PushNotificationKind
+  /// Already stripped of markdown and cut to what the push services accept.
+  title              String
+  body               String
+  url                String?
+  chatId             String?
+  /// The chat message the push is about. The client drops the push when the same message
+  /// already arrived over the realtime stream.
+  messageId          String?
+  /// `emergency` presents the push on the siren channel, see `NotificationType`.
+  notificationType   String?
+  /// Keeps the push out of the notification shade while the app shows its target.
+  ignoreIfUrlMatches Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  /// The push services drop the push after this, and the queue stops trying to send it.
+  expiresAt          DateTime
+  /// Set once no delivery is PENDING any more.
+  completedAt        DateTime?
+
+  deliveries PushNotificationLog[]
+
+  @@index([messageId])
+}
+
+enum PushNotificationChannel {
+  WEB_PUSH
+  NATIVE_FCM
+}
+
+enum PushNotificationStatus {
+  PENDING
+  /// The push service accepted the send. Nothing is known about the device yet.
+  SENT
+  /// The device reported that it received the push. Rows written before SENT existed
+  /// also carry this status for a send the push service merely accepted.
+  DELIVERED
+  FAILED
+}
+
+/// What a push was about, independent of how urgently it is presented.
+enum PushNotificationKind {
+  CHAT
+  /// An emergency alert and every message in its emergency chat.
+  EMERGENCY
+  /// A problem report, sent to the support piket.
+  SUPPORT
+  ANNOUNCEMENT
+  /// The confirmation after subscribing, and test sends from the admin panel.
+  SYSTEM
+}

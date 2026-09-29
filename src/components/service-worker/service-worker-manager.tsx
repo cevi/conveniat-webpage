@@ -11,13 +11,13 @@ import { SerwistProvider, useSerwist } from '@/lib/serwist-client';
 import { useOptionalTrpcUtils } from '@/trpc/client';
 import { refreshAndOptimisticallyUpdateChat } from '@/utils/push-query-refresher';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
+import { SW_REGISTRATION_OPTIONS, SW_URL } from '@/utils/service-worker-utils';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import React from 'react';
 
 interface ServiceWorkerManagerProperties {
   children: ReactNode;
-  swUrl?: string;
 }
 
 /**
@@ -38,10 +38,7 @@ const ServiceWorkerRegistration: React.FC = () => {
  * A central component to manage Service Worker registration and App Mode detection.
  * This ensures that the SW is registered consistently across different layouts.
  */
-export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
-  children,
-  swUrl = '/sw.js',
-}) => {
+export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({ children }) => {
   useAppMode();
   const router = useRouter();
   const trpcUtils = useOptionalTrpcUtils();
@@ -129,7 +126,16 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   }
 
   return (
-    <SerwistProvider register={false} swUrl={swUrl}>
+    // `reloadOnOnline` defaults to a full `location.reload()` on every `online` event. Camp wifi
+    // drops and returns every few minutes, and each reload threw away whatever the user was
+    // typing or reading. Nothing needs it: queries refetch on reconnect and the chat outbox
+    // drains on its own.
+    <SerwistProvider
+      register={false}
+      reloadOnOnline={false}
+      swUrl={SW_URL}
+      options={SW_REGISTRATION_OPTIONS}
+    >
       <ServiceWorkerRegistration />
       {children}
     </SerwistProvider>

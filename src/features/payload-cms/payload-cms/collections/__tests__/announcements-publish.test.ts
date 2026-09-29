@@ -19,7 +19,7 @@ jest.mock('@/features/payload-cms/payload-cms/endpoints/translate-announcement',
   translateAnnouncementHandler: jest.fn(),
 }));
 const mockSendNotification = jest.fn();
-jest.mock('@/features/chat/api/utils/send-push-notifications', () => ({
+jest.mock('@/lib/push/send-notification', () => ({
   sendNotification: (...args: unknown[]): unknown => mockSendNotification(...args),
 }));
 jest.mock('@/lib/db/chat-pubsub', () => ({

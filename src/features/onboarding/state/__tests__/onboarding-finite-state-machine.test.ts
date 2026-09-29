@@ -101,6 +101,43 @@ describe('Onboarding Finite State Machine', () => {
       expect(step).toBe(OnboardingStep.PushNotifications);
     });
 
+    it('still offers the download to a user who only has the dashboard cached', () => {
+      const step = determineNextStep({
+        ...initialOnboardingContext,
+        hasAcceptedCookieBanner: true,
+        authStatus: 'authenticated',
+        hasPushSubscription: true,
+        hasCachedContent: true,
+        hasDownloadedContent: false,
+      });
+      expect(step).toBe(OnboardingStep.OfflineContent);
+    });
+
+    it('does not offer the download again once it has run', () => {
+      const step = determineNextStep({
+        ...initialOnboardingContext,
+        hasAcceptedCookieBanner: true,
+        authStatus: 'authenticated',
+        hasPushSubscription: true,
+        hasCachedContent: true,
+        hasDownloadedContent: true,
+      });
+      expect(step).toBe(OnboardingStep.Loading);
+    });
+
+    it('opens the cached app offline instead of offering a download it cannot run', () => {
+      const step = determineNextStep({
+        ...initialOnboardingContext,
+        hasAcceptedCookieBanner: true,
+        authStatus: 'authenticated',
+        hasPushSubscription: true,
+        hasCachedContent: true,
+        hasDownloadedContent: false,
+        isOnline: false,
+      });
+      expect(step).toBe(OnboardingStep.Loading);
+    });
+
     it('should return OfflineContent if push is handled (skipped) and offline not handled', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
@@ -227,18 +264,16 @@ describe('Onboarding Finite State Machine', () => {
       expect(step).toBe(OnboardingStep.OfflineContent);
     });
 
-    it('should proceed if cache check finds content even if not handled explicitly in DB', () => {
+    it('should proceed if the offline download ran even if not handled explicitly in DB', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
         hasAcceptedCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         offlineContentHandled: false,
-        hasCachedContent: true, // Cache found!
+        hasCachedContent: true,
+        hasDownloadedContent: true, // the service worker's "download done" flag
       });
-      // Logic: !offlineHandled && !hasCachedContent ...
-      // !false && !true -> true && false -> false.
-      // So showOffline is false.
       expect(step).toBe(OnboardingStep.Loading);
     });
   });

@@ -2,22 +2,125 @@ import { DesignModeTriggers } from '@/utils/design-codes';
 import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
-interface NotificationPayload {
-  title: string;
-  body: string;
-  data: {
-    url?: string;
-    notificationId?: string;
-    ignoreIfAppOpen?: boolean | string;
-    ignoreIfUrlMatches?: boolean | string;
-  };
-}
-
 interface NotificationData {
   url?: string;
   notificationId?: string;
   ignoreIfAppOpen?: boolean | string;
   ignoreIfUrlMatches?: boolean | string;
+  /** Replaces the notification already shown under the same tag. Without one, every push stands alone. */
+  tag?: string;
+  /** Lists the newest pushes under the tag in one notification and alerts again, like a messenger. */
+  stack?: boolean;
+  /** The bodies a stacked notification lists, newest first. Set by this worker, not by the server. */
+  lines?: string[];
+  /** The log ids of the pushes listed in `lines`. Set by this worker, not by the server. */
+  ids?: string[];
+  /** `emergency` for an alert and every message in its emergency chat. */
+  notificationType?: string;
+}
+
+interface NotificationPayload {
+  title: string;
+  body: string;
+  data: NotificationData;
+}
+
+/**
+ * Chrome's options type lost `renotify` because Firefox and Safari never implemented it, but
+ * Chrome still honours it.
+ */
+interface NotificationOptionsWithRenotify extends NotificationOptions {
+  renotify?: boolean;
+}
+
+/** A stacked chat notification lists at most this many of the newest messages. */
+const MAX_STACKED_LINES = 5;
+
+/**
+ * Shows a push, taking into account what is already on screen under its tag.
+ *
+ * @returns whether a notification is now showing for this push
+ */
+async function showUnderTag(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  payload: NotificationPayload,
+): Promise<boolean> {
+  const { tag, stack, notificationId } = payload.data;
+  const hasTag = typeof tag === 'string' && tag !== '';
+  const [existing] = hasTag ? await serviceWorkerScope.registration.getNotifications({ tag }) : [];
+  const existingData = (existing?.data as NotificationData | undefined) ?? {};
+
+  const options: NotificationOptionsWithRenotify = {
+    body: payload.body,
+    icon: '/favicon.svg',
+    badge: '/notification-icon.png',
+    // Only an emergency stays on screen until it is dealt with. With a notification per chat
+    // and per announcement, sticky ones would pile up on a desktop and could queue a new
+    // emergency behind them.
+    requireInteraction: payload.data.notificationType === 'emergency',
+    ...(hasTag && { tag }),
+    data: payload.data,
+  };
+
+  if (stack === true && hasTag) {
+    const previousLines = Array.isArray(existingData.lines) ? existingData.lines : [];
+    const previousIds = Array.isArray(existingData.ids) ? existingData.ids : [];
+    const isRepeat =
+      notificationId !== undefined && notificationId !== '' && previousIds.includes(notificationId);
+
+    if (isRepeat) {
+      // The queue retries a send that timed out, and the device may have got the first one after
+      // all. Show the notification again as it is, in place and without a sound: dropping the
+      // push instead would count as a silent push on WebKit.
+      options.body = previousLines.join('\n');
+      options.data = existingData;
+    } else {
+      // Newest first: a collapsed notification shows only its first line or so, and that has
+      // to be the message that just alerted.
+      const lines = [payload.body, ...previousLines].slice(0, MAX_STACKED_LINES);
+      const ids = [
+        ...(notificationId === undefined || notificationId === '' ? [] : [notificationId]),
+        ...previousIds,
+      ].slice(0, MAX_STACKED_LINES);
+      options.body = lines.join('\n');
+      options.data = { ...payload.data, lines, ids };
+      // Firefox and Safari ignore renotify and would replace the notification silently, so
+      // the old one is closed first and the new one arrives as new, with sound.
+      options.renotify = true;
+      existing?.close();
+    }
+  }
+
+  await serviceWorkerScope.registration.showNotification(payload.title, options);
+  return true;
+}
+
+/** Pushes being shown, per tag. */
+const presentationsByTag = new Map<string, Promise<boolean>>();
+
+/**
+ * Shows a push, one at a time per tag.
+ *
+ * Two pushes for the same chat that arrive together would otherwise both read the tray before
+ * either shows anything, and the second would replace the first, silently on Firefox and Safari
+ * and with the first one's line lost.
+ */
+function presentNotification(
+  serviceWorkerScope: ServiceWorkerGlobalScope,
+  payload: NotificationPayload,
+): Promise<boolean> {
+  const { tag } = payload.data;
+  if (typeof tag !== 'string' || tag === '') return showUnderTag(serviceWorkerScope, payload);
+
+  const previous = presentationsByTag.get(tag) ?? Promise.resolve(true);
+  const current = previous.catch(() => false).then(() => showUnderTag(serviceWorkerScope, payload));
+  presentationsByTag.set(tag, current);
+  void current
+    .catch(() => false)
+    .then(() => {
+      if (presentationsByTag.get(tag) === current) presentationsByTag.delete(tag);
+    });
+  return current;
 }
 
 type PushTrackingEvent =
@@ -157,7 +260,7 @@ function clientUrlMatchesTarget(clientUrlString: string, targetUrl: URL): boolea
   return false;
 }
 
-/** Kept apart from `conveniat27`, so closing it cannot close a notification the user still sees. */
+/** Kept apart from the chat and announcement tags, so closing it cannot close a notification the user still sees. */
 const SUPPRESSED_NOTIFICATION_TAG = 'conveniat27-suppressed';
 
 /**
@@ -210,15 +313,6 @@ export const pushNotificationHandler =
     if (!event.data) return;
 
     const data = event.data.json() as NotificationPayload;
-
-    const options: NotificationOptions = {
-      body: data.body,
-      icon: '/favicon.svg',
-      badge: '/notification-icon.png',
-      requireInteraction: true,
-      tag: 'conveniat27',
-      data: data.data,
-    };
 
     event.waitUntil(
       (async (): Promise<void> => {
@@ -285,9 +379,11 @@ export const pushNotificationHandler =
           }
         }
 
+        let isShown = false;
         if (shouldShowNotification) {
-          await serviceWorkerScope.registration.showNotification(data.title, options);
-        } else if (revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
+          isShown = await presentNotification(serviceWorkerScope, data);
+        }
+        if (!isShown && revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
           await showAndCloseSuppressedNotification(serviceWorkerScope, data);
         }
         // A suppressed push still reached the device, so it is reported as delivered too.
@@ -296,7 +392,7 @@ export const pushNotificationHandler =
         if (data.data.notificationId) {
           await trackPushEvent(data.data.notificationId, {
             type: 'DELIVERED',
-            presentation: shouldShowNotification ? 'SHOWN' : 'SUPPRESSED',
+            presentation: isShown ? 'SHOWN' : 'SUPPRESSED',
           });
         }
       })(),

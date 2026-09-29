@@ -26,7 +26,7 @@ export const MaterialSheet: React.FC<{
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[99999] bg-black/40" />
+        <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[99999] bg-gray-950/40" />
         <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-[99999] grid max-h-[90dvh] gap-5 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5">
           {/* the grip says "this slides up from the bottom"; Radix closes it on a tap outside */}
           <div className="-mt-2 -mb-3 flex justify-center sm:hidden" aria-hidden>
@@ -290,7 +290,10 @@ export const MaterialButton: React.FC<
   </button>
 );
 
-/** A white card, the building block of every material page. */
+/**
+ * A white card, the building block of every material page. The title is a heading, not a
+ * strip: a rule under it would cut the card into blocks.
+ */
 export const Panel: React.FC<{
   title?: string;
   action?: React.ReactNode;
@@ -299,8 +302,8 @@ export const Panel: React.FC<{
 }> = ({ title, action, children, className }) => (
   <section className={cn('min-w-0 rounded-2xl border border-gray-200 bg-white', className)}>
     {title !== undefined && (
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-bold tracking-wide text-gray-900">{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-1">
+        <h2 className="font-semibold text-gray-900">{title}</h2>
         {action}
       </div>
     )}
@@ -316,14 +319,12 @@ export const StatTile: React.FC<{
   tone?: 'default' | 'green' | 'orange' | 'red' | 'blue';
 }> = ({ label, value, hint, tone = 'default' }) => (
   <div className="min-w-0 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 sm:p-4">
-    <div className="text-[11px] font-semibold tracking-widest break-words hyphens-auto text-gray-500 uppercase">
-      {label}
-    </div>
+    <div className="text-xs font-medium break-words hyphens-auto text-gray-500">{label}</div>
     <div
       className={cn('mt-0.5 text-2xl font-bold tabular-nums sm:mt-1 sm:text-3xl', {
         'text-gray-900': tone === 'default',
         'text-green-700': tone === 'green',
-        'text-orange-600': tone === 'orange',
+        'text-amber-600': tone === 'orange',
         'text-red-600': tone === 'red',
         'text-blue-700': tone === 'blue',
       })}
