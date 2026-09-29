@@ -126,7 +126,16 @@ export const ServiceWorkerManager: React.FC<ServiceWorkerManagerProperties> = ({
   }
 
   return (
-    <SerwistProvider register={false} swUrl={SW_URL} options={SW_REGISTRATION_OPTIONS}>
+    // `reloadOnOnline` defaults to a full `location.reload()` on every `online` event. Camp wifi
+    // drops and returns every few minutes, and each reload threw away whatever the user was
+    // typing or reading. Nothing needs it: queries refetch on reconnect and the chat outbox
+    // drains on its own.
+    <SerwistProvider
+      register={false}
+      reloadOnOnline={false}
+      swUrl={SW_URL}
+      options={SW_REGISTRATION_OPTIONS}
+    >
       <ServiceWorkerRegistration />
       {children}
     </SerwistProvider>
