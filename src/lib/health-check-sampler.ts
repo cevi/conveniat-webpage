@@ -25,13 +25,11 @@ const pathOf = (value: unknown): string | undefined => {
 /**
  * Drops traces for the `/status` health check and delegates every other span.
  *
- * The probe runs several times a minute per replica, which made it the bulk of what we
- * ship to Tempo: over 24 hours in production, `GET /status` produced ≈ 12,000 server
- * spans and its unrouted parent `GET` another ≈ 12,000, against ≈ 2,000 spans for real
- * page requests. Tempo has a 4 GB budget shared by three deployments, so 92% of the
- * retention window was spent on a request that always returns the same 200 and that
- * nobody has ever debugged from a trace. Uptime is answered by the probe itself and by
- * the `/status` log line, not by its traces.
+ * The probe runs several times a minute per replica: about 12,000 `GET /status` server spans
+ * a day in production, plus the same number of their unrouted `GET` parents, far more than
+ * the real page requests. Tempo has one budget shared by three deployments, and these traces
+ * are of a request that always returns the same 200 and that nobody debugs from a trace.
+ * Uptime is answered by the probe itself and by the `/status` log line, not by its traces.
  *
  * Only the root span is matched. Its children carry no path attribute and are dropped
  * with it, because the delegate is parent based and sees an unsampled parent.
