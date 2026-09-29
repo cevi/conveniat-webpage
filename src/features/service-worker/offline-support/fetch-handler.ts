@@ -257,6 +257,20 @@ async function offlineFallback(
     return new Response('', { status: 503, statusText: 'Offline' });
   }
 
+  // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
+  // vectortiles0-4 are interchangeable, but precache uses vectortiles0.
+  // Before the App Mode check below: MapLibre fetches its tiles from a web worker, whose client
+  // is never in App Mode, and a tile looks the same in either design anyway.
+  if (url.host.includes('geo.admin.ch')) {
+    const tileCache = await caches.open(CACHE_NAMES.MAP_TILES);
+    const normalizedUrl = normalizeTileUrl(url.toString());
+    const cachedTile = await tileCache.match(normalizedUrl, { ignoreVary: true });
+    if (cachedTile) {
+      console.log(`[SW] Serving cached map tile/asset for: ${url.toString()}`);
+      return cachedTile;
+    }
+  }
+
   const isManifestOrIcon =
     url.pathname.endsWith('.webmanifest') ||
     url.pathname.endsWith('manifest.json') ||
@@ -384,18 +398,6 @@ async function offlineFallback(
       status: 200,
       headers: { 'Content-Type': 'text/css; charset=utf-8' },
     });
-  }
-
-  // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
-  // vectortiles0-4 are interchangeable, but precache uses vectortiles0.
-  if (url.host.includes('geo.admin.ch')) {
-    const tileCache = await caches.open(CACHE_NAMES.MAP_TILES);
-    const normalizedUrl = normalizeTileUrl(url.toString());
-    const cachedTile = await tileCache.match(normalizedUrl, { ignoreVary: true });
-    if (cachedTile) {
-      console.log(`[SW] Serving cached map tile/asset for: ${url.toString()}`);
-      return cachedTile;
-    }
   }
 
   console.error(`[SW] Fetch failed and no cache/fallback found for: ${url.toString()}`);
