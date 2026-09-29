@@ -89,7 +89,8 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
       signInOptions.callbackUrl = callbackUrl;
     }
     // Switching to another person has to drop what was cached for this one, like a logout does:
-    // without it the next account saw the previous user's chats, emergency cards and shifts.
+    // without it the next account saw the previous user's chats, emergency cards and shifts,
+    // and the pages the service worker cached for them.
     // Only once the sign-out went through (offline it fails, and the user stays signed in with
     // their data), and the in-memory cache goes too, or the persister writes it straight back.
     void releasePushSubscriptions()
@@ -100,7 +101,7 @@ export const CeviDatabaseLogin: React.FC<CeviDatabaseLoginProperties> = ({
         // still holds most of the cache, the last one is empty. Wait for that last write, or the
         // stored blob outlives the flush and the next account restores this one's data.
         await new Promise((resolve) => setTimeout(resolve, PERSISTER_THROTTLE_MS + 200));
-        flushPersonalData();
+        flushPersonalData({ clearCachedPages: true });
         void signIn('cevi-db', signInOptions);
       })
       .catch((switchError: unknown) => {

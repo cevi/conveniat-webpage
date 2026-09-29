@@ -72,7 +72,7 @@ describe('switching the Cevi.DB login in a form', () => {
       },
       { timeout: 3000 },
     );
-    expect(flushPersonalData).toHaveBeenCalled();
+    expect(flushPersonalData).toHaveBeenCalledWith({ clearCachedPages: true });
     // the persister would otherwise write the in-memory cache straight back to IndexedDB
     expect(queryClient.getQueryData(['chat', 'chats'])).toBeUndefined();
   });
