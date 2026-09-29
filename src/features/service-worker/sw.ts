@@ -195,12 +195,21 @@ self.addEventListener('message', (event) => {
     );
   }
 
-  // Sent by flushPersonalData on logout and when the session expired.
   if (data?.type === 'CLEAR_AUTH_CACHE') {
     event.waitUntil(
       (async (): Promise<void> => {
+        await caches.delete(CACHE_NAMES.AUTH_SESSION);
+        console.log('[SW] Cleared next-auth-session-cache.');
+      })(),
+    );
+  }
+
+  // Sent by flushPersonalData on an explicit logout or a switch to another account.
+  if (data?.type === ServiceWorkerMessages.CLEAR_PERSONAL_CACHES) {
+    event.waitUntil(
+      (async (): Promise<void> => {
         await clearPersonalCaches();
-        console.log('[SW] Cleared the session, page and RSC caches.');
+        console.log('[SW] Cleared the page and RSC caches of the previous user.');
       })(),
     );
   }
