@@ -3,7 +3,7 @@
 import { HolderAvatar, holderName, SectionTitle } from '@/features/material/components/counter-ui';
 import { IncidentPhotoField } from '@/features/material/components/incident-photo-field';
 import { ItemEditDialog } from '@/features/material/components/item-edit-dialog';
-import { MaterialItemImage } from '@/features/material/components/material-item-image';
+import { ItemHeader, ItemTexts } from '@/features/material/components/item-sections';
 import {
   conditionLabel,
   format,
@@ -12,8 +12,7 @@ import {
 } from '@/features/material/components/material-labels';
 import { MaterialQrCode } from '@/features/material/components/material-qr-code';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
-import { ItemStatusBadge } from '@/features/material/components/material-status-badge';
-import { MaterialStockBar } from '@/features/material/components/material-stock-bar';
+import { MaterialStockBar, stockTone } from '@/features/material/components/material-stock-bar';
 import {
   EmptyState,
   Field,
@@ -69,7 +68,6 @@ const text = {
     en: '{n} requested · from {day}',
     fr: '{n} demandés · dès {day}',
   },
-  unit: { de: '{n} {unit}', en: '{n} {unit}', fr: '{n} {unit}' },
   repair: { de: 'Reparatur', en: 'Repair', fr: 'Réparation' },
   startRepair: {
     de: 'Beschädigte in Reparatur geben',
@@ -114,12 +112,15 @@ const StockActions: React.FC<{ itemId: string; damaged: number; inRepair: number
   const adjust = trpc.material.adjustItemStock.useMutation();
   const [quantity, setQuantity] = useState(1);
 
-  const actions: [StockAction, number][] = [
-    ['START_REPAIR', damaged],
-    ['WRITE_OFF_DAMAGED', damaged],
-    ['FINISH_REPAIR', inRepair],
-    ['MARK_REPAIRED_DAMAGED', inRepair],
-  ];
+  // a step with nothing to act on is left out rather than shown switched off
+  const actions = (
+    [
+      ['START_REPAIR', damaged],
+      ['WRITE_OFF_DAMAGED', damaged],
+      ['FINISH_REPAIR', inRepair],
+      ['MARK_REPAIRED_DAMAGED', inRepair],
+    ] satisfies [StockAction, number][]
+  ).filter(([, source]) => source > 0);
 
   return (
     <div className="space-y-3 p-4">
@@ -355,15 +356,16 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
   if (!item.data) return <MaterialQueryError error={item.error} />;
   const data = item.data;
 
-  const numbers: [string, number, string][] = [
-    [labels.available[locale], data.stock.available, 'text-green-700'],
-    [labels.reserved[locale], data.stock.reserved, 'text-blue-700'],
-    [labels.issued[locale], data.stock.issued, 'text-orange-600'],
-    [labels.damaged[locale], data.damagedQuantity, 'text-red-600'],
-    [labels.inRepair[locale], data.inRepairQuantity, 'text-purple-700'],
-    [labels.maxPerLoan[locale], data.maxLoanQuantity, 'text-gray-900'],
+  // the dot ties a figure to its part of the bar below; the unit is said once, under the bar
+  const numbers: [string, number, string | undefined][] = [
+    [labels.available[locale], data.stock.available, stockTone.free],
+    [labels.reserved[locale], data.stock.reserved, stockTone.reserved],
+    [labels.issued[locale], data.stock.issued, stockTone.issued],
+    [labels.damaged[locale], data.damagedQuantity, stockTone.broken],
+    [labels.inRepair[locale], data.inRepairQuantity, stockTone.broken],
+    [labels.maxPerLoan[locale], data.maxLoanQuantity, undefined],
     ...(orderStepOf(data.orderStep) > 1
-      ? [[labels.orderStep[locale], data.orderStep, 'text-gray-900'] as [string, number, string]]
+      ? [[labels.orderStep[locale], data.orderStep, undefined] as [string, number, undefined]]
       : []),
   ];
 
@@ -380,34 +382,31 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
         {text.back[locale]}
       </Link>
 
-      <div className="flex items-start gap-4">
-        <MaterialItemImage
-          name={data.name}
-          imageUrl={data.imageUrl}
-          className="size-24 rounded-2xl text-3xl sm:size-32"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-mono text-xs tracking-wider text-gray-500 uppercase">
-            {data.category.name} · {data.code}
-          </div>
-          <h1 className="text-conveniat-green mt-1 text-xl font-bold break-words sm:text-2xl">
-            {data.name}
-          </h1>
-          <div className="mt-2">
-            <ItemStatusBadge status={data.status} locale={locale} />
-          </div>
-        </div>
-      </div>
+      <ItemHeader item={data} locale={locale} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <Panel>
-            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-t-2xl bg-gray-100 sm:grid-cols-3">
+            <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-t-2xl bg-gray-100">
               {numbers.map(([label, value, tone]) => (
-                <div key={label} className="min-w-0 bg-white px-4 py-3">
-                  <dt className="truncate text-xs text-gray-500">{label}</dt>
-                  <dd className={cn('text-xl font-bold tabular-nums', tone)}>
-                    {format(text.unit, locale, { n: value, unit: data.unit })}
+                <div key={label} className="min-w-0 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+                  <dt className="flex items-start gap-1.5 text-xs leading-tight text-gray-500">
+                    {tone !== undefined && (
+                      <span
+                        className={cn('mt-1 size-1.5 shrink-0 rounded-full', tone)}
+                        aria-hidden
+                      />
+                    )}
+                    <span className="break-words hyphens-auto">{label}</span>
+                  </dt>
+                  {/* a zero is worth knowing, not worth looking at; grey 500 still reads in sunlight */}
+                  <dd
+                    className={cn(
+                      'mt-0.5 text-xl tabular-nums',
+                      value === 0 ? 'font-normal text-gray-500' : 'font-semibold text-gray-900',
+                    )}
+                  >
+                    {value}
                   </dd>
                 </div>
               ))}
@@ -420,6 +419,8 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
                 unit={data.unit}
                 locale={locale}
                 size="lg"
+                // the tiles above already name every part
+                breakdown={false}
               />
             </div>
           </Panel>
@@ -453,22 +454,7 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title={labels.description[locale]}>
-          <div className="space-y-3 p-4 text-sm text-gray-700">
-            <p className="whitespace-pre-line">{data.description}</p>
-            {data.usageNotes !== null && data.usageNotes !== '' && (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-900">
-                <span className="font-semibold">{labels.usageNotes[locale]}: </span>
-                {data.usageNotes}
-              </p>
-            )}
-          </div>
-        </Panel>
-        <Panel title={labels.returnInstructions[locale]}>
-          <p className="p-4 text-sm whitespace-pre-line text-gray-700">{data.returnInstructions}</p>
-        </Panel>
-      </div>
+      <ItemTexts item={data} locale={locale} />
 
       {editing && <ItemEditDialog item={data} onClose={() => setEditing(false)} />}
       {reporting && (

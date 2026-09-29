@@ -4,7 +4,7 @@ import { CategoriesSheet } from '@/features/material/components/category-sheet';
 import { FilterChip, SearchField } from '@/features/material/components/counter-ui';
 import { ItemDetailView } from '@/features/material/components/item-detail-view';
 import { ItemEditDialog } from '@/features/material/components/item-edit-dialog';
-import { ItemRow } from '@/features/material/components/item-row';
+import { ItemRow, itemListClass } from '@/features/material/components/item-row';
 import { format, labels } from '@/features/material/components/material-labels';
 import { ListPager } from '@/features/material/components/material-list-controls';
 import { MaterialQueryError } from '@/features/material/components/material-query-error';
@@ -88,7 +88,7 @@ const InventoryList: React.FC = () => {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-        <MaterialButton onClick={() => setCreating(true)}>
+        <MaterialButton variant="secondary" onClick={() => setCreating(true)}>
           <Plus aria-hidden />
           {text.newItem[locale]}
         </MaterialButton>
@@ -132,7 +132,7 @@ const InventoryList: React.FC = () => {
             {format(text.count, locale, { n: visible.length, total: items.data.length })}
           </p>
           {visible.length === 0 && <EmptyState text={labels.empty[locale]} />}
-          <ul className="divide-y divide-gray-100">
+          <ul className={itemListClass}>
             {pageItems.map((item) => (
               <ItemRow
                 key={item.id}

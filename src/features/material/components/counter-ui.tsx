@@ -84,14 +84,19 @@ export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?:
   </span>
 );
 
-/** The small caps heading above each part of a counter screen. */
+/**
+ * The heading above each part of a counter screen, in the same type as a card's title: one
+ * style of heading, not a second one in spaced capitals.
+ */
 export const SectionTitle: React.FC<{ children: React.ReactNode; count?: number }> = ({
   children,
   count,
 }) => (
-  <h2 className="mb-2 px-1 text-xs font-bold tracking-widest text-gray-500 uppercase">
+  <h2 className="mb-2 px-1 text-sm font-semibold text-gray-700">
     {children}
-    {count !== undefined && <span className="tabular-nums"> · {count}</span>}
+    {count !== undefined && (
+      <span className="font-normal text-gray-500 tabular-nums"> · {count}</span>
+    )}
   </h2>
 );
 
@@ -177,7 +182,7 @@ const ScannerView: React.FC<{ onResult: (value: string) => boolean }> = ({ onRes
     );
   }
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-black">
+    <div className="relative overflow-hidden rounded-2xl bg-gray-950">
       <video ref={videoReference} className="aspect-square w-full object-cover" muted playsInline />
       <div className="pointer-events-none absolute inset-10 rounded-2xl border-4 border-white/80" />
       <p className="absolute right-0 bottom-3 left-0 text-center text-sm font-semibold text-white">

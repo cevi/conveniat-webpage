@@ -319,7 +319,8 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
             </MaterialButton>
           )}
           {isPending(loan) && (
-            <MaterialButton variant="danger" onClick={() => setAsking(true)}>
+            // asks before it cancels; the red belongs to "yes, cancel", not to every row
+            <MaterialButton variant="ghost" onClick={() => setAsking(true)}>
               <X aria-hidden />
               {text.cancel[locale]}
             </MaterialButton>
