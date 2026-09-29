@@ -545,11 +545,30 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   }
 }
 
+/**
+ * Counts how often the cached session was thrown away. A session request may now outlive the
+ * answer it gave (see the session check below); when it lands after a logout, writing it would
+ * sign the previous user back in on this phone as far as the offline UI is concerned.
+ */
+let sessionGeneration = 0;
+
+/** Drops the cached session, and any session answer still on its way in. */
+export async function forgetCachedSession(): Promise<void> {
+  sessionGeneration++;
+  await caches.delete(CACHE_NAMES.AUTH_SESSION);
+}
+
 /** Keeps the session of a logged-in user for offline use and forgets it on a logout. */
-async function rememberSession(request: Request, networkResponse: Response): Promise<void> {
+async function rememberSession(
+  request: Request,
+  networkResponse: Response,
+  generation: number,
+): Promise<void> {
+  if (generation !== sessionGeneration) return;
   if (networkResponse.ok) {
     try {
       const sessionData = (await networkResponse.clone().json()) as { user?: unknown };
+      if (generation !== sessionGeneration) return;
       if (sessionData.user !== undefined && sessionData.user !== null) {
         const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
         await authCache.put(request, networkResponse.clone());
@@ -635,11 +654,7 @@ export const handleFetchEvent =
       isAuthRequest &&
       (url.pathname.includes('/auth/signout') || url.pathname.includes('/auth/signin'))
     ) {
-      event.waitUntil(
-        (async (): Promise<void> => {
-          await caches.delete(CACHE_NAMES.AUTH_SESSION);
-        })(),
-      );
+      event.waitUntil(forgetCachedSession());
     }
 
     if (isAuthRequest && url.pathname.endsWith('/csrf')) {
@@ -667,8 +682,9 @@ export const handleFetchEvent =
           // cached session answers instead, but only for a user who has one, and the request is
           // never aborted: it may carry a rotated session cookie, and its answer refreshes the
           // cache when it lands.
+          const generation = sessionGeneration;
           const fromNetwork = fetch(event.request).then(async (networkResponse) => {
-            await rememberSession(event.request, networkResponse);
+            await rememberSession(event.request, networkResponse, generation);
             return networkResponse;
           });
 

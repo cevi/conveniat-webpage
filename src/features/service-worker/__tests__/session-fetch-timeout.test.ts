@@ -1,5 +1,8 @@
 import { TIMEOUTS } from '@/features/service-worker/constants';
-import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
+import {
+  forgetCachedSession,
+  handleFetchEvent,
+} from '@/features/service-worker/offline-support/fetch-handler';
 import type { Serwist } from 'serwist';
 
 jest.mock('@/features/service-worker/offline-support/map-viewer', () => ({
@@ -107,6 +110,20 @@ describe('service worker session check', () => {
     await jest.advanceTimersByTimeAsync(5000);
     await Promise.all(lifetime);
     expect(authCachePut).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not keep a late answer that lands after a logout', async () => {
+    useCachedSession(sessionOf('Lena Muster'));
+    globalThis.fetch = jest.fn(slowFetch('Lena Muster'));
+
+    const { answer, lifetime } = requestSession();
+    await jest.advanceTimersByTimeAsync(TIMEOUTS.SESSION_FETCH);
+    await answer;
+    await forgetCachedSession();
+
+    await jest.advanceTimersByTimeAsync(5000);
+    await Promise.all(lifetime);
+    expect(authCachePut).not.toHaveBeenCalled();
   });
 
   it('answers before the entrypoint gives up on the session', () => {

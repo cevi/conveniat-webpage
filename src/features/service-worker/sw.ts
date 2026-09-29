@@ -6,7 +6,10 @@ import {
 } from '@/features/service-worker/app-mode';
 import { CACHE_NAMES } from '@/features/service-worker/constants';
 import { serwist } from '@/features/service-worker/offline-support/caching';
-import { handleFetchEvent } from '@/features/service-worker/offline-support/fetch-handler';
+import {
+  forgetCachedSession,
+  handleFetchEvent,
+} from '@/features/service-worker/offline-support/fetch-handler';
 import { registerMapOfflineSupport } from '@/features/service-worker/offline-support/map-viewer';
 import {
   cachePageAndScrape,
@@ -197,7 +200,7 @@ self.addEventListener('message', (event) => {
   if (data?.type === 'CLEAR_AUTH_CACHE') {
     event.waitUntil(
       (async (): Promise<void> => {
-        await caches.delete(CACHE_NAMES.AUTH_SESSION);
+        await forgetCachedSession();
         console.log('[SW] Cleared next-auth-session-cache.');
       })(),
     );
