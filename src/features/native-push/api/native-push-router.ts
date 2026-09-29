@@ -1,6 +1,5 @@
 import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
-import { getAppShortName } from '@/utils/get-app-short-name';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
@@ -187,7 +186,7 @@ export const nativePushRouter = createTRPCRouter({
       // Send welcome confirmation push notification ONLY when creating a brand new subscription
       if (isNewSubscription) {
         try {
-          const { sendFcmNotification } = await import('@/lib/firebase-admin');
+          const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
           const targetLocale: 'de' | 'fr' | 'en' =
             ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
           const welcomeMessages: Record<'de' | 'fr' | 'en', string> = {
@@ -197,13 +196,11 @@ export const nativePushRouter = createTRPCRouter({
           };
           const bodyText = welcomeMessages[targetLocale];
 
-          const result = await sendFcmNotification(input.token, {
-            title: await getAppShortName(),
-            body: bodyText,
-            data: {
-              url: '/app/settings',
-            },
-          });
+          const result = await sendNotificationToSubscription(
+            { platform: input.platform, token: input.token },
+            bodyText,
+            '/app/settings',
+          );
           logger.debug('Welcome notification sent', {
             'user.id': payloadUser.id,
             'notification.result': result,
