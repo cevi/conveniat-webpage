@@ -545,6 +545,54 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   }
 }
 
+/** Keeps the session of a logged-in user for offline use and forgets it on a logout. */
+async function rememberSession(request: Request, networkResponse: Response): Promise<void> {
+  if (networkResponse.ok) {
+    try {
+      const sessionData = (await networkResponse.clone().json()) as { user?: unknown };
+      if (sessionData.user !== undefined && sessionData.user !== null) {
+        const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
+        await authCache.put(request, networkResponse.clone());
+      } else {
+        await caches.delete(CACHE_NAMES.AUTH_SESSION);
+      }
+    } catch {
+      await caches.delete(CACHE_NAMES.AUTH_SESSION);
+    }
+  } else if (networkResponse.status === 401 || networkResponse.status === 403) {
+    await caches.delete(CACHE_NAMES.AUTH_SESSION);
+  }
+}
+
+/**
+ * The cached session of the user logged in on this device, with its expiry moved 30 days ahead
+ * so the next-auth client does not log them out while offline. Undefined when nobody is.
+ */
+async function cachedSessionFor(request: Request): Promise<Response | undefined> {
+  const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
+  const cachedSession =
+    (await authCache.match(request, { ignoreSearch: true, ignoreVary: true })) ??
+    (await authCache.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true })) ??
+    (await caches.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true }));
+  if (!cachedSession) return undefined;
+
+  try {
+    const sessionData = (await cachedSession.clone().json()) as {
+      expires?: string;
+      user?: unknown;
+      [key: string]: unknown;
+    };
+    if (sessionData.user === undefined || sessionData.user === null) return undefined;
+    sessionData.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    return new Response(JSON.stringify(sessionData), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch {
+    return cachedSession;
+  }
+}
+
 export const handleFetchEvent =
   (serwist: Serwist): ((event: FetchEvent) => void) =>
   (event: FetchEvent): void => {
@@ -613,63 +661,37 @@ export const handleFetchEvent =
     if (isAuthRequest && url.pathname.endsWith('/session')) {
       event.respondWith(
         (async (): Promise<Response> => {
-          // Without a deadline a hanging connection (a captive portal, a weak camp wifi) kept
-          // this request open until the entrypoint gave up and showed the login screen to a
-          // logged-in user, on a network where the Cevi.DB login cannot complete either.
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.SESSION_FETCH);
-          try {
-            const networkResponse = await fetch(event.request, { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (networkResponse.ok) {
-              const clone = networkResponse.clone();
-              try {
-                const sessionData = (await clone.json()) as { user?: unknown };
-                if (sessionData.user !== undefined && sessionData.user !== null) {
-                  const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
-                  await authCache.put(event.request, networkResponse.clone());
-                } else {
-                  await caches.delete(CACHE_NAMES.AUTH_SESSION);
-                }
-              } catch {
-                await caches.delete(CACHE_NAMES.AUTH_SESSION);
-              }
-            } else if (networkResponse.status === 401 || networkResponse.status === 403) {
-              await caches.delete(CACHE_NAMES.AUTH_SESSION);
-            }
+          // A hanging connection (a captive portal, a weak camp wifi) kept this request open
+          // until the entrypoint gave up and showed the login screen to a logged-in user, on a
+          // network where the Cevi.DB login cannot complete either. After SESSION_FETCH the
+          // cached session answers instead, but only for a user who has one, and the request is
+          // never aborted: it may carry a rotated session cookie, and its answer refreshes the
+          // cache when it lands.
+          const fromNetwork = fetch(event.request).then(async (networkResponse) => {
+            await rememberSession(event.request, networkResponse);
             return networkResponse;
+          });
+
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
+          const slowNetwork = new Promise<'slow'>((resolve) => {
+            timeoutId = setTimeout(() => resolve('slow'), TIMEOUTS.SESSION_FETCH);
+          });
+
+          try {
+            const first = await Promise.race([fromNetwork, slowNetwork]);
+            clearTimeout(timeoutId);
+            if (first !== 'slow') return first;
+
+            const cachedSession = await cachedSessionFor(event.request);
+            if (cachedSession) {
+              event.waitUntil(fromNetwork.catch(() => {}));
+              return cachedSession;
+            }
+            return await fromNetwork;
           } catch {
             clearTimeout(timeoutId);
-            const authCache = await caches.open(CACHE_NAMES.AUTH_SESSION);
-            const cachedSession =
-              (await authCache.match(event.request, { ignoreSearch: true, ignoreVary: true })) ??
-              (await authCache.match('/api/auth/session', {
-                ignoreSearch: true,
-                ignoreVary: true,
-              })) ??
-              (await caches.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true }));
-
-            if (cachedSession) {
-              try {
-                const sessionData = (await cachedSession.clone().json()) as {
-                  expires?: string;
-                  user?: unknown;
-                  [key: string]: unknown;
-                };
-                if (sessionData.user !== undefined && sessionData.user !== null) {
-                  // Extend session expiry for 30 days offline so NextAuth client doesn't force logout
-                  sessionData.expires = new Date(
-                    Date.now() + 30 * 24 * 60 * 60 * 1000,
-                  ).toISOString();
-                  return new Response(JSON.stringify(sessionData), {
-                    status: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                  });
-                }
-              } catch {
-                return cachedSession;
-              }
-            }
+            const cachedSession = await cachedSessionFor(event.request);
+            if (cachedSession) return cachedSession;
 
             // Return minimal offline mock session to prevent unwanted logout redirects
             return new Response(
