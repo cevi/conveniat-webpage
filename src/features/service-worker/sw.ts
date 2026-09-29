@@ -17,6 +17,7 @@ import {
   notificationClickHandler,
   notificationCloseHandler,
   pushNotificationHandler,
+  pushSubscriptionChangeHandler,
 } from '@/features/service-worker/push-notifications';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 
@@ -40,7 +41,7 @@ declare const self: ServiceWorkerGlobalScope;
 
 // Push notifications
 self.addEventListener('push', pushNotificationHandler(self));
-self.addEventListener('pushsubscriptionchange', () => {});
+self.addEventListener('pushsubscriptionchange', pushSubscriptionChangeHandler(self));
 self.addEventListener('notificationclick', notificationClickHandler(self));
 self.addEventListener('notificationclose', notificationCloseHandler);
 

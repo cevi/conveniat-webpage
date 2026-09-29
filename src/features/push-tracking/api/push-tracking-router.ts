@@ -1,6 +1,19 @@
 import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
 import { createTRPCRouter, publicProcedure, trpcFullAdminProcedure } from '@/trpc/init';
+import { createLogger } from '@/utils/server-logger';
+import config from '@payload-config';
+import { getPayload } from 'payload';
 import { z } from 'zod';
+
+const logger = createLogger('push:tracking');
+
+const endpointHostOf = (endpoint: string): string | undefined => {
+  try {
+    return new URL(endpoint).host;
+  } catch {
+    return undefined;
+  }
+};
 
 /**
  * `markDelivered` and `markInteracted` stay public: the service worker calls them, possibly
@@ -37,6 +50,59 @@ export const pushTrackingRouter = createTRPCRouter({
         },
       });
       return { success: true };
+    }),
+
+  /**
+   * Points a stored Web Push subscription at the one the browser replaced it with, after
+   * `pushsubscriptionchange` or a VAPID key change. Public like the two above, because the
+   * service worker calls it without a session. Only a caller holding the old subscription's
+   * auth secret, 16 random bytes shared by that browser and this server, can match the row.
+   */
+  renewWebPushSubscription: publicProcedure
+    .input(
+      z.object({
+        oldSubscription: PushSubscriptionSchema,
+        newSubscription: PushSubscriptionSchema,
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { oldSubscription, newSubscription } = input;
+      const payload = await getPayload({ config });
+
+      const { docs } = await payload.find({
+        collection: 'push-notification-subscriptions',
+        where: {
+          and: [
+            { endpoint: { equals: oldSubscription.endpoint } },
+            { 'keys.auth': { equals: oldSubscription.keys.auth } },
+          ],
+        },
+        limit: 1,
+        depth: 0,
+      });
+      const stored = docs[0];
+      const logAttributes = {
+        'server.address': endpointHostOf(newSubscription.endpoint),
+        'user.id': typeof stored?.user === 'string' ? stored.user : undefined,
+      };
+
+      // A send that hit the dead endpoint in the meantime answered 410 and pruned the row.
+      if (stored === undefined) {
+        logger.info('No stored push subscription to renew', logAttributes);
+        return { renewed: false };
+      }
+
+      await payload.update({
+        collection: 'push-notification-subscriptions',
+        id: stored.id,
+        data: {
+          endpoint: newSubscription.endpoint,
+          keys: newSubscription.keys,
+          lastUsedAt: new Date().toISOString(),
+        },
+      });
+      logger.info('Renewed push subscription', logAttributes);
+      return { renewed: true };
     }),
 
   // Admin only: it pushes arbitrary text to any subscription the caller names.

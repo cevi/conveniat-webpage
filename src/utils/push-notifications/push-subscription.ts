@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { subscribeUser, unsubscribeUser } from '@/utils/push-notification-api';
 import { getPushSubscription } from '@/utils/push-notifications/push-manager-utils';
+import { reportRenewedPushSubscription } from '@/utils/push-notifications/report-renewed-push-subscription';
 import { registerServiceWorker } from '@/utils/service-worker-utils';
 import { urlBase64ToUint8Array } from '@/utils/url-base64-to-uint8-array';
 import type webpush from 'web-push';
@@ -99,6 +100,43 @@ export const subscribeToPushNotifications = async (
   }
 
   return sub;
+};
+
+const isSameKey = (left: Uint8Array, right: Uint8Array): boolean =>
+  left.length === right.length && left.every((byte, index) => byte === right[index]);
+
+/**
+ * Moves this browser's subscription onto the current VAPID key. A subscription stays bound to
+ * the key it was created with, so after a key change the push service rejects every send to
+ * it, and no browser fires `pushsubscriptionchange` for that. Only the page can notice.
+ */
+export const renewPushSubscriptionOnStaleKey = async (): Promise<void> => {
+  if (vapidPublicKey === '') return;
+  // Unsubscribing needs the push service, so offline this would drop the subscription it fixes.
+  if (!navigator.onLine || Notification.permission !== 'granted') return;
+
+  const subscription = await getPushSubscription();
+  const subscribedKey = subscription?.options.applicationServerKey;
+  if (!subscription || !subscribedKey) return;
+
+  const currentKey = urlBase64ToUint8Array(vapidPublicKey);
+  if (isSameKey(new Uint8Array(subscribedKey), currentKey)) return;
+
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return;
+
+  const staleSubscription = subscription.toJSON();
+  // A registration holds one subscription, so the stale one has to go first.
+  await subscription.unsubscribe();
+  const renewedSubscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: currentKey,
+  });
+  await retry(
+    () => reportRenewedPushSubscription(staleSubscription, renewedSubscription.toJSON()),
+    3,
+    1000,
+  );
 };
 
 export const unsubscribeFromPushNotifications = async (): Promise<void> => {
