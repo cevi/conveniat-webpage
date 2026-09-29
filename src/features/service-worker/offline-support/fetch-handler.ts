@@ -395,6 +395,38 @@ async function offlineFallback(
   return Response.error();
 }
 
+/** How long an App Mode page or RSC request may take before the cached copy is shown. */
+const APP_MODE_NETWORK_TIMEOUT_MS = 3000;
+
+const noop = (): void => {};
+
+/**
+ * Stores an App Mode page or RSC payload for offline use. RSC payloads are buffered and stored
+ * without `Vary`, so later lookups match regardless of the request headers.
+ */
+async function storeAppModeResponse(response: Response, url: URL, isRsc: boolean): Promise<void> {
+  try {
+    const cache = await caches.open(isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES);
+    if (!isRsc) {
+      await cache.put(url.toString(), response);
+      return;
+    }
+    const buffer = await response.arrayBuffer();
+    const cleanHeaders = new Headers(response.headers);
+    cleanHeaders.delete('Vary');
+    await cache.put(
+      url.toString(),
+      new Response(buffer, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: cleanHeaders,
+      }),
+    );
+  } catch (error) {
+    console.warn('[SW] App Mode cache write failed:', error);
+  }
+}
+
 async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
   const url = new URL(event.request.url);
   const isNavigation = event.request.mode === 'navigate';
@@ -481,53 +513,56 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     }
 
     // If we are in App Mode and requesting a Document or RSC payload, bypass Serwist's
-    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch with a 3s timeout.
+    // automatic precache which might contain Web Mode versions. Do a manual network-first fetch.
+    //
+    // Camp wifi is often slow rather than down. When the network has not answered after
+    // APP_MODE_NETWORK_TIMEOUT_MS, the cached copy is served, but the request keeps running and
+    // refreshes the cache when it lands; aborting it meant a slow network never refreshed
+    // anything. Without a cached copy there is nothing better to show, so the worker keeps
+    // waiting for the network instead of giving up on a page that would have arrived.
     if (isAppMode && (isDocument || isRsc)) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      // Only navigation payloads are cached. Offline, `matchCachedRsc` answers a navigation
+      // with any entry for the same path, and a prefetch response there (a route tree or a
+      // single segment) is one the router cannot use, so it reloaded the whole page.
+      const isPrefetch = event.request.headers.has('Next-Router-Prefetch');
+
+      const fromNetwork = fetch(requestToHandle).then((networkResponse) => {
+        if (networkResponse.ok && !isPrefetch) {
+          event.waitUntil(storeAppModeResponse(networkResponse.clone(), url, isRsc));
+        }
+        return networkResponse;
+      });
+
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      const slowNetwork = new Promise<'slow'>((resolve) => {
+        timeoutId = setTimeout(() => resolve('slow'), APP_MODE_NETWORK_TIMEOUT_MS);
+      });
 
       try {
-        const networkResponse = await fetch(requestToHandle, { signal: controller.signal });
+        const first = await Promise.race([fromNetwork, slowNetwork]);
         clearTimeout(timeoutId);
+        if (first !== 'slow') return isRsc ? sanitizeRscResponse(first) : first;
 
-        // Only navigation payloads are cached. Offline, `matchCachedRsc` answers a navigation
-        // with any entry for the same path, and a prefetch response there (a route tree or a
-        // single segment) is one the router cannot use, so it reloaded the whole page.
-        const isPrefetch = event.request.headers.has('Next-Router-Prefetch');
-
-        if (networkResponse.ok && !isPrefetch) {
-          const targetCacheName = isRsc ? CACHE_NAMES.RSC : CACHE_NAMES.PAGES;
-          const cache = await caches.open(targetCacheName);
-          if (isRsc) {
-            void (async (): Promise<void> => {
-              try {
-                const cloned = networkResponse.clone();
-                const buffer = await cloned.arrayBuffer();
-                const cleanHeaders = new Headers(networkResponse.headers);
-                cleanHeaders.delete('Vary');
-                await cache.put(
-                  url.toString(),
-                  new Response(buffer, {
-                    status: networkResponse.status,
-                    statusText: networkResponse.statusText,
-                    headers: cleanHeaders,
-                  }),
-                );
-              } catch (error) {
-                console.warn('[SW] App Mode RSC stream buffer write failed:', error);
-              }
-            })();
-          } else {
-            void cache.put(url.toString(), networkResponse.clone()).catch(console.warn);
-          }
+        // A prefetch blocks nobody, so it waits for the network rather than getting a cached
+        // navigation payload in a shape it does not expect.
+        let cached: Response | undefined;
+        if (!isPrefetch) {
+          cached = isRsc
+            ? await matchCachedRsc(url.toString())
+            : await matchCachedPage(url.toString());
+        }
+        if (cached) {
+          console.log(`[SW] Slow network for ${url.pathname}, serving the cached copy meanwhile`);
+          event.waitUntil(fromNetwork.then(noop, noop));
+          return cached;
         }
 
-        if (isRsc) return sanitizeRscResponse(networkResponse);
-        return networkResponse;
+        const lateResponse = await fromNetwork;
+        return isRsc ? sanitizeRscResponse(lateResponse) : lateResponse;
       } catch (error) {
         clearTimeout(timeoutId);
         console.warn(
-          `[SW] App Mode fetch timed out or failed for ${url.pathname}, bailing to offline fallback`,
+          `[SW] App Mode fetch failed for ${url.pathname}, bailing to offline fallback`,
           error,
         );
         return offlineFallback(event.request, url, isAppMode, event.clientId);
