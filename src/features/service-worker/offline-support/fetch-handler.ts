@@ -153,7 +153,35 @@ async function matchCachedPage(originalUrl: string): Promise<Response | undefine
   return undefined;
 }
 
-async function offlineFallback(request: Request, url: URL, isAppMode: boolean): Promise<Response> {
+/**
+ * Whether an RSC request asks for the page its client was showing when it sent the request, like
+ * a `router.replace` that only changes the query or a `router.refresh`.
+ *
+ * The referrer is fixed when the page calls `fetch()`. The client's current URL is not: on a
+ * navigation the router commits the new URL while this request is still on its way, so reading
+ * it here can mistake a navigation to another page for a same-page update.
+ */
+async function isRequestForCurrentPage(
+  request: Request,
+  clientId: string,
+  url: URL,
+): Promise<boolean> {
+  let pageUrl = request.referrer;
+  if (pageUrl === '' || pageUrl === 'about:client') {
+    if (clientId === '') return false;
+    const client = await self.clients.get(clientId);
+    if (client === undefined) return false;
+    pageUrl = client.url;
+  }
+  return getCleanAppPath(new URL(pageUrl).pathname) === getCleanAppPath(url.pathname);
+}
+
+async function offlineFallback(
+  request: Request,
+  url: URL,
+  isAppMode: boolean,
+  clientId = '',
+): Promise<Response> {
   // PostHog Analytics: Fail silently (no cache lookup, no error logs)
   if (url.pathname.startsWith('/ingest/')) {
     return Response.error();
@@ -178,14 +206,33 @@ async function offlineFallback(request: Request, url: URL, isAppMode: boolean): 
     const cachedRsc = await matchCachedRsc(url.toString());
     if (cachedRsc) return cachedRsc;
 
-    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Failing the request.`);
+    // A request for the page already on screen stays a network error. With
+    // `experimental.useOffline` the router then keeps the page as it is and retries once the
+    // connection returns, which is right for a query update or a refresh. Loading the page as
+    // a document instead would only reload what the user is looking at.
+    if (await isRequestForCurrentPage(request, clientId, url)) {
+      console.warn(`[SW] RSC Cache Miss for the current page: ${url.toString()}.`);
+      return Response.error();
+    }
 
-    // Fail like the Server Action branch above rather than redirecting to the document route.
+    console.warn(`[SW] RSC Cache Miss for: ${url.toString()}. Answering 503.`);
+
+    // Navigating to another page: an empty 503, not a network error and not a redirect.
+    //
     // A redirect answers a request carrying `RSC: 1` with HTML, which the Flight client cannot
     // parse; the router then treats the prefetch as unresolved and re-issues it, so a single
-    // cache miss turns into a retry loop. `Response.error()` is a clean network failure that
-    // the router and the error boundary both already handle.
-    return Response.error();
+    // cache miss turns into a retry loop.
+    //
+    // A network error is worse here: the router takes it as "offline", parks the navigation
+    // until the connection returns and never falls back, so tapping a page that is not cached
+    // left the app on its loading state.
+    //
+    // A non-OK response is what the router treats as "load this page the classic way": the
+    // navigation turns into a document request, which this worker answers from the page cache
+    // or with the offline page, and a prefetch is rejected with a ten-second backoff.
+    // An empty body rather than none: the router reads `res.body` and treats a missing one as
+    // a failed fetch, which would park the navigation again.
+    return new Response('', { status: 503, statusText: 'Offline' });
   }
 
   const isManifestOrIcon =
@@ -430,7 +477,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     // Fast-path offline fallback for documents and RSC requests when network is off
     if (isOffline) {
       console.log(`[SW] Fast Offline Fallback for ${url.pathname}`);
-      return offlineFallback(event.request, url, isAppMode);
+      return offlineFallback(event.request, url, isAppMode, event.clientId);
     }
 
     // If we are in App Mode and requesting a Document or RSC payload, bypass Serwist's
@@ -483,7 +530,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
           `[SW] App Mode fetch timed out or failed for ${url.pathname}, bailing to offline fallback`,
           error,
         );
-        return offlineFallback(event.request, url, isAppMode);
+        return offlineFallback(event.request, url, isAppMode, event.clientId);
       }
     }
 
@@ -496,7 +543,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     if (response) {
       if (!response.ok && response.status === 504) {
         console.warn(`[SW] Serwist returned 504 for ${url.pathname}, bailing to offline fallback`);
-        return offlineFallback(event.request, url, isAppMode);
+        return offlineFallback(event.request, url, isAppMode, event.clientId);
       }
 
       if (isRsc) {
@@ -533,7 +580,7 @@ async function router(event: FetchEvent, serwist: Serwist): Promise<Response> {
     if (error instanceof Error) {
       console.debug(`[SW] Network/MW failed for ${url.pathname}`, error);
     }
-    return offlineFallback(event.request, url, isAppMode);
+    return offlineFallback(event.request, url, isAppMode, event.clientId);
   }
 }
 
@@ -772,7 +819,7 @@ export const handleFetchEvent =
     event.respondWith(
       router(event, serwist).catch((criticalError: unknown) => {
         console.error(`[SW] Critical Error while Fetching ${event.request.url}:`, criticalError);
-        return offlineFallback(event.request, url, false);
+        return offlineFallback(event.request, url, false, event.clientId);
       }),
     );
   };
