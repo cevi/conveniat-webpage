@@ -42,6 +42,9 @@ const { __logger: mockLogger } = jest.requireMock<{ __logger: MockLogger }>(
 );
 
 import { sendNotification } from '@/features/chat/api/utils/send-push-notifications';
+import { PushNotificationKind } from '@/lib/prisma';
+
+const chat = { kind: PushNotificationKind.CHAT };
 
 interface FindArguments {
   limit?: number;
@@ -65,7 +68,7 @@ describe('sendNotification recipient lookup', () => {
   it('does not cap the recipient lookup', async () => {
     mockFind.mockResolvedValue({ docs: [] });
 
-    await sendNotification('hi', ['user-1'], 'chat-1');
+    await sendNotification('hi', ['user-1'], 'chat-1', undefined, chat);
 
     const findArguments = (mockFind.mock.calls as unknown[][])[0]?.[0] as FindArguments;
     expect(findArguments.pagination).toBe(false);
@@ -81,7 +84,7 @@ describe('sendNotification recipient lookup', () => {
       ],
     });
 
-    await sendNotification('hi', ['user-1', 'user-2'], 'chat-1');
+    await sendNotification('hi', ['user-1', 'user-2'], 'chat-1', undefined, chat);
 
     expect(mockSendToSubscription).toHaveBeenCalledTimes(3);
   });
@@ -101,6 +104,7 @@ describe('sendNotification recipient lookup', () => {
     });
 
     await sendNotification('Notfall!', ['user-1', 'user-2'], 'chat-1', undefined, {
+      kind: PushNotificationKind.EMERGENCY,
       notificationType: 'emergency',
     });
 
@@ -112,7 +116,7 @@ describe('sendNotification recipient lookup', () => {
   it('leaves the type unset for a regular chat message', async () => {
     mockFind.mockResolvedValue({ docs: [{ id: 's1', user: 'user-1' }] });
 
-    await sendNotification('hi', ['user-1'], 'chat-1');
+    await sendNotification('hi', ['user-1'], 'chat-1', undefined, chat);
 
     const options = (mockSendToSubscription.mock.calls as unknown[][])[0]?.[6] as Record<
       string,
@@ -124,7 +128,7 @@ describe('sendNotification recipient lookup', () => {
   it('reports success without querying when nobody is subscribed', async () => {
     mockFind.mockResolvedValue({ docs: [] });
 
-    const result = await sendNotification('hi', ['user-1'], 'chat-1');
+    const result = await sendNotification('hi', ['user-1'], 'chat-1', undefined, chat);
 
     expect(result.success).toBe(true);
     expect(mockSendToSubscription).not.toHaveBeenCalled();
@@ -170,7 +174,7 @@ describe('sendNotification fan-out', () => {
       return { success: true };
     });
 
-    await sendNotification('hi', ['user-1'], 'chat-1');
+    await sendNotification('hi', ['user-1'], 'chat-1', undefined, chat);
 
     expect(mockSendToSubscription).toHaveBeenCalledTimes(200);
     expect(peakInFlight).toBeLessThanOrEqual(EXPECTED_CONCURRENCY_CEILING);
@@ -190,19 +194,18 @@ describe('sendNotification fan-out', () => {
       .mockRejectedValueOnce(new Error('push endpoint gone'))
       .mockResolvedValue({ success: true });
 
-    const result = await sendNotification('hi', ['user-1'], 'chat-1');
+    const result = await sendNotification('hi', ['user-1'], 'chat-1', undefined, chat);
 
     expect(mockSendToSubscription).toHaveBeenCalledTimes(3);
     expect(result.success).toBe(false);
   });
 
   /**
-   * The whole point of the fan-out log: "the chat notified nobody" has to be
-   * answerable from Grafana. A rejection is a completed send the push service turned
-   * away (expired device), which is not a failure of the send but is exactly what
-   * separates "reached 40 devices" from "reached none of them".
+   * The whole point of the fan-out summary: "the chat notified nobody" has to be
+   * answerable. An expired device is the normal end of a subscription, not a failure, but
+   * it is exactly what separates "reached 40 devices" from "reached none of them".
    */
-  it('reports delivered, rejected and thrown counts on the fan-out log line', async () => {
+  it('reports accepted, expired, failed and thrown counts on the fan-out log line', async () => {
     mockFind.mockResolvedValue({
       docs: [
         { id: 's1', user: 'user-1' },
@@ -212,20 +215,80 @@ describe('sendNotification fan-out', () => {
     });
     mockSendToSubscription
       .mockResolvedValueOnce({ success: true })
-      .mockResolvedValueOnce({ success: false, error: 'expired' })
+      .mockResolvedValueOnce({ success: false, error: 'gone', subscriptionRemoved: true })
       .mockResolvedValueOnce({ success: true });
 
-    await sendNotification('hi', ['user-1'], 'chat-1');
+    await sendNotification('hi', ['user-1', 'user-2'], 'chat-1', undefined, chat);
 
     expect(mockLogger.debug).toHaveBeenCalledWith(
       'Push fan-out finished',
       expect.objectContaining({
+        'push.kind': 'CHAT',
+        'push.recipients': 2,
+        'push.recipients_without_device': 1,
         'push.subscriptions': 3,
-        'push.delivered': 2,
-        'push.rejected': 1,
+        'push.accepted': 2,
+        'push.expired': 1,
+        'push.failed': 0,
         'push.thrown': 0,
         'chat.id': 'chat-1',
       }),
+    );
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('records the kind on every send', async () => {
+    mockFind.mockResolvedValue({ docs: [{ id: 's1', user: 'user-1' }] });
+
+    await sendNotification('hi', ['user-1'], 'chat-1', 'message-1', {
+      kind: PushNotificationKind.ANNOUNCEMENT,
+    });
+
+    expect((mockSendToSubscription.mock.calls as unknown[][])[0]?.[6]).toEqual(
+      expect.objectContaining({ kind: 'ANNOUNCEMENT' }),
+    );
+  });
+
+  /**
+   * Whether the piket was woken up must be answerable from Loki, where production keeps
+   * no debug lines, and not only from a trace that was sampled at 25%.
+   */
+  it('logs an emergency fan-out at info even when every send went through', async () => {
+    mockFind.mockResolvedValue({ docs: [{ id: 's1', user: 'user-1' }] });
+
+    await sendNotification('Notfall!', ['user-1'], 'chat-1', undefined, {
+      kind: PushNotificationKind.EMERGENCY,
+      notificationType: 'emergency',
+    });
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Push fan-out finished',
+      expect.objectContaining({ 'push.kind': 'EMERGENCY', 'push.accepted': 1 }),
+    );
+  });
+
+  it('logs an emergency that reached no device at info', async () => {
+    mockFind.mockResolvedValue({ docs: [] });
+
+    await sendNotification('Notfall!', ['user-1'], 'chat-1', undefined, {
+      kind: PushNotificationKind.EMERGENCY,
+    });
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Push fan-out reached no device',
+      expect.objectContaining({ 'push.recipients_without_device': 1 }),
+    );
+  });
+
+  it('logs a chat fan-out at info when none of its devices accepted the push', async () => {
+    mockFind.mockResolvedValue({ docs: [{ id: 's1', user: 'user-1' }] });
+    mockSendToSubscription.mockResolvedValueOnce({ success: false, error: '500' });
+
+    await sendNotification('hi', ['user-1'], 'chat-1', undefined, chat);
+
+    expect(mockLogger.info).toHaveBeenCalledWith(
+      'Push fan-out finished',
+      expect.objectContaining({ 'push.accepted': 0, 'push.failed': 1 }),
     );
   });
 });

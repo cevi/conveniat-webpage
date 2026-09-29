@@ -20,16 +20,18 @@ interface NotificationData {
   ignoreIfUrlMatches?: boolean | string;
 }
 
+type PushTrackingEvent =
+  { type: 'DELIVERED'; presentation: 'SHOWN' | 'SUPPRESSED' } | { type: 'CLICK' | 'DISMISS' };
+
 /**
  * Tracks push notification events (delivery, click, dismiss) via TRPC.
  */
-async function trackPushEvent(
-  notificationId: string,
-  eventType: 'DELIVERED' | 'CLICK' | 'DISMISS',
-): Promise<void> {
-  const method = eventType === 'DELIVERED' ? 'markDelivered' : 'markInteracted';
+async function trackPushEvent(notificationId: string, event: PushTrackingEvent): Promise<void> {
+  const method = event.type === 'DELIVERED' ? 'markDelivered' : 'markInteracted';
   const body =
-    eventType === 'DELIVERED' ? { id: notificationId } : { id: notificationId, type: eventType };
+    event.type === 'DELIVERED'
+      ? { id: notificationId, presentation: event.presentation }
+      : { id: notificationId, type: event.type };
 
   try {
     // here we cannot use the normal trpc bindings because
@@ -46,7 +48,7 @@ async function trackPushEvent(
       }),
     });
   } catch (error) {
-    console.error(`Failed to track push event ${eventType}`, error);
+    console.error(`Failed to track push event ${event.type}`, error);
   }
 }
 
@@ -285,11 +287,17 @@ export const pushNotificationHandler =
 
         if (shouldShowNotification) {
           await serviceWorkerScope.registration.showNotification(data.title, options);
-          if (data.data.notificationId) {
-            await trackPushEvent(data.data.notificationId, 'DELIVERED');
-          }
         } else if (revokesSubscriptionOnSilentPush(serviceWorkerScope)) {
           await showAndCloseSuppressedNotification(serviceWorkerScope, data);
+        }
+        // A suppressed push still reached the device, so it is reported as delivered too.
+        // Before, it left no trace at all, and a chat the user was reading looked like a
+        // push that never arrived.
+        if (data.data.notificationId) {
+          await trackPushEvent(data.data.notificationId, {
+            type: 'DELIVERED',
+            presentation: shouldShowNotification ? 'SHOWN' : 'SUPPRESSED',
+          });
         }
       })(),
     );
@@ -331,7 +339,7 @@ export const notificationClickHandler =
     const targetUrlString = url.toString();
 
     const trackingPromise = notificationData.notificationId
-      ? trackPushEvent(notificationData.notificationId, 'CLICK')
+      ? trackPushEvent(notificationData.notificationId, { type: 'CLICK' })
       : Promise.resolve();
 
     const openOrFocusPromise = (async (): Promise<void> => {
@@ -349,6 +357,13 @@ export const notificationClickHandler =
       }
 
       await existingClient.focus();
+
+      // Relayed to PostHog by the page, see `PostHogProvider`. A window opened above has no
+      // PostHog running yet when the message arrives, so only a tap into an open app counts.
+      existingClient.postMessage({
+        type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+        payload: { event: 'push_notification_opened', properties: { channel: 'web' } },
+      });
 
       if (!isSameOrigin) {
         // navigate() rejects for a client this worker does not control, and then only a new
@@ -419,6 +434,6 @@ export function notificationCloseHandler(event: NotificationEvent): void {
   const notificationData = event.notification.data as NotificationData;
 
   if (notificationData.notificationId) {
-    event.waitUntil(trackPushEvent(notificationData.notificationId, 'DISMISS'));
+    event.waitUntil(trackPushEvent(notificationData.notificationId, { type: 'DISMISS' }));
   }
 }

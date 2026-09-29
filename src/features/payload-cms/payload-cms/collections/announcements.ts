@@ -10,7 +10,7 @@ import { buildAnnouncementMessagePayload } from '@/features/payload-cms/payload-
 import type { Announcement } from '@/features/payload-cms/payload-types';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
-import { MessageEventType, MessageType } from '@/lib/prisma/client';
+import { MessageEventType, MessageType, PushNotificationKind } from '@/lib/prisma/client';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
 import { randomUUID } from 'node:crypto';
 import type {
@@ -134,14 +134,14 @@ const publishAnnouncementToPostgres = async ({
   const defaultText =
     localizedPayload['de']?.text ?? Object.values(localizedPayload)[0]?.text ?? '';
   if (recipientUserIds.length > 0 && defaultText !== '') {
-    sendNotification(defaultText, recipientUserIds, chatUuid, createdMessage.uuid).catch(
-      (error: unknown) => {
-        request.payload.logger.error(
-          { error, 'chat.id': chatUuid, 'message.id': createdMessage.uuid },
-          'Failed to send the push notifications for an announcement',
-        );
-      },
-    );
+    sendNotification(defaultText, recipientUserIds, chatUuid, createdMessage.uuid, {
+      kind: PushNotificationKind.ANNOUNCEMENT,
+    }).catch((error: unknown) => {
+      request.payload.logger.error(
+        { error, 'chat.id': chatUuid, 'message.id': createdMessage.uuid },
+        'Failed to send the push notifications for an announcement',
+      );
+    });
   }
 };
 

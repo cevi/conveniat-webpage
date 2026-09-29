@@ -108,6 +108,10 @@ describe('notificationClickHandler', () => {
       '/api/trpc/pushTracking.markInteracted?batch=1',
       expect.objectContaining({ method: 'POST' }),
     );
+    expect(mockPostMessage).toHaveBeenCalledWith({
+      type: ServiceWorkerMessages.CAPTURE_POSTHOG_EVENT,
+      payload: { event: 'push_notification_opened', properties: { channel: 'web' } },
+    });
   });
 
   it('falls back to postMessage when client navigate throws', async () => {
@@ -176,7 +180,9 @@ describe('notificationClickHandler', () => {
       } as unknown as WindowClient);
 
       expect(mockNavigate).toHaveBeenCalledWith('https://con27.ch/agbs');
-      expect(mockPostMessage).not.toHaveBeenCalled();
+      expect(mockPostMessage).not.toHaveBeenCalledWith(
+        expect.objectContaining({ type: ServiceWorkerMessages.PUSH_NAVIGATE }),
+      );
       expect(mockServiceWorkerScope.clients?.openWindow).not.toHaveBeenCalled();
     });
 
@@ -224,6 +230,15 @@ const makeClient = (creationUrl: string, liveUrl?: string): WindowClient =>
       }
     }),
   }) as unknown as WindowClient;
+
+/** The body of the delivery report the worker posted, if any. */
+const deliveryReport = (): unknown => {
+  const calls = (globalThis.fetch as jest.Mock).mock.calls as [string, { body: string }][];
+  const call = calls.find(([url]) => url.includes('pushTracking.markDelivered'));
+  return call === undefined
+    ? undefined
+    : (JSON.parse(call[1].body) as Record<string, { json: unknown }>)['0']?.json;
+};
 
 describe('pushNotificationHandler', () => {
   const chatId = '550e8400-e29b-41d4-a716-446655440000';
@@ -321,8 +336,8 @@ describe('pushNotificationHandler', () => {
     );
     expect(mockGetNotifications).toHaveBeenCalledWith({ tag: 'conveniat27-suppressed' });
     expect(mockCloseNotification).toHaveBeenCalled();
-    // Nobody saw it, so it is not reported as delivered.
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    // It reached the device, so it is reported, but as suppressed: nobody saw it.
+    expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SUPPRESSED' });
   });
 
   it('shows a notification the user should see on WebKit as usual', async () => {
@@ -382,6 +397,25 @@ describe('pushNotificationHandler', () => {
     await dispatchPush(makeScope([client]));
 
     expect(mockShowNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a shown notification as delivered', async () => {
+    const client = makeClient(chatUrl, 'https://konekta.ch/app/chat');
+    await dispatchPush(makeScope([client]));
+
+    expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SHOWN' });
+  });
+
+  /**
+   * The push reached the device even though the user never saw it in the shade. Without
+   * the report, a push to someone reading the chat looks exactly like one that was lost.
+   */
+  it('reports a suppressed notification as delivered and suppressed', async () => {
+    const client = makeClient('https://konekta.ch/app/chat', chatUrl);
+    await dispatchPush(makeScope([client]));
+
+    expect(mockShowNotification).not.toHaveBeenCalled();
+    expect(deliveryReport()).toEqual({ id: 'notif-1', presentation: 'SUPPRESSED' });
   });
 });
 

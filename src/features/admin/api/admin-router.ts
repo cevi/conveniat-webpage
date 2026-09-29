@@ -33,6 +33,7 @@ import {
   ChatType,
   MessageEventType,
   MessageType,
+  PushNotificationKind,
 } from '@/lib/prisma/client';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -578,6 +579,10 @@ export const adminRouter = createTRPCRouter({
         .map((membership) => membership.userId);
 
       sendNotification(input.content, pushRecipientUserIds, input.chatId, message.uuid, {
+        kind:
+          chat.type === ChatType.EMERGENCY
+            ? PushNotificationKind.EMERGENCY
+            : PushNotificationKind.CHAT,
         chatName: chat.name,
         senderName: user.name,
         // This is the reply path of the CMS Alert Management view, so it posts into

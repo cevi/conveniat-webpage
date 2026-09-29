@@ -460,6 +460,21 @@ export function extractNotificationType(payload: Record<string, unknown>): Notif
   return 'default';
 }
 
+/**
+ * Records a tap on a push in PostHog, so what people do after opening one shows up in
+ * their session. The push log row records the same tap, but it cannot show what happened
+ * next.
+ */
+function capturePushOpened(properties: {
+  channel: 'native';
+  notification_type: NotificationType;
+  target: 'chat' | 'other';
+}): void {
+  void import('posthog-js')
+    .then(({ default: posthog }) => posthog.capture('push_notification_opened', properties))
+    .catch((error: unknown) => console.error('Failed to load posthog-js', error));
+}
+
 export interface NativePushLogEntry {
   id: string;
   timestamp: string;
@@ -520,6 +535,7 @@ export function useNativePush(): {
   const { mutateAsync: registerDevice } = trpc.nativePush.registerDevice.useMutation();
   const { mutateAsync: unregisterDevice } = trpc.nativePush.unregisterDevice.useMutation();
   const { mutate: markInteracted } = trpc.pushTracking.markInteracted.useMutation();
+  const { mutate: markDelivered } = trpc.pushTracking.markDelivered.useMutation();
 
   // Foreground notifications are raised from non-React code (SSE listener, bridge
   // events), so hand them the client-side router instead of a hard navigation.
@@ -768,6 +784,11 @@ export function useNativePush(): {
           if (notificationLogId !== undefined) {
             markInteracted({ id: notificationLogId, type: 'CLICK' });
           }
+          capturePushOpened({
+            channel: 'native',
+            notification_type: extractNotificationType(payload),
+            target: targetChatId === undefined ? 'other' : 'chat',
+          });
 
           console.log('[NativePush:PWA] notification opened, navigating to:', targetPath);
           performReliablePushNavigation(router, targetPath);
@@ -791,6 +812,13 @@ export function useNativePush(): {
           console.log(
             `[Chat][FCM] Foreground push message received (chat: ${targetChatId ?? 'unknown'}).`,
           );
+
+          // The only receipt a native push can report: in the background the OS renders it
+          // without running any app code.
+          const receivedLogId = extractNotificationLogId(payload);
+          if (receivedLogId !== undefined) {
+            markDelivered({ id: receivedLogId });
+          }
 
           // Refresh query cache in background
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
@@ -921,7 +949,7 @@ export function useNativePush(): {
       globalThis.removeEventListener('focus', handleAppResume);
       globalThis.removeEventListener('pageshow', handleAppResume);
     };
-  }, [router, registerDevice, unregisterDevice, markInteracted, trpcUtils]);
+  }, [router, registerDevice, unregisterDevice, markInteracted, markDelivered, trpcUtils]);
 
   const requestPermission = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);

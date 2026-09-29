@@ -32,13 +32,16 @@ jest.mock('@/utils/auth-helpers', () => ({
   isValidNextAuthUser: (): boolean => false,
 }));
 
+const mockLogCreate = jest.fn().mockResolvedValue({ id: 'log-1' });
 const mockLogUpdate = jest.fn().mockResolvedValue({});
+const mockLogUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   default: {
     pushNotificationLog: {
-      create: jest.fn().mockResolvedValue({ id: 'log-1' }),
+      create: (...args: unknown[]): unknown => mockLogCreate(...args),
       update: (...args: unknown[]): unknown => mockLogUpdate(...args),
+      updateMany: (...args: unknown[]): unknown => mockLogUpdateMany(...args),
     },
   },
 }));
@@ -226,5 +229,43 @@ describe('sendNotificationToSubscription payload size', () => {
     const sentPayload = (mockSendWebPush.mock.calls as unknown[][]).at(-1)?.[1] as string;
     expect(new TextEncoder().encode(sentPayload).length).toBeLessThanOrEqual(3993);
     expect((JSON.parse(sentPayload) as { body: string }).body.endsWith('…')).toBe(true);
+  });
+});
+
+describe('sendNotificationToSubscription log row', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('records what the push is about', async () => {
+    await sendNotificationToSubscription(
+      webSubscription,
+      'Notfall!',
+      undefined,
+      'u1',
+      undefined,
+      undefined,
+      { kind: 'EMERGENCY' },
+    );
+
+    expect(mockLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ kind: 'EMERGENCY', channel: 'WEB_PUSH' }) as unknown,
+    });
+  });
+
+  /**
+   * The push service accepting a push says nothing about the device, so the row stays
+   * short of DELIVERED. The device may report back before the send returns, and its
+   * DELIVERED must survive the update.
+   */
+  it('marks an accepted push as sent without overwriting a device receipt', async () => {
+    const result = await sendNotificationToSubscription(webSubscription, 'Hallo', undefined, 'u1');
+
+    expect(result).toEqual({ success: true });
+    expect(mockLogUpdateMany).toHaveBeenCalledWith({
+      where: { id: 'log-1', status: 'PENDING' },
+      data: { status: 'SENT' },
+    });
+    expect(mockLogUpdate).not.toHaveBeenCalled();
   });
 });
