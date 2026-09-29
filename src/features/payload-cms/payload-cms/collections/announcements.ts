@@ -12,7 +12,9 @@ import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { AlignFeature, lexicalEditor, UnorderedListFeature } from '@payloadcms/richtext-lexical';
+import { randomUUID } from 'node:crypto';
 import type {
+  CollectionAfterChangeHook,
   CollectionBeforeChangeHook,
   CollectionBeforeOperationHook,
   CollectionConfig,
@@ -26,12 +28,25 @@ import type {
  */
 type PrismaJsonPayload = Parameters<typeof prisma.messageContent.create>[0]['data']['payload'];
 
-export const publishAnnouncementToPostgres = async (
-  channelId: string,
-  localizedPayload: Record<string, AnnouncementLocalePayload>,
-  authorUuid: string,
-  request: PayloadRequest,
-): Promise<{ messageUuid: string; publishedAt: Date }> => {
+interface PublishAnnouncementArguments {
+  /** The id reserved for the message when the announcement was published. */
+  messageUuid: string;
+  channelId: string;
+  localizedPayload: Record<string, AnnouncementLocalePayload>;
+  authorUuid: string;
+  publishedAt: Date;
+  request: PayloadRequest;
+}
+
+/** Posts a published announcement into its channel and sends the push to its members. */
+const publishAnnouncementToPostgres = async ({
+  messageUuid,
+  channelId,
+  localizedPayload,
+  authorUuid,
+  publishedAt,
+  request,
+}: PublishAnnouncementArguments): Promise<void> => {
   // 1. Fetch channel details to get PostgreSQL chatUuid
   const channel = await request.payload.findByID({
     collection: 'announcement-channels',
@@ -60,11 +75,10 @@ export const publishAnnouncementToPostgres = async (
     senderUuid = chatMemberships[0]?.userId ?? authorUuid;
   }
 
-  const publishedAt = new Date();
-
   // 4. Create PostgreSQL Message
   const createdMessage = await prisma.message.create({
     data: {
+      uuid: messageUuid,
       type: MessageType.TEXT_MSG,
       chatId: chatUuid,
       senderId: senderUuid,
@@ -129,8 +143,6 @@ export const publishAnnouncementToPostgres = async (
       },
     );
   }
-
-  return { messageUuid: createdMessage.uuid, publishedAt };
 };
 
 /** The `req.context` key under which {@link rememberDraftSave} records the `draft` flag. */
@@ -149,12 +161,77 @@ const rememberDraftSave: CollectionBeforeOperationHook = ({ args, operation, req
   return args;
 };
 
+/** Adds the current content of an announcement as a new revision of its chat message. */
+const reviseAnnouncementMessage = async (
+  chatMessage: { uuid: string; chatId: string; senderId: string | null },
+  localizedPayload: Record<string, AnnouncementLocalePayload>,
+  request: PayloadRequest,
+): Promise<void> => {
+  const latestRevision = await prisma.messageContent.findFirst({
+    where: { messageId: chatMessage.uuid },
+    orderBy: { revision: 'desc' },
+    select: { payload: true, revision: true },
+  });
+
+  if (
+    latestRevision !== null &&
+    JSON.stringify(latestRevision.payload) === JSON.stringify(localizedPayload)
+  ) {
+    return;
+  }
+
+  await prisma.messageContent.create({
+    data: {
+      messageId: chatMessage.uuid,
+      revision: (latestRevision?.revision ?? 0) + 1,
+      payload: localizedPayload as unknown as PrismaJsonPayload,
+    },
+  });
+
+  const senderUuid = chatMessage.senderId ?? request.user?.id ?? '';
+
+  await prisma.chat.update({
+    where: { uuid: chatMessage.chatId },
+    data: { lastUpdate: new Date() },
+  });
+
+  chatPubSub
+    .publish({
+      type: 'message_updated',
+      chatId: chatMessage.chatId,
+      senderId: senderUuid,
+      message: {
+        id: chatMessage.uuid,
+        createdAt: new Date(),
+        messagePayload: localizedPayload,
+        senderId: senderUuid,
+        status: MessageEventType.STORED,
+        type: MessageType.TEXT_MSG,
+        parentId: undefined,
+      },
+    })
+    .catch((error: unknown) => {
+      request.payload.logger.error(
+        { error, 'message.id': chatMessage.uuid },
+        'Failed to publish the message_updated event for an announcement',
+      );
+    });
+};
+
+/** The id of a relationship value, whether Payload populated it or not. */
+const relationId = (value: string | { id: string } | null | undefined): string | undefined =>
+  typeof value === 'string' ? value : value?.id;
+
 /**
  * Mirrors the publishing state of an announcement into the chat.
  *
  * Every language lives on the same document, so one publish sends one chat message and
  * one push that already carry every translation. Publishing again after an edit adds a
  * revision to that message without a second push; unpublishing deletes it.
+ *
+ * Publishing only reserves the message id and leaves the sending to
+ * {@link afterAnnouncementChange}: Payload validates the document after `beforeChange`,
+ * and a push cannot be taken back when that validation or the save fails.
  */
 const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async ({
   data,
@@ -181,122 +258,12 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
     // Automatically sync the overall document status dropdown to 'published'
     data.status = 'published';
 
-    try {
-      const authorUuid = (data.author as string | undefined) ?? request.user?.id;
-      if (authorUuid === undefined || authorUuid === '') {
-        throw new Error('No author identified for the announcement.');
-      }
-
-      const channelId = typeof data.channel === 'string' ? data.channel : (data.channel?.id ?? '');
-      if (channelId === '') {
-        throw new Error('No channel selected for the announcement.');
-      }
-
-      // A local API update may send only some fields; the rest is still on the document.
-      const localizedPayload = await buildAnnouncementMessagePayload({
-        payload: request.payload,
-        announcement: {
-          title: data.title ?? originalDoc?.title,
-          content: data.content ?? originalDoc?.content,
-        },
-        // The incoming value is authoritative whenever the field is part of the request
-        // at all - including when it was emptied, which a `??` fallback would undo.
-        imageReferences: 'images' in data ? data.images : originalDoc?.images,
-      });
-
-      const chatMessageUuid = data.chatMessageUuid ?? originalDoc?.chatMessageUuid;
-
-      if (chatMessageUuid !== undefined && chatMessageUuid !== null && chatMessageUuid !== '') {
-        // A. UPDATE / REVISION
-        // Query the latest revision payload from PostgreSQL to check for changes
-        const latestRevision = await prisma.messageContent.findFirst({
-          where: { messageId: chatMessageUuid },
-          orderBy: { revision: 'desc' },
-          select: { payload: true },
-        });
-
-        let hasChanges = false;
-        if (latestRevision !== null && latestRevision.payload !== null) {
-          const previousPayload = latestRevision.payload as Record<string, unknown>;
-          hasChanges = JSON.stringify(previousPayload) !== JSON.stringify(localizedPayload);
-        } else {
-          hasChanges = true;
-        }
-
-        if (hasChanges) {
-          // 1. Query the existing maximum revision
-          const maxRevisionContent = await prisma.messageContent.findFirst({
-            where: { messageId: chatMessageUuid },
-            orderBy: { revision: 'desc' },
-            select: { revision: true },
-          });
-          const nextRevision = (maxRevisionContent?.revision ?? 0) + 1;
-
-          // 2. Insert the new revision into PostgreSQL
-          await prisma.messageContent.create({
-            data: {
-              messageId: chatMessageUuid,
-              revision: nextRevision,
-              payload: localizedPayload as unknown as PrismaJsonPayload,
-            },
-          });
-
-          // 3. Fetch message details to update chat lastUpdate and push socket event
-          const existingMessage = await prisma.message.findUnique({
-            where: { uuid: chatMessageUuid },
-            select: { chatId: true, senderId: true },
-          });
-
-          if (existingMessage !== null) {
-            const chatUuid = existingMessage.chatId;
-            const senderUuid = existingMessage.senderId ?? request.user?.id ?? '';
-
-            // Update chat lastUpdate
-            await prisma.chat.update({
-              where: { uuid: chatUuid },
-              data: { lastUpdate: new Date() },
-            });
-
-            // Publish message_updated event to all socket listeners
-            chatPubSub
-              .publish({
-                type: 'message_updated',
-                chatId: chatUuid,
-                senderId: senderUuid,
-                message: {
-                  id: chatMessageUuid,
-                  createdAt: new Date(),
-                  messagePayload: localizedPayload,
-                  senderId: senderUuid,
-                  status: MessageEventType.STORED,
-                  type: MessageType.TEXT_MSG,
-                  parentId: undefined,
-                },
-              })
-              .catch((error: unknown) => {
-                request.payload.logger.error(
-                  { error, 'message.id': chatMessageUuid },
-                  'Failed to publish the message_updated event for an announcement',
-                );
-              });
-          }
-        }
-      } else {
-        // B. CREATE / INITIAL PUBLISH
-        const { messageUuid, publishedAt } = await publishAnnouncementToPostgres(
-          channelId,
-          localizedPayload,
-          authorUuid,
-          request,
-        );
-
-        data.chatMessageUuid = messageUuid;
-        data.publishedAt = publishedAt.toISOString();
-      }
-    } catch (error: unknown) {
-      request.payload.logger.error({ error }, 'Failed to publish an announcement');
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Publish failed: ${errorMessage}`);
+    // Only reserve the message here. Payload validates and saves the document after this
+    // hook, so the message and its push go out in `afterAnnouncementChange`.
+    const chatMessageUuid = data.chatMessageUuid ?? originalDoc?.chatMessageUuid;
+    if (chatMessageUuid === undefined || chatMessageUuid === null || chatMessageUuid === '') {
+      data.chatMessageUuid = randomUUID();
+      data.publishedAt = new Date().toISOString();
     }
     return data;
   }
@@ -323,6 +290,65 @@ const beforeAnnouncementChange: CollectionBeforeChangeHook<Announcement> = async
   }
 
   return data;
+};
+
+/**
+ * Sends the chat message of a published announcement once Payload has validated and saved
+ * it, or adds a revision to the message that is already there.
+ *
+ * A message id on the document with no message behind it is a publish that has not reached
+ * the chat yet, for example because the channel was not synced: publishing again sends it.
+ */
+const afterAnnouncementChange: CollectionAfterChangeHook<Announcement> = async ({
+  doc,
+  req: request,
+}) => {
+  const chatMessageUuid = doc.chatMessageUuid;
+  if (
+    doc._status !== 'published' ||
+    doc.status !== 'published' ||
+    chatMessageUuid === undefined ||
+    chatMessageUuid === null ||
+    chatMessageUuid === ''
+  ) {
+    return doc;
+  }
+
+  try {
+    const localizedPayload = await buildAnnouncementMessagePayload({
+      payload: request.payload,
+      announcement: doc,
+      imageReferences: doc.images,
+    });
+
+    const chatMessage = await prisma.message.findUnique({
+      where: { uuid: chatMessageUuid },
+      select: { uuid: true, chatId: true, senderId: true },
+    });
+
+    if (chatMessage !== null) {
+      await reviseAnnouncementMessage(chatMessage, localizedPayload, request);
+      return doc;
+    }
+
+    await publishAnnouncementToPostgres({
+      messageUuid: chatMessageUuid,
+      channelId: relationId(doc.channel) ?? '',
+      localizedPayload,
+      authorUuid: relationId(doc.author) ?? request.user?.id ?? '',
+      publishedAt: new Date(doc.publishedAt ?? Date.now()),
+      request,
+    });
+  } catch (error: unknown) {
+    request.payload.logger.error(
+      { error, 'message.id': chatMessageUuid },
+      'Failed to publish an announcement',
+    );
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Publish failed: ${errorMessage}`);
+  }
+
+  return doc;
 };
 
 /** The label of a language, as the admin panel's locale switcher shows it. */
@@ -376,6 +402,7 @@ export const AnnouncementsCollection: CollectionConfig = {
   hooks: {
     beforeOperation: [rememberDraftSave],
     beforeChange: [beforeAnnouncementChange],
+    afterChange: [afterAnnouncementChange],
   },
   endpoints: [
     {
