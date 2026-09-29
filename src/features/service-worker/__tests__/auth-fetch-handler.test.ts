@@ -44,10 +44,9 @@ describe('the service worker and /api/auth/csrf', () => {
   });
 
   /**
-   * #1622-follow-up: the handler used to answer an unreachable network with a made-up
-   * `offline-csrf-token`. next-auth posted it to `/api/auth/signout`, where it can never match
-   * the CSRF cookie, so the server logged `MissingCSRF` and kept the session alive while the
-   * client had already flushed its data and redirected.
+   * The handler used to answer an unreachable network with a made-up `offline-csrf-token`,
+   * which no server accepts. next-auth handles a failed CSRF fetch itself, so the worker has
+   * nothing to add but the failure.
    */
   it('reports a network failure instead of inventing a token', async () => {
     globalThis.fetch = jest.fn().mockRejectedValue(new Error('offline')) as typeof fetch;

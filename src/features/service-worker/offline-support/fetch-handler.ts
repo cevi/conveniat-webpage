@@ -811,11 +811,10 @@ export const handleFetchEvent =
     // HTML retry wrapper on connection drops, but we skip cache lookup strategies.
     //
     // `/api/auth/csrf` deliberately takes this path rather than a fallback of its own. It used
-    // to answer an unreachable network with `{"csrfToken":"offline-csrf-token"}`, and next-auth
-    // posted that straight to `/api/auth/signout`, where it can never match the CSRF cookie: the
-    // server answered `MissingCSRF` and left the session intact while the client had already
-    // flushed its local data and redirected - a sign-out that only looked like one. A network
-    // error has to stay a network error so `signOut()` rejects; every caller already catches it.
+    // to answer an unreachable network with a made-up `offline-csrf-token`. That changed
+    // nothing: next-auth's `getCsrfToken()` already turns a failed fetch into an empty token,
+    // and the server rejects an empty token and a made-up one alike with `MissingCSRF`. It only
+    // hid that the request had failed.
     const bypassSWProxy = isPreviewRequest || isAuthRequest || isTrpcRequest;
 
     if (bypassSWProxy) {
