@@ -9,8 +9,17 @@ describe('notification grouping', () => {
   });
 
   // A notification of its own alerts in every browser, and nothing arriving later hides it.
-  it('never stacks an emergency', () => {
-    expect(notificationGroupingOf('EMERGENCY', 'chat-9', 'message-2')).toEqual({});
+  it('never stacks an emergency and keeps its chat in the tag', () => {
+    expect(notificationGroupingOf('EMERGENCY', 'chat-9', 'message-2')).toEqual({
+      tag: 'emergency:chat-9:message-2',
+    });
+  });
+
+  it('stacks a problem report under its support chat', () => {
+    expect(notificationGroupingOf('SUPPORT', 'chat-3', 'message-4')).toEqual({
+      tag: 'chat:chat-3',
+      stack: true,
+    });
   });
 
   it('gives an announcement a notification of its own', () => {

@@ -346,7 +346,7 @@ describe('pushNotificationHandler', () => {
 
     expect(mockShowNotification).toHaveBeenCalledWith(
       'Chat',
-      expect.objectContaining({ body: 'New message', requireInteraction: true }),
+      expect.objectContaining({ body: 'New message' }),
     );
     expect(mockCloseNotification).not.toHaveBeenCalled();
   });
@@ -595,11 +595,11 @@ describe('pushNotificationHandler grouping', () => {
     expect(shown).toHaveLength(1);
     expect(shown[0]?.options.body).toBe(
       [
-        'Anna: message 3',
-        'Anna: message 4',
-        'Anna: message 5',
-        'Anna: message 6',
         'Anna: message 7',
+        'Anna: message 6',
+        'Anna: message 5',
+        'Anna: message 4',
+        'Anna: message 3',
       ].join('\n'),
     );
     expect(shown[0]?.options.renotify).toBe(true);
@@ -647,7 +647,7 @@ describe('pushNotificationHandler grouping', () => {
     await push(scope, { title: 'A', body: 'Ben: two', data: { tag: 'chat:1', stack: true } });
 
     expect(closed).toEqual(['Anna: one']);
-    expect(shown[0]?.options.body).toBe('Anna: one\nBen: two');
+    expect(shown[0]?.options.body).toBe('Ben: two\nAnna: one');
   });
 
   // Two pushes of one chat arriving together must not both read an empty tray.
@@ -659,6 +659,21 @@ describe('pushNotificationHandler grouping', () => {
     ]);
 
     expect(shown).toHaveLength(1);
-    expect(shown[0]?.options.body).toBe('Anna: one\nBen: two');
+    expect(shown[0]?.options.body).toBe('Ben: two\nAnna: one');
+  });
+
+  it('keeps only an emergency on screen until it is dealt with', async () => {
+    const { scope, shown } = makeTray();
+    await push(scope, {
+      title: 'Notfall',
+      body: 'Notfall von Anna!',
+      data: { tag: 'emergency:chat-9:m-1', notificationType: 'emergency' },
+    });
+    await push(scope, { title: 'A', body: 'Anna: hoi', data: { tag: 'chat:1', stack: true } });
+
+    expect(shown.map((notification) => notification.options.requireInteraction)).toEqual([
+      true,
+      false,
+    ]);
   });
 });

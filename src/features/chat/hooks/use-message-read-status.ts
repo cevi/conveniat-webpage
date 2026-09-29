@@ -5,8 +5,7 @@ import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { MessageType } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
-import { closeNotificationsByTag } from '@/utils/close-notifications';
-import { chatNotificationTag } from '@/utils/notification-tags';
+import { closeChatNotifications } from '@/utils/close-notifications';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 interface MessageReadStatusProperties {
@@ -77,9 +76,9 @@ export const useMessageReadStatus = ({
   const { mutate: markChatAsRead } = trpc.chat.markChatAsRead.useMutation({
     retry: false,
     onMutate: () => {
-      // What the notification lists has now been read, and the next message would add
-      // to it rather than start a fresh one.
-      void closeNotificationsByTag(chatNotificationTag(chatId));
+      // What the notifications show has now been read, and the next message would add to
+      // the chat's notification rather than start a fresh one.
+      void closeChatNotifications(chatId);
 
       // Optimistically update the chat overview
       trpcUtils.chat.chats.setData({}, (oldChats: ChatWithMessagePreview[] | undefined) => {

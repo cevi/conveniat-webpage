@@ -301,6 +301,9 @@ async function sendWeb(
           ...(message.messageId !== undefined && { messageId: message.messageId }),
           ...(ignoreIfAppOpen !== undefined && { ignoreIfAppOpen }),
           ...(ignoreIfUrlMatches !== undefined && { ignoreIfUrlMatches }),
+          ...(message.notificationType !== undefined && {
+            notificationType: message.notificationType,
+          }),
           ...(message.tag !== undefined && { tag: message.tag }),
           ...(message.stack === true && { stack: true }),
         },

@@ -11,10 +11,12 @@ interface NotificationData {
   tag?: string;
   /** Lists the newest pushes under the tag in one notification and alerts again, like a messenger. */
   stack?: boolean;
-  /** The bodies a stacked notification lists, oldest first. Set by this worker, not by the server. */
+  /** The bodies a stacked notification lists, newest first. Set by this worker, not by the server. */
   lines?: string[];
   /** The log ids of the pushes listed in `lines`. Set by this worker, not by the server. */
   ids?: string[];
+  /** `emergency` for an alert and every message in its emergency chat. */
+  notificationType?: string;
 }
 
 interface NotificationPayload {
@@ -52,7 +54,10 @@ async function showUnderTag(
     body: payload.body,
     icon: '/favicon.svg',
     badge: '/notification-icon.png',
-    requireInteraction: true,
+    // Only an emergency stays on screen until it is dealt with. With a notification per chat
+    // and per announcement, sticky ones would pile up on a desktop and could queue a new
+    // emergency behind them.
+    requireInteraction: payload.data.notificationType === 'emergency',
     ...(hasTag && { tag }),
     data: payload.data,
   };
@@ -70,11 +75,13 @@ async function showUnderTag(
       options.body = previousLines.join('\n');
       options.data = existingData;
     } else {
-      const lines = [...previousLines, payload.body].slice(-MAX_STACKED_LINES);
+      // Newest first: a collapsed notification shows only its first line or so, and that has
+      // to be the message that just alerted.
+      const lines = [payload.body, ...previousLines].slice(0, MAX_STACKED_LINES);
       const ids = [
-        ...previousIds,
         ...(notificationId === undefined || notificationId === '' ? [] : [notificationId]),
-      ].slice(-MAX_STACKED_LINES);
+        ...previousIds,
+      ].slice(0, MAX_STACKED_LINES);
       options.body = lines.join('\n');
       options.data = { ...payload.data, lines, ids };
       // Firefox and Safari ignore renotify and would replace the notification silently, so
