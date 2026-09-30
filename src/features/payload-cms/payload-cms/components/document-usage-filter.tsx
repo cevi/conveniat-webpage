@@ -1,15 +1,14 @@
 'use client';
 
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import { LINKED_QUERY_PARAMETER } from '@/features/payload-cms/payload-cms/utils/document-references';
 import type { StaticTranslationString } from '@/types/types';
-import { Button, useTranslation } from '@payloadcms/ui';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Button, useListDrawerContext, useListQuery, useTranslation } from '@payloadcms/ui';
 import type React from 'react';
 
-/** Mirrors `LINKED_QUERY_PARAMETER`, which lives in a server module this file cannot import. */
-const LINKED_QUERY_PARAMETER = 'linked';
+type Usage = 'yes' | 'no' | undefined;
 
-const options: { value: 'yes' | 'no' | undefined; label: StaticTranslationString }[] = [
+const options: { value: Usage; label: StaticTranslationString }[] = [
   { value: undefined, label: { en: 'All', de: 'Alle', fr: 'Tous' } },
   { value: 'yes', label: { en: 'Linked', de: 'Verlinkt', fr: 'Liés' } },
   { value: 'no', label: { en: 'Not linked', de: 'Nicht verlinkt', fr: 'Non liés' } },
@@ -27,20 +26,20 @@ const filterLabel: StaticTranslationString = {
  */
 export const DocumentUsageFilter: React.FC = () => {
   const { i18n } = useTranslation();
-  const locale = resolveAdminLocale(i18n.language);
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParameters = useSearchParams();
-  const current = searchParameters.get(LINKED_QUERY_PARAMETER) ?? undefined;
+  const { query, refineListData } = useListQuery();
+  const { isInDrawer } = useListDrawerContext();
 
-  const select = (value: 'yes' | 'no' | undefined): void => {
-    const parameters = new URLSearchParams(searchParameters.toString());
-    if (value === undefined) parameters.delete(LINKED_QUERY_PARAMETER);
-    else parameters.set(LINKED_QUERY_PARAMETER, value);
-    // the current page may not exist in the narrowed list
-    parameters.delete('page');
-    const query = parameters.toString();
-    router.push(query === '' ? pathname : `${pathname}?${query}`);
+  // A drawer lists through a server function whose request carries no page query, so the
+  // `baseFilter` could not see the choice there.
+  if (isInDrawer) return <></>;
+
+  const locale = resolveAdminLocale(i18n.language);
+  const current: unknown = (query as Record<string, unknown>)[LINKED_QUERY_PARAMETER];
+
+  const select = (value: Usage): void => {
+    // Through Payload's own list query, so its state and the URL agree on the choice and keep it
+    // across sorting and paging. The current page may not exist in the narrowed list.
+    void refineListData({ [LINKED_QUERY_PARAMETER]: value, page: 1 });
   };
 
   return (

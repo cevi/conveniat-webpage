@@ -37,9 +37,9 @@ const notUsedLabel: StaticTranslationString = {
 };
 
 const usageDescription: StaticTranslationString = {
-  en: 'Pages, blog posts, the Hof dashboard and other content that link to this document, in their latest version.',
-  de: 'Seiten, Blogartikel, das Hof-Dashboard und weitere Inhalte, die in ihrer neusten Version auf dieses Dokument verweisen.',
-  fr: 'Pages, articles de blog, le tableau de bord des Hofs et autres contenus qui renvoient à ce document dans leur dernière version.',
+  en: 'Pages, blog posts, the Hof dashboard and other content that link to this document, published or in a newer draft.',
+  de: 'Seiten, Blogartikel, das Hof-Dashboard und weitere Inhalte, die veröffentlicht oder in einem neueren Entwurf auf dieses Dokument verweisen.',
+  fr: 'Pages, articles de blog, le tableau de bord des Hofs et autres contenus qui renvoient à ce document, publiés ou dans un brouillon plus récent.',
 };
 
 const translate = (label: ConfigLabel, locale: Locale): string =>
