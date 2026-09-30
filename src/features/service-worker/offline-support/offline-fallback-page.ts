@@ -31,7 +31,11 @@ const reconnecting: StaticTranslationString = {
 };
 
 const asEnabledLocale = (code: string | undefined): Locale | undefined =>
-  enabledLocales.find((locale) => locale === code?.toLowerCase().split('-')[0]);
+  enabledLocales.find((locale) => locale === code?.toLowerCase());
+
+/** `fr-CH` → `fr`: device languages carry a region the app's locales do not. */
+const asEnabledLanguage = (language: string): Locale | undefined =>
+  asEnabledLocale(language.split('-')[0]);
 
 /**
  * The locale to answer a page request in when the worker has to write the page itself.
@@ -54,7 +58,7 @@ export const offlinePageLocale = async (url: URL): Promise<Locale> => {
   }
 
   for (const language of navigator.languages) {
-    const fromDevice = asEnabledLocale(language);
+    const fromDevice = asEnabledLanguage(language);
     if (fromDevice !== undefined) return fromDevice;
   }
 
