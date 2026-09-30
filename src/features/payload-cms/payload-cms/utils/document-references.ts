@@ -25,10 +25,17 @@ interface WalkContext {
   references: FieldReferences[];
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+/**
+ * The list query parameter the usage toggle sets and the documents `baseFilter` reads. It lives in
+ * this module because the client toggle and the server filter both import it.
+ */
+export const LINKED_QUERY_PARAMETER = 'linked';
+
+export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const toConfigLabel = (label: unknown, fallback: string): ConfigLabel => {
+/** A config label as written, or the fallback for label functions and `false`. */
+export const toConfigLabel = (label: unknown, fallback: string): ConfigLabel => {
   if (typeof label === 'string' && label !== '') return label;
   if (isRecord(label) && Object.values(label).every((entry) => typeof entry === 'string')) {
     return label as Record<string, string>;

@@ -7,7 +7,10 @@ import type {
 import {
   canReferenceCollection,
   collectReferences,
+  isRecord,
+  LINKED_QUERY_PARAMETER,
   referencesTo,
+  toConfigLabel,
 } from '@/features/payload-cms/payload-cms/utils/document-references';
 import { findPrefixByCollectionSlugAndLocale } from '@/features/payload-cms/route-resolution-table';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
@@ -45,22 +48,15 @@ interface ReferencingSource {
   groupLabel: ConfigLabel;
   title: ConfigLabel | undefined;
   adminUrl: string;
-  data: Record<string, unknown>;
+  /** the published version, which the public URLs are built from */
+  published: Record<string, unknown> | undefined;
+  /** the references of the published and of the latest version together */
   references: FieldReferences[];
 }
 
 type AdminUser = TypedUser | null;
 
 const TARGET = 'documents';
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const toLabel = (label: unknown, fallback: string): ConfigLabel => {
-  if (typeof label === 'string' && label !== '') return label;
-  if (isRecord(label)) return label as Record<string, string>;
-  return fallback;
-};
 
 /** A title read with `locale: 'all'` is a record of locales when the field is localized. */
 const toTitle = (value: unknown): ConfigLabel | undefined => {
@@ -95,7 +91,8 @@ const publicUrlsOf = (
   source: ReferencingSource,
   references: DocumentReference[],
 ): DocumentUsage['publicUrls'] => {
-  if (!isRoutable(source.slug)) return [];
+  const { published } = source;
+  if (published === undefined || !isRoutable(source.slug)) return [];
 
   const referencedLocales = new Set(references.map((reference) => reference.locale));
   // a field that is not localized shows on every locale of the page
@@ -103,11 +100,11 @@ const publicUrlsOf = (
     ? enabledLocales
     : enabledLocales.filter((locale) => referencedLocales.has(locale));
 
-  const seo = source.data['seo'];
+  const seo = published['seo'];
   const urlSlugs = isRecord(seo) ? seo['urlSlug'] : undefined;
 
   return locales.flatMap((locale) => {
-    if (!isPublishedIn(source.data, locale)) return [];
+    if (!isPublishedIn(published, locale)) return [];
     const urlSlug = isRecord(urlSlugs) ? urlSlugs[locale] : urlSlugs;
     if (typeof urlSlug !== 'string') return [];
     const segments = [
@@ -139,31 +136,50 @@ const scanCollection = async (
       : []),
   ]) as SelectType;
 
-  const { docs } = await payload.find({
-    collection: collection.slug,
-    // the latest version is the one the admin link opens and the editor would change
-    draft: true,
-    locale: 'all',
-    depth: 0,
-    pagination: false,
-    select,
-    overrideAccess: false,
-    user,
-  });
+  const read = async (draft: boolean): Promise<Record<string, unknown>[]> => {
+    const { docs } = await payload.find({
+      collection: collection.slug,
+      draft,
+      locale: 'all',
+      depth: 0,
+      pagination: false,
+      select,
+      overrideAccess: false,
+      user,
+    });
+    return docs as unknown as Record<string, unknown>[];
+  };
+  // A link that is live on the published page and one that waits in a newer draft both keep the
+  // document in use, so a collection with drafts is read in both versions.
+  const [published, latest] = await Promise.all([
+    read(false),
+    Boolean(collection.versions?.drafts) ? read(true) : [],
+  ]);
+
+  const versions = new Map<
+    string,
+    { published?: Record<string, unknown>; latest?: Record<string, unknown> }
+  >();
+  for (const document of published) versions.set(String(document['id']), { published: document });
+  for (const document of latest) {
+    const id = String(document['id']);
+    versions.set(id, { ...versions.get(id), latest: document });
+  }
 
   const adminRoute = payload.config.routes.admin;
-  return docs.map((document) => {
-    const data = document as unknown as Record<string, unknown>;
-    const id = String(data['id']);
-    return {
-      slug: collection.slug,
-      groupLabel: toLabel(collection.labels.plural, collection.slug),
-      title: toTitle(data[titleField]) ?? id,
-      adminUrl: `${adminRoute}/collections/${collection.slug}/${id}`,
-      data,
-      references: collectReferences(collection.flattenedFields, data, TARGET, enabledLocales),
-    };
-  });
+  return [...versions].map(([id, version]) => ({
+    slug: collection.slug,
+    groupLabel: toConfigLabel(collection.labels.plural, collection.slug),
+    // the admin link opens the latest version, so its title is the one the editor recognizes
+    title: toTitle((version.latest ?? version.published)?.[titleField]) ?? id,
+    adminUrl: `${adminRoute}/collections/${collection.slug}/${id}`,
+    published: version.published,
+    references: [version.published, version.latest].flatMap((data) =>
+      data === undefined
+        ? []
+        : collectReferences(collection.flattenedFields, data, TARGET, enabledLocales),
+    ),
+  }));
 };
 
 const scanGlobal = async (
@@ -173,23 +189,29 @@ const scanGlobal = async (
 ): Promise<ReferencingSource[]> => {
   if (referencingFieldNames(global.flattenedFields).length === 0) return [];
 
-  const data = (await payload.findGlobal({
-    slug: global.slug,
-    draft: true,
-    locale: 'all',
-    depth: 0,
-    overrideAccess: false,
-    user,
-  })) as unknown as Record<string, unknown>;
+  const read = async (draft: boolean): Promise<Record<string, unknown>> =>
+    (await payload.findGlobal({
+      slug: global.slug,
+      draft,
+      locale: 'all',
+      depth: 0,
+      overrideAccess: false,
+      user,
+    })) as unknown as Record<string, unknown>;
+  const versions = await Promise.all(
+    Boolean(global.versions?.drafts) ? [read(false), read(true)] : [read(false)],
+  );
 
   return [
     {
       slug: global.slug,
-      groupLabel: toLabel(global.label, global.slug),
+      groupLabel: toConfigLabel(global.label, global.slug),
       title: undefined,
       adminUrl: `${payload.config.routes.admin}/globals/${global.slug}`,
-      data,
-      references: collectReferences(global.flattenedFields, data, TARGET, enabledLocales),
+      published: versions[0],
+      references: versions.flatMap((data) =>
+        collectReferences(global.flattenedFields, data, TARGET, enabledLocales),
+      ),
     },
   ];
 };
@@ -204,8 +226,8 @@ const getAdminUser = cache(async (payload: Payload): Promise<AdminUser> => {
 });
 
 /**
- * Reads every collection document and global that can reference a document, in the latest version
- * the user may read, once per request. A source the user cannot read is left out.
+ * Reads every collection document and global that can reference a document, in its published and
+ * its latest version, once per request. A source the user cannot read is left out.
  */
 const scanReferencingSources = cache(
   async (payload: Payload, user: AdminUser): Promise<ReferencingSource[]> => {
@@ -263,22 +285,25 @@ export const findDocumentUsages = async (
   });
 };
 
-/**
- * Counts, per referenced id, the collection documents and globals that reference it. The keys can
- * include strings from rich text that are no document id; look the counts up by real ids.
- */
-export const countDocumentUsages = async (payload: Payload): Promise<Map<string, number>> => {
-  const sources = await scanReferencingSources(payload, await getAdminUser(payload));
-  const counts = new Map<string, number>();
-  for (const source of sources) {
-    const ids = new Set(source.references.flatMap((reference) => [...reference.ids]));
-    for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
-  }
-  return counts;
-};
+const countUsages = cache(
+  async (payload: Payload, user: AdminUser): Promise<Map<string, number>> => {
+    const sources = await scanReferencingSources(payload, user);
+    const counts = new Map<string, number>();
+    for (const source of sources) {
+      const ids = new Set(source.references.flatMap((reference) => [...reference.ids]));
+      for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return counts;
+  },
+);
 
-/** The `linked` list query parameter set by the usage toggle above the documents list. */
-export const LINKED_QUERY_PARAMETER = 'linked';
+/**
+ * Counts, per referenced id, the collection documents and globals that reference it, once per
+ * request. The keys can include strings from rich text that are no document id; look the counts up
+ * by real ids.
+ */
+export const countDocumentUsages = async (payload: Payload): Promise<Map<string, number>> =>
+  countUsages(payload, await getAdminUser(payload));
 
 /**
  * Narrows the documents list to linked (`?linked=yes`) or unlinked (`?linked=no`) documents. Payload
