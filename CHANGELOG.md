@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.27.0](https://github.com/cevi/conveniat-webpage/compare/v1.26.0...v1.27.0) (2026-09-30)
+
+
+### Features
+
+* **documents:** show where a document is used ([f451724](https://github.com/cevi/conveniat-webpage/commit/f4517249ac2b2da65a42005099726e863aa47cb0))
+* **documents:** show where a document is used ([b991afc](https://github.com/cevi/conveniat-webpage/commit/b991afc8cee1de060c46eb4c5bc166fa0b0b702a))
+* **material:** suggest registered people for "Wer holt ab?" ([db622ba](https://github.com/cevi/conveniat-webpage/commit/db622ba538da5a4048057c524693ca57817e239a))
+* **material:** suggest registered people for "Wer holt ab?" ([27dc9d1](https://github.com/cevi/conveniat-webpage/commit/27dc9d187fd7f82953e032c29efff4a301b123e9))
+
+
+### Bug Fixes
+
+* **documents:** a document linked from a live page never shows as unused ([8108eba](https://github.com/cevi/conveniat-webpage/commit/8108eba0de700954b65f5c1d3ed5a148dd716223))
+* **documents:** a document linked from a live page never shows as unused ([48abf29](https://github.com/cevi/conveniat-webpage/commit/48abf29ed81fb60a80f518096997fd25dc61b27e))
+* **map:** a guest reporting a problem is asked to log in ([d093a89](https://github.com/cevi/conveniat-webpage/commit/d093a89ef7861fd89e0784ce51cdd723a43f33d9))
+* **map:** guests can open the camp map ([f09fee2](https://github.com/cevi/conveniat-webpage/commit/f09fee2daa3dee9dd97b2b525efc084d8efcfc1c))
+* **map:** guests can open the camp map ([3b108f6](https://github.com/cevi/conveniat-webpage/commit/3b108f686a4bfeed58f5f6b07e284fa25ba6920d))
+* **material:** pickup suggestions survive a Payload error and match word starts ([6b6aade](https://github.com/cevi/conveniat-webpage/commit/6b6aadef9bae4574a12f5551362f9583c249a71f))
+* **offline:** download every font the map labels with ([190f104](https://github.com/cevi/conveniat-webpage/commit/190f1041a2d1ca1b7ba9876a15e72816d2d625ff))
+* **offline:** download every font the map labels with ([8689edc](https://github.com/cevi/conveniat-webpage/commit/8689edcdad32c9d600b63004912385842a38a036))
+* **offline:** serve downloaded map tiles to the map worker ([c084514](https://github.com/cevi/conveniat-webpage/commit/c084514c3806cf80c6296621fb7ad8b10f459eea))
+* **offline:** serve downloaded map tiles to the map worker ([6fbbdf7](https://github.com/cevi/conveniat-webpage/commit/6fbbdf7b48dce22f41344093749ab3538d6a8c18))
+* **offline:** settings show the download as done only when it ran ([34f35d3](https://github.com/cevi/conveniat-webpage/commit/34f35d39948ae44e9fc771c57f647256928d8b46))
+* **offline:** settings show the download as done only when it ran ([e6aabc2](https://github.com/cevi/conveniat-webpage/commit/e6aabc263bb9d4061c1772ddf488138291ac00bb))
+* **offline:** the worker's own offline pages speak the user's language ([722b5b4](https://github.com/cevi/conveniat-webpage/commit/722b5b4f254821c86a4cc27aa7d2a81f50f8bbe7))
+* **offline:** the worker's own offline pages speak the user's language ([2aa8f84](https://github.com/cevi/conveniat-webpage/commit/2aa8f84eebcbc78d26216484b9e7488b680deade))
+
+
+### Performance
+
+* **tracing:** also drop the scheduler's read of its stats global ([3b2cc47](https://github.com/cevi/conveniat-webpage/commit/3b2cc479f4b8fa10f09a0250dbff7420b6c738ec))
+* **tracing:** drop the traces of the job runner's and heartbeat's polling ([d014ce4](https://github.com/cevi/conveniat-webpage/commit/d014ce4e64ff59be88f2ab0b7405ff1f47ea75f4))
+* **tracing:** drop the traces of the job runner's and heartbeat's polling ([4c3ddcf](https://github.com/cevi/conveniat-webpage/commit/4c3ddcf9258d87f069a642818e019dee29ff1e31))
+
 ## [1.26.0](https://github.com/cevi/conveniat-webpage/compare/v1.25.0...v1.26.0) (2026-09-29)
 
 
