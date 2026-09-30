@@ -7,6 +7,11 @@ import {
 import { CACHE_NAMES, TIMEOUTS } from '@/features/service-worker/constants';
 import { normalizeTileUrl } from '@/features/service-worker/offline-support/map-viewer';
 import {
+  offlinePageHtml,
+  offlinePageLocale,
+  reconnectingPageHtml,
+} from '@/features/service-worker/offline-support/offline-fallback-page';
+import {
   findReplayableSiblingKey,
   getCleanAppPath,
   matchCachedRsc,
@@ -257,6 +262,20 @@ async function offlineFallback(
     return new Response('', { status: 503, statusText: 'Offline' });
   }
 
+  // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
+  // vectortiles0-4 are interchangeable, but precache uses vectortiles0.
+  // Before the App Mode check below: MapLibre fetches its tiles from a web worker, whose client
+  // is never in App Mode, and a tile looks the same in either design anyway.
+  if (url.host.includes('geo.admin.ch')) {
+    const tileCache = await caches.open(CACHE_NAMES.MAP_TILES);
+    const normalizedUrl = normalizeTileUrl(url.toString());
+    const cachedTile = await tileCache.match(normalizedUrl, { ignoreVary: true });
+    if (cachedTile) {
+      console.log(`[SW] Serving cached map tile/asset for: ${url.toString()}`);
+      return cachedTile;
+    }
+  }
+
   const isManifestOrIcon =
     url.pathname.endsWith('.webmanifest') ||
     url.pathname.endsWith('manifest.json') ||
@@ -292,13 +311,10 @@ async function offlineFallback(
     if (offlinePage) return offlinePage;
 
     console.warn(`[SW] Returning inline HTML offline fallback for document: ${url.toString()}`);
-    return new Response(
-      `<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline | conveniat</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#090d16;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:16px}h1{font-size:24px;margin-bottom:8px}p{color:#9ca3af;margin-bottom:24px}button{background:#2563eb;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer}</style></head><body><div><h1>Du bist offline</h1><p>Diese Seite ist offline noch nicht verfügbar.</p><button onclick="window.location.reload()">Erneut versuchen</button></div><script>addEventListener('online',function(){location.reload()})</script></body></html>`,
-      {
-        status: 200,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      },
-    );
+    return new Response(offlinePageHtml(await offlinePageLocale(url)), {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
   }
 
   // Strategy C: Manifest & Assets (Non-Document Only)
@@ -384,18 +400,6 @@ async function offlineFallback(
       status: 200,
       headers: { 'Content-Type': 'text/css; charset=utf-8' },
     });
-  }
-
-  // Strategy D: Map Tiles (Cross-Origin, Load-Balanced)
-  // vectortiles0-4 are interchangeable, but precache uses vectortiles0.
-  if (url.host.includes('geo.admin.ch')) {
-    const tileCache = await caches.open(CACHE_NAMES.MAP_TILES);
-    const normalizedUrl = normalizeTileUrl(url.toString());
-    const cachedTile = await tileCache.match(normalizedUrl, { ignoreVary: true });
-    if (cachedTile) {
-      console.log(`[SW] Serving cached map tile/asset for: ${url.toString()}`);
-      return cachedTile;
-    }
   }
 
   console.error(`[SW] Fetch failed and no cache/fallback found for: ${url.toString()}`);
@@ -848,15 +852,10 @@ export const handleFetchEvent =
             }
 
             if (event.request.mode === 'navigate') {
-              return new Response(
-                '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="2"></head>' +
-                  '<body style="font-family:sans-serif;text-align:center;padding-top:100px;background:#f9fafb;color:#6b7280;">' +
-                  'Verbindung wird wiederhergestellt</body></html>',
-                {
-                  status: 503,
-                  headers: { 'Content-Type': 'text/html' },
-                },
-              );
+              return new Response(reconnectingPageHtml(await offlinePageLocale(url)), {
+                status: 503,
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+              });
             }
 
             return Response.error();
