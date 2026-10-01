@@ -99,6 +99,7 @@ const SectionWrapper = async ({
       return (
         <section
           key={block.id}
+          data-block-id={block.id}
           className={cn(
             'mt-8 first:mt-0',
             fullBleedClassName ?? sectionClassName,
@@ -123,6 +124,8 @@ const SectionWrapper = async ({
   return (
     <section
       key={block.id}
+      // Lets the version comparison in the admin panel match a block across two versions.
+      data-block-id={isDraftMode ? block.id : undefined}
       data-heading-only={isHeadingOnlyBlock(block) ? '' : undefined}
       className={cn(
         'mt-8 first:mt-0',

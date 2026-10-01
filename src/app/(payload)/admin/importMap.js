@@ -33,6 +33,8 @@ import { default as default_a4ebed491f9244748218c109a1d489e3 } from '@/features/
 import { default as default_5c23d4f2c41ff08443297cc41aafe3d1 } from '@/features/payload-cms/payload-cms/components/live-preview-restorer'
 import { default as default_a13782f3ac0bcff5be1ba175a38107f2 } from '@/features/payload-cms/payload-cms/components/auto-translate/auto-translate'
 import { default as default_ad2ab9e4ee1f1c863c85f67238030f8f } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized'
+import { default as default_53541964f1f77ac699f302d7a3bb4c1b } from '@/features/payload-cms/payload-cms/views/version-preview-view'
+import { VersionCompareTabs as VersionCompareTabs_5ed5c47b0d664851b63616b8c0d2cd6a } from '@/features/payload-cms/payload-cms/components/version-compare/version-compare-tabs'
 import { default as default_053a35f396246b47bb9b07bfa72ecc48 } from '@/features/payload-cms/payload-cms/views/version-history-view'
 import { DocumentDownloadsField as DocumentDownloadsField_9005a834a54ba1652a3f047bde98f7eb } from '@/features/payload-cms/payload-cms/components/document-downloads'
 import { DocumentDownloadsCell as DocumentDownloadsCell_9005a834a54ba1652a3f047bde98f7eb } from '@/features/payload-cms/payload-cms/components/document-downloads'
@@ -167,6 +169,8 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/live-preview-restorer#default": default_5c23d4f2c41ff08443297cc41aafe3d1,
   "@/features/payload-cms/payload-cms/components/auto-translate/auto-translate#default": default_a13782f3ac0bcff5be1ba175a38107f2,
   "@/features/payload-cms/payload-cms/components/multi-lang-publishing/publish-localized#default": default_ad2ab9e4ee1f1c863c85f67238030f8f,
+  "@/features/payload-cms/payload-cms/views/version-preview-view#default": default_53541964f1f77ac699f302d7a3bb4c1b,
+  "@/features/payload-cms/payload-cms/components/version-compare/version-compare-tabs#VersionCompareTabs": VersionCompareTabs_5ed5c47b0d664851b63616b8c0d2cd6a,
   "@/features/payload-cms/payload-cms/views/version-history-view#default": default_053a35f396246b47bb9b07bfa72ecc48,
   "@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsField": DocumentDownloadsField_9005a834a54ba1652a3f047bde98f7eb,
   "@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsCell": DocumentDownloadsCell_9005a834a54ba1652a3f047bde98f7eb,

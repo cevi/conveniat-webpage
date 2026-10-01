@@ -57,6 +57,23 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
       defaultLimit: 10,
       limits: [10, 20, 50],
     },
+    components: {
+      views: {
+        edit: {
+          // two versions rendered side by side, next to Payload's field by field comparison
+          versionPreview: {
+            Component: '@/features/payload-cms/payload-cms/views/version-preview-view',
+            path: '/versions/:versionId/preview',
+            tab: {
+              Component:
+                '@/features/payload-cms/payload-cms/components/version-compare/version-compare-tabs#VersionCompareTabs',
+              // right after "Versions"
+              order: 310,
+            },
+          },
+        },
+      },
+    },
   },
 
   access: {
