@@ -1,4 +1,5 @@
 import type { PublishingStatusType } from '@/features/payload-cms/payload-cms/components/multi-lang-publishing/type';
+import { SelectVersionButton } from '@/features/payload-cms/payload-cms/components/version-history/select-version-button';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type {
   Publication,
@@ -119,8 +120,29 @@ const readPublishingStatus = (value: unknown): PublishingStatusType => {
  * that list between rows until the browser tab runs out of memory.
  */
 
+/**
+ * A version's timestamp: the link that opens it, or inside the "more versions" drawer of
+ * Payload's version view the way to pick it as the version to compare with.
+ */
+const renderTimestamp = (
+  line: VersionLine,
+  picksVersion: boolean,
+  className?: string,
+): React.ReactNode =>
+  picksVersion ? (
+    <SelectVersionButton versionId={line.id}>{line.timestamp}</SelectVersionButton>
+  ) : (
+    <Link href={line.href} prefetch={false} className={className}>
+      {line.timestamp}
+    </Link>
+  );
+
 /** The drafts behind a row, closed until someone asks for them. */
-const renderFoldedDrafts = (drafts: VersionLine[], locale: Locale): React.ReactNode => {
+const renderFoldedDrafts = (
+  drafts: VersionLine[],
+  locale: Locale,
+  picksVersion: boolean,
+): React.ReactNode => {
   if (drafts.length === 0) return;
 
   return (
@@ -131,9 +153,7 @@ const renderFoldedDrafts = (drafts: VersionLine[], locale: Locale): React.ReactN
       <ul className="m-0 mt-2 list-none border-0 border-l border-solid border-(--theme-elevation-150) p-0 pl-4">
         {drafts.map((draft) => (
           <li key={draft.id} className="flex flex-wrap items-baseline gap-x-3 py-1">
-            <Link href={draft.href} prefetch={false}>
-              {draft.timestamp}
-            </Link>
+            {renderTimestamp(draft, picksVersion)}
             <span className="text-(--theme-elevation-500)">{draft.byline}</span>
           </li>
         ))}
@@ -148,12 +168,14 @@ const renderVersionRow = ({
   pillLabel,
   actionLabel,
   locale,
+  picksVersion,
 }: {
   row: VersionRowData;
   pillStyle: 'warning' | 'success' | 'light-gray';
   pillLabel: string;
   actionLabel: string;
   locale: Locale;
+  picksVersion: boolean;
 }): React.ReactNode => (
   <li
     key={row.id}
@@ -161,9 +183,7 @@ const renderVersionRow = ({
   >
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Link href={row.href} prefetch={false} className="font-medium">
-          {row.timestamp}
-        </Link>
+        {renderTimestamp(row, picksVersion, 'font-medium')}
         <Pill pillStyle={pillStyle} size="small">
           {pillLabel}
         </Pill>
@@ -178,11 +198,13 @@ const renderVersionRow = ({
         )}
         <span className="text-(--theme-elevation-500)">{row.byline}</span>
       </div>
-      {renderFoldedDrafts(row.drafts, locale)}
+      {renderFoldedDrafts(row.drafts, locale, picksVersion)}
     </div>
-    <Link href={row.href} prefetch={false} className="shrink-0">
-      {actionLabel}
-    </Link>
+    {!picksVersion && (
+      <Link href={row.href} prefetch={false} className="shrink-0">
+        {actionLabel}
+      </Link>
+    )}
   </li>
 );
 
@@ -260,6 +282,8 @@ const VersionHistoryView: React.FC<DocumentViewServerProps> = async ({
   hasPublishedDoc,
   initPageResult: { collectionConfig, docID, req },
   routeSegments,
+  // Set when Payload's version view renders this list in its "more versions" drawer.
+  versions: { disableGutter = false, useVersionDrawerCreatedAtCell: picksVersion = false } = {},
 }) => {
   if (collectionConfig === undefined || docID === undefined) notFound();
 
@@ -345,6 +369,65 @@ const VersionHistoryView: React.FC<DocumentViewServerProps> = async ({
           label: typeof label === 'string' ? label : (label[locale] ?? code),
         }));
 
+  const history = (
+    <>
+      {renderLanguageStatus(locales, readPublishingStatus(doc['publishingStatus']), locale)}
+
+      {versions.docs.length === 0 && (
+        <div className="versions__no-versions">{i18n.t('version:noFurtherVersionsFound')}</div>
+      )}
+
+      {pendingRow !== undefined &&
+        renderHistorySection({
+          title: pendingTitle[locale],
+          description: pendingDescription[locale],
+          accentClassName: 'border-l-(--theme-warning-500)',
+          rows: renderVersionRow({
+            row: pendingRow,
+            pillStyle: 'warning',
+            pillLabel: draftLabel[locale],
+            actionLabel:
+              liveRows.length > 0 ? compareWithLiveLabel[locale] : showChangesLabel[locale],
+            locale,
+            picksVersion,
+          }),
+        })}
+
+      {liveRows.length > 0 &&
+        renderHistorySection({
+          title: liveTitle[locale],
+          description: liveDescription[locale],
+          accentClassName: 'border-l-(--theme-success-500)',
+          rows: liveRows.map((row) =>
+            renderVersionRow({
+              row,
+              pillStyle: 'success',
+              pillLabel: publishedLabel[locale],
+              actionLabel: showChangesLabel[locale],
+              locale,
+              picksVersion,
+            }),
+          ),
+        })}
+
+      {earlierRows.length > 0 &&
+        renderHistorySection({
+          title: earlierTitle[locale],
+          accentClassName: 'border-l-(--theme-elevation-250)',
+          rows: earlierRows.map((row) =>
+            renderVersionRow({
+              row,
+              pillStyle: 'light-gray',
+              pillLabel: publishedLabel[locale],
+              actionLabel: showChangesLabel[locale],
+              locale,
+              picksVersion,
+            }),
+          ),
+        })}
+    </>
+  );
+
   return (
     <>
       <SetDocumentStepNav
@@ -356,59 +439,8 @@ const VersionHistoryView: React.FC<DocumentViewServerProps> = async ({
         view={i18n.t('version:versions')}
       />
       <main className="versions">
-        <Gutter className="versions__wrap">
-          {renderLanguageStatus(locales, readPublishingStatus(doc['publishingStatus']), locale)}
-
-          {versions.docs.length === 0 && (
-            <div className="versions__no-versions">{i18n.t('version:noFurtherVersionsFound')}</div>
-          )}
-
-          {pendingRow !== undefined &&
-            renderHistorySection({
-              title: pendingTitle[locale],
-              description: pendingDescription[locale],
-              accentClassName: 'border-l-(--theme-warning-500)',
-              rows: renderVersionRow({
-                row: pendingRow,
-                pillStyle: 'warning',
-                pillLabel: draftLabel[locale],
-                actionLabel:
-                  liveRows.length > 0 ? compareWithLiveLabel[locale] : showChangesLabel[locale],
-                locale,
-              }),
-            })}
-
-          {liveRows.length > 0 &&
-            renderHistorySection({
-              title: liveTitle[locale],
-              description: liveDescription[locale],
-              accentClassName: 'border-l-(--theme-success-500)',
-              rows: liveRows.map((row) =>
-                renderVersionRow({
-                  row,
-                  pillStyle: 'success',
-                  pillLabel: publishedLabel[locale],
-                  actionLabel: showChangesLabel[locale],
-                  locale,
-                }),
-              ),
-            })}
-
-          {earlierRows.length > 0 &&
-            renderHistorySection({
-              title: earlierTitle[locale],
-              accentClassName: 'border-l-(--theme-elevation-250)',
-              rows: earlierRows.map((row) =>
-                renderVersionRow({
-                  row,
-                  pillStyle: 'light-gray',
-                  pillLabel: publishedLabel[locale],
-                  actionLabel: showChangesLabel[locale],
-                  locale,
-                }),
-              ),
-            })}
-        </Gutter>
+        {/* Payload's drawer brings a gutter of its own. */}
+        {disableGutter ? history : <Gutter className="versions__wrap">{history}</Gutter>}
       </main>
     </>
   );
