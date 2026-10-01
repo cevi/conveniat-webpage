@@ -1,10 +1,8 @@
 import { decodeStoredEventName } from '@/features/billing/collections/decode-stored-event-name';
 import {
   canAccessBillingField,
-  hasBillingOrAdminOrWebAccess,
-} from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
-import {
   hasAdminOrWebAccess,
+  hasBillingOrAdminOrWebAccess,
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';

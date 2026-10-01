@@ -1,6 +1,19 @@
 import { createEnv } from '@t3-oss/env-nextjs';
 import { z } from 'zod';
 
+/** Reads a comma-separated list of Cevi.DB group ids. */
+const parseGroupIds = (value: string): number[] =>
+  value
+    .split(',')
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0);
+
+/** The groups of a role every deployment has to name. */
+const groupIds = z.string().transform(parseGroupIds);
+
+/** The groups of a role a deployment may leave out, which leaves the role without a holder. */
+const optionalGroupIds = z.string().default('').transform(parseGroupIds);
+
 export const environmentVariables = createEnv({
   /*
    * Server-side environment variables, not available on the client.
@@ -21,7 +34,6 @@ export const environmentVariables = createEnv({
     HITOBITO_FORWARD_URL: z.string().url(),
     API_TOKEN: z.string().default(''),
     HELPER_GROUP: z.string().optional(),
-    BILLING_ADMIN_GROUP_ID: z.string().optional(),
     // Destructive: resets every participant to `new` and overwrites their PDFs and
     // invoice numbers. Off unless a deployment opts in explicitly.
     BILLING_ALLOW_REGENERATE_ALL: z
@@ -33,48 +45,20 @@ export const environmentVariables = createEnv({
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: z.string().optional(),
 
-    // Admin Panel Access Control
-    GROUPS_WITH_API_ACCESS: z.string().transform((value) =>
-      value
-        .split(',')
-        .map((s) => Number(s.trim()))
-        .filter((n) => !Number.isNaN(n)),
-    ),
-    CEVIDB_GROUP_FULL_ADMIN: z.string().transform((value) =>
-      value
-        .split(',')
-        .map((s) => Number(s.trim()))
-        .filter((n) => !Number.isNaN(n)),
-    ),
-    CEVIDB_GROUP_WEB_CORE_TEAM: z.string().transform((value) =>
-      value
-        .split(',')
-        .map((s) => Number(s.trim()))
-        .filter((n) => !Number.isNaN(n)),
-    ),
-    CEVIDB_GROUP_TRANSLATION_TEAM: z.string().transform((value) =>
-      value
-        .split(',')
-        .map((s) => Number(s.trim()))
-        .filter((n) => !Number.isNaN(n)),
-    ),
-    CEVIDB_GROUP_PROGRAM_TEAM: z.string().transform((value) =>
-      value
-        .split(',')
-        .map((s) => Number(s.trim()))
-        .filter((n) => !Number.isNaN(n)),
-    ),
+    // Access control: the Cevi.DB groups that hold each role, see `access-rules/roles.ts`
+    CEVIDB_GROUP_FULL_ADMIN: groupIds,
+    CEVIDB_GROUP_WEB_CORE_TEAM: groupIds,
+    CEVIDB_GROUP_TRANSLATION_TEAM: groupIds,
+    CEVIDB_GROUP_PROGRAM_TEAM: groupIds,
+
+    /**
+     * optional: Cevi.DB groups of the billing team, which opens the admin panel for the billing
+     * and nothing else. Without it, nobody reaches the billing.
+     */
+    BILLING_ADMIN_GROUP_ID: optionalGroupIds,
 
     /** optional: without it, only full admins run the material depot */
-    CEVIDB_GROUP_MATERIAL_TEAM: z
-      .string()
-      .default('')
-      .transform((value) =>
-        value
-          .split(',')
-          .map((s) => Number(s.trim()))
-          .filter((n) => Number.isInteger(n) && n > 0),
-      ),
+    CEVIDB_GROUP_MATERIAL_TEAM: optionalGroupIds,
 
     /**
      * optional: the Cevi.DB group whose tree the camp functions are synced from, e.g. the
@@ -89,15 +73,7 @@ export const environmentVariables = createEnv({
      * optional: Cevi.DB groups whose members review the Hof dashboard, e.g. the Ressorts
      * Infrastruktur and Programm. Grants the dashboard only, not the admin panel.
      */
-    CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: z
-      .string()
-      .default('')
-      .transform((value) =>
-        value
-          .split(',')
-          .map((s) => Number(s.trim()))
-          .filter((n) => Number.isInteger(n) && n > 0),
-      ),
+    CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: optionalGroupIds,
 
     CEVI_DB_CLIENT_ID: z.string().min(1),
     CEVI_DB_CLIENT_SECRET: z.string().min(1),

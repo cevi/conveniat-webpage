@@ -9,6 +9,9 @@ import type {
   StaticLabel,
 } from 'payload';
 
+/** The search parameter of the access overview that names the person it explains. */
+export const ACCESS_OVERVIEW_USER_PARAMETER = 'user';
+
 export type AdminEntityType = 'collections' | 'globals';
 
 export type AccessOperation = 'read' | 'create' | 'update' | 'delete';
@@ -107,69 +110,6 @@ export const listAdminEntities = (
   return [...collections, ...globals];
 };
 
-/** A Cevi.DB group column of the access overview, before its login baseline is known. */
-export interface GroupColumn {
-  groupIds: number[];
-  /**
-   * The group grants its rights only on top of an admin panel login, like the billing group.
-   * A role is a whole set of rights on its own and never borrows a login.
-   */
-  isAddOnGroup?: boolean;
-}
-
-export interface LoginBaseline<T> {
-  /** True for an add-on group that is no login group, so the column grants nothing on its own. */
-  isAddOn: boolean;
-  /** Login groups to evaluate on top of `groupIds`. Empty unless `isAddOn`. */
-  baselineGroupIds: number[];
-  /**
-   * The column whose login the baseline borrows, set only when no login group was free to
-   * lend. Its own rights are in the cells too, so the view has to name it.
-   */
-  borrowedFrom: T | undefined;
-}
-
-/**
- * Gives the add-on columns that do not let anyone into the admin panel a login to be evaluated
- * with.
- *
- * A rule may require an admin panel login *and* a second group — `canAccessBilling` does. A
- * stand-in user holding only the second group fails at the login check, so every operation
- * denies and the column reads as if nobody had access, while the real holders of that group are
- * in a login group as well. A role column is left alone even outside the login groups: its
- * holders have nothing but the role, and a borrowed login would show them rights they lack.
- *
- * The baseline is preferably the set of login groups that are no column of their own, which is
- * the least a logged-in editor can have and grants nothing the add-on group did not. When every
- * login group is already a column, a login without a role does not exist in this configuration
- * and there is nothing free to lend; the add-on then borrows the login of the last column that
- * has one, which is the least privileged by the order of `roles.ts`. That column's rights land
- * in the cells as well, so `borrowedFrom` names it and the view says so.
- */
-export const resolveLoginBaseline = <T extends GroupColumn>(
-  columns: T[],
-  loginGroupIds: number[],
-): (T & LoginBaseline<T>)[] => {
-  const loginGroups = new Set(loginGroupIds);
-  const columnGroups = new Set(columns.flatMap((column) => column.groupIds));
-  const freeGroupIds = loginGroupIds.filter((id) => !columnGroups.has(id));
-  const grantsLogin = (column: T): boolean => column.groupIds.some((id) => loginGroups.has(id));
-  const lender = columns.findLast((column) => grantsLogin(column));
-
-  return columns.map((column) => {
-    if (column.isAddOnGroup !== true || grantsLogin(column))
-      return { ...column, isAddOn: false, baselineGroupIds: [], borrowedFrom: undefined };
-    if (freeGroupIds.length > 0)
-      return { ...column, isAddOn: true, baselineGroupIds: freeGroupIds, borrowedFrom: undefined };
-    return {
-      ...column,
-      isAddOn: true,
-      baselineGroupIds: lender?.groupIds ?? [],
-      borrowedFrom: lender,
-    };
-  });
-};
-
 /**
  * Maps the return value of a Payload access function to a status.
  */
@@ -210,3 +150,10 @@ export const evaluateEntityAccess = async (
 
   return Object.fromEntries(entries);
 };
+
+/** What a subject of the access overview, a Cevi.DB group or a person, may do with one entity. */
+export interface EntityAccess {
+  operations: Partial<Record<AccessOperation, AccessStatus>>;
+  /** Readable, but kept out of the sidebar, so reachable over the API only. */
+  hiddenInAdmin: boolean;
+}

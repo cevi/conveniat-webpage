@@ -8,11 +8,14 @@ import {
   canTransition,
   describeRefusedTransition,
 } from '@/features/billing/services/billing-status';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import {
+  BILLING_ROLES,
+  canAccessBilling,
   canAccessBillingField,
-  canUserAccessBilling,
-} from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+  getUserGroups,
+  hasAccessToThisUser,
+  isEditor,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
@@ -37,7 +40,8 @@ export const BillParticipantsCollection: CollectionConfig = {
     },
   },
   admin: {
-    hidden: ({ user }): boolean => !canUserAccessBilling(user),
+    hidden: ({ user }): boolean =>
+      !hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles: BILLING_ROLES }),
     hideAPIURL: true,
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'fullName',
@@ -88,7 +92,9 @@ export const BillParticipantsCollection: CollectionConfig = {
     afterDelete: [refreshHoefeAfterRegistrationDelete],
   },
   access: {
-    read: canAccessAdminPanel,
+    // The editors read the names, which other documents point at; everything else is narrowed
+    // to the billing team on the field.
+    read: (args) => isEditor(args) || canAccessBilling(args),
     // Only allow create/update/delete from internal API calls (billing services),
     // not from the admin panel UI.
     create: ({ req }): boolean => req.context['internal'] === true,

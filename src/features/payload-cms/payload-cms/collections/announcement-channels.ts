@@ -1,5 +1,8 @@
-import { environmentVariables } from '@/config/environment-variables';
-import { hasAdminOrWebAccess, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import type { Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAccessToThisUser,
+  hasAdminOrWebAccess,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
@@ -17,15 +20,6 @@ import type {
   CollectionConfig,
   PayloadRequest,
 } from 'payload';
-
-const ROLE_GROUP_IDS = {
-  [Roles.FullAdmin]: environmentVariables.CEVIDB_GROUP_FULL_ADMIN,
-  [Roles.WebCoreTeam]: environmentVariables.CEVIDB_GROUP_WEB_CORE_TEAM,
-  [Roles.TranslationTeam]: environmentVariables.CEVIDB_GROUP_TRANSLATION_TEAM,
-  [Roles.ProgramTeam]: environmentVariables.CEVIDB_GROUP_PROGRAM_TEAM,
-  [Roles.MaterialTeam]: environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM,
-  [Roles.HofDashboardReviewer]: environmentVariables.CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS,
-};
 
 const syncAnnouncementChannelMemberships = async (
   chatUuid: string,
@@ -57,9 +51,9 @@ const syncAnnouncementChannelMemberships = async (
     const userGroupIds = user.groups ? user.groups.map((g) => g.id) : [];
 
     if (targetType === 'roles' && targetRoles) {
-      return targetRoles.some((role) => {
-        const allowedIds = ROLE_GROUP_IDS[role as Roles];
-        return allowedIds.some((id) => userGroupIds.includes(id));
+      return hasAccessToThisUser({
+        user: { group_ids: userGroupIds },
+        requiredRoles: targetRoles as Roles[],
       });
     }
 
