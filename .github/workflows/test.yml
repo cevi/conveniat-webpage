@@ -19,41 +19,64 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         name: Checkout repository
+        with:
+          # The merge commit and its first parent, the tip of the base branch, for the step below.
+          fetch-depth: 2
+
+      # release-please's pull request changes the version and the changelog, nothing the suite
+      # reads, so every later step is skipped for it. The job still runs and reports on its own:
+      # a workflow filtered by path leaves the required check pending forever, and a job skipped
+      # behind another one counts as green even when the run was cancelled before it started.
+      # If the script fails, the output stays unset and the suite runs.
+      - name: Detect a release-only diff
+        id: diff
+        continue-on-error: true
+        run: bash .github/scripts/release-only-diff.sh
 
       - name: Copy environment variables
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         run: cp .env.example .env
 
       # Postgres is the only service the suite reaches, and only through `prisma migrate` below.
       # The Jest tests mock their clients, so pulling Mongo, SeaweedFS and Redis buys nothing.
       - name: Start Docker services
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         run: COMPOSE_PROFILES="" docker compose up -d --wait postgres
 
       - name: Install pnpm
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         uses: pnpm/action-setup@v6
 
       - name: Use Node.js 24
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         uses: actions/setup-node@v5
         with:
           node-version: 24
 
       - name: Install dependencies
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         run: npx prisma generate --no-hints
 
       - name: Generate Build Info
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         run: bash create_build_info.sh
 
       - name: Apply database migrations (Issue #570)
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         env:
           CHAT_DATABASE_URL: postgres://user:myTopSecretPassword@localhost:5432/conveniat27
         run: pnpm exec prisma migrate deploy
 
       - name: Check database migrations status (Issue #570)
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         env:
           CHAT_DATABASE_URL: postgres://user:myTopSecretPassword@localhost:5432/conveniat27
         run: pnpm exec prisma migrate status
 
       - name: Run tests
+        if: ${{ steps.diff.outputs.release_only != 'true' }}
         run: pnpm test
