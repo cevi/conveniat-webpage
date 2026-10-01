@@ -20,6 +20,7 @@ import {
   hasEditorialAccess,
   isEditor,
   isFullAdmin,
+  isRole,
   listRoleGroups,
   ProgramTeamAccessForGenericPage,
   Roles,
@@ -91,6 +92,14 @@ describe('the roles of a Cevi.DB group', () => {
       Roles.BillingTeam,
     ]);
     expect(getRolesOfGroups([PARTICIPANT])).toEqual([]);
+  });
+});
+
+describe('isRole', () => {
+  it('tells a role from a value a document may still carry', () => {
+    expect(isRole('translation-team')).toBe(true);
+    expect(isRole('a-role-that-was-renamed')).toBe(false);
+    expect(isRole(42)).toBe(false);
   });
 });
 

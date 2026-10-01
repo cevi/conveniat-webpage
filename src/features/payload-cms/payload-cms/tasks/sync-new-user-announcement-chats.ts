@@ -1,5 +1,4 @@
-import type { Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
-import { hasAccessToThisUser } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAccessToThisUser, isRole } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { ChatMembershipPermission } from '@prisma/client';
@@ -60,7 +59,7 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
         if (targetType === 'roles' && targetRoles) {
           return hasAccessToThisUser({
             user: { groups: userGroups },
-            requiredRoles: targetRoles as Roles[],
+            requiredRoles: targetRoles.filter((role) => isRole(role)),
           });
         }
 

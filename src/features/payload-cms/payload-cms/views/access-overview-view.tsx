@@ -19,6 +19,7 @@ import {
   ACCESS_OVERVIEW_USER_PARAMETER,
   findGrantingGroupIds,
   getAdminLocale,
+  isOpenToEveryone,
   listAdminEntities,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type {
@@ -41,6 +42,7 @@ import {
   CheckIcon,
   CodeXmlIcon,
   EyeIcon,
+  HistoryIcon,
   PencilIcon,
   PlusIcon,
   Trash2Icon,
@@ -78,7 +80,7 @@ const pickerPlaceholder: StaticTranslationString = {
 const pickerNoResults: StaticTranslationString = {
   de: 'Niemand gefunden',
   en: 'Nobody found',
-  fr: 'Personne trouvé',
+  fr: 'Aucune personne trouvée',
 };
 
 const pickerSearchFailed: StaticTranslationString = {
@@ -108,9 +110,9 @@ const otherGroupsLabel: StaticTranslationString = {
 };
 
 const lastLoginNote: StaticTranslationString = {
-  de: 'Stand der letzten Anmeldung der Person. Eine Änderung in der Cevi.DB wirkt erst, wenn sie sich neu anmeldet.',
-  en: "As of the person's last login. A change in Cevi.DB takes effect once they log in again.",
-  fr: 'État à la dernière connexion de la personne. Un changement dans Cevi.DB ne prend effet que lorsqu’elle se reconnecte.',
+  de: 'Stand des letzten Abgleichs mit der Cevi.DB: bei der Anmeldung und danach jedes Mal, wenn die Sitzung der Person erneuert wird.',
+  en: 'As of the last sync with Cevi.DB: at login, and again whenever the person’s session is renewed.',
+  fr: 'État de la dernière synchronisation avec Cevi.DB : à la connexion, puis à chaque renouvellement de la session de la personne.',
 };
 
 const hofDashboardHoefeLabel: StaticTranslationString = {
@@ -148,6 +150,18 @@ const everyoneDescription: StaticTranslationString = {
   fr: 'toute personne connectée',
 };
 
+const personalLabel: StaticTranslationString = {
+  de: 'gilt für diese Person direkt',
+  en: 'applies to this person directly',
+  fr: 'vaut directement pour cette personne',
+};
+
+const internalSectionLabel: StaticTranslationString = {
+  de: 'Intern (Payload)',
+  en: 'Internal (Payload)',
+  fr: 'Interne (Payload)',
+};
+
 const viaLabel: StaticTranslationString = { de: 'über', en: 'via', fr: 'via' };
 
 const entryLabel: StaticTranslationString = { de: 'Eintrag', en: 'Entry', fr: 'Entrée' };
@@ -182,6 +196,7 @@ const operationLabels: Record<AccessOperation, StaticTranslationString> = {
   create: { de: 'Erstellen', en: 'Create', fr: 'Créer' },
   update: { de: 'Bearbeiten', en: 'Edit', fr: 'Modifier' },
   delete: { de: 'Löschen', en: 'Delete', fr: 'Supprimer' },
+  readVersions: { de: 'Versionen lesen', en: 'Read versions', fr: 'Lire les versions' },
 };
 
 const conditionalLabel: StaticTranslationString = {
@@ -221,9 +236,9 @@ const capabilityLabels: Record<Capability, StaticTranslationString> = {
     fr: "Ouvrir le panneau d'administration",
   },
   editor: {
-    de: 'Entwürfe und Vorschau auf der Website, Exporte',
-    en: 'Drafts and preview on the website, exports',
-    fr: 'Brouillons et aperçu sur le site, exports',
+    de: 'Vorschau-Links erstellen, Exporte, Kursteilnehmende verwalten',
+    en: 'Create preview links, exports, manage course participants',
+    fr: 'Créer des liens d’aperçu, exports, gérer les participants aux cours',
   },
   materialDepot: {
     de: 'Materialdepot in der App führen',
@@ -242,6 +257,7 @@ const OPERATION_ICONS: Record<AccessOperation, React.FC<{ className?: string }>>
   create: PlusIcon,
   update: PencilIcon,
   delete: Trash2Icon,
+  readVersions: HistoryIcon,
 };
 
 const OPERATIONS = Object.keys(OPERATION_ICONS) as AccessOperation[];
@@ -357,16 +373,26 @@ interface EntityRow {
   index: number;
 }
 
-const sectionsOf = (entities: AdminEntity[]): { area: AdminPanelArea; rows: EntityRow[] }[] =>
-  AREA_ORDER.map((area) => ({
+/** The three areas of the sidebar, then what Payload keeps for itself and never lists there. */
+type Section = AdminPanelArea | 'internal';
+
+const SECTION_ORDER: Section[] = [...AREA_ORDER, 'internal'];
+
+const sectionOf = (entity: AdminEntity): Section => {
+  if (entity.internal) return 'internal';
+  if (entity.groupKey === undefined) return 'backoffice';
+  return AdminPanelDashboardGroups[entity.groupKey].area;
+};
+
+const sectionLabel = (section: Section, locale: Locale): string =>
+  section === 'internal' ? internalSectionLabel[locale] : AdminPanelAreas[section][locale];
+
+const sectionsOf = (entities: AdminEntity[]): { area: Section; rows: EntityRow[] }[] =>
+  SECTION_ORDER.map((area) => ({
     area,
     rows: entities
       .map((entity, index) => ({ entity, index }))
-      .filter(({ entity }) =>
-        entity.groupKey === undefined
-          ? area === 'backoffice'
-          : AdminPanelDashboardGroups[entity.groupKey].area === area,
-      ),
+      .filter(({ entity }) => sectionOf(entity) === area),
   })).filter((section) => section.rows.length > 0);
 
 /** The person picker and, below it, the person's groups, each role group marked with its roles. */
@@ -458,10 +484,13 @@ const capabilityReasonGroupIds = (data: PageData, capability: Capability): numbe
         .filter((group) => group.access.capabilities[capability])
         .map((group) => group.groupId);
 
-/** Why the person holds a right: the groups of theirs that grant it, or everyone. */
+/**
+ * Why the person holds a right: the groups of theirs that grant it. Without one, the right comes
+ * from who the person is, like a page that names them, and not from a group.
+ */
 const Reason: React.FC<{ data: PageData; groupIds: number[] }> = ({ data, groupIds }) => {
   if (groupIds.length === 0) {
-    return <span className="text-xs opacity-60">{everyoneDescription[data.locale]}</span>;
+    return <span className="text-xs opacity-60">{personalLabel[data.locale]}</span>;
   }
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
@@ -547,7 +576,7 @@ const RightsTable: React.FC<{ data: PageData; rows: EntityRow[]; withReason: boo
                 colSpan={columnCount}
                 className="pt-4 pb-1 text-xs font-semibold tracking-wide uppercase opacity-60"
               >
-                {AdminPanelAreas[section.area][locale]}
+                {sectionLabel(section.area, locale)}
               </td>
             </tr>
             {section.rows.map(({ entity, index }) => {
@@ -602,12 +631,13 @@ const PersonAccessList: React.FC<{ data: PageData }> = ({ data }) => {
     .filter(
       ({ index }) => grantedOperations(person.access.entities[index] as EntityAccess).length > 0,
     );
-  const throughGroups = reachable.filter(
-    ({ index }) => entityReasonGroupIds(data, index).length > 0,
-  );
-  const openToEveryone = reachable.filter(
-    ({ index }) => entityReasonGroupIds(data, index).length === 0,
-  );
+  const isOpen = ({ index }: EntityRow): boolean =>
+    isOpenToEveryone(
+      person.access.entities[index] as EntityAccess,
+      data.everyone.entities[index] as EntityAccess,
+    );
+  const throughGroups = reachable.filter((row) => !isOpen(row));
+  const openToEveryone = reachable.filter((row) => isOpen(row));
 
   return (
     <>
@@ -704,7 +734,7 @@ const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
                   colSpan={columnCount}
                   className="pt-4 pb-1 text-xs font-semibold tracking-wide uppercase opacity-60"
                 >
-                  {AdminPanelAreas[section.area][locale]}
+                  {sectionLabel(section.area, locale)}
                 </td>
               </tr>
               {section.rows.map(({ entity, index }) => {
@@ -783,7 +813,7 @@ export default async function AccessOverviewView({
   if (!user || !isFullAdmin({ req })) redirect(adminRoute);
   const locale: Locale = getAdminLocale(i18n);
 
-  const entities = listAdminEntities(payload.config, i18n).filter((entity) => !entity.internal);
+  const entities = listAdminEntities(payload.config, i18n);
   const requestedUser = searchParams?.[ACCESS_OVERVIEW_USER_PARAMETER];
   const requestedUserId = typeof requestedUser === 'string' ? requestedUser : String(user.id);
 

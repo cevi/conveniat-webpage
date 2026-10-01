@@ -45,6 +45,13 @@ export const ROLE_ENVIRONMENT_VARIABLES = {
 export const getRoleGroupIds = (role: Roles): number[] =>
   environmentVariables[ROLE_ENVIRONMENT_VARIABLES[role]];
 
+/**
+ * Whether a stored value names a role. A document keeps what an editor once picked, so a value
+ * read from one is checked before it is looked up.
+ */
+export const isRole = (value: unknown): value is Roles =>
+  Object.values(Roles).includes(value as Roles);
+
 /** The roles a set of Cevi.DB groups adds up to, in the order of `Roles`. */
 export const getRolesOfGroups = (groupIds: readonly number[]): Roles[] =>
   Object.values(Roles).filter((role) => getRoleGroupIds(role).some((id) => groupIds.includes(id)));
@@ -105,13 +112,11 @@ export const hasAccessToThis: ({
   return hasAccessToThisUser({ user: { groups: getUserGroups(user) }, requiredRoles });
 };
 
-export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
-  req,
-}) => hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin] });
+export const isFullAdmin: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin] });
 
-export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean | Promise<boolean> = ({
-  req,
-}) => hasAccessToThis({ req, requiredRoles: [Roles.ProgramTeam] });
+export const isProgramTeam: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>
+  hasAccessToThis({ req, requiredRoles: [Roles.ProgramTeam] });
 
 export const hasAdminOrWebAccess: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) => {
   return hasAccessToThis({ req, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });

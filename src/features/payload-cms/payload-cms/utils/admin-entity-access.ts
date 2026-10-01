@@ -14,7 +14,7 @@ export const ACCESS_OVERVIEW_USER_PARAMETER = 'user';
 
 export type AdminEntityType = 'collections' | 'globals';
 
-export type AccessOperation = 'read' | 'create' | 'update' | 'delete';
+export type AccessOperation = 'read' | 'create' | 'update' | 'delete' | 'readVersions';
 
 /** `conditional` means the rule returned a query, so only some documents are accessible. */
 export type AccessStatus = 'granted' | 'conditional' | 'denied';
@@ -127,7 +127,12 @@ export const evaluateEntityAccess = async (
   entity: Pick<AdminEntity, 'type' | 'slug' | 'config'>,
   request: PayloadRequest,
 ): Promise<Partial<Record<AccessOperation, AccessStatus>>> => {
-  const operations = entity.type === 'collections' ? COLLECTION_OPERATIONS : GLOBAL_OPERATIONS;
+  const operations = [
+    ...(entity.type === 'collections' ? COLLECTION_OPERATIONS : GLOBAL_OPERATIONS),
+    // old versions hold everything a document ever contained, drafts included, and have a rule
+    // of their own that is easy to leave out
+    ...(entity.config.versions ? (['readVersions'] as const) : []),
+  ];
   const access = entity.config.access as Partial<
     Record<AccessOperation, (args: { req: PayloadRequest }) => unknown>
   >;
@@ -158,19 +163,30 @@ export interface EntityAccess {
   hiddenInAdmin: boolean;
 }
 
-const isGranted = (access: EntityAccess, operation: AccessOperation): boolean =>
-  (access.operations[operation] ?? 'denied') !== 'denied';
+const ACCESS_RANK: Record<AccessStatus, number> = { denied: 0, conditional: 1, granted: 2 };
+
+const rankOf = (access: EntityAccess, operation: AccessOperation): number =>
+  ACCESS_RANK[access.operations[operation] ?? 'denied'];
 
 /**
- * The groups that explain a right of a person: those of the person's groups that grant the
- * operation on their own. Empty for a right every logged-in person has, which no group explains,
- * even though each of them "grants" it.
+ * The groups that explain a right of a person: those of the person's groups that grant more of
+ * the operation than every logged-in person has anyway. A public read is "granted" by every
+ * group and explains nothing; a group that turns "only some entries" into all of them does.
  */
 export const findGrantingGroupIds = (
   operation: AccessOperation,
   groups: readonly { groupId: number; access: EntityAccess }[],
   everyone: EntityAccess,
-): number[] => {
-  if (isGranted(everyone, operation)) return [];
-  return groups.filter(({ access }) => isGranted(access, operation)).map(({ groupId }) => groupId);
-};
+): number[] =>
+  groups
+    .filter(({ access }) => rankOf(access, operation) > rankOf(everyone, operation))
+    .map(({ groupId }) => groupId);
+
+/**
+ * Whether a person holds nothing on an entity beyond what every logged-in person has: such an
+ * entry says nothing about the person and is listed apart.
+ */
+export const isOpenToEveryone = (person: EntityAccess, everyone: EntityAccess): boolean =>
+  (Object.keys(person.operations) as AccessOperation[]).every(
+    (operation) => rankOf(person, operation) <= rankOf(everyone, operation),
+  );

@@ -1,7 +1,7 @@
-import type { Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   hasAccessToThisUser,
   hasAdminOrWebAccess,
+  isRole,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { AnnouncementChannel } from '@/features/payload-cms/payload-types';
@@ -53,7 +53,7 @@ const syncAnnouncementChannelMemberships = async (
     if (targetType === 'roles' && targetRoles) {
       return hasAccessToThisUser({
         user: { group_ids: userGroupIds },
-        requiredRoles: targetRoles as Roles[],
+        requiredRoles: targetRoles.filter((role) => isRole(role)),
       });
     }
 

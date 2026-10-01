@@ -4,6 +4,7 @@ import {
   evaluateEntityAccess,
   findGrantingGroupIds,
   isHiddenInAdmin,
+  isOpenToEveryone,
   resolveGroupKey,
   toAccessStatus,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
@@ -133,5 +134,43 @@ describe('findGrantingGroupIds', () => {
 
   it('names nobody for a right every logged-in person has anyway', () => {
     expect(findGrantingGroupIds('read', groups, access({ read: 'granted' }))).toEqual([]);
+  });
+
+  it('names the group that turns "only some entries" for everyone into all of them', () => {
+    expect(findGrantingGroupIds('read', groups, access({ read: 'conditional' }))).toEqual([541]);
+  });
+});
+
+describe('isOpenToEveryone', () => {
+  it('is true when the person has nothing beyond what everyone has', () => {
+    const everyone = access({ read: 'granted', create: 'granted' });
+    expect(isOpenToEveryone(access({ read: 'granted' }), everyone)).toBe(true);
+    expect(isOpenToEveryone(access({ read: 'granted', update: 'denied' }), everyone)).toBe(true);
+  });
+
+  it('is false as soon as the person may do more, or more of it', () => {
+    expect(isOpenToEveryone(access({ update: 'granted' }), access({ read: 'granted' }))).toBe(
+      false,
+    );
+    expect(isOpenToEveryone(access({ read: 'granted' }), access({ read: 'conditional' }))).toBe(
+      false,
+    );
+  });
+});
+
+describe('evaluateEntityAccess with versions', () => {
+  it('reports the rule for old versions of a collection that keeps them', async () => {
+    const config = {
+      ...collectionWith({ access: { read: () => false, readVersions: () => true } }),
+      versions: { drafts: true },
+    } as unknown as SanitizedCollectionConfig;
+
+    const result = await evaluateEntityAccess(
+      { type: 'collections', slug: 'test', config },
+      requestWithLogger(),
+    );
+
+    expect(result.readVersions).toBe('granted');
+    expect(result.read).toBe('denied');
   });
 });

@@ -105,4 +105,11 @@ describe('the Hof dashboard reviewers of the Ressorts', () => {
       Promise.resolve(UserCollection.access?.admin?.({ req: requestOf(ressortMember) })),
     ).resolves.toBe(false);
   });
+
+  it('differ from the billing team, whose group alone opens the admin panel', async () => {
+    const billingMember = { id: 'billing', groups: [{ id: 900 }] };
+    await expect(
+      Promise.resolve(UserCollection.access?.admin?.({ req: requestOf(billingMember) })),
+    ).resolves.toBe(true);
+  });
 });
