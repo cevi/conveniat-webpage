@@ -268,7 +268,7 @@ const formEmailBlock: Block = {
         },
       ],
     },
-    { name: 'placeholder', type: 'text', label: 'Placeholder' },
+    { name: 'placeholder', type: 'text', label: 'Placeholder', localized: true },
     {
       name: 'required',
       type: 'checkbox',
@@ -353,7 +353,7 @@ const formNumberBlock: Block = {
       admin: { width: '50%' },
       label: 'Default Value',
     },
-    { name: 'placeholder', type: 'text', label: 'Placeholder' },
+    { name: 'placeholder', type: 'text', label: 'Placeholder', localized: true },
     { name: 'required', type: 'checkbox', label: 'Required' },
     placementField(),
   ],
@@ -407,7 +407,7 @@ const formSelectBlock: Block = {
     },
     {
       type: 'row',
-      fields: [{ name: 'placeholder', type: 'text', label: 'Placeholder' }],
+      fields: [{ name: 'placeholder', type: 'text', label: 'Placeholder', localized: true }],
     },
     {
       type: 'checkbox',
