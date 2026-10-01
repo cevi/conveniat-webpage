@@ -18,6 +18,7 @@ import {
   getGenericPageBySlugHistoryCached,
   getGenericPageExistsBySlugCached,
   getGenericPageMetadataBySlugCached,
+  getGenericPageVersion,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
 
@@ -32,10 +33,13 @@ const GenericPage: LocalizedCollectionComponent = async ({
   const slug = slugs.join('/');
 
   let previewId: string | undefined;
+  let previewVersionId: string | undefined;
   if (renderInPreviewMode && searchParams) {
     const awaitedParameters = await searchParams;
     const pid = awaitedParameters['previewId'];
     previewId = Array.isArray(pid) ? pid[0] : pid;
+    const versionId = awaitedParameters['previewVersion'];
+    previewVersionId = Array.isArray(versionId) ? versionId[0] : versionId;
   }
 
   if (renderInPreviewMode) {
@@ -47,7 +51,13 @@ const GenericPage: LocalizedCollectionComponent = async ({
   // real-time hot-reloading inside the payload CMS live preview iframe.
   let documents: GenericPageType[] = [];
   if (renderInPreviewMode) {
-    if (previewId) {
+    if (previewId !== undefined && previewVersionId !== undefined) {
+      // One stored version of the page, for the version comparison in the admin panel. There
+      // is no falling back to the current draft: that would show it under the wrong label.
+      const version = await getGenericPageVersion(previewVersionId, previewId, locale);
+      if (version === undefined) notFound();
+      documents = [version];
+    } else if (previewId) {
       try {
         const document_ = await getGenericPageByIDCached(previewId, locale, true);
         documents = [document_];

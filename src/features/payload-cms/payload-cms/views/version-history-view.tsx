@@ -275,7 +275,8 @@ const renderLanguageStatus = (
  * history is split into what is not published yet, what is live, and what was live before, and
  * the drafts are folded under the publication they led to.
  *
- * Opening a row goes to Payload's own version view, compared against the publication before it.
+ * Opening a row compares that version against the publication before it: rendered side by side
+ * where the collection has a page view, in Payload's own version view everywhere else.
  */
 const VersionHistoryView: React.FC<DocumentViewServerProps> = async ({
   doc,
@@ -315,13 +316,18 @@ const VersionHistoryView: React.FC<DocumentViewServerProps> = async ({
     versions.docs.map((version) => toVersionEntry(version)).filter((entry) => entry !== undefined),
   );
 
+  // A collection that can render its versions opens them rendered. Payload answers every path
+  // below a trashed document's versions with its own view, so those keep going there.
+  const editViews = collectionConfig.admin.components?.views?.edit;
+  const hasPageView = editViews !== undefined && 'versionPreview' in editViews && !isTrashed;
+
   const toLine = (version: VersionEntry, compareWithId?: string): VersionLine => ({
     id: version.id,
     href: formatAdminURL({
       adminRoute: config.routes.admin,
       path: `/collections/${collectionConfig.slug}/${isTrashed ? 'trash/' : ''}${docID}/versions/${version.id}${
-        compareWithId === undefined ? '' : `?versionFrom=${compareWithId}`
-      }`,
+        hasPageView ? '/preview' : ''
+      }${compareWithId === undefined ? '' : `?versionFrom=${compareWithId}`}`,
     }),
     timestamp: formatDate({
       date: version.updatedAt,
