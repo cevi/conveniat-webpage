@@ -12,6 +12,8 @@ import type { CollectionConfig } from 'payload';
  * @param config The collection configuration to localize
  */
 export const asLocalizedCollection = (config: CollectionConfig): CollectionConfig => {
+  const editViews = config.admin?.components?.views?.edit;
+
   return {
     ...config, // we keep most of the original collection configuration
     // Payload picks include or exclude mode from the first `false` or nested object it
@@ -28,6 +30,20 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
           // and remove the Edit Many action
           '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions',
         ],
+        views: {
+          ...config.admin?.components?.views,
+          edit:
+            // a root view replaces every nested view, the version history included
+            editViews?.root === undefined
+              ? {
+                  ...editViews,
+                  // the history split into drafts, the live version and earlier publications
+                  versions: {
+                    Component: '@/features/payload-cms/payload-cms/views/version-history-view',
+                  },
+                }
+              : editViews,
+        },
         edit: {
           ...config.admin?.components?.edit,
           beforeDocumentControls: [
