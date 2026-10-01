@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.27.1](https://github.com/cevi/conveniat-webpage/compare/v1.27.0...v1.27.1) (2026-10-01)
+
+
+### Dependencies
+
+* **deps:** bump next ([fe58162](https://github.com/cevi/conveniat-webpage/commit/fe58162c174f4ec53c0134fa0e45d5b81c12ebef))
+* **deps:** bump next from 16.3.3 to 16.3.6 in the npm_and_yarn group across 1 directory ([6edfcf7](https://github.com/cevi/conveniat-webpage/commit/6edfcf7af4d3167b01372aa210a5afa0d5b53c5d))
+
 ## [1.27.0](https://github.com/cevi/conveniat-webpage/compare/v1.26.0...v1.27.0) (2026-09-30)
 
 
