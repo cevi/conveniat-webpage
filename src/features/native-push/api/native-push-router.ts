@@ -186,7 +186,8 @@ export const nativePushRouter = createTRPCRouter({
       // Send welcome confirmation push notification ONLY when creating a brand new subscription
       if (isNewSubscription) {
         try {
-          const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
+          const { sendNotificationToSubscription } =
+            await import('@/lib/push/send-notification-to-subscription');
           const targetLocale: 'de' | 'fr' | 'en' =
             ctx.locale === 'fr' || ctx.locale === 'en' ? ctx.locale : 'de';
           const welcomeMessages: Record<'de' | 'fr' | 'en', string> = {
@@ -300,7 +301,8 @@ export const nativePushRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
+      const { sendNotificationToSubscription } =
+        await import('@/lib/push/send-notification-to-subscription');
       return sendNotificationToSubscription(
         input.subscription,
         input.message,
