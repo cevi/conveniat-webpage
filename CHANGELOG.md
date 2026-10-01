@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.28.0](https://github.com/cevi/conveniat-webpage/compare/v1.27.0...v1.28.0) (2026-10-01)
+
+
+### Features
+
+* **access:** one role model from Cevi.DB groups, and an overview that explains any person ([7626fd1](https://github.com/cevi/conveniat-webpage/commit/7626fd10eb25e99c9ffb3839a0d5384877e63fcd))
+* **access:** one role model from Cevi.DB groups, and an overview that explains any person ([3b2709a](https://github.com/cevi/conveniat-webpage/commit/3b2709a7b3a20ccf6932d2abce694489729cfc06))
+* **admin:** access overview lists a person's rights in words, with the group behind each ([9e13890](https://github.com/cevi/conveniat-webpage/commit/9e138902d88b249988cfc80412b5edb6d75675a4))
+* **admin:** compare two versions of a page rendered side by side ([b165738](https://github.com/cevi/conveniat-webpage/commit/b1657388f330dee3df1416f03535f394be56c294))
+* **admin:** compare two versions of a page rendered side by side ([35f4985](https://github.com/cevi/conveniat-webpage/commit/35f4985e09a211957026034763fe398812c7f3fa))
+* **admin:** custom admin views sit inside their sidebar group ([b6dceba](https://github.com/cevi/conveniat-webpage/commit/b6dceba743015c6a1d9b850a25bedb4d40064f98))
+* **admin:** custom admin views sit inside their sidebar group ([508fdc0](https://github.com/cevi/conveniat-webpage/commit/508fdc06cb8e793077793441eaae1262fb331deb))
+* **admin:** version history shows what is live and folds drafts under their publication ([06ba457](https://github.com/cevi/conveniat-webpage/commit/06ba45705f5e5e9873f0309b393bade675f0ff64))
+* **admin:** version history shows what is live and folds drafts under their publication ([339b55f](https://github.com/cevi/conveniat-webpage/commit/339b55fe316a239f70d628b1d8eedb6b0496891e))
+
+
+### Bug Fixes
+
+* **access:** no operation is left at Payload's "any logged-in user" default ([bd2f9d5](https://github.com/cevi/conveniat-webpage/commit/bd2f9d57d12c8bb98fe4f91b72f4acd7d93f1f3d))
+* **admin:** a stored version needs its own token, and renders without a slug ([bb14414](https://github.com/cevi/conveniat-webpage/commit/bb1441432379494c47506cff2ab645538111f413))
+* **admin:** access overview shows the internal collections and the versions rule ([dbb6e2c](https://github.com/cevi/conveniat-webpage/commit/dbb6e2c0925ac7e4a5dc95dc67797905e7544981))
+* **admin:** dashboard cards share one height and one grid ([38e506f](https://github.com/cevi/conveniat-webpage/commit/38e506f4245dded9476bc62c181306a15f1d0531))
+* **admin:** dashboard cards share one height and one grid ([da31eba](https://github.com/cevi/conveniat-webpage/commit/da31eba0f05c905a6b9652f5e3eeb6658189ccb8))
+* **admin:** version history picks a version inside Payload's compare drawer ([9623569](https://github.com/cevi/conveniat-webpage/commit/96235695bcea288a11ebdd529db589cb446f75e7))
+* **push:** only the owner can unsubscribe, and the send helper is no server action ([c31d1a0](https://github.com/cevi/conveniat-webpage/commit/c31d1a013c0435527491932cecefdc5329f173b2))
+* **push:** only the owner can unsubscribe, and the send helper is no server action ([865879f](https://github.com/cevi/conveniat-webpage/commit/865879fcf24b350f8a64ab4b4c1a0912bcc7586f))
+
+
+### Dependencies
+
+* **deps:** bump next ([fe58162](https://github.com/cevi/conveniat-webpage/commit/fe58162c174f4ec53c0134fa0e45d5b81c12ebef))
+* **deps:** bump next from 16.3.3 to 16.3.6 in the npm_and_yarn group across 1 directory ([6edfcf7](https://github.com/cevi/conveniat-webpage/commit/6edfcf7af4d3167b01372aa210a5afa0d5b53c5d))
+
 ## [1.27.0](https://github.com/cevi/conveniat-webpage/compare/v1.26.0...v1.27.0) (2026-09-30)
 
 
