@@ -114,10 +114,9 @@ import { FinanceOverviewDownloadButton as FinanceOverviewDownloadButton_ff022ac0
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
+import { default as default_ca24980ef56b9b5023ff164dd084145b } from '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav'
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
-import { default as default_3e2b30fa7254fe78d9ec6b625e5d8926 } from '@/features/payload-cms/payload-cms/components/access-overview-nav-link'
-import { default as default_d9589520903fd22f8b16a4118b051873 } from '@/features/material/payload-cms/material-setup-nav-link'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
 import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
@@ -248,10 +247,9 @@ export const importMap = {
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,
+  "@/features/payload-cms/payload-cms/components/admin-nav/admin-nav#default": default_ca24980ef56b9b5023ff164dd084145b,
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
-  "@/features/payload-cms/payload-cms/components/access-overview-nav-link#default": default_3e2b30fa7254fe78d9ec6b625e5d8926,
-  "@/features/material/payload-cms/material-setup-nav-link#default": default_d9589520903fd22f8b16a4118b051873,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
   "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
