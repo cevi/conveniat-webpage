@@ -10,11 +10,10 @@ import {
 } from '@/features/billing/services/billing-status';
 import {
   BILLING_ROLES,
-  canAccessBilling,
   canAccessBillingField,
   getUserGroups,
   hasAccessToThisUser,
-  isEditor,
+  hasBillingOrAdminOrWebAccess,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
@@ -92,9 +91,9 @@ export const BillParticipantsCollection: CollectionConfig = {
     afterDelete: [refreshHoefeAfterRegistrationDelete],
   },
   access: {
-    // The editors read the names, which other documents point at; everything else is narrowed
-    // to the billing team on the field.
-    read: (args) => isEditor(args) || canAccessBilling(args),
+    // Admin and web read the names, which the Höfe and the outgoing emails point at; everything
+    // else is narrowed to the billing team on the field.
+    read: hasBillingOrAdminOrWebAccess,
     // Only allow create/update/delete from internal API calls (billing services),
     // not from the admin panel UI.
     create: ({ req }): boolean => req.context['internal'] === true,
