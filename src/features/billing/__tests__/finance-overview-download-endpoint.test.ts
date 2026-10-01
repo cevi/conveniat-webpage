@@ -8,7 +8,7 @@ jest.mock('@/config/environment-variables', () => ({
 jest.mock('@/lib/db/redis', () => ({ redis: {} }));
 
 const mockCanAccessBilling = jest.fn();
-jest.mock('@/features/payload-cms/payload-cms/access-rules/can-access-billing', () => ({
+jest.mock('@/features/payload-cms/payload-cms/access-rules/roles', () => ({
   canAccessBilling: (...args: unknown[]): unknown => mockCanAccessBilling(...args),
 }));
 

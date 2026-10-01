@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors, unicorn/no-null, unicorn/prefer-logical-operator-over-ternary, @typescript-eslint/strict-boolean-expressions */
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { isEditor } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { HelperJob } from '@/features/payload-cms/payload-types';
 import type { PayloadHandler } from 'payload';
 interface PDFDocumentWithTables extends Omit<InstanceType<typeof import('pdfkit')>, 'table'> {
@@ -14,7 +14,7 @@ interface PDFDocumentConstructor {
 
 export const helperJobsPdfReportHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = isEditor({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

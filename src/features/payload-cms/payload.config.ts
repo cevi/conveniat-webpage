@@ -56,7 +56,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { brevoContactWorkflow } from '@/features/marketing/workflows/brevo-contact-workflow';
-import { shouldHideInAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  isFullAdmin,
+  shouldHideInAdminPanel,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { instrumentTasks } from '@/features/payload-cms/payload-cms/utils/instrument-task';
 import {
   customPayloadLoggerConfig,
@@ -178,6 +181,13 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
 const autoRunSilent = { info: env.NODE_ENV === 'production' };
 
 const jobsConfig: JobsConfig = {
+  /**
+   * Who may run, queue or cancel jobs over the REST API. Payload leaves all three to every
+   * logged-in user, which here is every camp participant: `/api/payload-jobs/run` then drains
+   * every queue inside one participant's request. The scheduler and the code that queues a job
+   * use the local API, which these rules do not touch.
+   */
+  access: { run: isFullAdmin, queue: isFullAdmin, cancel: isFullAdmin },
   /**
    * IMPORTANT: Keep `deleteJobOnComplete` as `false`.
    *
