@@ -1,5 +1,8 @@
-import { environmentVariables } from '@/config/environment-variables';
-import { isFullAdmin } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  getRoleGroupIds,
+  isFullAdmin,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { overrideOutgoingEmailStatusHandler } from '@/features/payload-cms/payload-cms/endpoints/override-outgoing-email';
 import { resendOutgoingEmailHandler } from '@/features/payload-cms/payload-cms/endpoints/resend-outgoing-email';
@@ -107,7 +110,7 @@ export const OutgoingEmails: CollectionConfig = {
           Field: {
             path: '@/features/payload-cms/payload-cms/components/override-status/override-status-button#OverrideStatusButton',
             clientProps: {
-              fullAdminGroupIds: environmentVariables.CEVIDB_GROUP_FULL_ADMIN,
+              fullAdminGroupIds: getRoleGroupIds(Roles.FullAdmin),
             },
           },
         },

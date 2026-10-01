@@ -1,3 +1,4 @@
+import { DashboardStatCard } from '@/features/payload-cms/payload-cms/widgets/dashboard-stat-card';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { WidgetServerProps } from 'payload';
 
@@ -48,18 +49,12 @@ export default async function EmailStatsWidget({
   const errorCount = errorCountResponse.totalDocs;
 
   return (
-    <div className="card">
-      <h3 className="mb-4">{title[locale as Locale]}</h3>
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between rounded bg-green-900/10 px-3 py-2 dark:bg-green-900/20">
-          <span className="mr-2 text-sm">{labels.sent[locale as Locale]}</span>
-          <span className="font-bold text-green-700 dark:text-green-500">{sentCount}</span>
-        </div>
-        <div className="flex items-center justify-between rounded bg-red-900/10 px-3 py-2 dark:bg-red-900/20">
-          <span className="mr-2 text-sm">{labels.errors[locale as Locale]}</span>
-          <span className="font-bold text-red-700 dark:text-red-500">{errorCount}</span>
-        </div>
-      </div>
-    </div>
+    <DashboardStatCard
+      title={title[locale as Locale]}
+      stats={[
+        { value: sentCount, label: labels.sent[locale as Locale] },
+        { value: errorCount, label: labels.errors[locale as Locale], isAlert: errorCount > 0 },
+      ]}
+    />
   );
 }

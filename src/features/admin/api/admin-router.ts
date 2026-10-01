@@ -17,7 +17,12 @@ import { resolveChatName } from '@/features/chat/api/utils/resolve-chat-name';
 import { sendNotification } from '@/lib/push/send-notification';
 // eslint-disable-next-line import/no-restricted-paths
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  getRoleGroupIds,
+  hasAccessToThisUser,
+  isRole,
+  Roles,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   describeHoefe,
   getHofDirectory,
@@ -927,30 +932,7 @@ export const adminRouter = createTRPCRouter({
       }
 
       if (typeof input.role === 'string' && input.role !== '') {
-        const { environmentVariables: env } = await import('@/config/environment-variables');
-        let targetGroupIds: number[] = [];
-
-        switch (input.role) {
-          case 'full-admin': {
-            targetGroupIds = env.CEVIDB_GROUP_FULL_ADMIN;
-            break;
-          }
-          case 'web-core-team': {
-            targetGroupIds = env.CEVIDB_GROUP_WEB_CORE_TEAM;
-            break;
-          }
-          case 'translation-team': {
-            targetGroupIds = env.CEVIDB_GROUP_TRANSLATION_TEAM;
-            break;
-          }
-          case 'program-team': {
-            targetGroupIds = env.CEVIDB_GROUP_PROGRAM_TEAM;
-            break;
-          }
-          default: {
-            break;
-          }
-        }
+        const targetGroupIds = isRole(input.role) ? getRoleGroupIds(input.role) : [];
 
         if (targetGroupIds.length > 0) {
           whereConditions.push({

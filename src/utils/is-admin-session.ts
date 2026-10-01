@@ -1,14 +1,17 @@
 import type { Session } from 'next-auth';
 import 'server-only';
 
-import { canUserAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import {
+  EDITOR_ROLES,
+  hasAccessToThisUser,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { cache } from 'react';
 
 /**
  * Request-memoized helper that returns the Session only if the user is an
- * authenticated admin. Returns undefined otherwise.
+ * authenticated editor, see `EDITOR_ROLES`. Returns undefined otherwise.
  */
 export const getAdminSession = cache(async (): Promise<Session | undefined> => {
   const session = await auth();
@@ -17,8 +20,7 @@ export const getAdminSession = cache(async (): Promise<Session | undefined> => {
   const user = session.user;
   if (!isValidNextAuthUser(user)) return undefined;
 
-  const isAdmin = await canUserAccessAdminPanel({ user });
-  return isAdmin ? session : undefined;
+  return hasAccessToThisUser({ user, requiredRoles: EDITOR_ROLES }) ? session : undefined;
 });
 
 /**

@@ -1,9 +1,11 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import type { EntityAccess } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
   evaluateEntityAccess,
+  findGrantingGroupIds,
   isHiddenInAdmin,
+  isOpenToEveryone,
   resolveGroupKey,
-  resolveLoginBaseline,
   toAccessStatus,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { PayloadRequest, SanitizedCollectionConfig } from 'payload';
@@ -108,62 +110,67 @@ describe('AdminPanelDashboardGroups', () => {
   });
 });
 
-describe('resolveLoginBaseline', () => {
-  const columns = [
-    { key: 'admin', groupIds: [541] },
-    { key: 'web', groupIds: [105] },
-    { key: 'billing', groupIds: [900], isAddOnGroup: true },
+const access = (operations: EntityAccess['operations']): EntityAccess => ({
+  operations,
+  hiddenInAdmin: false,
+});
+
+describe('findGrantingGroupIds', () => {
+  const groups = [
+    { groupId: 541, access: access({ read: 'granted', update: 'granted' }) },
+    { groupId: 107, access: access({ read: 'conditional', update: 'denied' }) },
+    { groupId: 540, access: access({}) },
   ];
+  const nobody = access({});
 
-  it('leaves a column that is a login group on its own', () => {
-    const resolved = resolveLoginBaseline(columns, [541, 105, 700, 900]);
-    expect(resolved[0]).toEqual({
-      key: 'admin',
-      groupIds: [541],
-      isAddOn: false,
-      baselineGroupIds: [],
-      borrowedFrom: undefined,
-    });
+  it('names every group of the person that grants the operation, fully or for some entries', () => {
+    expect(findGrantingGroupIds('read', groups, nobody)).toEqual([541, 107]);
+    expect(findGrantingGroupIds('update', groups, nobody)).toEqual([541]);
   });
 
-  it('never lends a login to a role outside the login groups', () => {
-    const material = { key: 'material', groupIds: [108] };
-    const resolved = resolveLoginBaseline([...columns, material], [541, 105]);
-    expect(resolved[3]).toEqual({
-      ...material,
-      isAddOn: false,
-      baselineGroupIds: [],
-      borrowedFrom: undefined,
-    });
+  it('names nobody for a right no group grants', () => {
+    expect(findGrantingGroupIds('delete', groups, nobody)).toEqual([]);
   });
 
-  it('gives an add-on column the login groups that are no column of their own', () => {
-    const resolved = resolveLoginBaseline(columns, [541, 105, 700]);
-    expect(resolved[2]).toEqual({
-      key: 'billing',
-      groupIds: [900],
-      isAddOnGroup: true,
-      isAddOn: true,
-      baselineGroupIds: [700],
-      borrowedFrom: undefined,
-    });
+  it('names nobody for a right every logged-in person has anyway', () => {
+    expect(findGrantingGroupIds('read', groups, access({ read: 'granted' }))).toEqual([]);
   });
 
-  it('borrows the least privileged login when no login group is free to lend', () => {
-    const resolved = resolveLoginBaseline(columns, [541, 105]);
-    expect(resolved[2]).toEqual({
-      key: 'billing',
-      groupIds: [900],
-      isAddOnGroup: true,
-      isAddOn: true,
-      baselineGroupIds: [105],
-      borrowedFrom: { key: 'web', groupIds: [105] },
-    });
+  it('names the group that turns "only some entries" for everyone into all of them', () => {
+    expect(findGrantingGroupIds('read', groups, access({ read: 'conditional' }))).toEqual([541]);
+  });
+});
+
+describe('isOpenToEveryone', () => {
+  it('is true when the person has nothing beyond what everyone has', () => {
+    const everyone = access({ read: 'granted', create: 'granted' });
+    expect(isOpenToEveryone(access({ read: 'granted' }), everyone)).toBe(true);
+    expect(isOpenToEveryone(access({ read: 'granted', update: 'denied' }), everyone)).toBe(true);
   });
 
-  it('leaves an add-on alone when no column can log in at all', () => {
-    const resolved = resolveLoginBaseline(columns, []);
-    expect(resolved[2]?.baselineGroupIds).toEqual([]);
-    expect(resolved[2]?.borrowedFrom).toBeUndefined();
+  it('is false as soon as the person may do more, or more of it', () => {
+    expect(isOpenToEveryone(access({ update: 'granted' }), access({ read: 'granted' }))).toBe(
+      false,
+    );
+    expect(isOpenToEveryone(access({ read: 'granted' }), access({ read: 'conditional' }))).toBe(
+      false,
+    );
+  });
+});
+
+describe('evaluateEntityAccess with versions', () => {
+  it('reports the rule for old versions of a collection that keeps them', async () => {
+    const config = {
+      ...collectionWith({ access: { read: () => false, readVersions: () => true } }),
+      versions: { drafts: true },
+    } as unknown as SanitizedCollectionConfig;
+
+    const result = await evaluateEntityAccess(
+      { type: 'collections', slug: 'test', config },
+      requestWithLogger(),
+    );
+
+    expect(result.readVersions).toBe('granted');
+    expect(result.read).toBe('denied');
   });
 });

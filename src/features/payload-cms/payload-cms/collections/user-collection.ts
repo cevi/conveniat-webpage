@@ -1,8 +1,8 @@
-import { environmentVariables } from '@/config/environment-variables';
 import {
-  hasAccessToThisHelper,
+  ADMIN_PANEL_ROLES,
+  canOpenAdminPanel,
+  hasAccessToThisUser,
   hasAdminOrWebAccess,
-  Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared-fields/last-edited-by-user-field';
@@ -20,8 +20,6 @@ import { getAuthenticateUsingCeviDB } from '@/utils/auth-helpers';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { PROFILE_PICTURE_UPLOAD_CONTEXT } from '@/utils/profile-picture-url';
 import type { CollectionConfig } from 'payload';
-
-const GROUPS_WITH_API_ACCESS = new Set(environmentVariables.GROUPS_WITH_API_ACCESS);
 
 const syncUserToPostgres: NonNullable<
   NonNullable<CollectionConfig['hooks']>['afterChange']
@@ -195,17 +193,9 @@ export const UserCollection: CollectionConfig = {
   },
 
   access: {
-    // All roles must be able to log into the admin dashboard; the material team for the
-    // depot setup, every collection still denies it
-    admin: hasAccessToThisHelper({
-      requiredRoles: [
-        Roles.FullAdmin,
-        Roles.WebCoreTeam,
-        Roles.ProgramTeam,
-        Roles.TranslationTeam,
-        Roles.MaterialTeam,
-      ],
-    }),
+    // Opening the admin panel grants nothing by itself: the billing team and the material team
+    // come for one thing each, and every collection still denies them.
+    admin: canOpenAdminPanel,
     read: hasAdminOrWebAccess,
     create: () => false,
     delete: () => false,
@@ -348,7 +338,7 @@ export const UserCollection: CollectionConfig = {
             if (!data) return false;
             const groups = (data as User).groups;
             if (!Array.isArray(groups)) return false;
-            return groups.some((group) => GROUPS_WITH_API_ACCESS.has(group.id));
+            return hasAccessToThisUser({ user: { groups }, requiredRoles: ADMIN_PANEL_ROLES });
           },
         ],
       },

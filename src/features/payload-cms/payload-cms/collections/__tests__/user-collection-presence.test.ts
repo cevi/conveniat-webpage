@@ -1,6 +1,5 @@
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
-    GROUPS_WITH_API_ACCESS: [541],
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
   },

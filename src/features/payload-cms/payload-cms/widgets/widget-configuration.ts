@@ -45,16 +45,20 @@ export const widgetDefaultLayout = async (): Promise<WidgetInstance[]> => {
     return [{ widgetSlug: 'admin-areas', width: 'full' }];
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const layout: WidgetInstance<any>[] = [{ widgetSlug: 'emergency-alerts', width: 'small' }];
+  // the statistics share one row: four quarters with presence tracking, three thirds without
+  const showPresence = environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING;
+  const statWidth = showPresence ? 'x-small' : 'small';
 
-  if (environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING) {
-    layout.push({ widgetSlug: 'presence-count', width: 'small' });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const layout: WidgetInstance<any>[] = [{ widgetSlug: 'emergency-alerts', width: statWidth }];
+
+  if (showPresence) {
+    layout.push({ widgetSlug: 'presence-count', width: statWidth });
   }
 
   layout.push(
-    { widgetSlug: 'user-count', width: 'small' },
-    { widgetSlug: 'email-stats', width: 'small' },
+    { widgetSlug: 'user-count', width: statWidth },
+    { widgetSlug: 'email-stats', width: statWidth },
     { widgetSlug: 'admin-areas', width: 'full' },
   );
 

@@ -1,4 +1,4 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
+import { isEditor } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   getLocalizedFieldPaths,
   type LocalizedFieldReference,
@@ -8,6 +8,7 @@ import {
   translateTexts,
 } from '@/features/payload-cms/payload-cms/services/google-translate';
 import type { PayloadHandler } from 'payload';
+import { APIError } from 'payload';
 
 // Deep object traversal modifying localized values in-place
 async function translateData(
@@ -91,7 +92,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
   try {
     request.context['autoTranslating'] = true;
 
-    const hasAccess = await canAccessAdminPanel({ req: request });
+    const hasAccess = isEditor({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -125,9 +126,15 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     // Identify translatable fields
     const localizedFieldPaths = getLocalizedFieldPaths(collectionConfig.fields);
 
+    // The three calls below run as the caller: an editor translates what they may read and
+    // update, and nothing else. Without it the endpoint read and overwrote any document of any
+    // collection by id, the users and the billing included.
+
     // Fetch the document in the SOURCE locale
 
     const sourceData = await payload.findByID({
+      req: request,
+      overrideAccess: false,
       collection: collection as never,
       id: id,
       locale: sourceLocale,
@@ -137,6 +144,8 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     // Now, let's also fetch the document in the TARGET locale in order to prevent overwriting existing data (if overwriteExisting is false)
 
     const targetData = await payload.findByID({
+      req: request,
+      overrideAccess: false,
       collection: collection as never,
       id: id,
       locale: targetLocale,
@@ -169,6 +178,7 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     // Save back to the payload using the TARGET locale
     const result = await payload.update({
       req: request,
+      overrideAccess: false,
       collection: collection as never,
       id: id,
       locale: targetLocale as never,
@@ -178,6 +188,10 @@ export const autoTranslateHandler: PayloadHandler = async (request) => {
     return Response.json({ success: true, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    // a document the caller may not read or update is their mistake, not a failure of ours
+    if (error instanceof APIError && error.status < 500) {
+      return Response.json({ error: message }, { status: error.status });
+    }
     request.payload.logger.error({ err: error }, `Failed to auto-translate document: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }

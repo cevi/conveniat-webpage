@@ -1,4 +1,4 @@
-import { environmentVariables } from '@/config/environment-variables';
+import { hasAccessToThisUser, isRole } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import prisma from '@/lib/db/prisma';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { ChatMembershipPermission } from '@prisma/client';
@@ -46,13 +46,6 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
 
       const channels = channelsResult.docs;
 
-      const roleGroupIds: Record<string, number[]> = {
-        'full-admin': environmentVariables.CEVIDB_GROUP_FULL_ADMIN,
-        'web-core-team': environmentVariables.CEVIDB_GROUP_WEB_CORE_TEAM,
-        'translation-team': environmentVariables.CEVIDB_GROUP_TRANSLATION_TEAM,
-        'program-team': environmentVariables.CEVIDB_GROUP_PROGRAM_TEAM,
-      };
-
       // Extract group IDs from the user's groups field
       const userGroups = Array.isArray(user.groups) ? (user.groups as { id: number }[]) : [];
       const userGroupSet = new Set(userGroups.map((g) => g.id));
@@ -64,9 +57,9 @@ export const syncNewUserAnnouncementChatsTask: TaskConfig<{
         if (targetType === 'all') return true;
 
         if (targetType === 'roles' && targetRoles) {
-          return targetRoles.some((role) => {
-            const allowedIds = roleGroupIds[role];
-            return allowedIds?.some((id) => userGroupSet.has(id)) ?? false;
+          return hasAccessToThisUser({
+            user: { groups: userGroups },
+            requiredRoles: targetRoles.filter((role) => isRole(role)),
           });
         }
 

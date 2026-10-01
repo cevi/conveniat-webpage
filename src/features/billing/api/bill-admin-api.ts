@@ -11,7 +11,7 @@ import { populateSubeventsUseCase } from '@/features/billing/services/populate-s
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
 import { BillingJobStatus, BillingTaskSlug } from '@/features/billing/types';
-import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/can-access-billing';
+import { canAccessBilling } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { randomUUID } from 'node:crypto';
 import type { PayloadHandler } from 'payload';

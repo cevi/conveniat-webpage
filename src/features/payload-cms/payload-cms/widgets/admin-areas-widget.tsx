@@ -13,6 +13,7 @@ import {
   listAdminEntities,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import { Pill } from '@payloadcms/ui';
 import Link from 'next/link';
 import type { SanitizedPermissions, WidgetServerProps } from 'payload';
 import type React from 'react';
@@ -119,47 +120,46 @@ export default function AdminAreasWidget({
   const columns = buildAreaColumns(visibleEntities);
 
   return (
-    <div className="card">
-      <div className="grid w-full gap-8 md:grid-cols-3">
-        {columns.map((column) => (
-          <section key={column.area} className="flex flex-col gap-4">
-            <div>
-              <h3 className="text-xl font-bold">{AdminPanelAreas[column.area][locale]}</h3>
-              <p className="text-sm opacity-70">{areaDescriptions[column.area][locale]}</p>
+    // one card per area, on the 12px gap of the dashboard grid, so they line up with the row above
+    <div className="grid h-full gap-[12px] md:grid-cols-3">
+      {columns.map((column) => (
+        <section key={column.area} className="card h-full flex-col justify-start gap-5">
+          <div>
+            <h3 className="m-0 text-xl font-semibold">{AdminPanelAreas[column.area][locale]}</h3>
+            <p className="m-0 mt-1 text-sm text-(--theme-elevation-500)">
+              {areaDescriptions[column.area][locale]}
+            </p>
+          </div>
+          {column.groups.map((group) => (
+            <div key={group.key}>
+              <h4 className="m-0 mb-1 text-sm font-semibold tracking-wide text-(--theme-elevation-500) uppercase">
+                {group.name[locale]}
+              </h4>
+              <ul className="m-0 flex list-none flex-col p-0">
+                {group.entities.map((entity) => (
+                  // as tall as the pill, so a row with one keeps the rhythm of the rows without
+                  <li
+                    key={`${entity.type}-${entity.slug}`}
+                    className="flex min-h-[24px] items-center gap-2"
+                  >
+                    <Link
+                      href={`${adminRoute}/${entity.type}/${entity.slug}`}
+                      className="no-underline hover:underline"
+                    >
+                      {entity.label}
+                    </Link>
+                    {getPermissionLevel(entity, permissions) === 'read' && (
+                      <Pill pillStyle="light-gray" size="small">
+                        {permissionLabels.read[locale]}
+                      </Pill>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
-            {column.groups.map((group) => (
-              <div key={group.key}>
-                <h4 className="mb-1 text-xs font-semibold tracking-wide uppercase opacity-60">
-                  {group.name[locale]}
-                </h4>
-                <ul className="flex flex-col gap-1">
-                  {group.entities.map((entity) => {
-                    const level = getPermissionLevel(entity, permissions);
-                    return (
-                      <li key={`${entity.type}-${entity.slug}`} className="flex items-center gap-2">
-                        <Link
-                          href={`${adminRoute}/${entity.type}/${entity.slug}`}
-                          className="underline-offset-2 hover:underline"
-                        >
-                          {entity.label}
-                        </Link>
-                        {level === 'read' && (
-                          <span
-                            className="rounded bg-gray-500/15 px-1.5 py-0.5 text-[10px] leading-none opacity-70"
-                            title={permissionLabels[level][locale]}
-                          >
-                            {permissionLabels[level][locale]}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </section>
-        ))}
-      </div>
+          ))}
+        </section>
+      ))}
     </div>
   );
 }

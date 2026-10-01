@@ -120,6 +120,17 @@ FAKE_USERS = [
             {"group_id": 990004, "group_name": "Hof West", "role_name": "Adressverwalter/-in", "role_class": "Group::MitgliederorganisationExterne::Adressverwalter"}
         ],
         "comment": "Adressverwaltung von Hof West allein: dessen Hof-Dashboard ist vollständig befüllt, mit Abgaben in jedem Status, Bestellungen und Stadtleben-Ständen."
+    },
+    {
+        "id": "10",
+        "email": "benutzer10@conveniat27.ch",
+        "first_name": "Rechnungswesen User",
+        "last_name": "Rechnungswesen",
+        "nickname": "Rechnungswesen",
+        "roles": [
+            {"group_id": 540, "group_name": "Billing", "role_name": "Billing", "role_class": "billing"}
+        ],
+        "comment": "Dieser Benutzer gehört zum Rechnungswesen: öffnet das Adminpanel und sieht dort nur die Rechnungen."
     }
 ]
 

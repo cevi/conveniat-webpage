@@ -218,6 +218,53 @@ export const getGenericPageByIDCached = async (
 };
 
 /**
+ * Reads one stored version of a Generic Page, shaped like the page itself.
+ *
+ * Feeds the version comparison in the admin panel, which renders two versions side by side.
+ * Never cached, like every other preview read.
+ *
+ * @returns undefined if the version does not exist or belongs to another page
+ */
+export const getGenericPageVersion = async (
+  versionId: string,
+  pageId: string,
+  locale: Locale,
+): Promise<GenericPage | undefined> => {
+  return await withSpan('getGenericPageVersion', async () => {
+    const payload = await getPayload({ config });
+
+    // `disableErrors` turns an unknown id into null, and `depth` turns the parent into a
+    // document. The return type of the local API knows about neither.
+    const version = (await payload.findVersionByID({
+      collection: 'generic-page',
+      depth: 1,
+      disableErrors: true,
+      fallbackLocale: false,
+      id: versionId,
+      locale,
+      select: {
+        parent: true,
+        version: {
+          _localized_status: true,
+          internalPageName: true,
+          content: true,
+          seo: true,
+        },
+      },
+    })) as { parent?: string | { id?: string }; version: object } | null;
+    if (version === null) return;
+
+    // A preview is granted for one page. Without this check its link would open any version
+    // of any other page as well.
+    const parentId = typeof version.parent === 'object' ? version.parent.id : version.parent;
+    if (parentId !== pageId) return;
+
+    // Cast is safe: the same fields as the page reads above, drafts may leave any of them out.
+    return { ...version.version, id: pageId } as unknown as GenericPage;
+  });
+};
+
+/**
  * Reads a Generic Page by its slug history (previous slugs), with no caching layer.
  * Used for fallback redirection when the current slug doesn't match any active page.
  */

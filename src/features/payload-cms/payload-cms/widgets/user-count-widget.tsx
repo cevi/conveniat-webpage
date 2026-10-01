@@ -1,3 +1,4 @@
+import { DashboardStatCard } from '@/features/payload-cms/payload-cms/widgets/dashboard-stat-card';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type { WidgetServerProps } from 'payload';
 
@@ -13,10 +14,5 @@ export default async function UserCounterWidget({
   const { payload, locale } = req;
   const users = await payload.count({ collection: 'users' });
 
-  return (
-    <div className="card">
-      <h3>{title[locale as Locale]}</h3>
-      <p className="font-bold">{users.totalDocs}</p>
-    </div>
-  );
+  return <DashboardStatCard title={title[locale as Locale]} stats={[{ value: users.totalDocs }]} />;
 }

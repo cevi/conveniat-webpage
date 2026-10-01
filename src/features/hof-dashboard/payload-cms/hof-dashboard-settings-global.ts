@@ -109,7 +109,7 @@ export const HofDashboardSettingsGlobal: GlobalConfig = {
     fr: 'Paramètres du tableau de bord des Hofs',
   },
   admin: {
-    group: AdminPanelDashboardGroups.BackofficeHofDashboard.label,
+    group: AdminPanelDashboardGroups.BackofficeHoefeAndMaterial.label,
     hidden: (): boolean => !environmentVariables.FEATURE_ENABLE_HOF_DASHBOARD,
     description: {
       en: 'Texts are only required in German; French and English fall back to it.',

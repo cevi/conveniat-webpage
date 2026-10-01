@@ -1,9 +1,9 @@
 'use client';
 import { useAdminChatManagement } from '@/features/chat/hooks/use-admin-chat-management';
+import { DashboardStatCard } from '@/features/payload-cms/payload-cms/widgets/dashboard-stat-card';
 import { ChatType } from '@/lib/prisma';
 import { TRPCProvider } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import { useLocale } from '@payloadcms/ui';
 import Link from 'next/link';
 
@@ -30,12 +30,15 @@ function InternalEmergencyCounter(): React.ReactElement {
     locale,
   });
 
+  const hasOpenAlerts = chats.length > 0;
+
   return (
-    <div className={cn('card', { 'bg-red-300': chats.length > 0 })}>
-      <h3>{title[locale as Locale]}</h3>
-      <p className="font-bold">{chats.length}</p>
-      <Link href="/admin/globals/alert-management">{actionButton[locale as Locale]}</Link>
-    </div>
+    <DashboardStatCard
+      title={title[locale as Locale]}
+      stats={[{ value: chats.length, isAlert: hasOpenAlerts }]}
+      isAlert={hasOpenAlerts}
+      footer={<Link href="/admin/globals/alert-management">{actionButton[locale as Locale]}</Link>}
+    />
   );
 }
 
