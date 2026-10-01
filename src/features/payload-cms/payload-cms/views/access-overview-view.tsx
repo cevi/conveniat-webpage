@@ -17,6 +17,7 @@ import type {
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
   ACCESS_OVERVIEW_USER_PARAMETER,
+  findGrantingGroupIds,
   getAdminLocale,
   listAdminEntities,
 } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
@@ -36,7 +37,15 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { DefaultTemplate } from '@payloadcms/next/templates';
 import { Gutter, SetStepNav } from '@payloadcms/ui';
-import { CheckIcon, CodeXmlIcon, EyeIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import {
+  CheckIcon,
+  CodeXmlIcon,
+  EyeIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { AdminViewServerProps } from 'payload';
@@ -137,6 +146,35 @@ const everyoneDescription: StaticTranslationString = {
   de: 'jede angemeldete Person',
   en: 'every logged-in person',
   fr: 'toute personne connectée',
+};
+
+const viaLabel: StaticTranslationString = { de: 'über', en: 'via', fr: 'via' };
+
+const entryLabel: StaticTranslationString = { de: 'Eintrag', en: 'Entry', fr: 'Entrée' };
+const rightsLabel: StaticTranslationString = { de: 'Rechte', en: 'Rights', fr: 'Droits' };
+
+const allGroupsLabel: StaticTranslationString = {
+  de: 'Alle Gruppen vergleichen',
+  en: 'Compare all groups',
+  fr: 'Comparer tous les groupes',
+};
+
+const nothingLabel: StaticTranslationString = {
+  de: 'Keine Gruppe dieser Person gibt Zugriff auf eine Sammlung oder Einstellung.',
+  en: 'No group of this person grants access to a collection or setting.',
+  fr: 'Aucun groupe de cette personne ne donne accès à une collection ou à un réglage.',
+};
+
+const openToEveryoneLabel: StaticTranslationString = {
+  de: 'Was jede angemeldete Person darf',
+  en: 'What every logged-in person may do',
+  fr: 'Ce que toute personne connectée peut faire',
+};
+
+const apiOnlyShortLabel: StaticTranslationString = {
+  de: 'nur über die API',
+  en: 'API only',
+  fr: 'API uniquement',
 };
 
 const operationLabels: Record<AccessOperation, StaticTranslationString> = {
@@ -313,9 +351,13 @@ const memberGroups = (data: PageData): GroupColumn[] => {
   return data.groups.filter((group) => groupIds.has(group.groupId));
 };
 
-const sectionsOf = (
-  entities: AdminEntity[],
-): { area: AdminPanelArea; rows: { entity: AdminEntity; index: number }[] }[] =>
+/** An entity with its position in the entity list, which every subject's access is indexed by. */
+interface EntityRow {
+  entity: AdminEntity;
+  index: number;
+}
+
+const sectionsOf = (entities: AdminEntity[]): { area: AdminPanelArea; rows: EntityRow[] }[] =>
   AREA_ORDER.map((area) => ({
     area,
     rows: entities
@@ -392,16 +434,211 @@ const PersonPanel: React.FC<{ data: PageData; apiRoute: string }> = ({ data, api
   );
 };
 
+/** The groups of the person that explain what they may do with one entity. */
+const entityReasonGroupIds = (data: PageData, index: number): number[] => {
+  const everyone = data.everyone.entities[index] as EntityAccess;
+  const groups = memberGroups(data).map((group) => ({
+    groupId: group.groupId,
+    access: group.access.entities[index] as EntityAccess,
+  }));
+  return [
+    ...new Set(
+      grantedOperations(data.person.access.entities[index] as EntityAccess).flatMap((operation) =>
+        findGrantingGroupIds(operation, groups, everyone),
+      ),
+    ),
+  ];
+};
+
+/** The groups of the person that explain a general right. */
+const capabilityReasonGroupIds = (data: PageData, capability: Capability): number[] =>
+  data.everyone.capabilities[capability]
+    ? []
+    : memberGroups(data)
+        .filter((group) => group.access.capabilities[capability])
+        .map((group) => group.groupId);
+
+/** Why the person holds a right: the groups of theirs that grant it, or everyone. */
+const Reason: React.FC<{ data: PageData; groupIds: number[] }> = ({ data, groupIds }) => {
+  if (groupIds.length === 0) {
+    return <span className="text-xs opacity-60">{everyoneDescription[data.locale]}</span>;
+  }
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {data.groups
+        .filter((group) => groupIds.includes(group.groupId))
+        .map((group) => (
+          <span
+            key={group.groupId}
+            title={group.roles.map((role) => roleLabels[role][data.locale]).join(', ')}
+            className="rounded-sm border border-(--theme-success-500) bg-(--theme-success-100) px-1.5 py-0.5 text-xs font-medium whitespace-nowrap"
+          >
+            {groupName(group, data.locale)}
+          </span>
+        ))}
+    </span>
+  );
+};
+
+/** What the person may do in general, as a checklist with the group each right comes from. */
+const CapabilityChecklist: React.FC<{ data: PageData }> = ({ data }) => {
+  const { locale, person } = data;
+  return (
+    <ul className="m-0 mb-6 flex max-w-3xl list-none flex-col gap-1 p-0 text-sm">
+      {data.capabilities.map((capability) => {
+        const granted = person.access.capabilities[capability];
+        return (
+          <li key={capability} className="flex flex-wrap items-center gap-2">
+            {granted ? (
+              <CheckIcon className="size-4 text-(--theme-success-500)" />
+            ) : (
+              <XIcon className="size-4 opacity-30" />
+            )}
+            <span className={cn({ 'opacity-50': !granted })}>
+              {capabilityLabels[capability][locale]}
+            </span>
+            {granted && (
+              <Reason data={data} groupIds={capabilityReasonGroupIds(data, capability)} />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
+
+/** The rights of the person on one entry, in words. */
+const describeRights = (access: EntityAccess, locale: Locale): string =>
+  grantedOperations(access)
+    .map((operation) =>
+      access.operations[operation] === 'conditional'
+        ? `${operationLabels[operation][locale]} (${conditionalLabel[locale]})`
+        : operationLabels[operation][locale],
+    )
+    .join(', ');
+
+/** Entries with the person's rights in words and, where a group explains them, that group. */
+const RightsTable: React.FC<{ data: PageData; rows: EntityRow[]; withReason: boolean }> = ({
+  data,
+  rows,
+  withReason,
+}) => {
+  const { locale, person } = data;
+  const shown = new Set(rows.map(({ index }) => index));
+  const sections = sectionsOf(data.entities)
+    .map((section) => ({ ...section, rows: section.rows.filter(({ index }) => shown.has(index)) }))
+    .filter((section) => section.rows.length > 0);
+  const columnCount = withReason ? 3 : 2;
+
+  return (
+    <table className="w-full border-collapse text-sm">
+      <thead>
+        <tr className="border-b">
+          <th className="py-2 pr-4 text-left font-semibold">{entryLabel[locale]}</th>
+          <th className="px-2 py-2 text-left font-semibold">{rightsLabel[locale]}</th>
+          {withReason && <th className="px-2 py-2 text-left font-semibold">{viaLabel[locale]}</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {sections.map((section) => (
+          <Fragment key={section.area}>
+            <tr>
+              <td
+                colSpan={columnCount}
+                className="pt-4 pb-1 text-xs font-semibold tracking-wide uppercase opacity-60"
+              >
+                {AdminPanelAreas[section.area][locale]}
+              </td>
+            </tr>
+            {section.rows.map(({ entity, index }) => {
+              const access = person.access.entities[index] as EntityAccess;
+              return (
+                <tr key={`${entity.type}-${entity.slug}`} className="border-t border-current/10">
+                  <td className="py-1 pr-4">
+                    <Link
+                      href={`${data.adminRoute}/${entity.type}/${entity.slug}`}
+                      className="underline-offset-2 hover:underline"
+                    >
+                      {entity.label}
+                    </Link>
+                    <span className="ml-2 text-xs opacity-50">
+                      {entity.groupKey === undefined
+                        ? otherGroupName[locale]
+                        : AdminPanelDashboardGroups[entity.groupKey].name[locale]}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1">
+                    {describeRights(access, locale)}
+                    {access.hiddenInAdmin && (
+                      <span className="ml-2 text-xs opacity-50" title={apiOnlyLabel[locale]}>
+                        {apiOnlyShortLabel[locale]}
+                      </span>
+                    )}
+                  </td>
+                  {withReason && (
+                    <td className="px-2 py-1">
+                      <Reason data={data} groupIds={entityReasonGroupIds(data, index)} />
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </Fragment>
+        ))}
+      </tbody>
+    </table>
+  );
+};
+
 /**
- * The matrix: one column for the person, then one per Cevi.DB group that holds a role, then what
- * every logged-in person may do. The person's own groups are tinted, so the columns that explain
- * the person's rights stand right next to them.
+ * What the person reaches, one line per entry. The entries a group of theirs explains come
+ * first, because they are the answer to "why may this person do that"; what every logged-in
+ * person may do anyway is folded away below, so it does not bury them.
+ */
+const PersonAccessList: React.FC<{ data: PageData }> = ({ data }) => {
+  const { locale, person } = data;
+  const reachable = data.entities
+    .map((entity, index) => ({ entity, index }))
+    .filter(
+      ({ index }) => grantedOperations(person.access.entities[index] as EntityAccess).length > 0,
+    );
+  const throughGroups = reachable.filter(
+    ({ index }) => entityReasonGroupIds(data, index).length > 0,
+  );
+  const openToEveryone = reachable.filter(
+    ({ index }) => entityReasonGroupIds(data, index).length === 0,
+  );
+
+  return (
+    <>
+      {throughGroups.length === 0 ? (
+        <p className="text-sm opacity-70">{nothingLabel[locale]}</p>
+      ) : (
+        <RightsTable data={data} rows={throughGroups} withReason />
+      )}
+      {openToEveryone.length > 0 && (
+        <details className="mt-6">
+          <summary className="cursor-pointer text-sm font-semibold">
+            {openToEveryoneLabel[locale]} ({openToEveryone.length})
+          </summary>
+          <div className="mt-3">
+            <RightsTable data={data} rows={openToEveryone} withReason={false} />
+          </div>
+        </details>
+      )}
+    </>
+  );
+};
+
+/**
+ * Every group side by side: one column per Cevi.DB group that holds a role, then what every
+ * logged-in person may do. The groups of the selected person are tinted.
  */
 const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
-  const { locale, person } = data;
+  const { locale } = data;
   const members = new Set(memberGroups(data).map((group) => group.groupId));
   const columns = data.groups;
-  const columnCount = columns.length + 3;
+  const columnCount = columns.length + 2;
 
   const columnClass = (group: GroupColumn): string =>
     cn('px-2 py-1', { 'bg-(--theme-success-100)': members.has(group.groupId) });
@@ -412,10 +649,6 @@ const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
         <thead>
           <tr className="border-b">
             <th className="py-2 pr-4 text-left align-bottom font-semibold">{groupLabel[locale]}</th>
-            <th className="border-x-2 border-t-2 border-(--theme-success-500) px-2 py-2 text-left align-top font-semibold">
-              <div>{person.name}</div>
-              <div className="text-xs font-normal opacity-70">{personLabel[locale]}</div>
-            </th>
             {columns.map((group) => (
               <th key={group.groupId} className={cn(columnClass(group), 'text-left align-top')}>
                 <a
@@ -453,9 +686,6 @@ const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
           {data.capabilities.map((capability) => (
             <tr key={capability} className="border-t border-current/10">
               <td className="py-1 pr-4">{capabilityLabels[capability][locale]}</td>
-              <td className="border-x-2 border-(--theme-success-500) px-2 py-1">
-                <CapabilityCell granted={person.access.capabilities[capability]} />
-              </td>
               {columns.map((group) => (
                 <td key={group.groupId} className={columnClass(group)}>
                   <CapabilityCell granted={group.access.capabilities[capability]} />
@@ -478,7 +708,6 @@ const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
                 </td>
               </tr>
               {section.rows.map(({ entity, index }) => {
-                const personAccess = person.access.entities[index] as EntityAccess;
                 const everyoneAccess = data.everyone.entities[index] as EntityAccess;
                 return (
                   <tr key={`${entity.type}-${entity.slug}`} className="border-t border-current/10">
@@ -494,9 +723,6 @@ const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
                           ? otherGroupName[locale]
                           : AdminPanelDashboardGroups[entity.groupKey].name[locale]}
                       </span>
-                    </td>
-                    <td className="border-x-2 border-(--theme-success-500) px-2 py-1">
-                      <AccessCell access={personAccess} locale={locale} />
                     </td>
                     {columns.map((group) => (
                       <td key={group.groupId} className={columnClass(group)}>
@@ -514,11 +740,6 @@ const Matrix: React.FC<{ data: PageData }> = ({ data }) => {
               })}
             </Fragment>
           ))}
-          <tr>
-            <td />
-            <td className="border-x-2 border-b-2 border-(--theme-success-500)" />
-            <td colSpan={columnCount - 2} />
-          </tr>
         </tbody>
       </table>
     </div>
@@ -545,10 +766,10 @@ const Legend: React.FC<{ locale: Locale }> = ({ locale }) => (
 );
 
 /**
- * Admin view at `/admin/access-overview`: which Cevi.DB group grants which access to every
- * collection and global, and what one person may do and through which of their groups. Every
- * cell is computed by running the real access rules, so the page cannot drift from them. Only
- * full admins may open it; everyone else is sent back to the dashboard.
+ * Admin view at `/admin/access-overview`: what one person may do and through which of their
+ * Cevi.DB groups, and below it every group that holds a role side by side. Everything is computed
+ * by running the real access rules, so the page cannot drift from them. Only full admins may open
+ * it; everyone else is sent back to the dashboard.
  */
 export default async function AccessOverviewView({
   initPageResult,
@@ -603,8 +824,17 @@ export default async function AccessOverviewView({
         <h1 className="mb-1 text-3xl font-bold">{title[locale]}</h1>
         <p className="mb-6 max-w-3xl opacity-70">{intro[locale]}</p>
         <PersonPanel data={data} apiRoute={payload.config.routes.api} />
-        <Matrix data={data} />
-        <Legend locale={locale} />
+        <CapabilityChecklist data={data} />
+        <PersonAccessList data={data} />
+        <details className="mt-3">
+          <summary className="cursor-pointer text-sm font-semibold">
+            {allGroupsLabel[locale]}
+          </summary>
+          <div className="mt-3">
+            <Matrix data={data} />
+            <Legend locale={locale} />
+          </div>
+        </details>
       </Gutter>
     </DefaultTemplate>
   );

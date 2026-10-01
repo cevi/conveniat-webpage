@@ -1,6 +1,8 @@
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import type { EntityAccess } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import {
   evaluateEntityAccess,
+  findGrantingGroupIds,
   isHiddenInAdmin,
   resolveGroupKey,
   toAccessStatus,
@@ -104,5 +106,32 @@ describe('AdminPanelDashboardGroups', () => {
   it('keeps sidebar labels unique so Payload does not merge two groups', () => {
     const labels = Object.values(AdminPanelDashboardGroups).map((group) => group.label.de);
     expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+const access = (operations: EntityAccess['operations']): EntityAccess => ({
+  operations,
+  hiddenInAdmin: false,
+});
+
+describe('findGrantingGroupIds', () => {
+  const groups = [
+    { groupId: 541, access: access({ read: 'granted', update: 'granted' }) },
+    { groupId: 107, access: access({ read: 'conditional', update: 'denied' }) },
+    { groupId: 540, access: access({}) },
+  ];
+  const nobody = access({});
+
+  it('names every group of the person that grants the operation, fully or for some entries', () => {
+    expect(findGrantingGroupIds('read', groups, nobody)).toEqual([541, 107]);
+    expect(findGrantingGroupIds('update', groups, nobody)).toEqual([541]);
+  });
+
+  it('names nobody for a right no group grants', () => {
+    expect(findGrantingGroupIds('delete', groups, nobody)).toEqual([]);
+  });
+
+  it('names nobody for a right every logged-in person has anyway', () => {
+    expect(findGrantingGroupIds('read', groups, access({ read: 'granted' }))).toEqual([]);
   });
 });

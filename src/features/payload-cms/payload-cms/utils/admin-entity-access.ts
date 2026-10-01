@@ -157,3 +157,20 @@ export interface EntityAccess {
   /** Readable, but kept out of the sidebar, so reachable over the API only. */
   hiddenInAdmin: boolean;
 }
+
+const isGranted = (access: EntityAccess, operation: AccessOperation): boolean =>
+  (access.operations[operation] ?? 'denied') !== 'denied';
+
+/**
+ * The groups that explain a right of a person: those of the person's groups that grant the
+ * operation on their own. Empty for a right every logged-in person has, which no group explains,
+ * even though each of them "grants" it.
+ */
+export const findGrantingGroupIds = (
+  operation: AccessOperation,
+  groups: readonly { groupId: number; access: EntityAccess }[],
+  everyone: EntityAccess,
+): number[] => {
+  if (isGranted(everyone, operation)) return [];
+  return groups.filter(({ access }) => isGranted(access, operation)).map(({ groupId }) => groupId);
+};
