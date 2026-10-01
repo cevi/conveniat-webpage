@@ -51,6 +51,11 @@ export interface LocalizedPageType {
 export type LocalizedCollectionPage = LocalizedPageType & {
   slugs: string[];
   renderInPreviewMode: boolean;
+  /**
+   * Set when a shared preview link unlocked the preview: the one document whose draft may be
+   * shown. Undefined for an editor, who may open every draft.
+   */
+  previewDocumentId: string | undefined;
 };
 
 export type LocalizedCollectionComponent = React.FC<LocalizedCollectionPage> & {
@@ -58,6 +63,7 @@ export type LocalizedCollectionComponent = React.FC<LocalizedCollectionPage> & {
     locale: Locale;
     slugs: string[] | undefined;
     isPreview?: boolean;
+    previewDocumentId?: string | undefined;
   }) => Promise<Metadata>;
 };
 

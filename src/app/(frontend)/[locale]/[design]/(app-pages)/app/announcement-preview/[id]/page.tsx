@@ -12,7 +12,7 @@ import type {
   Image as ImageDocument,
 } from '@/features/payload-cms/payload-types';
 import configPromise from '@/features/payload-cms/payload.config';
-import { canAccessPreviewOfCurrentPage } from '@/features/payload-cms/utils/preview/preview-utils';
+import { resolvePreviewAccess } from '@/features/payload-cms/utils/preview/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { forceDynamicOnBuild } from '@/utils/is-pre-rendering';
@@ -122,17 +122,20 @@ export default async function AnnouncementPreviewPage({
 
   // The app route group is served to anonymous visitors, and this page reads drafts, so it
   // needs the same gate as every other preview: `?preview=true` and either a valid preview
-  // token or an editor session.
+  // token or an editor session. A token only opens the announcement it was minted for.
   const searchParameters = await searchParams;
   const previewParameter = searchParameters['preview'];
   const isPreviewRequested =
     previewParameter === 'true' ||
     (Array.isArray(previewParameter) && previewParameter[0] === 'true');
-  if (!isPreviewRequested || !(await canAccessPreviewOfCurrentPage(searchParameters))) {
+  if (!isPreviewRequested) notFound();
+
+  const { id, locale } = await params;
+  const { renderInPreviewMode, previewDocumentId } = await resolvePreviewAccess(searchParameters);
+  if (!renderInPreviewMode || (previewDocumentId !== undefined && previewDocumentId !== id)) {
     notFound();
   }
 
-  const { id, locale } = await params;
   const validatedLocale: Locale = i18nConfig.locales.includes(locale) ? locale : 'de';
 
   const payload = await getPayload({ config: configPromise });
