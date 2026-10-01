@@ -122,14 +122,7 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page',
       },
     ],
-    afterNavLinks: [
-      {
-        path: '@/features/payload-cms/payload-cms/components/access-overview-nav-link',
-      },
-      {
-        path: '@/features/material/payload-cms/material-setup-nav-link',
-      },
-    ],
+    Nav: '@/features/payload-cms/payload-cms/components/admin-nav/admin-nav',
     views: {
       accessOverview: {
         Component: '@/features/payload-cms/payload-cms/views/access-overview-view#default',

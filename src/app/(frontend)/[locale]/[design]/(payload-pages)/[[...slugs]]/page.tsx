@@ -259,6 +259,12 @@ const CMSPage: React.FC<{
     renderInPreviewMode = await canAccessPreviewOfCurrentPage(searchParameters);
   }
 
+  // A stored version is only ever shown as a preview. Without one the published page would
+  // be rendered in its place and pass for that version.
+  if (searchParameters['previewVersion'] !== undefined && !renderInPreviewMode) {
+    notFound();
+  }
+
   // check if part of a routable collection of the form [collection]/[slug]
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];

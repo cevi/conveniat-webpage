@@ -43,6 +43,8 @@ const defineGroup = (
  * 1. `collections/index.ts` is ordered by area, and that order is the sidebar order.
  * 2. Every group contains at least one collection. A group that only holds globals would
  *    always land at the very bottom, after every collection group.
+ *
+ * A custom admin view joins a group through `components/admin-nav/admin-nav-groups.ts`.
  */
 export const AdminPanelDashboardGroups = {
   WebpageContent: defineGroup('webpage', { de: 'Inhalte', en: 'Content', fr: 'Contenu' }),
@@ -69,10 +71,10 @@ export const AdminPanelDashboardGroups = {
     en: 'Billing',
     fr: 'Facturation',
   }),
-  BackofficeHofDashboard: defineGroup('backoffice', {
-    de: 'Hof-Dashboard',
-    en: 'Hof dashboard',
-    fr: 'Tableau de bord des Hofs',
+  BackofficeHoefeAndMaterial: defineGroup('backoffice', {
+    de: 'Höfe & Material',
+    en: 'Höfe & material',
+    fr: 'Höfe et matériel',
   }),
   BackofficeSystem: defineGroup('backoffice', { de: 'System', en: 'System', fr: 'Système' }),
 } satisfies Record<string, AdminPanelDashboardGroup>;
