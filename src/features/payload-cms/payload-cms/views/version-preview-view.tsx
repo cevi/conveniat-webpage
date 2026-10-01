@@ -33,7 +33,8 @@ const PREVIEW_TOKEN_SECONDS = 60 * 60;
  */
 const VersionPreviewView: React.FC<DocumentViewServerProps> = async ({
   doc,
-  initPageResult: { collectionConfig, docID, permissions, req },
+  // `locale` is the content language the document was loaded in, the one the frames show too
+  initPageResult: { collectionConfig, docID, locale: contentLocale, permissions, req },
   routeSegments,
   searchParams,
 }) => {
@@ -84,14 +85,6 @@ const VersionPreviewView: React.FC<DocumentViewServerProps> = async ({
     older.find((entry) => entry.status === 'published') ??
     older[0];
 
-  const contentLocale =
-    config.localization === false
-      ? undefined
-      : (config.localization.locales.find(({ code }) => code === req.locale) ??
-        config.localization.locales.find(
-          ({ code }) => config.localization !== false && code === config.localization.defaultLocale,
-        ));
-
   const describe = (entry: VersionEntry): string =>
     [
       formatDate({
@@ -112,22 +105,37 @@ const VersionPreviewView: React.FC<DocumentViewServerProps> = async ({
   const previewToken = await generatePreviewToken(String(docID), PREVIEW_TOKEN_SECONDS);
   payload.logger.debug(`Minted a preview token to compare versions of ${String(docID)}`);
 
-  const toPane = (entry: VersionEntry): VersionComparePane => {
+  // A page that has no slug in this language still renders: the frame asks for the version
+  // by id, the path only has to reach the page route.
+  const seo = doc['seo'] as { urlSlug?: unknown } | undefined;
+  const urlSlug = typeof seo?.urlSlug === 'string' ? seo.urlSlug : '';
+
+  const toPane = async (entry: VersionEntry): Promise<VersionComparePane> => {
     // The page of the live preview, asked for one stored version. Only the path is kept, so
     // the frame is on the origin the admin panel was opened on and may be read from here.
     const preview = new URL(
       generatePreviewUrl({
-        data: { ...doc, id: String(docID) },
+        data: { id: String(docID), seo: { urlSlug } },
         collectionConfig,
         ...(contentLocale === undefined ? {} : { locale: contentLocale }),
       }),
       'http://localhost',
     );
-    preview.searchParams.set('previewVersion', entry.id);
     preview.searchParams.set('preview-token', previewToken);
+    preview.searchParams.set('previewVersion', entry.id);
+    // The page shows a stored version only against a token for that very version.
+    preview.searchParams.set(
+      'preview-version-token',
+      await generatePreviewToken(entry.id, PREVIEW_TOKEN_SECONDS),
+    );
 
     return { id: entry.id, label: describe(entry), url: `${preview.pathname}${preview.search}` };
   };
+
+  const [beforePane, afterPane] = await Promise.all([
+    before === undefined ? undefined : toPane(before),
+    toPane(after),
+  ]);
 
   return (
     <>
@@ -140,8 +148,8 @@ const VersionPreviewView: React.FC<DocumentViewServerProps> = async ({
       />
       <main>
         <VersionCompareFrames
-          before={before === undefined ? undefined : toPane(before)}
-          after={toPane(after)}
+          before={beforePane}
+          after={afterPane}
           options={entries
             .filter((entry) => entry.id !== after.id)
             .map((entry) => ({ label: describe(entry), value: entry.id }))}

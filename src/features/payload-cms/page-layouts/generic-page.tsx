@@ -4,6 +4,7 @@ import { buildMetadata } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
+import { isPreviewTokenValid } from '@/utils/preview-token';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import type { Metadata } from 'next';
@@ -34,12 +35,15 @@ const GenericPage: LocalizedCollectionComponent = async ({
 
   let previewId: string | undefined;
   let previewVersionId: string | undefined;
+  let previewVersionToken: string | undefined;
   if (renderInPreviewMode && searchParams) {
     const awaitedParameters = await searchParams;
     const pid = awaitedParameters['previewId'];
     previewId = Array.isArray(pid) ? pid[0] : pid;
     const versionId = awaitedParameters['previewVersion'];
     previewVersionId = Array.isArray(versionId) ? versionId[0] : versionId;
+    const versionToken = awaitedParameters['preview-version-token'];
+    previewVersionToken = Array.isArray(versionToken) ? versionToken[0] : versionToken;
   }
 
   if (renderInPreviewMode) {
@@ -51,10 +55,16 @@ const GenericPage: LocalizedCollectionComponent = async ({
   // real-time hot-reloading inside the payload CMS live preview iframe.
   let documents: GenericPageType[] = [];
   if (renderInPreviewMode) {
-    if (previewId !== undefined && previewVersionId !== undefined) {
-      // One stored version of the page, for the version comparison in the admin panel. There
-      // is no falling back to the current draft: that would show it under the wrong label.
-      const version = await getGenericPageVersion(previewVersionId, previewId, locale);
+    if (previewVersionId !== undefined) {
+      // One stored version of the page, for the version comparison in the admin panel. That
+      // view signs a token per version once it knows its reader may see versions, so a preview
+      // link shared for the page does not open them. There is no falling back to the current
+      // draft either: that would show it under the wrong label.
+      const version =
+        previewId !== undefined &&
+        (await isPreviewTokenValid(previewVersionId, previewVersionToken ?? ''))
+          ? await getGenericPageVersion(previewVersionId, previewId, locale)
+          : undefined;
       if (version === undefined) notFound();
       documents = [version];
     } else if (previewId) {
