@@ -60,6 +60,18 @@ const fetchGenericPageBySlug = async (
 };
 
 /**
+ * Tags a cached read with the pages it returned, so publishing one page flushes the reads of
+ * that page and of no other.
+ *
+ * A read that found nothing has no page to name. It turns stale when a page takes over the slug
+ * or is published, and such a change flushes the `payload` tag every entry carries, see
+ * `flushPageCacheOnChange`.
+ */
+const tagPages = (pages: { id: string }[]): void => {
+  cacheTag('payload', ...pages.map((page) => `doc:generic-page:${page.id}`));
+};
+
+/**
  * Fetches published Generic Pages by slug.
  * Uses Next.js 16.3 'use cache' for persistent and request-level deduplicated caching.
  */
@@ -69,9 +81,9 @@ const getPublishedGenericPageBySlugCached = async (
 ): Promise<{ docs: GenericPage[] }> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
-  return await fetchGenericPageBySlug(slug, locale, false);
+  const result = await fetchGenericPageBySlug(slug, locale, false);
+  tagPages(result.docs);
+  return result;
 };
 
 /**
@@ -140,9 +152,9 @@ const getPublishedGenericPageExistsBySlugCached = async (
 ): Promise<{ docs: GenericPage[] }> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
-  return await fetchGenericPageExistsBySlug(slug, locale, false);
+  const result = await fetchGenericPageExistsBySlug(slug, locale, false);
+  tagPages(result.docs);
+  return result;
 };
 
 /**
@@ -198,7 +210,7 @@ const getPublishedGenericPageByIDCached = async (
 ): Promise<GenericPage> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `doc:generic-page:${id}`);
+  tagPages([{ id }]);
 
   return await fetchGenericPageByID(id, locale, false);
 };
@@ -313,9 +325,9 @@ const getPublishedGenericPageBySlugHistoryCached = async (
 ): Promise<{ docs: GenericPage[] }> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
-
-  return await fetchGenericPageBySlugHistory(slug, locale, false);
+  const result = await fetchGenericPageBySlugHistory(slug, locale, false);
+  tagPages(result.docs);
+  return result;
 };
 
 /**
@@ -342,11 +354,10 @@ export const getGenericPageMetadataBySlugCached = async (
 ): Promise<{ docs: GenericPage[] }> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
 
-  return await withSpan('getGenericPageMetadataBySlugCached', async () => {
+  const result = await withSpan('getGenericPageMetadataBySlugCached', async () => {
     const payload = await getPayload({ config });
-    const result = await payload.find({
+    const found = await payload.find({
       depth: 0,
       collection: 'generic-page',
       pagination: false,
@@ -364,8 +375,10 @@ export const getGenericPageMetadataBySlugCached = async (
         internalPageName: true,
       },
     });
-    return { docs: result.docs as unknown as GenericPage[] };
+    return { docs: found.docs as unknown as GenericPage[] };
   });
+  tagPages(result.docs);
+  return result;
 };
 
 /**
@@ -376,9 +389,8 @@ export const getGenericPageAlternativesCached = async (
 ): Promise<GenericPage[]> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
 
-  return await withSpan('getGenericPageAlternativesCached', async () => {
+  const alternatives = await withSpan('getGenericPageAlternativesCached', async () => {
     const payload = await getPayload({ config });
     const results = await Promise.all(
       i18nConfig.locales.map((loc) =>
@@ -404,4 +416,6 @@ export const getGenericPageAlternativesCached = async (
     );
     return results.flatMap((r) => r.docs as unknown as GenericPage[]);
   });
+  tagPages(alternatives);
+  return alternatives;
 };

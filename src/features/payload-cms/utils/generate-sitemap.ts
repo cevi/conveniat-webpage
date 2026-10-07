@@ -193,7 +193,7 @@ function processDocumentsForSitemap(
 export const cachedSitemapGenerator = async (): Promise<MetadataRoute.Sitemap> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', 'blog');
+  cacheTag('payload', 'collection:generic-page', 'collection:blog');
 
   const sitemap: MetadataRoute.Sitemap = [];
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;

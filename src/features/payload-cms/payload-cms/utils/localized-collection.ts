@@ -1,4 +1,5 @@
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { rememberDraftSave } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import type { CollectionConfig } from 'payload';
 
@@ -20,6 +21,11 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
     // meets in a select (`getSelectMode`). Merging `versions: false` into a collection's
     // own list of fields to populate would make that list's meaning depend on key order.
     defaultPopulate: config.defaultPopulate ?? { versions: false },
+    hooks: {
+      ...config.hooks,
+      // the drafts enabled below autosave every second, which must not flush the cache
+      beforeOperation: [...(config.hooks?.beforeOperation ?? []), rememberDraftSave],
+    },
     admin: {
       defaultColumns: ['id', 'publishingStatus', 'title'],
       ...config.admin,

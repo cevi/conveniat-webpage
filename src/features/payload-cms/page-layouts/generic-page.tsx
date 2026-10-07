@@ -239,7 +239,8 @@ const generateMetadataInternal = async (
 ): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
+  // the reads below name the pages this entry depends on, and their tags reach this entry
+  cacheTag('payload');
 
   const slug = slugs?.join('/') ?? '';
 
