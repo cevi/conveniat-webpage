@@ -19,11 +19,14 @@ export const FormsPreviewPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
   renderInPreviewMode,
+  previewDocumentId,
 }) => {
   return await withSpan('FormsPreviewPage', async () => {
     if (!renderInPreviewMode) notFound();
 
     const uuid = slugs[0];
+    // A shared link shows the form it was minted for and no other.
+    if (previewDocumentId !== undefined && uuid !== previewDocumentId) notFound();
     const payload = await getPayload({ config });
     const form = await payload.find({
       collection: 'forms',

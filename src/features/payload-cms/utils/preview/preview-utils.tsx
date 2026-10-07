@@ -6,7 +6,7 @@ import type { Locale, SearchParameters } from '@/types/types';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getAdminSession } from '@/utils/is-admin-session';
 import { PREVIEW_SESSION_COOKIE } from '@/utils/preview-session-cookie';
-import { isPreviewTokenValid } from '@/utils/preview-token';
+import { getPreviewTokenId } from '@/utils/preview-token';
 import { createLogger } from '@/utils/server-logger';
 import { cookies } from 'next/headers';
 import type React from 'react';
@@ -14,58 +14,21 @@ import type React from 'react';
 const logger = createLogger('pages:preview');
 
 /**
- * Checks if the preview token is valid.
- *
- * We do that using the same concept as for a JWT token validation.
- * The token has a signature and is a compressed object { url: string; expires: number }
- * This function verifies the signature and checks if the token is still valid.
- *
- * @param previewToken
- * @param url the url of the current page (always include the locale,
- * especially for the default locale is included)
+ * What a request may preview.
  */
-const isValidPreviewToken = async (
-  previewToken: string | undefined,
-  previewId: string | undefined,
-): Promise<boolean> => {
-  if (previewToken === undefined || previewId === undefined) {
-    return false;
-  }
+export interface PreviewAccess {
+  renderInPreviewMode: boolean;
+  /**
+   * The one document a shared preview link may show a draft of. Undefined for an editor, who
+   * may open every draft. Whoever resolves the document has to hold its id against this one.
+   */
+  previewDocumentId: string | undefined;
+}
 
-  const isValid = await isPreviewTokenValid(previewId, previewToken);
+const firstValue = (value: string | string[] | undefined): string | undefined =>
+  Array.isArray(value) ? value[0] : value;
 
-  logger.debug('Validated a preview token', { 'preview.id': previewId, 'preview.valid': isValid });
-  return isValid;
-};
-
-/**
- * Checks if the page should be rendered in preview mode.
- * This is the case if the `preview` query parameter is set to `true` and
- *
- * 1) the user has a valid `preview-token` query parameter (e.g. shared preview link)
- * 2) or the user has an authenticated admin session AND has visited the admin panel
- *    during the current browser session (indicated by the `payload-admin-visited` cookie)
- *
- * @param searchParameters
- * @param url
- */
-export const canAccessPreviewOfCurrentPage = async (
-  searchParameters: SearchParameters,
-): Promise<boolean> => {
-  let previewToken = searchParameters['preview-token'];
-  let previewId = searchParameters['previewId'];
-
-  if (Array.isArray(previewToken)) {
-    previewToken = previewToken[0];
-  }
-  if (Array.isArray(previewId)) {
-    previewId = previewId[0];
-  }
-
-  // check if preview token is set and valid
-  const hasValidPreviewToken = await isValidPreviewToken(previewToken, previewId);
-  if (hasValidPreviewToken) return true;
-
+const isEditorPreviewSession = async (): Promise<boolean> => {
   // check if the admin has visited the admin panel in this session
   const cookieStore = await cookies();
   const hasVisitedAdmin = cookieStore.has(PREVIEW_SESSION_COOKIE);
@@ -81,6 +44,37 @@ export const canAccessPreviewOfCurrentPage = async (
 
   // TODO: does Program Team have access to the preview mode?
   return hasAccessToThisUser({ user, requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam] });
+};
+
+/**
+ * Resolves what a request with the `preview` query parameter set to `true` may preview:
+ *
+ * 1) every draft, if the user has an authenticated admin session AND has visited the admin
+ *    panel during the current browser session (indicated by the `payload-admin-visited` cookie)
+ * 2) the draft of one document, if the request carries a valid `preview-token` query parameter
+ *    (e.g. shared preview link). The document is the one the token was signed for, never the
+ *    one the URL names.
+ *
+ * @param searchParameters
+ */
+export const resolvePreviewAccess = async (
+  searchParameters: SearchParameters,
+): Promise<PreviewAccess> => {
+  if (await isEditorPreviewSession()) {
+    return { renderInPreviewMode: true, previewDocumentId: undefined };
+  }
+
+  const previewToken = firstValue(searchParameters['preview-token']);
+  if (previewToken === undefined) {
+    return { renderInPreviewMode: false, previewDocumentId: undefined };
+  }
+
+  const previewDocumentId = getPreviewTokenId(previewToken);
+  logger.debug('Validated a preview token', {
+    'preview.id': previewDocumentId,
+    'preview.valid': previewDocumentId !== undefined,
+  });
+  return { renderInPreviewMode: previewDocumentId !== undefined, previewDocumentId };
 };
 
 export const PreviewWarning: React.FC<{

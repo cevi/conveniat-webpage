@@ -175,6 +175,8 @@ This design ensures that admins browsing the public site are not distracted by p
 
 External reviewers without admin accounts can preview draft content via **signed preview tokens** (`?preview=true&preview-token=...`). These tokens are validated server-side (JWT-style) and are independent of the session cookie mechanism.
 
+A token is signed for one document and opens the draft of that document only. The id is read from the token, never from the URL, and every page layout compares it with the document it resolved before it renders. Any other draft answers with the "preview is not available" page.
+
 ### Caching in Development
 
 In development mode (`NODE_ENV=development`), the custom cache handler (Redis/FileSystem) is **disabled**. Next.js uses its default in-memory cache in development.
