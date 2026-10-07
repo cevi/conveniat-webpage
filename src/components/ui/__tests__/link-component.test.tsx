@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { LinkComponent } from '@/components/ui/link-component';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
 jest.mock('@/config/environment-variables', () => ({
@@ -54,6 +54,25 @@ describe('LinkComponent', () => {
     expect(link.getAttribute('href')).toBe('/api/documents/file/packliste.pdf?locale=de');
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.hasAttribute('prefetch')).toBe(false);
+  });
+
+  it('keeps the styling and the click handler of a file link', () => {
+    const onClick = jest.fn();
+    render(
+      <LinkComponent
+        href="/api/documents/file/packliste.pdf"
+        className="block p-3"
+        onClick={onClick}
+      >
+        Packliste
+      </LinkComponent>,
+    );
+
+    const link = screen.getByRole('link', { name: 'Packliste' });
+    fireEvent.click(link);
+
+    expect(link.className).toBe('block p-3');
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('recognises a file link that carries the host of the deployment', () => {
