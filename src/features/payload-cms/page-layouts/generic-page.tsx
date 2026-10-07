@@ -115,7 +115,9 @@ const GenericPage: LocalizedCollectionComponent = async ({
         <GenericPageConverter
           page={articleInPrimaryLanguage}
           locale={locale}
-          renderInPreviewMode={renderInPreviewMode}
+          // The converter reads the documents a page embeds as drafts too. A shared link
+          // covers the page alone, so its reader gets the published ones.
+          renderInPreviewMode={renderInPreviewMode && previewDocumentId === undefined}
         />
       );
     } else {
