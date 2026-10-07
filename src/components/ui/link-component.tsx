@@ -40,6 +40,40 @@ const isExternalURL = (url: string): boolean => {
   }
 };
 
+/**
+ * Whether a link points at an API route of this deployment, like a Payload file URL. Those answer
+ * with a file, not a page, so the router has nothing to prefetch or to navigate to.
+ *
+ * @param url the href of the link, relative or absolute
+ * @returns true for `/api/...` on this deployment
+ */
+export const isApiURL = (url: string): boolean => {
+  if (isExternalURL(url)) return false;
+  if (url.startsWith('/')) return url.startsWith('/api/');
+
+  // Payload stores file URLs with the server URL in front
+  try {
+    return new URL(url).pathname.startsWith('/api/');
+  } catch {
+    return false;
+  }
+};
+
+// what next/link takes on top of an anchor, and an anchor must not receive
+const ROUTER_ONLY_PROPERTIES = new Set<string>([
+  'href',
+  'as',
+  'replace',
+  'scroll',
+  'shallow',
+  'passHref',
+  'prefetch',
+  'locale',
+  'legacyBehavior',
+  'onNavigate',
+  'transitionTypes',
+] satisfies (keyof LinkProps)[]);
+
 export const LinkComponent: React.FC<
   {
     children?: React.ReactNode;
@@ -77,6 +111,19 @@ export const LinkComponent: React.FC<
           <ExternalLink aria-hidden="true" className="size-4" />
         </span>
       </Link>
+    );
+  }
+
+  if (isApiURL(url)) {
+    // next/link would prefetch the file as soon as the link scrolls into view
+    const anchorProperties = Object.fromEntries(
+      Object.entries(defaultArguments).filter(([key]) => !ROUTER_ONLY_PROPERTIES.has(key)),
+    );
+
+    return (
+      <a href={url} {...anchorProperties}>
+        {children}
+      </a>
     );
   }
 
