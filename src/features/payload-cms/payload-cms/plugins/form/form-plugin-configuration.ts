@@ -32,7 +32,10 @@ import { formFieldsTab } from '@/features/payload-cms/payload-cms/plugins/form/t
 import { formResultsTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/form-results-tab';
 import { workflowTab } from '@/features/payload-cms/payload-cms/plugins/form/tabs/workflow-tab';
 import { workflowTriggerOnFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/workflow-trigger-on-form-submission';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  rememberDraftSave,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import { formBuilderPlugin } from '@payloadcms/plugin-form-builder';
 import type { Field, TabsField } from 'payload';
@@ -429,6 +432,7 @@ export const formPluginConfiguration = formBuilderPlugin({
       },
     ],
     hooks: {
+      beforeOperation: [rememberDraftSave],
       beforeChange: [extractEmailLinksHook],
       afterChange: [flushPageCacheOnChange],
     },

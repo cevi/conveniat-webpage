@@ -4,7 +4,7 @@ import type {
   CampScheduleEntry,
 } from '@/features/map/types/types';
 import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
-import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { createTRPCRouter, publicProcedure } from '@/trpc/init';
 import { formatHexColor } from '@/utils/format-hex-color';
 import config from '@payload-config';
 import { getPayload } from 'payload';
@@ -12,13 +12,18 @@ import { z } from 'zod';
 
 /**
  * TRPC router for map-related operations.
+ *
+ * Public: the camp map is for guests too, the same as the schedule it links to. A login-only
+ * procedure answered a guest with a 401, which the client handles by sending them back to
+ * `/entrypoint`, so opening the map, a schedule entry's mini map, or the offline download threw
+ * a guest out of the app.
  */
 export const mapRouter = createTRPCRouter({
   /**
    * Get all map annotations (polygons and markers).
    * Used by the mini map to show context with all annotations.
    */
-  getAnnotations: trpcBaseProcedure.query(async () => {
+  getAnnotations: publicProcedure.query(async () => {
     const payload = await getPayload({ config });
 
     const annotations = await payload.find({
@@ -66,7 +71,7 @@ export const mapRouter = createTRPCRouter({
    * Get all map annotations (points and polygons) and related schedules.
    * Used for updating annotations dynamically when online.
    */
-  getMapAnnotations: trpcBaseProcedure
+  getMapAnnotations: publicProcedure
     .input(
       z.object({
         locale: z.enum(['en', 'de', 'fr']),

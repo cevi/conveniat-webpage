@@ -39,7 +39,7 @@ jest.mock('next/headers', () => ({
 }));
 
 const mockSendNotificationToSubscription = jest.fn();
-jest.mock('@/utils/push-notification-api', () => ({
+jest.mock('@/lib/push/send-notification-to-subscription', () => ({
   sendNotificationToSubscription: (...args: unknown[]): unknown =>
     mockSendNotificationToSubscription(...args),
 }));

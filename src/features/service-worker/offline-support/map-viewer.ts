@@ -13,11 +13,25 @@ const fontBaseUrl = 'https://vectortiles.geo.admin.ch/fonts/';
 // inside a service worker (#1492).
 const isKonektaDeployment = self.location.origin === 'https://konekta.ch';
 
+/**
+ * Every font the map styles in `public/vector-map/` label with. MapLibre asks for one file per
+ * font stack; a stack missing here has no labels offline, only MapLibre's local fallback font.
+ */
+const mapFonts = [
+  'Frutiger Neue Regular',
+  'Frutiger Neue Medium',
+  'Frutiger Neue Italic',
+  'Frutiger Neue Condensed Regular',
+  'Frutiger Neue Condensed Medium',
+] as const;
+
+/** The Latin-1 glyphs of every map font, which covers German, French and English labels. */
+export const glyphUrlsToPrecache: string[] = mapFonts.map(
+  (font) => `${fontBaseUrl}${encodeURIComponent(font)}/0-255.pbf`,
+);
+
 const sharedUrlsToPrecache: string[] = [
-  // fonts for map viewer
-  `${fontBaseUrl}Frutiger%20Neue%20Italic/0-255.pbf`,
-  `${fontBaseUrl}Frutiger%20Neue%20Condensed%20Regular/0-255.pbf`,
-  `${fontBaseUrl}Frutiger%20Neue%20Regular/0-255.pbf`,
+  ...glyphUrlsToPrecache,
 
   // configs for map viewer
   `${tilesStyleBaseUrl}ch.swisstopo.base.vt/v1.0.0/tiles.json`,
@@ -235,7 +249,9 @@ export const registerMapOfflineSupport: () => void = (): void => {
     prefetchUrls: ['/app/map'],
     runtimeCaching: [
       {
-        matcher: /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/(tiles|styles)\/.*/,
+        // Fonts too: otherwise they fall to the generic cross-origin rule, which waits for the
+        // network first, and wifi without an uplink leaves the map unlabelled until it times out.
+        matcher: /https:\/\/vectortiles[0-9]?\.geo\.admin\.ch\/(tiles|styles|fonts)\/.*/,
         handler: new CacheFirst({
           cacheName: CACHE_NAMES.MAP_TILES,
           plugins: [

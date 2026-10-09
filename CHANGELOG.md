@@ -1,5 +1,73 @@
 # Changelog
 
+## [1.28.0](https://github.com/cevi/conveniat-webpage/compare/v1.27.0...v1.28.0) (2026-10-01)
+
+
+### Features
+
+* **access:** one role model from Cevi.DB groups, and an overview that explains any person ([7626fd1](https://github.com/cevi/conveniat-webpage/commit/7626fd10eb25e99c9ffb3839a0d5384877e63fcd))
+* **access:** one role model from Cevi.DB groups, and an overview that explains any person ([3b2709a](https://github.com/cevi/conveniat-webpage/commit/3b2709a7b3a20ccf6932d2abce694489729cfc06))
+* **admin:** access overview lists a person's rights in words, with the group behind each ([9e13890](https://github.com/cevi/conveniat-webpage/commit/9e138902d88b249988cfc80412b5edb6d75675a4))
+* **admin:** compare two versions of a page rendered side by side ([b165738](https://github.com/cevi/conveniat-webpage/commit/b1657388f330dee3df1416f03535f394be56c294))
+* **admin:** compare two versions of a page rendered side by side ([35f4985](https://github.com/cevi/conveniat-webpage/commit/35f4985e09a211957026034763fe398812c7f3fa))
+* **admin:** custom admin views sit inside their sidebar group ([b6dceba](https://github.com/cevi/conveniat-webpage/commit/b6dceba743015c6a1d9b850a25bedb4d40064f98))
+* **admin:** custom admin views sit inside their sidebar group ([508fdc0](https://github.com/cevi/conveniat-webpage/commit/508fdc06cb8e793077793441eaae1262fb331deb))
+* **admin:** version history shows what is live and folds drafts under their publication ([06ba457](https://github.com/cevi/conveniat-webpage/commit/06ba45705f5e5e9873f0309b393bade675f0ff64))
+* **admin:** version history shows what is live and folds drafts under their publication ([339b55f](https://github.com/cevi/conveniat-webpage/commit/339b55fe316a239f70d628b1d8eedb6b0496891e))
+
+
+### Bug Fixes
+
+* **access:** no operation is left at Payload's "any logged-in user" default ([bd2f9d5](https://github.com/cevi/conveniat-webpage/commit/bd2f9d57d12c8bb98fe4f91b72f4acd7d93f1f3d))
+* **admin:** a stored version needs its own token, and renders without a slug ([bb14414](https://github.com/cevi/conveniat-webpage/commit/bb1441432379494c47506cff2ab645538111f413))
+* **admin:** access overview shows the internal collections and the versions rule ([dbb6e2c](https://github.com/cevi/conveniat-webpage/commit/dbb6e2c0925ac7e4a5dc95dc67797905e7544981))
+* **admin:** dashboard cards share one height and one grid ([38e506f](https://github.com/cevi/conveniat-webpage/commit/38e506f4245dded9476bc62c181306a15f1d0531))
+* **admin:** dashboard cards share one height and one grid ([da31eba](https://github.com/cevi/conveniat-webpage/commit/da31eba0f05c905a6b9652f5e3eeb6658189ccb8))
+* **admin:** version history picks a version inside Payload's compare drawer ([9623569](https://github.com/cevi/conveniat-webpage/commit/96235695bcea288a11ebdd529db589cb446f75e7))
+* **push:** only the owner can unsubscribe, and the send helper is no server action ([c31d1a0](https://github.com/cevi/conveniat-webpage/commit/c31d1a013c0435527491932cecefdc5329f173b2))
+* **push:** only the owner can unsubscribe, and the send helper is no server action ([865879f](https://github.com/cevi/conveniat-webpage/commit/865879fcf24b350f8a64ab4b4c1a0912bcc7586f))
+
+
+### Dependencies
+
+* **deps:** bump next ([fe58162](https://github.com/cevi/conveniat-webpage/commit/fe58162c174f4ec53c0134fa0e45d5b81c12ebef))
+* **deps:** bump next from 16.3.3 to 16.3.6 in the npm_and_yarn group across 1 directory ([6edfcf7](https://github.com/cevi/conveniat-webpage/commit/6edfcf7af4d3167b01372aa210a5afa0d5b53c5d))
+
+## [1.27.0](https://github.com/cevi/conveniat-webpage/compare/v1.26.0...v1.27.0) (2026-09-30)
+
+
+### Features
+
+* **documents:** show where a document is used ([f451724](https://github.com/cevi/conveniat-webpage/commit/f4517249ac2b2da65a42005099726e863aa47cb0))
+* **documents:** show where a document is used ([b991afc](https://github.com/cevi/conveniat-webpage/commit/b991afc8cee1de060c46eb4c5bc166fa0b0b702a))
+* **material:** suggest registered people for "Wer holt ab?" ([db622ba](https://github.com/cevi/conveniat-webpage/commit/db622ba538da5a4048057c524693ca57817e239a))
+* **material:** suggest registered people for "Wer holt ab?" ([27dc9d1](https://github.com/cevi/conveniat-webpage/commit/27dc9d187fd7f82953e032c29efff4a301b123e9))
+
+
+### Bug Fixes
+
+* **documents:** a document linked from a live page never shows as unused ([8108eba](https://github.com/cevi/conveniat-webpage/commit/8108eba0de700954b65f5c1d3ed5a148dd716223))
+* **documents:** a document linked from a live page never shows as unused ([48abf29](https://github.com/cevi/conveniat-webpage/commit/48abf29ed81fb60a80f518096997fd25dc61b27e))
+* **map:** a guest reporting a problem is asked to log in ([d093a89](https://github.com/cevi/conveniat-webpage/commit/d093a89ef7861fd89e0784ce51cdd723a43f33d9))
+* **map:** guests can open the camp map ([f09fee2](https://github.com/cevi/conveniat-webpage/commit/f09fee2daa3dee9dd97b2b525efc084d8efcfc1c))
+* **map:** guests can open the camp map ([3b108f6](https://github.com/cevi/conveniat-webpage/commit/3b108f686a4bfeed58f5f6b07e284fa25ba6920d))
+* **material:** pickup suggestions survive a Payload error and match word starts ([6b6aade](https://github.com/cevi/conveniat-webpage/commit/6b6aadef9bae4574a12f5551362f9583c249a71f))
+* **offline:** download every font the map labels with ([190f104](https://github.com/cevi/conveniat-webpage/commit/190f1041a2d1ca1b7ba9876a15e72816d2d625ff))
+* **offline:** download every font the map labels with ([8689edc](https://github.com/cevi/conveniat-webpage/commit/8689edcdad32c9d600b63004912385842a38a036))
+* **offline:** serve downloaded map tiles to the map worker ([c084514](https://github.com/cevi/conveniat-webpage/commit/c084514c3806cf80c6296621fb7ad8b10f459eea))
+* **offline:** serve downloaded map tiles to the map worker ([6fbbdf7](https://github.com/cevi/conveniat-webpage/commit/6fbbdf7b48dce22f41344093749ab3538d6a8c18))
+* **offline:** settings show the download as done only when it ran ([34f35d3](https://github.com/cevi/conveniat-webpage/commit/34f35d39948ae44e9fc771c57f647256928d8b46))
+* **offline:** settings show the download as done only when it ran ([e6aabc2](https://github.com/cevi/conveniat-webpage/commit/e6aabc263bb9d4061c1772ddf488138291ac00bb))
+* **offline:** the worker's own offline pages speak the user's language ([722b5b4](https://github.com/cevi/conveniat-webpage/commit/722b5b4f254821c86a4cc27aa7d2a81f50f8bbe7))
+* **offline:** the worker's own offline pages speak the user's language ([2aa8f84](https://github.com/cevi/conveniat-webpage/commit/2aa8f84eebcbc78d26216484b9e7488b680deade))
+
+
+### Performance
+
+* **tracing:** also drop the scheduler's read of its stats global ([3b2cc47](https://github.com/cevi/conveniat-webpage/commit/3b2cc479f4b8fa10f09a0250dbff7420b6c738ec))
+* **tracing:** drop the traces of the job runner's and heartbeat's polling ([d014ce4](https://github.com/cevi/conveniat-webpage/commit/d014ce4e64ff59be88f2ab0b7405ff1f47ea75f4))
+* **tracing:** drop the traces of the job runner's and heartbeat's polling ([4c3ddcf](https://github.com/cevi/conveniat-webpage/commit/4c3ddcf9258d87f069a642818e019dee29ff1e31))
+
 ## [1.26.0](https://github.com/cevi/conveniat-webpage/compare/v1.25.0...v1.26.0) (2026-09-29)
 
 

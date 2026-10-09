@@ -1,4 +1,5 @@
 import { getPublishingStatus } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { rememberDraftSave } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import type { CollectionConfig } from 'payload';
 
@@ -12,12 +13,19 @@ import type { CollectionConfig } from 'payload';
  * @param config The collection configuration to localize
  */
 export const asLocalizedCollection = (config: CollectionConfig): CollectionConfig => {
+  const editViews = config.admin?.components?.views?.edit;
+
   return {
     ...config, // we keep most of the original collection configuration
     // Payload picks include or exclude mode from the first `false` or nested object it
     // meets in a select (`getSelectMode`). Merging `versions: false` into a collection's
     // own list of fields to populate would make that list's meaning depend on key order.
     defaultPopulate: config.defaultPopulate ?? { versions: false },
+    hooks: {
+      ...config.hooks,
+      // the drafts enabled below autosave every second, which must not flush the cache
+      beforeOperation: [...(config.hooks?.beforeOperation ?? []), rememberDraftSave],
+    },
     admin: {
       defaultColumns: ['id', 'publishingStatus', 'title'],
       ...config.admin,
@@ -28,6 +36,20 @@ export const asLocalizedCollection = (config: CollectionConfig): CollectionConfi
           // and remove the Edit Many action
           '@/features/payload-cms/payload-cms/components/disable-actions/disable-many-actions',
         ],
+        views: {
+          ...config.admin?.components?.views,
+          edit:
+            // a root view replaces every nested view, the version history included
+            editViews?.root === undefined
+              ? {
+                  ...editViews,
+                  // the history split into drafts, the live version and earlier publications
+                  versions: {
+                    Component: '@/features/payload-cms/payload-cms/views/version-history-view',
+                  },
+                }
+              : editViews,
+        },
         edit: {
           ...config.admin?.components?.edit,
           beforeDocumentControls: [

@@ -41,6 +41,7 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   renderInPreviewMode,
+  previewDocumentId,
 }) => {
   const slug = slugs.join('/');
 
@@ -51,6 +52,12 @@ const BlogPostPage: LocalizedCollectionComponent = async ({
   } else {
     const fetchResult = await getBlogArticlesCachedPersistent(slug, locale);
     documents = fetchResult.docs;
+  }
+
+  // A shared link shows its own document and nothing else this route could resolve to.
+  if (previewDocumentId !== undefined) {
+    documents = documents.filter((document_) => document_.id === previewDocumentId);
+    if (documents.length === 0) notFound();
   }
   const articlesInPrimaryLanguage = { docs: documents };
 
@@ -182,6 +189,7 @@ const generateMetadataInternal = async (
 const generateMetadataPreview = async (
   locale: Locale,
   slugs: string[] | undefined,
+  previewDocumentId: string | undefined,
 ): Promise<Metadata> => {
   const slug = slugs?.join('/') ?? '';
 
@@ -204,6 +212,10 @@ const generateMetadataPreview = async (
 
   const article = result.docs[0];
   if (!article) return { title: 'Preview Mode' };
+  // A shared link must not reveal the title of a draft it was not minted for.
+  if (previewDocumentId !== undefined && article.id !== previewDocumentId) {
+    return { title: 'Preview Mode' };
+  }
 
   return {
     title: article.seo.metaTitle || article.content.blogH1 || 'Preview Mode',
@@ -211,9 +223,14 @@ const generateMetadataPreview = async (
   };
 };
 
-BlogPostPage.generateMetadata = async ({ locale, slugs, isPreview }): Promise<Metadata> => {
+BlogPostPage.generateMetadata = async ({
+  locale,
+  slugs,
+  isPreview,
+  previewDocumentId,
+}): Promise<Metadata> => {
   if (isPreview) {
-    return generateMetadataPreview(locale, slugs);
+    return generateMetadataPreview(locale, slugs, previewDocumentId);
   }
   return generateMetadataInternal(locale, slugs);
 };

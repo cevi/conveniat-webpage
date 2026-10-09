@@ -1,5 +1,7 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
-import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  hasAdminOrWebAccess,
+  isEditor,
+} from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { CollectionConfig } from 'payload';
 
@@ -31,7 +33,7 @@ export const QuartiereCollection: CollectionConfig = {
   access: {
     // the names reach every participant through the chat address book, which reads them
     // server-side; the collection itself is for the editors
-    read: canAccessAdminPanel,
+    read: isEditor,
     create: hasAdminOrWebAccess,
     update: hasAdminOrWebAccess,
     // a Hof that points at a deleted Quartier simply has none again

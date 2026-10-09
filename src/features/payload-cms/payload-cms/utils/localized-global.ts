@@ -1,4 +1,5 @@
 import { getPublishingStatusGlobal } from '@/features/payload-cms/payload-cms/hooks/publishing-status';
+import { rememberDraftSaveGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { localizedStatusSchema } from '@/features/payload-cms/payload-cms/utils/localized-status-schema';
 import type { GlobalConfig } from 'payload';
 
@@ -14,6 +15,11 @@ import type { GlobalConfig } from 'payload';
 export const asLocalizedGlobal = (config: GlobalConfig): GlobalConfig => {
   return {
     ...config, // we keep most of the original collection configuration
+    hooks: {
+      ...config.hooks,
+      // the drafts enabled below autosave every second, which must not flush the cache
+      beforeOperation: [...(config.hooks?.beforeOperation ?? []), rememberDraftSaveGlobal],
+    },
     admin: {
       ...config.admin,
       components: {

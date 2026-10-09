@@ -3,8 +3,7 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
     CEVIDB_GROUP_TRANSLATION_TEAM: [106],
-    GROUPS_WITH_API_ACCESS: [541, 105, 106],
-    BILLING_ADMIN_GROUP_ID: '900',
+    BILLING_ADMIN_GROUP_ID: [900],
   },
 }));
 

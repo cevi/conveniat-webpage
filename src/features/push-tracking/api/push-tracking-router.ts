@@ -155,7 +155,8 @@ export const pushTrackingRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      const { sendNotificationToSubscription } = await import('@/utils/push-notification-api');
+      const { sendNotificationToSubscription } =
+        await import('@/lib/push/send-notification-to-subscription');
 
       return await sendNotificationToSubscription(
         input.subscription,

@@ -5,9 +5,9 @@ jest.mock('@/config/environment-variables', () => ({
     CEVIDB_GROUP_TRANSLATION_TEAM: [106],
     CEVIDB_GROUP_PROGRAM_TEAM: [107],
     CEVIDB_GROUP_MATERIAL_TEAM: [108],
+    BILLING_ADMIN_GROUP_ID: [900],
     // the Ressorts Infrastruktur and Programm
     CEVIDB_GROUP_HOF_DASHBOARD_REVIEWERS: [4087, 4105],
-    GROUPS_WITH_API_ACCESS: [541, 105, 106, 107, 108],
   },
 }));
 jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
@@ -25,7 +25,6 @@ import {
   isHofDashboardReviewer,
   listAccessibleHoefe,
 } from '@/features/hof-dashboard/api/accessible-hoefe';
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import { canReviewHofDashboard } from '@/features/payload-cms/payload-cms/access-rules/can-access-hof-dashboard';
 import { HOF_ADMINISTRATOR_ROLE_CLASS } from '@/features/payload-cms/payload-cms/access-rules/hof-administrator-role';
 import { UserCollection } from '@/features/payload-cms/payload-cms/collections/user-collection';
@@ -102,9 +101,15 @@ describe('the Hof dashboard reviewers of the Ressorts', () => {
   });
 
   it('cannot log into the admin panel', async () => {
-    expect(canAccessAdminPanel({ req: requestOf(ressortMember) })).toBe(false);
     await expect(
       Promise.resolve(UserCollection.access?.admin?.({ req: requestOf(ressortMember) })),
     ).resolves.toBe(false);
+  });
+
+  it('differ from the billing team, whose group alone opens the admin panel', async () => {
+    const billingMember = { id: 'billing', groups: [{ id: 900 }] };
+    await expect(
+      Promise.resolve(UserCollection.access?.admin?.({ req: requestOf(billingMember) })),
+    ).resolves.toBe(true);
   });
 });

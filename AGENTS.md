@@ -260,17 +260,21 @@ Declare access on a collection or global for every operation — `read`, `create
 Write `() => false` where nothing but the local API should write, and `() => true` where the answer
 really is everybody.
 
-Say who with a named rule from `access-rules/`, not an inline group check: `isFullAdmin`,
+Say who with a named rule from `access-rules/roles.ts`, not an inline group check: `isFullAdmin`,
 `hasAdminOrWebAccess`, `hasEditorialAccess` for admin, web core team and translation team,
-`canAccessBilling`, `canAccessAdminPanel` for any editor. `hasAccessToThisHelper({ requiredRoles })`
-is for a combination that has no name yet; the second time you write the same list, name it in
-`roles.ts` instead. A rule may return a `Where` to narrow to single documents, which is how
-`ProgramTeamAccessForGenericPage` lets the program team reach the pages it was named on.
+`isEditor` for those three and the program team, `canAccessBilling` for the billing team.
+`hasAccessToThisHelper({ requiredRoles })` is for a combination that has no name yet; the second
+time you write the same list, name it in `roles.ts` instead. A rule may return a `Where` to narrow
+to single documents, which is how `ProgramTeamAccessForGenericPage` lets the program team reach
+the pages it was named on.
 
-A rule that reads two things at once — `canAccessBilling` wants an admin panel login _and_ the
-billing group — is a role plus an add-on group, not a role. `/admin/access-overview` renders the
-matrix by running the real rules, so open it after you change one and check the column you meant to
-change, and no other.
+Every right comes from a role, and a role is held through a Cevi.DB group. `roles.ts` is the only
+place that reads the group settings, so a new right is a role or a named set of roles there, never
+a group id in a rule and never a second list of groups to keep in sync. Roles add up: a rule must
+not require two roles at once, because nobody can then tell from a person's groups what they may
+do. `canOpenAdminPanel` decides who gets into `/admin` and grants nothing else.
+`/admin/access-overview` renders every Cevi.DB group and any person against the real rules, so
+open it after you change one and check the column you meant to change, and no other.
 
 `admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
 the entry a real rule as well and keep the two saying the same thing.
@@ -303,7 +307,10 @@ Never open a pull request unless I asked for one. One concern per pull request. 
 says "also", split it.
 
 The test workflow runs on every pull request, whatever it is based on, because a required check
-that never reports would leave a stacked pull request pending forever.
+that never reports would leave a stacked pull request pending forever. For the same reason a
+check is never filtered by path: a pull request that changes only the changelog, the release-please
+manifest and the version in `package.json` still starts both workflows, and the `eslint` and test
+jobs run, find nothing but a release in the diff and skip their remaining steps.
 
 ## Taste
 

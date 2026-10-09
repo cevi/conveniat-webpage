@@ -1,4 +1,5 @@
 import build from '@/build';
+import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -270,11 +271,15 @@ export const sdk = new NodeSDK({
     branch: build.git.branch,
   }),
   serviceName: SERVICE_NAME,
-  sampler: new HealthCheckSampler(
-    new ParentBasedSampler({
-      root:
-        SAMPLING_RATIO >= 1 ? new AlwaysOnSampler() : new TraceIdRatioBasedSampler(SAMPLING_RATIO),
-    }),
+  sampler: new BackgroundPollSampler(
+    new HealthCheckSampler(
+      new ParentBasedSampler({
+        root:
+          SAMPLING_RATIO >= 1
+            ? new AlwaysOnSampler()
+            : new TraceIdRatioBasedSampler(SAMPLING_RATIO),
+      }),
+    ),
   ),
   autoDetectResources: false,
   instrumentations: [

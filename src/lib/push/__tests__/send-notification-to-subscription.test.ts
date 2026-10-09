@@ -24,14 +24,6 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-// `auth` is only reached by the subscribe/unsubscribe helpers in this module, but it
-// pulls next-auth's untranspiled ESM into the module graph on import alone.
-jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
-jest.mock('@/utils/auth-helpers', () => ({
-  getPayloadUserFromNextAuthUser: jest.fn(),
-  isValidNextAuthUser: (): boolean => false,
-}));
-
 const mockLogCreate = jest.fn().mockResolvedValue({ id: 'log-1' });
 const mockLogUpdate = jest.fn().mockResolvedValue({});
 const mockLogUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
@@ -60,7 +52,7 @@ jest.mock('@/lib/firebase-admin', () => ({
   sendFcmNotification: (...args: unknown[]): unknown => mockSendFcmNotification(...args),
 }));
 
-import { sendNotificationToSubscription } from '@/utils/push-notification-api';
+import { sendNotificationToSubscription } from '@/lib/push/send-notification-to-subscription';
 
 const nativeSubscription = {
   id: 'sub-1',

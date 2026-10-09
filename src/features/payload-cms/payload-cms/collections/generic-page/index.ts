@@ -14,7 +14,10 @@ import { pageTitleField } from '@/features/payload-cms/payload-cms/shared-fields
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/release-date-field';
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  rememberLinkTarget,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { linkTargetPopulate } from '@/features/payload-cms/payload-cms/utils/link-target-populate';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
@@ -22,7 +25,11 @@ import type { CollectionConfig } from 'payload';
 export const GenericPage: CollectionConfig = asLocalizedCollection({
   slug: 'generic-page',
   trash: true,
-  hooks: { beforeChange: [trackSlugHistory], afterChange: [flushPageCacheOnChange] },
+  hooks: {
+    beforeOperation: [rememberLinkTarget],
+    beforeChange: [trackSlugHistory],
+    afterChange: [flushPageCacheOnChange],
+  },
 
   labels: {
     singular: {
@@ -56,6 +63,23 @@ export const GenericPage: CollectionConfig = asLocalizedCollection({
     pagination: {
       defaultLimit: 10,
       limits: [10, 20, 50],
+    },
+    components: {
+      views: {
+        edit: {
+          // two versions rendered side by side, next to Payload's field by field comparison
+          versionPreview: {
+            Component: '@/features/payload-cms/payload-cms/views/version-preview-view',
+            path: '/versions/:versionId/preview',
+            tab: {
+              Component:
+                '@/features/payload-cms/payload-cms/components/version-compare/version-compare-tabs#VersionCompareTabs',
+              // right after "Versions"
+              order: 310,
+            },
+          },
+        },
+      },
     },
   },
 

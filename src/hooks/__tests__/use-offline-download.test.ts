@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { useOfflineDownload } from '@/hooks/use-offline-download';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
 jest.mock('@/hooks/use-service-worker-status', () => ({
   useServiceWorkerStatus: (): object => ({ isReady: true, registration: undefined }),
@@ -35,5 +35,68 @@ describe('deleting the offline content', () => {
     // the service worker reads the "download done" flag from this cache
     expect(existing.has(OFFLINE_STATUS)).toBe(false);
     expect(existing.has(PAGES)).toBe(false);
+  });
+});
+
+describe('the downloaded status on the settings page', () => {
+  const originalCaches = globalThis.caches;
+
+  afterEach(() => {
+    globalThis.caches = originalCaches;
+  });
+
+  /**
+   * A cache storage with `pages` cached pages and, optionally, the "download done" flag.
+   * Returns the lookups made, to wait on.
+   */
+  const cachesWith = ({
+    pages,
+    downloadDone,
+  }: {
+    pages: number;
+    downloadDone: boolean;
+  }): jest.Mock<Promise<object | undefined>> => {
+    const match = jest.fn((name: string, key: string) =>
+      Promise.resolve(
+        // any stored entry; jsdom has no Response
+        name === 'offline-status-cache-v1' && key === 'offline-enabled' && downloadDone
+          ? { ok: true }
+          : undefined,
+      ),
+    );
+    globalThis.caches = {
+      open: (name: string) =>
+        Promise.resolve({
+          keys: () =>
+            Promise.resolve(
+              name === 'pages-cache-v1'
+                ? Array.from({ length: pages }, (_, index) => ({ url: `/page-${index}` }))
+                : [],
+            ),
+          match: (key: string) => match(name, key),
+        }),
+    } as unknown as CacheStorage;
+    return match;
+  };
+
+  it('does not call a user who only browsed some pages downloaded', async () => {
+    const match = cachesWith({ pages: 12, downloadDone: false });
+    const { result } = renderHook(() => useOfflineDownload({ checkCacheOnMount: true }));
+
+    await waitFor(() => {
+      expect(match).toHaveBeenCalledWith('offline-status-cache-v1', 'offline-enabled');
+    });
+    await act(() => Promise.all(match.mock.results.map((call) => call.value as Promise<unknown>)));
+
+    expect(result.current.status).not.toBe('has-content');
+  });
+
+  it('shows the download as done once the service worker finished it', async () => {
+    cachesWith({ pages: 3, downloadDone: true });
+    const { result } = renderHook(() => useOfflineDownload({ checkCacheOnMount: true }));
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('has-content');
+    });
   });
 });

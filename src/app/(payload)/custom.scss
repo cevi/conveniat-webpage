@@ -66,3 +66,9 @@ div#action-unpublish-popup {
     order: -1;
   }
 }
+
+// Payload pads every dashboard widget by 6px, which insets the grid from the page gutter that
+// the header above it sits on. Pull it back out so the cards and the header share both edges.
+.modular-dashboard {
+  margin: 12px -6px 0;
+}

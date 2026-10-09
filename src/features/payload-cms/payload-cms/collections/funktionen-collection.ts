@@ -1,6 +1,6 @@
-import { canAccessAdminPanel } from '@/features/payload-cms/payload-cms/access-rules/can-access-admin-panel';
 import {
   hasAdminOrWebAccess,
+  isEditor,
   isFullAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -68,7 +68,7 @@ export const FunktionenCollection: CollectionConfig = {
   access: {
     // the labels reach every participant through the chat, which reads them server-side;
     // the collection itself is for the editors
-    read: canAccessAdminPanel,
+    read: isEditor,
     // only the sync creates a function
     create: (): boolean => false,
     update: hasAdminOrWebAccess,

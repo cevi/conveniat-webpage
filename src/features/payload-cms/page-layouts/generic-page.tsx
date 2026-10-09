@@ -4,6 +4,7 @@ import { buildMetadata } from '@/features/payload-cms/utils/metadata-helper';
 import type { Locale, LocalizedCollectionComponent } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { hasPermissions } from '@/utils/has-permissions';
+import { getPreviewTokenId } from '@/utils/preview-token';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import type { Metadata } from 'next';
@@ -18,6 +19,7 @@ import {
   getGenericPageBySlugHistoryCached,
   getGenericPageExistsBySlugCached,
   getGenericPageMetadataBySlugCached,
+  getGenericPageVersion,
 } from '@/features/payload-cms/api/cached-generic-pages';
 import type { GenericPage as GenericPageType } from '@/features/payload-cms/payload-types';
 
@@ -27,15 +29,23 @@ const GenericPage: LocalizedCollectionComponent = async ({
   slugs,
   locale,
   renderInPreviewMode,
+  previewDocumentId,
   searchParams,
 }) => {
   const slug = slugs.join('/');
 
   let previewId: string | undefined;
+  let previewVersionId: string | undefined;
+  let previewVersionToken: string | undefined;
   if (renderInPreviewMode && searchParams) {
     const awaitedParameters = await searchParams;
     const pid = awaitedParameters['previewId'];
-    previewId = Array.isArray(pid) ? pid[0] : pid;
+    // A shared link names its document in the token. Only an editor picks one with the URL.
+    previewId = previewDocumentId ?? (Array.isArray(pid) ? pid[0] : pid);
+    const versionId = awaitedParameters['previewVersion'];
+    previewVersionId = Array.isArray(versionId) ? versionId[0] : versionId;
+    const versionToken = awaitedParameters['preview-version-token'];
+    previewVersionToken = Array.isArray(versionToken) ? versionToken[0] : versionToken;
   }
 
   if (renderInPreviewMode) {
@@ -47,7 +57,18 @@ const GenericPage: LocalizedCollectionComponent = async ({
   // real-time hot-reloading inside the payload CMS live preview iframe.
   let documents: GenericPageType[] = [];
   if (renderInPreviewMode) {
-    if (previewId) {
+    if (previewVersionId !== undefined) {
+      // One stored version of the page, for the version comparison in the admin panel. That
+      // view signs a token per version once it knows its reader may see versions, so a preview
+      // link shared for the page does not open them. There is no falling back to the current
+      // draft either: that would show it under the wrong label.
+      const version =
+        previewId !== undefined && getPreviewTokenId(previewVersionToken ?? '') === previewVersionId
+          ? await getGenericPageVersion(previewVersionId, previewId, locale)
+          : undefined;
+      if (version === undefined) notFound();
+      documents = [version];
+    } else if (previewId) {
       try {
         const document_ = await getGenericPageByIDCached(previewId, locale, true);
         documents = [document_];
@@ -63,6 +84,12 @@ const GenericPage: LocalizedCollectionComponent = async ({
   } else {
     const fetchResult = await getGenericPageBySlugCached(slug, locale, false);
     documents = fetchResult.docs;
+  }
+
+  // A shared link shows its own document and nothing else this route could resolve to.
+  if (previewDocumentId !== undefined) {
+    documents = documents.filter((document_) => document_.id === previewDocumentId);
+    if (documents.length === 0) notFound();
   }
 
   const articlesInPrimaryLanguage = { docs: documents };
@@ -88,7 +115,9 @@ const GenericPage: LocalizedCollectionComponent = async ({
         <GenericPageConverter
           page={articleInPrimaryLanguage}
           locale={locale}
-          renderInPreviewMode={renderInPreviewMode}
+          // The converter reads the documents a page embeds as drafts too. A shared link
+          // covers the page alone, so its reader gets the published ones.
+          renderInPreviewMode={renderInPreviewMode && previewDocumentId === undefined}
         />
       );
     } else {
@@ -210,7 +239,8 @@ const generateMetadataInternal = async (
 ): Promise<Metadata> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', `collection:generic-page`);
+  // the reads below name the pages this entry depends on, and their tags reach this entry
+  cacheTag('payload');
 
   const slug = slugs?.join('/') ?? '';
 
@@ -252,6 +282,7 @@ const generateMetadataInternal = async (
 const generateMetadataPreview = async (
   locale: Locale,
   slugs: string[] | undefined,
+  previewDocumentId: string | undefined,
 ): Promise<Metadata> => {
   const slug = slugs?.join('/') ?? '';
 
@@ -274,6 +305,10 @@ const generateMetadataPreview = async (
 
   const page = result.docs[0];
   if (!page) return { title: 'Preview Mode' };
+  // A shared link must not reveal the title of a draft it was not minted for.
+  if (previewDocumentId !== undefined && page.id !== previewDocumentId) {
+    return { title: 'Preview Mode' };
+  }
 
   return {
     title: page.seo.metaTitle || page.content.pageTitle || 'Preview Mode',
@@ -281,9 +316,14 @@ const generateMetadataPreview = async (
   };
 };
 
-GenericPage.generateMetadata = async ({ locale, slugs, isPreview }): Promise<Metadata> => {
+GenericPage.generateMetadata = async ({
+  locale,
+  slugs,
+  isPreview,
+  previewDocumentId,
+}): Promise<Metadata> => {
   if (isPreview) {
-    return generateMetadataPreview(locale, slugs);
+    return generateMetadataPreview(locale, slugs, previewDocumentId);
   }
   return generateMetadataInternal(locale, slugs);
 };

@@ -14,7 +14,12 @@ import type { Document } from '@/features/payload-cms/payload-types';
 import prisma from '@/lib/db/prisma';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import type { CollectionAfterChangeHook, CollectionConfig, UploadConfig } from 'payload';
+import type {
+  BaseFilter,
+  CollectionAfterChangeHook,
+  CollectionConfig,
+  UploadConfig,
+} from 'payload';
 
 const schedulePdfThumbnail: CollectionAfterChangeHook<Document> = async ({ doc, req }) => {
   if (doc.mimeType === 'application/pdf' && req.context['skipPdfThumbnail'] !== true) {
@@ -87,6 +92,16 @@ const nameAndRecordDownload: NonNullable<UploadConfig['handlers']>[number] = asy
   }
 };
 
+/**
+ * Narrows the list to linked or unlinked documents. Imported on use, because the usage scan reaches
+ * the route table and with it the page layouts and this collection.
+ */
+const filterByUsage: BaseFilter = async (arguments_) => {
+  const { filterDocumentsByUsage } =
+    await import('@/features/payload-cms/payload-cms/utils/find-document-usages');
+  return filterDocumentsByUsage(arguments_);
+};
+
 export const DocumentsCollection: CollectionConfig = {
   slug: 'documents',
   folders: true,
@@ -110,6 +125,12 @@ export const DocumentsCollection: CollectionConfig = {
     /** this is broken with our localized versions */
     disableCopyToLocale: true,
     hidden: shouldHideInAdminPanel,
+    baseFilter: filterByUsage,
+    components: {
+      beforeListTable: [
+        '@/features/payload-cms/payload-cms/components/document-usage-filter#DocumentUsageFilter',
+      ],
+    },
   },
   access: {
     read: canAccessDocuments,
@@ -172,6 +193,22 @@ export const DocumentsCollection: CollectionConfig = {
           Field:
             '@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsField',
           Cell: '@/features/payload-cms/payload-cms/components/document-downloads#DocumentDownloadsCell',
+        },
+      },
+    },
+    {
+      name: 'usage',
+      label: {
+        en: 'Used in',
+        de: 'Verwendet in',
+        fr: 'Utilisé dans',
+      },
+      type: 'ui',
+      admin: {
+        position: 'sidebar',
+        components: {
+          Field: '@/features/payload-cms/payload-cms/components/document-usage#DocumentUsageField',
+          Cell: '@/features/payload-cms/payload-cms/components/document-usage#DocumentUsageCell',
         },
       },
     },

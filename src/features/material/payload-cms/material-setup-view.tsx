@@ -1,8 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { MaterialSetupForms } from '@/features/material/payload-cms/material-setup-forms';
 import {
+  getRoleGroupIds,
   hasAccessToThis,
   MATERIAL_DEPOT_ROLES,
+  Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { getAdminLocale } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import prisma from '@/lib/db/prisma';
@@ -99,7 +101,7 @@ export default async function MaterialSetupView({
     prisma.materialItem.count(),
     payload.count({ collection: 'hoefe', overrideAccess: true }),
   ]);
-  const teamGroups = environmentVariables.CEVIDB_GROUP_MATERIAL_TEAM;
+  const teamGroups = getRoleGroupIds(Roles.MaterialTeam);
 
   return (
     <DefaultTemplate
