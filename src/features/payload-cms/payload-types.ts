@@ -80,6 +80,7 @@ export interface Config {
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
+    'email-suppressions': EmailSuppression;
     'payload-workers': PayloadWorker;
     'chat-images': ChatImage;
     'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
@@ -154,6 +155,7 @@ export interface Config {
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
+    'email-suppressions': EmailSuppressionsSelect<false> | EmailSuppressionsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
@@ -236,6 +238,7 @@ export interface Config {
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       drainPushQueue: TaskDrainPushQueue;
       drainEmailOutbox: TaskDrainEmailOutbox;
+      keepCeviDbSessionAlive: TaskKeepCeviDbSessionAlive;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       syncParticipants: TaskSyncParticipants;
@@ -4816,6 +4819,20 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
+ * Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-suppressions".
+ */
+export interface EmailSuppression {
+  id: string;
+  email: string;
+  status?: string | null;
+  outgoingEmail?: (string | null) | OutgoingEmail;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Registered background worker instances and their activity heartbeats.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5172,6 +5189,7 @@ export interface PayloadJob {
           | 'publishScheduledAnnouncements'
           | 'drainPushQueue'
           | 'drainEmailOutbox'
+          | 'keepCeviDbSessionAlive'
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
           | 'syncParticipants'
@@ -5233,6 +5251,7 @@ export interface PayloadJob {
         | 'publishScheduledAnnouncements'
         | 'drainPushQueue'
         | 'drainEmailOutbox'
+        | 'keepCeviDbSessionAlive'
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
         | 'syncParticipants'
@@ -5384,6 +5403,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'outgoing-emails';
         value: string | OutgoingEmail;
+      } | null)
+    | ({
+        relationTo: 'email-suppressions';
+        value: string | EmailSuppression;
       } | null)
     | ({
         relationTo: 'payload-workers';
@@ -7447,6 +7470,17 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-suppressions_select".
+ */
+export interface EmailSuppressionsSelect<T extends boolean = true> {
+  email?: T;
+  status?: T;
+  outgoingEmail?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-workers_select".
  */
 export interface PayloadWorkersSelect<T extends boolean = true> {
@@ -8726,7 +8760,7 @@ export interface RegistrationManagement {
     [k: string]: unknown;
   } | null;
   /**
-   * Session cookie for the Cevi.DB API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   * Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
    */
   browserCookie?: string | null;
   updatedAt?: string | null;
@@ -10151,6 +10185,14 @@ export interface TaskDrainEmailOutbox {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskKeepCeviDbSessionAlive".
+ */
+export interface TaskKeepCeviDbSessionAlive {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskSyncActivePiketMembers".
  */
 export interface TaskSyncActivePiketMembers {
@@ -10274,6 +10316,7 @@ export interface TaskCreateCollectionExport {
       | 'bill-pdfs'
       | 'hoefe'
       | 'outgoing-emails'
+      | 'email-suppressions'
       | 'payload-workers'
       | 'chat-images'
       | 'smtp-bounce-mail-tracking'

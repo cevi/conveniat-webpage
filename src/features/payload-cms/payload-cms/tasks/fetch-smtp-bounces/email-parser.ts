@@ -1,3 +1,4 @@
+import { parseDeliveryReport } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
 import type { ParsedMail } from 'mailparser';
 
 export const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined => {
@@ -64,7 +65,7 @@ export const determineDeliveryStatus = (
       text.includes('action: relayed') ||
       text.includes('action: delivered'));
 
-  const dsnString = `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${rawText.trim()}`;
+  let dsnString = `Delivery Status Notification. Subject: ${parsed.subject ?? ''}.\n\nReason:\n${rawText.trim()}`;
 
   let dsnText = rawText;
   const dsnAttachment = parsed.attachments.find((a) => a.contentType === 'message/delivery-status');
@@ -76,15 +77,30 @@ export const determineDeliveryStatus = (
   const lines = dsnText.split(/\r?\n/);
 
   let currentBounce: Partial<RecipientBounce> | undefined = undefined;
+  // One report names its recipient twice, in either order. `Final-Recipient` is the address
+  // delivery was attempted to. `Original-Recipient` was our own return address on mails sent
+  // before we stopped passing it as ORCPT, so it only stands in when the report has nothing
+  // else.
+  let seen = new Set<string>();
 
   for (const line of lines) {
-    const finalRecpMatch = line.match(/^(?:Final|Original)-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
-    if (finalRecpMatch) {
-      if (currentBounce?.email !== undefined && currentBounce.email.length > 0) {
-        currentBounce.isSuccess ??= isSuccessGlobal;
-        recipientBounces.push(currentBounce as RecipientBounce);
+    const recipientMatch = line.match(/^(Final|Original)-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
+    if (recipientMatch) {
+      const kind = (recipientMatch[1] as string).toLowerCase();
+      const startsNewReport =
+        currentBounce === undefined || currentBounce.action !== undefined || seen.has(kind);
+      if (startsNewReport) {
+        if (currentBounce?.email !== undefined && currentBounce.email.length > 0) {
+          currentBounce.isSuccess ??= isSuccessGlobal;
+          recipientBounces.push(currentBounce as RecipientBounce);
+        }
+        currentBounce = {};
+        seen = new Set();
       }
-      currentBounce = { email: finalRecpMatch[1] as string };
+      seen.add(kind);
+      if (currentBounce !== undefined && (kind === 'final' || currentBounce.email === undefined)) {
+        currentBounce.email = recipientMatch[2] as string;
+      }
       continue;
     }
 
@@ -92,8 +108,11 @@ export const determineDeliveryStatus = (
       const actionMatch = line.match(/^Action:\s*([^\s]+)/i);
       if (actionMatch) {
         currentBounce.action = (actionMatch[1] as string).toLowerCase();
+        // A list that took the mail over has handed it on, the same as a relay.
         currentBounce.isSuccess =
-          currentBounce.action === 'delivered' || currentBounce.action === 'relayed';
+          currentBounce.action === 'delivered' ||
+          currentBounce.action === 'relayed' ||
+          currentBounce.action === 'expanded';
       }
 
       const statusMatch = line.match(/^Status:\s*([^\s]+)/i);
@@ -107,6 +126,14 @@ export const determineDeliveryStatus = (
     currentBounce.isSuccess ??= isSuccessGlobal;
     recipientBounces.push(currentBounce as RecipientBounce);
   }
+
+  // The stored text is all the admin panel has to tell the recipients of a report apart. A
+  // body that names fewer of them than the attached status part gets that part appended.
+  const inBody = new Set(parseDeliveryReport(rawText).map((block) => block.finalRecipient));
+  const isBodyComplete = recipientBounces.every((bounce) =>
+    inBody.has(bounce.email?.toLowerCase()),
+  );
+  if (dsnText !== rawText && !isBodyComplete) dsnString += `\n\n${dsnText.trim()}`;
 
   return {
     isSuccess: isSuccessGlobal,

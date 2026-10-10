@@ -1,4 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
+import {
+  recipientAddresses,
+  splitSuppressedRecipients,
+  suppressedReason,
+} from '@/features/payload-cms/payload-cms/utils/email-suppression';
 import type { Payload } from 'payload';
 
 export type SendEmailOptions = Parameters<Payload['sendEmail']>[0];
@@ -7,7 +12,8 @@ export type SendEmailOptions = Parameters<Payload['sendEmail']>[0];
  * What became of one tracked mail.
  *
  * An SMTP failure is recorded on the `outgoing-emails` row and does not throw, so a
- * caller that needs to know whether the mail actually left has to read this.
+ * caller that needs to know whether the mail actually left has to read this. The same
+ * goes for a mail that was withheld because every recipient is suppressed.
  */
 export interface TrackedEmailResult {
   success: boolean;
@@ -26,6 +32,8 @@ export const sendTrackedEmail = async (
 ): Promise<TrackedEmailResult> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
+    cc?: unknown;
+    bcc?: unknown;
     subject?: string;
     html?: string;
     text?: string;
@@ -89,28 +97,57 @@ export const sendTrackedEmail = async (
     }
   }
 
-  // 2. Send the email with DSN tracking
+  // 2. Send the email with DSN tracking, to everyone who has not bounced for good before
+  let deliverable: string[] = [];
+  let copies: { cc?: string[]; bcc?: string[] } = {};
+  let suppressed: string[] = [];
+  let isWithheld = false;
+
   let success = false;
   let responseOrError: unknown;
 
   try {
-    const emailPromise = await payload.sendEmail({
-      ...emailOptions,
-      ...(typeof environmentVariables.SMTP_USER === 'string' &&
-      environmentVariables.SMTP_USER.length > 0
-        ? {
-            dsn: {
-              id: String(outgoingEmailId),
-              return: 'headers',
-              notify: ['success', 'failure', 'delay'],
-              recipient: environmentVariables.SMTP_USER,
-            },
-          }
-        : {}),
-    });
+    // Inside the catch on purpose: a mail whose recipients could not be checked is not
+    // sent, and its row has to say so rather than stay `pending`.
+    // Copies count too: an address that must get no mail must not get it as a copy either.
+    const everyone = await splitSuppressedRecipients(payload, [
+      options.to,
+      options.cc,
+      options.bcc,
+    ]);
+    ({ suppressed } = everyone);
+    const allowed = (field: unknown): string[] =>
+      recipientAddresses(field).filter((address) => !suppressed.includes(address));
+    deliverable = allowed(options.to);
+    copies = {
+      ...(options.cc !== undefined && { cc: allowed(options.cc) }),
+      ...(options.bcc !== undefined && { bcc: allowed(options.bcc) }),
+    };
+    isWithheld = suppressed.length > 0 && everyone.deliverable.length === 0;
 
-    success = true;
-    responseOrError = emailPromise;
+    if (isWithheld) {
+      // Not logged as an error: this is the list doing its job, and the row says why.
+      responseOrError = suppressedReason(suppressed);
+    } else {
+      responseOrError = await payload.sendEmail({
+        ...emailOptions,
+        ...(suppressed.length > 0 ? { to: deliverable, ...copies } : {}),
+        ...(typeof environmentVariables.SMTP_USER === 'string' &&
+        environmentVariables.SMTP_USER.length > 0
+          ? {
+              dsn: {
+                id: String(outgoingEmailId),
+                return: 'headers',
+                // No `recipient`: that is the ORCPT a server echoes back as the original
+                // recipient, not the address the report is sent to. Reports go to the
+                // envelope sender anyway.
+                notify: ['success', 'failure', 'delay'],
+              },
+            }
+          : {}),
+      });
+      success = true;
+    }
   } catch (error: unknown) {
     success = false;
     responseOrError = error instanceof Error ? error.message : String(error);
@@ -119,12 +156,22 @@ export const sendTrackedEmail = async (
       msg: `Error while sending tracked email to address: ${to}. Email not sent.`,
     });
   }
+  const isPartlyWithheld = suppressed.length > 0 && !isWithheld;
 
   // 3. Prepare the SMTP result
   const smtpResult: Record<string, unknown> = {
     success,
-    to,
+    to: isPartlyWithheld ? deliverable.join(', ') : to,
+    // A resend reuses this mail's id. The time tells its reports apart from this send's.
+    sentAt: new Date().toISOString(),
   };
+  // When the mail still went to the others, the ones left out get an entry of their own.
+  const newResults = isPartlyWithheld
+    ? [
+        { success: false, to: suppressed.join(', '), error: suppressedReason(suppressed) },
+        smtpResult,
+      ]
+    : [smtpResult];
 
   if (success) {
     smtpResult['response'] = responseOrError;
@@ -139,7 +186,7 @@ export const sendTrackedEmail = async (
       id: outgoingEmailId,
     })) as { smtpResults?: unknown[] };
     const results = Array.isArray(existing.smtpResults) ? [...existing.smtpResults] : [];
-    results.push(smtpResult);
+    results.push(...newResults);
 
     await payload.update({
       collection: 'outgoing-emails',
@@ -167,7 +214,7 @@ export const sendTrackedEmail = async (
       })) as { smtpResults?: unknown[] };
 
       const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
-      subResults.push(smtpResult);
+      subResults.push(...newResults);
 
       await payload.update({
         collection: 'form-submissions',
