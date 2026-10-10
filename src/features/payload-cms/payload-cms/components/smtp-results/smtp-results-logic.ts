@@ -9,11 +9,21 @@ import { isSystemEmail } from '@/features/payload-cms/payload-cms/components/smt
  * sit in front of the `relayed` report for the same message. The last report that is not
  * `relayed` is the outcome, and `relayed` counts only when nothing else has arrived.
  *
+ * Reports from before the latest resend describe an earlier attempt, so they only count
+ * while the latest attempt has none of its own.
+ *
  * @param historyItems - All reports grouped under one recipient, in stored order.
+ * @param currentAttempt - The reports stored after the latest resend.
  * @returns The report to show as the recipient's state.
  */
-const pickFinalDsn = (historyItems: SmtpResult[]): SmtpResult | undefined =>
-  historyItems.findLast((item) => item.parsedDsn?.action !== 'relayed') ?? historyItems.at(-1);
+const pickFinalDsn = (
+  historyItems: SmtpResult[],
+  currentAttempt: Set<SmtpResult>,
+): SmtpResult | undefined => {
+  const current = historyItems.filter((item) => currentAttempt.has(item));
+  const candidates = current.length > 0 ? current : historyItems;
+  return candidates.findLast((item) => item.parsedDsn?.action !== 'relayed') ?? candidates.at(-1);
+};
 
 export const deriveSmtpItems = (
   items: SmtpResult[],
@@ -27,11 +37,15 @@ export const deriveSmtpItems = (
   const queueIdToRecipient = new Map<string, string>();
   const messageIdToRecipient = new Map<string, string>();
 
+  const currentAttempt = new Set<SmtpResult>();
+
   for (const item of items) {
     if (item.bounceReport === true) {
       dsnItems.push(item);
+      currentAttempt.add(item);
     } else {
       finalItems.push(item);
+      if (item.retriggeredBy !== undefined) currentAttempt.clear();
 
       let smtpRecipient: string | undefined;
       // Collect all expected recipients from SMTP responses
@@ -163,7 +177,7 @@ export const deriveSmtpItems = (
       }
     }
 
-    const finalState = pickFinalDsn(historyItems);
+    const finalState = pickFinalDsn(historyItems, currentAttempt);
 
     if (finalState) {
       // Create a modified item that stores the history for the tooltip

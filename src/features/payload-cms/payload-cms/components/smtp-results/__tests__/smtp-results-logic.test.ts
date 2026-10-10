@@ -49,4 +49,16 @@ describe('deriveSmtpItems', () => {
 
     expect(stateOf(items, 'anna@example.ch')).toBe(true);
   });
+
+  it('shows the resend as successful although the first attempt bounced', () => {
+    const resend: SmtpResult = { ...smtpAccepted, retriggeredBy: 'admin' };
+    const items = [
+      smtpAccepted,
+      dsn('anna@example.ch', 'failed'),
+      resend,
+      dsn('anna@example.ch', 'relayed'),
+    ];
+
+    expect(stateOf(items, 'anna@example.ch')).toBe(true);
+  });
 });

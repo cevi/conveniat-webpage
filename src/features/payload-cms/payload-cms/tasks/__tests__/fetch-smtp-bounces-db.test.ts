@@ -25,6 +25,18 @@ const applyBounce = async (payload: FakePayload): Promise<boolean> =>
     'raw email',
   );
 
+const bounce = { bounceReport: true, success: false, error: 'Reason:\nAction: failed' };
+const delayed = { bounceReport: true, success: false, error: 'Reason:\nAction: delayed' };
+const resend = { success: true, retriggeredBy: 'admin' };
+
+const statusAfterSuccessReport = async (smtpResults: unknown[]): Promise<unknown> => {
+  const payload = fakePayload();
+  payload.findByID.mockResolvedValueOnce({ smtpResults });
+  await applyBounce(payload);
+  const call = payload.update.mock.calls[0] as [{ data: { deliveryStatus: unknown } }];
+  return call[0].data.deliveryStatus;
+};
+
 describe('updateTrackingRecords', () => {
   it('reports no match when neither collection holds the envelope id', async () => {
     const payload = fakePayload();
@@ -66,27 +78,18 @@ describe('updateTrackingRecords', () => {
   it('keeps an email bounced when a success report is read after the bounce', async () => {
     // The relay's "relayed" report and the recipient server's bounce are two notifications
     // for one message, and the mailbox does not hand them over in the order they happened.
-    const payload = fakePayload();
-    payload.findByID.mockResolvedValueOnce({ smtpResults: [], deliveryStatus: 'error' });
-
-    await expect(applyBounce(payload)).resolves.toBe(true);
-    expect(payload.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        collection: 'outgoing-emails',
-        data: expect.objectContaining({ deliveryStatus: 'error' }) as unknown,
-      }),
-    );
+    await expect(statusAfterSuccessReport([bounce])).resolves.toBe('error');
   });
 
   it('marks an email delivered when a success report is the first verdict', async () => {
-    const payload = fakePayload();
-    payload.findByID.mockResolvedValueOnce({ smtpResults: [], deliveryStatus: 'success' });
+    await expect(statusAfterSuccessReport([])).resolves.toBe('success');
+  });
 
-    await expect(applyBounce(payload)).resolves.toBe(true);
-    expect(payload.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ deliveryStatus: 'success' }) as unknown,
-      }),
-    );
+  it('marks an email delivered when delivery follows a delay notice', async () => {
+    await expect(statusAfterSuccessReport([delayed])).resolves.toBe('success');
+  });
+
+  it('marks a resent email delivered although the first attempt bounced', async () => {
+    await expect(statusAfterSuccessReport([bounce, resend])).resolves.toBe('success');
   });
 });

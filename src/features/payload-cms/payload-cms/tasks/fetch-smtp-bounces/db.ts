@@ -18,6 +18,18 @@ const MAX_TOTAL_DSN_EMAIL_LENGTH = 39_000;
 const isNotFound = (error: unknown): boolean =>
   typeof error === 'object' && error !== null && 'status' in error && error.status === 404;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isRetriggered = (result: unknown): boolean =>
+  isRecord(result) && result['retriggeredBy'] !== undefined;
+
+const isBounce = (result: unknown): boolean =>
+  isRecord(result) &&
+  result['bounceReport'] === true &&
+  typeof result['error'] === 'string' &&
+  /^Action:\s*failed/im.test(result['error']);
+
 export const updateTrackingRecords = async (
   payload: Payload,
   envelopeId: string,
@@ -32,7 +44,6 @@ export const updateTrackingRecords = async (
         formSubmission?: string | { id: string };
         rawDsnEmail?: string;
         to?: string;
-        deliveryStatus?: string | null;
       }
     | undefined;
 
@@ -118,8 +129,10 @@ export const updateTrackingRecords = async (
 
     // Reports arrive per hop and per recipient, in mailbox order. A success report read after
     // a bounce is the relay confirming a hand-off or another recipient being reached, so it
-    // must not clear the bounce. A resend or a manual override resets the status.
-    const hasBounced = !isSuccess || outgoingEmail.deliveryStatus === 'error';
+    // must not clear the bounce. Only a `failed` report of the current attempt counts: a
+    // `delayed` one is temporary, and a resend or a manual override starts over.
+    const lastReset = results.findLastIndex((result) => isRetriggered(result));
+    const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
 
     await payload.update({
       collection: 'outgoing-emails',
