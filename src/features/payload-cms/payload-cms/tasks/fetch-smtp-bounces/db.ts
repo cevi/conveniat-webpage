@@ -1,3 +1,5 @@
+import type { RecipientBounce } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
+import { suppressBouncedRecipient } from '@/features/payload-cms/payload-cms/utils/email-suppression';
 import type { Payload } from 'payload';
 
 const MAX_RAW_EMAIL_LENGTH = 20_000;
@@ -37,6 +39,8 @@ export const updateTrackingRecords = async (
   dsnString: string,
   rawEmail: string,
   recipientEmail?: string,
+  /** What the notification says happened to `recipientEmail`. */
+  bounce?: Pick<RecipientBounce, 'action' | 'status'>,
 ): Promise<boolean> => {
   let outgoingEmail:
     | {
@@ -145,6 +149,12 @@ export const updateTrackingRecords = async (
         dsnReceivedAt: new Date().toISOString(),
       },
     });
+
+    await suppressBouncedRecipient(
+      payload,
+      { id: envelopeId, to: outgoingEmail.to },
+      { email: recipientEmail, ...bounce },
+    );
 
     const formSubmissionRelated = outgoingEmail.formSubmission;
     const formSubmissionId =
