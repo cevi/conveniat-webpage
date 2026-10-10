@@ -19,6 +19,7 @@ export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
   slugs,
   locale,
   renderInPreviewMode,
+  previewDocumentId,
 }) => {
   return await withSpan('TimelinePreviewPage', async () => {
     // we use this page only for a preview of the news entry
@@ -26,6 +27,8 @@ export const TimelinePreviewPage: React.FC<LocalizedCollectionPage> = async ({
     if (slugs.length === 0) return notFound();
 
     const uuid = slugs[0];
+    // A shared link shows the entry it was minted for and no other.
+    if (previewDocumentId !== undefined && uuid !== previewDocumentId) notFound();
     const payload = await getPayload({ config });
     const timeLineItems = await payload.find({
       collection: 'timeline',

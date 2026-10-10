@@ -51,8 +51,11 @@ interface SyncLogger {
   debug?: (message: string) => void;
 }
 
-/** Statuses whose bill has left the house, so the Cevi.DB must read "Rechnung gestellt". */
-const BILL_IS_OUT_STATUSES = new Set(['bill_sent', 'reminder_sent']);
+/**
+ * Statuses for which the Cevi.DB must read "Rechnung gestellt". That is written when the
+ * bill's mail is queued, so a bill still waiting to leave counts.
+ */
+const BILL_IS_OUT_STATUSES = new Set(['bill_mail_pending', 'bill_sent', 'reminder_sent']);
 
 /**
  * Below this many active registrations, a large proportional drop says nothing — losing

@@ -4,6 +4,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
 import type { SpecialRouteResolutionEntry } from '@/features/payload-cms/special-pages-table';
 import { getSpecialPage, isSpecialPage } from '@/features/payload-cms/special-pages-table';
+import type { PreviewAccess } from '@/features/payload-cms/utils/preview/preview-utils';
 import { PreviewWarning } from '@/features/payload-cms/utils/preview/preview-utils';
 import type { Locale, SearchParameters } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -49,6 +50,8 @@ const getCanonicalData = (
 const normalizeAlternativePath = (alternativePath: string): string =>
   alternativePath.replace(/^\/+/, '');
 
+const NO_PREVIEW: PreviewAccess = { renderInPreviewMode: false, previewDocumentId: undefined };
+
 const validLocales = new Set<string>(i18nConfig.locales);
 const validDesigns = new Set<string>(Object.values(DesignCodes));
 
@@ -80,7 +83,7 @@ const handleSpecialPage = (collection: string, locale: Locale): Metadata => {
 const resolveRouteMetadata = async (
   locale: Locale,
   slugs: string[] | undefined,
-  isPreview: boolean,
+  { renderInPreviewMode, previewDocumentId }: PreviewAccess,
 ): Promise<Metadata> => {
   const collection = slugs?.[0] ?? '';
   const remainingSlugs = slugs?.slice(1) ?? [];
@@ -100,7 +103,8 @@ const resolveRouteMetadata = async (
     return await collectionPage.component.generateMetadata({
       locale,
       slugs: remainingSlugs,
-      isPreview,
+      isPreview: renderInPreviewMode,
+      previewDocumentId,
     });
   }
 
@@ -125,7 +129,7 @@ const readRouteMetadata = async (
   cacheLife('hours');
   cacheTag('payload', `route-metadata:${locale}:${(slugs ?? []).join('/')}`);
 
-  return await resolveRouteMetadata(locale, slugs, false);
+  return await resolveRouteMetadata(locale, slugs, NO_PREVIEW);
 };
 
 /**
@@ -138,13 +142,18 @@ const readRouteMetadata = async (
  * up to an hour old.
  */
 const generateMetadataCached = cache(
-  async (locale: Locale, slugs: string[] | undefined, isPreview: boolean): Promise<Metadata> => {
+  async (
+    locale: Locale,
+    slugs: string[] | undefined,
+    renderInPreviewMode: boolean,
+    previewDocumentId: string | undefined,
+  ): Promise<Metadata> => {
     if (await forceDynamicOnBuild()) {
       return {};
     }
 
-    if (isPreview) {
-      return await resolveRouteMetadata(locale, slugs, true);
+    if (renderInPreviewMode) {
+      return await resolveRouteMetadata(locale, slugs, { renderInPreviewMode, previewDocumentId });
     }
 
     return await readRouteMetadata(locale, slugs);
@@ -174,7 +183,7 @@ export const generateMetadata = async ({
     return {};
   }
 
-  let isPreview = false;
+  let previewAccess = NO_PREVIEW;
   try {
     const awaitedSearchParameters = await searchParams;
     const previewParameter = awaitedSearchParameters['preview'];
@@ -183,9 +192,9 @@ export const generateMetadata = async ({
       (Array.isArray(previewParameter) && previewParameter[0] === 'true');
 
     if (isPreviewRequested) {
-      const { canAccessPreviewOfCurrentPage } =
+      const { resolvePreviewAccess } =
         await import('@/features/payload-cms/utils/preview/preview-utils');
-      isPreview = await canAccessPreviewOfCurrentPage(awaitedSearchParameters);
+      previewAccess = await resolvePreviewAccess(awaitedSearchParameters);
     }
   } catch (error) {
     // Let Next.js control-flow errors (dynamic rendering signals, redirect, notFound)
@@ -206,7 +215,12 @@ export const generateMetadata = async ({
   // prerendering, `connection()` rejects when the prerender is complete"), throwing away the
   // prerender pass for every request to this route.
   await forceDynamicOnBuild();
-  return await generateMetadataCached(locale as Locale, slugs, isPreview);
+  return await generateMetadataCached(
+    locale as Locale,
+    slugs,
+    previewAccess.renderInPreviewMode,
+    previewAccess.previewDocumentId,
+  );
 };
 
 /**
@@ -250,14 +264,15 @@ const CMSPage: React.FC<{
     previewParameter === 'true' ||
     (Array.isArray(previewParameter) && previewParameter[0] === 'true');
 
-  // check if the user is allowed to access the preview of the current page
-  let renderInPreviewMode = false;
+  // check if the user may preview, and if so whether that is every draft or one document
+  let previewAccess = NO_PREVIEW;
   if (isPreviewRequested) {
-    const { canAccessPreviewOfCurrentPage } =
+    const { resolvePreviewAccess } =
       await import('@/features/payload-cms/utils/preview/preview-utils');
 
-    renderInPreviewMode = await canAccessPreviewOfCurrentPage(searchParameters);
+    previewAccess = await resolvePreviewAccess(searchParameters);
   }
+  const { renderInPreviewMode, previewDocumentId } = previewAccess;
 
   // A stored version is only ever shown as a preview. Without one the published page would
   // be rendered in its place and pass for that version.
@@ -285,6 +300,7 @@ const CMSPage: React.FC<{
           <specialPage.component
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
+            previewDocumentId={previewDocumentId}
             locale={validatedLocale}
             searchParams={searchParametersPromise}
           />
@@ -329,6 +345,7 @@ const CMSPage: React.FC<{
             locale={validatedLocale}
             slugs={remainingSlugs}
             renderInPreviewMode={renderInPreviewMode}
+            previewDocumentId={previewDocumentId}
             searchParams={searchParametersPromise}
           />
 

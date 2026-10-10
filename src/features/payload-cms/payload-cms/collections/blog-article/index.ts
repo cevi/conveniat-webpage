@@ -17,7 +17,10 @@ import { mainContentField } from '@/features/payload-cms/payload-cms/shared-fiel
 import { permissionsField } from '@/features/payload-cms/payload-cms/shared-fields/permissions-field';
 import { releaseDate } from '@/features/payload-cms/payload-cms/shared-fields/release-date-field';
 import { seoTab } from '@/features/payload-cms/payload-cms/shared-tabs/seo-tab';
-import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
+import {
+  flushPageCacheOnChange,
+  rememberLinkTarget,
+} from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { linkTargetPopulate } from '@/features/payload-cms/payload-cms/utils/link-target-populate';
 import { asLocalizedCollection } from '@/features/payload-cms/payload-cms/utils/localized-collection';
 import type { CollectionConfig } from 'payload';
@@ -32,7 +35,11 @@ export const BlogArticleCollection: CollectionConfig = asLocalizedCollection({
     update: hasEditorialAccess,
     delete: hasAdminOrWebAccess,
   },
-  hooks: { beforeChange: [trackSlugHistory], afterChange: [flushPageCacheOnChange] },
+  hooks: {
+    beforeOperation: [rememberLinkTarget],
+    beforeChange: [trackSlugHistory],
+    afterChange: [flushPageCacheOnChange],
+  },
 
   labels: {
     singular: {

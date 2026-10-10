@@ -1,8 +1,10 @@
 import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-settings.adapter';
 import type { BillingAdminDocumentKey } from '@/features/billing/admin-documents';
+import { flattenHofEvents } from '@/features/billing/services/hof-events';
 import type { WeeklySlotConfig } from '@/features/billing/services/send-weekly-report';
 import { isWeeklySlotDue, parseRecipients } from '@/features/billing/services/send-weekly-report';
 import { BillingTaskSlug } from '@/features/billing/types';
+import { queueBackgroundEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import { HITOBITO_CONFIG } from '@/lib/hitobito';
@@ -24,6 +26,8 @@ export interface ReminderEventSettings {
   eventId?: string | null;
   eventName?: string | null;
   addressManagerEmails?: string | null;
+  /** The synced AVPs behind `addressManagerEmails`, which is where the names come from. */
+  addressManagers?: { name?: string | null; email?: string | null }[] | null | undefined;
   reminderRecipientsOverride?: string | null;
 }
 
@@ -32,6 +36,8 @@ export interface EventReminderGroup {
   eventId: string;
   eventName: string;
   recipients: string[];
+  /** How to address the recipients, one entry each; empty unless every one is known. */
+  recipientNames: string[];
   participants: BillParticipant[];
 }
 
@@ -51,7 +57,7 @@ export interface PflichtangabenReminderSummary {
 const DEFAULT_SUBJECT = 'conveniat27 – fehlende Pflichtangaben in {{eventName}}';
 
 const DEFAULT_BODY =
-  'Hallo\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:';
+  'Hallo {{names}}\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:';
 
 const CLOSING =
   'Sobald die Angaben in der Cevi.DB ergänzt sind, werden die Anmeldungen beim nächsten Abgleich automatisch verrechnet.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen';
@@ -125,6 +131,46 @@ export function selectNotRecentlyReminded(
 }
 
 /**
+ * What to call an AVP in the greeting: the v/o where there is one, as Cevi people address
+ * each other, otherwise the full name. `name` is formatted by `formatUserFullName`.
+ */
+const greetingName = (name: string): string => {
+  const [, nickname] = /(?:^|\s)v\/o\s+(.+)$/i.exec(name) ?? [];
+  return (nickname ?? name).trim();
+};
+
+/**
+ * The names behind a list of recipients, in the order the mail goes out.
+ *
+ * All or nothing: an override address has no name on the Hof, and greeting two of three
+ * recipients reads as if the third was not meant, so one unknown address empties the list.
+ *
+ * `addressManagers` is written by the Hof sync and read back from the database, so a row
+ * synced before the names existed has neither.
+ */
+export function resolveRecipientNames(
+  recipients: string[],
+  addressManagers: ReminderEventSettings['addressManagers'],
+): string[] {
+  const names = new Map<string, string>();
+  for (const manager of Array.isArray(addressManagers) ? addressManagers : []) {
+    if (typeof manager.email !== 'string' || typeof manager.name !== 'string') continue;
+    const name = greetingName(manager.name);
+    if (name !== '') names.set(manager.email.toLowerCase(), name);
+  }
+
+  const resolved = recipients.map((recipient) => names.get(recipient.toLowerCase()));
+  return resolved.every((name): name is string => name !== undefined) ? resolved : [];
+}
+
+/** «Pfiff», «Pfiff und Sirius», «Pfiff, Sirius und Fuchs» — or «zusammen» for nobody known. */
+export function formatRecipientNames(names: string[]): string {
+  if (names.length === 0) return 'zusammen';
+  if (names.length === 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} und ${names.at(-1) ?? ''}`;
+}
+
+/**
  * Splits the registrations into one mail per Hof.
  *
  * An event whose settings row has no addresses is still returned, with an empty recipient
@@ -146,13 +192,15 @@ export function groupRemindersByEvent(
     }
 
     const settings = events.find((event) => event.eventId === eventId);
+    const recipients = parseRecipients(
+      settings?.reminderRecipientsOverride,
+      settings?.addressManagerEmails,
+    );
     groups.set(eventId, {
       eventId,
       eventName: settings?.eventName ?? participant.eventName ?? eventId,
-      recipients: parseRecipients(
-        settings?.reminderRecipientsOverride,
-        settings?.addressManagerEmails,
-      ),
+      recipients,
+      recipientNames: resolveRecipientNames(recipients, settings?.addressManagers),
       participants: [participant],
     });
   }
@@ -163,9 +211,10 @@ export function groupRemindersByEvent(
 /** Fills the placeholders the subject and the intro may use. */
 export function applyReminderPlaceholders(
   template: string,
-  values: { eventName: string; count: number },
+  values: { eventName: string; count: number; names: string },
 ): string {
   return template
+    .replaceAll('{{names}}', values.names)
     .replaceAll('{{eventName}}', values.eventName)
     .replaceAll('{{count}}', String(values.count));
 }
@@ -354,7 +403,15 @@ async function sendPflichtangabenRemindersLocked(
       errors: [],
     };
 
-  const hofEvents = await new PayloadSettingsAdapter(payload).getHofEvents();
+  // Read per Hof rather than through `getHofEvents`: the flat event rows deliberately leave
+  // the AVPs' names on the Hof, and the greeting needs them.
+  const hoefe = await new PayloadSettingsAdapter(payload).getHoefe();
+  const hofEvents = hoefe.flatMap((hof) =>
+    flattenHofEvents([hof]).map((event): ReminderEventSettings => ({
+      ...event,
+      addressManagers: hof.addressManagers,
+    })),
+  );
   const groups = groupRemindersByEvent(overdue, hofEvents);
   const errors: string[] = [];
   let mailCount = 0;
@@ -370,7 +427,11 @@ async function sendPflichtangabenRemindersLocked(
       continue;
     }
 
-    const placeholders = { eventName: group.eventName, count: group.participants.length };
+    const placeholders = {
+      eventName: group.eventName,
+      count: group.participants.length,
+      names: formatRecipientNames(group.recipientNames),
+    };
     const subject = applyReminderPlaceholders(config?.subject ?? DEFAULT_SUBJECT, placeholders);
     const text = renderReminderText({
       eventName: group.eventName,
@@ -379,12 +440,14 @@ async function sendPflichtangabenRemindersLocked(
       hitobitoBaseUrl: HITOBITO_CONFIG.baseUrl,
     });
 
-    const delivery = await sendTrackedEmail(
-      payload,
-      { to: group.recipients.join(', '), subject, text },
-      undefined,
-      group.participants.map((participant) => participant.id),
-    );
+    const mail = { to: group.recipients.join(', '), subject, text };
+    const participantIds = group.participants.map((participant) => participant.id);
+    // The weekly run goes through the outgoing mail queue, which paces it. A reminder an
+    // operator sends for one registration is mail somebody is waiting for.
+    const delivery =
+      options.participantId === undefined
+        ? await queueBackgroundEmail(payload, mail, participantIds)
+        : await sendTrackedEmail(payload, mail, undefined, participantIds);
 
     if (!delivery.success) {
       // The SMTP failure is already on the outgoing-emails row. What matters here is that

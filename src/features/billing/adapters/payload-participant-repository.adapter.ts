@@ -60,7 +60,11 @@ export class PayloadParticipantRepositoryAdapter implements ParticipantRepositor
     const result = await this.payload.find({
       collection: 'bill-participants',
       where: {
-        or: [{ status: { equals: 'bill_created' } }, { status: { equals: 'bill_sent' } }],
+        or: [
+          { status: { equals: 'bill_created' } },
+          { status: { equals: 'bill_mail_pending' } },
+          { status: { equals: 'bill_sent' } },
+        ],
       },
       limit: 10_000,
       context: { internal: true },

@@ -680,6 +680,14 @@ export const BillParticipantsCollection: CollectionConfig = {
           value: 'bill_created',
         },
         {
+          label: {
+            en: 'Bill queued for sending',
+            de: 'Rechnung im Versand',
+            fr: "Facture en cours d'envoi",
+          },
+          value: 'bill_mail_pending',
+        },
+        {
           label: { en: 'Bill Sent', de: 'Rechnung gesendet', fr: 'Facture envoyée' },
           value: 'bill_sent',
         },

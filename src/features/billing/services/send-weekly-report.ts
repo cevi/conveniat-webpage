@@ -6,6 +6,7 @@ import {
   buildWeeklyReportAttachment,
   findWeeklyReportParticipants,
 } from '@/features/billing/services/weekly-report-document';
+import { queueBackgroundEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import type { Payload } from 'payload';
 
 /**
@@ -126,6 +127,9 @@ export function applyReportPlaceholders(template: string, report: WeeklyReport):
 /**
  * Builds the weekly report and emails it.
  *
+ * The mails go into the outgoing mail queue like every other background mail, so a report
+ * that falls into an hour full of bills waits for room instead of being refused.
+ *
  * Clean separation between General Report and Finance Mail:
  * - `config.recipients` receives the general registration report (PDF).
  *   Crucially, this email NEVER contains the confidential billing Excel sheet.
@@ -238,7 +242,7 @@ export async function sendWeeklyReport(
       );
       const text = applyReportPlaceholders(config?.body ?? '', report);
 
-      await payload.sendEmail({
+      await queueBackgroundEmail(payload, {
         to: generalRecipients.join(', '),
         subject,
         text,
@@ -252,7 +256,7 @@ export async function sendWeeklyReport(
       }
 
       payload.logger.info(
-        `General weekly report sent to ${String(generalRecipients.length)} recipient(s) with ${String(generalAttachments.length)} attachment(s).`,
+        `General weekly report queued for ${String(generalRecipients.length)} recipient(s) with ${String(generalAttachments.length)} attachment(s).`,
       );
     }
 
@@ -271,7 +275,7 @@ export async function sendWeeklyReport(
       );
       const text = applyReportPlaceholders(config?.financeBody ?? defaultFinanceBody, report);
 
-      await payload.sendEmail({
+      await queueBackgroundEmail(payload, {
         to: financeRecipients.join(', '),
         subject,
         text,
@@ -285,7 +289,7 @@ export async function sendWeeklyReport(
       }
 
       payload.logger.info(
-        `Finance weekly report sent to ${String(financeRecipients.length)} recipient(s) with ${String(financeAttachments.length)} attachment(s).`,
+        `Finance weekly report queued for ${String(financeRecipients.length)} recipient(s) with ${String(financeAttachments.length)} attachment(s).`,
       );
     }
 

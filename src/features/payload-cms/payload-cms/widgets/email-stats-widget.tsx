@@ -14,6 +14,11 @@ const labels = {
     de: 'Erfolgreich gesendet',
     fr: 'Envoyé avec succès',
   },
+  queued: {
+    en: 'Queued',
+    de: 'In Warteschlange',
+    fr: "En file d'attente",
+  },
   errors: {
     en: 'Bounces / Errors',
     de: 'Fehler / Unzustellbar',
@@ -45,6 +50,12 @@ export default async function EmailStatsWidget({
     },
   });
 
+  // Not limited to the week: a mail that has waited longer than that is the one to notice.
+  const queuedCountResponse = await payload.count({
+    collection: 'outgoing-emails',
+    where: { deliveryStatus: { equals: 'queued' } },
+  });
+
   const sentCount = sentCountResponse.totalDocs;
   const errorCount = errorCountResponse.totalDocs;
 
@@ -53,6 +64,7 @@ export default async function EmailStatsWidget({
       title={title[locale as Locale]}
       stats={[
         { value: sentCount, label: labels.sent[locale as Locale] },
+        { value: queuedCountResponse.totalDocs, label: labels.queued[locale as Locale] },
         { value: errorCount, label: labels.errors[locale as Locale], isAlert: errorCount > 0 },
       ]}
     />

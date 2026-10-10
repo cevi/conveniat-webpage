@@ -16,6 +16,15 @@ jest.mock('@/features/billing/adapters/redis-run-lock.adapter', () => ({
   })),
 }));
 
+// The report's mails go into the outgoing mail queue. The double hands each one to the
+// payload double's `sendEmail`, so the tests below can read what was queued from there.
+jest.mock('@/features/payload-cms/payload-cms/utils/email-outbox', () => ({
+  queueBackgroundEmail: (
+    payload: { sendEmail: (mail: unknown) => Promise<unknown> },
+    mail: unknown,
+  ): Promise<unknown> => payload.sendEmail(mail),
+}));
+
 jest.mock('@/features/billing/services/render-weekly-report', () => ({
   renderWeeklyReportPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
 }));

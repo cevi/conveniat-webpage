@@ -235,6 +235,7 @@ export interface Config {
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       drainPushQueue: TaskDrainPushQueue;
+      drainEmailOutbox: TaskDrainEmailOutbox;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       syncParticipants: TaskSyncParticipants;
@@ -4696,6 +4697,7 @@ export interface BillParticipant {
     | 'invalid_anmeldeangaben'
     | 'needs_manual_review'
     | 'bill_created'
+    | 'bill_mail_pending'
     | 'bill_sent'
     | 'removed'
     | 're_added'
@@ -4769,7 +4771,7 @@ export interface BillPdf {
  */
 export interface OutgoingEmail {
   id: string;
-  deliveryStatus?: ('pending' | 'success' | 'error') | null;
+  deliveryStatus?: ('queued' | 'pending' | 'success' | 'error') | null;
   dsnReceivedAt?: string | null;
   smtpReceivedAt?: string | null;
   to: string;
@@ -4800,6 +4802,15 @@ export interface OutgoingEmail {
     | boolean
     | null;
   rawDsnEmail?: string | null;
+  queuedAttachments?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   createdAt: string;
   lastRetriggeredBy?: (string | null) | User;
   updatedAt: string;
@@ -5160,6 +5171,7 @@ export interface PayloadJob {
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
           | 'drainPushQueue'
+          | 'drainEmailOutbox'
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
           | 'syncParticipants'
@@ -5220,6 +5232,7 @@ export interface PayloadJob {
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
         | 'drainPushQueue'
+        | 'drainEmailOutbox'
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
         | 'syncParticipants'
@@ -7427,6 +7440,7 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   smtpResults?: T;
   rawSmtpResults?: T;
   rawDsnEmail?: T;
+  queuedAttachments?: T;
   createdAt?: T;
   lastRetriggeredBy?: T;
   updatedAt?: T;
@@ -9123,11 +9137,11 @@ export interface BillSetting {
      */
     minDaysMissing?: number | null;
     /**
-     * Placeholders: {{eventName}}, {{count}}.
+     * Placeholders: {{eventName}}, {{count}}, {{names}}.
      */
     subject?: string | null;
     /**
-     * Intro above the list of registrations. Same placeholders as the subject.
+     * Intro above the list of registrations. Same placeholders as the subject; {{names}} is the AVPs the mail goes to, or "zusammen" when a recipient has no name on the Hof.
      */
     body?: string | null;
     /**
@@ -10124,6 +10138,14 @@ export interface TaskPublishScheduledAnnouncements {
  * via the `definition` "TaskDrainPushQueue".
  */
 export interface TaskDrainPushQueue {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskDrainEmailOutbox".
+ */
+export interface TaskDrainEmailOutbox {
   input?: unknown;
   output?: unknown;
 }

@@ -2,7 +2,7 @@ import { environmentVariables as env } from '@/config/environment-variables';
 import { FEATURE_FLAG_DEFAULTS } from '@/lib/feature-flags';
 import { createLogger } from '@/utils/server-logger';
 import Redis from 'ioredis';
-import { revalidateTag, unstable_cache } from 'next/cache';
+import { cacheLife, cacheTag, revalidateTag, unstable_cache } from 'next/cache';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
 const logger = createLogger('redis');
@@ -53,6 +53,8 @@ redis.on('error', (error: { code: string }) => {
 });
 
 export const FEATURE_FLAG_PREFIX = 'feature-flag:';
+const FEATURE_FLAG_CACHE_TAG = 'feature-flags';
+const FEATURE_FLAG_REVALIDATE_SECONDS = 60;
 
 const fetchCachedFeatureFlag = unstable_cache(
   async (key: string): Promise<boolean> => {
@@ -62,8 +64,8 @@ const fetchCachedFeatureFlag = unstable_cache(
   },
   ['feature-flags-cache'],
   {
-    revalidate: 60,
-    tags: ['feature-flags'],
+    revalidate: FEATURE_FLAG_REVALIDATE_SECONDS,
+    tags: [FEATURE_FLAG_CACHE_TAG],
   },
 );
 
@@ -79,10 +81,31 @@ export const getFeatureFlag = async (key: string): Promise<boolean> => {
   }
 };
 
+/**
+ * Reads a feature flag for a component that renders into a prerendered shell.
+ *
+ * `getFeatureFlag` caches through `unstable_cache`, and Next.js skips that cache when it
+ * regenerates a page whose `expire` has passed, because it treats the regeneration as an
+ * on-demand revalidation. The Redis round trip is then plain I/O in the middle of the prerender,
+ * and outside `<Suspense>` it fails the whole route with `NEXT_STATIC_GEN_BAILOUT`: the first
+ * request to any app page nobody opened for a day got a 500. Inside `'use cache'` the same read
+ * is cache work that the prerender waits for.
+ *
+ * Everything else keeps `getFeatureFlag`: `'use cache'` needs a render or a request around it,
+ * which a Payload job does not have.
+ */
+export const getFeatureFlagForPrerender = async (key: string): Promise<boolean> => {
+  'use cache';
+  cacheLife({ revalidate: FEATURE_FLAG_REVALIDATE_SECONDS });
+  cacheTag(FEATURE_FLAG_CACHE_TAG);
+
+  return await getFeatureFlag(key);
+};
+
 export const setFeatureFlag = async (key: string, value: boolean): Promise<void> => {
   await redis.set(`${FEATURE_FLAG_PREFIX}${key}`, String(value));
   try {
-    revalidateTag('feature-flags', 'max');
+    revalidateTag(FEATURE_FLAG_CACHE_TAG, 'max');
   } catch {
     // Ignore when executed outside request context (e.g., seeding scripts)
   }

@@ -4,6 +4,8 @@ export const DSN_TIMEOUT_MS = 48 * 60 * 60 * 1000; // 48 hours
 
 export const LOCALIZED_SMTP_LABELS = {
   en: {
+    queued: 'Queued',
+    queuedTooltip: 'Waiting for room in the hourly sending limit. Sent automatically.',
     smtpSuccess: 'SMTP: Sent Successfully',
     smtpError: 'SMTP: Failed to send',
     smtpEmpty: 'SMTP: No data',
@@ -30,6 +32,8 @@ export const LOCALIZED_SMTP_LABELS = {
     rejectionGeneric: 'Delivery failed.',
   },
   de: {
+    queued: 'In Warteschlange',
+    queuedTooltip: 'Wartet auf Platz im stündlichen Versandlimit. Wird automatisch versendet.',
     smtpSuccess: 'SMTP: Erfolgreich versendet',
     smtpError: 'SMTP: Fehler beim Versenden',
     smtpEmpty: 'SMTP: Keine Daten',
@@ -57,6 +61,8 @@ export const LOCALIZED_SMTP_LABELS = {
     rejectionGeneric: 'Zustellung fehlgeschlagen.',
   },
   fr: {
+    queued: "En file d'attente",
+    queuedTooltip: "En attente de place dans la limite d'envoi horaire. Envoi automatique.",
     smtpSuccess: 'SMTP: Envoyé avec succès',
     smtpError: "SMTP: Erreur d'envoi",
     smtpEmpty: 'SMTP: Aucune donnée',

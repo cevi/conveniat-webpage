@@ -71,12 +71,11 @@ const Message: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Panel className="space-y-4 text-sm text-gray-700">{children}</Panel>
 );
 
+// next-auth navigates to Cevi.DB itself. With `redirect: false` it answers `undefined` whenever
+// it cannot load its providers, a second tap during the first redirect for one, so there is no
+// response to read a URL from.
 const signInWithCeviDatabase = async (): Promise<void> => {
-  const response = await signIn('cevi-db', {
-    redirect: false,
-    callbackUrl: globalThis.location.href,
-  });
-  if (typeof response.url === 'string') globalThis.location.href = response.url;
+  await signIn('cevi-db', { callbackUrl: globalThis.location.href });
 };
 
 /** Where every form stands today, by form id. */

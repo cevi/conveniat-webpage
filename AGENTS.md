@@ -307,7 +307,10 @@ Never open a pull request unless I asked for one. One concern per pull request. 
 says "also", split it.
 
 The test workflow runs on every pull request, whatever it is based on, because a required check
-that never reports would leave a stacked pull request pending forever.
+that never reports would leave a stacked pull request pending forever. For the same reason a
+check is never filtered by path: a pull request that changes only the changelog, the release-please
+manifest and the version in `package.json` still starts both workflows, and the `eslint` and test
+jobs run, find nothing but a release in the diff and skip their remaining steps.
 
 ## Taste
 

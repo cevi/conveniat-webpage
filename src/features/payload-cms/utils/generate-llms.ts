@@ -12,7 +12,7 @@ import { getPayload } from 'payload';
 export const cachedLlmsGenerator = async (): Promise<string> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'generic-page', 'blog');
+  cacheTag('payload', 'collection:generic-page', 'collection:blog');
 
   const APP_HOST_URL = environmentVariables.APP_HOST_URL;
   const lines: string[] = [];

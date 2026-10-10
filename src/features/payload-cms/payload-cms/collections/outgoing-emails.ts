@@ -11,7 +11,28 @@ import {
   EMAIL_SENDER_ADDRESS,
   EMAIL_SENDER_DOMAIN,
 } from '@/features/payload-cms/payload-cms/utils/email-sender';
-import type { CollectionConfig, FieldHook } from 'payload';
+import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
+import type { CollectionAfterChangeHook, CollectionConfig, FieldHook } from 'payload';
+
+/**
+ * A bill counts as sent once its mail has left, and a mail can turn `success` from three
+ * places: the queue, a resend, an admin's override. Watching the row covers all of them.
+ *
+ * Billing is imported lazily, because its collections import this config.
+ */
+const markBillSentOnDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
+  doc,
+  previousDoc,
+  req,
+}) => {
+  const before = (previousDoc as Partial<OutgoingEmail> | undefined)?.deliveryStatus;
+  if (doc.deliveryStatus !== 'success' || before === 'success') return doc;
+  const { billParticipantIdOf, markBillMailSent } =
+    await import('@/features/billing/services/bill-mail-status');
+  const participantId = billParticipantIdOf(doc);
+  if (participantId !== undefined) await markBillMailSent(req.payload, participantId, doc.to);
+  return doc;
+};
 
 export const OutgoingEmails: CollectionConfig = {
   slug: 'outgoing-emails',
@@ -50,6 +71,7 @@ export const OutgoingEmails: CollectionConfig = {
     delete: () => false,
   },
   hooks: {
+    afterChange: [markBillSentOnDelivery],
     beforeOperation: [
       // eslint-disable-next-line @typescript-eslint/no-deprecated
       ({ args, operation }): void => {
@@ -78,7 +100,13 @@ export const OutgoingEmails: CollectionConfig = {
     {
       name: 'deliveryStatus',
       type: 'select',
+      label: { en: 'Delivery', de: 'Zustellung', fr: 'Livraison' },
       options: [
+        // Waiting for room in the hourly budget for background mail. See `email-outbox`.
+        {
+          label: { en: 'Queued', de: 'In Warteschlange', fr: "En file d'attente" },
+          value: 'queued',
+        },
         { label: 'Pending', value: 'pending' },
         { label: 'Success', value: 'success' },
         { label: 'Error', value: 'error' },
@@ -87,6 +115,11 @@ export const OutgoingEmails: CollectionConfig = {
       admin: {
         readOnly: true,
         position: 'sidebar',
+        components: {
+          // The list column for a mail's state. It sits on this field rather than on the
+          // delivery log, because a select can be sorted and filtered and a `json` cannot.
+          Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
+        },
       },
       index: true,
     },
@@ -337,6 +370,7 @@ export const OutgoingEmails: CollectionConfig = {
             {
               name: 'smtpResults',
               type: 'json',
+              label: { en: 'Delivery log', de: 'Zustellverlauf', fr: 'Journal de livraison' },
               hooks: {
                 afterRead: [parseSmtpResultsHook],
               },
@@ -350,8 +384,10 @@ export const OutgoingEmails: CollectionConfig = {
                       systemEmails: [EMAIL_SENDER_ADDRESS],
                     },
                   },
-                  Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
                 },
+                // Shown in the list through `deliveryStatus`.
+                disableListColumn: true,
+                disableListFilter: true,
               },
             },
           ],
@@ -384,6 +420,15 @@ export const OutgoingEmails: CollectionConfig = {
           ],
         },
       ],
+    },
+    {
+      // Where the attachments of a queued mail wait. Emptied once the mail leaves the queue.
+      name: 'queuedAttachments',
+      type: 'json',
+      admin: {
+        hidden: true,
+        readOnly: true,
+      },
     },
     {
       name: 'createdAt',

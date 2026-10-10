@@ -1,7 +1,6 @@
 import type { CustomSlugComponentProperties } from '@/features/payload-cms/payload-cms/components/slug/types';
 import { beforeDuplicateSlug } from '@/features/payload-cms/payload-cms/shared-fields/hooks/before-duplicate-slug';
 import { slugValidation } from '@/features/payload-cms/payload-cms/utils/slug-validation';
-import { revalidateTag } from 'next/cache';
 import type { TextField } from 'payload';
 
 const generateRandomSlug = (): string => {
@@ -24,15 +23,6 @@ export const SlugField = (collectionName: CustomSlugComponentProperties): TextFi
 
   hooks: {
     beforeDuplicate: [beforeDuplicateSlug],
-    afterChange: [
-      ({ req }): void => {
-        try {
-          revalidateTag('sitemap', 'max');
-          // fires on every save of every document with a slug
-          req.payload.logger.debug('Slug changed, revalidating sitemap');
-        } catch {}
-      },
-    ],
   },
 
   admin: {

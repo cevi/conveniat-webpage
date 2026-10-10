@@ -1,6 +1,30 @@
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
 import { isSystemEmail } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 
+/**
+ * Picks the report that states the outcome for one recipient.
+ *
+ * A `relayed` report only says the message left one hop. The verdict of the next hop is a
+ * separate notification, and the bounce job stores them in mailbox order, so a bounce can
+ * sit in front of the `relayed` report for the same message. The last report that is not
+ * `relayed` is the outcome, and `relayed` counts only when nothing else has arrived.
+ *
+ * Reports from before the latest resend describe an earlier attempt, so they only count
+ * while the latest attempt has none of its own.
+ *
+ * @param historyItems - All reports grouped under one recipient, in stored order.
+ * @param currentAttempt - The reports stored after the latest resend.
+ * @returns The report to show as the recipient's state.
+ */
+const pickFinalDsn = (
+  historyItems: SmtpResult[],
+  currentAttempt: Set<SmtpResult>,
+): SmtpResult | undefined => {
+  const current = historyItems.filter((item) => currentAttempt.has(item));
+  const candidates = current.length > 0 ? current : historyItems;
+  return candidates.findLast((item) => item.parsedDsn?.action !== 'relayed') ?? candidates.at(-1);
+};
+
 export const deriveSmtpItems = (
   items: SmtpResult[],
   toAddress?: string,
@@ -13,11 +37,15 @@ export const deriveSmtpItems = (
   const queueIdToRecipient = new Map<string, string>();
   const messageIdToRecipient = new Map<string, string>();
 
+  const currentAttempt = new Set<SmtpResult>();
+
   for (const item of items) {
     if (item.bounceReport === true) {
       dsnItems.push(item);
+      currentAttempt.add(item);
     } else {
       finalItems.push(item);
+      if (item.retriggeredBy !== undefined) currentAttempt.clear();
 
       let smtpRecipient: string | undefined;
       // Collect all expected recipients from SMTP responses
@@ -149,10 +177,7 @@ export const deriveSmtpItems = (
       }
     }
 
-    // Sort items chronologically by receivedAt (if we assume array order is roughly chronological, we can just use the last one)
-    // Actually, payload usually returns them in the order they were inserted, with newer ones later.
-    // For now, let's just pick the last item as the "final" state for this recipient.
-    const finalState = historyItems.at(-1);
+    const finalState = pickFinalDsn(historyItems, currentAttempt);
 
     if (finalState) {
       // Create a modified item that stores the history for the tooltip
