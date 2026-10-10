@@ -51,3 +51,14 @@ export const FORM_FILE_BUCKET_NAME = resolveOwnBucket(
   environmentVariables.S3_FORM_FILE_BUCKET_NAME,
   environmentVariables.S3_BUCKET_NAME,
 );
+
+/**
+ * Bucket for the attachments of mails waiting in the outgoing queue — its own when
+ * configured. They are copies that live until their mail is sent, and they are as
+ * confidential as a bill, so without a bucket of their own they wait next to the bills
+ * rather than in the shared bucket.
+ */
+export const MAIL_ATTACHMENT_BUCKET_NAME = resolveOwnBucket(
+  environmentVariables.S3_MAIL_ATTACHMENT_BUCKET_NAME,
+  BILL_PDF_BUCKET_NAME,
+);

@@ -92,6 +92,8 @@ export const environmentVariables = createEnv({
      * the next start moves the existing form files into it.
      */
     S3_FORM_FILE_BUCKET_NAME: z.string().min(3).optional(),
+    // Holds the attachments of mails waiting in the outgoing queue, until they are sent.
+    S3_MAIL_ATTACHMENT_BUCKET_NAME: z.string().min(3).optional(),
     S3_HOST: z.string().url(),
     S3_PUBLIC_HOST: z.string().url(),
     ENABLE_NODEMAILER: z.string().transform((value) => value === 'true'),
@@ -99,6 +101,10 @@ export const environmentVariables = createEnv({
     SMTP_PORT: z.coerce.number().optional(),
     SMTP_USER: z.string().optional(),
     SMTP_PASS: z.string().optional(),
+    // How many queued mails (bills, reminders, reports) may leave per rolling hour. The
+    // rest of the mail server's hourly limit stays free for mail somebody is waiting for,
+    // like a form confirmation.
+    BACKGROUND_EMAIL_HOURLY_LIMIT: z.coerce.number().int().min(1).default(50),
     VAPID_PRIVATE_KEY: z.string().min(5),
     FEATURE_ENABLE_APP_FEATURE: z.string().transform((value) => value === 'true'),
     FEATURE_ENABLE_WORKFLOWS: z

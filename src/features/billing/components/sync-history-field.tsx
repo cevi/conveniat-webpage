@@ -28,6 +28,8 @@ const ACTION_LABELS: Record<string, string> = {
 const actionLabel = (action: string): string => {
   const known = ACTION_LABELS[action];
   if (known !== undefined) return known;
+  if (action.startsWith('bill_queued_for_'))
+    return `Rechnung zum Versand eingereiht an ${action.slice('bill_queued_for_'.length)}`;
   return action.startsWith('bill_sent_to_')
     ? `Rechnung versendet an ${action.slice('bill_sent_to_'.length)}`
     : action;

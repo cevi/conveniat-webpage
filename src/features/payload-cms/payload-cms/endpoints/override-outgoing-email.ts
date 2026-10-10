@@ -1,4 +1,5 @@
 import { hasAccessToThis, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { releaseQueuedAttachments } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import type { PayloadHandler } from 'payload';
 
 export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request) => {
@@ -106,6 +107,8 @@ export const overrideOutgoingEmailStatusHandler: PayloadHandler = async (request
         lastRetriggeredBy: user.id,
       },
     });
+    // Overriding a queued mail takes it out of the queue, so its stored attachments go too.
+    await releaseQueuedAttachments(payload, emailDocument);
 
     // Sync with Form Submission if it exists
     const formSubmissionRelated = emailDocument.formSubmission;

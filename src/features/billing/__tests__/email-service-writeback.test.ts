@@ -26,12 +26,21 @@ jest.mock('@aws-sdk/client-s3', () => ({
 jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => ({
   sendTrackedEmail: jest.fn().mockResolvedValue({ success: true, outgoingEmailId: 'mail-1' }),
 }));
+jest.mock('@/features/payload-cms/payload-cms/utils/email-outbox', () => ({
+  discardQueuedEmailsFor: jest.fn(),
+  queueBackgroundEmail: jest.fn().mockResolvedValue({ success: true, outgoingEmailId: 'mail-2' }),
+}));
 jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
 
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import { sendBills } from '@/features/billing/services/email-service';
+import {
+  discardQueuedEmailsFor,
+  queueBackgroundEmail,
+} from '@/features/payload-cms/payload-cms/utils/email-outbox';
+import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { Payload } from 'payload';
 
 const participantRow = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
@@ -81,7 +90,7 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
       hitobitoService: hitobitoDouble(update),
     });
 
-    expect(summary.sentCount).toBe(1);
+    expect(summary.queuedCount).toBe(1);
     expect(update).toHaveBeenCalledWith(
       'group-1',
       'event-1',
@@ -91,8 +100,8 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
       ['definitiv'],
     );
     // The status is written first, so a failing write-back cannot cost the bill its
-    // `bill_sent`; the answer follows in a second update.
-    expect(updates[0]?.['status']).toBe('bill_sent');
+    // place in the queue; the answer follows in a second update.
+    expect(updates[0]?.['status']).toBe('bill_mail_pending');
     expect(updates[1]?.['anmeldestatus']).toBe('Rechnung gestellt');
     expect(summary.errors).toHaveLength(0);
   });
@@ -106,7 +115,7 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
     });
 
     expect(update).not.toHaveBeenCalled();
-    expect(summary.sentCount).toBe(1);
+    expect(summary.queuedCount).toBe(1);
     expect(updates).toHaveLength(1);
   });
 
@@ -118,7 +127,7 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
       hitobitoService: hitobitoDouble(update),
     });
 
-    expect(summary.sentCount).toBe(1);
+    expect(summary.queuedCount).toBe(1);
     expect(summary.failedCount).toBe(0);
     expect(summary.errors[0]).toContain('Max Mustermann');
     const history = updates[1]?.['syncHistory'] as { action: string }[];
@@ -132,8 +141,55 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
 
     const summary = await sendBills(payload);
 
-    expect(summary.sentCount).toBe(1);
+    expect(summary.queuedCount).toBe(1);
     expect(summary.relatedDocuments).toEqual(['registrationManagement']);
     expect(summary.errors[0]).toContain('Registrierungs-Einstellungen');
+  });
+});
+
+describe('sendBills hands a bulk run to the outgoing mail queue', () => {
+  beforeEach(() => {
+    (sendTrackedEmail as jest.Mock).mockClear();
+    (queueBackgroundEmail as jest.Mock).mockClear();
+    (discardQueuedEmailsFor as jest.Mock).mockClear();
+  });
+
+  it('queues the bill and leaves the row waiting for its mail, not marked as sent', async () => {
+    const { payload, updates } = payloadDouble(participantRow());
+
+    const summary = await sendBills(payload, undefined, {
+      hitobitoService: hitobitoDouble(jest.fn().mockResolvedValue({ changed: false })),
+    });
+
+    expect(sendTrackedEmail).not.toHaveBeenCalled();
+    const [, mail, participantId] = (queueBackgroundEmail as jest.Mock).mock.calls[0] as [
+      unknown,
+      { to: string; attachments: { filename: string }[] },
+      string,
+    ];
+    expect(mail.to).toBe('max@example.com');
+    expect(mail.attachments[0]?.filename).toBe('rechnung-2027-0001.pdf');
+    expect(participantId).toBe('doc-1');
+
+    expect(updates[0]?.['status']).toBe('bill_mail_pending');
+    // The send date belongs to the moment the mail leaves the queue.
+    expect(updates[0]).not.toHaveProperty('billSentDate');
+    expect(summary).toMatchObject({ sentCount: 0, queuedCount: 1, failedCount: 0 });
+  });
+
+  it('sends a single bill an operator asked for on the spot', async () => {
+    const { payload, updates } = payloadDouble(participantRow({ status: 'bill_mail_pending' }));
+
+    const summary = await sendBills(payload, 'doc-1', {
+      hitobitoService: hitobitoDouble(jest.fn().mockResolvedValue({ changed: false })),
+    });
+
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
+    expect(sendTrackedEmail).toHaveBeenCalledTimes(1);
+    // The mail still waiting for this bill would otherwise arrive a second time.
+    expect(discardQueuedEmailsFor).toHaveBeenCalledWith(payload, 'doc-1', expect.any(String));
+    expect(updates[0]?.['status']).toBe('bill_sent');
+    expect(typeof updates[0]?.['billSentDate']).toBe('string');
+    expect(summary).toMatchObject({ sentCount: 1, failedCount: 0 });
   });
 });

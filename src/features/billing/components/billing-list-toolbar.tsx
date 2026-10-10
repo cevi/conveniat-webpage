@@ -238,11 +238,16 @@ const skippedCountLabel: StaticTranslationString = {
   en: 'Skipped',
   fr: 'Ignorées',
 };
-const sentCountLabel: StaticTranslationString = { de: 'Gesendet', en: 'Sent', fr: 'Envoyées' };
 const failedCountLabel: StaticTranslationString = {
   de: 'Fehlgeschlagen',
   en: 'Failed',
   fr: 'Échouées',
+};
+// A bulk run hands the bills to the outgoing mail queue; they leave from there.
+const queuedCountLabel: StaticTranslationString = {
+  de: 'Im Versand',
+  en: 'Queued',
+  fr: "En cours d'envoi",
 };
 
 const handleCsvExport = (): void => {
@@ -332,7 +337,7 @@ export const BillingListToolbar: React.FC = () => {
       retry: sendRetry[locale],
       requires: 'generate',
       counterLabels: [
-        { key: 'sentCount', label: sentCountLabel[locale] },
+        { key: 'queuedCount', label: queuedCountLabel[locale] },
         { key: 'failedCount', label: failedCountLabel[locale] },
       ],
     },

@@ -5,6 +5,10 @@ jest.mock('@/lib/hitobito', () => ({
 jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => ({
   sendTrackedEmail: jest.fn(),
 }));
+// The weekly run queues its mails; only a reminder an operator sends by hand goes out directly.
+jest.mock('@/features/payload-cms/payload-cms/utils/email-outbox', () => ({
+  queueBackgroundEmail: jest.fn(),
+}));
 // The real adapter reaches Redis, which reads the validated environment at module load.
 jest.mock('@/features/billing/adapters/redis-run-lock.adapter', () => ({
   RedisRunLockAdapter: jest.fn().mockImplementation(() => ({ acquire: mockAcquire })),
@@ -20,6 +24,7 @@ import {
   selectOverdueParticipants,
   sendPflichtangabenReminders,
 } from '@/features/billing/services/pflichtangaben-reminder';
+import { queueBackgroundEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
@@ -376,6 +381,8 @@ describe('sendPflichtangabenReminders', () => {
   beforeEach(() => {
     (sendTrackedEmail as jest.Mock).mockReset();
     (sendTrackedEmail as jest.Mock).mockResolvedValue({ success: true, outgoingEmailId: 'e1' });
+    (queueBackgroundEmail as jest.Mock).mockReset();
+    (queueBackgroundEmail as jest.Mock).mockResolvedValue({ success: true, outgoingEmailId: 'q1' });
     mockRelease.mockReset();
     mockAcquire.mockReset();
     mockAcquire.mockResolvedValue({ acquired: true, lock: { release: mockRelease } });
@@ -400,11 +407,12 @@ describe('sendPflichtangabenReminders', () => {
     const summary = await sendPflichtangabenReminders(payload, { force: true });
 
     expect(summary).toMatchObject({ sent: true, mailCount: 1, participantCount: 2, errors: [] });
-    expect(sendTrackedEmail).toHaveBeenCalledTimes(1);
-    const [, options, , ids] = (sendTrackedEmail as jest.Mock).mock.calls[0] as [
+    // Queued, not sent: the outgoing mail queue paces the weekly run.
+    expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).toHaveBeenCalledTimes(1);
+    const [, options, ids] = (queueBackgroundEmail as jest.Mock).mock.calls[0] as [
       unknown,
       { to: string; subject: string; text: string },
-      undefined,
       string[],
     ];
     expect(options.to).toBe('av@zueri11.ch, stv@zueri11.ch');
@@ -432,6 +440,7 @@ describe('sendPflichtangabenReminders', () => {
     const summary = await sendPflichtangabenReminders(payload, { force: true });
 
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
     expect(summary.sent).toBe(false);
     expect(summary.errors[0]).toContain('Hof Schlatt');
     // The recipients are set on the Hof, so that is the page the operator is sent to.
@@ -447,6 +456,7 @@ describe('sendPflichtangabenReminders', () => {
 
     expect(summary.sent).toBe(false);
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
   });
 
   it('sends a single registration on demand without touching the weekly guard', async () => {
@@ -458,6 +468,9 @@ describe('sendPflichtangabenReminders', () => {
     const summary = await sendPflichtangabenReminders(payload, { force: true, participantId: 'a' });
 
     expect(summary).toMatchObject({ sent: true, mailCount: 1, participantCount: 1 });
+    // Somebody is waiting for this one, so it does not go through the queue.
+    expect(sendTrackedEmail).toHaveBeenCalledTimes(1);
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
     expect(updateGlobal).not.toHaveBeenCalled();
   });
 
@@ -469,6 +482,7 @@ describe('sendPflichtangabenReminders', () => {
     expect(summary.sent).toBe(false);
     expect(summary.reason).toContain('keine Pflichtangaben');
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
   });
 
   it('appends to the history the participant has now, not the one the run started with', async () => {
@@ -499,7 +513,9 @@ describe('sendPflichtangabenReminders', () => {
       participant({ id: 'a', eventId: '11' }),
     ]);
 
-    const summary = await sendPflichtangabenReminders(payload, { force: true });
+    // Only a reminder sent by hand hears back from the mail server; a queued one is
+    // reported on its outgoing-emails row when it leaves.
+    const summary = await sendPflichtangabenReminders(payload, { force: true, participantId: 'a' });
 
     expect(summary).toMatchObject({ sent: false, mailCount: 0, participantCount: 0 });
     expect(summary.errors[0]).toContain('Hof Züri 11');
@@ -535,6 +551,7 @@ describe('sendPflichtangabenReminders', () => {
     const summary = await sendPflichtangabenReminders(payload, { force: true });
 
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
     expect(summary.mailCount).toBe(0);
   });
 
@@ -563,6 +580,7 @@ describe('sendPflichtangabenReminders', () => {
 
     expect(summary).toMatchObject({ sent: false, duplicate: true, mailCount: 0, errors: [] });
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
     expect(info).toHaveBeenCalled();
   });
 
@@ -579,6 +597,7 @@ describe('sendPflichtangabenReminders', () => {
     expect(summary.duplicate).toBeUndefined();
     expect(summary.errors).toEqual(['Es läuft bereits ein Erinnerungsversand.']);
     expect(sendTrackedEmail).not.toHaveBeenCalled();
+    expect(queueBackgroundEmail).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalled();
   });
 
