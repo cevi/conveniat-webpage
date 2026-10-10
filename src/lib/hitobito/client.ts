@@ -5,6 +5,7 @@ import {
   extractFormFields,
 } from '@/lib/hitobito/html-parser';
 import type { Logger, RequestOptions } from '@/lib/hitobito/types';
+import { CEVI_DATABASE_USER_AGENT } from '@/lib/hitobito/user-agent';
 import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
 
@@ -163,6 +164,7 @@ export class HitobitoClient {
         method,
         headers: {
           'X-TOKEN': this.config.apiToken,
+          'User-Agent': CEVI_DATABASE_USER_AGENT,
           'Content-Type': 'application/vnd.api+json',
           Accept: 'application/vnd.api+json',
         },
@@ -241,7 +243,7 @@ export class HitobitoClient {
       }
 
       if (!headers.has('User-Agent')) {
-        headers.set('User-Agent', 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)');
+        headers.set('User-Agent', CEVI_DATABASE_USER_AGENT);
       }
 
       const startedAt = performance.now();
@@ -274,7 +276,7 @@ export class HitobitoClient {
 
   getFrontendHeaders(referer?: string): HeadersInit {
     return {
-      'User-Agent': 'Mozilla/5.0 (compatible; conveniat27-bot/1.0)',
+      'User-Agent': CEVI_DATABASE_USER_AGENT,
       Referer: referer ?? this.config.baseUrl,
     };
   }
