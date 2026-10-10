@@ -28,7 +28,7 @@ const REPEATED_BOUNCE_SPAN_MS = 14 * 24 * 60 * 60 * 1000;
 /** After this long without a further bounce, the next one starts over. */
 const BOUNCE_HISTORY_TTL_SECONDS = 90 * 24 * 60 * 60;
 
-// Two sorted sets per address, each holding mail ids scored by when the mail was sent. They
+// Two sorted sets per address, each holding send attempts scored by when the mail was sent. They
 // are kept by send time because reports are not read in the order things happened.
 const bouncedKey = (email: string): string => `email:bounced-mails:${email}`;
 const deliveredKey = (email: string): string => `email:delivered-mails:${email}`;
@@ -102,11 +102,27 @@ const suppress = async (
   status: string,
   outgoingEmailId: string,
 ): Promise<void> => {
-  const existing = await payload.count({
+  const found = await payload.find({
     collection: 'email-suppressions',
     where: { email: { equals: email } },
+    limit: 1,
+    depth: 0,
+    pagination: false,
   });
-  if (existing.totalDocs > 0) return;
+  const entry = found.docs[0];
+
+  if (entry !== undefined) {
+    // An entry made for repeated bounces can be lifted again by a late delivery. Once the
+    // mailbox is known not to exist, the entry has to say so, or it would be lifted too.
+    if (DEAD_ADDRESS_STATUSES.has(status) && !DEAD_ADDRESS_STATUSES.has(entry.status ?? '')) {
+      await payload.update({
+        collection: 'email-suppressions',
+        id: entry.id,
+        data: { status, outgoingEmail: outgoingEmailId },
+      });
+    }
+    return;
+  }
 
   await payload.create({
     collection: 'email-suppressions',
@@ -151,6 +167,8 @@ const applyToBounceHistory = async (
   outgoingEmail: { id: string; sentAt: number },
   failedWith?: string,
 ): Promise<void> => {
+  // A resend is another attempt under the same id, and it can fail or get through on its own.
+  const attempt = `${outgoingEmail.id}:${String(outgoingEmail.sentAt)}`;
   let isSuppressing: boolean;
   try {
     if (failedWith === undefined) {
@@ -158,12 +176,12 @@ const applyToBounceHistory = async (
       // hand-off of a mail that bounced is not one.
       const countsAsDelivery =
         (await redis.exists(bouncedKey(email))) === 1 &&
-        (await redis.zscore(bouncedKey(email), outgoingEmail.id)) === null;
+        (await redis.zscore(bouncedKey(email), attempt)) === null;
       if (!countsAsDelivery) return;
-      await redis.zadd(deliveredKey(email), outgoingEmail.sentAt, outgoingEmail.id);
+      await redis.zadd(deliveredKey(email), outgoingEmail.sentAt, attempt);
     } else {
-      await redis.zrem(deliveredKey(email), outgoingEmail.id);
-      await redis.zadd(bouncedKey(email), outgoingEmail.sentAt, outgoingEmail.id);
+      await redis.zrem(deliveredKey(email), attempt);
+      await redis.zadd(bouncedKey(email), outgoingEmail.sentAt, attempt);
       await redis.expire(bouncedKey(email), BOUNCE_HISTORY_TTL_SECONDS);
     }
     await redis.expire(deliveredKey(email), BOUNCE_HISTORY_TTL_SECONDS);

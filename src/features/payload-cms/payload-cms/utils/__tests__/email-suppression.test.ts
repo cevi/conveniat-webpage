@@ -70,8 +70,16 @@ const world = (suppressed: string[] = []): World => {
         ? Promise.reject(Object.assign(new Error('Not Found'), { status: 404 }))
         : Promise.resolve(row);
     },
-    update: ({ id, data }: { id: string; data: Record<string, unknown> }) => {
-      Object.assign(mails.find((candidate) => candidate.id === id) ?? {}, data);
+    update: ({
+      collection,
+      id,
+      data,
+    }: {
+      collection: string;
+      id: string;
+      data: Record<string, unknown>;
+    }) => {
+      Object.assign(rowsOf(collection).find((candidate) => candidate.id === id) ?? {}, data);
       return Promise.resolve({});
     },
     find: ({ where }: { where: { email: { in?: string[]; equals?: string } } }) =>
@@ -87,10 +95,6 @@ const world = (suppressed: string[] = []): World => {
       );
       return Promise.resolve({});
     },
-    count: ({ where }: { where: { email: { equals: string } } }) =>
-      Promise.resolve({
-        totalDocs: suppressions.filter((row) => row['email'] === where.email.equals).length,
-      }),
   } as unknown as Payload;
 
   return { payload, mails, suppressions, sendEmail };
@@ -283,6 +287,48 @@ describe('suppressing addresses that keep bouncing', () => {
     expect(state.suppressions).toHaveLength(1);
   });
 
+  it('keeps an address suppressed once its mailbox turns out not to exist', async () => {
+    // Suppressed for repeated bounces first, then a late delivery from in between is read.
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+    const delivered = await sendOnDay(state, 13);
+    const second = await mailOnDay(state, 14, unreachable);
+    await reportOn(state, second, { action: 'failed', status: '5.1.1' });
+
+    await reportOn(state, delivered, relayed);
+
+    expect(state.suppressions).toEqual([expect.objectContaining({ status: '5.1.1' })]);
+  });
+
+  it('counts a resend that bounces again as a second bounce', async () => {
+    const state = world();
+    const mail = await mailOnDay(state, 0, unreachable);
+    jest.setSystemTime(START + 14 * DAY_MS);
+    await state.payload.update({
+      collection: 'outgoing-emails',
+      id: mail,
+      data: { smtpReceivedAt: new Date().toISOString() },
+    });
+    await reportOn(state, mail, unreachable);
+
+    expect(state.suppressions).toHaveLength(1);
+  });
+
+  it('counts a resend that gets through as a delivery', async () => {
+    const state = world();
+    const mail = await mailOnDay(state, 0, unreachable);
+    jest.setSystemTime(START + 7 * DAY_MS);
+    await state.payload.update({
+      collection: 'outgoing-emails',
+      id: mail,
+      data: { smtpReceivedAt: new Date().toISOString() },
+    });
+    await reportOn(state, mail, relayed);
+    await mailOnDay(state, 14, unreachable);
+
+    expect(state.suppressions).toEqual([]);
+  });
+
   it('suppresses on the next reading when the list could not be written the first time', async () => {
     const state = world();
     await mailOnDay(state, 0, unreachable);
@@ -434,7 +480,7 @@ describe('suppressing addresses that bounced', () => {
       to: 'gone@example.com',
       subject: 'Rechnung',
     });
-    (state.payload as unknown as { count: unknown }).count = (): Promise<never> =>
+    (state.payload as unknown as { find: unknown }).find = (): Promise<never> =>
       Promise.reject(new Error('connection timed out'));
     const bounce = { email: 'gone@example.com', action: 'failed', status: '5.1.1' };
 
