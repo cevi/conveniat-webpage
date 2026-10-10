@@ -4,6 +4,7 @@ import {
   migrateFormFiles,
   s3FormFileStore,
 } from '@/features/payload-cms/payload-cms/initialization/migrate-form-files';
+import { migrateFormPlaceholders } from '@/features/payload-cms/payload-cms/initialization/migrate-form-placeholders';
 import { migrateLegacyHoefe } from '@/features/payload-cms/payload-cms/initialization/migrate-legacy-hoefe';
 import { seedDatabase } from '@/features/payload-cms/payload-cms/initialization/seeding';
 import {
@@ -206,6 +207,11 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
         });
       }).catch((error: unknown) => {
         payload.logger.error({ err: error }, 'Moving the form files into their bucket failed');
+      });
+
+      // Awaited, so existing form placeholders are localized before an editor saves them in admin.
+      await withSpan('payload.init.migrateFormPlaceholders', async () => {
+        await migrateFormPlaceholders(payload);
       });
 
       // In the background: fills the Höfe of every user the first time, and afterwards
