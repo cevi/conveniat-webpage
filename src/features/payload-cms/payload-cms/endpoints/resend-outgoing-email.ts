@@ -1,5 +1,9 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { hasAccessToThis, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  loadQueuedAttachments,
+  releaseQueuedAttachments,
+} from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import type { PayloadHandler } from 'payload';
 
 export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
@@ -28,10 +32,15 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
       id,
     });
 
+    // A mail that is still queued, or that failed on its way out of the queue, has its
+    // attachments waiting. Resending it means "send it now", attachments included.
+    const attachments = await loadQueuedAttachments(emailDocument);
+
     // Prepare email options
     const emailOptions = {
       to: emailDocument.to,
       subject: emailDocument.subject,
+      ...(attachments.length > 0 ? { attachments } : {}),
       ...(typeof emailDocument.html === 'string' && emailDocument.html.length > 0
         ? { html: emailDocument.html }
         : {}),
@@ -97,6 +106,7 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
         lastRetriggeredBy: user.id,
       },
     });
+    if (success) await releaseQueuedAttachments(payload, emailDocument);
 
     // Sync with Form Submission if it exists
     const formSubmissionRelated = emailDocument.formSubmission;

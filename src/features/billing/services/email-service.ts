@@ -3,9 +3,14 @@ import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-ser
 import { RedisRunLockAdapter } from '@/features/billing/adapters/redis-run-lock.adapter';
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import { writeBackAnmeldestatus } from '@/features/billing/services/anmeldestatus-writeback';
+import { BILL_MAIL_PENDING } from '@/features/billing/services/bill-mail-status';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
+import {
+  discardQueuedEmailsFor,
+  queueBackgroundEmail,
+} from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { HITOBITO_CONFIG } from '@/lib/hitobito';
 import { BILL_PDF_BUCKET_NAME } from '@/lib/s3';
@@ -33,6 +38,11 @@ interface SendBillsDependencies {
 
 /**
  * Sends QR Bill PDFs via email to all participants with status 'bill_created'.
+ *
+ * The bulk run does not send: it puts every bill into the outgoing mail queue, which lets
+ * them out at the rate the mail server tolerates, and leaves the rows in
+ * `bill_mail_pending` until their mail has left. A single bill an operator asks for by
+ * `participantId` is sent on the spot.
  *
  * Uses Payload's built-in email transport (configured via emailSettings in payload.config.ts)
  * instead of importing nodemailer directly, to avoid bundler resolution issues.
@@ -157,7 +167,11 @@ async function sendBillsLocked(
       processedItems: index,
       totalItems: participants.docs.length,
       currentItemName: String(document_.fullName),
-      runningSummary: { sentCount: summary.sentCount, failedCount: summary.failedCount },
+      runningSummary: {
+        sentCount: summary.sentCount,
+        queuedCount: summary.queuedCount ?? 0,
+        failedCount: summary.failedCount,
+      },
     });
 
     if (await reporter?.shouldCancel()) {
@@ -242,49 +256,68 @@ async function sendBillsLocked(
         .replaceAll('{{amount}}', String(invoiceAmount))
         .replaceAll('{{reference}}', referenceNumber);
 
-      // Send email via Payload's built-in transport, tracked in outgoing-emails
-      await sendTrackedEmail(
+      const billMail = {
+        to: email,
+        subject: emailSubject,
+        text: emailBody,
+        attachments: [
+          {
+            filename: `rechnung-${(document_.invoiceNumber as string | undefined) ?? 'bill'}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf',
+          },
+        ],
+      };
+
+      // A mail for this bill may still be waiting from an earlier run, carrying the PDF
+      // of a bill that has since been replaced. The one written now is the one to send.
+      await discardQueuedEmailsFor(
         payload,
-        {
-          to: email,
-          subject: emailSubject,
-          text: emailBody,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- nodemailer attachment type
-          attachments: [
-            {
-              filename: `rechnung-${(document_.invoiceNumber as string | undefined) ?? 'bill'}.pdf`,
-              content: pdfBuffer,
-              contentType: 'application/pdf',
-            },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- nodemailer attachment type
-          ] as any,
-        },
-        undefined, // no form submission
         String(document_.id),
+        'replaced by a newer mail for this registration',
       );
 
-      const isReminderSent = document_.status === 'reminder_sent';
-      const newStatus = isReminderSent ? 'reminder_sent' : 'bill_sent';
+      const isQueued = participantId === undefined;
+      await (isQueued
+        ? queueBackgroundEmail(payload, billMail, String(document_.id))
+        : sendTrackedEmail(payload, billMail, undefined, String(document_.id)));
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
-      const historyAfterSend: SyncHistoryEntry[] = [
-        ...history,
-        { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
-      ];
-      await payload.update({
-        collection: 'bill-participants',
-        context: { internal: true },
-        id: document_.id,
-        data: {
-          status: newStatus,
-          billSentDate: new Date().toISOString(),
-          syncHistory: historyAfterSend,
-        },
-      });
+      let historyAfterSend: SyncHistoryEntry[];
+      if (isQueued) {
+        // `bill_sent` and the send date follow when the mail leaves the queue; see
+        // `markBillMailSent`.
+        historyAfterSend = [
+          ...history,
+          { date: new Date().toISOString(), action: `bill_queued_for_${email}` },
+        ];
+        await payload.update({
+          collection: 'bill-participants',
+          context: { internal: true },
+          id: document_.id,
+          data: { status: BILL_MAIL_PENDING, syncHistory: historyAfterSend },
+        });
+        summary.queuedCount = (summary.queuedCount ?? 0) + 1;
+      } else {
+        historyAfterSend = [
+          ...history,
+          { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
+        ];
+        await payload.update({
+          collection: 'bill-participants',
+          context: { internal: true },
+          id: document_.id,
+          data: {
+            status: document_.status === 'reminder_sent' ? 'reminder_sent' : 'bill_sent',
+            billSentDate: new Date().toISOString(),
+            syncHistory: historyAfterSend,
+          },
+        });
+        summary.sentCount++;
+      }
 
-      summary.sentCount++;
-
-      // The bill is out, so the Cevi.DB has to read "Rechnung gestellt". A row that is
+      // The bill is on its way, so the Cevi.DB has to read "Rechnung gestellt" — already
+      // for a queued one, which leaves within hours or days. A row that is
       // already there, or that the Anmeldeverantwortliche has closed as "definitiv", is
       // left alone — a write-back must never move a registration backwards.
       const writeBack = await writeBackAnmeldestatus(
@@ -333,7 +366,7 @@ async function sendBillsLocked(
   }
 
   payload.logger.info(
-    `Email send complete: ${String(summary.sentCount)} sent, ${String(summary.failedCount)} failed`,
+    `Email send complete: ${String(summary.sentCount)} sent, ${String(summary.queuedCount ?? 0)} queued, ${String(summary.failedCount)} failed`,
   );
   return summary;
 }

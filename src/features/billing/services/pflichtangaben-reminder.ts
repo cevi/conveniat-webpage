@@ -4,6 +4,7 @@ import { flattenHofEvents } from '@/features/billing/services/hof-events';
 import type { WeeklySlotConfig } from '@/features/billing/services/send-weekly-report';
 import { isWeeklySlotDue, parseRecipients } from '@/features/billing/services/send-weekly-report';
 import { BillingTaskSlug } from '@/features/billing/types';
+import { queueBackgroundEmail } from '@/features/payload-cms/payload-cms/utils/email-outbox';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import { HITOBITO_CONFIG } from '@/lib/hitobito';
@@ -439,12 +440,14 @@ async function sendPflichtangabenRemindersLocked(
       hitobitoBaseUrl: HITOBITO_CONFIG.baseUrl,
     });
 
-    const delivery = await sendTrackedEmail(
-      payload,
-      { to: group.recipients.join(', '), subject, text },
-      undefined,
-      group.participants.map((participant) => participant.id),
-    );
+    const mail = { to: group.recipients.join(', '), subject, text };
+    const participantIds = group.participants.map((participant) => participant.id);
+    // The weekly run goes through the outgoing mail queue, which paces it. A reminder an
+    // operator sends for one registration is mail somebody is waiting for.
+    const delivery =
+      options.participantId === undefined
+        ? await queueBackgroundEmail(payload, mail, participantIds)
+        : await sendTrackedEmail(payload, mail, undefined, participantIds);
 
     if (!delivery.success) {
       // The SMTP failure is already on the outgoing-emails row. What matters here is that

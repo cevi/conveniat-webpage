@@ -25,6 +25,7 @@ export const BILLING_STATUSES = [
   'invalid_anmeldeangaben',
   'needs_manual_review',
   'bill_created',
+  'bill_mail_pending',
   'bill_sent',
   'removed',
   're_added',
@@ -38,7 +39,12 @@ export type BillingStatus = (typeof BILLING_STATUSES)[number];
 export const NEEDS_MANUAL_REVIEW = 'needs_manual_review';
 
 /** Statuses that mean a bill has been raised and is out there. */
-export const BILLED_STATUSES = ['bill_created', 'bill_sent', 'reminder_sent'] as const;
+export const BILLED_STATUSES = [
+  'bill_created',
+  'bill_mail_pending',
+  'bill_sent',
+  'reminder_sent',
+] as const;
 
 /**
  * Statuses whose rows carry an invoice the finance team has to account for.
@@ -166,6 +172,7 @@ export const BILLING_STATUS_LABELS_DE: Record<BillingStatus, string> = {
   invalid_anmeldeangaben: 'Anmeldeangaben ungültig',
   needs_manual_review: 'Manuelle Prüfung nötig',
   bill_created: 'Rechnung erstellt',
+  bill_mail_pending: 'Rechnung im Versand',
   bill_sent: 'Rechnung gesendet',
   removed: 'Storniert',
   re_added: 'Erneut hinzugefügt',
@@ -246,7 +253,16 @@ export const ALLOWED_TRANSITIONS: Record<BillingStatus, readonly BillingStatus[]
   ],
   // A raised bill can be sent, chased, flagged for a human, cancelled, or — only through
   // the explicit per-row action — deliberately reissued.
-  bill_created: ['bill_sent', 'reminder_sent', 'needs_manual_review', 'new', 'removed'],
+  bill_created: [
+    'bill_mail_pending',
+    'bill_sent',
+    'reminder_sent',
+    'needs_manual_review',
+    'new',
+    'removed',
+  ],
+  // The mail is in the outgoing queue. It becomes `bill_sent` when the mail has left.
+  bill_mail_pending: ['bill_sent', 'reminder_sent', 'needs_manual_review', 'new', 'removed'],
   bill_sent: ['reminder_sent', 'needs_manual_review', 'new', 'removed'],
   reminder_sent: ['bill_sent', 'needs_manual_review', 'new', 'removed'],
   needs_manual_review: ['new', 'bill_created', 'bill_sent', 'reminder_sent', 'removed'],

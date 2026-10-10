@@ -90,7 +90,10 @@ export interface SendSummary {
   cancelled?: boolean;
   /** Admin documents an operator has to fix for this run to succeed. */
   relatedDocuments?: BillingAdminDocumentKey[];
+  /** Bills sent on the spot, which is the single bill an operator asked for. */
   sentCount: number;
+  /** Bills a bulk run put into the outgoing mail queue. They leave from there. */
+  queuedCount?: number;
   failedCount: number;
   errors: string[];
 }

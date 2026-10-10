@@ -28,6 +28,7 @@ import {
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
 
 import { cleanupTemporaryFormFilesTask } from '@/features/payload-cms/payload-cms/tasks/cleanup-temporary-form-files';
+import { drainEmailOutboxTask } from '@/features/payload-cms/payload-cms/tasks/drain-email-outbox';
 import { drainPushQueueTask } from '@/features/payload-cms/payload-cms/tasks/drain-push-queue';
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
@@ -372,6 +373,7 @@ const jobsConfig: JobsConfig = {
       generatePdfThumbnailTask,
       publishScheduledAnnouncementsTask,
       drainPushQueueTask,
+      drainEmailOutboxTask,
       syncActivePiketMembersTask,
       syncNewUserAnnouncementChatsTask,
       syncParticipantsTask,
