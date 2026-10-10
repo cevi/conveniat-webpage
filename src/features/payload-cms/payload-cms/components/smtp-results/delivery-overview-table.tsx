@@ -74,7 +74,7 @@ const stateLabel = (state: RecipientState, labels: Labels): string =>
     delivered: labels.stateDelivered,
   })[state];
 
-const stateHint = (recipient: RecipientDelivery, labels: Labels, isListed: boolean): string => {
+const stateHint = (recipient: RecipientDelivery, labels: Labels): string => {
   const outcome = outcomeOf(recipient.events);
   if (outcome?.manual === true) return labels.hintManual;
 
@@ -93,7 +93,7 @@ const stateHint = (recipient: RecipientDelivery, labels: Labels, isListed: boole
       return labels.hintOverdue;
     }
     case 'noReport': {
-      return isListed ? labels.hintListed : labels.hintNoReport;
+      return recipient.listed === true ? labels.hintListed : labels.hintNoReport;
     }
     case 'relayed': {
       return labels.hintRelayed;
@@ -193,8 +193,7 @@ const RecipientRow: React.FC<{
   labels: Labels;
   lang: SmtpLanguage;
   gridClass: string;
-  isListed: boolean;
-}> = ({ recipient, labels, lang, gridClass, isListed }) => {
+}> = ({ recipient, labels, lang, gridClass }) => {
   const { submission } = recipient;
   const isProblem = recipient.state === 'failed' || recipient.state === 'notSent';
 
@@ -276,7 +275,7 @@ const RecipientRow: React.FC<{
             isProblem ? 'text-(--theme-error-600)' : 'text-(--theme-elevation-500)',
           )}
         >
-          {stateHint(recipient, labels, isListed)}
+          {stateHint(recipient, labels)}
         </div>
       </div>
     </div>
@@ -321,9 +320,6 @@ export const DeliveryOverviewTable: React.FC<{
   const { current, earlier } = overview;
   const gridClass = 'grid grid-cols-1 gap-2 @[640px]:grid-cols-[5fr_3fr_6fr_5fr] @[640px]:gap-4';
 
-  const hasUnaddressed =
-    current.unassigned.length > 0 || current.recipients.some((recipient) => !recipient.expected);
-
   const fromAddress = current.fromAddress ?? '';
   const hasForeignSender = fromAddress.length > 0 && !fromAddress.endsWith(`@${smtpDomain}`);
 
@@ -367,7 +363,6 @@ export const DeliveryOverviewTable: React.FC<{
               labels={labels}
               lang={lang}
               gridClass={gridClass}
-              isListed={hasUnaddressed}
             />
           ))}
         </div>

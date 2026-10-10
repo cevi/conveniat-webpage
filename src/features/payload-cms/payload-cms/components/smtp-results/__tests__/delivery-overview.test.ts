@@ -67,6 +67,16 @@ const statesOf = (
     ]),
   );
 
+const delayedAt = (date: string): SmtpResult =>
+  stored(
+    report([postfixBlock('anna@example.ch', 'delayed', 'example.ch', '451 try later')]).replace(
+      'Mon,  5 Oct 2026 07:10:01',
+      date,
+    ),
+    'anna@example.ch',
+    false,
+  );
+
 describe('parseDeliveryReport', () => {
   it('reads every recipient of a report, with the server that answered for each', () => {
     const blocks = parseDeliveryReport(
@@ -367,6 +377,104 @@ describe('deriveDeliveryOverview', () => {
         },
       ]),
     ).toEqual({ 'anna@example.ch': 'failed' });
+  });
+
+  describe('a log shared by several mails, as on a form submission', () => {
+    const staff = 'team@example.ch';
+    const submitter = 'anna@example.org';
+    const bothSent = [accepted([staff], 'STAFF01'), accepted([submitter], 'USER001')];
+    const submitterBounce = stored(
+      report([postfixBlock(submitter, 'failed', 'example.org', '550 no such user')], {
+        queueId: 'USER001',
+      }),
+      submitter,
+      false,
+    );
+
+    it('keeps the other mail in the table when one of them is resent', () => {
+      const overview = deriveDeliveryOverview(
+        [
+          ...bothSent,
+          submitterBounce,
+          {
+            ...accepted([submitter], 'USER002'),
+            retriggeredBy: 'user-1',
+            retriggeredAt: '2026-10-06T08:00:00.000Z',
+          },
+        ],
+        OPTIONS,
+      );
+
+      expect(overview.current.recipients.map(({ address, state }) => [address, state])).toEqual([
+        [staff, 'noReport'],
+        [submitter, 'noReport'],
+      ]);
+      expect(overview.earlier).toHaveLength(1);
+      expect(overview.earlier[0]?.recipients.map(({ address, state }) => [address, state])).toEqual(
+        [[submitter, 'failed']],
+      );
+    });
+
+    it('applies an override only to the mail it was set on', () => {
+      const override = {
+        retriggeredBy: 'user-1',
+        retriggeredAt: '2026-10-06T08:00:00.000Z',
+        manualOverride: true,
+        success: true,
+        to: staff,
+      };
+
+      expect(
+        statesOf([
+          ...bothSent,
+          submitterBounce,
+          { ...override, response: { response: 'Status manually set to SUCCESS by Admin' } },
+          {
+            ...override,
+            bounceReport: true,
+            response: { response: 'DSN manually set to SUCCESS by Admin' },
+            parsedDsn: { action: 'delivered' },
+          },
+        ]),
+      ).toEqual({ [staff]: 'delivered', [submitter]: 'failed' });
+    });
+
+    it('still marks a recipient overdue when a member report explains only the list', () => {
+      const memberReport = stored(
+        report([
+          `Original-Recipient: rfc822;${staff}\nFinal-Recipient: rfc822;dora@example.net\nAction: delivered\nStatus: 2.0.0`,
+        ]),
+        'dora@example.net',
+      );
+
+      const { current } = deriveDeliveryOverview([...bothSent, memberReport], {
+        ...OPTIONS,
+        now: Date.parse('2026-10-20T00:00:00.000Z'),
+      });
+
+      expect(
+        current.recipients.map(({ address, state, listed }) => [address, state, listed]),
+      ).toEqual([
+        [staff, 'noReport', true],
+        [submitter, 'overdue', undefined],
+        ['dora@example.net', 'delivered', undefined],
+      ]);
+    });
+  });
+
+  it('shows two reports of the same kind from the same server as two reports', () => {
+    const overview = deriveDeliveryOverview(
+      [
+        accepted(['anna@example.ch']),
+        delayedAt('Mon,  5 Oct 2026 07:10:01'),
+        delayedAt('Mon,  5 Oct 2026 11:10:01'),
+      ],
+      OPTIONS,
+    );
+
+    expect(overview.reportCount).toBe(2);
+    expect(overview.current.recipients[0]?.events).toHaveLength(2);
+    expect(overview.current.recipients[0]?.state).toBe('delayed');
   });
 
   it('counts a stored mail that is no delivery report as unreadable', () => {

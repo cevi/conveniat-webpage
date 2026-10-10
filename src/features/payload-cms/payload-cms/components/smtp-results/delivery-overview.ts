@@ -36,6 +36,8 @@ export interface RecipientDelivery {
   submission?: { accepted: boolean; detail: string; durationMs?: number };
   events: DeliveryEvent[];
   state: RecipientState;
+  /** Set when other addresses reported in its place, as the members of a list do. */
+  listed?: boolean;
 }
 
 export interface DeliveryAttempt {
@@ -174,12 +176,6 @@ const isSubmissionFailure = (row: SmtpResult): boolean =>
 const queueIdOf = (row: SmtpResult): string | undefined =>
   /queued as\s+([\w-]+)/i.exec(row.response?.response ?? '')?.[1];
 
-/** A resend starts a new attempt. An override carries the same marker and does not. */
-const isResend = (row: SmtpResult): boolean =>
-  row.bounceReport !== true &&
-  row.retriggeredBy !== undefined &&
-  !isManualOverrideItem(row as unknown as Record<string, unknown>);
-
 const isHandOff = (event: DeliveryEvent): boolean =>
   event.action === 'relayed' || event.action === 'expanded';
 
@@ -204,158 +200,202 @@ const stateOf = (recipient: RecipientDelivery, isOverdue: boolean): RecipientSta
   return isOverdue ? 'overdue' : 'noReport';
 };
 
-const isSameEvent = (a: DeliveryEvent | undefined, b: DeliveryEvent): boolean =>
-  a?.action === b.action && a.server === b.server && a.status === b.status && a.manual === b.manual;
+interface WorkingAttempt {
+  startedAt: string | undefined;
+  fromAddress?: string;
+  recipients: Map<string, RecipientDelivery>;
+  /** When each recipient's mail went out. One attempt can hold several mails. */
+  sentAt: Map<string, string | undefined>;
+  unassigned: DeliveryEvent[];
+}
 
-const deriveAttempt = (
-  rows: SmtpResult[],
-  startedAt: string | undefined,
-  options: { systemEmails: string[]; toAddress: string | undefined; now: number | undefined },
-  counters: { reports: Set<string>; unreadable: number },
-): DeliveryAttempt => {
-  const recipients = new Map<string, RecipientDelivery>();
-  const unassigned: DeliveryEvent[] = [];
-  let fromAddress: string | undefined;
+/** One answer of our own mail server: a mail handed in, or the failure to do so. */
+interface Send {
+  index: number;
+  addresses: string[];
+  queueId: string | undefined;
+  startedAt: string | undefined;
+  isResend: boolean;
+  superseded: boolean;
+  row: SmtpResult;
+  attempt: WorkingAttempt;
+}
 
-  const recipientFor = (address: string, expected: boolean): RecipientDelivery => {
-    const key = address.toLowerCase();
-    let recipient = recipients.get(key);
-    if (recipient === undefined) {
-      recipient = { address: key, expected, events: [], state: 'noReport' };
-      recipients.set(key, recipient);
-    }
-    return recipient;
-  };
+const newAttempt = (startedAt: string | undefined): WorkingAttempt => ({
+  startedAt,
+  recipients: new Map(),
+  sentAt: new Map(),
+  unassigned: [],
+});
 
-  const addEvent = (recipient: RecipientDelivery, event: DeliveryEvent): void => {
-    if (!isSameEvent(recipient.events.at(-1), event)) recipient.events.push(event);
-  };
+const addressesIn = (value: unknown): string[] =>
+  typeof value === 'string'
+    ? (value.match(new RegExp(ADDRESS_PATTERN, 'g')) ?? []).map((address) => address.toLowerCase())
+    : [];
 
-  // Our own server's answers come first, so that a report stored ahead of a later
-  // submission still finds its recipient.
-  for (const row of rows) {
+const recipientFor = (
+  attempt: WorkingAttempt,
+  address: string,
+  expected: boolean,
+): RecipientDelivery => {
+  const key = address.toLowerCase();
+  let recipient = attempt.recipients.get(key);
+  if (recipient === undefined) {
+    recipient = { address: key, expected, events: [], state: 'noReport' };
+    attempt.recipients.set(key, recipient);
+  }
+  return recipient;
+};
+
+const addEvent = (recipient: RecipientDelivery, event: DeliveryEvent): void => {
+  const last = recipient.events.at(-1);
+  // The override writes one row for the SMTP state and one for the DSN state.
+  if (event.manual === true && last?.manual === true && last.action === event.action) return;
+  recipient.events.push(event);
+};
+
+/**
+ * Reads the answers of our own mail server. A resend replaces the earlier send to the same
+ * people and nothing else: the log of a form submission holds every mail the submission
+ * triggered, and resending one of them leaves the others standing.
+ */
+const readSends = (
+  results: SmtpResult[],
+  options: { toAddress: string | undefined; createdAt: string | undefined },
+): { sends: Send[]; current: WorkingAttempt } => {
+  const current = newAttempt(options.createdAt);
+  const sends: Send[] = [];
+
+  for (const [index, row] of results.entries()) {
     if (row.bounceReport === true) continue;
     if (isManualOverrideItem(row as unknown as Record<string, unknown>)) continue;
 
+    const isFailure = isSubmissionFailure(row);
+    const storedTo = typeof row.to === 'string' ? row.to : '';
+    const named = addressesIn(storedTo);
+    // A mail without a usable address still has to show its error somewhere.
+    const failedFor = named.length > 0 ? named : [options.toAddress ?? storedTo];
+    const accepted = row.response?.accepted ?? row.response?.envelope?.to ?? [];
+    const rejected = row.response?.rejected ?? [];
+    const addresses = (isFailure ? failedFor : [...accepted, ...rejected]).map((address) =>
+      address.toLowerCase(),
+    );
+
+    const send: Send = {
+      index,
+      addresses,
+      queueId: queueIdOf(row),
+      startedAt: row.retriggeredAt ?? options.createdAt,
+      isResend: row.retriggeredBy !== undefined,
+      superseded: false,
+      row,
+      attempt: current,
+    };
+    if (send.isResend) {
+      for (const earlier of sends) {
+        if (earlier.addresses.some((address) => addresses.includes(address))) {
+          earlier.superseded = true;
+        }
+      }
+    }
+    sends.push(send);
+  }
+
+  for (const send of sends) {
+    if (send.superseded) send.attempt = newAttempt(send.startedAt);
+    const { attempt, row } = send;
+    if (send.startedAt !== undefined && send.startedAt > (attempt.startedAt ?? '')) {
+      attempt.startedAt = send.startedAt;
+    }
+
     const envelopeFrom = row.response?.envelope?.from;
     if (typeof envelopeFrom === 'string' && envelopeFrom.length > 0) {
-      fromAddress = extractEmailAddress(envelopeFrom);
+      attempt.fromAddress = extractEmailAddress(envelopeFrom);
     }
 
-    if (isSubmissionFailure(row)) {
-      const storedTo = typeof row.to === 'string' ? row.to : '';
-      const named = storedTo
-        .split(',')
-        .map((part) => extractEmailAddress(part))
-        .filter((part) => part.includes('@'));
-      // A mail without a usable address still has to show its error somewhere.
-      const addresses = named.length > 0 ? named : [options.toAddress ?? storedTo];
-      for (const address of addresses) {
-        recipientFor(address, true).submission = {
-          accepted: false,
-          detail: typeof row.error === 'string' ? row.error : '',
-        };
-      }
-      continue;
-    }
-
-    const detail = row.response?.response ?? '';
+    const isFailure = isSubmissionFailure(row);
+    let detail = row.response?.response ?? '';
+    if (isFailure) detail = typeof row.error === 'string' ? row.error : '';
     const durationMs = (row.response?.envelopeTime ?? 0) + (row.response?.messageTime ?? 0);
-    const accepted = row.response?.accepted ?? row.response?.envelope?.to ?? [];
-    for (const address of accepted) {
-      recipientFor(address, true).submission = {
-        accepted: true,
+    const rejected = new Set(
+      (row.response?.rejected ?? []).map((address) => address.toLowerCase()),
+    );
+
+    for (const address of send.addresses) {
+      const isAccepted = !isFailure && !rejected.has(address);
+      recipientFor(attempt, address, true).submission = {
+        accepted: isAccepted,
         detail,
-        ...(durationMs > 0 && { durationMs }),
+        ...(isAccepted && durationMs > 0 && { durationMs }),
       };
-    }
-    for (const address of row.response?.rejected ?? []) {
-      recipientFor(address, true).submission = { accepted: false, detail };
+      attempt.sentAt.set(address, send.startedAt);
     }
   }
 
-  const expectedCount = recipients.size;
-  const seenInAttempt = new Set<string>();
+  return { sends, current };
+};
 
-  for (const row of rows) {
-    if (isManualOverrideItem(row as unknown as Record<string, unknown>)) {
-      const diagnostic = reportTextOf(row);
-      for (const recipient of recipients.values()) {
-        addEvent(recipient, {
-          action: isSubmissionFailure(row) ? 'failed' : 'delivered',
-          manual: true,
-          ...(diagnostic.length > 0 && { diagnostic }),
-          ...(row.retriggeredAt !== undefined && { at: row.retriggeredAt }),
-        });
-      }
-      continue;
+/** The reports of one stored row, or none when it repeats a report or is not one. */
+const readReport = (
+  row: SmtpResult,
+  seen: Set<string>,
+  counters: { unreadable: number },
+): ReportBlock[] => {
+  const text = reportTextOf(row);
+  let blocks = parseDeliveryReport(text);
+
+  if (blocks.length === 0) {
+    // Stored rows do not always carry an action, whatever the type says.
+    const storedAction: unknown = row.parsedDsn?.action;
+    const action = typeof storedAction === 'string' ? storedAction.toLowerCase() : '';
+    const finalRecipient = addressOf(row.parsedDsn?.finalRecipient ?? row.to);
+    const key = `${finalRecipient ?? ''}|${action}|${text}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+
+    if (!DELIVERY_ACTIONS.has(action)) {
+      counters.unreadable++;
+      return [];
     }
-    if (row.bounceReport !== true) continue;
-
-    const text = reportTextOf(row);
-    let blocks = parseDeliveryReport(text);
-
-    // The bounce job stores a report once per recipient it covers, each time in full.
-    const key = blocks.length > 0 ? text : `${row.to}|${row.parsedDsn?.action ?? ''}|${text}`;
-    if (seenInAttempt.has(key)) continue;
-    seenInAttempt.add(key);
-
-    if (blocks.length === 0) {
-      // Stored rows do not always carry an action, whatever the type says.
-      const storedAction: unknown = row.parsedDsn?.action;
-      const action = typeof storedAction === 'string' ? storedAction.toLowerCase() : '';
-      if (!DELIVERY_ACTIONS.has(action)) {
-        counters.unreadable++;
-        continue;
-      }
-      const finalRecipient = addressOf(row.parsedDsn?.finalRecipient ?? row.to);
-      blocks = [
-        {
-          ...(finalRecipient !== undefined && { finalRecipient }),
-          event: {
-            action: action as DeliveryAction,
-            ...(row.parsedDsn?.remoteMta !== undefined && { server: row.parsedDsn.remoteMta }),
-            ...(row.parsedDsn?.status !== undefined && { status: row.parsedDsn.status }),
-            ...(row.parsedDsn?.diagnosticCode !== undefined && {
-              diagnostic: row.parsedDsn.diagnosticCode,
-            }),
-          },
+    blocks = [
+      {
+        ...(finalRecipient !== undefined && { finalRecipient }),
+        event: {
+          action: action as DeliveryAction,
+          ...(row.parsedDsn?.remoteMta !== undefined && { server: row.parsedDsn.remoteMta }),
+          ...(row.parsedDsn?.status !== undefined && { status: row.parsedDsn.status }),
+          ...(row.parsedDsn?.diagnosticCode !== undefined && {
+            diagnostic: row.parsedDsn.diagnosticCode,
+          }),
         },
-      ];
-    }
-    counters.reports.add(key);
-
-    for (const block of blocks) {
-      const event: DeliveryEvent = {
-        ...block.event,
-        ...(block.event.at === undefined && row.receivedAt !== undefined && { at: row.receivedAt }),
-      };
-      const candidates = [block.finalRecipient, block.originalRecipient].filter(
-        (address): address is string => address !== undefined,
-      );
-      const known = candidates.find((address) => recipients.has(address));
-      const foreign = candidates.find((address) => !isSystemEmail(address, options.systemEmails));
-
-      if (known !== undefined && (known === block.finalRecipient || foreign === undefined)) {
-        addEvent(recipientFor(known, true), event);
-      } else if (foreign === undefined) {
-        // The report names only our own sender address, so it could be about anyone.
-        unassigned.push(event);
-      } else {
-        const recipient = recipientFor(foreign, false);
-        if (known !== undefined && known !== foreign) recipient.via = known;
-        addEvent(recipient, event);
-      }
-    }
+      },
+    ];
+  } else {
+    // The bounce job stores a report once per recipient it covers, each time in full.
+    if (seen.has(text)) return [];
+    seen.add(text);
   }
+
+  return blocks.map((block) => ({
+    ...block,
+    event: {
+      ...block.event,
+      ...(block.event.at === undefined && row.receivedAt !== undefined && { at: row.receivedAt }),
+    },
+  }));
+};
+
+const finishAttempt = (attempt: WorkingAttempt, now: number | undefined): DeliveryAttempt => {
+  const recipients = [...attempt.recipients.values()];
+  const expected = recipients.filter((recipient) => recipient.expected);
+  const { unassigned } = attempt;
 
   // A server that is handed our sender address as the original recipient reports under that
   // address, so its report names nobody. With a single recipient it can only be about them.
   // With several, as many such reports as recipients nobody reported on leaves one each.
-  const silent = [...recipients.values()].filter((recipient) => recipient.events.length === 0);
-  const onlyRecipient = expectedCount === 1 ? recipients.values().next().value : undefined;
-  if (onlyRecipient !== undefined) {
-    for (const event of unassigned) addEvent(onlyRecipient, event);
+  const silent = expected.filter((recipient) => recipient.events.length === 0);
+  if (expected.length === 1) {
+    for (const event of unassigned) addEvent(expected[0] as RecipientDelivery, event);
     unassigned.length = 0;
   } else if (
     unassigned.length === silent.length &&
@@ -367,16 +407,14 @@ const deriveAttempt = (
     unassigned.length = 0;
   }
 
-  // A list address never reports for itself. Its members do, and they explain the silence.
-  const isExplained = unassigned.length > 0 || recipients.size > expectedCount;
-  const startedAtMs = startedAt === undefined ? Number.NaN : Date.parse(startedAt);
-  const isOverdue =
-    !isExplained &&
-    options.now !== undefined &&
-    options.now > 0 &&
-    options.now - startedAtMs > DSN_TIMEOUT_MS;
+  // A list address never reports for itself. Its members do. A member's report that names
+  // the list explains that list's silence; one that names no origin could explain anyone's.
+  const origins = new Set(recipients.map((recipient) => recipient.via));
+  const hasUnattributed =
+    unassigned.length > 0 ||
+    recipients.some((recipient) => !recipient.expected && recipient.via === undefined);
 
-  for (const recipient of recipients.values()) {
+  for (const recipient of recipients) {
     // Mailbox order is not the order things happened in. Within the same second the
     // hand-off came first.
     recipient.events = recipient.events.toSorted((a, b) => {
@@ -384,13 +422,22 @@ const deriveAttempt = (
       const byTime = a.at.localeCompare(b.at);
       return byTime === 0 ? Number(!isHandOff(a)) - Number(!isHandOff(b)) : byTime;
     });
+
+    const isListed =
+      recipient.expected &&
+      recipient.events.length === 0 &&
+      (origins.has(recipient.address) || hasUnattributed);
+    if (isListed) recipient.listed = true;
+
+    const sentAtMs = Date.parse(attempt.sentAt.get(recipient.address) ?? '');
+    const isOverdue = !isListed && now !== undefined && now > 0 && now - sentAtMs > DSN_TIMEOUT_MS;
     recipient.state = stateOf(recipient, isOverdue);
   }
 
   return {
-    ...(startedAt !== undefined && { startedAt }),
-    ...(fromAddress !== undefined && { fromAddress }),
-    recipients: [...recipients.values()],
+    ...(attempt.startedAt !== undefined && { startedAt: attempt.startedAt }),
+    ...(attempt.fromAddress !== undefined && { fromAddress: attempt.fromAddress }),
+    recipients,
     unassigned,
   };
 };
@@ -405,7 +452,7 @@ const deriveAttempt = (
  * @param results - The stored `smtpResults` of an outgoing mail or a form submission.
  * @param options - `toAddress` and `createdAt` of the mail, the sender addresses that are
  *   never a recipient, and the current time. Without `now` nothing counts as overdue.
- * @returns The latest attempt per recipient, and the attempts a resend replaced.
+ * @returns The state per recipient, and the sends a resend replaced.
  */
 export const deriveDeliveryOverview = (
   results: SmtpResult[],
@@ -416,50 +463,79 @@ export const deriveDeliveryOverview = (
     now?: number | undefined;
   } = {},
 ): DeliveryOverview => {
-  const attempts: { rows: SmtpResult[]; startedAt: string | undefined; queueIds: string[] }[] = [
-    { rows: [], startedAt: options.createdAt, queueIds: [] },
-  ];
+  const systemEmails = options.systemEmails ?? [];
+  const { sends, current } = readSends(results, {
+    toAddress: options.toAddress,
+    createdAt: options.createdAt,
+  });
 
-  const positions: number[] = [];
-  for (const row of results) {
-    if (isResend(row) && (attempts.at(-1)?.rows.length ?? 0) > 0) {
-      attempts.push({ rows: [], startedAt: row.retriggeredAt, queueIds: [] });
-    }
-    const attempt = attempts.at(-1);
-    attempt?.rows.push(row);
-    positions.push(attempts.length - 1);
-    const queueId = row.bounceReport === true ? undefined : queueIdOf(row);
-    if (queueId !== undefined) attempt?.queueIds.push(queueId);
-  }
-
-  // A report for the first attempt can arrive after the resend. The queue id it quotes says
-  // which attempt it belongs to.
-  for (const [index, row] of results.entries()) {
-    if (row.bounceReport !== true) continue;
-    const position = positions[index] as number;
-    const text = reportTextOf(row);
-    const quoted = attempts.findIndex((attempt) =>
-      attempt.queueIds.some((queueId) => text.includes(queueId)),
+  /** The send a row stored at `index` is about: the latest one before it to that address. */
+  const sendFor = (index: number, addresses: string[]): Send | undefined =>
+    sends.findLast(
+      (send) =>
+        send.index < index &&
+        (addresses.length === 0 || send.addresses.some((address) => addresses.includes(address))),
     );
-    if (quoted === -1 || quoted === position) continue;
-    const from = attempts[position]?.rows;
-    from?.splice(from.indexOf(row), 1);
-    attempts[quoted]?.rows.push(row);
-  }
 
-  const counters = { reports: new Set<string>(), unreadable: 0 };
-  const derived = attempts.map((attempt) =>
-    deriveAttempt(
-      attempt.rows,
-      attempt.startedAt,
-      {
-        systemEmails: options.systemEmails ?? [],
-        toAddress: options.toAddress,
-        now: options.now,
-      },
-      counters,
-    ),
-  );
+  const seen = new Set<string>();
+  const counters = { unreadable: 0 };
+
+  for (const [index, row] of results.entries()) {
+    if (isManualOverrideItem(row as unknown as Record<string, unknown>)) {
+      // The override names the mail it was set on. Only that mail's recipients change.
+      const named = addressesIn(row.to);
+      const send = sendFor(index, named) ?? sendFor(index, []);
+      const attempt = send?.attempt ?? current;
+      const marked = [...attempt.recipients.values()].filter(
+        (recipient) => recipient.expected && named.includes(recipient.address),
+      );
+      const diagnostic = reportTextOf(row);
+      for (const recipient of marked.length > 0 ? marked : attempt.recipients.values()) {
+        addEvent(recipient, {
+          action: isSubmissionFailure(row) ? 'failed' : 'delivered',
+          manual: true,
+          ...(diagnostic.length > 0 && { diagnostic }),
+          ...(row.retriggeredAt !== undefined && { at: row.retriggeredAt }),
+        });
+      }
+      continue;
+    }
+    if (row.bounceReport !== true) continue;
+
+    // A report for a replaced send can arrive after the resend. The queue id it quotes
+    // says which send it belongs to.
+    const text = reportTextOf(row);
+    const quoted = sends.find((send) => send.queueId !== undefined && text.includes(send.queueId));
+
+    for (const block of readReport(row, seen, counters)) {
+      const candidates = [block.finalRecipient, block.originalRecipient].filter(
+        (address): address is string => address !== undefined,
+      );
+      const attempt =
+        (
+          quoted ??
+          sendFor(index, candidates) ??
+          sends.findLast((send) =>
+            send.addresses.some((address) => candidates.includes(address)),
+          ) ??
+          sendFor(index, [])
+        )?.attempt ?? current;
+
+      const known = candidates.find((address) => attempt.recipients.has(address));
+      const foreign = candidates.find((address) => !isSystemEmail(address, systemEmails));
+
+      if (known !== undefined && (known === block.finalRecipient || foreign === undefined)) {
+        addEvent(recipientFor(attempt, known, true), block.event);
+      } else if (foreign === undefined) {
+        // The report names only our own sender address, so it could be about anyone.
+        attempt.unassigned.push(block.event);
+      } else {
+        const recipient = recipientFor(attempt, foreign, false);
+        if (known !== undefined && known !== foreign) recipient.via = known;
+        addEvent(recipient, block.event);
+      }
+    }
+  }
 
   const lastFetchedAt = results
     .map((row) => row.receivedAt)
@@ -468,9 +544,11 @@ export const deriveDeliveryOverview = (
     .at(-1);
 
   return {
-    current: derived.at(-1) as DeliveryAttempt,
-    earlier: derived.slice(0, -1),
-    reportCount: counters.reports.size,
+    current: finishAttempt(current, options.now),
+    earlier: sends
+      .filter((send) => send.superseded)
+      .map((send) => finishAttempt(send.attempt, options.now)),
+    reportCount: seen.size - counters.unreadable,
     unreadableCount: counters.unreadable,
     ...(lastFetchedAt !== undefined && { lastFetchedAt }),
   };
