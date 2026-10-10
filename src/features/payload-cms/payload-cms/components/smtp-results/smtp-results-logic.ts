@@ -1,6 +1,20 @@
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
 import { isSystemEmail } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 
+/**
+ * Picks the report that states the outcome for one recipient.
+ *
+ * A `relayed` report only says the message left one hop. The verdict of the next hop is a
+ * separate notification, and the bounce job stores them in mailbox order, so a bounce can
+ * sit in front of the `relayed` report for the same message. The last report that is not
+ * `relayed` is the outcome, and `relayed` counts only when nothing else has arrived.
+ *
+ * @param historyItems - All reports grouped under one recipient, in stored order.
+ * @returns The report to show as the recipient's state.
+ */
+const pickFinalDsn = (historyItems: SmtpResult[]): SmtpResult | undefined =>
+  historyItems.findLast((item) => item.parsedDsn?.action !== 'relayed') ?? historyItems.at(-1);
+
 export const deriveSmtpItems = (
   items: SmtpResult[],
   toAddress?: string,
@@ -149,10 +163,7 @@ export const deriveSmtpItems = (
       }
     }
 
-    // Sort items chronologically by receivedAt (if we assume array order is roughly chronological, we can just use the last one)
-    // Actually, payload usually returns them in the order they were inserted, with newer ones later.
-    // For now, let's just pick the last item as the "final" state for this recipient.
-    const finalState = historyItems.at(-1);
+    const finalState = pickFinalDsn(historyItems);
 
     if (finalState) {
       // Create a modified item that stores the history for the tooltip

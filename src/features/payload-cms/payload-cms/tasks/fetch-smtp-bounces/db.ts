@@ -32,6 +32,7 @@ export const updateTrackingRecords = async (
         formSubmission?: string | { id: string };
         rawDsnEmail?: string;
         to?: string;
+        deliveryStatus?: string | null;
       }
     | undefined;
 
@@ -115,6 +116,11 @@ export const updateTrackingRecords = async (
         newRawDsnEmail.slice(0, MAX_TOTAL_DSN_EMAIL_LENGTH) + '\n... [truncated early bounces] ...';
     }
 
+    // Reports arrive per hop and per recipient, in mailbox order. A success report read after
+    // a bounce is the relay confirming a hand-off or another recipient being reached, so it
+    // must not clear the bounce. A resend or a manual override resets the status.
+    const hasBounced = !isSuccess || outgoingEmail.deliveryStatus === 'error';
+
     await payload.update({
       collection: 'outgoing-emails',
       id: envelopeId,
@@ -122,7 +128,7 @@ export const updateTrackingRecords = async (
         smtpResults: results,
         rawSmtpResults: results,
         rawDsnEmail: newRawDsnEmail,
-        deliveryStatus: isSuccess ? 'success' : 'error',
+        deliveryStatus: hasBounced ? 'error' : 'success',
         dsnReceivedAt: new Date().toISOString(),
       },
     });

@@ -62,4 +62,31 @@ describe('updateTrackingRecords', () => {
       expect.objectContaining({ collection: 'form-submissions' }),
     );
   });
+
+  it('keeps an email bounced when a success report is read after the bounce', async () => {
+    // The relay's "relayed" report and the recipient server's bounce are two notifications
+    // for one message, and the mailbox does not hand them over in the order they happened.
+    const payload = fakePayload();
+    payload.findByID.mockResolvedValueOnce({ smtpResults: [], deliveryStatus: 'error' });
+
+    await expect(applyBounce(payload)).resolves.toBe(true);
+    expect(payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'outgoing-emails',
+        data: expect.objectContaining({ deliveryStatus: 'error' }) as unknown,
+      }),
+    );
+  });
+
+  it('marks an email delivered when a success report is the first verdict', async () => {
+    const payload = fakePayload();
+    payload.findByID.mockResolvedValueOnce({ smtpResults: [], deliveryStatus: 'success' });
+
+    await expect(applyBounce(payload)).resolves.toBe(true);
+    expect(payload.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ deliveryStatus: 'success' }) as unknown,
+      }),
+    );
+  });
 });
