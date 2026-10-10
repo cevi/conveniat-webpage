@@ -1,5 +1,5 @@
 import type { RecipientBounce } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
-import { suppressBouncedRecipient } from '@/features/payload-cms/payload-cms/utils/email-suppression';
+import { applyDeliveryReport } from '@/features/payload-cms/payload-cms/utils/email-suppression';
 import type { Payload } from 'payload';
 
 const MAX_RAW_EMAIL_LENGTH = 20_000;
@@ -138,7 +138,7 @@ export const updateTrackingRecords = async (
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
 
-    await suppressBouncedRecipient(
+    await applyDeliveryReport(
       payload,
       { id: envelopeId, to: outgoingEmail.to },
       { email: recipientEmail, ...bounce },

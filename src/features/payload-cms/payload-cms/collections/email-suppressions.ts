@@ -27,9 +27,9 @@ export const EmailSuppressions: CollectionConfig = {
     group: AdminPanelDashboardGroups.BackofficeSystem.label,
     defaultColumns: ['email', 'status', 'outgoingEmail', 'createdAt'],
     description: {
-      en: 'A mail to these addresses came back because the address does not exist. Nothing is sent to them until the entry is deleted.',
-      de: 'Eine E-Mail an diese Adressen kam zurück, weil es die Adresse nicht gibt. An sie wird nichts mehr versendet, bis der Eintrag gelöscht wird.',
-      fr: "Un e-mail envoyé à ces adresses est revenu parce que l'adresse n'existe pas. Plus rien ne leur est envoyé tant que l'entrée n'est pas supprimée.",
+      en: 'Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.',
+      de: 'E-Mails an diese Adressen kamen zurück, weil es die Adresse nicht gibt oder weil sie über zwei Wochen oder länger nicht zugestellt werden konnten. An sie wird nichts mehr versendet, bis der Eintrag gelöscht wird.',
+      fr: "Les e-mails envoyés à ces adresses sont revenus parce que l'adresse n'existe pas, ou n'ont pas pu être remis pendant deux semaines ou plus. Plus rien ne leur est envoyé tant que l'entrée n'est pas supprimée.",
     },
   },
   access: {

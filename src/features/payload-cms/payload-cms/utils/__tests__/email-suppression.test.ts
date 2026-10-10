@@ -1,5 +1,22 @@
+/* eslint-disable unicorn/no-null */
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: { SMTP_USER: 'noreply@cevi.tools' },
+}));
+
+const mockRedisStore = new Map<string, string>();
+const mockRedisFailure: { error?: Error } = {};
+const mockRedisCall = <T>(run: () => T): Promise<T> =>
+  mockRedisFailure.error === undefined
+    ? Promise.resolve(run())
+    : Promise.reject(mockRedisFailure.error);
+jest.mock('@/lib/db/redis', () => ({
+  redis: {
+    get: (key: string): Promise<string | null> =>
+      mockRedisCall(() => mockRedisStore.get(key) ?? null),
+    set: (key: string, value: string): Promise<unknown> =>
+      mockRedisCall(() => mockRedisStore.set(key, value)),
+    del: (key: string): Promise<unknown> => mockRedisCall(() => mockRedisStore.delete(key)),
+  },
 }));
 
 import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
@@ -24,7 +41,7 @@ const world = (suppressed: string[] = []): World => {
   const sendEmail = jest.fn().mockResolvedValue({ accepted: [] });
 
   const payload = {
-    logger: { info: jest.fn(), error: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
     sendEmail,
     create: ({ collection, data }: { collection: string; data: Record<string, unknown> }) => {
       const rows = rowsOf(collection);
@@ -73,6 +90,130 @@ const bounceFrom = async (
   );
   return state;
 };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const START = Date.parse('2027-03-01T08:00:00Z');
+
+/** Sends a mail to one address on a given day and reads one report about it. */
+const mailOnDay = async (
+  state: World,
+  day: number,
+  report: { action: string; status: string },
+  to = 'avp@example.com',
+): Promise<string> => {
+  jest.spyOn(Date, 'now').mockReturnValue(START + day * DAY_MS);
+  const { outgoingEmailId } = await sendTrackedEmail(state.payload, { to, subject: 'Erinnerung' });
+  await reportOn(state, outgoingEmailId, report, to);
+  return outgoingEmailId;
+};
+
+const reportOn = async (
+  state: World,
+  outgoingEmailId: string,
+  report: { action: string; status: string },
+  to = 'avp@example.com',
+): Promise<void> => {
+  await updateTrackingRecords(
+    state.payload,
+    outgoingEmailId,
+    report.action !== 'failed',
+    `Action: ${report.action}`,
+    'raw email',
+    to,
+    report,
+  );
+};
+
+// What Microsoft 365 answers for a recipient it does not know, and for a broken tenant.
+const unreachable = { action: 'failed', status: '5.4.1' };
+const relayed = { action: 'relayed', status: '2.0.0' };
+
+beforeEach(() => {
+  mockRedisStore.clear();
+  delete mockRedisFailure.error;
+});
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+describe('suppressing addresses that keep bouncing', () => {
+  it('keeps writing to an address that could not be reached once', async () => {
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+
+    expect(state.suppressions).toEqual([]);
+  });
+
+  it('suppresses an address that still cannot be reached two weeks later', async () => {
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+    const second = await mailOnDay(state, 14, unreachable);
+
+    expect(state.suppressions).toEqual([
+      expect.objectContaining({ email: 'avp@example.com', status: '5.4.1', outgoingEmail: second }),
+    ]);
+  });
+
+  it.each([
+    ['a full mailbox', '5.2.2'],
+    ['a domain that does not resolve', '5.4.4'],
+    ['a mail given up on after days of retries', '4.4.1'],
+  ])('counts %s the same way', async (_, status) => {
+    const state = world();
+    await mailOnDay(state, 0, { action: 'failed', status });
+    await mailOnDay(state, 20, { action: 'failed', status });
+
+    expect(state.suppressions).toHaveLength(1);
+  });
+
+  it('does not suppress on bounces that are only days apart', async () => {
+    // A provider that is down for a week bounces everything sent to it in that week.
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+    await mailOnDay(state, 3, unreachable);
+    await mailOnDay(state, 7, unreachable);
+
+    expect(state.suppressions).toEqual([]);
+  });
+
+  it('starts over when a mail gets through in between', async () => {
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+    await mailOnDay(state, 7, relayed);
+    await mailOnDay(state, 14, unreachable);
+
+    expect(state.suppressions).toEqual([]);
+  });
+
+  it('does not take the hand-off report of the bounced mail for a delivery', async () => {
+    // The relay confirms it passed the mail on, and the next server bounces it afterwards.
+    const state = world();
+    const first = await mailOnDay(state, 0, unreachable);
+    await reportOn(state, first, relayed);
+    await mailOnDay(state, 14, unreachable);
+
+    expect(state.suppressions).toHaveLength(1);
+  });
+
+  it('never suppresses on rejections that are about the sender', async () => {
+    const state = world();
+    await mailOnDay(state, 0, { action: 'failed', status: '5.7.1' });
+    await mailOnDay(state, 20, { action: 'failed', status: '5.7.1' });
+    await mailOnDay(state, 40, { action: 'failed', status: '5.0.0' });
+
+    expect(state.suppressions).toEqual([]);
+  });
+
+  it('still records the bounce on the mail when the count cannot be kept', async () => {
+    const state = world();
+    mockRedisFailure.error = new Error('connect ECONNREFUSED');
+
+    await mailOnDay(state, 0, unreachable);
+
+    expect(state.suppressions).toEqual([]);
+    expect(state.mails[0]).toEqual(expect.objectContaining({ deliveryStatus: 'error' }));
+  });
+});
 
 describe('suppressing addresses that bounced', () => {
   it('suppresses an address whose mailbox does not exist', async () => {
