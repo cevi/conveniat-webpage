@@ -8,6 +8,7 @@ import { CampMapAnnotationsCollection } from '@/features/payload-cms/payload-cms
 import { CampScheduleEntryCollection } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
 import { ChatImagesCollection } from '@/features/payload-cms/payload-cms/collections/chat-images-collection';
 import { DocumentsCollection } from '@/features/payload-cms/payload-cms/collections/documents-collection';
+import { EmailSuppressions } from '@/features/payload-cms/payload-cms/collections/email-suppressions';
 import { EmergencyCardsCollection } from '@/features/payload-cms/payload-cms/collections/emergency-cards';
 import { FormCollection } from '@/features/payload-cms/payload-cms/collections/form-collection';
 import { FunktionenCollection } from '@/features/payload-cms/payload-cms/collections/funktionen-collection';
@@ -76,6 +77,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   BillPdfsCollection,
   HoefeCollection,
   OutgoingEmails,
+  EmailSuppressions,
   PayloadWorkersCollection,
 
   // internal, never shown in the admin panel

@@ -4,6 +4,10 @@ import {
   loadQueuedAttachments,
   releaseQueuedAttachments,
 } from '@/features/payload-cms/payload-cms/utils/email-outbox';
+import {
+  splitSuppressedRecipients,
+  suppressedReason,
+} from '@/features/payload-cms/payload-cms/utils/email-suppression';
 import type { PayloadHandler } from 'payload';
 
 export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
@@ -32,13 +36,19 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
       id,
     });
 
+    // A resend is no way around the suppression list. Deleting the entry is.
+    const { deliverable, suppressed } = await splitSuppressedRecipients(payload, emailDocument.to);
+    if (suppressed.length > 0 && deliverable.length === 0) {
+      return Response.json({ error: suppressedReason(suppressed) }, { status: 409 });
+    }
+
     // A mail that is still queued, or that failed on its way out of the queue, has its
     // attachments waiting. Resending it means "send it now", attachments included.
     const attachments = await loadQueuedAttachments(emailDocument);
 
     // Prepare email options
     const emailOptions = {
-      to: emailDocument.to,
+      to: suppressed.length > 0 ? deliverable : emailDocument.to,
       subject: emailDocument.subject,
       ...(attachments.length > 0 ? { attachments } : {}),
       ...(typeof emailDocument.html === 'string' && emailDocument.html.length > 0
@@ -78,7 +88,7 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
 
     const smtpResult: Record<string, unknown> = {
       success,
-      to: emailDocument.to,
+      to: suppressed.length > 0 ? deliverable.join(', ') : emailDocument.to,
       retriggeredBy: user.id,
       retriggeredAt: new Date().toISOString(),
     };
@@ -93,7 +103,16 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
     const results = Array.isArray(emailDocument.rawSmtpResults)
       ? [...emailDocument.rawSmtpResults]
       : [];
-    results.push(smtpResult);
+    // The recipients left out get an entry of their own. It goes first, because the resend
+    // button is offered for as long as the last entry is a failed send.
+    const newResults =
+      suppressed.length > 0
+        ? [
+            { success: false, to: suppressed.join(', '), error: suppressedReason(suppressed) },
+            smtpResult,
+          ]
+        : [smtpResult];
+    results.push(...newResults);
 
     await payload.update({
       collection: 'outgoing-emails',
@@ -123,7 +142,7 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
         })) as { smtpResults?: unknown[] };
 
         const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
-        subResults.push(smtpResult);
+        subResults.push(...newResults);
 
         await payload.update({
           collection: 'form-submissions',

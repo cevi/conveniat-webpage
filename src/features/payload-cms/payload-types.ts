@@ -80,6 +80,7 @@ export interface Config {
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
+    'email-suppressions': EmailSuppression;
     'payload-workers': PayloadWorker;
     'chat-images': ChatImage;
     'smtp-bounce-mail-tracking': SmtpBounceMailTracking;
@@ -154,6 +155,7 @@ export interface Config {
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
+    'email-suppressions': EmailSuppressionsSelect<false> | EmailSuppressionsSelect<true>;
     'payload-workers': PayloadWorkersSelect<false> | PayloadWorkersSelect<true>;
     'chat-images': ChatImagesSelect<false> | ChatImagesSelect<true>;
     'smtp-bounce-mail-tracking': SmtpBounceMailTrackingSelect<false> | SmtpBounceMailTrackingSelect<true>;
@@ -4817,6 +4819,20 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
+ * A mail to these addresses came back because the address does not exist. Nothing is sent to them until the entry is deleted.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-suppressions".
+ */
+export interface EmailSuppression {
+  id: string;
+  email: string;
+  status?: string | null;
+  outgoingEmail?: (string | null) | OutgoingEmail;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Registered background worker instances and their activity heartbeats.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5387,6 +5403,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'outgoing-emails';
         value: string | OutgoingEmail;
+      } | null)
+    | ({
+        relationTo: 'email-suppressions';
+        value: string | EmailSuppression;
       } | null)
     | ({
         relationTo: 'payload-workers';
@@ -7447,6 +7467,17 @@ export interface OutgoingEmailsSelect<T extends boolean = true> {
   createdAt?: T;
   lastRetriggeredBy?: T;
   updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-suppressions_select".
+ */
+export interface EmailSuppressionsSelect<T extends boolean = true> {
+  email?: T;
+  status?: T;
+  outgoingEmail?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -10285,6 +10316,7 @@ export interface TaskCreateCollectionExport {
       | 'bill-pdfs'
       | 'hoefe'
       | 'outgoing-emails'
+      | 'email-suppressions'
       | 'payload-workers'
       | 'chat-images'
       | 'smtp-bounce-mail-tracking'

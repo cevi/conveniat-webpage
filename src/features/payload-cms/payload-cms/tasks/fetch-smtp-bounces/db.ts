@@ -1,3 +1,5 @@
+import type { RecipientBounce } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
+import { suppressBouncedRecipient } from '@/features/payload-cms/payload-cms/utils/email-suppression';
 import type { Payload } from 'payload';
 
 const MAX_RAW_EMAIL_LENGTH = 20_000;
@@ -37,6 +39,8 @@ export const updateTrackingRecords = async (
   dsnString: string,
   rawEmail: string,
   recipientEmail?: string,
+  /** What the notification says happened to `recipientEmail`. */
+  bounce?: Pick<RecipientBounce, 'action' | 'status'>,
 ): Promise<boolean> => {
   let outgoingEmail:
     | {
@@ -133,6 +137,12 @@ export const updateTrackingRecords = async (
     // `delayed` one is temporary, and a resend or a manual override starts over.
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
+
+    await suppressBouncedRecipient(
+      payload,
+      { id: envelopeId, to: outgoingEmail.to },
+      { email: recipientEmail, ...bounce },
+    );
 
     await payload.update({
       collection: 'outgoing-emails',

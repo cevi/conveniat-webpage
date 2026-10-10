@@ -378,6 +378,7 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
                     dsnString,
                     rawEmailString,
                     bounce.email,
+                    bounce,
                   );
                   if (response) updatedAny = true;
                 }
