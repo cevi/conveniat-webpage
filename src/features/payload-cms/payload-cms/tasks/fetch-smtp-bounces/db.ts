@@ -32,6 +32,64 @@ const isBounce = (result: unknown): boolean =>
   typeof result['error'] === 'string' &&
   /^Action:\s*failed/im.test(result['error']);
 
+const textOf = (result: Record<string, unknown>): string => {
+  if (typeof result['error'] === 'string') return result['error'];
+  const response = result['response'];
+  return isRecord(response) && typeof response['response'] === 'string' ? response['response'] : '';
+};
+
+const HOP_ID = /(?:queued as|X-Original-ID:)\s*([\w-]{8,})/gi;
+
+/**
+ * When the send a report is about left our server.
+ *
+ * A resend reuses the id of the mail, so the id alone does not say which send a report
+ * belongs to, and a bounce of the first send can be read after the resend. The report quotes
+ * the queue id our server gave that send. A server further down the line quotes its own id
+ * instead, which an earlier hand-off report of the same send ties to ours. A report that
+ * quotes neither counts for the latest send.
+ *
+ * @param results - The delivery log of the mail, the report itself included.
+ * @param dsnString - The text of the report.
+ * @param firstSentAt - When the mail was created, for sends stored without a time.
+ */
+const sentAtOfReport = (
+  results: unknown[],
+  dsnString: string,
+  firstSentAt: string | null | undefined,
+): number => {
+  const sends = results.filter(
+    (result): result is Record<string, unknown> =>
+      isRecord(result) &&
+      result['bounceReport'] !== true &&
+      result['manualOverride'] !== true &&
+      result['success'] === true,
+  );
+  const reports = results
+    .filter(
+      (result): result is Record<string, unknown> =>
+        isRecord(result) && result['bounceReport'] === true,
+    )
+    .map((report) => textOf(report));
+  const hopIds = [...dsnString.matchAll(HOP_ID)].map((match) => match[1] as string);
+
+  const isQuoted = (send: Record<string, unknown>): boolean => {
+    const queueId = /queued as\s+([\w-]+)/i.exec(textOf(send))?.[1];
+    if (queueId === undefined) return false;
+    if (dsnString.includes(queueId)) return true;
+    return reports.some(
+      (report) => report.includes(queueId) && hopIds.some((hopId) => report.includes(hopId)),
+    );
+  };
+
+  const quoted = sends.findLastIndex((send) => isQuoted(send));
+  const index = quoted === -1 ? sends.length - 1 : quoted;
+  const send = sends[index];
+  const stored = send?.['sentAt'] ?? send?.['retriggeredAt'] ?? (index <= 0 ? firstSentAt : '');
+  const sentAt = Date.parse(typeof stored === 'string' ? stored : '');
+  return Number.isNaN(sentAt) ? Date.now() : sentAt;
+};
+
 export const updateTrackingRecords = async (
   payload: Payload,
   envelopeId: string,
@@ -143,19 +201,14 @@ export const updateTrackingRecords = async (
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
 
-    // When the mail last left, which a resend moves. Reports are placed by this time, not
-    // by when they are read.
-    const sentAt = Date.parse(outgoingEmail.smtpReceivedAt ?? outgoingEmail.createdAt ?? '');
+    // Reports are placed by when their send left, not by when they are read.
+    const sentAt = sentAtOfReport(
+      results,
+      dsnString,
+      outgoingEmail.createdAt ?? outgoingEmail.smtpReceivedAt,
+    );
     for (const bounce of bounces) {
-      await applyDeliveryReport(
-        payload,
-        {
-          id: envelopeId,
-          to: outgoingEmail.to,
-          sentAt: Number.isNaN(sentAt) ? Date.now() : sentAt,
-        },
-        bounce,
-      );
+      await applyDeliveryReport(payload, { id: envelopeId, to: outgoingEmail.to, sentAt }, bounce);
     }
 
     await payload.update({
