@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.30.0](https://github.com/cevi/conveniat-webpage/compare/v1.29.0...v1.30.0) (2026-10-10)
+
+
+### Features
+
+* **cevidb:** keep the stored browser session alive ([e117ba0](https://github.com/cevi/conveniat-webpage/commit/e117ba0ce71a74719ed172c9d6253d42c2b46ca4))
+* **cevidb:** keep the stored browser session alive ([9a3411a](https://github.com/cevi/conveniat-webpage/commit/9a3411a4082167952ece3e60608ec044b951e7ae))
+* **email:** addresses that bounced for good get no more mail ([f3edb98](https://github.com/cevi/conveniat-webpage/commit/f3edb98d76c11e74896573c0ff0804df0e430cce))
+* **email:** addresses that bounced for good get no more mail ([9828756](https://github.com/cevi/conveniat-webpage/commit/98287560d0f08f1ed9e9509c8004e26bc9ae1286))
+* **email:** addresses that keep bouncing for two weeks get no more mail ([4e98cc3](https://github.com/cevi/conveniat-webpage/commit/4e98cc33e1afc61f4c047bb104c2b2479bc2cc33))
+* **email:** addresses that keep bouncing for two weeks get no more mail ([3387d33](https://github.com/cevi/conveniat-webpage/commit/3387d332abefaa7292ea85558f386c475a484c4b))
+* **email:** mail status shows one row per recipient ([777124a](https://github.com/cevi/conveniat-webpage/commit/777124a73c3632adba3bc2d479feb6e7e4547ae8))
+* **email:** mail status shows one row per recipient ([9e7ae59](https://github.com/cevi/conveniat-webpage/commit/9e7ae5998f12542bb8e38ae7fcc195ee141432a5))
+
+
+### Bug Fixes
+
+* **billing:** a locked step says why it is locked ([88cc9ff](https://github.com/cevi/conveniat-webpage/commit/88cc9ffc5a6fcf596676f1b24abfb857845b8c0f))
+* **billing:** a locked step says why it is locked ([4f686ec](https://github.com/cevi/conveniat-webpage/commit/4f686ec0889c44e13628197a855479cb390f9b8f))
+* **cevidb:** every request to Cevi.DB identifies as conveniat27-ERP ([02253d0](https://github.com/cevi/conveniat-webpage/commit/02253d044ae74c690cea5691c386d91ef5b8754d))
+* **cevidb:** every request to Cevi.DB identifies as conveniat27-ERP ([e0c0899](https://github.com/cevi/conveniat-webpage/commit/e0c0899aad0048d762b64c63ec336934ec98b3b6))
+* **cevidb:** keep-alive does not take an error page for a working session ([19fe60f](https://github.com/cevi/conveniat-webpage/commit/19fe60f8bbc7adda191bd1e8b36a7807b8d92f1c))
+* **email:** a bounce is recorded for the address that failed ([85b7221](https://github.com/cevi/conveniat-webpage/commit/85b72219695d6a868a95d4b5b105e229eda3ed01))
+* **email:** a recipient named twice in a report keeps the server's answer ([8460d37](https://github.com/cevi/conveniat-webpage/commit/8460d370ff660111c9a9cfa44a3f30d1ce10c966))
+* **email:** a report naming nobody follows the queue id it quotes ([f25d953](https://github.com/cevi/conveniat-webpage/commit/f25d953423589ad8826014ea7a3e538feba1da00))
+* **email:** a resend counts as its own attempt, a dead mailbox stays suppressed ([b154a81](https://github.com/cevi/conveniat-webpage/commit/b154a81a45eb6f9e2501e0a8dab92ac2a77da151))
+* **email:** delivery reports name the real recipient and are stored once ([98ce733](https://github.com/cevi/conveniat-webpage/commit/98ce733dc4e2ec0644681896a9e71190b12007f9))
+* **email:** delivery reports name the real recipient and are stored once ([f0c6713](https://github.com/cevi/conveniat-webpage/commit/f0c67135b03819ec614a9a6c32d0257522a296c7))
+* **email:** repeated bounces are counted by when the mail was sent ([82d4de9](https://github.com/cevi/conveniat-webpage/commit/82d4de97a60ae080613d85f5bb271bf73db0f0a9))
+* **email:** resends and overrides apply to their own mail in a shared log ([f9f4e06](https://github.com/cevi/conveniat-webpage/commit/f9f4e06a82883573309594360a5e3d35b5b30e82))
+* **email:** suppression counts each report for its own send and checks copies ([b5b00cd](https://github.com/cevi/conveniat-webpage/commit/b5b00cd2e5a8f3c513c010ff0afb10e65346d803))
+* **email:** suppression counts each report for its own send and checks copies ([582e23d](https://github.com/cevi/conveniat-webpage/commit/582e23d3c53904d9e08d9807ebc785f6a249978c))
+* **email:** suppression survives a database failure and odd addresses ([a10ca03](https://github.com/cevi/conveniat-webpage/commit/a10ca03ad1c32185fa1836895ffe73ba21d80d10))
+
+
+### Dependencies
+
+* **deps:** bump the npm_and_yarn group across 1 directory with 2 updates ([1520c25](https://github.com/cevi/conveniat-webpage/commit/1520c256e3b6c9740d8588a9fad6e4b474ecd4f3))
+* **deps:** bump the npm_and_yarn group across 1 directory with 2 updates ([e268fc5](https://github.com/cevi/conveniat-webpage/commit/e268fc520730df5c4810e806d83749f125b85e50))
+
 ## [1.29.0](https://github.com/cevi/conveniat-webpage/compare/v1.28.0...v1.29.0) (2026-10-10)
 
 
