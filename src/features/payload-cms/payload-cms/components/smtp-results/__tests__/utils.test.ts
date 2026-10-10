@@ -1,7 +1,6 @@
 import { DSN_TIMEOUT_MS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
 import {
   extractEmailAddress,
-  formatTimeDifference,
   isManualOverrideItem,
   isSystemEmail,
   parseSimplifiedRejectionReason,
@@ -44,32 +43,6 @@ describe('smtp-results utils', () => {
 
     it('should return false for empty email', () => {
       expect(isSystemEmail('')).toBe(false);
-    });
-  });
-
-  describe('formatTimeDifference', () => {
-    it('should format seconds', () => {
-      const start = new Date(1000);
-      const end = new Date(15_000);
-      expect(formatTimeDifference(start, end)).toBe('14s');
-    });
-
-    it('should format minutes', () => {
-      const start = new Date(0);
-      const end = new Date(125 * 1000);
-      expect(formatTimeDifference(start, end)).toBe('2m');
-    });
-
-    it('should format hours', () => {
-      const start = new Date(0);
-      const end = new Date(3 * 60 * 60 * 1000 + 5 * 60 * 1000);
-      expect(formatTimeDifference(start, end)).toBe('3h');
-    });
-
-    it('should format days', () => {
-      const start = new Date(0);
-      const end = new Date(2 * 24 * 60 * 60 * 1000 + 10 * 60 * 60 * 1000);
-      expect(formatTimeDifference(start, end)).toBe('2d');
     });
   });
 

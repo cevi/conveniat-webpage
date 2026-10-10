@@ -37,18 +37,6 @@ export const isSystemEmail = (email: string, systemEmails: string[] = []): boole
   return localPart === 'noreply' || localPart === 'no-reply' || localPart === 'postmaster';
 };
 
-export const formatTimeDifference = (start: Date, end: Date): string => {
-  const diffMs = Math.abs(end.getTime() - start.getTime());
-  const diffSecs = Math.floor(diffMs / 1000);
-  if (diffSecs < 60) return `${diffSecs}s`;
-  const diffMins = Math.floor(diffSecs / 60);
-  if (diffMins < 60) return `${diffMins}m`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d`;
-};
-
 export type SimplifiedRejectionKey =
   | 'rejectionUserUnknown'
   | 'rejectionDomainNotFound'
