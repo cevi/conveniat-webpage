@@ -6,11 +6,16 @@ export type BrowserCookieProblem = 'no-session' | 'no-remember-token';
 /** Typed into the field to delete the stored cookie. */
 export const CLEAR_COOKIE_KEYWORD = 'CLEAR';
 
+/** The names of the cookies in a header that carry a value. `_session_id=` signs nobody in. */
 const cookieNames = (header: string): Set<string> =>
   new Set(
     header
       .split(';')
-      .map((part) => part.split('=')[0]?.trim() ?? '')
+      .map((part) => {
+        const separator = part.indexOf('=');
+        if (separator === -1 || part.slice(separator + 1).trim() === '') return '';
+        return part.slice(0, separator).trim();
+      })
       .filter((name) => name !== ''),
   );
 

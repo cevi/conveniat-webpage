@@ -5,6 +5,8 @@ import { keepCeviDatabaseSessionAlive } from '@/features/payload-cms/payload-cms
 import { SessionExpiredError } from '@/lib/hitobito/errors';
 import type { Payload } from 'payload';
 
+const OK_PAGE = { response: { ok: true, status: 200 } };
+
 const setup = (
   browserCookie: string,
 ): {
@@ -30,7 +32,7 @@ const setup = (
 describe('keepCeviDatabaseSessionAlive', () => {
   it('uses the stored session once', async () => {
     const { payload, flags } = setup('_session_id=abc');
-    const ping = jest.fn().mockResolvedValue({});
+    const ping = jest.fn().mockResolvedValue(OK_PAGE);
 
     expect(await keepCeviDatabaseSessionAlive(payload, flags, ping)).toBe('alive');
     expect(ping).toHaveBeenCalledWith('_session_id=abc');
@@ -59,9 +61,38 @@ describe('keepCeviDatabaseSessionAlive', () => {
     const { payload, flags, info } = setup('_session_id=new');
     flags.del.mockResolvedValue(1);
 
-    await keepCeviDatabaseSessionAlive(payload, flags, jest.fn().mockResolvedValue({}));
+    await keepCeviDatabaseSessionAlive(payload, flags, jest.fn().mockResolvedValue(OK_PAGE));
 
     expect(info).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not take an error page for a working session', async () => {
+    const { payload, flags, info } = setup('_session_id=abc');
+    // The session was reported expired earlier; a 503 must not announce that it is back.
+    flags.del.mockResolvedValue(1);
+    const ping = jest.fn().mockResolvedValue({ response: { ok: false, status: 503 } });
+
+    expect(await keepCeviDatabaseSessionAlive(payload, flags, ping)).toBe('unreachable');
+    expect(flags.del).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it('still reports an expired session when Redis is down', async () => {
+    const { payload, flags, warn } = setup('_session_id=abc');
+    flags.set.mockRejectedValue(new Error('redis down'));
+    const ping = jest.fn().mockRejectedValue(new SessionExpiredError('https://db.cevi.test/'));
+
+    expect(await keepCeviDatabaseSessionAlive(payload, flags, ping)).toBe('expired');
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('still counts the session as alive when Redis is down', async () => {
+    const { payload, flags } = setup('_session_id=abc');
+    flags.del.mockRejectedValue(new Error('redis down'));
+
+    expect(
+      await keepCeviDatabaseSessionAlive(payload, flags, jest.fn().mockResolvedValue(OK_PAGE)),
+    ).toBe('alive');
   });
 
   it('does not call the session expired when Cevi.DB cannot be reached', async () => {
