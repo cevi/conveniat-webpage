@@ -60,7 +60,8 @@ const ADDRESS_PATTERN = /[^\s<>,;"]+@[^\s<>,;"]+/g;
  * @param to - One address, several joined by commas, an address object, or a list of any.
  */
 const addressText = (value: unknown): string => {
-  if (typeof value === 'string') return value;
+  // A quoted display name is not a recipient, even when it is written like an address.
+  if (typeof value === 'string') return value.replaceAll(/"[^"]*"/g, ' ');
   if (Array.isArray(value)) return value.map((entry) => addressText(entry)).join(', ');
   // The `{ name, address }` form nodemailer accepts next to plain strings.
   if (typeof value === 'object' && value !== null && 'address' in value) {

@@ -382,6 +382,32 @@ describe('suppressing addresses that keep bouncing', () => {
     expect(state.suppressions).toEqual([]);
   });
 
+  it('ties a bounce from a later server to its send through the hand-off report', async () => {
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+    state.sendEmail.mockResolvedValueOnce({ response: '250 2.0.0 Ok: queued as FIRST01' });
+    const mail = await sendOnDay(state, 1);
+    // Our server hands the first send to the next one, which names its own id for it.
+    await updateTrackingRecords(
+      state.payload,
+      mail,
+      true,
+      'X-Postfix-Queue-ID: FIRST01\nAction: relayed\n250 2.0.0 Ok: queued as NEXTHOP01',
+      'raw email',
+      [{ email: 'avp@example.com', ...relayed }],
+    );
+    await resendOnDay(state, mail, 2, 'SECOND1');
+    await reportOn(state, mail, relayed, 'avp@example.com', 'SECOND1');
+
+    // The next server gives up on the first send and quotes only its own id.
+    await reportOn(state, mail, unreachable, 'avp@example.com', 'NEXTHOP01');
+    await mailOnDay(state, 16, unreachable);
+
+    // The resend on day 2 got through. Counted for the resend, the bounce would erase that.
+
+    expect(state.suppressions).toEqual([]);
+  });
+
   it('suppresses on the next reading when the list could not be written the first time', async () => {
     const state = world();
     await mailOnDay(state, 0, unreachable);
@@ -528,6 +554,20 @@ describe('suppressing addresses that bounced', () => {
 
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({ to: ['avp@example.com'], cc: ['coach@example.com'], bcc: [] }),
+    );
+  });
+
+  it('does not write to an address that is only the display name of a copy', async () => {
+    const { payload, sendEmail } = world(['gone@example.com']);
+
+    await sendTrackedEmail(payload, {
+      to: 'gone@example.com',
+      cc: '"observer@example.com" <coach@example.com>',
+      subject: 'Freigabe',
+    });
+
+    expect(sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: [], cc: ['coach@example.com'] }),
     );
   });
 
