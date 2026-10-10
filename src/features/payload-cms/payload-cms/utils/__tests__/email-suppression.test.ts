@@ -562,12 +562,15 @@ describe('suppressing addresses that bounced', () => {
 
     await sendTrackedEmail(payload, {
       to: 'gone@example.com',
-      cc: '"observer@example.com" <coach@example.com>',
+      cc: [
+        '"observer@example.com" <coach@example.com>',
+        String.raw`"Team \"other@example.com (copy)\" member" <avp@example.com>`,
+      ],
       subject: 'Freigabe',
     });
 
     expect(sendEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ to: [], cc: ['coach@example.com'] }),
+      expect.objectContaining({ to: [], cc: ['coach@example.com', 'avp@example.com'] }),
     );
   });
 
