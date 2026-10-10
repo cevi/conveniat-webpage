@@ -1,6 +1,11 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import {
+  browserCookieProblemMessages,
+  CLEAR_COOKIE_KEYWORD,
+  findBrowserCookieProblem,
+} from '@/features/registration_process/api/cevidb-browser-cookie';
 import type { GlobalConfig } from 'payload';
 
 export const RegistrationManagement: GlobalConfig = {
@@ -76,6 +81,16 @@ export const RegistrationManagement: GlobalConfig = {
       name: 'browserCookie',
       type: 'text',
       label: 'Cevi.DB Browser Cookie',
+      validate: (
+        value: unknown,
+        { req }: { req: { i18n: { language: string } } },
+      ): string | true => {
+        const problem = findBrowserCookieProblem(value);
+        if (problem === undefined) return true;
+        const language = req.i18n.language;
+        const locale = language === 'fr' || language === 'en' ? language : 'de';
+        return browserCookieProblemMessages[problem][locale];
+      },
       hooks: {
         afterRead: [
           ({ req, value }): string => {
@@ -93,7 +108,7 @@ export const RegistrationManagement: GlobalConfig = {
               return (originalDoc as Record<string, unknown> | undefined)?.['browserCookie'];
             }
             // Allow manual clearing by inputting a specific placeholder
-            if (value === 'CLEAR') {
+            if (value === CLEAR_COOKIE_KEYWORD) {
               return '';
             }
             return value;
@@ -101,8 +116,11 @@ export const RegistrationManagement: GlobalConfig = {
         ],
       },
       admin: {
-        description:
-          'Session cookie for the Cevi.DB API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.',
+        description: {
+          en: 'Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.',
+          de: 'Session-Cookie eines in der Cevi.DB angemeldeten Browsers. Hochsensibel und nur schreibbar: der Wert wird nach dem Speichern nie angezeigt. Mit «Angemeldet bleiben» anmelden und den ganzen Cookie-Header einfügen, inklusive remember_person_token. Die App verwendet die Sitzung alle zehn Minuten, damit sie nicht abläuft; ein Abmelden von der Cevi.DB in diesem Browser beendet sie aber endgültig. Leer lassen, um den aktuellen Wert zu behalten. «CLEAR» eingeben, um das Cookie zu löschen.',
+          fr: "Cookie de session d'un navigateur connecté à Cevi.DB. Très sensible, en écriture seule : la valeur n'est jamais affichée après l'enregistrement. Se connecter en cochant « Se souvenir de moi » et coller tout l'en-tête Cookie, y compris remember_person_token. L'application utilise la session toutes les dix minutes pour la maintenir, mais une déconnexion de Cevi.DB dans ce navigateur y met fin définitivement. Laisser vide pour conserver la valeur actuelle. Saisir « CLEAR » pour supprimer le cookie.",
+        },
       },
     },
   ],

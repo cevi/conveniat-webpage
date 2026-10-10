@@ -33,6 +33,7 @@ import { drainPushQueueTask } from '@/features/payload-cms/payload-cms/tasks/dra
 import { fetchSmtpBouncesTask } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces';
 import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/generate-bills';
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
+import { keepCeviDatabaseSessionAliveTask } from '@/features/payload-cms/payload-cms/tasks/keep-cevidb-session-alive';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
@@ -374,6 +375,7 @@ const jobsConfig: JobsConfig = {
       publishScheduledAnnouncementsTask,
       drainPushQueueTask,
       drainEmailOutboxTask,
+      keepCeviDatabaseSessionAliveTask,
       syncActivePiketMembersTask,
       syncNewUserAnnouncementChatsTask,
       syncParticipantsTask,
