@@ -149,6 +149,9 @@ export const parseSmtpResultsHook: FieldHook = ({ value }) => {
             );
           });
 
+    // A row that stands for a whole report matches none of its recipients. Its stored
+    // `success` already covers all of them, and the first recipient alone does not.
+    const coversWholeReport = parsedDsn === undefined && parsedDsns.length > 1;
     parsedDsn ??= parsedDsns[0];
 
     if (parsedDsn === undefined) {
@@ -156,10 +159,16 @@ export const parseSmtpResultsHook: FieldHook = ({ value }) => {
     }
 
     let derivedSuccess = result.success;
-    if (parsedDsn.action === 'failed') {
-      derivedSuccess = false;
-    } else if (parsedDsn.action === 'delivered' || parsedDsn.action === 'relayed') {
-      derivedSuccess = true;
+    if (!coversWholeReport) {
+      if (parsedDsn.action === 'failed') {
+        derivedSuccess = false;
+      } else if (
+        parsedDsn.action === 'delivered' ||
+        parsedDsn.action === 'relayed' ||
+        parsedDsn.action === 'expanded'
+      ) {
+        derivedSuccess = true;
+      }
     }
 
     return {

@@ -38,9 +38,8 @@ export const updateTrackingRecords = async (
   isSuccess: boolean,
   dsnString: string,
   rawEmail: string,
-  recipientEmail?: string,
-  /** What the notification says happened to `recipientEmail`. */
-  bounce?: Pick<RecipientBounce, 'action' | 'status'>,
+  /** What the notification says happened to each recipient it covers. */
+  bounces: Pick<RecipientBounce, 'email' | 'action' | 'status'>[] = [],
 ): Promise<boolean> => {
   let outgoingEmail:
     | {
@@ -65,8 +64,12 @@ export const updateTrackingRecords = async (
   }
 
   let toAddress = 'unknown';
-  if (typeof recipientEmail === 'string' && recipientEmail.length > 0) {
-    toAddress = recipientEmail;
+  // One stored result per notification, naming every recipient it covers.
+  const covered = bounces
+    .map((bounce) => bounce.email)
+    .filter((email): email is string => typeof email === 'string' && email.length > 0);
+  if (covered.length > 0) {
+    toAddress = covered.join(', ');
   } else if (typeof outgoingEmail?.to === 'string' && outgoingEmail.to.length > 0) {
     toAddress = outgoingEmail.to;
   }
@@ -143,15 +146,17 @@ export const updateTrackingRecords = async (
     // When the mail last left, which a resend moves. Reports are placed by this time, not
     // by when they are read.
     const sentAt = Date.parse(outgoingEmail.smtpReceivedAt ?? outgoingEmail.createdAt ?? '');
-    await applyDeliveryReport(
-      payload,
-      {
-        id: envelopeId,
-        to: outgoingEmail.to,
-        sentAt: Number.isNaN(sentAt) ? Date.now() : sentAt,
-      },
-      { email: recipientEmail, ...bounce },
-    );
+    for (const bounce of bounces) {
+      await applyDeliveryReport(
+        payload,
+        {
+          id: envelopeId,
+          to: outgoingEmail.to,
+          sentAt: Number.isNaN(sentAt) ? Date.now() : sentAt,
+        },
+        bounce,
+      );
+    }
 
     await payload.update({
       collection: 'outgoing-emails',

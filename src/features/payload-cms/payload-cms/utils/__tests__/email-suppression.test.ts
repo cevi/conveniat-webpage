@@ -113,8 +113,7 @@ const bounceFrom = async (
     false,
     `Action: ${bounce.action}`,
     'raw email',
-    bounce.email,
-    bounce,
+    [bounce],
   );
   return state;
 };
@@ -141,8 +140,7 @@ const reportOn = async (
     report.action !== 'failed',
     `Action: ${report.action}`,
     'raw email',
-    to,
-    report,
+    [{ email: to, ...report }],
   );
 };
 
@@ -425,8 +423,7 @@ describe('suppressing addresses that bounced', () => {
       false,
       'Action: failed',
       'raw email',
-      bounce.email,
-      bounce,
+      [bounce],
     );
 
     expect(state.suppressions).toHaveLength(1);
@@ -485,15 +482,9 @@ describe('suppressing addresses that bounced', () => {
     const bounce = { email: 'gone@example.com', action: 'failed', status: '5.1.1' };
 
     await expect(
-      updateTrackingRecords(
-        state.payload,
-        outgoingEmailId,
-        false,
-        'Action: failed',
-        'raw email',
-        bounce.email,
+      updateTrackingRecords(state.payload, outgoingEmailId, false, 'Action: failed', 'raw email', [
         bounce,
-      ),
+      ]),
     ).rejects.toThrow('connection timed out');
     // Nothing was recorded yet, so reading it again does not record the bounce twice.
     expect(state.mails[0]?.['smtpResults']).toHaveLength(1);

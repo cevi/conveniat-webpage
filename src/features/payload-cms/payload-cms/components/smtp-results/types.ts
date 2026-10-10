@@ -39,6 +39,4 @@ export interface SmtpResult {
   _dsnHistory?: SmtpResult[];
 }
 
-export type SmtpStatusType = 'empty' | 'pending' | 'success' | 'error';
-
 export type SmtpLanguage = 'en' | 'de' | 'fr';

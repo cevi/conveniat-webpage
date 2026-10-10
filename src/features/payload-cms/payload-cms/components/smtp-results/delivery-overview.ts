@@ -376,7 +376,15 @@ const readReport = (
     seen.add(text);
   }
 
-  return blocks.map((block) => ({
+  // A stored report can carry its status part twice, once from the body and once appended.
+  const distinct = new Map<string, ReportBlock>();
+  for (const block of blocks) {
+    const { action, status, server } = block.event;
+    const key = [block.finalRecipient, block.originalRecipient, action, status, server].join('|');
+    if (!distinct.has(key)) distinct.set(key, block);
+  }
+
+  return [...distinct.values()].map((block) => ({
     ...block,
     event: {
       ...block.event,
