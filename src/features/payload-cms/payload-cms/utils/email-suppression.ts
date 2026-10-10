@@ -11,7 +11,8 @@ import type { Payload } from 'payload';
  */
 const DEAD_ADDRESS_STATUSES = new Set(['5.1.1', '5.1.3', '5.1.6', '5.1.10', '5.2.1']);
 
-const ADDRESS_PATTERN = /[^\s<>,;"']+@[^\s<>,;"']+/g;
+// Only what separates addresses is excluded. An apostrophe is part of some people's address.
+const ADDRESS_PATTERN = /[^\s<>,;"]+@[^\s<>,;"]+/g;
 
 /**
  * The addresses in a `to` value, lower-cased and without duplicates.
@@ -66,8 +67,9 @@ export const suppressedReason = (suppressed: string[]): string =>
  * Cevi.DB group, a report names the member whose mailbox failed. That member is not ours to
  * suppress, and the list address must keep working for everybody else on it.
  *
- * Never throws. The caller has already recorded the bounce, and reading the notification a
- * second time because of this would record it twice; the next bounce suppresses the address.
+ * Called before the bounce is recorded on the mail, and throws when the list cannot be
+ * written. The notification then stays in the mailbox and is read again, so a failure here
+ * loses neither the suppression nor records the bounce twice.
  */
 export const suppressBouncedRecipient = async (
   payload: Payload,
@@ -82,24 +84,17 @@ export const suppressBouncedRecipient = async (
   const email = bounce.email.toLowerCase();
   if (!recipientAddresses(outgoingEmail.to).includes(email)) return;
 
-  try {
-    const existing = await payload.count({
-      collection: 'email-suppressions',
-      where: { email: { equals: email } },
-    });
-    if (existing.totalDocs > 0) return;
+  const existing = await payload.count({
+    collection: 'email-suppressions',
+    where: { email: { equals: email } },
+  });
+  if (existing.totalDocs > 0) return;
 
-    await payload.create({
-      collection: 'email-suppressions',
-      data: { email, status: bounce.status, outgoingEmail: outgoingEmail.id },
-    });
-    payload.logger.info(
-      `Suppressed a recipient of outgoing email ${outgoingEmail.id} after a ${bounce.status} bounce.`,
-    );
-  } catch (error: unknown) {
-    payload.logger.error({
-      err: error instanceof Error ? error : new Error(String(error)),
-      msg: `Failed to suppress the bounced recipient of outgoing email ${outgoingEmail.id}`,
-    });
-  }
+  await payload.create({
+    collection: 'email-suppressions',
+    data: { email, status: bounce.status, outgoingEmail: outgoingEmail.id },
+  });
+  payload.logger.info(
+    `Suppressed a recipient of outgoing email ${outgoingEmail.id} after a ${bounce.status} bounce.`,
+  );
 };

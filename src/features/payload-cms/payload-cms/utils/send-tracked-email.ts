@@ -95,21 +95,26 @@ export const sendTrackedEmail = async (
   }
 
   // 2. Send the email with DSN tracking, to everyone who has not bounced for good before
-  const { deliverable, suppressed } = await splitSuppressedRecipients(payload, options.to);
-  const isWithheld = suppressed.length > 0 && deliverable.length === 0;
-  const isPartlyWithheld = suppressed.length > 0 && deliverable.length > 0;
+  let deliverable: string[] = [];
+  let suppressed: string[] = [];
+  let isWithheld = false;
 
   let success = false;
   let responseOrError: unknown;
 
-  if (isWithheld) {
-    // Not logged as an error: this is the list doing its job, and the row says why.
-    responseOrError = suppressedReason(suppressed);
-  } else {
-    try {
-      const emailPromise = await payload.sendEmail({
+  try {
+    // Inside the catch on purpose: a mail whose recipients could not be checked is not
+    // sent, and its row has to say so rather than stay `pending`.
+    ({ deliverable, suppressed } = await splitSuppressedRecipients(payload, options.to));
+    isWithheld = suppressed.length > 0 && deliverable.length === 0;
+
+    if (isWithheld) {
+      // Not logged as an error: this is the list doing its job, and the row says why.
+      responseOrError = suppressedReason(suppressed);
+    } else {
+      responseOrError = await payload.sendEmail({
         ...emailOptions,
-        ...(isPartlyWithheld ? { to: deliverable } : {}),
+        ...(suppressed.length > 0 ? { to: deliverable } : {}),
         ...(typeof environmentVariables.SMTP_USER === 'string' &&
         environmentVariables.SMTP_USER.length > 0
           ? {
@@ -122,18 +127,17 @@ export const sendTrackedEmail = async (
             }
           : {}),
       });
-
       success = true;
-      responseOrError = emailPromise;
-    } catch (error: unknown) {
-      success = false;
-      responseOrError = error instanceof Error ? error.message : String(error);
-      payload.logger.error({
-        err: error,
-        msg: `Error while sending tracked email to address: ${to}. Email not sent.`,
-      });
     }
+  } catch (error: unknown) {
+    success = false;
+    responseOrError = error instanceof Error ? error.message : String(error);
+    payload.logger.error({
+      err: error,
+      msg: `Error while sending tracked email to address: ${to}. Email not sent.`,
+    });
   }
+  const isPartlyWithheld = suppressed.length > 0 && !isWithheld;
 
   // 3. Prepare the SMTP result
   const smtpResult: Record<string, unknown> = {

@@ -88,7 +88,7 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
 
     const smtpResult: Record<string, unknown> = {
       success,
-      to: emailDocument.to,
+      to: suppressed.length > 0 ? deliverable.join(', ') : emailDocument.to,
       retriggeredBy: user.id,
       retriggeredAt: new Date().toISOString(),
     };
@@ -103,7 +103,16 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
     const results = Array.isArray(emailDocument.rawSmtpResults)
       ? [...emailDocument.rawSmtpResults]
       : [];
-    results.push(smtpResult);
+    // The recipients left out get an entry of their own. It goes first, because the resend
+    // button is offered for as long as the last entry is a failed send.
+    const newResults =
+      suppressed.length > 0
+        ? [
+            { success: false, to: suppressed.join(', '), error: suppressedReason(suppressed) },
+            smtpResult,
+          ]
+        : [smtpResult];
+    results.push(...newResults);
 
     await payload.update({
       collection: 'outgoing-emails',
@@ -133,7 +142,7 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
         })) as { smtpResults?: unknown[] };
 
         const subResults = Array.isArray(submission.smtpResults) ? [...submission.smtpResults] : [];
-        subResults.push(smtpResult);
+        subResults.push(...newResults);
 
         await payload.update({
           collection: 'form-submissions',

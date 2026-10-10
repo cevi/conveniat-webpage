@@ -138,6 +138,12 @@ export const updateTrackingRecords = async (
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
 
+    await suppressBouncedRecipient(
+      payload,
+      { id: envelopeId, to: outgoingEmail.to },
+      { email: recipientEmail, ...bounce },
+    );
+
     await payload.update({
       collection: 'outgoing-emails',
       id: envelopeId,
@@ -149,12 +155,6 @@ export const updateTrackingRecords = async (
         dsnReceivedAt: new Date().toISOString(),
       },
     });
-
-    await suppressBouncedRecipient(
-      payload,
-      { id: envelopeId, to: outgoingEmail.to },
-      { email: recipientEmail, ...bounce },
-    );
 
     const formSubmissionRelated = outgoingEmail.formSubmission;
     const formSubmissionId =

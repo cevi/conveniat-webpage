@@ -174,6 +174,55 @@ describe('suppressing addresses that bounced', () => {
     ]);
   });
 
+  it('suppresses an address with an apostrophe as it is written', async () => {
+    const { suppressions } = await bounceFrom("o'neill@example.com", {
+      email: "o'neill@example.com",
+      action: 'failed',
+      status: '5.1.1',
+    });
+
+    expect(suppressions).toEqual([expect.objectContaining({ email: "o'neill@example.com" })]);
+  });
+
+  it('leaves the notification to be read again when the list cannot be written', async () => {
+    const state = world();
+    const { outgoingEmailId } = await sendTrackedEmail(state.payload, {
+      to: 'gone@example.com',
+      subject: 'Rechnung',
+    });
+    (state.payload as unknown as { count: unknown }).count = (): Promise<never> =>
+      Promise.reject(new Error('connection timed out'));
+    const bounce = { email: 'gone@example.com', action: 'failed', status: '5.1.1' };
+
+    await expect(
+      updateTrackingRecords(
+        state.payload,
+        outgoingEmailId,
+        false,
+        'Action: failed',
+        'raw email',
+        bounce.email,
+        bounce,
+      ),
+    ).rejects.toThrow('connection timed out');
+    // Nothing was recorded yet, so reading it again does not record the bounce twice.
+    expect(state.mails[0]?.['smtpResults']).toHaveLength(1);
+  });
+
+  it('does not send a mail whose recipients could not be checked, and says so on its row', async () => {
+    const { payload, mails, sendEmail } = world();
+    (payload as unknown as { find: unknown }).find = (): Promise<never> =>
+      Promise.reject(new Error('connection timed out'));
+
+    const result = await sendTrackedEmail(payload, { to: 'avp@example.com', subject: 'Rechnung' });
+
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({ success: false, error: 'connection timed out' }),
+    );
+    expect(mails[0]?.['deliveryStatus']).toBe('error');
+  });
+
   it('sends a mail unchanged when no recipient is suppressed', async () => {
     const { payload, sendEmail } = world(['gone@example.com']);
 
