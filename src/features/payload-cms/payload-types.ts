@@ -4819,7 +4819,7 @@ export interface OutgoingEmail {
   updatedAt: string;
 }
 /**
- * A mail to these addresses came back because the address does not exist. Nothing is sent to them until the entry is deleted.
+ * Mail to these addresses came back because the address does not exist, or kept coming back for two weeks or more. Nothing is sent to them until the entry is deleted.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "email-suppressions".

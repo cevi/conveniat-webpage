@@ -1,5 +1,5 @@
 import type { RecipientBounce } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
-import { suppressBouncedRecipient } from '@/features/payload-cms/payload-cms/utils/email-suppression';
+import { applyDeliveryReport } from '@/features/payload-cms/payload-cms/utils/email-suppression';
 import type { Payload } from 'payload';
 
 const MAX_RAW_EMAIL_LENGTH = 20_000;
@@ -48,6 +48,8 @@ export const updateTrackingRecords = async (
         formSubmission?: string | { id: string };
         rawDsnEmail?: string;
         to?: string;
+        smtpReceivedAt?: string | null;
+        createdAt?: string | null;
       }
     | undefined;
 
@@ -138,9 +140,16 @@ export const updateTrackingRecords = async (
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
 
-    await suppressBouncedRecipient(
+    // When the mail last left, which a resend moves. Reports are placed by this time, not
+    // by when they are read.
+    const sentAt = Date.parse(outgoingEmail.smtpReceivedAt ?? outgoingEmail.createdAt ?? '');
+    await applyDeliveryReport(
       payload,
-      { id: envelopeId, to: outgoingEmail.to },
+      {
+        id: envelopeId,
+        to: outgoingEmail.to,
+        sentAt: Number.isNaN(sentAt) ? Date.now() : sentAt,
+      },
       { email: recipientEmail, ...bounce },
     );
 
