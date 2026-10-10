@@ -527,8 +527,12 @@ export const deriveDeliveryOverview = (
       if (known !== undefined && (known === block.finalRecipient || foreign === undefined)) {
         addEvent(recipientFor(attempt, known, true), block.event);
       } else if (foreign === undefined) {
-        // The report names only our own sender address, so it could be about anyone.
-        attempt.unassigned.push(block.event);
+        // The report names only our own sender address. The queue id it quotes can still
+        // single out a mail with one recipient. Otherwise it could be about anyone.
+        const only = quoted?.addresses.length === 1 ? quoted.addresses[0] : undefined;
+        const recipient = only === undefined ? undefined : attempt.recipients.get(only);
+        if (recipient === undefined) attempt.unassigned.push(block.event);
+        else addEvent(recipient, block.event);
       } else {
         const recipient = recipientFor(attempt, foreign, false);
         if (known !== undefined && known !== foreign) recipient.via = known;

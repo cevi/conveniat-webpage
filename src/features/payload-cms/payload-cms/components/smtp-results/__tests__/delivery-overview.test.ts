@@ -415,6 +415,27 @@ describe('deriveDeliveryOverview', () => {
       );
     });
 
+    it('gives a report that names nobody to the mail whose queue id it quotes', () => {
+      const anonymousBounce = stored(
+        report([`Final-Recipient: rfc822;${SYSTEM}\nAction: failed\nStatus: 5.0.0`], {
+          queueId: 'USER001',
+        }),
+        SYSTEM,
+        false,
+      );
+      const staffRelayed = stored(
+        report([postfixBlock(submitter, 'relayed', 'relay.example.net', '250 Ok')], {
+          queueId: 'USER001',
+        }),
+        submitter,
+      );
+
+      expect(statesOf([...bothSent, staffRelayed, anonymousBounce])).toEqual({
+        [staff]: 'noReport',
+        [submitter]: 'failed',
+      });
+    });
+
     it('applies an override only to the mail it was set on', () => {
       const override = {
         retriggeredBy: 'user-1',
