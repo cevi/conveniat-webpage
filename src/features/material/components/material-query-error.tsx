@@ -22,15 +22,7 @@ const messages: Record<'forbidden' | 'notFound' | 'other', StaticTranslationStri
 /** Signs in through Cevi.DB and comes back to the page the reader was on. */
 const useSignIn = (): (() => void) =>
   useCallback((): void => {
-    void (async (): Promise<void> => {
-      const response = await signIn('cevi-db', {
-        redirect: false,
-        callbackUrl: globalThis.location.href,
-      });
-      if (typeof response.url === 'string') {
-        globalThis.location.href = response.url;
-      }
-    })();
+    void signIn('cevi-db', { callbackUrl: globalThis.location.href });
   }, []);
 
 /**
