@@ -1,9 +1,10 @@
 'use client';
 
 import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
-import { SmtpResultItem } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-result-item';
-import { deriveSmtpItems } from '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-logic';
+import { deriveDeliveryOverview } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
+import { DeliveryOverviewTable } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview-table';
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
+import { useCurrentTime } from '@/features/payload-cms/payload-cms/components/smtp-results/use-current-time';
 import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
 import { extractEmailAddress } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import { useField, useFormFields } from '@payloadcms/ui';
@@ -23,22 +24,10 @@ export const SmtpResultsField: React.FC<{
   const createdAtField = useFormFields(([fields]) => fields['createdAt']);
   const createdAtString =
     typeof createdAtField?.value === 'string' ? createdAtField.value : undefined;
-  const createdAtDate = createdAtString === undefined ? undefined : new Date(createdAtString);
-
-  const dsnReceivedAtField = useFormFields(([fields]) => fields['dsnReceivedAt']);
-  const dsnReceivedAtString =
-    typeof dsnReceivedAtField?.value === 'string' ? dsnReceivedAtField.value : undefined;
-  const dsnReceivedAtDate =
-    dsnReceivedAtString === undefined ? undefined : new Date(dsnReceivedAtString);
-
   const { lang } = useSmtpTranslation();
   const labels = LOCALIZED_SMTP_LABELS[lang];
 
-  const [currentTimeMs, setCurrentTimeMs] = React.useState(0);
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentTimeMs(Date.now());
-  }, []);
+  const currentTimeMs = useCurrentTime();
 
   if (!Array.isArray(value) || value.length === 0) {
     return (
@@ -49,26 +38,17 @@ export const SmtpResultsField: React.FC<{
     );
   }
 
-  const finalItems = deriveSmtpItems(value, toAddress, systemEmails);
+  const overview = deriveDeliveryOverview(value, {
+    systemEmails,
+    toAddress,
+    createdAt: createdAtString,
+    now: currentTimeMs,
+  });
 
   return (
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labels.sectionTitle}</label>
-      <div className="flex flex-col gap-2">
-        {finalItems.map((result, index) => (
-          <SmtpResultItem
-            key={index}
-            result={result}
-            lang={lang}
-            smtpDomain={smtpDomain}
-            systemEmails={systemEmails}
-            toAddress={toAddress}
-            createdAtDate={createdAtDate}
-            dsnReceivedAtDate={dsnReceivedAtDate}
-            currentTimeMs={currentTimeMs}
-          />
-        ))}
-      </div>
+      <DeliveryOverviewTable overview={overview} lang={lang} smtpDomain={smtpDomain} />
     </div>
   );
 };

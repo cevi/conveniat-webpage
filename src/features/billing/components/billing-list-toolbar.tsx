@@ -10,6 +10,8 @@ import {
 import { BillingPipelineStep } from '@/features/billing/components/billing-pipeline-step';
 import type { BillingTaskKey } from '@/features/billing/hooks/use-billing-jobs';
 import { useBillingJobs } from '@/features/billing/hooks/use-billing-jobs';
+import type { PipelineLock } from '@/features/billing/services/pipeline-lock';
+import { pipelineLockFor } from '@/features/billing/services/pipeline-lock';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import { documentControlButtonClasses } from '@/features/payload-cms/payload-cms/components/shared/document-control-button-styles';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
@@ -111,16 +113,44 @@ const sendRetry: StaticTranslationString = {
   fr: 'Envoyer à nouveau',
 };
 
-const requiresSync: StaticTranslationString = {
-  de: 'Erst nach erfolgreichem Abgleich verfügbar',
-  en: 'Available once the sync has completed successfully',
-  fr: 'Disponible après une synchronisation réussie',
-};
-
-const requiresGenerate: StaticTranslationString = {
-  de: 'Erst nach erfolgreicher Generierung verfügbar',
-  en: 'Available once generation has completed successfully',
-  fr: 'Disponible après une génération réussie',
+/**
+ * Why a step is locked, per step it waits for and per reason. See `pipelineLockFor`.
+ */
+const lockReasons: Record<'sync' | 'generate', Record<PipelineLock, StaticTranslationString>> = {
+  sync: {
+    'never-run': {
+      de: 'Zuerst mit der Cevi.DB abgleichen',
+      en: 'Sync with Cevi.DB first',
+      fr: "Synchroniser d'abord avec Cevi.DB",
+    },
+    running: {
+      de: 'Der Abgleich läuft noch',
+      en: 'The sync is still running',
+      fr: 'La synchronisation est encore en cours',
+    },
+    unsuccessful: {
+      de: 'Der letzte Abgleich lief nicht fehlerfrei durch. Bitte erneut abgleichen.',
+      en: 'The last sync did not finish cleanly. Please sync again.',
+      fr: "La dernière synchronisation ne s'est pas terminée sans erreur. Veuillez la relancer.",
+    },
+  },
+  generate: {
+    'never-run': {
+      de: 'Zuerst Rechnungen generieren',
+      en: 'Generate the bills first',
+      fr: "Générer d'abord les factures",
+    },
+    running: {
+      de: 'Die Generierung läuft noch',
+      en: 'Generation is still running',
+      fr: 'La génération est encore en cours',
+    },
+    unsuccessful: {
+      de: 'Die letzte Generierung lief nicht fehlerfrei durch. Bitte erneut generieren.',
+      en: 'The last generation did not finish cleanly. Please generate again.',
+      fr: "La dernière génération ne s'est pas terminée sans erreur. Veuillez la relancer.",
+    },
+  },
 };
 
 const regenerateAllDisabledHint: StaticTranslationString = {
@@ -343,22 +373,10 @@ export const BillingListToolbar: React.FC = () => {
     },
   ];
 
-  /**
-   * A step only unlocks once the one before it finished cleanly — sending bills that were
-   * never generated, or generating from participants that were never synced, is the kind
-   * of mistake the old row of three equal buttons invited.
-   */
   const blockedReasonFor = (requires: BillingTaskKey | undefined): string | undefined => {
-    if (requires === undefined) return undefined;
-    const upstream = jobs[requires];
-    const upstreamErrors = upstream?.summary?.['errors'];
-    const upstreamSucceeded =
-      upstream?.status === 'success' &&
-      upstream.summary?.['cancelled'] !== true &&
-      !(Array.isArray(upstreamErrors) && upstreamErrors.length > 0);
-
-    if (upstreamSucceeded) return undefined;
-    return requires === 'sync' ? requiresSync[locale] : requiresGenerate[locale];
+    if (requires !== 'sync' && requires !== 'generate') return undefined;
+    const lock = pipelineLockFor(jobs[requires]);
+    return lock === undefined ? undefined : lockReasons[requires][lock][locale];
   };
 
   return (

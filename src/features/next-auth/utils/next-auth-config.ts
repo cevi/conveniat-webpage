@@ -2,11 +2,13 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
 import type { User } from '@/features/payload-cms/payload-types';
+import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import { withSpan } from '@/utils/tracing-helpers';
 import { trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
+import { customFetch } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import { after } from 'next/server';
 import type { BasePayload } from 'payload';
@@ -249,7 +251,7 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
       // Undici Agent is handled globally via setGlobalDispatcher,
       // but we can also pass specific dispatcher options if needed.
       // For now, the global agent should suffice.
-      return await fetch(url, { ...options, cache: 'no-store' });
+      return await fetch(url, { ...withCeviDatabaseUserAgent(options), cache: 'no-store' });
     } catch (error) {
       attempt++;
       logger.warn('Fetch attempt against Hitobito failed', {
@@ -486,6 +488,11 @@ export const authOptions: NextAuthConfig = {
 
       clientId: CEVI_DB_CLIENT_ID,
       clientSecret: CEVI_DB_CLIENT_SECRET,
+
+      // Auth.js exchanges the code for a token itself and would name its own library in
+      // the User-Agent. Every other request to Cevi.DB carries ours.
+      [customFetch]: (input: RequestInfo | URL, init?: RequestInit): Promise<Response> =>
+        fetch(input, withCeviDatabaseUserAgent(init)),
     },
   ],
   debug: false,

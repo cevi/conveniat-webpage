@@ -1,3 +1,5 @@
+jest.mock('@/lib/db/redis', () => ({ redis: {} }));
+
 import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
 import type { Payload } from 'payload';
 

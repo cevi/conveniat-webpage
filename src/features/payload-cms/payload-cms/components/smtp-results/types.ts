@@ -32,12 +32,11 @@ export interface SmtpResult {
   error?: string;
   manualOverride?: boolean;
   retriggeredBy?: string;
+  retriggeredAt?: string;
 
   // Appended in component logic
   _isPendingPlaceholder?: boolean;
   _dsnHistory?: SmtpResult[];
 }
-
-export type SmtpStatusType = 'empty' | 'pending' | 'success' | 'error';
 
 export type SmtpLanguage = 'en' | 'de' | 'fr';

@@ -39,7 +39,10 @@ export const smtpResultsField: Field = {
         },
       },
 
-      Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
+      Cell: {
+        path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
+        clientProps: { systemEmails: [EMAIL_SENDER_ADDRESS] },
+      },
     },
   },
 };
