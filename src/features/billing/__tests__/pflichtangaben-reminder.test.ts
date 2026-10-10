@@ -12,6 +12,7 @@ jest.mock('@/features/billing/adapters/redis-run-lock.adapter', () => ({
 
 import {
   applyReminderPlaceholders,
+  formatRecipientNames,
   groupRemindersByEvent,
   isReminderDue,
   renderReminderText,
@@ -108,6 +109,87 @@ describe('groupRemindersByEvent', () => {
     expect(groups[0]?.recipients).toEqual(['kasse@schlatt.ch', 'praesi@schlatt.ch']);
   });
 
+  it('names the AVPs of a Hof by their v/o, in the order the mail is addressed', () => {
+    const groups = groupRemindersByEvent(
+      [participant({ eventId: '13' })],
+      [
+        {
+          eventId: '13',
+          eventName: 'Hof Cevi Uster',
+          addressManagerEmails: 'pfiff@uster.ch, erika@uster.ch, sirius@uster.ch',
+          addressManagers: [
+            { name: 'Lena Beispiel v/o Sirius', email: 'sirius@uster.ch' },
+            { name: 'Fritz Muster v/o Pfiff', email: 'pfiff@uster.ch' },
+            // Not everybody has a v/o.
+            { name: 'Erika Probe', email: 'erika@uster.ch' },
+          ],
+        },
+      ],
+    );
+
+    expect(groups[0]?.recipientNames).toEqual(['Pfiff', 'Erika Probe', 'Sirius']);
+  });
+
+  it('names nobody when the override sends the mail to someone the Hof has no name for', () => {
+    const groups = groupRemindersByEvent(
+      [participant({ eventId: '12' })],
+      [
+        {
+          ...events[1],
+          addressManagers: [{ name: 'Fritz Muster v/o Pfiff', email: 'av@schlatt.ch' }],
+        },
+      ],
+    );
+    expect(groups[0]?.recipientNames).toEqual([]);
+  });
+
+  it('still names an AVP an editor listed in the override, whatever the casing', () => {
+    const groups = groupRemindersByEvent(
+      [participant({ eventId: '12' })],
+      [
+        {
+          eventId: '12',
+          reminderRecipientsOverride: 'AV@Schlatt.ch',
+          addressManagers: [{ name: 'Fritz Muster v/o Pfiff', email: 'av@schlatt.ch' }],
+        },
+      ],
+    );
+    expect(groups[0]?.recipientNames).toEqual(['Pfiff']);
+  });
+
+  it('copes with an AVP who has only a v/o, or a blank name, in the Cevi.DB', () => {
+    const hof = {
+      eventId: '13',
+      addressManagerEmails: 'pfiff@uster.ch, leer@uster.ch',
+      addressManagers: [
+        { name: 'v/o Pfiff', email: 'pfiff@uster.ch' },
+        { name: '  ', email: 'leer@uster.ch' },
+      ],
+    };
+
+    // One recipient without a usable name, and the whole mail falls back to «zusammen».
+    expect(
+      groupRemindersByEvent([participant({ eventId: '13' })], [hof])[0]?.recipientNames,
+    ).toEqual([]);
+    expect(
+      groupRemindersByEvent(
+        [participant({ eventId: '13' })],
+        [{ ...hof, addressManagerEmails: 'pfiff@uster.ch' }],
+      )[0]?.recipientNames,
+    ).toEqual(['Pfiff']);
+  });
+
+  it('names nobody on a Hof synced before the names were stored', () => {
+    const groups = groupRemindersByEvent(
+      [participant({ eventId: '11' })],
+      [
+        // eslint-disable-next-line unicorn/no-null
+        { ...events[0], addressManagers: [{ name: null, email: 'av@zueri11.ch' }] },
+      ],
+    );
+    expect(groups[0]?.recipientNames).toEqual([]);
+  });
+
   it('still returns a Hof nobody can be told about, so the caller can report it', () => {
     const groups = groupRemindersByEvent(
       [participant({ eventId: '99', eventName: 'Hof Ohne Einstellungen' })],
@@ -151,8 +233,24 @@ describe('renderReminderText', () => {
 describe('applyReminderPlaceholders', () => {
   it('fills the figures an operator can reference', () => {
     expect(
-      applyReminderPlaceholders('{{count}} in {{eventName}}', { eventName: 'Hof X', count: 3 }),
-    ).toBe('3 in Hof X');
+      applyReminderPlaceholders('Hallo {{names}}, {{count}} in {{eventName}}', {
+        eventName: 'Hof X',
+        count: 3,
+        names: 'Pfiff',
+      }),
+    ).toBe('Hallo Pfiff, 3 in Hof X');
+  });
+});
+
+describe('formatRecipientNames', () => {
+  it('reads as a greeting for one, two and several AVPs', () => {
+    expect(formatRecipientNames(['Pfiff'])).toBe('Pfiff');
+    expect(formatRecipientNames(['Pfiff', 'Sirius'])).toBe('Pfiff und Sirius');
+    expect(formatRecipientNames(['Pfiff', 'Sirius', 'Fuchs'])).toBe('Pfiff, Sirius und Fuchs');
+  });
+
+  it('greets everybody when there is no name to use', () => {
+    expect(formatRecipientNames([])).toBe('zusammen');
   });
 });
 
@@ -192,7 +290,11 @@ const HOEFE = [
     name: 'Hof Züri 11',
     groupId: '22',
     events: [{ eventId: '11', eventName: 'Hof Züri 11' }],
-    addressManagerEmails: 'av@zueri11.ch',
+    addressManagerEmails: 'av@zueri11.ch, stv@zueri11.ch',
+    addressManagers: [
+      { name: 'Fritz Muster v/o Pfiff', email: 'av@zueri11.ch' },
+      { name: 'Lena Beispiel v/o Sirius', email: 'stv@zueri11.ch' },
+    ],
   },
   {
     id: 'hof-schlatt',
@@ -305,8 +407,10 @@ describe('sendPflichtangabenReminders', () => {
       undefined,
       string[],
     ];
-    expect(options.to).toBe('av@zueri11.ch');
+    expect(options.to).toBe('av@zueri11.ch, stv@zueri11.ch');
     expect(options.subject).toContain('Hof Züri 11');
+    // Both AVPs of the Hof are greeted by name.
+    expect(options.text.startsWith('Hallo Pfiff und Sirius\n\n')).toBe(true);
     expect(ids).toEqual(['a', 'b']);
 
     // The audit trail records the reminder; the status stays where the sync put it.
@@ -315,7 +419,7 @@ describe('sendPflichtangabenReminders', () => {
     expect(entry.syncHistory).toEqual([
       expect.objectContaining({
         action: 'pflichtangaben_reminder_sent',
-        recipients: ['av@zueri11.ch'],
+        recipients: ['av@zueri11.ch', 'stv@zueri11.ch'],
       }),
     ]);
     expect(entry).not.toHaveProperty('status');

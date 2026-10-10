@@ -9123,11 +9123,11 @@ export interface BillSetting {
      */
     minDaysMissing?: number | null;
     /**
-     * Placeholders: {{eventName}}, {{count}}.
+     * Placeholders: {{eventName}}, {{count}}, {{names}}.
      */
     subject?: string | null;
     /**
-     * Intro above the list of registrations. Same placeholders as the subject.
+     * Intro above the list of registrations. Same placeholders as the subject; {{names}} is the AVPs the mail goes to, or "zusammen" when a recipient has no name on the Hof.
      */
     body?: string | null;
     /**
