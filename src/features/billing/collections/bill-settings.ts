@@ -210,9 +210,9 @@ export const BillSettingsGlobal: GlobalConfig = {
                   label: { en: 'Subject', de: 'Betreff', fr: 'Sujet' },
                   admin: {
                     description: {
-                      en: 'Placeholders: {{eventName}}, {{count}}.',
-                      de: 'Platzhalter: {{eventName}}, {{count}}.',
-                      fr: 'Espaces réservés : {{eventName}}, {{count}}.',
+                      en: 'Placeholders: {{eventName}}, {{count}}, {{names}}.',
+                      de: 'Platzhalter: {{eventName}}, {{count}}, {{names}}.',
+                      fr: 'Espaces réservés : {{eventName}}, {{count}}, {{names}}.',
                     },
                   },
                 },
@@ -220,13 +220,13 @@ export const BillSettingsGlobal: GlobalConfig = {
                   name: 'body',
                   type: 'textarea',
                   defaultValue:
-                    'Hallo\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:',
+                    'Hallo {{names}}\n\nBei {{count}} Anmeldung(en) für {{eventName}} fehlen Pflichtangaben. Diese Anmeldungen können erst verrechnet werden, wenn die Angaben in der Cevi.DB vollständig sind. Bitte ergänzt die folgenden Angaben:',
                   label: { en: 'Email Text', de: 'E-Mail-Text', fr: "Texte de l'e-mail" },
                   admin: {
                     description: {
-                      en: 'Intro above the list of registrations. Same placeholders as the subject.',
-                      de: 'Einleitung über der Liste der Anmeldungen. Gleiche Platzhalter wie beim Betreff.',
-                      fr: 'Introduction au-dessus de la liste. Mêmes espaces réservés que le sujet.',
+                      en: 'Intro above the list of registrations. Same placeholders as the subject; {{names}} is the AVPs the mail goes to, or "zusammen" when a recipient has no name on the Hof.',
+                      de: 'Einleitung über der Liste der Anmeldungen. Gleiche Platzhalter wie beim Betreff; {{names}} sind die AVPs, an die das Mail geht, oder «zusammen», wenn bei einer Adresse kein Name auf dem Hof hinterlegt ist.',
+                      fr: "Introduction au-dessus de la liste. Mêmes espaces réservés que le sujet ; {{names}} désigne les AVP destinataires, ou «zusammen» lorsqu'une adresse n'a pas de nom sur le Hof.",
                     },
                   },
                 },
