@@ -121,7 +121,6 @@ import { default as default_ca24980ef56b9b5023ff164dd084145b } from '@/features/
 import { ConveniatLogo as ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d } from '@/components/svg-logos/conveniat-logo.tsx'
 import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page'
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
-import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
 import { default as default_1301ab5d76cd2e924cf1719e5409e3b4 } from '@/features/material/payload-cms/material-setup-view'
@@ -131,6 +130,7 @@ import { default as default_264aa1452821b700131c9a40a3b93a91 } from '@/features/
 import { default as default_ff22a191d3f87d6a73e8d33d6e422fd0 } from '@/features/payload-cms/payload-cms/widgets/email-stats-widget'
 import { default as default_8068edb075d4cca20d0c3eb0ac544f07 } from '@/features/payload-cms/payload-cms/widgets/admin-areas-widget'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24 } from '@payloadcms/storage-s3/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -257,7 +257,6 @@ export const importMap = {
   "@/components/svg-logos/conveniat-logo.tsx#ConveniatLogo": ConveniatLogo_1dcd95bfbb6787f73675c94df91c942d,
   "@/features/payload-cms/payload-cms/components/login-page/admin-panel-login-page#default": default_d432a7de1921f0e10a01eefbe71b022a,
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
-  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
   "@/features/material/payload-cms/material-setup-view#default": default_1301ab5d76cd2e924cf1719e5409e3b4,
@@ -266,5 +265,6 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/widgets/user-count-widget#default": default_264aa1452821b700131c9a40a3b93a91,
   "@/features/payload-cms/payload-cms/widgets/email-stats-widget#default": default_ff22a191d3f87d6a73e8d33d6e422fd0,
   "@/features/payload-cms/payload-cms/widgets/admin-areas-widget#default": default_8068edb075d4cca20d0c3eb0ac544f07,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_f97aa6c64367fa259c5bc0567239ef24
 }
