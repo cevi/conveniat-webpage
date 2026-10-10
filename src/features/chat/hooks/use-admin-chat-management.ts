@@ -78,6 +78,11 @@ export const useAdminChatManagement = ({
     },
     {
       placeholderData: (previousData) => previousData,
+      // Every admin view and dashboard widget mounts its own query client and restores this
+      // list from the shared persisted cache. With the default five minutes that restored
+      // list counts as fresh, so the dashboard kept counting an alert that was closed in the
+      // management view a moment ago. An open alert count has to come from the server.
+      staleTime: 0,
     },
   );
 
