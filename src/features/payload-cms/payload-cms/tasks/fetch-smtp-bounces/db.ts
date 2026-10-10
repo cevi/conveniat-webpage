@@ -38,7 +38,9 @@ const textOf = (result: Record<string, unknown>): string => {
   return isRecord(response) && typeof response['response'] === 'string' ? response['response'] : '';
 };
 
-const HOP_ID = /(?:queued as|X-Original-ID:)\s*([\w-]{8,})/gi;
+// The ways a server names the id it gave the message: in its answer to the server before it,
+// and in the header of its own report.
+const HOP_ID = /(?:queued as|X-Original-ID:|X-Postfix-Queue-ID:)\s*([\w-]{8,})/gi;
 
 /**
  * When the send a report is about left our server.
