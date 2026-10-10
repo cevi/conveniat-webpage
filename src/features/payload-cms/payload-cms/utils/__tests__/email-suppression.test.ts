@@ -30,6 +30,14 @@ jest.mock('@/lib/db/redis', () => ({
       mockRedisCall(() =>
         [...(mockRedisStore.get(key) ?? [])].flatMap(([member, score]) => [member, String(score)]),
       ),
+    zremrangebyrank: (key: string, start: number, stop: number): Promise<unknown> =>
+      mockRedisCall(() => {
+        const set = mockRedisStore.get(key);
+        if (set === undefined) return;
+        const ranked = [...set].toSorted((a, b) => a[1] - b[1]).map(([member]) => member);
+        const end = stop < 0 ? ranked.length + stop : stop;
+        for (const member of ranked.slice(start, end + 1)) set.delete(member);
+      }),
     expire: (): Promise<unknown> => mockRedisCall(() => 1),
   },
 }));
@@ -133,12 +141,13 @@ const reportOn = async (
   outgoingEmailId: string,
   report: { action: string; status: string },
   to = 'avp@example.com',
+  quotedQueueId = '',
 ): Promise<void> => {
   await updateTrackingRecords(
     state.payload,
     outgoingEmailId,
     report.action !== 'failed',
-    `Action: ${report.action}`,
+    `X-Postfix-Queue-ID: ${quotedQueueId}\nAction: ${report.action}`,
     'raw email',
     [{ email: to, ...report }],
   );
@@ -153,6 +162,34 @@ const mailOnDay = async (
   const outgoingEmailId = await sendOnDay(state, day);
   await reportOn(state, outgoingEmailId, report);
   return outgoingEmailId;
+};
+
+/** What the resend endpoint does to a mail: one more send under the same id. */
+const resendOnDay = async (
+  state: World,
+  mail: string,
+  day: number,
+  queueId = '',
+): Promise<void> => {
+  jest.setSystemTime(START + day * DAY_MS);
+  const row = state.mails.find((candidate) => candidate.id === mail);
+  const now = new Date().toISOString();
+  await state.payload.update({
+    collection: 'outgoing-emails',
+    id: mail,
+    data: {
+      smtpReceivedAt: now,
+      smtpResults: [
+        ...(row?.['smtpResults'] as unknown[]),
+        {
+          success: true,
+          retriggeredBy: 'admin',
+          retriggeredAt: now,
+          response: { response: `250 2.0.0 Ok: queued as ${queueId}` },
+        },
+      ],
+    },
+  });
 };
 
 // What Microsoft 365 answers for a recipient it does not know, and for a broken tenant.
@@ -301,12 +338,7 @@ describe('suppressing addresses that keep bouncing', () => {
   it('counts a resend that bounces again as a second bounce', async () => {
     const state = world();
     const mail = await mailOnDay(state, 0, unreachable);
-    jest.setSystemTime(START + 14 * DAY_MS);
-    await state.payload.update({
-      collection: 'outgoing-emails',
-      id: mail,
-      data: { smtpReceivedAt: new Date().toISOString() },
-    });
+    await resendOnDay(state, mail, 14);
     await reportOn(state, mail, unreachable);
 
     expect(state.suppressions).toHaveLength(1);
@@ -315,15 +347,38 @@ describe('suppressing addresses that keep bouncing', () => {
   it('counts a resend that gets through as a delivery', async () => {
     const state = world();
     const mail = await mailOnDay(state, 0, unreachable);
-    jest.setSystemTime(START + 7 * DAY_MS);
-    await state.payload.update({
-      collection: 'outgoing-emails',
-      id: mail,
-      data: { smtpReceivedAt: new Date().toISOString() },
-    });
+    await resendOnDay(state, mail, 7);
     await reportOn(state, mail, relayed);
     await mailOnDay(state, 14, unreachable);
 
+    expect(state.suppressions).toEqual([]);
+  });
+
+  it('counts a delivery that is read before the bounces around it', async () => {
+    const state = world();
+    const first = await sendOnDay(state, 0);
+    await mailOnDay(state, 7, relayed);
+    const last = await sendOnDay(state, 14);
+
+    await reportOn(state, first, unreachable);
+    await reportOn(state, last, unreachable);
+
+    expect(state.suppressions).toEqual([]);
+  });
+
+  it('counts a late bounce of the first send for that send, not for the resend', async () => {
+    const state = world();
+    await mailOnDay(state, 0, unreachable);
+    state.sendEmail.mockResolvedValueOnce({ response: '250 2.0.0 Ok: queued as FIRST01' });
+    const mail = await sendOnDay(state, 1);
+    await resendOnDay(state, mail, 7, 'SECOND1');
+    await reportOn(state, mail, relayed, 'avp@example.com', 'SECOND1');
+
+    // The first send bounced after all, and its report is only read now.
+    await reportOn(state, mail, unreachable, 'avp@example.com', 'FIRST01');
+    await mailOnDay(state, 15, unreachable);
+
+    // The resend on day 7 got through, so the bounces do not span two weeks unbroken.
     expect(state.suppressions).toEqual([]);
   });
 
@@ -459,6 +514,35 @@ describe('suppressing addresses that bounced', () => {
       expect.objectContaining({ success: false, to: 'gone@example.com' }),
       expect.objectContaining({ success: true, to: 'avp@example.com' }),
     ]);
+  });
+
+  it('leaves a suppressed address out of the copies of a mail', async () => {
+    const { payload, sendEmail } = world(['gone@example.com']);
+
+    await sendTrackedEmail(payload, {
+      to: 'avp@example.com',
+      cc: ['gone@example.com', 'coach@example.com'],
+      bcc: { name: 'Gone', address: 'gone@example.com' },
+      subject: 'Freigabe',
+    });
+
+    expect(sendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: ['avp@example.com'], cc: ['coach@example.com'], bcc: [] }),
+    );
+  });
+
+  it('still sends a mail whose only suppressed recipient was a copy', async () => {
+    const { payload, mails, sendEmail } = world(['gone@example.com']);
+
+    const result = await sendTrackedEmail(payload, {
+      to: 'avp@example.com',
+      cc: 'gone@example.com',
+      subject: 'Freigabe',
+    });
+
+    expect(result.success).toBe(true);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    expect(mails[0]?.['smtpResults']).toHaveLength(2);
   });
 
   it('suppresses an address with an apostrophe as it is written', async () => {

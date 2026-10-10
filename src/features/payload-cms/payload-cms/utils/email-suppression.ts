@@ -28,6 +28,9 @@ const REPEATED_BOUNCE_SPAN_MS = 14 * 24 * 60 * 60 * 1000;
 /** After this long without a further bounce, the next one starts over. */
 const BOUNCE_HISTORY_TTL_SECONDS = 90 * 24 * 60 * 60;
 
+/** Only the latest delivery ends a run of bounces. A few more cover the ones that turn out to have bounced. */
+const DELIVERIES_KEPT = 20;
+
 // Two sorted sets per address, each holding send attempts scored by when the mail was sent. They
 // are kept by send time because reports are not read in the order things happened.
 const bouncedKey = (email: string): string => `email:bounced-mails:${email}`;
@@ -54,12 +57,20 @@ const ADDRESS_PATTERN = /[^\s<>,;"]+@[^\s<>,;"]+/g;
 /**
  * The addresses in a `to` value, lower-cased and without duplicates.
  *
- * @param to - One address, several joined by commas, or a list of either.
+ * @param to - One address, several joined by commas, an address object, or a list of any.
  */
+const addressText = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map((entry) => addressText(entry)).join(', ');
+  // The `{ name, address }` form nodemailer accepts next to plain strings.
+  if (typeof value === 'object' && value !== null && 'address' in value) {
+    return addressText(value.address);
+  }
+  return '';
+};
+
 export const recipientAddresses = (to: unknown): string[] => {
-  let text = '';
-  if (typeof to === 'string') text = to;
-  else if (Array.isArray(to)) text = to.map(String).join(', ');
+  const text = addressText(to);
   return [...new Set((text.match(ADDRESS_PATTERN) ?? []).map((address) => address.toLowerCase()))];
 };
 
@@ -170,21 +181,22 @@ const applyToBounceHistory = async (
   // A resend is another attempt under the same id, and it can fail or get through on its own.
   const attempt = `${outgoingEmail.id}:${String(outgoingEmail.sentAt)}`;
   let isSuppressing: boolean;
+  let hasBounced: boolean;
   try {
     if (failedWith === undefined) {
-      // Deliveries only matter while there are bounces they could come between, and the
-      // hand-off of a mail that bounced is not one.
-      const countsAsDelivery =
-        (await redis.exists(bouncedKey(email))) === 1 &&
-        (await redis.zscore(bouncedKey(email), attempt)) === null;
-      if (!countsAsDelivery) return;
+      // The hand-off of a mail that bounced is not a delivery.
+      if ((await redis.zscore(bouncedKey(email), attempt)) !== null) return;
+      // Kept even when nothing has bounced yet: reports are not read in the order things
+      // happened, and the bounces this delivery comes between may only be read later.
       await redis.zadd(deliveredKey(email), outgoingEmail.sentAt, attempt);
+      await redis.zremrangebyrank(deliveredKey(email), 0, -(DELIVERIES_KEPT + 1));
     } else {
       await redis.zrem(deliveredKey(email), attempt);
       await redis.zadd(bouncedKey(email), outgoingEmail.sentAt, attempt);
       await redis.expire(bouncedKey(email), BOUNCE_HISTORY_TTL_SECONDS);
     }
     await redis.expire(deliveredKey(email), BOUNCE_HISTORY_TTL_SECONDS);
+    hasBounced = (await redis.exists(bouncedKey(email))) === 1;
     isSuppressing = await keepsBouncing(email);
   } catch (error: unknown) {
     // The history is only kept in Redis. Losing a report costs one more bounce before an
@@ -197,7 +209,8 @@ const applyToBounceHistory = async (
   }
 
   if (failedWith === undefined) {
-    if (!isSuppressing) await liftRepeatedBounceSuppression(payload, email);
+    // Without a bounce on record there is no suppression of this kind to lift.
+    if (hasBounced && !isSuppressing) await liftRepeatedBounceSuppression(payload, email);
   } else if (isSuppressing) {
     await suppress(payload, email, failedWith, outgoingEmail.id);
   }

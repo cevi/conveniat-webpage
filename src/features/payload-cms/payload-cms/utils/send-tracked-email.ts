@@ -1,5 +1,6 @@
 import { environmentVariables } from '@/config/environment-variables';
 import {
+  recipientAddresses,
   splitSuppressedRecipients,
   suppressedReason,
 } from '@/features/payload-cms/payload-cms/utils/email-suppression';
@@ -31,6 +32,8 @@ export const sendTrackedEmail = async (
 ): Promise<TrackedEmailResult> => {
   const options = emailOptions as unknown as {
     to?: string | string[];
+    cc?: unknown;
+    bcc?: unknown;
     subject?: string;
     html?: string;
     text?: string;
@@ -96,6 +99,7 @@ export const sendTrackedEmail = async (
 
   // 2. Send the email with DSN tracking, to everyone who has not bounced for good before
   let deliverable: string[] = [];
+  let copies: { cc?: string[]; bcc?: string[] } = {};
   let suppressed: string[] = [];
   let isWithheld = false;
 
@@ -105,8 +109,21 @@ export const sendTrackedEmail = async (
   try {
     // Inside the catch on purpose: a mail whose recipients could not be checked is not
     // sent, and its row has to say so rather than stay `pending`.
-    ({ deliverable, suppressed } = await splitSuppressedRecipients(payload, options.to));
-    isWithheld = suppressed.length > 0 && deliverable.length === 0;
+    // Copies count too: an address that must get no mail must not get it as a copy either.
+    const everyone = await splitSuppressedRecipients(payload, [
+      options.to,
+      options.cc,
+      options.bcc,
+    ]);
+    ({ suppressed } = everyone);
+    const allowed = (field: unknown): string[] =>
+      recipientAddresses(field).filter((address) => !suppressed.includes(address));
+    deliverable = allowed(options.to);
+    copies = {
+      ...(options.cc !== undefined && { cc: allowed(options.cc) }),
+      ...(options.bcc !== undefined && { bcc: allowed(options.bcc) }),
+    };
+    isWithheld = suppressed.length > 0 && everyone.deliverable.length === 0;
 
     if (isWithheld) {
       // Not logged as an error: this is the list doing its job, and the row says why.
@@ -114,7 +131,7 @@ export const sendTrackedEmail = async (
     } else {
       responseOrError = await payload.sendEmail({
         ...emailOptions,
-        ...(suppressed.length > 0 ? { to: deliverable } : {}),
+        ...(suppressed.length > 0 ? { to: deliverable, ...copies } : {}),
         ...(typeof environmentVariables.SMTP_USER === 'string' &&
         environmentVariables.SMTP_USER.length > 0
           ? {
@@ -145,6 +162,8 @@ export const sendTrackedEmail = async (
   const smtpResult: Record<string, unknown> = {
     success,
     to: isPartlyWithheld ? deliverable.join(', ') : to,
+    // A resend reuses this mail's id. The time tells its reports apart from this send's.
+    sentAt: new Date().toISOString(),
   };
   // When the mail still went to the others, the ones left out get an entry of their own.
   const newResults = isPartlyWithheld
