@@ -282,7 +282,8 @@ const RecipientRow: React.FC<{
   );
 };
 
-const StateSummary: React.FC<{ attempt: DeliveryAttempt; labels: Labels }> = ({
+/** How many recipients of an attempt are in each state, the ones needing a look first. */
+export const StateSummary: React.FC<{ attempt: DeliveryAttempt; labels: Labels }> = ({
   attempt,
   labels,
 }) => (

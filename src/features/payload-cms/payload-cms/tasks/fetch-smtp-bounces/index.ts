@@ -367,32 +367,19 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
             let matched = false;
 
-            const processTrackingUpdate = async (idToMatch: string): Promise<boolean> => {
-              if (recipientBounces.length > 0) {
-                let updatedAny = false;
-                for (const bounce of recipientBounces) {
-                  const response = await updateTrackingRecords(
-                    payload,
-                    idToMatch,
-                    bounce.isSuccess,
-                    dsnString,
-                    rawEmailString,
-                    bounce.email,
-                    bounce,
-                  );
-                  if (response) updatedAny = true;
-                }
-                return updatedAny;
-              }
-
-              return await updateTrackingRecords(
+            // One stored result per notification, however many recipients it covers. It is a
+            // failure as soon as one of them failed.
+            const processTrackingUpdate = async (idToMatch: string): Promise<boolean> =>
+              updateTrackingRecords(
                 payload,
                 idToMatch,
-                isSuccess,
+                recipientBounces.length > 0
+                  ? recipientBounces.every((bounce) => bounce.isSuccess)
+                  : isSuccess,
                 dsnString,
                 rawEmailString,
+                recipientBounces,
               );
-            };
 
             // Process if a valid envId was extracted
             if (typeof envId === 'string' && envId.length > 0) {

@@ -8,6 +8,9 @@ const recipients = (report: string): unknown[] =>
   determineDeliveryStatus(notification('Undelivered Mail Returned to Sender', report))
     .recipientBounces;
 
+const block = (email: string): string =>
+  [`Final-Recipient: rfc822; ${email}`, 'Action: delivered'].join('\n');
+
 describe('determineDeliveryStatus', () => {
   it('reports a failure for the address delivery was attempted to, not for our return address', () => {
     // The order our mail server writes. `Original-Recipient` repeats the ORCPT we sent,
@@ -65,5 +68,51 @@ describe('determineDeliveryStatus', () => {
     expect(recipients(report)).toEqual([
       { email: 'gone@example.com', action: 'failed', isSuccess: false },
     ]);
+  });
+
+  it('counts a mail a distribution list took over as a success', () => {
+    const report = [
+      'Final-Recipient: RFC822; team@example.com',
+      'Action: expanded (to multi-recipient alias)',
+      'Status: 2.0.0',
+    ].join('\n');
+
+    expect(
+      determineDeliveryStatus(notification('Return receipt', report)).recipientBounces,
+    ).toEqual([
+      { email: 'team@example.com', action: 'expanded', status: '2.0.0', isSuccess: true },
+    ]);
+  });
+
+  it('stores the status fields when only the attachment carries them', () => {
+    const status = ['Final-Recipient: rfc822; avp@example.com', 'Action: delivered'].join('\n');
+    const parsed = {
+      subject: 'Delivered',
+      text: 'Your message has been delivered.',
+      attachments: [{ contentType: 'message/delivery-status', content: Buffer.from(status) }],
+      headers: new Map(),
+    } as unknown as ParsedMail;
+
+    expect(determineDeliveryStatus(parsed).dsnString).toContain(
+      'Final-Recipient: rfc822; avp@example.com',
+    );
+  });
+
+  it('stores the status fields when the body names only some of the recipients', () => {
+    const parsed = {
+      subject: 'Delivered',
+      text: block('avp@example.com'),
+      attachments: [
+        {
+          contentType: 'message/delivery-status',
+          content: Buffer.from([block('avp@example.com'), block('coach@example.com')].join('\n\n')),
+        },
+      ],
+      headers: new Map(),
+    } as unknown as ParsedMail;
+
+    expect(determineDeliveryStatus(parsed).dsnString).toContain(
+      'Final-Recipient: rfc822; coach@example.com',
+    );
   });
 });

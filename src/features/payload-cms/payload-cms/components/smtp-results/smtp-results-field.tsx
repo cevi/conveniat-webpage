@@ -4,6 +4,7 @@ import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/compon
 import { deriveDeliveryOverview } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
 import { DeliveryOverviewTable } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview-table';
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
+import { useCurrentTime } from '@/features/payload-cms/payload-cms/components/smtp-results/use-current-time';
 import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
 import { extractEmailAddress } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import { useField, useFormFields } from '@payloadcms/ui';
@@ -26,11 +27,7 @@ export const SmtpResultsField: React.FC<{
   const { lang } = useSmtpTranslation();
   const labels = LOCALIZED_SMTP_LABELS[lang];
 
-  const [currentTimeMs, setCurrentTimeMs] = React.useState(0);
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentTimeMs(Date.now());
-  }, []);
+  const currentTimeMs = useCurrentTime();
 
   if (!Array.isArray(value) || value.length === 0) {
     return (

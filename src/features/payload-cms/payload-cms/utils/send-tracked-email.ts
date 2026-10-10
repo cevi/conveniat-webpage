@@ -121,8 +121,10 @@ export const sendTrackedEmail = async (
               dsn: {
                 id: String(outgoingEmailId),
                 return: 'headers',
+                // No `recipient`: that is the ORCPT a server echoes back as the original
+                // recipient, not the address the report is sent to. Reports go to the
+                // envelope sender anyway.
                 notify: ['success', 'failure', 'delay'],
-                recipient: environmentVariables.SMTP_USER,
               },
             }
           : {}),

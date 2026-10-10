@@ -118,7 +118,10 @@ export const OutgoingEmails: CollectionConfig = {
         components: {
           // The list column for a mail's state. It sits on this field rather than on the
           // delivery log, because a select can be sorted and filtered and a `json` cannot.
-          Cell: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
+          Cell: {
+            path: '@/features/payload-cms/payload-cms/components/smtp-results/smtp-results-cell',
+            clientProps: { systemEmails: [EMAIL_SENDER_ADDRESS] },
+          },
         },
       },
       index: true,

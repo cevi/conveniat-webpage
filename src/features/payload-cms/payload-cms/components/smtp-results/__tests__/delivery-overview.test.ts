@@ -498,6 +498,20 @@ describe('deriveDeliveryOverview', () => {
     expect(overview.current.recipients[0]?.state).toBe('delayed');
   });
 
+  it('reads a recipient named twice in one report once, with the server answer', () => {
+    const bare = 'Final-Recipient: rfc822; anna@example.ch\nAction: failed\nStatus: 5.0.0';
+    const text = report([bare, `${bare}\nDiagnostic-Code: smtp; 550 no such user`]);
+
+    const { current } = deriveDeliveryOverview(
+      [accepted(['anna@example.ch']), stored(text, 'anna@example.ch', false)],
+      OPTIONS,
+    );
+
+    expect(current.recipients[0]?.events).toEqual([
+      expect.objectContaining({ action: 'failed', diagnostic: '550 no such user' }),
+    ]);
+  });
+
   it('counts a stored mail that is no delivery report as unreadable', () => {
     const overview = deriveDeliveryOverview(
       [
