@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.29.0](https://github.com/cevi/conveniat-webpage/compare/v1.28.0...v1.29.0) (2026-10-10)
+
+
+### Features
+
+* **email:** background mails wait in an outgoing queue ([484cdad](https://github.com/cevi/conveniat-webpage/commit/484cdad7bed91ce914d34c7c238bc379defa4ffb))
+* **email:** background mails wait in an outgoing queue ([c2354dd](https://github.com/cevi/conveniat-webpage/commit/c2354dd9d0eb2394ae3ac8b1a75d1c030ba2f31b))
+
+
+### Bug Fixes
+
+* **admin:** emergency alert count on the dashboard updates after closing an alert ([6b38f79](https://github.com/cevi/conveniat-webpage/commit/6b38f79c62ccdc4ddd88eafc9fc9869599df262e))
+* **admin:** emergency alert count on the dashboard updates after closing an alert ([db0b75d](https://github.com/cevi/conveniat-webpage/commit/db0b75de43f2889260724cc739bf1a467a95dc66))
+* **auth:** Cevi.DB sign-in no longer throws when next-auth returns nothing ([3ded683](https://github.com/cevi/conveniat-webpage/commit/3ded683701c1bc3681b94d9b7aa3f72a270e1cfd))
+* **auth:** Cevi.DB sign-in no longer throws when next-auth returns nothing ([03e17dd](https://github.com/cevi/conveniat-webpage/commit/03e17ddc42f6afd32c32ccbccde5f7635ee6d632))
+* **billing:** Pflichtangaben reminder greets the AVPs by name ([99612b2](https://github.com/cevi/conveniat-webpage/commit/99612b2ef53735332778e53c89e6f1dbf811337d))
+* **billing:** Pflichtangaben reminder greets the AVPs by name ([cb70dc2](https://github.com/cevi/conveniat-webpage/commit/cb70dc283610c537a6007b6319691282fbf64397))
+* **email:** bounce stays visible when the relay report is read after it ([08b33d0](https://github.com/cevi/conveniat-webpage/commit/08b33d0abcb4920f6232655e470261994d56c687))
+* **email:** bounce stays visible when the relay report is read after it ([d1ab772](https://github.com/cevi/conveniat-webpage/commit/d1ab7723d3a09847fec77257d472aa0dbf40fb8b))
+* **email:** scope the bounce to the current attempt and to failed reports ([adf8328](https://github.com/cevi/conveniat-webpage/commit/adf83283810b4a329308736ce34193c9333dc48e))
+* **posthog:** attach the release to server-side exceptions ([3fe844d](https://github.com/cevi/conveniat-webpage/commit/3fe844d9e0742cb645f5ddf230d538b3bbd44b1f))
+* **posthog:** attach the release to server-side exceptions ([67b5c31](https://github.com/cevi/conveniat-webpage/commit/67b5c3183bc12dbf55bd02718f104cf3116f4a0e))
+* **prerender:** app pages no longer fail on the first request after they expire ([3093603](https://github.com/cevi/conveniat-webpage/commit/30936030ce9ed4dd81d3e756cd108e2aa2801ede))
+* **prerender:** app pages no longer fail on the first request after they expire ([1774587](https://github.com/cevi/conveniat-webpage/commit/177458758e1496cd9f06833e6a1b4e2f83f00a00))
+* **preview:** a shared link leaves embedded documents on their published state ([eaa8908](https://github.com/cevi/conveniat-webpage/commit/eaa890867468c3520abfaff086b3c7ab2936a457))
+* **preview:** a shared preview link opens only its own document ([db20ab1](https://github.com/cevi/conveniat-webpage/commit/db20ab113d0d8681135e0f13df2fbba4ed5556ad))
+
+
+### Performance
+
+* **cache:** flush only the published page instead of the whole cache ([080acaa](https://github.com/cevi/conveniat-webpage/commit/080acaa934bd90061a1015779432dd47ef4fa303))
+* **cache:** flush only the published page instead of the whole cache ([8fc9f26](https://github.com/cevi/conveniat-webpage/commit/8fc9f26fb03869b49734b44a864ec9ddc4d54f21))
+* **links:** file links are no longer prefetched ([0777230](https://github.com/cevi/conveniat-webpage/commit/077723076ad756af719ac5cdac2df751ef6387e4))
+* **links:** file links are no longer prefetched ([c67e557](https://github.com/cevi/conveniat-webpage/commit/c67e5579f3ac03e41945b8c0d4bd15249e05567c))
+
+
+### Dependencies
+
+* **deps:** bump Payload CMS to 3.90.2 and refresh dependencies ([bed38ce](https://github.com/cevi/conveniat-webpage/commit/bed38cea631760fb1f59764c38fb2a3eb3fbc80b))
+* **deps:** bump Payload CMS to 3.90.2 and refresh dependencies ([a0ecb7c](https://github.com/cevi/conveniat-webpage/commit/a0ecb7cf8384cbe32d50ffc5a02d881157457e4d))
+
 ## [1.28.0](https://github.com/cevi/conveniat-webpage/compare/v1.27.0...v1.28.0) (2026-10-01)
 
 
