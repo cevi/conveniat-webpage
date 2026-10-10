@@ -94,6 +94,8 @@ describe('suppressing addresses that bounced', () => {
   it.each([
     ['a full mailbox', 'failed', '5.2.2'],
     ['a policy rejection', 'failed', '5.7.1'],
+    ['a failed SPF check', 'failed', '5.0.0'],
+    ['a domain that does not resolve', 'failed', '5.4.4'],
     ['a delay', 'delayed', '4.4.1'],
   ])('keeps writing to an address after %s', async (_, action, status) => {
     const { suppressions } = await bounceFrom('full@example.com', {
@@ -105,15 +107,19 @@ describe('suppressing addresses that bounced', () => {
     expect(suppressions).toEqual([]);
   });
 
-  it('does not suppress an address the mail was not sent to', async () => {
-    // A recipient that forwards its mail bounces from the address it forwards to.
-    const { suppressions } = await bounceFrom('avp@example.com', {
-      email: 'forwarded@example.org',
+  it('keeps a mailing list reachable when the mailbox of one member is gone', async () => {
+    // What comes back from a Cevi.DB group or a forwarding address names the member.
+    const { payload, suppressions, sendEmail } = await bounceFrom('hof-uster@lists.example.com', {
+      email: 'member@example.org',
       action: 'failed',
       status: '5.1.1',
     });
 
     expect(suppressions).toEqual([]);
+
+    sendEmail.mockClear();
+    await sendTrackedEmail(payload, { to: 'hof-uster@lists.example.com', subject: 'Erinnerung' });
+    expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 
   it('lists an address once however often it bounces', async () => {

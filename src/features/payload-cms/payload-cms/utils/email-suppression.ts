@@ -1,22 +1,15 @@
 import type { Payload } from 'payload';
 
 /**
- * The DSN status codes that say the address itself does not exist: unknown mailbox, unknown
- * domain, malformed address, moved or disabled mailbox, domain that cannot be routed to.
+ * The DSN status codes that say this one mailbox does not exist: unknown, malformed, moved
+ * or disabled.
  *
  * Deliberately not all of `5.x.x`. A full mailbox (`5.2.2`) empties again, and a policy
- * rejection (`5.7.x`) is about us or about the message, so suppressing on those would cut
- * off people who can be reached.
+ * rejection (`5.7.x`, or the `5.0.0` of a failed SPF check) is about us or about the
+ * message. Codes about the whole domain (`5.1.2`, `5.4.x`) are left out too: a DNS outage
+ * at one provider would otherwise suppress everybody there on the same day.
  */
-const DEAD_ADDRESS_STATUSES = new Set([
-  '5.1.1',
-  '5.1.2',
-  '5.1.3',
-  '5.1.6',
-  '5.1.10',
-  '5.2.1',
-  '5.4.4',
-]);
+const DEAD_ADDRESS_STATUSES = new Set(['5.1.1', '5.1.3', '5.1.6', '5.1.10', '5.2.1']);
 
 const ADDRESS_PATTERN = /[^\s<>,;"']+@[^\s<>,;"']+/g;
 
@@ -69,8 +62,9 @@ export const suppressedReason = (suppressed: string[]): string =>
  * Puts the recipient of a bounced mail on the suppression list, when the bounce says the
  * address does not exist.
  *
- * Only an address the mail was sent to is suppressed. A report can also name the address a
- * recipient forwards to, or our own return address, and neither is one we write to.
+ * Only an address the mail was sent to is suppressed. Behind a mailing list, such as a
+ * Cevi.DB group, a report names the member whose mailbox failed. That member is not ours to
+ * suppress, and the list address must keep working for everybody else on it.
  *
  * Never throws. The caller has already recorded the bounce, and reading the notification a
  * second time because of this would record it twice; the next bounce suppresses the address.

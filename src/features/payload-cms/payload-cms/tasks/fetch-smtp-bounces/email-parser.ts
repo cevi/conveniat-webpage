@@ -76,15 +76,29 @@ export const determineDeliveryStatus = (
   const lines = dsnText.split(/\r?\n/);
 
   let currentBounce: Partial<RecipientBounce> | undefined = undefined;
+  // One report names its recipient twice, in either order. `Final-Recipient` is the address
+  // delivery was attempted to. `Original-Recipient` is what we passed as ORCPT, which is our
+  // own return address, so it only stands in when the report has nothing else.
+  let seen = new Set<string>();
 
   for (const line of lines) {
-    const finalRecpMatch = line.match(/^(?:Final|Original)-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
-    if (finalRecpMatch) {
-      if (currentBounce?.email !== undefined && currentBounce.email.length > 0) {
-        currentBounce.isSuccess ??= isSuccessGlobal;
-        recipientBounces.push(currentBounce as RecipientBounce);
+    const recipientMatch = line.match(/^(Final|Original)-Recipient:\s*(?:rfc822;\s*)?([^\s;]+)/i);
+    if (recipientMatch) {
+      const kind = (recipientMatch[1] as string).toLowerCase();
+      const startsNewReport =
+        currentBounce === undefined || currentBounce.action !== undefined || seen.has(kind);
+      if (startsNewReport) {
+        if (currentBounce?.email !== undefined && currentBounce.email.length > 0) {
+          currentBounce.isSuccess ??= isSuccessGlobal;
+          recipientBounces.push(currentBounce as RecipientBounce);
+        }
+        currentBounce = {};
+        seen = new Set();
       }
-      currentBounce = { email: finalRecpMatch[1] as string };
+      seen.add(kind);
+      if (currentBounce !== undefined && (kind === 'final' || currentBounce.email === undefined)) {
+        currentBounce.email = recipientMatch[2] as string;
+      }
       continue;
     }
 
