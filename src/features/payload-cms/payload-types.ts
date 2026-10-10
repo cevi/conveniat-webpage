@@ -236,6 +236,7 @@ export interface Config {
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       drainPushQueue: TaskDrainPushQueue;
       drainEmailOutbox: TaskDrainEmailOutbox;
+      keepCeviDbSessionAlive: TaskKeepCeviDbSessionAlive;
       syncActivePiketMembers: TaskSyncActivePiketMembers;
       syncNewUserAnnouncementChats: TaskSyncNewUserAnnouncementChats;
       syncParticipants: TaskSyncParticipants;
@@ -5172,6 +5173,7 @@ export interface PayloadJob {
           | 'publishScheduledAnnouncements'
           | 'drainPushQueue'
           | 'drainEmailOutbox'
+          | 'keepCeviDbSessionAlive'
           | 'syncActivePiketMembers'
           | 'syncNewUserAnnouncementChats'
           | 'syncParticipants'
@@ -5233,6 +5235,7 @@ export interface PayloadJob {
         | 'publishScheduledAnnouncements'
         | 'drainPushQueue'
         | 'drainEmailOutbox'
+        | 'keepCeviDbSessionAlive'
         | 'syncActivePiketMembers'
         | 'syncNewUserAnnouncementChats'
         | 'syncParticipants'
@@ -8726,7 +8729,7 @@ export interface RegistrationManagement {
     [k: string]: unknown;
   } | null;
   /**
-   * Session cookie for the Cevi.DB API. Highly sensitive, write-only. Value will never be shown after saving. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   * Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
    */
   browserCookie?: string | null;
   updatedAt?: string | null;
@@ -10146,6 +10149,14 @@ export interface TaskDrainPushQueue {
  * via the `definition` "TaskDrainEmailOutbox".
  */
 export interface TaskDrainEmailOutbox {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskKeepCeviDbSessionAlive".
+ */
+export interface TaskKeepCeviDbSessionAlive {
   input?: unknown;
   output?: unknown;
 }
