@@ -32,8 +32,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# local env files, including backups like .env.bak-*; only the example is tracked
+.env*
+!.env.example
 
 # vercel
 .vercel
@@ -41,8 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-.env
 
 /media
 
