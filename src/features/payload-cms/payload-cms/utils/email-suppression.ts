@@ -16,9 +16,9 @@ const DEAD_ADDRESS_STATUSES = new Set(['5.1.1', '5.1.3', '5.1.6', '5.1.10', '5.2
  * Microsoft 365 answers for a recipient it does not know (`5.4.1`).
  *
  * One of these proves nothing, since a DNS outage at one provider produces them for
- * everybody there. An address is suppressed once it has kept failing like this for
- * {@link REPEATED_BOUNCE_SPAN_MS} with nothing delivered in between. The class digit is
- * ignored, because a mail given up on after days of retries keeps its `4.x.x` code.
+ * everybody there. An address is suppressed once mails to it have kept failing like this
+ * over {@link REPEATED_BOUNCE_SPAN_MS} with none getting through in between. The class digit
+ * is ignored, because a mail given up on after days of retries keeps its `4.x.x` code.
  */
 const REPEATED_BOUNCE_STATUS = /^[45]\.(?:1\.2|2\.2|4\.\d+)$/;
 
@@ -26,27 +26,26 @@ const REPEATED_BOUNCE_STATUS = /^[45]\.(?:1\.2|2\.2|4\.\d+)$/;
 const REPEATED_BOUNCE_SPAN_MS = 14 * 24 * 60 * 60 * 1000;
 
 /** After this long without a further bounce, the next one starts over. */
-const BOUNCE_STRIKE_TTL_SECONDS = 90 * 24 * 60 * 60;
+const BOUNCE_HISTORY_TTL_SECONDS = 90 * 24 * 60 * 60;
 
-const bounceStrikeKey = (email: string): string => `email:bounce-strike:${email}`;
+// Two sorted sets per address, each holding mail ids scored by when the mail was sent. They
+// are kept by send time because reports are not read in the order things happened.
+const bouncedKey = (email: string): string => `email:bounced-mails:${email}`;
+const deliveredKey = (email: string): string => `email:delivered-mails:${email}`;
 
-/** The first of a run of passing failures, and the mail the latest one was about. */
-interface BounceStrike {
-  firstAt: number;
-  outgoingEmailId: string;
-}
+const sendTimes = async (key: string): Promise<number[]> => {
+  const flat = await redis.zrange(key, 0, -1, 'WITHSCORES');
+  return flat.filter((_, index) => index % 2 === 1).map(Number);
+};
 
-const readBounceStrike = async (email: string): Promise<BounceStrike | undefined> => {
-  const stored = await redis.get(bounceStrikeKey(email));
-  if (stored === null) return undefined;
-  try {
-    const strike = JSON.parse(stored) as Partial<BounceStrike>;
-    return typeof strike.firstAt === 'number' && typeof strike.outgoingEmailId === 'string'
-      ? { firstAt: strike.firstAt, outgoingEmailId: strike.outgoingEmailId }
-      : undefined;
-  } catch {
-    return undefined;
-  }
+/**
+ * Whether the mails that failed since the last one that got through span two weeks or more.
+ */
+const keepsBouncing = async (email: string): Promise<boolean> => {
+  const lastDelivered = Math.max(-Infinity, ...(await sendTimes(deliveredKey(email))));
+  const bounced = await sendTimes(bouncedKey(email));
+  const run = bounced.filter((sentAt) => sentAt > lastDelivered);
+  return run.length > 0 && Math.max(...run) - Math.min(...run) >= REPEATED_BOUNCE_SPAN_MS;
 };
 
 // Only what separates addresses is excluded. An apostrophe is part of some people's address.
@@ -119,58 +118,70 @@ const suppress = async (
 };
 
 /**
- * Whether a passing failure completes a run that is long enough to suppress the address.
- *
- * The run is kept in Redis and nowhere else. Losing it costs one more bounce before an
- * address is suppressed, so a Redis that cannot be reached must not hold up the bounce.
+ * Lifts a suppression that the repeated-bounce rule made, once a mail turns out to have got
+ * through in between. One made because the mailbox does not exist is left alone.
  */
-const hasKeptBouncing = async (
-  payload: Payload,
-  email: string,
-  outgoingEmailId: string,
-): Promise<boolean> => {
-  try {
-    const strike = await readBounceStrike(email);
-    const firstAt = strike?.firstAt ?? Date.now();
-    if (Date.now() - firstAt >= REPEATED_BOUNCE_SPAN_MS) {
-      await redis.del(bounceStrikeKey(email));
-      return true;
-    }
-    await redis.set(
-      bounceStrikeKey(email),
-      JSON.stringify({ firstAt, outgoingEmailId } satisfies BounceStrike),
-      'EX',
-      BOUNCE_STRIKE_TTL_SECONDS,
-    );
-  } catch (error: unknown) {
-    payload.logger.warn({
-      err: error instanceof Error ? error : new Error(String(error)),
-      msg: `Could not count the bounce of outgoing email ${outgoingEmailId} towards a suppression`,
-    });
-  }
-  return false;
+const liftRepeatedBounceSuppression = async (payload: Payload, email: string): Promise<void> => {
+  const found = await payload.find({
+    collection: 'email-suppressions',
+    where: { email: { equals: email } },
+    limit: 1,
+    depth: 0,
+    pagination: false,
+  });
+  const entry = found.docs[0];
+  if (entry === undefined || !REPEATED_BOUNCE_STATUS.test(entry.status ?? '')) return;
+
+  await payload.delete({ collection: 'email-suppressions', id: entry.id });
+  payload.logger.info(
+    `Lifted the suppression ${entry.id}: a mail sent between the bounces was delivered.`,
+  );
 };
 
 /**
- * Ends a run of passing failures, because a later mail got through.
+ * Counts one report towards the repeated-bounce rule and brings the list in line with it.
  *
- * A report for the mail that bounced last does not count: the relay confirms the hand-off
- * of that same mail, and the two reports are not read in the order they happened.
+ * Nothing is taken out of Redis here, so reading the same notification again after a
+ * failed write comes to the same result. A hand-off report for a mail that bounced is not
+ * a delivery, whichever of the two reports is read first.
  */
-const forgetBounces = async (
+const applyToBounceHistory = async (
   payload: Payload,
   email: string,
-  outgoingEmailId: string,
+  outgoingEmail: { id: string; sentAt: number },
+  failedWith?: string,
 ): Promise<void> => {
+  let isSuppressing: boolean;
   try {
-    const strike = await readBounceStrike(email);
-    if (strike === undefined || strike.outgoingEmailId === outgoingEmailId) return;
-    await redis.del(bounceStrikeKey(email));
+    if (failedWith === undefined) {
+      // Deliveries only matter while there are bounces they could come between, and the
+      // hand-off of a mail that bounced is not one.
+      const countsAsDelivery =
+        (await redis.exists(bouncedKey(email))) === 1 &&
+        (await redis.zscore(bouncedKey(email), outgoingEmail.id)) === null;
+      if (!countsAsDelivery) return;
+      await redis.zadd(deliveredKey(email), outgoingEmail.sentAt, outgoingEmail.id);
+    } else {
+      await redis.zrem(deliveredKey(email), outgoingEmail.id);
+      await redis.zadd(bouncedKey(email), outgoingEmail.sentAt, outgoingEmail.id);
+      await redis.expire(bouncedKey(email), BOUNCE_HISTORY_TTL_SECONDS);
+    }
+    await redis.expire(deliveredKey(email), BOUNCE_HISTORY_TTL_SECONDS);
+    isSuppressing = await keepsBouncing(email);
   } catch (error: unknown) {
+    // The history is only kept in Redis. Losing a report costs one more bounce before an
+    // address is suppressed, so a Redis that cannot be reached must not hold up the bounce.
     payload.logger.warn({
       err: error instanceof Error ? error : new Error(String(error)),
-      msg: `Could not clear the bounces counted before outgoing email ${outgoingEmailId}`,
+      msg: `Could not count the report on outgoing email ${outgoingEmail.id} towards a suppression`,
     });
+    return;
+  }
+
+  if (failedWith === undefined) {
+    if (!isSuppressing) await liftRepeatedBounceSuppression(payload, email);
+  } else if (isSuppressing) {
+    await suppress(payload, email, failedWith, outgoingEmail.id);
   }
 };
 
@@ -178,8 +189,8 @@ const forgetBounces = async (
  * Applies one delivery report to the suppression list.
  *
  * A bounce that says the mailbox does not exist suppresses the address at once. A failure
- * that may pass suppresses it once it has kept failing for two weeks or more, and a mail
- * that gets through in between starts that count over.
+ * that may pass suppresses it once mails have kept failing over two weeks or more, and a
+ * mail that got through in between starts that count over.
  *
  * Only an address the mail was sent to is suppressed. Behind a mailing list, such as a
  * Cevi.DB group, a report names the member whose mailbox failed. That member is not ours to
@@ -188,10 +199,12 @@ const forgetBounces = async (
  * Called before the report is recorded on the mail, and throws when the list cannot be
  * written. The notification then stays in the mailbox and is read again, so a failure here
  * loses neither the suppression nor records the bounce twice.
+ *
+ * @param outgoingEmail - The mail the report is about, with the time it was sent.
  */
 export const applyDeliveryReport = async (
   payload: Payload,
-  outgoingEmail: { id: string; to?: string | undefined },
+  outgoingEmail: { id: string; to?: string | undefined; sentAt: number },
   report: { email?: string | undefined; action?: string | undefined; status?: string | undefined },
 ): Promise<void> => {
   if (report.email === undefined) return;
@@ -199,14 +212,14 @@ export const applyDeliveryReport = async (
   if (!recipientAddresses(outgoingEmail.to).includes(email)) return;
 
   if (report.action === 'delivered' || report.action === 'relayed') {
-    await forgetBounces(payload, email, outgoingEmail.id);
+    await applyToBounceHistory(payload, email, outgoingEmail);
     return;
   }
   if (report.action !== 'failed' || report.status === undefined) return;
 
-  const isGone =
-    DEAD_ADDRESS_STATUSES.has(report.status) ||
-    (REPEATED_BOUNCE_STATUS.test(report.status) &&
-      (await hasKeptBouncing(payload, email, outgoingEmail.id)));
-  if (isGone) await suppress(payload, email, report.status, outgoingEmail.id);
+  if (DEAD_ADDRESS_STATUSES.has(report.status)) {
+    await suppress(payload, email, report.status, outgoingEmail.id);
+  } else if (REPEATED_BOUNCE_STATUS.test(report.status)) {
+    await applyToBounceHistory(payload, email, outgoingEmail, report.status);
+  }
 };

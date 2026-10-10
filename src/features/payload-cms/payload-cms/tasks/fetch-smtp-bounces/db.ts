@@ -48,6 +48,8 @@ export const updateTrackingRecords = async (
         formSubmission?: string | { id: string };
         rawDsnEmail?: string;
         to?: string;
+        smtpReceivedAt?: string | null;
+        createdAt?: string | null;
       }
     | undefined;
 
@@ -138,9 +140,16 @@ export const updateTrackingRecords = async (
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
 
+    // When the mail last left, which a resend moves. Reports are placed by this time, not
+    // by when they are read.
+    const sentAt = Date.parse(outgoingEmail.smtpReceivedAt ?? outgoingEmail.createdAt ?? '');
     await applyDeliveryReport(
       payload,
-      { id: envelopeId, to: outgoingEmail.to },
+      {
+        id: envelopeId,
+        to: outgoingEmail.to,
+        sentAt: Number.isNaN(sentAt) ? Date.now() : sentAt,
+      },
       { email: recipientEmail, ...bounce },
     );
 
