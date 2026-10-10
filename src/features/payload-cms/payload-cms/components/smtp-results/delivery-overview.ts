@@ -381,7 +381,8 @@ const readReport = (
   for (const block of blocks) {
     const { action, status, server } = block.event;
     const key = [block.finalRecipient, block.originalRecipient, action, status, server].join('|');
-    if (!distinct.has(key)) distinct.set(key, block);
+    // The copy that carries the server's answer is the one worth keeping.
+    if (distinct.get(key)?.event.diagnostic === undefined) distinct.set(key, block);
   }
 
   return [...distinct.values()].map((block) => ({
