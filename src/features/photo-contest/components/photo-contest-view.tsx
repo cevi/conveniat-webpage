@@ -286,15 +286,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
   }, [savedVotes, localVotes]);
 
   const handleLogin = useCallback((): void => {
-    void (async (): Promise<void> => {
-      const response = await signIn('cevi-db', {
-        redirect: false,
-        callbackUrl: globalThis.location.href,
-      });
-      if (typeof response.url === 'string') {
-        globalThis.location.href = response.url;
-      }
-    })();
+    void signIn('cevi-db', { callbackUrl: globalThis.location.href });
   }, []);
 
   const contestId = contest?.id;
