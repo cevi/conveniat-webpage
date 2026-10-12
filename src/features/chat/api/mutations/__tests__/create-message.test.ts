@@ -72,7 +72,11 @@ const prisma = {
       Promise.resolve({
         name: 'Cevi Uster',
         type: ChatType.GROUP,
-        capabilities: [ChatCapability.CAN_SEND_MESSAGES, ChatCapability.PICTURE_UPLOAD],
+        capabilities: [
+          ChatCapability.CAN_SEND_MESSAGES,
+          ChatCapability.PICTURE_UPLOAD,
+          ChatCapability.THREADS,
+        ],
         // prisma answers a chat that was never archived with null
         // eslint-disable-next-line unicorn/no-null
         archivedAt: null,
@@ -84,6 +88,7 @@ const prisma = {
     update: (): Promise<void> => Promise.resolve(),
   },
   message: {
+    findMany: (): Promise<unknown[]> => Promise.resolve([]),
     create: ({ data }: { data: { type: MessageType } }): Promise<unknown> => {
       storedTypes.push(data.type);
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
@@ -148,6 +153,18 @@ describe('the connections a send needs', () => {
       expect(mockPoolRead).not.toHaveBeenCalled();
     },
   );
+
+  it('checks whether a thread reply is allowed on that connection too', async () => {
+    await anna.sendMessage({
+      chatId: CHAT_ID,
+      content: 'Hoi zäme',
+      timestamp: new Date(),
+      parentId: '00000000-0000-4000-8000-000000000002',
+    });
+
+    expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
+    expect(mockPoolRead).not.toHaveBeenCalled();
+  });
 });
 
 describe('announcing a sent message', () => {
