@@ -1,10 +1,14 @@
 import type { UploadReturnType } from '@/features/payload-cms/components/user-upload/upload-user-image';
 import type { UserImageContentType } from '@/features/payload-cms/constants/user-image-upload';
 import { trpc } from '@/trpc/client';
+import { TRPCClientError } from '@trpc/client';
 import { useCallback, useState } from 'react';
 
+/** `isRetryable` marks a failure that says nothing about the image, like the rate limit. */
+export type UserUploadResult = UploadReturnType & { isRetryable: boolean };
+
 interface UseUserUploadResult {
-  uploadImage: (file: File, description: string) => Promise<UploadReturnType>;
+  uploadImage: (file: File, description: string) => Promise<UserUploadResult>;
   isUploading: boolean;
 }
 
@@ -15,7 +19,7 @@ export const useUserUpload = (): UseUserUploadResult => {
   const completeUploadMutation = trpc.upload.completeUserUpload.useMutation();
 
   const uploadImage = useCallback(
-    async (file: File, description: string): Promise<UploadReturnType> => {
+    async (file: File, description: string): Promise<UserUploadResult> => {
       try {
         setActiveUploads((previous) => previous + 1);
 
@@ -50,12 +54,16 @@ export const useUserUpload = (): UseUserUploadResult => {
         return {
           error: false,
           message: 'Ok',
+          isRetryable: false,
         };
       } catch (error) {
         // console.error('Upload flow failed:', error);
         return {
           error: true,
           message: error instanceof Error ? error.message : 'Unknown upload error',
+          isRetryable:
+            error instanceof TRPCClientError &&
+            (error.data as { code?: string } | undefined)?.code === 'TOO_MANY_REQUESTS',
         };
       } finally {
         setActiveUploads((previous) => previous - 1);

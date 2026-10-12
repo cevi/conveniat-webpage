@@ -283,19 +283,31 @@ const ImageUploadPage: React.FC = () => {
         setShowSuccessView(true);
         setShowCopyrightModal(false);
       } else {
-        // Update state with errors for specific files
+        // An uploaded image leaves the list, so trying the rest again does not hand it in twice.
+        const uploadedNames = new Set(
+          results.filter((r) => !r.response.error).map((r) => r.fileName),
+        );
+        // A failure that says nothing about the image stays out of its error, which would
+        // keep it out of every later attempt; it is shown above the form instead.
+        const retryable = failedUploads.find((f) => f.response.isRetryable);
+        if (retryable) setErrorMessage(retryable.response.message);
+
         setSelectedFiles((previous) =>
-          previous.map((item) => {
-            const failure = failedUploads.find((f) => f.fileName === item.file.name);
-            if (failure) {
-              let uploadFailureMessage = failure.response.message;
-              if (uploadFailureMessage === 'This image has already been uploaded.') {
-                uploadFailureMessage = duplicateImageError[locale];
+          previous
+            .filter((item) => !uploadedNames.has(item.file.name))
+            .map((item) => {
+              const failure = failedUploads.find(
+                (f) => f.fileName === item.file.name && !f.response.isRetryable,
+              );
+              if (failure) {
+                let uploadFailureMessage = failure.response.message;
+                if (uploadFailureMessage === 'This image has already been uploaded.') {
+                  uploadFailureMessage = duplicateImageError[locale];
+                }
+                return { ...item, error: uploadFailureMessage };
               }
-              return { ...item, error: uploadFailureMessage };
-            }
-            return item;
-          }),
+              return item;
+            }),
         );
         setShowCopyrightModal(false);
       }

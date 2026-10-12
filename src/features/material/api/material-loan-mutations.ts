@@ -23,10 +23,11 @@ import {
 } from '@/features/material/api/material-shared';
 import { mergeBasketLines } from '@/features/material/utils/basket';
 import { holderKey, holderOf } from '@/features/material/utils/holders';
+import { INCIDENT_PHOTO_UPLOAD } from '@/features/material/utils/incident-photo';
 import { isReturnValid } from '@/features/material/utils/returns';
 import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import type { MaterialCondition, Prisma } from '@/lib/prisma/client';
-import { uploadInputShape, type UploadPolicy } from '@/lib/upload-policy';
+import { uploadInputShape } from '@/lib/upload-policy';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
@@ -39,18 +40,6 @@ const photoKeySchema = z
   .string()
   .regex(/^material-incidents\/[\w-]+\.(jpg|jpeg|png|webp|heic|heif)$/)
   .optional();
-
-/** The photo is uploaded as taken, without resizing, so the size has to fit a full-size phone photo. */
-const INCIDENT_PHOTO_UPLOAD: UploadPolicy = {
-  extensions: {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'image/heic': 'heic',
-    'image/heif': 'heif',
-  },
-  maxBytes: 20 * 1024 * 1024,
-};
 
 /**
  * Books a basket at the counter in one go: every line becomes a loan, handed out now or
