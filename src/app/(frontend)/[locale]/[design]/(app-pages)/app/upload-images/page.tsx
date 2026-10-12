@@ -273,7 +273,7 @@ const ImageUploadPage: React.FC = () => {
         validFiles.map(async (item) => {
           const description = fileDescriptions[item.file.name]?.trim() ?? '';
           const response = await uploadImage(item.file, description);
-          return { fileName: item.file.name, response };
+          return { file: item.file, response };
         }),
       );
 
@@ -284,9 +284,8 @@ const ImageUploadPage: React.FC = () => {
         setShowCopyrightModal(false);
       } else {
         // An uploaded image leaves the list, so trying the rest again does not hand it in twice.
-        const uploadedNames = new Set(
-          results.filter((r) => !r.response.error).map((r) => r.fileName),
-        );
+        // By file, not by name: two photos picked together may share one.
+        const uploadedFiles = new Set(results.filter((r) => !r.response.error).map((r) => r.file));
         // A failure that says nothing about the image stays out of its error, which would
         // keep it out of every later attempt; it is shown above the form instead.
         const retryable = failedUploads.find((f) => f.response.isRetryable);
@@ -294,10 +293,10 @@ const ImageUploadPage: React.FC = () => {
 
         setSelectedFiles((previous) =>
           previous
-            .filter((item) => !uploadedNames.has(item.file.name))
+            .filter((item) => !uploadedFiles.has(item.file))
             .map((item) => {
               const failure = failedUploads.find(
-                (f) => f.fileName === item.file.name && !f.response.isRetryable,
+                (f) => f.file === item.file && !f.response.isRetryable,
               );
               if (failure) {
                 let uploadFailureMessage = failure.response.message;
