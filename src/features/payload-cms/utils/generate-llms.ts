@@ -1,81 +1,71 @@
 import { environmentVariables } from '@/config/environment-variables';
-import { specialPagesTable } from '@/features/payload-cms/special-pages-table';
+import { enabledLocales } from '@/features/payload-cms/payload-cms/locales';
+import type { LlmsSourceDocument } from '@/features/payload-cms/utils/llms-txt';
+import { renderLlmsTxt, toLlmsLinks } from '@/features/payload-cms/utils/llms-txt';
+import { i18nConfig, type Locale } from '@/types/types';
 import config from '@payload-config';
 import { cacheLife, cacheTag } from 'next/cache';
-import type { CollectionSlug } from 'payload';
 import { getPayload } from 'payload';
 
+const COLLECTIONS = [
+  { slug: 'generic-page', urlPrefix: '', heading: 'Seiten' },
+  { slug: 'blog', urlPrefix: 'blog', heading: 'Blog' },
+] as const;
+
 /**
- * Generates dynamic llms.txt content conforming to the llms.txt standard.
- * Includes H1 title, site summary, key special pages, and published CMS pages.
+ * Generates the content of /llms.txt: the site name and description from the SEO settings,
+ * followed by every page and blog post an anonymous visitor can open.
+ *
+ * A failing read is not caught here. The route then answers with an error and nothing is
+ * cached, instead of a truncated list being served for hours.
  */
 export const cachedLlmsGenerator = async (): Promise<string> => {
   'use cache';
   cacheLife('hours');
-  cacheTag('payload', 'collection:generic-page', 'collection:blog');
+  cacheTag('payload', 'global:SEO', 'collection:generic-page', 'collection:blog');
 
-  const APP_HOST_URL = environmentVariables.APP_HOST_URL;
-  const lines: string[] = [];
+  const payload = await getPayload({ config });
+  const defaultLocale = i18nConfig.defaultLocale as Locale;
+  const currentDate = new Date().toISOString();
 
-  lines.push(
-    '# conveniat27 - MIR SIND CEVI',
-    '',
-    '> Mit dem Motto «MIR SIND CEVI» hat sich ein junges, dynamisches Team aus allen Regionen der Schweiz zusammengeschlossen. Gemeinsam gestalten wir vom 24. Juli bis zum 2. August 2027 ein Lager im Obergoms VS, das verbindet, inspiriert und zeigt, was Cevi ausmacht: Zusammenhalt, Freundschaft, Glaube und Abenteuer, die bleiben. Wir erwarten etwa 5000 Teilnehmende sowie hunderte Helfende. Die Leitenden schaffen für die Kinder und Jugendlichen ein nachhaltiges und prägendes Lagererlebnis. Mit dem Motto «Mir sind CEVI!» wird die Wichtigkeit des gesamten Cevis in all seinen Facetten repräsentiert.',
-    '',
-    '## Hauptseiten & Informationen',
-    '',
-    `- [Startseite](${APP_HOST_URL}/)`,
-  );
+  const seo = await payload.findGlobal({
+    slug: 'SEO',
+    locale: defaultLocale,
+    select: { defaultTitle: true, defaultDescription: true },
+  });
 
-  // Include special pages from specialPagesTable
-  for (const [key, specialPage] of Object.entries(specialPagesTable)) {
-    const title = specialPage.title.de || specialPage.title.en || key;
-    const path = specialPage.alternatives.de || specialPage.alternatives.en || `/${key}`;
-    lines.push(`- [${title}](${APP_HOST_URL}${path})`);
-  }
-
-  lines.push('', '## Veröffentlichte Seiten & Artikel', '');
-
-  try {
-    const payload = await getPayload({ config });
-    const currentDate = new Date().toISOString();
-
-    const collections = [
-      { name: 'generic-page', prefix: '' },
-      { name: 'blog', prefix: '/blog' },
-    ];
-
-    for (const { name, prefix } of collections) {
+  const sections = await Promise.all(
+    COLLECTIONS.map(async ({ slug, urlPrefix, heading }) => {
       const { docs } = await payload.find({
-        collection: name as CollectionSlug,
-        depth: 0,
-        limit: 100,
-        locale: 'de',
-        where: {
-          'content.releaseDate': {
-            less_than_equal: currentDate,
-          },
+        collection: slug,
+        // populates the permission, which decides whether the document is public
+        depth: 1,
+        pagination: false,
+        locale: 'all',
+        where: { 'content.releaseDate': { less_than_equal: currentDate } },
+        select: {
+          _localized_status: true,
+          content: { pageTitle: true, blogH1: true, permissions: true },
+          seo: { urlSlug: true, metaDescription: true },
         },
       });
 
-      for (const document_ of docs) {
-        const rawDocument = document_ as unknown as {
-          title?: string;
-          name?: string;
-          id?: string | number;
-          slug?: string;
-          seo?: { urlSlug?: string };
-        };
-        const title = rawDocument.title || rawDocument.name || String(rawDocument.id ?? '');
-        const slug = rawDocument.seo?.urlSlug || rawDocument.slug || '';
-        if (slug) {
-          lines.push(`- [${title}](${APP_HOST_URL}${prefix}/${slug})`);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to fetch CMS pages for llms.txt:', error);
-  }
+      return {
+        heading,
+        // `locale: 'all'` returns every localized field keyed by locale, unlike the generated type
+        links: toLlmsLinks(docs as unknown as LlmsSourceDocument[], {
+          hostUrl: environmentVariables.APP_HOST_URL,
+          locales: enabledLocales,
+          defaultLocale,
+          urlPrefix,
+        }),
+      };
+    }),
+  );
 
-  return lines.join('\n');
+  return renderLlmsTxt({
+    title: seo.defaultTitle,
+    description: seo.defaultDescription,
+    sections,
+  });
 };
