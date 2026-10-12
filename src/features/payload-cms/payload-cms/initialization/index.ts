@@ -1,3 +1,4 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import {
@@ -237,7 +238,11 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       return;
     }
   } catch (error: unknown) {
+    // A database that could not be asked is not an empty one. Falling through would take the
+    // path of a fresh install on a deployment that has data. The flag stays unset, so the next
+    // initialization checks again.
     payload.logger.error({ err: error }, '[Lock Manager] Failed to check database seeding status');
+    return;
   }
 
   // Database is empty. Remove any stale lock file left on host disk from a previous volume wipe.
@@ -261,15 +266,22 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       '[Lock Manager] Acquired database initialization lock. Starting seeding and indexing...',
     );
     try {
-      // Ensure Postgres Prisma tables exist before seeding
-      try {
-        await prisma.$queryRaw`SELECT 1 FROM "public"."User" LIMIT 1`;
-      } catch {
-        payload.logger.info(
-          '[Lock Manager] Prisma tables missing. Pushing Prisma schema to Postgres...',
-        );
-        const { execSync } = await import('node:child_process');
-        execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+      // Ensure Postgres Prisma tables exist before seeding. Only `pnpm dev` needs this: it runs
+      // Next.js on the host, where no container start has pushed the schema. Every other
+      // deployment gets its tables from the migrations, and its image ships no Prisma CLI, so
+      // `npx` would fetch an unpinned one from the registry.
+      if (environmentVariables.NODE_ENV === 'development') {
+        try {
+          await prisma.$queryRaw`SELECT 1 FROM "public"."User" LIMIT 1`;
+        } catch {
+          payload.logger.info(
+            '[Lock Manager] Prisma tables missing. Pushing Prisma schema to Postgres...',
+          );
+          const { execSync } = await import('node:child_process');
+          // Without --accept-data-loss: creating missing tables loses nothing, and a query that
+          // failed for another reason must not let the push drop what is there.
+          execSync('npx prisma db push', { stdio: 'inherit' });
+        }
       }
 
       await withSpan('payload.init.seed', async () => {
