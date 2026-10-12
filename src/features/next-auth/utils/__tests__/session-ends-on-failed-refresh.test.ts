@@ -2,7 +2,6 @@ import type { JWT } from 'next-auth/jwt';
 
 // `next-auth` is ESM-only and cannot be imported for a value under Jest.
 jest.mock('next-auth', () => ({ customFetch: Symbol('customFetch') }));
-jest.mock('next/server', () => ({ after: jest.fn() }));
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('undici', () => ({ Agent: jest.fn(), setGlobalDispatcher: jest.fn() }));
