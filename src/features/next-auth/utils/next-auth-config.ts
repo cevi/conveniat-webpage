@@ -285,6 +285,19 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
 }
 
 /**
+ * How long a session waits before it asks Cevi.DB for its groups again on the user's request.
+ * Anybody signed in can post a session update, so without it one client could turn every request
+ * into a call to Cevi.DB.
+ */
+const SECONDS_BETWEEN_REQUESTED_SYNCS = 60;
+
+const REQUESTED_SYNC_REASON = 'user_requested';
+
+const wasSyncedRecently = (token: JWT): boolean =>
+  typeof token.groups_synced_at === 'number' &&
+  Date.now() / 1000 - token.groups_synced_at < SECONDS_BETWEEN_REQUESTED_SYNCS;
+
+/**
  * What the `jwt` callback answers to end a session: Auth.js clears the session cookie instead of
  * re-signing it, and the user goes back through the Cevi.DB login.
  */
@@ -400,8 +413,13 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
 
       // Update the user in Payload CMS with the new groups in the background
       // Fire-and-forget: we use Next.js `after()` to ensure serverless functions don't freeze
-      // before this background database syncing completes.
-      after(() => syncProfileToPayloadAsync(profile));
+      // before this background database syncing completes. A user who asked for the sync
+      // reloads the page as soon as it answers, so theirs is stored before it does.
+      if (reason === REQUESTED_SYNC_REASON) {
+        await syncProfileToPayloadAsync(profile);
+      } else {
+        after(() => syncProfileToPayloadAsync(profile));
+      }
 
       const identity = TokenIdentitySchema.parse(token);
 
@@ -415,6 +433,7 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
         uuid: identity.uuid,
         cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
+        groups_synced_at: Math.floor(Date.now() / 1000),
         email: profile.email,
         name: formatUserFullName(profile.first_name + ' ' + profile.last_name, profile.nickname),
         nickname: profile.nickname,
@@ -524,6 +543,7 @@ export const authOptions: NextAuthConfig = {
         uuid: identity.uuid,
         cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: token.group_ids ?? [],
+        groups_synced_at: token.groups_synced_at,
         nickname: token.nickname,
         firstName: token.firstName,
         lastName: token.lastName,
@@ -533,7 +553,7 @@ export const authOptions: NextAuthConfig = {
     },
 
     // This callback is called whenever a JSON Web Token is created (i.e. at sign in) or updated (i.e whenever a session is accessed in the client).
-    async jwt({ token, account, profile: _profile }): Promise<JWT | null> {
+    async jwt({ token, account, profile: _profile, trigger }): Promise<JWT | null> {
       // Initial sign in
       if (account && _profile) {
         const activeSpan = trace.getActiveSpan();
@@ -554,6 +574,7 @@ export const authOptions: NextAuthConfig = {
           uuid: payloadCMSUser.id,
           cevi_db_uuid: payloadCMSUser.cevi_db_uuid ?? undefined, // the id of the user in the CeviDB as number
           group_ids: profile.roles.map((role) => role.group_id),
+          groups_synced_at: Math.floor(Date.now() / 1000),
           email: profile.email,
           name: formatUserFullName(profile.first_name + ' ' + profile.last_name, profile.nickname),
           nickname: profile.nickname,
@@ -569,7 +590,16 @@ export const authOptions: NextAuthConfig = {
           ? token.expires_at
           : 0; // force refresh if invalid
 
-      if (expiresAt > 0 && Date.now() < expiresAt * 1000 - 10 * 1000) {
+      const hasRefreshToken = token.refresh_token !== undefined && token.refresh_token !== '';
+      const isStillValid = expiresAt > 0 && Date.now() < expiresAt * 1000 - 10 * 1000;
+
+      // The user asked for their current groups, e.g. right after being added to one in
+      // Cevi.DB. The client posts a session update for that, and the answer is a refresh ahead
+      // of time, because the groups only ever arrive with one.
+      const isRequestedSync =
+        trigger === 'update' && isStillValid && hasRefreshToken && !wasSyncedRecently(token);
+
+      if (isStillValid && !isRequestedSync) {
         return token;
       }
 
@@ -584,7 +614,9 @@ export const authOptions: NextAuthConfig = {
       }
 
       let reason: string;
-      if (expiresAt === 0) {
+      if (isRequestedSync) {
+        reason = REQUESTED_SYNC_REASON;
+      } else if (expiresAt === 0) {
         reason = 'missing_expires_at';
       } else if (Date.now() >= expiresAt * 1000) {
         reason = 'token_expired';

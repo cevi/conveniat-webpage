@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { LinkComponent } from '@/components/ui/link-component';
 import { environmentVariables } from '@/config/environment-variables';
+import { CeviDatabaseGroupSync } from '@/features/settings/cevi-db-group-sync';
 import { LoginButton } from '@/features/settings/login-button';
 import { LogoutButton } from '@/features/settings/logout-button';
 import type { StaticTranslationString } from '@/types/types';
@@ -236,6 +237,8 @@ export const ProfileDetails: React.FC = async () => {
                 subtitle={getDetail(user.uuid)}
                 subtitleClassName="font-mono text-xs text-gray-600"
               />
+
+              <CeviDatabaseGroupSync />
             </div>
 
             <LogoutButton />
