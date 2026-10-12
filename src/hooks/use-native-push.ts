@@ -170,6 +170,36 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
 }
 
 /**
+ * Reads a navigation target as a browser would: a path when it is on this origin, the full URL
+ * when it is on another one, nothing when it is not http(s).
+ *
+ * Every value is parsed, also one that starts with a slash: a browser reads `/\host` and
+ * `//host` as another origin, so the leading slash alone says nothing.
+ */
+function parseHttpTarget(rawUrl: string): string | undefined {
+  try {
+    const parsedUrl = new URL(rawUrl, globalThis.location.origin);
+    if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return undefined;
+    if (parsedUrl.origin !== globalThis.location.origin) return parsedUrl.href;
+    // `https://this-host//other-host` is on this origin, but its path alone names another one,
+    // and the path is all that is handed on.
+    if (parsedUrl.pathname.startsWith('//')) return undefined;
+    return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Whether the page is at a same-origin target. Query and fragment count, because they select
+ * what the page shows.
+ */
+const isAtTarget = (target: string): boolean => {
+  const { pathname, search, hash } = globalThis.location;
+  return pathname + search + hash === target;
+};
+
+/**
  * Turns the URL a push carries into where the page goes: a path when the target is on this
  * origin, the full URL when it is on another one. The short domain con27.ch is another origin
  * that redirects back here through `/go`, and cutting it down to its path sent `/agbs` to a
@@ -178,21 +208,21 @@ export function extractTargetUrl(payload: Record<string, unknown>): string | und
 export function resolvePushTarget(rawUrl: string | undefined): string {
   const fallback = '/app/dashboard';
   if (rawUrl === undefined || rawUrl === '') return fallback;
-  if (rawUrl.startsWith('/') && !rawUrl.startsWith('//')) return rawUrl;
-
-  try {
-    const parsedUrl = new URL(rawUrl, globalThis.location.origin);
-    if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return fallback;
-    return parsedUrl.origin === globalThis.location.origin
-      ? parsedUrl.pathname + parsedUrl.search
-      : parsedUrl.href;
-  } catch {
-    return fallback;
-  }
+  return parseHttpTarget(rawUrl) ?? fallback;
 }
 
 /** Whether a target from {@link resolvePushTarget} is on another origin. */
 const isOtherOriginTarget = (target: string): boolean => !target.startsWith('/');
+
+/**
+ * The path a link asks for, when that path is on this origin. A query parameter is written by
+ * whoever built the link, so unlike a push it may not send the page to another origin.
+ */
+export function resolveSameOriginPath(rawUrl: string | null | undefined): string | undefined {
+  if (rawUrl === null || rawUrl === undefined || rawUrl.trim() === '') return undefined;
+  const target = parseHttpTarget(rawUrl.trim());
+  return target === undefined || isOtherOriginTarget(target) ? undefined : target;
+}
 
 export function performReliablePushNavigation(
   router: { push: (url: string) => void },
@@ -200,7 +230,9 @@ export function performReliablePushNavigation(
 ): void {
   if (typeof targetPath !== 'string' || targetPath.trim() === '') return;
 
-  const cleanPath = targetPath.trim();
+  // Resolved here, in front of the navigation itself, so that no caller can hand it a
+  // `javascript:` URL: `location.assign()` would run it in this origin.
+  const cleanPath = resolvePushTarget(targetPath.trim());
 
   // The router only moves within this origin, and a remembered target would be replayed on
   // every resume, so another origin gets a single full navigation.
@@ -233,7 +265,7 @@ export function performReliablePushNavigation(
       const parts = cleanPath.split('/app/chat/');
       const firstPart = parts[1];
       if (typeof firstPart === 'string' && firstPart !== '') {
-        targetChatId = firstPart.split('?')[0];
+        targetChatId = firstPart.split(/[?#]/)[0];
       }
     }
 
@@ -242,7 +274,7 @@ export function performReliablePushNavigation(
       targetChatId !== '' &&
       currentPathname.includes(`/app/chat/${targetChatId}`);
 
-    const isAlreadyOnExactPath = currentPathname === cleanPath;
+    const isAlreadyOnExactPath = isAtTarget(cleanPath);
 
     if (!isAlreadyOnChat && !isAlreadyOnExactPath) {
       console.log(
@@ -264,7 +296,7 @@ export function checkAndExecutePendingPushNavigation(router: {
 
     if (typeof pendingPath !== 'string' || pendingPath.trim() === '') return;
 
-    const cleanPath = pendingPath.trim();
+    const cleanPath = resolvePushTarget(pendingPath.trim());
     const currentPathname = globalThis.location.pathname;
 
     let targetChatId: string | undefined;
@@ -272,7 +304,7 @@ export function checkAndExecutePendingPushNavigation(router: {
       const parts = cleanPath.split('/app/chat/');
       const firstPart = parts[1];
       if (typeof firstPart === 'string' && firstPart !== '') {
-        targetChatId = firstPart.split('?')[0];
+        targetChatId = firstPart.split(/[?#]/)[0];
       }
     }
 
@@ -281,7 +313,7 @@ export function checkAndExecutePendingPushNavigation(router: {
       targetChatId !== '' &&
       currentPathname.includes(`/app/chat/${targetChatId}`);
 
-    const isAlreadyOnExactPath = currentPathname === cleanPath;
+    const isAlreadyOnExactPath = isAtTarget(cleanPath);
 
     if (isAlreadyOnChat || isAlreadyOnExactPath) {
       sessionStorage.removeItem('pending_push_redirect');
@@ -302,7 +334,7 @@ export function checkAndExecutePendingPushNavigation(router: {
         typeof targetChatId === 'string' &&
         targetChatId !== '' &&
         nowPathname.includes(`/app/chat/${targetChatId}`);
-      const nowOnExact = nowPathname === cleanPath;
+      const nowOnExact = isAtTarget(cleanPath);
 
       if (!nowOnChat && !nowOnExact) {
         console.log('[NativePush:PWA] Fallback location redirect to:', cleanPath);
@@ -773,7 +805,7 @@ export function useNativePush(): {
             const parts = targetPath.split('/app/chat/');
             const firstPart = parts[1];
             if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split('?')[0];
+              targetChatId = firstPart.split(/[?#]/)[0];
             }
           }
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
@@ -805,7 +837,7 @@ export function useNativePush(): {
             const parts = rawUrl.split('/app/chat/');
             const firstPart = parts[1];
             if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split('?')[0];
+              targetChatId = firstPart.split(/[?#]/)[0];
             }
           }
 

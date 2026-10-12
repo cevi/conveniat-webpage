@@ -9,7 +9,11 @@ import {
   onboardingReducer,
 } from '@/features/onboarding/state/onboarding-finite-state-machine';
 import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
-import { extractTargetUrl, performReliablePushNavigation } from '@/hooks/use-native-push';
+import {
+  extractTargetUrl,
+  performReliablePushNavigation,
+  resolveSameOriginPath,
+} from '@/hooks/use-native-push';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
@@ -276,13 +280,15 @@ export const useOnboarding = (): UseOnboardingReturn => {
       // ignore SSR / storage unavailable
     }
 
-    const redirectToParameter =
+    // Anyone can build a link to the entrypoint, so only a path on this origin is followed.
+    const redirectToParameter = resolveSameOriginPath(
       searchParameters.get('redirectTo') ??
-      searchParameters.get('url') ??
-      searchParameters.get('path');
+        searchParameters.get('url') ??
+        searchParameters.get('path'),
+    );
     const chatIdParameter = searchParameters.get('chatId');
 
-    if (redirectToParameter) return redirectToParameter;
+    if (redirectToParameter !== undefined) return redirectToParameter;
     if (chatIdParameter) return `/app/chat/${chatIdParameter}`;
 
     const shareText = searchParameters.get('text');
