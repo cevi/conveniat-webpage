@@ -27,7 +27,7 @@ export const LEADER_NOTES_CONTEXT = 'scheduleLeaderNotes';
  * without knowing about it; editors still get them, or saving in the admin panel would empty
  * the fields.
  */
-const onlyForLeaders: FieldHook = ({ value, req }) =>
+export const onlyForLeaders: FieldHook = ({ value, req }) =>
   req.context[LEADER_NOTES_CONTEXT] === true || (req.user !== null && hasAdminOrWebAccess({ req }))
     ? (value as unknown)
     : undefined;
@@ -489,6 +489,13 @@ export const CampScheduleEntryCollection: CollectionConfig = {
                   type: 'relationship',
                   relationTo: 'documents',
                   hasMany: true,
+                  admin: {
+                    description: {
+                      en: 'Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.',
+                      de: 'Vor Teilnehmenden wird nur der Link verborgen. Wer die Datei selbst öffnen darf, bestimmt die Berechtigung auf dem Dokument.',
+                      fr: 'Seul le lien est caché aux participants. Qui peut ouvrir le fichier lui-même dépend de la permission définie sur le document.',
+                    },
+                  },
                 },
               ],
             },

@@ -28,8 +28,10 @@ export const isForQuartiere = (
   entry: Pick<CampScheduleEntryFrontendType, 'quartiere'>,
   quartierIds: ReadonlySet<string>,
 ): boolean => {
-  const quartiere = quartiereOf(entry);
-  return quartiere.length === 0 || quartiere.some(({ id }) => quartierIds.has(id));
+  // Asked of the stored list, not the cleaned one: a block whose only Quartier was deleted
+  // belongs to nobody until an editor fixes it, it must not turn into one for the whole camp.
+  if ((entry.quartiere ?? []).length === 0) return true;
+  return quartiereOf(entry).some(({ id }) => quartierIds.has(id));
 };
 
 /**
@@ -117,7 +119,8 @@ export const withClockTimes = (
   let startsAt = startMinutes;
   return steps.map((step) => {
     const timed = { ...step, startsAt };
-    startsAt += Number.isFinite(step.duration) ? step.duration : 0;
+    // whole minutes only: the field takes any number, and "09:1.5" is not a time
+    startsAt += Number.isFinite(step.duration) ? Math.max(0, Math.round(step.duration)) : 0;
     return timed;
   });
 };

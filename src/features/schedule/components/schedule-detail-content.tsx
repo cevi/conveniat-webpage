@@ -159,8 +159,10 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
   const isOnline = useOnlineStatus();
   const accent = getCategoryAccent(entry.category);
-  const form =
-    typeof entry.form === 'string' ? programmeLabels.form[entry.form][locale] : undefined;
+  // guarded: a phone can restore a form this version does not know
+  const form = (programmeLabels.form as Record<string, Record<Locale, string> | undefined>)[
+    entry.form ?? ''
+  ]?.[locale];
   const label = [accent.label, form].filter((part) => part !== undefined && part !== '');
 
   const slot = slotOf(entry);

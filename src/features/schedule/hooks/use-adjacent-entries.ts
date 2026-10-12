@@ -1,6 +1,7 @@
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
-import { isForQuartiere, kindOf } from '@/features/schedule/utils/programme-utils';
+import { byStart, isForQuartiere, kindOf } from '@/features/schedule/utils/programme-utils';
+import { dayKeyOf } from '@/features/schedule/utils/time-utils';
 import { trpc } from '@/trpc/client';
 import { useMemo } from 'react';
 
@@ -38,11 +39,18 @@ export const useAdjacentEntries = (currentId: string): AdjacentEntries => {
 
   return useMemo(() => {
     // Prefer tRPC list (already sorted server-side) over local entries
-    const entries = (scheduleList ?? localEntries).filter(
-      (entry) =>
-        entry.id === currentId ||
-        (kindOf(entry) === 'program' && (scope === 'all' || isForQuartiere(entry, myQuartierIds))),
-    );
+    // In the order the list shows them: by day, then as `byStart` sorts a day.
+    const entries = (scheduleList ?? localEntries)
+      .filter(
+        (entry) =>
+          entry.id === currentId ||
+          (kindOf(entry) === 'program' &&
+            (scope === 'all' || isForQuartiere(entry, myQuartierIds))),
+      )
+      .sort(
+        (a, b) =>
+          dayKeyOf(a.timeslot.date).localeCompare(dayKeyOf(b.timeslot.date)) || byStart(a, b),
+      );
 
     if (entries.length === 0) {
       return { previous: undefined, next: undefined };

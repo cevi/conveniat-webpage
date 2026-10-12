@@ -2880,6 +2880,9 @@ export interface CampScheduleEntry {
     safety?: string | null;
     safeguarding?: string | null;
     badWeather?: string | null;
+    /**
+     * Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.
+     */
     attachments?: (string | Document)[] | null;
   };
   enable_enrolment?: boolean | null;
