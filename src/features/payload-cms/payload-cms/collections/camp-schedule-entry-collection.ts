@@ -6,13 +6,31 @@ import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
 import { CourseType } from '@/lib/prisma';
-import type { CollectionConfig, TextFieldSingleValidation } from 'payload';
+import type { CollectionConfig, FieldHook, TextFieldSingleValidation } from 'payload';
 
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { campScheduleOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
 import { courseParticipantsExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-participants-export';
 import { handleParticipantMutation } from '@/features/payload-cms/payload-cms/endpoints/course-participants-manager';
 import { syncOrganisers } from '@/features/payload-cms/payload-cms/utils/sync-organisers';
+
+/**
+ * Set on a request that may read the part of a block written for Leitende. The schedule's
+ * `getLeaderNotes` query sets it after it has checked who is asking.
+ */
+export const LEADER_NOTES_CONTEXT = 'scheduleLeaderNotes';
+
+/**
+ * Material, safety notes and attachments are for the people running a block. The app reads
+ * blocks through the local API, which skips field access, so the list, the map and every other
+ * reader would hand them to all participants. Hiding them here keeps each of those readers safe
+ * without knowing about it; editors still get them, or saving in the admin panel would empty
+ * the fields.
+ */
+export const onlyForLeaders: FieldHook = ({ value, req }) =>
+  req.context[LEADER_NOTES_CONTEXT] === true || (req.user !== null && hasAdminOrWebAccess({ req }))
+    ? (value as unknown)
+    : undefined;
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
@@ -61,7 +79,14 @@ export const CampScheduleEntryCollection: CollectionConfig = {
     group: AdminPanelDashboardGroups.AppCampsite.label,
     groupBy: true,
     disableCopyToLocale: true,
-    defaultColumns: ['title', 'timeslot', 'location', 'participants_max', 'enrolledStatus'],
+    defaultColumns: [
+      'title',
+      'timeslot',
+      'quartiere',
+      'location',
+      'participants_max',
+      'enrolledStatus',
+    ],
     components: {
       beforeListTable: [
         '@/features/payload-cms/payload-cms/components/camp-schedule-organiser-export#CampScheduleOrganiserExport',
@@ -102,6 +127,83 @@ export const CampScheduleEntryCollection: CollectionConfig = {
                   fr: "Le titre de l'entrée.",
                 },
               },
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'kind',
+                  label: { en: 'Kind', de: 'Art', fr: 'Type' },
+                  type: 'select',
+                  required: true,
+                  defaultValue: 'program',
+                  options: [
+                    {
+                      value: 'program',
+                      label: {
+                        en: 'Programme block',
+                        de: 'Programmblock',
+                        fr: 'Bloc de programme',
+                      },
+                    },
+                    {
+                      value: 'fixpoint',
+                      label: { en: 'Fixed point', de: 'Fixpunkt', fr: 'Point fixe' },
+                    },
+                    { value: 'meal', label: { en: 'Meal', de: 'Essen', fr: 'Repas' } },
+                    {
+                      value: 'transfer',
+                      label: { en: 'Transfer', de: 'Verschiebung', fr: 'Déplacement' },
+                    },
+                  ],
+                  admin: {
+                    description: {
+                      en: 'Only programme blocks get a card and a detail page. Fixed points (e.g. Tagwache, Nachtruhe), meals and transfers show as a single compact line.',
+                      de: 'Nur Programmblöcke erhalten eine Karte und eine Detailseite. Fixpunkte (z.B. Tagwache, Nachtruhe), Essen und Verschiebungen erscheinen als einzelne kompakte Zeile.',
+                      fr: "Seuls les blocs de programme ont une carte et une page de détail. Les points fixes (p. ex. Tagwache, Nachtruhe), les repas et les déplacements s'affichent sur une seule ligne compacte.",
+                    },
+                  },
+                },
+                {
+                  name: 'form',
+                  label: { en: 'Form', de: 'Form', fr: 'Forme' },
+                  type: 'select',
+                  options: [
+                    {
+                      value: 'rp',
+                      label: {
+                        en: 'RP (Ressortprogramm)',
+                        de: 'RP (Ressortprogramm)',
+                        fr: 'RP (Ressortprogramm)',
+                      },
+                    },
+                    {
+                      value: 'hp',
+                      label: {
+                        en: 'HP (Hofprogramm)',
+                        de: 'HP (Hofprogramm)',
+                        fr: 'HP (Hofprogramm)',
+                      },
+                    },
+                    {
+                      value: 'hpStar',
+                      label: {
+                        en: 'HP* (written by the Ressort, run by the Hof)',
+                        de: 'HP* (vom Ressort geschrieben, vom Hof durchgeführt)',
+                        fr: 'HP* (écrit par le Ressort, réalisé par le Hof)',
+                      },
+                    },
+                  ],
+                  admin: {
+                    condition: (data) => (data['kind'] ?? 'program') === 'program',
+                    description: {
+                      en: 'Who plans and runs the block. Shown next to the category.',
+                      de: 'Wer den Block plant und durchführt. Wird neben der Kategorie angezeigt.',
+                      fr: 'Qui planifie et réalise le bloc. Affiché à côté de la catégorie.',
+                    },
+                  },
+                },
+              ],
             },
             {
               name: 'description',
@@ -201,6 +303,201 @@ export const CampScheduleEntryCollection: CollectionConfig = {
               type: 'richText',
               localized: true,
               editor: mapAnnotationDescriptionLexicalEditorSettings,
+            },
+          ],
+        },
+        {
+          label: { en: 'Schedule of the block', de: 'Ablauf', fr: 'Déroulement' },
+          fields: [
+            {
+              name: 'bring',
+              label: { en: 'What to bring', de: 'Mitnehmen', fr: 'À emporter' },
+              labels: {
+                singular: { en: 'Item', de: 'Gegenstand', fr: 'Objet' },
+                plural: { en: 'Items', de: 'Gegenstände', fr: 'Objets' },
+              },
+              type: 'array',
+              localized: true,
+              admin: {
+                description: {
+                  en: 'What participants bring to the block, one item per row, e.g. "Trinkflasche".',
+                  de: 'Was die Teilnehmenden zum Block mitnehmen, ein Gegenstand pro Zeile, z.B. "Trinkflasche".',
+                  fr: 'Ce que les participants emportent au bloc, un objet par ligne, p. ex. « Trinkflasche ».',
+                },
+              },
+              fields: [
+                {
+                  name: 'item',
+                  label: { en: 'Item', de: 'Gegenstand', fr: 'Objet' },
+                  type: 'text',
+                  required: true,
+                },
+              ],
+            },
+            {
+              name: 'steps',
+              label: { en: 'Steps', de: 'Ablauf', fr: 'Déroulement' },
+              labels: {
+                singular: { en: 'Step', de: 'Schritt', fr: 'Étape' },
+                plural: { en: 'Steps', de: 'Schritte', fr: 'Étapes' },
+              },
+              type: 'array',
+              localized: true,
+              admin: {
+                description: {
+                  en: 'The steps of the block in order. The app works out the clock times from the start of the block and the durations, so one description fits every Quartier.',
+                  de: 'Die Schritte des Blocks in ihrer Reihenfolge. Die App berechnet die Uhrzeiten aus dem Beginn des Blocks und den Dauern, so passt ein Beschrieb für jedes Quartier.',
+                  fr: "Les étapes du bloc dans l'ordre. L'app calcule les heures à partir du début du bloc et des durées, ainsi une description convient à chaque Quartier.",
+                },
+              },
+              fields: [
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'phase',
+                      label: { en: 'Part', de: 'Teil', fr: 'Partie' },
+                      type: 'select',
+                      required: true,
+                      defaultValue: 'main',
+                      options: [
+                        {
+                          value: 'intro',
+                          label: { en: 'Introduction', de: 'Einstieg', fr: 'Introduction' },
+                        },
+                        {
+                          value: 'main',
+                          label: { en: 'Main part', de: 'Hauptteil', fr: 'Partie principale' },
+                        },
+                        { value: 'end', label: { en: 'Ending', de: 'Schluss', fr: 'Conclusion' } },
+                      ],
+                    },
+                    {
+                      name: 'duration',
+                      label: {
+                        en: 'Duration (minutes)',
+                        de: 'Dauer (Minuten)',
+                        fr: 'Durée (minutes)',
+                      },
+                      type: 'number',
+                      required: true,
+                      min: 1,
+                    },
+                  ],
+                },
+                {
+                  name: 'title',
+                  label: { en: 'Title', de: 'Titel', fr: 'Titre' },
+                  type: 'text',
+                  required: true,
+                },
+                {
+                  name: 'text',
+                  label: { en: 'Description', de: 'Beschreibung', fr: 'Description' },
+                  type: 'textarea',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          label: { en: 'For Leitende', de: 'Für Leitende', fr: 'Pour les Leitende' },
+          description: {
+            en: 'Only Leitende and Helfende see this part in the app, participants do not.',
+            de: 'Diesen Teil sehen in der App nur Leitende und Helfende, Teilnehmende nicht.',
+            fr: "Seuls les Leitende et les Helfende voient cette partie dans l'app, pas les participants.",
+          },
+          fields: [
+            {
+              name: 'leaders',
+              label: false,
+              type: 'group',
+              hooks: { afterRead: [onlyForLeaders] },
+              fields: [
+                {
+                  name: 'materials',
+                  label: { en: 'Material list', de: 'Material-Liste', fr: 'Liste de matériel' },
+                  labels: {
+                    singular: { en: 'Material', de: 'Material', fr: 'Matériel' },
+                    plural: { en: 'Materials', de: 'Materialien', fr: 'Matériel' },
+                  },
+                  type: 'array',
+                  localized: true,
+                  fields: [
+                    {
+                      type: 'row',
+                      fields: [
+                        {
+                          name: 'amount',
+                          label: { en: 'Amount', de: 'Anzahl', fr: 'Quantité' },
+                          type: 'text',
+                          admin: { width: '20%' },
+                        },
+                        {
+                          name: 'item',
+                          label: { en: 'What', de: 'Was', fr: 'Quoi' },
+                          type: 'text',
+                          required: true,
+                          admin: { width: '50%' },
+                        },
+                        {
+                          name: 'responsible',
+                          label: { en: 'Who', de: 'Wer', fr: 'Qui' },
+                          type: 'text',
+                          admin: {
+                            width: '30%',
+                            description: {
+                              en: 'Who provides it, e.g. "Hof" or "MAT".',
+                              de: 'Wer es bereitstellt, z.B. "Hof" oder "MAT".',
+                              fr: 'Qui le fournit, p. ex. « Hof » ou « MAT ».',
+                            },
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: 'safety',
+                  label: {
+                    en: 'Safety considerations',
+                    de: 'Sicherheitsüberlegungen',
+                    fr: 'Réflexions sur la sécurité',
+                  },
+                  type: 'textarea',
+                  localized: true,
+                },
+                {
+                  name: 'safeguarding',
+                  label: {
+                    en: 'Prevention of sexual exploitation (PSA)',
+                    de: 'Prävention sexueller Ausbeutung (PSA)',
+                    fr: "Prévention de l'exploitation sexuelle (PSA)",
+                  },
+                  type: 'textarea',
+                  localized: true,
+                },
+                {
+                  name: 'badWeather',
+                  label: { en: 'Bad weather', de: 'Schlechtwetter', fr: 'Mauvais temps' },
+                  type: 'textarea',
+                  localized: true,
+                },
+                {
+                  name: 'attachments',
+                  label: { en: 'Attachments', de: 'Beilagen', fr: 'Annexes' },
+                  type: 'relationship',
+                  relationTo: 'documents',
+                  hasMany: true,
+                  admin: {
+                    description: {
+                      en: 'Only the link is hidden from participants. Who may open the file itself is decided by the permission set on the document.',
+                      de: 'Vor Teilnehmenden wird nur der Link verborgen. Wer die Datei selbst öffnen darf, bestimmt die Berechtigung auf dem Dokument.',
+                      fr: 'Seul le lien est caché aux participants. Qui peut ouvrir le fichier lui-même dépend de la permission définie sur le document.',
+                    },
+                  },
+                },
+              ],
             },
           ],
         },
@@ -327,6 +624,21 @@ export const CampScheduleEntryCollection: CollectionConfig = {
           fr: "Emplacement de l'entrée du programme",
         },
         position: 'sidebar',
+      },
+    },
+    {
+      name: 'quartiere',
+      label: { en: 'Quartiere', de: 'Quartiere', fr: 'Quartiers' },
+      type: 'relationship',
+      relationTo: 'quartiere',
+      hasMany: true,
+      admin: {
+        position: 'sidebar',
+        description: {
+          en: 'The Quartiere this entry is for. Leave empty for the whole camp. A Hof sees the entries of its Quartier.',
+          de: 'Die Quartiere, für die dieser Eintrag gilt. Leer lassen für das Gesamtlager. Ein Hof sieht die Einträge seines Quartiers.',
+          fr: 'Les Quartiers concernés par cette entrée. Laisser vide pour tout le camp. Un Hof voit les entrées de son Quartier.',
+        },
       },
     },
     {

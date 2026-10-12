@@ -76,6 +76,8 @@ const createEvent = (
   const categoryId = options.category ? categoryIds[options.category] : categoryIds.general;
   return {
     title,
+    // a meal frames the day; the programme shows it as one compact line
+    kind: options.category === 'food' ? 'meal' : 'program',
     timeslot: { date, time },
     location,
     organiser,

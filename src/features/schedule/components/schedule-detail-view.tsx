@@ -11,6 +11,7 @@ import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-
 import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
 import { useAdjacentEntries } from '@/features/schedule/hooks/use-adjacent-entries';
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
+import { findOtherSlots } from '@/features/schedule/utils/programme-utils';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -18,7 +19,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 
 const labels = {
   back: { de: 'Zurück', en: 'Back', fr: 'Retour' },
@@ -138,6 +139,19 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     },
   );
 
+  // What the block holds for the people running it. `null` for everybody else.
+  const { data: leaderNotes } = trpc.schedule.getLeaderNotes.useQuery(
+    { id },
+    { enabled: !!entry, staleTime: 1000 * 60 * 5, refetchOnWindowFocus: false },
+  );
+
+  // The same block in the slots of the other Quartiere
+  const otherSlots = useMemo(() => {
+    const all = scheduleList ?? trpcDirectEntries ?? localEntries;
+    const self = all.find((candidate) => candidate.id === id);
+    return self === undefined ? [] : findOtherSlots(all, self);
+  }, [scheduleList, trpcDirectEntries, localEntries, id]);
+
   // 5. Use shared edit hook
   const {
     isEditing,
@@ -163,7 +177,10 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     setCurrentId(entryId);
     // Update the URL without triggering a Next.js navigation to avoid
     // tearing down the React tree (which breaks TRPCProvider's promise chain)
-    globalThis.history.replaceState(undefined, '', `/app/schedule?id=${entryId}`);
+    // Keep the other parameters: the date and the scope decide what "back" returns to.
+    const parameters = new URLSearchParams(globalThis.location.search);
+    parameters.set('id', entryId);
+    globalThis.history.replaceState(undefined, '', `/app/schedule?${parameters.toString()}`);
   }, []);
 
   const handleDragEnd = useCallback(
@@ -313,6 +330,8 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
                 editData={editData}
                 onEditDataChange={setEditData}
                 editError={editError}
+                otherSlots={otherSlots}
+                leaderNotes={leaderNotes}
               />
             </SafeErrorBoundary>
           </motion.div>
