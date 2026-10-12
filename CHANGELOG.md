@@ -1,5 +1,68 @@
 # Changelog
 
+## [1.32.0](https://github.com/cevi/conveniat-webpage/compare/v1.31.1...v1.32.0) (2026-10-12)
+
+
+### Features
+
+* **admin:** full admins can merge two users of one person ([83e3b8e](https://github.com/cevi/conveniat-webpage/commit/83e3b8ebd9f30357b3d65d8ce1a3bb3523c9b0d0))
+* **admin:** full admins can merge two users of one person ([7950213](https://github.com/cevi/conveniat-webpage/commit/7950213a95e161b783c2126e0f5b313adc6ce85c))
+* **schedule:** programme per Quartier as a compact agenda, with leader notes on the detail page ([7ba64ae](https://github.com/cevi/conveniat-webpage/commit/7ba64ae817ed69d77ce4a29d33bc52f089e848dc))
+* **schedule:** programme per Quartier as a compact agenda, with leader notes on the detail page ([36718e7](https://github.com/cevi/conveniat-webpage/commit/36718e7439d961f19e8b38825ddf39db1bfb74cd))
+* **settings:** reload groups and permissions from Cevi.DB on request ([624aa30](https://github.com/cevi/conveniat-webpage/commit/624aa304fdd5d0d09e126dbf2a931fcd4f3547b0))
+* **settings:** reload groups and permissions from Cevi.DB on request ([92df627](https://github.com/cevi/conveniat-webpage/commit/92df627a8665095e946fd3f2d52e354cd6ca75b0))
+
+
+### Bug Fixes
+
+* **admin:** participant exports and enrolment writes are admin and web only ([4c09c9f](https://github.com/cevi/conveniat-webpage/commit/4c09c9f329bda3ecb340c3c1dceeb9c2869367a6))
+* **admin:** participant exports and enrolment writes are admin and web only ([a8ab690](https://github.com/cevi/conveniat-webpage/commit/a8ab690fac283f08c0b896f8ea9c23c8cd78674b))
+* **analytics:** consent follows other tabs and PostHog recovers from a failed start ([311ab78](https://github.com/cevi/conveniat-webpage/commit/311ab780288558ae6d977ed58df21a78074cafa2))
+* **analytics:** count page views and errors cookieless without consent ([5a9e7b9](https://github.com/cevi/conveniat-webpage/commit/5a9e7b9141ad45ff6d1c5c186289d9c7aa46da49))
+* **analytics:** PostHog counts anonymously until consent ([cdad615](https://github.com/cevi/conveniat-webpage/commit/cdad615006b4d0c6a4733d8ba4aba071a53d16f9))
+* **analytics:** PostHog only starts after consent ([23f42f2](https://github.com/cevi/conveniat-webpage/commit/23f42f227f81d2ae4db18a43d2b06c0bdc2abaaf))
+* **analytics:** shorter consent question ([4d72671](https://github.com/cevi/conveniat-webpage/commit/4d72671a60febebdfedab8eb3009f9fc62d6a2b2))
+* **auth:** a kept token never holds back a cookie that clears the session ([30c7223](https://github.com/cevi/conveniat-webpage/commit/30c7223f933410b635f61bb6ad3507db71e92150))
+* **auth:** a login only claims a user by email that has no Cevi.DB id yet ([c0f0b9a](https://github.com/cevi/conveniat-webpage/commit/c0f0b9abec837f5288b211a53cf44f29296d0749))
+* **auth:** a login only claims a user by email that has no Cevi.DB id yet ([4e63dcd](https://github.com/cevi/conveniat-webpage/commit/4e63dcd48d5fbd6b4b0250231e31dc63be88ba7c))
+* **auth:** a refused refresh no longer ends the session of another device ([39ab781](https://github.com/cevi/conveniat-webpage/commit/39ab78164d643bcaba7bce691575037f1f0e48e7))
+* **auth:** a response only sets the session cookie when the session changed ([b2fbfd2](https://github.com/cevi/conveniat-webpage/commit/b2fbfd2aca3dd5b1ae02679cfbb595b46f8caaf1))
+* **auth:** a response only sets the session cookie when the session changed ([443ba2c](https://github.com/cevi/conveniat-webpage/commit/443ba2c392c8197bb2a9a6dc9e04a282aae9f648))
+* **auth:** a session ends when Cevi.DB refuses its refresh token ([bebaeda](https://github.com/cevi/conveniat-webpage/commit/bebaeda995509ddd255e6fcef6672663771b39f5))
+* **auth:** a session ends when Cevi.DB refuses its refresh token ([b3e7213](https://github.com/cevi/conveniat-webpage/commit/b3e72133fd7b7e24e861430e3fd938e325a04dbd))
+* **auth:** a sync only counts once the Payload user is stored ([0377e89](https://github.com/cevi/conveniat-webpage/commit/0377e898f515ab23338361ad42d47a12c37567d5))
+* **billing:** Banana export always books against 11000 and [CA] ([acc8a23](https://github.com/cevi/conveniat-webpage/commit/acc8a23517be1d64c54a251abf37a71d9b834fa7))
+* **billing:** Banana export always books against 11000 and [CA] ([20c6248](https://github.com/cevi/conveniat-webpage/commit/20c624884179c554ad914967b07a696c90467258))
+* **chat:** only full admins read chats between participants ([27b520c](https://github.com/cevi/conveniat-webpage/commit/27b520c5c89ca286a2cb50dbbb82fd1c702f5208))
+* **chat:** only full admins read chats between participants ([e03dfa1](https://github.com/cevi/conveniat-webpage/commit/e03dfa14cc8651bcc296830334731ab8a59611e0))
+* **chat:** sending a message checks its permissions on the transaction's connection ([8b832ea](https://github.com/cevi/conveniat-webpage/commit/8b832ea2eb6aa5cfc2ac4d6c6f18ae3a1efe41e0))
+* **chat:** sending a message checks its permissions on the transaction's connection ([5c09e5c](https://github.com/cevi/conveniat-webpage/commit/5c09e5c8742fd59a38ec23d4236112848f7a2d83)), closes [#2164](https://github.com/cevi/conveniat-webpage/issues/2164)
+* **chat:** support desk refetches when a realtime event could not be checked ([891679d](https://github.com/cevi/conveniat-webpage/commit/891679dad1f7cec0f3b76e6c42bce80668ba791a))
+* **init:** a failed seeding check no longer starts a fresh install ([5b39f31](https://github.com/cevi/conveniat-webpage/commit/5b39f31297b5a41edab9388d0509e28da575ab3a))
+* **init:** a failed seeding check no longer starts a fresh install ([98006df](https://github.com/cevi/conveniat-webpage/commit/98006dfc695216c3de9dedacc7f2252bed1b1747))
+* **logging:** errors logged under `error` keep their message and stack ([bddbbba](https://github.com/cevi/conveniat-webpage/commit/bddbbba4ae3fb8c0744a6d3af6db6d613484d28b))
+* **logging:** errors logged under `error` keep their message and stack ([98ffe98](https://github.com/cevi/conveniat-webpage/commit/98ffe9865538c387e9add30bdc292f9a34859ec8)), closes [#2216](https://github.com/cevi/conveniat-webpage/issues/2216)
+* **offline:** stale-bundle recovery keeps the push subscription ([cb1b6e0](https://github.com/cevi/conveniat-webpage/commit/cb1b6e0e4d58d01a04e480bd8acbb0aa7568a1ca))
+* **offline:** stale-bundle recovery keeps the push subscription ([2e0f707](https://github.com/cevi/conveniat-webpage/commit/2e0f7077bbc453b5969a72ea19c4ce9d21919031)), closes [#2185](https://github.com/cevi/conveniat-webpage/issues/2185)
+* **onboarding:** cookie answers stack at the same width ([f747186](https://github.com/cevi/conveniat-webpage/commit/f74718684ec9f26635017639f35b9801e766f6b5))
+* **onboarding:** cookie answers stack at the same width ([f3db3da](https://github.com/cevi/conveniat-webpage/commit/f3db3da38ecb3b75dc19b4e9aa08fe335bc75263))
+* **onboarding:** loading spacer uses the cookie step's labels and widths ([80d2c5f](https://github.com/cevi/conveniat-webpage/commit/80d2c5f605ab9a0d20682e9630bae6e2212d524d))
+* payload.find queries no longer stop at ten documents ([d55bd55](https://github.com/cevi/conveniat-webpage/commit/d55bd553301d3cf84bead014e7ecb30ec1ee03ff))
+* payload.find queries no longer stop at ten documents ([5122cee](https://github.com/cevi/conveniat-webpage/commit/5122cee28018db45e527812d97cbdeed410dfae5)), closes [#2143](https://github.com/cevi/conveniat-webpage/issues/2143)
+* **schedule:** review findings on the programme redesign ([b0e439d](https://github.com/cevi/conveniat-webpage/commit/b0e439daad5deeab4dd1a7f1026097bc5a2d2099))
+* **search:** index only public pages and close public read on the index ([f377fd8](https://github.com/cevi/conveniat-webpage/commit/f377fd89c78f26f248a63c27b063c9971f685a76))
+* **upload:** a rate-limited image can be tried again, an oversized incident photo says so ([79d3a0d](https://github.com/cevi/conveniat-webpage/commit/79d3a0df4d28b0b8eda553febd28f9dbb264b813))
+* **upload:** one module signs every presigned URL, against an upload policy ([8ee2a0f](https://github.com/cevi/conveniat-webpage/commit/8ee2a0fa8aa6bd5facf36e3c20c94930d6a80097))
+* **upload:** only the image that uploaded leaves the list, not its namesake ([9abfaa0](https://github.com/cevi/conveniat-webpage/commit/9abfaa04bb34be52e691b153bc53dae5490be07e))
+* **upload:** presigned image uploads are bound to a signed type and size ([2afdbcf](https://github.com/cevi/conveniat-webpage/commit/2afdbcf57ec50e984e49159b6da544b755e0f91c))
+* **upload:** presigned image uploads are bound to a signed type and size ([e4bc234](https://github.com/cevi/conveniat-webpage/commit/e4bc2344d39e0bcfd6adf20c9aa517cc245815b3))
+
+
+### Dependencies
+
+* **deps:** remove dependencies nothing imports ([2c241b0](https://github.com/cevi/conveniat-webpage/commit/2c241b00548c1db4f02de3a276f115225c77fb33))
+* **deps:** remove dependencies nothing imports ([1fb3880](https://github.com/cevi/conveniat-webpage/commit/1fb3880cf8ce528e45d3088bf74f05a9eb1618e7)), closes [#2227](https://github.com/cevi/conveniat-webpage/issues/2227)
+
 ## [1.31.1](https://github.com/cevi/conveniat-webpage/compare/v1.31.0...v1.31.1) (2026-10-12)
 
 
