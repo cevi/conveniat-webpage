@@ -394,6 +394,21 @@ describe('GET /api/chat/sse', () => {
     expect(frames).not.toContain('between two participants');
   });
 
+  it('tells the support desk to refetch when an event could not be checked', async () => {
+    signInWithRoles('support-desk');
+    (prisma.chat.findUnique as unknown as jest.Mock).mockRejectedValueOnce(
+      new Error('connection lost'),
+    );
+
+    const frames = await readAllChannel(
+      [newMessage('support-chat-3', 'a new emergency alert')],
+      'event: resync',
+    );
+
+    expect(frames).toContain('event: resync');
+    expect(frames).not.toContain('a new emergency alert');
+  });
+
   it('hands the chat oversight every event on the "all" channel', async () => {
     signInWithRoles('support-desk', 'chat-oversight');
 

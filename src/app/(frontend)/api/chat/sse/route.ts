@@ -227,6 +227,9 @@ export async function GET(request: NextRequest): Promise<Response> {
               'chat.user.id': user.uuid,
               'chat.event.type': event.type,
             });
+            // The event may have been a new emergency alert, and heartbeats keep the stream
+            // looking healthy. Nothing is replayed, so tell the client to refetch.
+            write('event: resync\ndata: {}\n\n');
           });
       };
 
