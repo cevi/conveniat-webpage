@@ -141,7 +141,7 @@ function shouldSyncAnnouncementChats(
  * @param payload
  * @param userProfile
  */
-async function saveAndFetchUserFromPayload(
+export async function saveAndFetchUserFromPayload(
   payload: BasePayload,
   userProfile: HitobitoProfile,
 ): Promise<User> {
@@ -208,11 +208,25 @@ async function saveAndFetchUserFromPayload(
       where: { email: { equals: userProfile.email } },
     });
 
-    if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
+    const userWithSameEmail = matchedByEmail.docs[0];
+    if (matchedByEmail.totalDocs === 1 && userWithSameEmail !== undefined) {
+      // Only a user nobody has logged into yet may be claimed by its email. One that already
+      // carries a Cevi.DB id belongs to another person, and rewriting that id would hand its
+      // roles, chats and Hof over to whoever holds the address in Cevi.DB today. The email is
+      // unique, so there is no second user to create either, and the login ends here.
+      if (typeof userWithSameEmail.cevi_db_uuid === 'number') {
+        logger.warn('Refused to link a Cevi.DB login to a user of another Cevi.DB person', {
+          'auth.user_uuid': userWithSameEmail.id,
+          'hitobito.person_id': ceviDatabaseUuid,
+          'hitobito.linked_person_id': userWithSameEmail.cevi_db_uuid,
+        });
+        throw new Error('Email already belongs to a user linked to another Cevi.DB person');
+      }
+
       // Link the existing user by setting their cevi_db_uuid
       const updatedUser = await payload.update({
         collection: 'users',
-        id: matchedByEmail.docs[0].id,
+        id: userWithSameEmail.id,
         data: userData,
       });
 
