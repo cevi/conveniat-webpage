@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.31.1](https://github.com/cevi/conveniat-webpage/compare/v1.31.0...v1.31.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **admin:** sidebar renders for a user who never collapsed a nav group ([cca1435](https://github.com/cevi/conveniat-webpage/commit/cca1435192c89b605ed933c181fa0d54443715aa))
+* **admin:** sidebar renders for a user who never collapsed a nav group ([11186db](https://github.com/cevi/conveniat-webpage/commit/11186dbcb0befd09bf6396baea3b317470ad7061)), closes [#2126](https://github.com/cevi/conveniat-webpage/issues/2126) [#2127](https://github.com/cevi/conveniat-webpage/issues/2127)
+
 ## [1.31.0](https://github.com/cevi/conveniat-webpage/compare/v1.30.0...v1.31.0) (2026-10-12)
 
 
