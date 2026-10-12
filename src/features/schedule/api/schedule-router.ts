@@ -4,6 +4,7 @@ import {
   getLeftGroupMessagePayload,
 } from '@/features/chat/api/utils/system-message-helpers'; // eslint-disable-line import/no-restricted-paths
 import { ensureOrganiserStars } from '@/features/schedule/api/organiser-entries';
+import { assertUnenrollmentIsOpen } from '@/features/schedule/api/shift-withdrawal-guard';
 import { isOrganiserOf } from '@/features/schedule/utils/organiser-check';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import { publishMembershipRevoked } from '@/lib/db/publish-membership-revoked';
@@ -458,6 +459,11 @@ export const scheduleRouter = createTRPCRouter({
         });
       }
 
+      // Switching away from a shift is a withdrawal from it, so it closes at the same moment.
+      if (fromCourseType === 'shift') {
+        assertUnenrollmentIsOpen(fromCourse);
+      }
+
       // Verify enrollment is enabled for the target course
       if (toCourse.enable_enrolment === false) {
         throw new TRPCError({
@@ -689,8 +695,10 @@ export const scheduleRouter = createTRPCRouter({
 
       const { courseId } = input;
 
+      // Only ever a workshop: a shift enrolment has a withdrawal deadline, and the one way out of
+      // it is `shifts.unenrollFromShift`, which checks that deadline.
       await prisma.enrollment.deleteMany({
-        where: { userId: user.uuid, courseId },
+        where: { userId: user.uuid, courseId, courseType: CourseType.PROGRAM },
       });
 
       // Remove user from course group chat if it exists

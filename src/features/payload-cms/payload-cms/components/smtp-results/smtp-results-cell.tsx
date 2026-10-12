@@ -2,9 +2,8 @@
 
 import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
 import { deriveDeliveryOverview } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
-import { StateSummary } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview-table';
+import { StateSummary } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview-list';
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
-import { useCurrentTime } from '@/features/payload-cms/payload-cms/components/smtp-results/use-current-time';
 import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
 import { Clock } from 'lucide-react';
 import React from 'react';
@@ -25,7 +24,6 @@ export const SmtpResultsCell: React.FC<{
 }> = ({ cellData, rowData, systemEmails = [] }) => {
   const { lang } = useSmtpTranslation();
   const labels = LOCALIZED_SMTP_LABELS[lang];
-  const currentTimeMs = useCurrentTime();
 
   if (cellData === 'queued') {
     return (
@@ -48,7 +46,6 @@ export const SmtpResultsCell: React.FC<{
     systemEmails,
     toAddress: typeof rowData?.to === 'string' ? rowData.to : undefined,
     createdAt: rowData?.createdAt,
-    now: currentTimeMs,
   });
 
   return (

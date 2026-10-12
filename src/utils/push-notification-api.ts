@@ -1,15 +1,20 @@
 'use server';
 
+import { endpointHostOf } from '@/lib/push/push-endpoint';
 import { sendNotificationToSubscription } from '@/lib/push/send-notification-to-subscription';
+import { PushSubscriptionSchema } from '@/schemas/push';
 import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { getPayloadUserFromNextAuthUser, isValidNextAuthUser } from '@/utils/auth-helpers';
+import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import type { Where } from 'payload';
 import { getPayload } from 'payload';
 import type webpush from 'web-push';
 
 type WebPushSubscription = webpush.PushSubscription;
+
+const logger = createLogger('push:subscription');
 
 const subscribedConfirmationPush: StaticTranslationString = {
   de: 'Du hast dich erfolgreich für Push-Benachrichtigungen angemeldet.',
@@ -38,6 +43,18 @@ export async function subscribeUser(
   }
 
   const hitobitoUser = session.user;
+
+  // The arguments of a server action are whatever the caller posts, and the endpoint is
+  // where every later push to this person goes.
+  const validation = PushSubscriptionSchema.safeParse(sub);
+  if (!validation.success) {
+    logger.warn('Refused a push subscription that failed validation', {
+      'server.address': endpointHostOf((sub as { endpoint?: unknown } | undefined)?.endpoint),
+      'validation.fields': validation.error.issues.map((issue) => issue.path.join('.')),
+      'user.id': hitobitoUser.uuid,
+    });
+    return { success: false };
+  }
 
   // eslint-disable-next-line unicorn/no-null
   const payloadUser = (await getPayloadUserFromNextAuthUser(payload, hitobitoUser)) ?? null;

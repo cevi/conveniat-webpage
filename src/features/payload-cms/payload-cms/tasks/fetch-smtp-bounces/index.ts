@@ -5,11 +5,15 @@ import {
   MAIL_QUEUE,
   recoverStaleJobs,
 } from '@/features/payload-cms/payload-cms/tasks/cleanup-stale-jobs';
-import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
+import {
+  sentMessageIds,
+  updateTrackingRecords,
+} from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/db';
 import { isDmarcAggregateReport } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/dmarc-report';
 import {
   determineDeliveryStatus,
   getOriginalEnvelopeId,
+  getQuotedMessageIds,
   parsePop3Messages,
 } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
 import { selectMessagesToProcess } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/message-selection';
@@ -386,43 +390,15 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
               matched = await processTrackingUpdate(envId);
             }
 
-            // Fallback matching if Original-Envelope-Id matching fails or doesn't exist
+            // A server that does not pass the envelope id on still returns the headers of the
+            // mail, so the Message-ID finds it. Only the Message-ID: it is the one thing in a
+            // notification that somebody who never got the mail cannot make up.
             if (!matched) {
-              const possibleIds = new Set<string>();
+              const quotedMessageIds = getQuotedMessageIds(parsedEmail, rawEmailString);
 
-              const textForRegex = typeof parsedEmail.text === 'string' ? parsedEmail.text : '';
-
-              const extractMatches = (regex: RegExp, sourceString: string): void => {
-                let m;
-                // reset regex state if global
-                regex.lastIndex = 0;
-                while ((m = regex.exec(sourceString)) !== null) {
-                  if (m[1] !== undefined) possibleIds.add(m[1].trim());
-                }
-              };
-
-              // Normalize extracted IDs by removing angle brackets and domain parts for robust comparison
-              const messageIdRegex = /Message-ID:\s*<?([^@>\s]+)/gi;
-              extractMatches(messageIdRegex, rawEmailString);
-              extractMatches(messageIdRegex, textForRegex);
-
-              const queuedRegex = /queued as\s*([a-zA-Z0-9_-]+)/gi;
-              extractMatches(queuedRegex, rawEmailString);
-              extractMatches(queuedRegex, textForRegex);
-
-              const postfixRegex = /X-Postfix-Queue-ID:\s*([a-zA-Z0-9_-]+)/gi;
-              extractMatches(postfixRegex, rawEmailString);
-              extractMatches(postfixRegex, textForRegex);
-
-              // Also check the Received header that contains the Queue ID before sending
-              const receivedRegex = /with ESMTPSA id\s*([a-zA-Z0-9_-]+)/gi;
-              extractMatches(receivedRegex, rawEmailString);
-
-              const extractedIds = [...possibleIds];
-
-              if (extractedIds.length > 0) {
+              if (quotedMessageIds.length > 0) {
                 if (cachedOutgoingIdMap === undefined) {
-                  // Scan recent outgoing emails (up to 1000, within the last 30 days) for these IDs in their smtpResults
+                  // Scan recent outgoing emails (up to 1000, within the last 30 days)
                   const thirtyDaysAgo = new Date();
                   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -442,23 +418,20 @@ export const fetchSmtpBouncesTask: TaskConfig<'fetchSmtpBounces'> = {
 
                   cachedOutgoingIdMap = new Map<string, string>();
                   for (const document_ of recentOutgoing.docs) {
-                    const resultsString = JSON.stringify(document_.smtpResults ?? []);
-                    // Extract all potential queue IDs, message IDs, and alphanumeric tokens
-                    const tokens = resultsString.match(/[a-zA-Z0-9_-]+/g) ?? [];
-                    for (const token of tokens) {
-                      cachedOutgoingIdMap.set(token.toLowerCase(), String(document_.id));
+                    for (const sentMessageId of sentMessageIds(document_.smtpResults)) {
+                      cachedOutgoingIdMap.set(sentMessageId, String(document_.id));
                     }
                   }
                 }
 
-                for (const id of extractedIds) {
-                  const matchedDocumentId = cachedOutgoingIdMap.get(id.toLowerCase());
+                for (const quotedMessageId of quotedMessageIds) {
+                  const matchedDocumentId = cachedOutgoingIdMap.get(quotedMessageId);
                   if (matchedDocumentId !== undefined) {
                     matched = await processTrackingUpdate(matchedDocumentId);
 
                     if (matched) {
                       logger.info(
-                        `Fallback processed bounce for outgoing email ${matchedDocumentId} using ID(s) ${extractedIds.join(',')}`,
+                        `Processed bounce for outgoing email ${matchedDocumentId} by its Message-ID`,
                       );
                       break;
                     }

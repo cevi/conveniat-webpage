@@ -38,7 +38,48 @@ const textOf = (result: Record<string, unknown>): string => {
   return isRecord(response) && typeof response['response'] === 'string' ? response['response'] : '';
 };
 
-const HOP_ID = /(?:queued as|X-Original-ID:)\s*([\w-]{8,})/gi;
+/**
+ * The Message-IDs a mail went out with, one per send, without the angle brackets.
+ *
+ * @param smtpResults - The delivery log of the mail.
+ */
+export const sentMessageIds = (smtpResults: unknown): string[] => {
+  if (!Array.isArray(smtpResults)) return [];
+  return smtpResults.flatMap((result: unknown) => {
+    const response = isRecord(result) ? result['response'] : undefined;
+    const messageId = isRecord(response) ? response['messageId'] : undefined;
+    if (typeof messageId !== 'string') return [];
+    const bare = messageId.replaceAll(/[<>\s]/g, '');
+    return bare.length > 0 ? [bare] : [];
+  });
+};
+
+/**
+ * Whether a notification quotes the Message-ID one of the sends of a mail went out with.
+ *
+ * Anybody can write to the mailbox reports come back to, and neither the id of a mail nor
+ * the address of its recipient is a secret. The Message-ID is random and only reaches the
+ * recipient and the servers on the way, and a real report returns it with the headers of
+ * the mail. So a notification that does not quote it proves nothing about the mail it
+ * names, and must neither change its status nor suppress its recipient.
+ *
+ * @param smtpResults - The delivery log of the mail the notification names.
+ * @param rawEmail - The notification as it was read from the mailbox.
+ */
+const quotesMessageId = (smtpResults: unknown, rawEmail: string): boolean =>
+  sentMessageIds(smtpResults).some((messageId) => rawEmail.includes(messageId));
+
+const warnUnproven = (payload: Payload, collection: string, id: string): void => {
+  // Once per notification, which is then never read again. Either somebody forged it or a
+  // server reports in a form that does not return the headers, and both want a look.
+  payload.logger.warn(
+    `Ignored a delivery notification naming ${collection} ${id}: it does not quote the Message-ID that mail was sent with.`,
+  );
+};
+
+// The ways a server names the id it gave the message: in its answer to the server before it,
+// and in the header of its own report.
+const HOP_ID = /(?:queued as|X-Original-ID:|X-Postfix-Queue-ID:)\s*([\w-]{8,})/gi;
 
 /**
  * When the send a report is about left our server.
@@ -121,6 +162,11 @@ export const updateTrackingRecords = async (
     if (!isNotFound(error)) throw error;
   }
 
+  if (outgoingEmail !== undefined && !quotesMessageId(outgoingEmail.smtpResults, rawEmail)) {
+    warnUnproven(payload, 'outgoing-emails', envelopeId);
+    return false;
+  }
+
   let toAddress = 'unknown';
   // One stored result per notification, naming every recipient it covers.
   const covered = bounces
@@ -162,6 +208,11 @@ export const updateTrackingRecords = async (
       payload.logger.debug({
         msg: `Bounce tracking ID ${envelopeId} not found, likely belongs to another instance`,
       });
+      return false;
+    }
+
+    if (!quotesMessageId(submission.smtpResults, rawEmail)) {
+      warnUnproven(payload, 'form-submissions', envelopeId);
       return false;
     }
 

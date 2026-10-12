@@ -9,22 +9,29 @@ const databaseDown = (): Error => Object.assign(new Error('connection timed out'
 interface FakePayload {
   findByID: jest.Mock;
   update: jest.Mock;
-  logger: { debug: jest.Mock; error: jest.Mock };
+  logger: { debug: jest.Mock; warn: jest.Mock; error: jest.Mock };
 }
 
 const fakePayload = (): FakePayload => ({
   findByID: jest.fn(),
   update: jest.fn().mockResolvedValue({}),
-  logger: { debug: jest.fn(), error: jest.fn() },
+  logger: { debug: jest.fn(), warn: jest.fn(), error: jest.fn() },
 });
 
-const applyBounce = async (payload: FakePayload): Promise<boolean> =>
+// What the mail went out with, and a notification that returns its headers.
+const sent = {
+  success: true,
+  response: { messageId: '<4f0c2c1e-7a0b-4a51-9d0c-2f6f3f0a9b11@cevi.tools>' },
+};
+const REPORT = 'Message-ID: <4f0c2c1e-7a0b-4a51-9d0c-2f6f3f0a9b11@cevi.tools>';
+
+const applyBounce = async (payload: FakePayload, rawEmail = REPORT): Promise<boolean> =>
   updateTrackingRecords(
     payload as unknown as Payload,
     '6aaf08b5969d13ac1b1ae867',
     true,
     'Delivery Status Notification.',
-    'raw email',
+    rawEmail,
   );
 
 const bounce = { bounceReport: true, success: false, error: 'Reason:\nAction: failed' };
@@ -33,7 +40,7 @@ const resend = { success: true, retriggeredBy: 'admin' };
 
 const statusAfterSuccessReport = async (smtpResults: unknown[]): Promise<unknown> => {
   const payload = fakePayload();
-  payload.findByID.mockResolvedValueOnce({ smtpResults });
+  payload.findByID.mockResolvedValueOnce({ smtpResults: [sent, ...smtpResults] });
   await applyBounce(payload);
   const call = payload.update.mock.calls[0] as [{ data: { deliveryStatus: unknown } }];
   return call[0].data.deliveryStatus;
@@ -69,12 +76,33 @@ describe('updateTrackingRecords', () => {
     const payload = fakePayload();
     payload.findByID
       .mockRejectedValueOnce(notFound())
-      .mockResolvedValueOnce({ smtpResults: [{ success: true }] });
+      .mockResolvedValueOnce({ smtpResults: [sent] });
 
     await expect(applyBounce(payload)).resolves.toBe(true);
     expect(payload.update).toHaveBeenCalledWith(
       expect.objectContaining({ collection: 'form-submissions' }),
     );
+  });
+
+  it('ignores a notification that names a mail without quoting its Message-ID', async () => {
+    // The id of a mail and the address it went to can be guessed. Whoever wrote this never
+    // saw the mail, so it says nothing about it.
+    const forged = 'Original-Envelope-Id: 6aaf08b5969d13ac1b1ae867\nMessage-ID: <avp@example.com>';
+    const payload = fakePayload();
+    payload.findByID.mockResolvedValueOnce({ smtpResults: [sent] });
+
+    await expect(applyBounce(payload, forged)).resolves.toBe(false);
+    expect(payload.update).not.toHaveBeenCalled();
+  });
+
+  it('ignores such a notification for a form submission too', async () => {
+    const payload = fakePayload();
+    payload.findByID
+      .mockRejectedValueOnce(notFound())
+      .mockResolvedValueOnce({ smtpResults: [sent] });
+
+    await expect(applyBounce(payload, 'Action: failed')).resolves.toBe(false);
+    expect(payload.update).not.toHaveBeenCalled();
   });
 
   it('keeps an email bounced when a success report is read after the bounce', async () => {

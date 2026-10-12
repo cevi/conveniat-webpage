@@ -2,9 +2,8 @@
 
 import { LOCALIZED_SMTP_LABELS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
 import { deriveDeliveryOverview } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview';
-import { DeliveryOverviewTable } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview-table';
+import { DeliveryOverviewList } from '@/features/payload-cms/payload-cms/components/smtp-results/delivery-overview-list';
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
-import { useCurrentTime } from '@/features/payload-cms/payload-cms/components/smtp-results/use-current-time';
 import { useSmtpTranslation } from '@/features/payload-cms/payload-cms/components/smtp-results/use-smtp-translation';
 import { extractEmailAddress } from '@/features/payload-cms/payload-cms/components/smtp-results/utils';
 import { useField, useFormFields } from '@payloadcms/ui';
@@ -27,7 +26,9 @@ export const SmtpResultsField: React.FC<{
   const { lang } = useSmtpTranslation();
   const labels = LOCALIZED_SMTP_LABELS[lang];
 
-  const currentTimeMs = useCurrentTime();
+  // When the mail last left. A queued mail is created well before that.
+  const sentAtField = useFormFields(([fields]) => fields['smtpReceivedAt']);
+  const sentAtString = typeof sentAtField?.value === 'string' ? sentAtField.value : undefined;
 
   if (!Array.isArray(value) || value.length === 0) {
     return (
@@ -42,13 +43,13 @@ export const SmtpResultsField: React.FC<{
     systemEmails,
     toAddress,
     createdAt: createdAtString,
-    now: currentTimeMs,
+    sentAt: sentAtString,
   });
 
   return (
     <div className="field-type custom-field mb-4">
       <label className="field-label">{labels.sectionTitle}</label>
-      <DeliveryOverviewTable overview={overview} lang={lang} smtpDomain={smtpDomain} />
+      <DeliveryOverviewList overview={overview} lang={lang} smtpDomain={smtpDomain} />
     </div>
   );
 };

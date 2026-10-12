@@ -77,7 +77,7 @@ export const subscribeToPushNotifications = async (
     const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent;
     const { getOrCreateDeviceId } = await import('@/utils/device-id');
     const deviceId = getOrCreateDeviceId();
-    await retry(
+    const stored = await retry(
       () =>
         subscribeUser(
           sub.toJSON() as webpush.PushSubscription,
@@ -89,6 +89,9 @@ export const subscribeToPushNotifications = async (
       3,
       1000,
     );
+    // Without a session, or with an endpoint that belongs to no known push service, the
+    // server stores nothing, and a retry changes neither.
+    if (!stored.success) throw new Error('The server refused the push subscription.');
   } catch (error) {
     // Attempt to unsubscribe from Push Manager to keep state consistent
     try {
