@@ -8,7 +8,7 @@
 # unversioned; it waits in the release pull request.
 #
 # The pull request is opened with a personal access token: one opened with GITHUB_TOKEN starts
-# no workflows, and main requires the eslint check before merging.
+# no workflows, and main requires the eslint and typecheck checks before merging.
 name: Release Please
 
 on:

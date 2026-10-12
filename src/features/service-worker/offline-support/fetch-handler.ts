@@ -382,14 +382,12 @@ async function offlineFallback(
     return assetMatch;
   }
 
+  // A script that cannot be had is a network error, never an empty script. An empty one loads
+  // fine and fails later, when Turbopack finds no module factory in it, which the page takes for
+  // a stale bundle. This also runs for a single dropped request on a working connection.
   if (isJs) {
-    console.warn(
-      `[SW] JS script asset unavailable offline, serving safe fallback for: ${url.toString()}`,
-    );
-    return new Response('/* offline chunk fallback */', {
-      status: 200,
-      headers: { 'Content-Type': 'application/javascript; charset=utf-8' },
-    });
+    console.warn(`[SW] JS script asset unavailable, failing the request for: ${url.toString()}`);
+    return Response.error();
   }
 
   if (isCss) {

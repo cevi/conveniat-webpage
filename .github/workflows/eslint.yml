@@ -13,8 +13,8 @@ concurrency:
 name: 'Check Code Style and Linting'
 
 # ESLint is the slowest check by far, so it gets a runner of its own and starts right after the
-# install instead of after Prettier, the Payload artifacts and tsc. The job keeps the name `eslint`
-# because the dev and main rulesets require a check by that name.
+# install instead of after Prettier, the Payload artifacts and tsc. Both jobs keep their names,
+# `eslint` and `typecheck`, because the dev and main rulesets require a check by each name.
 jobs:
   eslint:
     runs-on: ubuntu-latest

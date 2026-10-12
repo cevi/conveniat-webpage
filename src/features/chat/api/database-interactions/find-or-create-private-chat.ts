@@ -45,6 +45,7 @@ export const findOrCreatePrivateChat = async ({
   }
 
   const isChatCreationEnabled = await checkCapability(
+    prisma,
     CapabilityAction.Create,
     CapabilitySubject.Chat,
   );

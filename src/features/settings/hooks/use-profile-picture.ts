@@ -69,7 +69,10 @@ export const useProfilePicture = (initialPictureUrl: string | undefined): Profil
     run(async () => {
       const photo = await shrinkForUpload(file);
       const contentType = photo.type === '' ? 'image/jpeg' : photo.type;
-      const { url, key } = await createUploadUrl.mutateAsync({ contentType });
+      const { url, key } = await createUploadUrl.mutateAsync({
+        contentType,
+        contentLength: photo.size,
+      });
       const response = await fetch(url, {
         method: 'PUT',
         body: photo,

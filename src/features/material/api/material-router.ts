@@ -58,12 +58,10 @@ import {
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
+import { createPresignedDownloadUrl } from '@/lib/presigned-urls';
 import type { Prisma } from '@/lib/prisma/client';
-import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { createTRPCRouter } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import config from '@payload-config';
 import { getPayload } from 'payload';
 import { z } from 'zod';
@@ -145,11 +143,7 @@ const loadIncidents = async (
         incident.photoKey === null
           ? // eslint-disable-next-line unicorn/no-null -- mirrors the nullable photoKey column
             null
-          : await getSignedUrl(
-              s3ClientPublic,
-              new GetObjectCommand({ Bucket: S3_BUCKET_NAME, Key: incident.photoKey }),
-              { expiresIn: 3600 },
-            ),
+          : await createPresignedDownloadUrl(incident.photoKey),
     })),
   );
 };

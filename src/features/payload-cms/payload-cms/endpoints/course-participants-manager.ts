@@ -1,4 +1,4 @@
-import { isEditor } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import prisma from '@/lib/db/prisma';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -6,7 +6,7 @@ import type { PayloadHandler } from 'payload';
 
 export const handleParticipantMutation: PayloadHandler = async (request) => {
   try {
-    const hasAccess = isEditor({ req: request });
+    const hasAccess = hasAdminOrWebAccess({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -99,6 +99,9 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
           const otherShifts = await request.payload.find({
             collection: 'helper-shifts',
             where: { id: { in: activeShifts.map((enrollment) => enrollment.courseId) } },
+            pagination: false,
+            depth: 0,
+            select: { timeslot: true, title: true },
           });
 
           for (const other of otherShifts.docs) {
@@ -122,6 +125,9 @@ export const handleParticipantMutation: PayloadHandler = async (request) => {
           const otherPrograms = await request.payload.find({
             collection: 'camp-schedule-entry',
             where: { id: { in: activePrograms.map((enrollment) => enrollment.courseId) } },
+            pagination: false,
+            depth: 0,
+            select: { timeslot: true, title: true },
           });
 
           for (const other of otherPrograms.docs) {

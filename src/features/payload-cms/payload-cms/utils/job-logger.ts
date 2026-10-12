@@ -1,6 +1,7 @@
 /* eslint-disable n/no-process-env */
 import { otelLogDestination } from '@/features/payload-cms/payload-cms/utils/otel-log-destination';
 import os from 'node:os';
+import { stdSerializers } from 'pino';
 
 export const nodeName = process.env['NODE_NAME'] || os.hostname();
 
@@ -47,6 +48,10 @@ export function formatRunningJobsLogMessage(message: string): string {
 export const customPayloadLoggerConfig = {
   destination: otelLogDestination,
   options: {
+    // Pino serialises an `Error` only under `err`. Under any other key it is
+    // JSON-encoded as `{}`, because message and stack are not enumerable, and
+    // half of our call sites log `{ error }`.
+    serializers: { error: stdSerializers.err },
     hooks: {
       logMethod(inputArguments: unknown[], method: (...args: unknown[]) => void): void {
         if (inputArguments.length > 0) {

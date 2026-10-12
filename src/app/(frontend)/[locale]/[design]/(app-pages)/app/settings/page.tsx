@@ -1,6 +1,7 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { Card } from '@/components/ui/card';
 import { AboutSettings } from '@/features/settings/about-settings';
+import { AnalyticsSettings } from '@/features/settings/analytics-settings';
 import { LanguageSettings } from '@/features/settings/language-settings';
 import { OfflineContentSettings } from '@/features/settings/offline-content-settings';
 import { ProfileDetails } from '@/features/settings/profile-details';
@@ -52,6 +53,9 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
             <div className="px-6 py-4">
               <OfflineContentSettings locale={locale} />
             </div>
+
+            {/* Analytics Consent Row, brings its own padding because it can be absent */}
+            <AnalyticsSettings locale={locale} />
           </Card>
 
           {/* About Section */}

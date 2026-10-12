@@ -101,6 +101,13 @@ const scheduleEntrySchema = z.object({
     )
     .nullable()
     .optional(),
+  // Zod drops what the schema does not name, so the fields of the programme redesign have to be
+  // listed for the offline copy to keep them. All optional: older copies have none.
+  kind: z.string().nullable().optional(),
+  form: z.string().nullable().optional(),
+  quartiere: z.array(z.any()).nullable().optional(),
+  bring: z.array(z.any()).nullable().optional(),
+  steps: z.array(z.any()).nullable().optional(),
   // Metadata for cache management
   _syncedAt: z.number().optional(),
 });

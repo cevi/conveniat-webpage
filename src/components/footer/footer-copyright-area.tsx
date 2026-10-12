@@ -1,3 +1,4 @@
+import { CookieSettingsButton } from '@/components/footer/cookie-settings-button';
 import { FooterGraphic } from '@/components/footer/footer-graphics';
 import { NativeAppVersionInfo } from '@/components/native-app-version-info';
 import { CeviSchweiz } from '@/components/svg-logos/cevi-schweiz';
@@ -198,6 +199,7 @@ export const FooterCopyrightArea: React.FC<{
         <div className="mb-[20px]">
           <CeviSchweiz className="h-12 w-56" />
         </div>
+        {!inAppDesign && <CookieSettingsButton locale={locale} />}
         {
           /* The build info may not be available in (local) development mode */
           build !== undefined && (

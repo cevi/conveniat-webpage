@@ -13,9 +13,9 @@ import {
   CapabilitySubject,
 } from '@/lib/capabilities/types';
 import { ChatCapability, ChatStatus, isChatArchived } from '@/lib/chat-shared';
-import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
 import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@/lib/feature-flags';
+import type { PrismaClientOrTransaction } from '@/types/types';
 
 /**
  * Handles capabilities related to sending messages. Who may read a chat is a membership
@@ -24,14 +24,14 @@ import { FEATURE_FLAG_CREATE_CHATS_ENABLED, FEATURE_FLAG_SEND_MESSAGES } from '@
 export class MessageCapabilities implements Capability {
   readonly subject = CapabilitySubject.Messages;
 
-  async can(action: CapabilityAction, context?: CapabilityContext): Promise<boolean> {
+  async can(action: CapabilityAction, context: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Send) {
-      return this.canSend(context?.chatId);
+      return this.canSend(context.prisma, context.chatId);
     }
     return false;
   }
 
-  private async canSend(chatId?: string): Promise<boolean> {
+  private async canSend(prisma: PrismaClientOrTransaction, chatId?: string): Promise<boolean> {
     const isGlobalEnabled = await getFeatureFlag(FEATURE_FLAG_SEND_MESSAGES);
 
     if (!isGlobalEnabled) {
@@ -65,14 +65,14 @@ export class MessageCapabilities implements Capability {
 export class MediaCapabilities implements Capability {
   readonly subject = CapabilitySubject.Images;
 
-  async can(action: CapabilityAction, context?: CapabilityContext): Promise<boolean> {
+  async can(action: CapabilityAction, context: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Upload) {
-      return this.canUpload(context?.chatId);
+      return this.canUpload(context.prisma, context.chatId);
     }
     return false;
   }
 
-  private async canUpload(chatId?: string): Promise<boolean> {
+  private async canUpload(prisma: PrismaClientOrTransaction, chatId?: string): Promise<boolean> {
     if (chatId === undefined) {
       return false;
     }
@@ -111,14 +111,14 @@ export class ChatCreationCapabilities implements Capability {
 export class ThreadCapabilities implements Capability {
   readonly subject = CapabilitySubject.Threads;
 
-  async can(action: CapabilityAction, context?: CapabilityContext): Promise<boolean> {
+  async can(action: CapabilityAction, context: CapabilityContext): Promise<boolean> {
     if (action === CapabilityAction.Create) {
-      return this.canCreate(context?.chatId);
+      return this.canCreate(context.prisma, context.chatId);
     }
     return false;
   }
 
-  private async canCreate(chatId?: string): Promise<boolean> {
+  private async canCreate(prisma: PrismaClientOrTransaction, chatId?: string): Promise<boolean> {
     if (chatId === undefined) {
       return false;
     }

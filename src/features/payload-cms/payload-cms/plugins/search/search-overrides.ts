@@ -28,7 +28,9 @@ export const searchOverrides: { fields?: FieldsOverride } & Partial<
     hidden: shouldHideInAdminPanelIfNotAdmin,
   },
   access: {
-    read: () => true,
+    // The site search reads the index through the local API. Over REST and GraphQL the index would
+    // hand out page text without the release date and publishing checks the search page applies.
+    read: isFullAdmin,
     update: isFullAdmin,
     create: isFullAdmin,
     delete: isFullAdmin,

@@ -8,6 +8,7 @@ import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
+import { CookieBanner } from '@/components/utils/cookie-banner';
 import { environmentVariables } from '@/config/environment-variables';
 import { getFeatureFlagForPrerender } from '@/lib/db/redis';
 import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
@@ -125,6 +126,8 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
                 >
                   {children}
                 </AppShell>
+                {/* The app asks during onboarding and offers the answer in its settings. */}
+                {!isInAppDesign && <CookieBanner locale={locale} />}
               </ServiceWorkerManager>
             </HideBackgroundLogoProvider>
           </HideFooterProvider>

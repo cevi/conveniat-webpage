@@ -28,6 +28,7 @@ import {
   getHofDirectory,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { toHofIds } from '@/features/payload-cms/payload-cms/utils/hof-membership';
+import { canManageChatOfType, SUPPORT_DESK_CHAT_TYPES } from '@/lib/chat-admin-access';
 import { createChatImageUploadUrl } from '@/lib/chat-image-upload';
 import { chatImageUploadInputSchema } from '@/lib/chat-images';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
@@ -39,7 +40,7 @@ import {
   MessageType,
   PushNotificationKind,
 } from '@/lib/prisma/client';
-import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
+import { createTRPCRouter, trpcBaseProcedure, trpcFullAdminProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { createLogger } from '@/utils/server-logger';
 import type { Prisma } from '@prisma/client';
@@ -59,6 +60,45 @@ const adminProcedure = trpcBaseProcedure.use(async ({ ctx, next }) => {
   return next({ ctx });
 });
 
+/**
+ * For everything that reads or changes one chat. The support desk reaches the support chats
+ * and the emergency alerts; a chat between participants is for the chat oversight alone.
+ */
+const adminChatProcedure = adminProcedure
+  .input(z.object({ chatId: z.string().uuid() }))
+  .use(async ({ ctx, input, path, next }) => {
+    const chat = await ctx.prisma.chat.findUnique({
+      where: { uuid: input.chatId },
+      select: { type: true },
+    });
+    if (!chat) {
+      throw new TRPCError({ code: 'NOT_FOUND', message: 'Chat not found' });
+    }
+
+    if (!canManageChatOfType(ctx.user, chat.type)) {
+      logger.warn('Admin chat access rejected: chat is outside the support desk', {
+        'chat.id': input.chatId,
+        'chat.type': chat.type,
+        'user.id': ctx.user.uuid,
+        'trpc.path': path,
+      });
+      throw new TRPCError({ code: 'FORBIDDEN' });
+    }
+
+    // The one trace of somebody reading or changing a chat they are not part of. Info: the
+    // admin panel offers no view for these chats, so this fires on a deliberate request only.
+    if (!SUPPORT_DESK_CHAT_TYPES.includes(chat.type)) {
+      logger.info('Chat outside the support desk accessed through the chat oversight', {
+        'chat.id': input.chatId,
+        'chat.type': chat.type,
+        'user.id': ctx.user.uuid,
+        'trpc.path': path,
+      });
+    }
+
+    return next({ ctx });
+  });
+
 export const adminRouter = createTRPCRouter({
   // Feature Flags
   getFeatureFlags: adminProcedure.query(async () => {
@@ -73,8 +113,8 @@ export const adminRouter = createTRPCRouter({
     return result;
   }),
 
-  // Generic Chat Management
-  getChatList: adminProcedure
+  // Generic Chat Management: every chat with its members, so for the chat oversight alone
+  getChatList: trpcFullAdminProcedure
     .input(
       z
         .object({
@@ -181,7 +221,12 @@ export const adminRouter = createTRPCRouter({
     .query(async ({ ctx, input }): Promise<ChatWithMessagePreview[]> => {
       const { prisma, user } = ctx;
 
-      const filters: Prisma.ChatWhereInput[] = [{ type: input?.type ?? ChatType.SUPPORT_GROUP }];
+      const type = input?.type ?? ChatType.SUPPORT_GROUP;
+      if (!canManageChatOfType(user, type)) {
+        throw new TRPCError({ code: 'FORBIDDEN' });
+      }
+
+      const filters: Prisma.ChatWhereInput[] = [{ type }];
 
       if (input?.status) {
         filters.push({ status: input.status });
@@ -236,7 +281,9 @@ export const adminRouter = createTRPCRouter({
 
       const whereClause: Prisma.ChatWhereInput = input?.includeId
         ? {
-            OR: [{ AND: filters }, { uuid: input.includeId }],
+            // The selected chat stays listed whatever the status and search filter say, but
+            // only within the type asked for: any other chat would come with its messages.
+            OR: [{ AND: filters }, { uuid: input.includeId, type }],
           }
         : { AND: filters };
 
@@ -346,7 +393,7 @@ export const adminRouter = createTRPCRouter({
       });
     }),
 
-  toggleChatCapability: adminProcedure
+  toggleChatCapability: adminChatProcedure
     .input(
       z.object({
         chatId: z.string().uuid(),
@@ -380,6 +427,7 @@ export const adminRouter = createTRPCRouter({
             },
           },
           depth: 0,
+          limit: 1,
         });
 
         if (announcementChannels.docs.length > 0) {
@@ -416,7 +464,7 @@ export const adminRouter = createTRPCRouter({
       });
     }),
 
-  getChatMessages: adminProcedure
+  getChatMessages: adminChatProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
@@ -477,7 +525,7 @@ export const adminRouter = createTRPCRouter({
       };
     }),
 
-  markChatAsRead: adminProcedure
+  markChatAsRead: adminChatProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
@@ -525,7 +573,7 @@ export const adminRouter = createTRPCRouter({
       return { success: true };
     }),
 
-  postAdminMessage: adminProcedure
+  postAdminMessage: adminChatProcedure
     .input(
       z.object({
         chatId: z.string().uuid(),
@@ -643,11 +691,11 @@ export const adminRouter = createTRPCRouter({
       return message;
     }),
 
-  getAdminUploadUrl: adminProcedure
+  getAdminUploadUrl: adminChatProcedure
     .input(chatImageUploadInputSchema)
     .mutation(({ input }) => createChatImageUploadUrl(input)),
 
-  closeChat: adminProcedure
+  closeChat: adminChatProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
@@ -768,7 +816,7 @@ export const adminRouter = createTRPCRouter({
       return updatedChat;
     }),
 
-  reopenChat: adminProcedure
+  reopenChat: adminChatProcedure
     .input(z.object({ chatId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
@@ -977,7 +1025,7 @@ export const adminRouter = createTRPCRouter({
       .toSorted((a, b) => a.name.localeCompare(b.name, 'de'));
   }),
 
-  addMemberToChat: adminProcedure
+  addMemberToChat: adminChatProcedure
     .input(
       z.object({
         chatId: z.string().uuid(),

@@ -2,7 +2,13 @@ import type { Context } from '@/trpc/init';
 import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
-jest.mock('@/lib/db/prisma', () => ({ __esModule: true, default: {} }));
+// The pool outside the transaction. A send holds its transaction connection for as long as
+// it runs, so every read it makes here needs a second one.
+const mockPoolRead = jest.fn();
+jest.mock('@/lib/db/prisma', () => ({
+  __esModule: true,
+  default: { chat: { findUnique: (): unknown => mockPoolRead() } },
+}));
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
 jest.mock('@/utils/get-locale-from-cookies', () => ({
   getLocaleFromCookies: jest.fn().mockResolvedValue('de'),
@@ -18,9 +24,7 @@ jest.mock('superjson', () => ({
 jest.mock('@/lib/db/redis', () => ({
   // every rate limit counter at its first call
   redis: { eval: (): Promise<number> => Promise.resolve(1) },
-}));
-jest.mock('@/lib/ability', () => ({
-  Ability: { can: (): Promise<boolean> => Promise.resolve(true) },
+  getFeatureFlag: (): Promise<boolean> => Promise.resolve(true),
 }));
 
 /** Whether the transaction had committed when each side effect fired. */
@@ -45,6 +49,7 @@ jest.mock('@/lib/push/send-notification', () => ({
 }));
 
 import { createMessage } from '@/features/chat/api/mutations/create-message';
+import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission, ChatType, MessageType } from '@/lib/prisma/client';
 
 const CHAT_ID = '00000000-0000-4000-8000-000000000001';
@@ -67,7 +72,14 @@ const prisma = {
       Promise.resolve({
         name: 'Cevi Uster',
         type: ChatType.GROUP,
-        capabilities: [],
+        capabilities: [
+          ChatCapability.CAN_SEND_MESSAGES,
+          ChatCapability.PICTURE_UPLOAD,
+          ChatCapability.THREADS,
+        ],
+        // prisma answers a chat that was never archived with null
+        // eslint-disable-next-line unicorn/no-null
+        archivedAt: null,
         chatMemberships: [
           { userId: 'anna', chatPermission: ChatMembershipPermission.MEMBER },
           { userId: 'ben', chatPermission: ChatMembershipPermission.MEMBER },
@@ -76,6 +88,7 @@ const prisma = {
     update: (): Promise<void> => Promise.resolve(),
   },
   message: {
+    findMany: (): Promise<unknown[]> => Promise.resolve([]),
     create: ({ data }: { data: { type: MessageType } }): Promise<unknown> => {
       storedTypes.push(data.type);
       return Promise.resolve({ uuid: 'stored', createdAt: new Date(), type: data.type });
@@ -106,6 +119,7 @@ beforeEach(() => {
   failCommit = false;
   publishedAt.length = 0;
   pushedAt.length = 0;
+  mockPoolRead.mockClear();
 });
 
 describe('the message types a participant can send', () => {
@@ -129,6 +143,28 @@ describe('the message types a participant can send', () => {
       expect(storedTypes).toEqual([]);
     },
   );
+});
+
+describe('the connections a send needs', () => {
+  it.each([MessageType.TEXT_MSG, MessageType.IMAGE_MSG])(
+    'checks what a %s may do on the connection of its transaction',
+    async (type) => {
+      await send(type);
+      expect(mockPoolRead).not.toHaveBeenCalled();
+    },
+  );
+
+  it('checks whether a thread reply is allowed on that connection too', async () => {
+    await anna.sendMessage({
+      chatId: CHAT_ID,
+      content: 'Hoi zäme',
+      timestamp: new Date(),
+      parentId: '00000000-0000-4000-8000-000000000002',
+    });
+
+    expect(storedTypes).toEqual([MessageType.TEXT_MSG]);
+    expect(mockPoolRead).not.toHaveBeenCalled();
+  });
 });
 
 describe('announcing a sent message', () => {

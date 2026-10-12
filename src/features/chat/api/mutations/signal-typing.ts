@@ -38,7 +38,7 @@ export const signalTyping = trpcBaseProcedure
 
     if (isTooSoon(`${user.uuid}:${chatId}:${parentId ?? ''}`, Date.now())) return;
 
-    await assertWriteAbilities(chatId, parentId);
+    await assertWriteAbilities(prisma, chatId, parentId);
 
     const chat = await prisma.chat.findUnique({
       where: { uuid: chatId },

@@ -1,24 +1,30 @@
 'use client';
 
 import { useScheduleEntries } from '@/context/schedule-entries-context';
-import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
+import { ScheduleNowCard } from '@/features/schedule/components/schedule-now-card';
+import { ScheduleScopeSwitch } from '@/features/schedule/components/schedule-scope-switch';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
+import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
+import { useNow } from '@/features/schedule/hooks/use-now';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filter';
+import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
+import { dayKeyOf, todayKeyOf } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { useCurrentLocale } from 'next-i18n-router/client';
-import { useRouter } from 'next/navigation';
-import React, { useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo } from 'react';
 
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
@@ -31,11 +37,13 @@ const foundEventsText: StaticTranslationString = {
  * Fetches data via tRPC and shows loading skeleton during fetch.
  */
 export const ScheduleComponent: React.FC = () => {
-  const router = useRouter();
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const searchParameters = useSearchParams();
   const { starredEntries } = useStar();
   const isOnline = useOnlineStatus();
+  const now = useNow();
   const { syncFromServer, entries: localEntries } = useScheduleEntries();
+  const { myQuartiere, myQuartierIds, scope, setScope } = useScheduleScope();
 
   // Fetch schedule entries via tRPC (CSR) with 5 min staleTime for instant offline cache rendering
   const { data: scheduleEntries, isLoading } = trpc.schedule.getScheduleEntries.useQuery(
@@ -63,6 +71,15 @@ export const ScheduleComponent: React.FC = () => {
     return localEntries;
   }, [scheduleEntries, localEntries]);
 
+  // The own Quartier, or the whole camp. Entries that name no Quartier are for everybody.
+  const scopedEntries = useMemo(
+    () =>
+      scope === 'mine'
+        ? effectiveScheduleEntries.filter((entry) => isForQuartiere(entry, myQuartierIds))
+        : effectiveScheduleEntries,
+    [effectiveScheduleEntries, scope, myQuartierIds],
+  );
+
   // Get enrolled courses
   const enrollmentsQuery = trpc.schedule.getMyEnrollments.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -79,52 +96,55 @@ export const ScheduleComponent: React.FC = () => {
     carouselStartIndex,
     maxVisibleDays,
     actions,
-  } = useSchedule(effectiveScheduleEntries);
+  } = useSchedule(scopedEntries);
 
   const {
     filters,
     handleFiltersChange,
-    filteredEntries: currentProgram,
+    filteredEntries,
     hasActiveFilters,
     availableLocations,
     availableCategories,
-  } = useScheduleFilters(rawCurrentProgram, starredEntries, effectiveScheduleEntries);
+  } = useScheduleFilters(rawCurrentProgram, starredEntries, scopedEntries);
 
+  const currentProgram = useMemo(() => [...filteredEntries].sort(byStart), [filteredEntries]);
   const hasProgram = currentProgram.length > 0;
 
-  // Handle Map Click
-  const handleMapClick = (location: CampMapAnnotation): void => {
-    router.push(`/app/map?locationId=${location.id}`);
-  };
+  // "Now" is about today, whichever day the list shows and whatever it is filtered by.
+  const minutesOfDay = now.getHours() * 60 + now.getMinutes();
+  const todayKey = todayKeyOf(now);
+  const today = allDates.find((date) => dayKeyOf(date) === todayKey);
+  const isToday = dayKeyOf(currentDate) === todayKey;
+  // In the view of the whole camp several Quartiere have something on at once, so "now" stays
+  // with the user's own Quartier whenever they have one.
+  const nowAndNext = useMemo(
+    () =>
+      findNowAndNext(
+        effectiveScheduleEntries.filter(
+          (entry) =>
+            dayKeyOf(entry.timeslot.date) === todayKey &&
+            (myQuartierIds.size === 0 || isForQuartiere(entry, myQuartierIds)),
+        ),
+        minutesOfDay,
+      ),
+    [effectiveScheduleEntries, myQuartierIds, todayKey, minutesOfDay],
+  );
+  const running = nowAndNext.current ?? nowAndNext.next;
 
-  // Group entries by time and location for display
-  const currentProgramGrouped = useMemo(() => {
-    const grouped: { time: string; entries: CampScheduleEntryFrontendType[] }[] = [];
-    const timeMap = new Map<string, CampScheduleEntryFrontendType[]>();
+  const hrefOf = useCallback(
+    (entry: CampScheduleEntryFrontendType): string => {
+      const parameters = new URLSearchParams(searchParameters.toString());
+      parameters.set('id', entry.id);
+      return `/app/schedule?${parameters.toString()}`;
+    },
+    [searchParameters],
+  );
 
-    for (const entry of currentProgram) {
-      const timeKey = entry.timeslot.time; // e.g. "14:00"
-      if (!timeMap.has(timeKey)) {
-        timeMap.set(timeKey, []);
-      }
-      timeMap.get(timeKey)?.push(entry);
-    }
-
-    // Sort times
-    const sortedTimes = [...timeMap.keys()].sort();
-
-    for (const time of sortedTimes) {
-      grouped.push({
-        time: `${time}`,
-        entries: timeMap.get(time) ?? [],
-      });
-    }
-
-    return grouped;
-  }, [currentProgram]);
-
-  // Get visible course IDs for bulk status fetching
-  const visibleCourseIds = useMemo(() => currentProgram.map((entry) => entry.id), [currentProgram]);
+  // Only entries people can enrol in have a status worth fetching
+  const visibleCourseIds = useMemo(
+    () => currentProgram.filter((entry) => entry.enable_enrolment === true).map(({ id }) => id),
+    [currentProgram],
+  );
 
   const totalEventsCount = currentProgram.length;
 
@@ -151,6 +171,15 @@ export const ScheduleComponent: React.FC = () => {
       onCarouselPrevious={actions.handleCarouselPrevious}
       onCarouselNext={actions.handleCarouselNext}
     >
+      {myQuartiere.length > 0 && (
+        <ScheduleScopeSwitch
+          myQuartiere={myQuartiere}
+          scope={scope}
+          onScopeChange={setScope}
+          locale={locale}
+        />
+      )}
+
       {/* Search and Filter Bar */}
       <div className="mb-3">
         <SearchFilterBar
@@ -160,6 +189,27 @@ export const ScheduleComponent: React.FC = () => {
           availableCategories={availableCategories}
         />
       </div>
+
+      {isToday && !hasActiveFilters && (
+        <ScheduleNowCard nowAndNext={nowAndNext} locale={locale} hrefOf={hrefOf} />
+      )}
+
+      {/* On another day: one line that says what is on, and the way back to today */}
+      {!isToday && today !== undefined && running !== undefined && (
+        <button
+          type="button"
+          onClick={() => actions.handleDateSelect(today)}
+          className="mb-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-left text-xs text-gray-600"
+        >
+          <span className="min-w-0 truncate">
+            {programmeLabels[nowAndNext.current === undefined ? 'upNext' : 'now'][locale]}:{' '}
+            <span className="text-conveniat-green font-semibold">{running.title}</span>
+          </span>
+          <span className="text-conveniat-green shrink-0 font-semibold">
+            {programmeLabels.today[locale]} ›
+          </span>
+        </button>
+      )}
 
       {/* Results Summary */}
       {hasActiveFilters && hasProgram && (
@@ -180,9 +230,12 @@ export const ScheduleComponent: React.FC = () => {
       {hasProgram ? (
         <ScheduleStatusProvider courseIds={visibleCourseIds} isOnline={isOnline}>
           <ScheduleList
-            groupedEntries={currentProgramGrouped}
+            entries={currentProgram}
             enrolledIds={enrolledIds}
-            onMapClick={handleMapClick}
+            starredIds={starredEntries}
+            minutesOfToday={isToday ? minutesOfDay : undefined}
+            currentId={isToday ? nowAndNext.current?.id : undefined}
+            quartierChips={scope === 'all' ? myQuartierIds : undefined}
           />
         </ScheduleStatusProvider>
       ) : (

@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
+import { reportSessionTokenKept } from '@/features/next-auth/utils/session-token-change';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -10,7 +11,6 @@ import { trace } from '@opentelemetry/api';
 import type { NextAuthConfig } from 'next-auth';
 import { customFetch } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
-import { after } from 'next/server';
 import type { BasePayload } from 'payload';
 import { getPayload } from 'payload';
 import { Agent, setGlobalDispatcher } from 'undici';
@@ -141,7 +141,7 @@ function shouldSyncAnnouncementChats(
  * @param payload
  * @param userProfile
  */
-async function saveAndFetchUserFromPayload(
+export async function saveAndFetchUserFromPayload(
   payload: BasePayload,
   userProfile: HitobitoProfile,
 ): Promise<User> {
@@ -166,6 +166,7 @@ async function saveAndFetchUserFromPayload(
     const matchedByUuid = await payload.find({
       collection: 'users',
       where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
+      limit: 1,
     });
 
     if (matchedByUuid.totalDocs > 1) {
@@ -206,13 +207,28 @@ async function saveAndFetchUserFromPayload(
     const matchedByEmail = await payload.find({
       collection: 'users',
       where: { email: { equals: userProfile.email } },
+      limit: 1,
     });
 
-    if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
+    const userWithSameEmail = matchedByEmail.docs[0];
+    if (matchedByEmail.totalDocs === 1 && userWithSameEmail !== undefined) {
+      // Only a user nobody has logged into yet may be claimed by its email. One that already
+      // carries a Cevi.DB id belongs to another person, and rewriting that id would hand its
+      // roles, chats and Hof over to whoever holds the address in Cevi.DB today. The email is
+      // unique, so there is no second user to create either, and the login ends here.
+      if (typeof userWithSameEmail.cevi_db_uuid === 'number') {
+        logger.warn('Refused to link a Cevi.DB login to a user of another Cevi.DB person', {
+          'auth.user_uuid': userWithSameEmail.id,
+          'hitobito.person_id': ceviDatabaseUuid,
+          'hitobito.linked_person_id': userWithSameEmail.cevi_db_uuid,
+        });
+        throw new Error('Email already belongs to a user linked to another Cevi.DB person');
+      }
+
       // Link the existing user by setting their cevi_db_uuid
       const updatedUser = await payload.update({
         collection: 'users',
-        id: matchedByEmail.docs[0].id,
+        id: userWithSameEmail.id,
         data: userData,
       });
 
@@ -269,32 +285,63 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
 }
 
 /**
- * Background helper to sync a Hitobito profile into the local Payload CMS Database.
- * Placed in an isolated function to keep NextAuth token refresh workflow cleanly decoupled.
+ * Stores a Hitobito profile on the Payload user, whose groups are what the admin panel checks.
+ * Says whether that worked instead of throwing, because a refresh that could not store the
+ * profile still has new tokens to hand out.
  */
-async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void> {
+async function syncProfileToPayload(profile: HitobitoProfile): Promise<boolean> {
   try {
     const config = await import('@payload-config');
     const payload = await getPayload({ config: config.default });
     await saveAndFetchUserFromPayload(payload, profile);
+    return true;
   } catch (error) {
-    logger.error('Failed to background sync user with Payload DB during token refresh', {
+    logger.error('Failed to sync user with Payload DB during token refresh', {
       error,
     });
+    return false;
   }
 }
 
-const inflightRefreshes = new Map<string, Promise<JWT>>();
+/**
+ * How long a session waits before it asks Cevi.DB for its groups again on the user's request.
+ * Anybody signed in can post a session update, so without it one client could turn every request
+ * into a call to Cevi.DB.
+ */
+const SECONDS_BETWEEN_REQUESTED_SYNCS = 60;
 
-async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
-  const userId = token.uuid;
+const isWithinSyncInterval = (unixSeconds: number | undefined): boolean =>
+  typeof unixSeconds === 'number' &&
+  Date.now() / 1000 - unixSeconds < SECONDS_BETWEEN_REQUESTED_SYNCS;
 
-  if (typeof userId !== 'string' || userId === '') {
-    return doRefreshAccessToken(token, reason); // skip dedup for tokens without a UUID
-  }
+/**
+ * Whether the session has to wait before it may ask again. A failed attempt counts like a sync,
+ * so that Cevi.DB being down does not turn every press of the button into another call to it.
+ */
+const mustWaitForRequestedSync = (token: JWT): boolean =>
+  isWithinSyncInterval(token.groups_synced_at) || isWithinSyncInterval(token.sync_requested_at);
 
-  // If a refresh is already in-flight for this user, wait for it
-  const existing = inflightRefreshes.get(userId);
+/**
+ * What the `jwt` callback answers to end a session: Auth.js clears the session cookie instead of
+ * re-signing it, and the user goes back through the Cevi.DB login.
+ */
+// eslint-disable-next-line unicorn/no-null -- Auth.js ends a session on null, not on undefined
+const SESSION_ENDED = null;
+
+/**
+ * Refreshes in flight, by refresh token. Requests that carry the same session share one call to
+ * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
+ * different refresh tokens, so neither ever receives the other's result.
+ */
+const inflightRefreshes = new Map<string, Promise<JWT | null | undefined>>();
+
+async function refreshAccessToken(
+  token: JWT,
+  refreshToken: string,
+  reason: string,
+): Promise<JWT | null | undefined> {
+  // If a refresh is already in-flight for this session, wait for it
+  const existing = inflightRefreshes.get(refreshToken);
   if (existing) {
     return existing;
   }
@@ -302,10 +349,10 @@ async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   // Start the actual refresh and store the promise
   const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
-    setTimeout(() => inflightRefreshes.delete(userId), 1000);
+    setTimeout(() => inflightRefreshes.delete(refreshToken), 1000);
   });
 
-  inflightRefreshes.set(userId, refreshPromise);
+  inflightRefreshes.set(refreshToken, refreshPromise);
   return refreshPromise;
 }
 
@@ -318,9 +365,11 @@ class TerminalRefreshError extends Error {
 
 /**
  * Refreshes the access token using the refresh token.
- * returns the new token with updated expiration and access token
+ * returns the new token with updated expiration and access token, `null` when Cevi.DB refused
+ * the refresh token for good, which ends the session, and `undefined` when it could not be
+ * reached and the session goes on as it is.
  */
-async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
+async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null | undefined> {
   try {
     logger.info('Refreshing access token', {
       'auth.user_uuid': token.uuid,
@@ -387,10 +436,10 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
     if (profileResponse.ok) {
       const profile = (await profileResponse.json()) as HitobitoProfile;
 
-      // Update the user in Payload CMS with the new groups in the background
-      // Fire-and-forget: we use Next.js `after()` to ensure serverless functions don't freeze
-      // before this background database syncing completes.
-      after(() => syncProfileToPayloadAsync(profile));
+      // The Payload user is stored before the session answers with the new groups. The admin
+      // panel reads its groups from there, so a session that is ahead of it would be refused
+      // what it was just told it may do.
+      const isStored = await syncProfileToPayload(profile);
 
       const identity = TokenIdentitySchema.parse(token);
 
@@ -404,6 +453,8 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
         uuid: identity.uuid,
         cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: profile.roles.map((role) => role.group_id),
+        // Unchanged when the Payload user could not be stored, so the sync does not count as done.
+        groups_synced_at: isStored ? Math.floor(Date.now() / 1000) : token.groups_synced_at,
         email: profile.email,
         name: formatUserFullName(profile.first_name + ' ' + profile.last_name, profile.nickname),
         nickname: profile.nickname,
@@ -430,20 +481,18 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
       activeSpan.recordException(error as Error);
     }
     const isTerminal = error instanceof TerminalRefreshError;
-    // Terminal means the refresh token is gone for good and the user is about to be sent back
-    // through the login: worth an error. A retryable failure is the network, and the next
-    // request tries again.
+    // Terminal means the refresh token is gone for good and the session ends here: worth an
+    // error. A retryable failure is the network, and the next request tries again.
     logger[isTerminal ? 'error' : 'warn']('Error refreshing access token', {
       'auth.user_uuid': token.uuid,
       'hitobito.refresh_reason': reason,
       'hitobito.refresh_terminal': isTerminal,
       error,
     });
-    return {
-      ...token,
-      error: 'RefreshAccessTokenError',
-      ...(isTerminal ? { refresh_token: undefined } : {}),
-    };
+    // A session that can no longer be refreshed would otherwise keep the groups it was issued
+    // with for as long as its cookie lives. Cevi.DB staying unreachable is not a reason to sign
+    // anybody out, so only the terminal case ends it.
+    return isTerminal ? SESSION_ENDED : undefined;
   }
 }
 
@@ -515,6 +564,7 @@ export const authOptions: NextAuthConfig = {
         uuid: identity.uuid,
         cevi_db_uuid: identity.cevi_db_uuid,
         group_ids: token.group_ids ?? [],
+        groups_synced_at: token.groups_synced_at,
         nickname: token.nickname,
         firstName: token.firstName,
         lastName: token.lastName,
@@ -524,7 +574,7 @@ export const authOptions: NextAuthConfig = {
     },
 
     // This callback is called whenever a JSON Web Token is created (i.e. at sign in) or updated (i.e whenever a session is accessed in the client).
-    async jwt({ token, account, profile: _profile }): Promise<JWT> {
+    async jwt({ token, account, profile: _profile, trigger }): Promise<JWT | null> {
       // Initial sign in
       if (account && _profile) {
         const activeSpan = trace.getActiveSpan();
@@ -545,6 +595,7 @@ export const authOptions: NextAuthConfig = {
           uuid: payloadCMSUser.id,
           cevi_db_uuid: payloadCMSUser.cevi_db_uuid ?? undefined, // the id of the user in the CeviDB as number
           group_ids: profile.roles.map((role) => role.group_id),
+          groups_synced_at: Math.floor(Date.now() / 1000),
           email: profile.email,
           name: formatUserFullName(profile.first_name + ' ' + profile.last_name, profile.nickname),
           nickname: profile.nickname,
@@ -560,20 +611,34 @@ export const authOptions: NextAuthConfig = {
           ? token.expires_at
           : 0; // force refresh if invalid
 
-      if (expiresAt > 0 && Date.now() < expiresAt * 1000 - 10 * 1000) {
+      const hasRefreshToken = token.refresh_token !== undefined && token.refresh_token !== '';
+      const isStillValid = expiresAt > 0 && Date.now() < expiresAt * 1000 - 10 * 1000;
+
+      // The user asked for their current groups, e.g. right after being added to one in
+      // Cevi.DB. The client posts a session update for that, and the answer is a refresh ahead
+      // of time, because the groups only ever arrive with one.
+      const isRequestedSync =
+        trigger === 'update' && isStillValid && hasRefreshToken && !mustWaitForRequestedSync(token);
+
+      if (isStillValid && !isRequestedSync) {
+        reportSessionTokenKept();
         return token;
       }
 
-      // Access token has expired, try to update it
+      // Access token has expired, try to update it. Without a refresh token there is no way to
+      // learn the user's current groups again, so the session ends instead of living on the
+      // groups it has.
       if (token.refresh_token === undefined || token.refresh_token === '') {
-        return {
-          ...token,
-          error: 'RefreshAccessTokenError',
-        };
+        logger.info('Ending a session that has no refresh token', {
+          'auth.user_uuid': token.uuid,
+        });
+        return SESSION_ENDED;
       }
 
       let reason: string;
-      if (expiresAt === 0) {
+      if (isRequestedSync) {
+        reason = 'user_requested';
+      } else if (expiresAt === 0) {
         reason = 'missing_expires_at';
       } else if (Date.now() >= expiresAt * 1000) {
         reason = 'token_expired';
@@ -581,7 +646,16 @@ export const authOptions: NextAuthConfig = {
         reason = 'token_approaching_expiry';
       }
 
-      return refreshAccessToken(token, reason);
+      // Undefined when Cevi.DB could not be reached: every request waiting on this refresh
+      // then goes on with the token it came with, not with the one of whoever started it.
+      const outcome = await refreshAccessToken(token, token.refresh_token, reason);
+      if (outcome === SESSION_ENDED) return SESSION_ENDED;
+      const refreshed = outcome ?? token;
+      if (isRequestedSync) {
+        return { ...refreshed, sync_requested_at: Math.floor(Date.now() / 1000) };
+      }
+      if (refreshed === token) reportSessionTokenKept();
+      return refreshed;
     },
   },
 

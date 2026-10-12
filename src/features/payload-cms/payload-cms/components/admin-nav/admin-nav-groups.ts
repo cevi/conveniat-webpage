@@ -51,6 +51,16 @@ const ADMIN_VIEW_LINKS: AdminViewLink[] = [
     requiredRoles: [Roles.FullAdmin],
   },
   {
+    path: '/merge-users',
+    label: {
+      de: 'Benutzer zusammenführen',
+      en: 'Merge users',
+      fr: 'Fusionner des utilisateurs',
+    },
+    group: 'BackofficePeople',
+    requiredRoles: [Roles.FullAdmin],
+  },
+  {
     // Listed whether or not the app has the feature on yet, so the depot can be set up before it
     // goes live; the page says which it is.
     path: '/material-setup',

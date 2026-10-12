@@ -279,6 +279,12 @@ open it after you change one and check the column you meant to change, and no ot
 `admin.hidden` is not access control. It keeps an entry out of the sidebar and nothing more, so give
 the entry a real rule as well and keep the two saying the same thing.
 
+A browser upload goes straight to the bucket through `createPresignedUploadUrl` from
+`@/lib/presigned-urls`, with an `UploadPolicy` naming the allowed types and the largest size. It
+signs the type and the size into the URL and picks the object name. ESLint keeps the presigner out
+of every other file; a failing `no-restricted-imports` there means the upload needs a policy, not
+an exception. Check the object again once it is uploaded, and delete it when you refuse it.
+
 Client components fetch and mutate through tRPC. Do not add new Server Actions. This is about
 data flowing to and from the client: server components still read Payload directly, which is what
 keeps preview, drafts and content resolution working. The eight files that already use `'use server'`
@@ -289,7 +295,8 @@ and `deleteThing`, and anything else after what it does, like `archiveChat`.
 ## Git and pull requests
 
 Branch from `dev`. `dev` is protected too, so everything reaching it goes through a pull request
-with lint and the test suite green — no size of change is small enough to push straight to it.
+with `eslint`, `typecheck` and the test suite green — no size of change is small enough to push
+straight to it. `typecheck` is Prettier, the Payload artifact check and `tsc` in one job.
 `main` is protected the same way, and releases merge `dev` into `main` without squashing.
 Do not bump the version in `package.json` yourself. Every merge into `main` accumulates in one
 open release pull request that release-please keeps up to date. Its version comes from the commit

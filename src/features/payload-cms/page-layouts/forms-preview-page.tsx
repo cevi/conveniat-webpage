@@ -35,6 +35,7 @@ export const FormsPreviewPage: React.FC<LocalizedCollectionPage> = async ({
       where: {
         id: { equals: uuid },
       },
+      limit: 1,
     });
 
     if (form.docs.length === 0) return notFound();

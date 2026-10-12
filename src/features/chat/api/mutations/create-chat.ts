@@ -121,6 +121,7 @@ export const createChat = trpcBaseProcedure
     const { CapabilitySubject, CapabilityAction } = await import('@/lib/capabilities/types');
 
     const isChatCreationEnabled = await checkCapability(
+      prisma,
       CapabilityAction.Create,
       CapabilitySubject.Chat,
     );

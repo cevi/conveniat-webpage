@@ -160,14 +160,64 @@ const config = defineConfig([
       'src/features/payload-cms/payload-cms/shared-fields/map-polygon/map-polygon-field.tsx',
       'src/hooks/use-native-push.ts',
       'src/lib/chat-sync.ts',
+      'src/lib/posthog-client.ts',
       'src/lib/toast.ts',
-      'src/providers/post-hog-provider.tsx',
       'src/utils/login-handler.ts',
     ],
   },
 
   // 4. Consolidated TypeScript & React Custom Rules
   // These rules are applied *on top of* the Next.js defaults.
+
+  // 3c. Presigned URLs: one module signs them all
+  //
+  // A URL signed by hand accepts any content type and any size, because the presigner signs
+  // neither by default. `src/lib/presigned-urls.ts` binds an upload to a policy, so a new
+  // upload goes through it instead of getting its own signing code.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/lib/presigned-urls.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@aws-sdk/s3-request-presigner',
+              message:
+                'Sign through createPresignedUploadUrl or createPresignedDownloadUrl from @/lib/presigned-urls.',
+            },
+            {
+              name: '@/lib/s3',
+              importNames: ['s3ClientPublic'],
+              message:
+                'Only @/lib/presigned-urls signs for the browser. Use s3Client for server-side requests.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // 3d. Payload queries say how many documents they want
+  //
+  // `payload.find` returns ten documents unless told otherwise, and nothing in the result looks
+  // truncated. A query that needs every match sets `pagination: false`; one that needs a single
+  // document or a page sets `limit`.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.property.name="find"] > ObjectExpression.arguments:has(> Property[key.name="collection"]):not(:has(> Property[key.name=/^(limit|pagination)$/]))',
+          message:
+            'payload.find returns only 10 documents by default. Set `pagination: false` to get every match, or an explicit `limit`.',
+        },
+      ],
+    },
+  },
 
   // typescript-eslint naming conventions
   {

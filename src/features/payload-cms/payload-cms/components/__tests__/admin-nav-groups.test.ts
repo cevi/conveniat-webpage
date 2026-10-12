@@ -54,7 +54,11 @@ describe('buildAdminNavGroups', () => {
     });
 
     expect(linksByGroup(groups)).toEqual({
-      'Backoffice · Personen & Zugriff': ['/admin/collections/users', '/admin/access-overview'],
+      'Backoffice · Personen & Zugriff': [
+        '/admin/collections/users',
+        '/admin/access-overview',
+        '/admin/merge-users',
+      ],
       'Backoffice · Höfe & Material': [
         '/admin/globals/hof-dashboard-settings',
         '/admin/material-setup',
@@ -63,6 +67,7 @@ describe('buildAdminNavGroups', () => {
     expect(groups.flatMap((group) => group.links.map((link) => link.label))).toEqual([
       'Benutzer',
       'Zugriff nach Cevi.DB-Gruppe',
+      'Benutzer zusammenführen',
       'Hof-Dashboard Einstellungen',
       'Materialdepot einrichten',
     ]);
@@ -77,7 +82,7 @@ describe('buildAdminNavGroups', () => {
     });
 
     expect(groups.map((group) => group.links.map((link) => link.label))).toEqual([
-      ['Utilisateurs', 'Accès par groupe Cevi.DB'],
+      ['Utilisateurs', 'Accès par groupe Cevi.DB', 'Fusionner des utilisateurs'],
       ['Paramètres du tableau de bord des Hofs', 'Configurer le dépôt de matériel'],
     ]);
   });

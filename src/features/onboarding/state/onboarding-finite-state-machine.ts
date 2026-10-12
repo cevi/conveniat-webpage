@@ -1,7 +1,7 @@
 import { OnboardingAction, OnboardingStep } from '@/features/onboarding/types';
 
 export interface OnboardingContext {
-  hasAcceptedCookieBanner: boolean;
+  hasAnsweredCookieBanner: boolean;
   authStatus: 'loading' | 'authenticated' | 'unauthenticated';
   hasSkippedLogin: boolean;
   hasSkippedPush: boolean;
@@ -24,13 +24,13 @@ export interface OnboardingState {
 export type OnboardingEvent =
   | { type: OnboardingAction.UPDATE_CONTEXT; payload: Partial<OnboardingContext> }
   | { type: OnboardingAction.EVALUATE_NEXT_STEP }
-  | { type: OnboardingAction.USER_ACTION_ACCEPT_COOKIES }
+  | { type: OnboardingAction.USER_ACTION_ANSWER_COOKIES }
   | { type: OnboardingAction.USER_ACTION_SKIP_LOGIN }
   | { type: OnboardingAction.USER_ACTION_SKIP_PUSH }
   | { type: OnboardingAction.USER_ACTION_HANDLE_OFFLINE; accepted: boolean };
 
 export const initialOnboardingContext: OnboardingContext = {
-  hasAcceptedCookieBanner: false,
+  hasAnsweredCookieBanner: false,
   authStatus: 'loading',
   hasSkippedLogin: false,
   hasSkippedPush: false,
@@ -54,7 +54,7 @@ export const initialOnboardingState: OnboardingState = {
  */
 export const determineNextStep = (context: OnboardingContext): OnboardingStep => {
   const {
-    hasAcceptedCookieBanner,
+    hasAnsweredCookieBanner,
     authStatus,
     hasSkippedLogin,
     hasSkippedPush,
@@ -66,7 +66,7 @@ export const determineNextStep = (context: OnboardingContext): OnboardingStep =>
     isOnline,
   } = context;
 
-  if (!hasAcceptedCookieBanner) {
+  if (!hasAnsweredCookieBanner) {
     return OnboardingStep.Initial;
   }
 
@@ -127,8 +127,8 @@ export const onboardingReducer = (
       };
     }
 
-    case OnboardingAction.USER_ACTION_ACCEPT_COOKIES: {
-      const newContext = { ...state.context, hasAcceptedCookieBanner: true };
+    case OnboardingAction.USER_ACTION_ANSWER_COOKIES: {
+      const newContext = { ...state.context, hasAnsweredCookieBanner: true };
       return {
         step: determineNextStep(newContext),
         context: newContext,

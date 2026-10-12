@@ -212,6 +212,9 @@ export const shiftsRouter = createTRPCRouter({
         const otherShifts = await payload.find({
           collection: 'helper-shifts',
           where: { id: { in: userShiftEnrollments.map((enrollment_) => enrollment_.courseId) } },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
 
         for (const other of otherShifts.docs) {
@@ -236,6 +239,9 @@ export const shiftsRouter = createTRPCRouter({
         const otherPrograms = await payload.find({
           collection: 'camp-schedule-entry',
           where: { id: { in: userProgramEnrollments.map((enrollment_) => enrollment_.courseId) } },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
 
         for (const other of otherPrograms.docs) {
@@ -368,6 +374,9 @@ export const shiftsRouter = createTRPCRouter({
         const otherShifts = await payload.find({
           collection: 'helper-shifts',
           where: { id: { in: activeShifts.map((enrollment_) => enrollment_.courseId) } },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
         for (const other of otherShifts.docs) {
           if (
@@ -394,6 +403,9 @@ export const shiftsRouter = createTRPCRouter({
         const otherPrograms = await payload.find({
           collection: 'camp-schedule-entry',
           where: { id: { in: activePrograms.map((enrollment_) => enrollment_.courseId) } },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
         for (const other of otherPrograms.docs) {
           if (

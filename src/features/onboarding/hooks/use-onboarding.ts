@@ -3,7 +3,6 @@
 import { useNativePushSubscriptionStatus } from '@/features/onboarding/hooks/use-native-push-subscription-status';
 import { useOnboardingLocale } from '@/features/onboarding/hooks/use-onboarding-locale';
 import { useOnboardingStorage } from '@/features/onboarding/hooks/use-onboarding-storage';
-import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import {
   initialOnboardingState,
   onboardingReducer,
@@ -16,7 +15,9 @@ import {
 } from '@/hooks/use-native-push';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
+import type { Locale } from '@/types/types';
 import { Cookie } from '@/types/types';
+import { getAnalyticsConsent } from '@/utils/analytics-consent';
 import { isSafariOnAppleDevice } from '@/utils/browser-detection';
 import { isCookieTrue } from '@/utils/cookie-utils';
 import { DesignCodes, DesignModeTriggers } from '@/utils/design-codes';
@@ -94,7 +95,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
 
   // Sync Auth Status & Cookies to FSM Context
   useEffect(() => {
-    const hasAcceptedCookieBanner = isCookieTrue(Cookie.CONVENIAT_COOKIE_BANNER);
+    const hasAnsweredCookieBanner = getAnalyticsConsent() !== 'unanswered';
     const hasSkippedAuth = isCookieTrue(Cookie.HAS_SKIPPED_AUTH);
     const hasSkippedPush = isCookieTrue(Cookie.SKIP_PUSH_NOTIFICATION);
     const hasSkippedOffline = isCookieTrue(Cookie.OFFLINE_CONTENT_HANDLED);
@@ -108,7 +109,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     dispatch({
       type: OnboardingAction.UPDATE_CONTEXT,
       payload: {
-        hasAcceptedCookieBanner,
+        hasAnsweredCookieBanner,
         authStatus: effectiveAuthStatus,
         hasSkippedLogin: hasSkippedAuth,
         hasSkippedPush,
@@ -176,8 +177,8 @@ export const useOnboarding = (): UseOnboardingReturn => {
     };
   }, []);
 
-  const acceptCookiesCallback = useCallback((): void => {
-    dispatch({ type: OnboardingAction.USER_ACTION_ACCEPT_COOKIES });
+  const answerCookiesCallback = useCallback((): void => {
+    dispatch({ type: OnboardingAction.USER_ACTION_ANSWER_COOKIES });
   }, []);
 
   const handlePushNotification = useCallback((): void => {
@@ -369,7 +370,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
     locale,
     onboardingStep,
     handleLanguageChange,
-    acceptCookiesCallback,
+    answerCookiesCallback,
     handlePushNotification,
     handleOfflineContent,
     setOnboardingStep,
@@ -378,10 +379,10 @@ export const useOnboarding = (): UseOnboardingReturn => {
 };
 
 export interface UseOnboardingReturn {
-  locale: keyof typeof cookieInfoText;
+  locale: Locale;
   onboardingStep: OnboardingStep;
   handleLanguageChange: (newLocale: string) => void;
-  acceptCookiesCallback: () => void;
+  answerCookiesCallback: () => void;
   handlePushNotification: () => void;
   handleOfflineContent: (accepted: boolean) => void;
   setOnboardingStep: () => void;

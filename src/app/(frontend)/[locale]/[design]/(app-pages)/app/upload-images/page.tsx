@@ -7,6 +7,7 @@ import { DescriptionInput } from '@/features/image-submission/description-input'
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
 import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
 import { SubmitButton } from '@/features/image-submission/submit-button';
+import { USER_IMAGE_MAX_BYTES } from '@/features/payload-cms/constants/user-image-upload';
 import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -146,7 +147,7 @@ const ImageUploadPage: React.FC = () => {
       const newFileItems: FileItem[] = await Promise.all(
         newFiles.map(async (file) => {
           const { isValid: isValidDimensions, width, height } = await checkImageDimensions(file);
-          const isValidSize = file.size < 10 * 1024 * 1024;
+          const isValidSize = file.size <= USER_IMAGE_MAX_BYTES;
           let error: string | undefined;
 
           if (!isValidDimensions) {
@@ -272,7 +273,7 @@ const ImageUploadPage: React.FC = () => {
         validFiles.map(async (item) => {
           const description = fileDescriptions[item.file.name]?.trim() ?? '';
           const response = await uploadImage(item.file, description);
-          return { fileName: item.file.name, response };
+          return { file: item.file, response };
         }),
       );
 
@@ -282,19 +283,30 @@ const ImageUploadPage: React.FC = () => {
         setShowSuccessView(true);
         setShowCopyrightModal(false);
       } else {
-        // Update state with errors for specific files
+        // An uploaded image leaves the list, so trying the rest again does not hand it in twice.
+        // By file, not by name: two photos picked together may share one.
+        const uploadedFiles = new Set(results.filter((r) => !r.response.error).map((r) => r.file));
+        // A failure that says nothing about the image stays out of its error, which would
+        // keep it out of every later attempt; it is shown above the form instead.
+        const retryable = failedUploads.find((f) => f.response.isRetryable);
+        if (retryable) setErrorMessage(retryable.response.message);
+
         setSelectedFiles((previous) =>
-          previous.map((item) => {
-            const failure = failedUploads.find((f) => f.fileName === item.file.name);
-            if (failure) {
-              let uploadFailureMessage = failure.response.message;
-              if (uploadFailureMessage === 'This image has already been uploaded.') {
-                uploadFailureMessage = duplicateImageError[locale];
+          previous
+            .filter((item) => !uploadedFiles.has(item.file))
+            .map((item) => {
+              const failure = failedUploads.find(
+                (f) => f.file === item.file && !f.response.isRetryable,
+              );
+              if (failure) {
+                let uploadFailureMessage = failure.response.message;
+                if (uploadFailureMessage === 'This image has already been uploaded.') {
+                  uploadFailureMessage = duplicateImageError[locale];
+                }
+                return { ...item, error: uploadFailureMessage };
               }
-              return { ...item, error: uploadFailureMessage };
-            }
-            return item;
-          }),
+              return item;
+            }),
         );
         setShowCopyrightModal(false);
       }

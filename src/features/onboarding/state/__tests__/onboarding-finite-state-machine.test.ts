@@ -11,7 +11,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return Initial if cookie banner not accepted', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: false,
+        hasAnsweredCookieBanner: false,
       });
       expect(step).toBe(OnboardingStep.Initial);
     });
@@ -19,7 +19,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return Checking if auth is loading', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'loading',
       });
       expect(step).toBe(OnboardingStep.Checking);
@@ -28,7 +28,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return Login if not authenticated and not skipped', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'unauthenticated',
         hasSkippedLogin: false,
       });
@@ -38,7 +38,7 @@ describe('Onboarding Finite State Machine', () => {
     it('does not ask an offline user to log in and opens the cached app instead', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'unauthenticated',
         hasSkippedLogin: false,
         hasPushSubscription: true,
@@ -51,7 +51,7 @@ describe('Onboarding Finite State Machine', () => {
     it('shows NoInternet instead of Login to an offline user without cached content', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'unauthenticated',
         hasSkippedLogin: false,
         hasPushSubscription: true,
@@ -65,7 +65,7 @@ describe('Onboarding Finite State Machine', () => {
       const offlineState = onboardingReducer(initialOnboardingState, {
         type: OnboardingAction.UPDATE_CONTEXT,
         payload: {
-          hasAcceptedCookieBanner: true,
+          hasAnsweredCookieBanner: true,
           authStatus: 'unauthenticated',
           hasPushSubscription: true,
           hasCachedContent: true,
@@ -84,7 +84,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return PushNotifications if authenticated (skip login not needed) and no subscription', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: false,
       });
@@ -94,7 +94,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return PushNotifications if unauthenticated but skipped login', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'unauthenticated',
         hasSkippedLogin: true,
       });
@@ -104,7 +104,7 @@ describe('Onboarding Finite State Machine', () => {
     it('still offers the download to a user who only has the dashboard cached', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         hasCachedContent: true,
@@ -116,7 +116,7 @@ describe('Onboarding Finite State Machine', () => {
     it('does not offer the download again once it has run', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         hasCachedContent: true,
@@ -128,7 +128,7 @@ describe('Onboarding Finite State Machine', () => {
     it('opens the cached app offline instead of offering a download it cannot run', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         hasCachedContent: true,
@@ -141,7 +141,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return OfflineContent if push is handled (skipped) and offline not handled', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated', // or unauthenticated + skipped
         hasPushSubscription: false,
         hasSkippedPush: true,
@@ -154,7 +154,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should return Loading if everything is handled', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         offlineContentHandled: true,
@@ -164,11 +164,11 @@ describe('Onboarding Finite State Machine', () => {
   });
 
   describe('onboardingReducer', () => {
-    it('should handle USER_ACTION_ACCEPT_COOKIES', () => {
+    it('should handle USER_ACTION_ANSWER_COOKIES', () => {
       const state = onboardingReducer(initialOnboardingState, {
-        type: OnboardingAction.USER_ACTION_ACCEPT_COOKIES,
+        type: OnboardingAction.USER_ACTION_ANSWER_COOKIES,
       });
-      expect(state.context.hasAcceptedCookieBanner).toBe(true);
+      expect(state.context.hasAnsweredCookieBanner).toBe(true);
       // Expected next step depends on auth, which defaults to loading
       expect(state.step).toBe(OnboardingStep.Checking);
     });
@@ -178,7 +178,7 @@ describe('Onboarding Finite State Machine', () => {
         step: OnboardingStep.Checking,
         context: {
           ...initialOnboardingContext,
-          hasAcceptedCookieBanner: true,
+          hasAnsweredCookieBanner: true,
           authStatus: 'loading' as const,
         },
       };
@@ -196,7 +196,7 @@ describe('Onboarding Finite State Machine', () => {
         step: OnboardingStep.Login,
         context: {
           ...initialOnboardingContext,
-          hasAcceptedCookieBanner: true,
+          hasAnsweredCookieBanner: true,
           authStatus: 'unauthenticated' as const,
         },
       };
@@ -213,7 +213,7 @@ describe('Onboarding Finite State Machine', () => {
         step: OnboardingStep.PushNotifications,
         context: {
           ...initialOnboardingContext,
-          hasAcceptedCookieBanner: true,
+          hasAnsweredCookieBanner: true,
           authStatus: 'authenticated' as const,
           hasSkippedLogin: false,
           hasPushSubscription: false,
@@ -233,7 +233,7 @@ describe('Onboarding Finite State Machine', () => {
         step: OnboardingStep.OfflineContent,
         context: {
           ...initialOnboardingContext,
-          hasAcceptedCookieBanner: true,
+          hasAnsweredCookieBanner: true,
           authStatus: 'authenticated' as const,
           hasPushSubscription: true, // skipped past push
           offlineContentHandled: false,
@@ -255,7 +255,7 @@ describe('Onboarding Finite State Machine', () => {
       // This should lead to OfflineContent step if not handled.
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         offlineContentHandled: false,
@@ -267,7 +267,7 @@ describe('Onboarding Finite State Machine', () => {
     it('should proceed if the offline download ran even if not handled explicitly in DB', () => {
       const step = determineNextStep({
         ...initialOnboardingContext,
-        hasAcceptedCookieBanner: true,
+        hasAnsweredCookieBanner: true,
         authStatus: 'authenticated',
         hasPushSubscription: true,
         offlineContentHandled: false,

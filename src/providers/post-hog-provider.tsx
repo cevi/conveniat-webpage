@@ -1,9 +1,8 @@
 'use client';
 
-import { environmentVariables } from '@/config/environment-variables';
+import { useAnalyticsConsent } from '@/hooks/use-analytics-consent';
+import { loadPostHog } from '@/lib/posthog-client';
 import { PostHogContext, usePostHog } from '@/providers/posthog-context';
-import { filterPostHogNoise } from '@/utils/posthog-filters';
-import { registerPostHogSuperProperties } from '@/utils/posthog-super-properties';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { PostHog } from 'posthog-js';
 import type React from 'react';
@@ -56,12 +55,34 @@ const SuspendedPostHogPageView: React.FC = () => {
   );
 };
 
-export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+/**
+ * Hands out the PostHog client and keeps it in step with the analytics consent, so a changed
+ * answer takes effect without a reload.
+ */
+const usePostHogClient = (): PostHog | undefined => {
+  const consent = useAnalyticsConsent();
   const [client, setClient] = useState<PostHog | undefined>();
 
   useEffect(() => {
-    let disposeSuperProperties: (() => void) | undefined;
+    // Still hydrating, the answer cannot be read yet.
+    if (consent === undefined) return;
 
+    let cancelled = false;
+    void loadPostHog().then((posthog) => {
+      if (!cancelled) setClient(posthog);
+    });
+    return (): void => {
+      cancelled = true;
+    };
+  }, [consent]);
+
+  return client;
+};
+
+export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const client = usePostHogClient();
+
+  useEffect(() => {
     // Suppress ResizeObserver loop errors (often caused by browser extensions)
     const handleError = (errorEvent: ErrorEvent): void => {
       const message =
@@ -127,51 +148,11 @@ export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ child
     globalThis.addEventListener('error', handleError, { capture: true });
     globalThis.addEventListener('unhandledrejection', handleUnhandledRejection, { capture: true });
 
-    const isConfigured =
-      typeof globalThis !== 'undefined' &&
-      environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== undefined &&
-      environmentVariables.NEXT_PUBLIC_POSTHOG_KEY !== '' &&
-      environmentVariables.NEXT_PUBLIC_POSTHOG_HOST !== '' &&
-      // Disable PostHog inside the Live Preview iframe. Rapid 'Ctrl+S' saves trigger heavy
-      // Next.js RSC fetches and iframe reloads. If PostHog fires events during this, the
-      // '/ingest' proxy connections stall and exhaust the browser's 6-connection pool limit,
-      // breaking the iframe entirely. The parent Admin panel (`/admin`) is still tracked.
-      !(
-        globalThis.self !== globalThis.top &&
-        (globalThis.location.search.includes('preview=true') ||
-          globalThis.location.pathname.includes('/preview-fallback'))
-      );
-
-    if (isConfigured) {
-      void import('posthog-js').then((module_) => {
-        const posthog = module_.default;
-        posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {
-          api_host: '/ingest',
-          ui_host: 'https://eu.posthog.com',
-          person_profiles: 'identified_only',
-          capture_pageview: false, // page views are captured manually
-          capture_pageleave: true,
-          // filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
-          // see: https://github.com/cevi/conveniat-webpage/issues/1013
-          before_send: filterPostHogNoise,
-          // Silently handle PostHog network errors so they never bubble up
-          on_request_error: (error: unknown) => {
-            console.debug('[PostHog] Request failed silently:', error);
-          },
-        });
-        // Client first: super-property registration is best-effort telemetry setup
-        // and must never sit between init and the client being wired up.
-        setClient(posthog);
-        disposeSuperProperties = registerPostHogSuperProperties(posthog);
-      });
-    }
-
     return (): void => {
       globalThis.removeEventListener('error', handleError, { capture: true });
       globalThis.removeEventListener('unhandledrejection', handleUnhandledRejection, {
         capture: true,
       });
-      disposeSuperProperties?.();
     };
   }, []);
 

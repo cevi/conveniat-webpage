@@ -6,6 +6,8 @@ declare module 'next-auth' {
       uuid?: string | undefined;
       cevi_db_uuid?: number | undefined;
       group_ids?: number[] | undefined;
+      /** Unix seconds of the last time the groups were read from Cevi.DB. */
+      groups_synced_at?: number | undefined;
       nickname?: string | null | undefined;
       firstName?: string | undefined;
       lastName?: string | undefined;
@@ -16,6 +18,7 @@ declare module 'next-auth' {
     uuid?: string | undefined;
     cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
+    groups_synced_at?: number | undefined;
     nickname?: string | null | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
@@ -30,10 +33,12 @@ declare module 'next-auth/jwt' {
     uuid?: string | undefined;
     cevi_db_uuid?: number | undefined;
     group_ids?: number[] | undefined;
+    groups_synced_at?: number | undefined;
+    /** Unix seconds of the last time the user asked for their groups, whether it worked or not. */
+    sync_requested_at?: number | undefined;
     nickname?: string | null | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
-    error?: string | undefined;
     email?: string | undefined;
     name?: string | undefined;
   }

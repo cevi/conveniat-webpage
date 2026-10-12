@@ -832,32 +832,6 @@ export const BillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
-              type: 'row',
-              fields: [
-                {
-                  name: 'accountDebit',
-                  type: 'text',
-                  defaultValue: '1100',
-                  label: {
-                    en: 'Debit Account',
-                    de: 'Debitorenkonto',
-                    fr: 'Compte débiteur',
-                  },
-                },
-                {
-                  name: 'accountCredit',
-                  type: 'text',
-                  defaultValue: '3000',
-                  label: {
-                    en: 'Credit Account',
-                    de: 'Erfolgskonto',
-                    fr: 'Compte de résultat',
-                  },
-                },
-              ],
-            },
-
-            {
               name: 'scheduledReport',
               type: 'group',
               label: {

@@ -4,6 +4,7 @@ import { labels } from '@/features/material/components/material-labels';
 import { MaterialButton } from '@/features/material/components/material-ui';
 import type { useIncidentPhotoUpload } from '@/features/material/hooks/use-incident-photo-upload';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
+import { INCIDENT_PHOTO_UPLOAD } from '@/features/material/utils/incident-photo';
 import type { StaticTranslationString } from '@/types/types';
 import { Camera, Loader2, X } from 'lucide-react';
 import type React from 'react';
@@ -12,6 +13,11 @@ import { toast } from 'sonner';
 const text = {
   addPhoto: { de: 'Foto hinzufügen', en: 'Add photo', fr: 'Ajouter une photo' },
   photo: { de: 'Foto', en: 'Photo', fr: 'Photo' },
+  photoTooLarge: {
+    de: 'Das Foto ist zu gross (maximal 20 MB).',
+    en: 'The photo is too large (20 MB at most).',
+    fr: 'La photo est trop grande (20 Mo au maximum).',
+  },
 } satisfies Record<string, StaticTranslationString>;
 
 export const IncidentPhotoField: React.FC<{
@@ -54,6 +60,11 @@ export const IncidentPhotoField: React.FC<{
           // cleared, so choosing the same photo again after removing it fires a change
           event.target.value = '';
           if (file === undefined) return;
+          // the server refuses it too; trying the same photo again would never work
+          if (file.size > INCIDENT_PHOTO_UPLOAD.maxBytes) {
+            toast.error(text.photoTooLarge[locale]);
+            return;
+          }
           upload.upload(file).catch(() => toast.error(labels.error[locale]));
         }}
       />

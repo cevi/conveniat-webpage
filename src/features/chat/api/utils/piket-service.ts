@@ -46,6 +46,7 @@ export async function getActivePiketMembers(
       ],
     },
     depth: 1,
+    pagination: false,
   })) as unknown as { docs: PiketScheduleDocument[] };
 
   const entries = entriesResult.docs;
@@ -97,7 +98,7 @@ export async function syncPiketMembersToOpenChats(payload: Payload): Promise<voi
       ],
     },
     depth: 1,
-    limit: 100,
+    pagination: false,
   })) as unknown as { docs: PiketScheduleDocument[] };
 
   for (const schedule of activeSchedules.docs) {

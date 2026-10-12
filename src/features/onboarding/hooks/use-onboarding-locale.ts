@@ -1,6 +1,5 @@
 'use client';
 
-import type { cookieInfoText } from '@/features/onboarding/onboarding-constants';
 import { OnboardingStep } from '@/features/onboarding/types';
 import { enabledLocales, LOCALE } from '@/features/payload-cms/payload-cms/locales';
 import type { Locale } from '@/types/types';
@@ -15,12 +14,12 @@ const getInitialLocale = (): Locale => {
 };
 
 interface UseOnboardingLocaleResult {
-  locale: keyof typeof cookieInfoText;
+  locale: Locale;
   handleLanguageChange: (newLocale: string) => void;
 }
 
 export const useOnboardingLocale = (onboardingStep: OnboardingStep): UseOnboardingLocaleResult => {
-  const [locale, setLocale] = useState<keyof typeof cookieInfoText>(getInitialLocale);
+  const [locale, setLocale] = useState<Locale>(getInitialLocale);
   const [hasManuallyChangedLanguage, setHasManuallyChangedLanguage] = useState(() => {
     if (typeof globalThis === 'undefined') return false;
     // Treat unset locale cookie as "ready for manual change" or initial state
@@ -57,7 +56,7 @@ export const useOnboardingLocale = (onboardingStep: OnboardingStep): UseOnboardi
   }, []);
 
   const handleLanguageChange = useCallback((newLocale: string): void => {
-    setLocale(newLocale as keyof typeof cookieInfoText);
+    setLocale(newLocale as Locale);
     setHasManuallyChangedLanguage(true);
   }, []);
 
