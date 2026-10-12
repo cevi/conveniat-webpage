@@ -12,7 +12,7 @@ import type React from 'react';
  */
 export const AdminNavClient: React.FC<{
   groups: AdminNavGroup[];
-  navPreferences: NavPreferences | undefined;
+  navPreferences: Partial<NavPreferences> | undefined;
 }> = ({ groups, navPreferences }) => {
   const pathname = usePathname();
 
@@ -22,7 +22,7 @@ export const AdminNavClient: React.FC<{
         <NavGroup
           key={groupLabel}
           label={groupLabel}
-          {...(navPreferences?.groups[groupLabel] === undefined
+          {...(navPreferences?.groups?.[groupLabel] === undefined
             ? {}
             : { isOpen: navPreferences.groups[groupLabel].open })}
         >

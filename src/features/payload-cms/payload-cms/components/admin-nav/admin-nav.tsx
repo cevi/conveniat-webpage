@@ -9,10 +9,13 @@ import { EntityType } from 'payload';
 import { PREFERENCE_KEYS } from 'payload/shared';
 import type React from 'react';
 
-/** Which sidebar groups the user has collapsed. */
+/**
+ * Which sidebar groups the user has collapsed. Payload writes the stored value in parts, so one
+ * who has only ever closed the sidebar has `open` and no `groups`.
+ */
 const getNavPreferences = async (
   request: PayloadRequest | undefined,
-): Promise<NavPreferences | undefined> => {
+): Promise<Partial<NavPreferences> | undefined> => {
   if (!request?.user) return undefined;
   const { docs } = await request.payload.find({
     collection: 'payload-preferences',
@@ -28,7 +31,7 @@ const getNavPreferences = async (
       ],
     },
   });
-  return docs[0]?.value as NavPreferences | undefined;
+  return docs[0]?.value as Partial<NavPreferences> | undefined;
 };
 
 /**
