@@ -32,13 +32,15 @@ const CSRF_COOKIE = 'authjs.csrf-token=csrf; Path=/; HttpOnly';
 let sessionToken: JWT | undefined;
 jest.mock('@/utils/auth', () => ({
   auth: async (): Promise<Response> => {
+    // Read before the first await, so that overlapping requests each keep their own token.
+    const token = sessionToken;
     const { authOptions } = await import('@/features/next-auth/utils/next-auth-config');
     const jwt = authOptions.callbacks?.jwt as unknown as (parameters: {
       token: JWT;
     }) => Promise<JWT | null>;
     const headers = new Headers({ 'set-cookie': CSRF_COOKIE });
-    if (sessionToken !== undefined) {
-      const resolved = await jwt({ token: sessionToken });
+    if (token !== undefined) {
+      const resolved = await jwt({ token });
       headers.append(
         'set-cookie',
         resolved === null
