@@ -1,4 +1,3 @@
-import { DSN_TIMEOUT_MS } from '@/features/payload-cms/payload-cms/components/smtp-results/constants';
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
 import {
   extractEmailAddress,
@@ -23,8 +22,12 @@ export interface DeliveryEvent {
   manual?: boolean;
 }
 
-export type RecipientState =
-  'failed' | 'notSent' | 'delayed' | 'overdue' | 'noReport' | 'relayed' | 'delivered';
+/**
+ * What we can say about one recipient. `sent` is the normal good outcome: our mail server took
+ * the mail and nobody reported a failure. Most servers never confirm a delivery, and a relay on
+ * the way drops the request to, so `delivered` is a bonus and its absence says nothing.
+ */
+export type RecipientState = 'failed' | 'notSent' | 'delayed' | 'sent' | 'delivered';
 
 export interface RecipientDelivery {
   address: string;
@@ -33,14 +36,13 @@ export interface RecipientDelivery {
   /** The expected recipient a report names as the origin of this address. */
   via?: string;
   /** How our own mail server answered. Missing for an address we never sent to. */
-  submission?: { accepted: boolean; detail: string; durationMs?: number };
+  submission?: { accepted: boolean; detail: string; durationMs?: number; at?: string };
   events: DeliveryEvent[];
   state: RecipientState;
-  /** Set when other addresses reported in its place, as the members of a list do. */
-  listed?: boolean;
 }
 
 export interface DeliveryAttempt {
+  /** When the mail left for our mail server, which for a queued mail is later than its creation. */
   startedAt?: string;
   fromAddress?: string;
   recipients: RecipientDelivery[];
@@ -190,22 +192,16 @@ const isHandOff = (event: DeliveryEvent): boolean =>
 export const outcomeOf = (events: DeliveryEvent[]): DeliveryEvent | undefined =>
   events.findLast((event) => !isHandOff(event)) ?? events.at(-1);
 
-const stateOf = (recipient: RecipientDelivery, isOverdue: boolean): RecipientState => {
+const stateOf = (recipient: RecipientDelivery): RecipientState => {
   const outcome = outcomeOf(recipient.events);
-  if (outcome !== undefined) {
-    if (outcome.action === 'expanded') return 'relayed';
-    return outcome.action;
-  }
-  if (recipient.submission?.accepted === false) return 'notSent';
-  return isOverdue ? 'overdue' : 'noReport';
+  if (outcome !== undefined && !isHandOff(outcome)) return outcome.action as RecipientState;
+  return recipient.submission?.accepted === false ? 'notSent' : 'sent';
 };
 
 interface WorkingAttempt {
   startedAt: string | undefined;
   fromAddress?: string;
   recipients: Map<string, RecipientDelivery>;
-  /** When each recipient's mail went out. One attempt can hold several mails. */
-  sentAt: Map<string, string | undefined>;
   unassigned: DeliveryEvent[];
 }
 
@@ -224,7 +220,6 @@ interface Send {
 const newAttempt = (startedAt: string | undefined): WorkingAttempt => ({
   startedAt,
   recipients: new Map(),
-  sentAt: new Map(),
   unassigned: [],
 });
 
@@ -241,7 +236,7 @@ const recipientFor = (
   const key = address.toLowerCase();
   let recipient = attempt.recipients.get(key);
   if (recipient === undefined) {
-    recipient = { address: key, expected, events: [], state: 'noReport' };
+    recipient = { address: key, expected, events: [], state: 'sent' };
     attempt.recipients.set(key, recipient);
   }
   return recipient;
@@ -261,7 +256,11 @@ const addEvent = (recipient: RecipientDelivery, event: DeliveryEvent): void => {
  */
 const readSends = (
   results: SmtpResult[],
-  options: { toAddress: string | undefined; createdAt: string | undefined },
+  options: {
+    toAddress: string | undefined;
+    createdAt: string | undefined;
+    sentAt: string | undefined;
+  },
 ): { sends: Send[]; current: WorkingAttempt } => {
   const current = newAttempt(options.createdAt);
   const sends: Send[] = [];
@@ -285,7 +284,7 @@ const readSends = (
       index,
       addresses,
       queueId: queueIdOf(row),
-      startedAt: row.retriggeredAt ?? options.createdAt,
+      startedAt: row.sentAt ?? row.retriggeredAt ?? options.sentAt ?? options.createdAt,
       isResend: row.retriggeredBy !== undefined,
       superseded: false,
       row,
@@ -327,8 +326,8 @@ const readSends = (
         accepted: isAccepted,
         detail,
         ...(isAccepted && durationMs > 0 && { durationMs }),
+        ...(send.startedAt !== undefined && { at: send.startedAt }),
       };
-      attempt.sentAt.set(address, send.startedAt);
     }
   }
 
@@ -394,7 +393,7 @@ const readReport = (
   }));
 };
 
-const finishAttempt = (attempt: WorkingAttempt, now: number | undefined): DeliveryAttempt => {
+const finishAttempt = (attempt: WorkingAttempt): DeliveryAttempt => {
   const recipients = [...attempt.recipients.values()];
   const expected = recipients.filter((recipient) => recipient.expected);
   const { unassigned } = attempt;
@@ -416,13 +415,6 @@ const finishAttempt = (attempt: WorkingAttempt, now: number | undefined): Delive
     unassigned.length = 0;
   }
 
-  // A list address never reports for itself. Its members do. A member's report that names
-  // the list explains that list's silence; one that names no origin could explain anyone's.
-  const origins = new Set(recipients.map((recipient) => recipient.via));
-  const hasUnattributed =
-    unassigned.length > 0 ||
-    recipients.some((recipient) => !recipient.expected && recipient.via === undefined);
-
   for (const recipient of recipients) {
     // Mailbox order is not the order things happened in. Within the same second the
     // hand-off came first.
@@ -432,15 +424,7 @@ const finishAttempt = (attempt: WorkingAttempt, now: number | undefined): Delive
       return byTime === 0 ? Number(!isHandOff(a)) - Number(!isHandOff(b)) : byTime;
     });
 
-    const isListed =
-      recipient.expected &&
-      recipient.events.length === 0 &&
-      (origins.has(recipient.address) || hasUnattributed);
-    if (isListed) recipient.listed = true;
-
-    const sentAtMs = Date.parse(attempt.sentAt.get(recipient.address) ?? '');
-    const isOverdue = !isListed && now !== undefined && now > 0 && now - sentAtMs > DSN_TIMEOUT_MS;
-    recipient.state = stateOf(recipient, isOverdue);
+    recipient.state = stateOf(recipient);
   }
 
   return {
@@ -460,7 +444,7 @@ const finishAttempt = (attempt: WorkingAttempt, now: number | undefined): Delive
  *
  * @param results - The stored `smtpResults` of an outgoing mail or a form submission.
  * @param options - `toAddress` and `createdAt` of the mail, the sender addresses that are
- *   never a recipient, and the current time. Without `now` nothing counts as overdue.
+ *   never a recipient, and `sentAt`: when the mail last left, for sends stored without a time.
  * @returns The state per recipient, and the sends a resend replaced.
  */
 export const deriveDeliveryOverview = (
@@ -469,13 +453,14 @@ export const deriveDeliveryOverview = (
     systemEmails?: string[];
     toAddress?: string | undefined;
     createdAt?: string | undefined;
-    now?: number | undefined;
+    sentAt?: string | undefined;
   } = {},
 ): DeliveryOverview => {
   const systemEmails = options.systemEmails ?? [];
   const { sends, current } = readSends(results, {
     toAddress: options.toAddress,
     createdAt: options.createdAt,
+    sentAt: options.sentAt,
   });
 
   /** The send a row stored at `index` is about: the latest one before it to that address. */
@@ -557,10 +542,8 @@ export const deriveDeliveryOverview = (
     .at(-1);
 
   return {
-    current: finishAttempt(current, options.now),
-    earlier: sends
-      .filter((send) => send.superseded)
-      .map((send) => finishAttempt(send.attempt, options.now)),
+    current: finishAttempt(current),
+    earlier: sends.filter((send) => send.superseded).map((send) => finishAttempt(send.attempt)),
     reportCount: seen.size - counters.unreadable,
     unreadableCount: counters.unreadable,
     ...(lastFetchedAt !== undefined && { lastFetchedAt }),
