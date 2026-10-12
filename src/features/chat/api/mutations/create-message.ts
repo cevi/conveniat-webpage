@@ -131,10 +131,11 @@ export const createMessage = trpcBaseProcedure
     const validatedMessage = input;
 
     // 1. Global & Chat-specific Ability Check
-    await assertWriteAbilities(validatedMessage.chatId, validatedMessage.parentId);
+    await assertWriteAbilities(prisma, validatedMessage.chatId, validatedMessage.parentId);
 
     if (validatedMessage.type === MessageType.IMAGE_MSG) {
       const canUpload = await Ability.can(
+        prisma,
         CapabilityAction.Upload,
         CapabilitySubject.Images,
         validatedMessage.chatId,

@@ -64,7 +64,7 @@ export const chatRouter = createTRPCRouter({
         chatId: z.string().optional(),
       }),
     )
-    .query(async ({ input }): Promise<boolean> => {
-      return checkCapability(input.action, input.subject, input.chatId);
+    .query(async ({ input, ctx }): Promise<boolean> => {
+      return checkCapability(ctx.prisma, input.action, input.subject, input.chatId);
     }),
 });
