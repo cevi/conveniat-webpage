@@ -1,11 +1,24 @@
-import type { StaticTranslationString } from '@/types/types';
+import type { Locale, StaticTranslationString } from '@/types/types';
 
 /** Shown where PostHog is configured: the question both the banner and the onboarding ask. */
 export const analyticsConsentText: StaticTranslationString = {
-  de: 'Dürfen wir mit PostHog auswerten, wie du conveniat27 nutzt, und dabei Sitzungen aufzeichnen?',
-  en: 'May we use PostHog to analyse how you use conveniat27 and record sessions?',
-  fr: 'Pouvons-nous analyser avec PostHog ton utilisation de conveniat27 et enregistrer des sessions ?',
+  de: 'Wir zählen Seitenaufrufe und Fehler anonym und ohne Cookies. Dürfen wir zusätzlich mit PostHog Sitzungen aufzeichnen?',
+  en: 'We count page views and errors anonymously and without cookies. May we also record sessions with PostHog?',
+  fr: 'Nous comptons les pages vues et les erreurs de manière anonyme et sans cookies. Pouvons-nous en plus enregistrer des sessions avec PostHog ?',
 };
+
+export const learnMoreText: StaticTranslationString = {
+  de: 'Mehr erfahren',
+  en: 'Learn more',
+  fr: 'En savoir plus',
+};
+
+/**
+ * Where the privacy policy lives. The page belongs to the editors, so this breaks when its slug
+ * changes; it is the same slug in every locale.
+ */
+export const privacyPolicyPath = (locale: Locale): string =>
+  locale === 'de' ? '/datenschutz' : `/${locale}/datenschutz`;
 
 /** Shown where PostHog is not configured, so there is nothing to ask. */
 export const necessaryCookiesText: StaticTranslationString = {

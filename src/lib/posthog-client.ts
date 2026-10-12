@@ -2,7 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import { getAnalyticsConsent } from '@/utils/analytics-consent';
 import { filterPostHogNoise } from '@/utils/posthog-filters';
 import { registerPostHogSuperProperties } from '@/utils/posthog-super-properties';
-import type { PostHog } from 'posthog-js';
+import type { CaptureResult, PostHog } from 'posthog-js';
 
 // detect globalThis for SSR safety
 const isBrowser = typeof globalThis !== 'undefined' && 'window' in globalThis;
@@ -26,6 +26,20 @@ const isLivePreviewFrame = (): boolean =>
   (globalThis.location.search.includes('preview=true') ||
     globalThis.location.pathname.includes('/preview-fallback'));
 
+/**
+ * What PostHog still receives from somebody who did not consent: counted page views and errors,
+ * sent in cookieless mode. Everything else waits for consent.
+ */
+const ANONYMOUS_EVENTS = new Set(['$pageview', '$pageleave', '$exception']);
+
+const filterByConsent = (event: CaptureResult | null): CaptureResult | null => {
+  if (event !== null && getAnalyticsConsent() !== 'granted' && !ANONYMOUS_EVENTS.has(event.event)) {
+    // eslint-disable-next-line unicorn/no-null
+    return null;
+  }
+  return filterPostHogNoise(event);
+};
+
 const initPostHog = async (): Promise<PostHog> => {
   const { default: posthog } = await import('posthog-js');
   posthog.init(environmentVariables.NEXT_PUBLIC_POSTHOG_KEY ?? '', {
@@ -34,11 +48,13 @@ const initPostHog = async (): Promise<PostHog> => {
     person_profiles: 'identified_only',
     capture_pageview: false, // page views are captured manually
     capture_pageleave: true,
-    // Withdrawing consent also removes the PostHog cookie and local storage entry.
-    opt_out_persistence_by_default: true,
-    // filter out known noise like CefSharp bot errors (e.g., from Outlook Safe Links)
-    // see: https://github.com/cevi/conveniat-webpage/issues/1013
-    before_send: filterPostHogNoise,
+    // Without consent posthog-js runs cookieless: it stores nothing on the device, keeps no
+    // visitor id and records no sessions. Not having answered counts as not consenting.
+    cookieless_mode: 'on_reject',
+    opt_out_capturing_by_default: true,
+    // drops what needs consent, then known noise like CefSharp bot errors (e.g., from Outlook
+    // Safe Links), see: https://github.com/cevi/conveniat-webpage/issues/1013
+    before_send: filterByConsent,
     // Silently handle PostHog network errors so they never bubble up
     on_request_error: (error: unknown) => {
       console.debug('[PostHog] Request failed silently:', error);
@@ -53,38 +69,25 @@ const initPostHog = async (): Promise<PostHog> => {
 };
 
 /**
- * The PostHog client, or `undefined` while nobody consented to analytics.
+ * The PostHog client, switched to what the person currently consents to.
  *
- * This is the only place posthog-js is initialised. Until consent is granted the library is not
- * even downloaded, so nothing is stored on the device and nothing is sent to `/ingest`. Every
- * other caller reaches PostHog through `import('posthog-js')`, whose `capture` and
- * `captureException` do nothing on an instance that was never initialised.
+ * This is the only place posthog-js is initialised. With consent it runs in full: a visitor id
+ * in a cookie, autocapture and session recordings. Without consent, or before anybody answered,
+ * it only counts page views and errors in cookieless mode. Call it again whenever the answer
+ * changes.
  */
 export const loadPostHog = async (): Promise<PostHog | undefined> => {
   if (!isBrowser || !isPostHogConfigured() || isLivePreviewFrame()) return undefined;
-  if (getAnalyticsConsent() !== 'granted') return undefined;
 
   initializedClient ??= initPostHog();
   const posthog = await initializedClient;
 
-  // Consent may have been withdrawn while the library was loading.
-  if (getAnalyticsConsent() !== 'granted') return undefined;
-
-  // An earlier withdrawal leaves posthog-js opted out, also across page loads.
-  if (posthog.has_opted_out_capturing()) {
+  const isGranted = getAnalyticsConsent() === 'granted';
+  if (isGranted && posthog.has_opted_out_capturing()) {
     posthog.opt_in_capturing({ captureEventName: false });
+  } else if (!isGranted && posthog.has_opted_in_capturing()) {
+    // Back to cookieless mode, which also removes the PostHog cookie and local storage entry.
+    posthog.opt_out_capturing();
   }
   return posthog;
-};
-
-/**
- * Stops capturing after consent was withdrawn and removes what PostHog stored on the device.
- * Does nothing when PostHog was never started.
- */
-export const stopPostHog = async (): Promise<void> => {
-  if (initializedClient === undefined) return;
-  const posthog = await initializedClient;
-  if (getAnalyticsConsent() === 'granted') return;
-  posthog.opt_out_capturing();
-  posthog.stopSessionRecording();
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useAnalyticsConsent } from '@/hooks/use-analytics-consent';
-import { loadPostHog, stopPostHog } from '@/lib/posthog-client';
+import { loadPostHog } from '@/lib/posthog-client';
 import { PostHogContext, usePostHog } from '@/providers/posthog-context';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type { PostHog } from 'posthog-js';
@@ -56,18 +56,16 @@ const SuspendedPostHogPageView: React.FC = () => {
 };
 
 /**
- * Hands out the PostHog client while the person consents to analytics, and stops PostHog again
- * when they withdraw.
+ * Hands out the PostHog client and keeps it in step with the analytics consent, so a changed
+ * answer takes effect without a reload.
  */
 const usePostHogClient = (): PostHog | undefined => {
   const consent = useAnalyticsConsent();
   const [client, setClient] = useState<PostHog | undefined>();
 
   useEffect(() => {
-    if (consent !== 'granted') {
-      void stopPostHog();
-      return;
-    }
+    // Still hydrating, the answer cannot be read yet.
+    if (consent === undefined) return;
 
     let cancelled = false;
     void loadPostHog().then((posthog) => {
@@ -78,7 +76,7 @@ const usePostHogClient = (): PostHog | undefined => {
     };
   }, [consent]);
 
-  return consent === 'granted' ? client : undefined;
+  return client;
 };
 
 export const PostHogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -2,12 +2,15 @@ import {
   acceptAnalyticsText,
   acknowledgeCookiesText,
   analyticsConsentText,
+  learnMoreText,
   necessaryCookiesOnlyText,
   necessaryCookiesText,
+  privacyPolicyPath,
 } from '@/components/utils/cookie-consent-texts';
 import { isPostHogConfigured } from '@/lib/posthog-client';
 import type { AnalyticsConsent } from '@/utils/analytics-consent';
 import { setAnalyticsConsent } from '@/utils/analytics-consent';
+import Link from 'next/link';
 import React from 'react';
 
 // Both answers look the same on purpose: declining must be as easy as accepting.
@@ -28,7 +31,16 @@ export const AcceptCookieEntrypointComponent: React.FC<{
   return (
     <>
       <p className="mb-8 text-lg text-balance text-gray-700">
-        {asksForAnalytics ? analyticsConsentText[locale] : necessaryCookiesText[locale]}
+        {asksForAnalytics ? (
+          <>
+            {analyticsConsentText[locale]}{' '}
+            <Link href={privacyPolicyPath(locale)} className="underline">
+              {learnMoreText[locale]}
+            </Link>
+          </>
+        ) : (
+          necessaryCookiesText[locale]
+        )}
       </p>
 
       <div className="flex flex-wrap justify-center gap-4">

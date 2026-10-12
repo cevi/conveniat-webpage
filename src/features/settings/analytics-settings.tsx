@@ -10,15 +10,15 @@ import { ChartNoAxesColumn } from 'lucide-react';
 import type React from 'react';
 
 const analyticsSettingsTitle: StaticTranslationString = {
-  en: 'Usage analytics',
-  de: 'Nutzungsanalyse',
-  fr: "Analyse d'utilisation",
+  en: 'Session recordings',
+  de: 'Sitzungsaufzeichnungen',
+  fr: 'Enregistrements de session',
 };
 
 const analyticsSettingsSubtitle: StaticTranslationString = {
-  en: 'Usage, errors and sessions with PostHog',
-  de: 'Nutzung, Fehler und Sitzungen mit PostHog',
-  fr: 'Utilisation, erreurs et sessions avec PostHog',
+  en: 'Detailed usage analysis with PostHog',
+  de: 'Detaillierte Nutzungsanalyse mit PostHog',
+  fr: "Analyse détaillée de l'utilisation avec PostHog",
 };
 
 /**
