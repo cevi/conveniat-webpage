@@ -16,6 +16,9 @@ import type { CollectionConfig } from 'payload';
 export const QuartiereCollection: CollectionConfig = {
   slug: 'quartiere',
   typescript: { interface: 'Quartier' },
+  // A document that links a Quartier needs its name. Without this, the link would also carry
+  // the joined Höfe to every reader, e.g. to the programme of all participants.
+  defaultPopulate: { name: true },
   labels: {
     singular: { en: 'Quartier', de: 'Quartier', fr: 'Quartier' },
     plural: { en: 'Quartiers', de: 'Quartiere', fr: 'Quartiers' },

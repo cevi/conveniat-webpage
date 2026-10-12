@@ -4,7 +4,7 @@
 
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
 // The organiser rows carry a chat button that creates the chat through tRPC.
@@ -129,5 +129,67 @@ describe('ScheduleDetailContent organisers', () => {
     );
 
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
+  });
+});
+
+describe('ScheduleDetailContent tabs', () => {
+  const block = {
+    ...entryWith([]),
+    steps: [
+      { phase: 'intro', duration: 15, title: 'Gruppen bilden' },
+      { phase: 'main', duration: 55, title: 'Völkarten' },
+    ],
+    bring: [{ item: 'Trinkflasche' }],
+  } as unknown as CampScheduleEntry;
+
+  const leaderNotes = {
+    materials: [{ amount: '15', item: 'Malpfosten', responsible: 'MAT' }],
+    safety: 'Die TN tragen gutes Schuhwerk.',
+  };
+
+  it('shows a participant what to bring and the steps with the times of this slot', () => {
+    render(<ScheduleDetailContent entry={block} locale="de" />);
+
+    expect(screen.getByText('Trinkflasche')).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Material' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Sicherheit' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Ablauf' }));
+
+    // the block starts at 09:00, so its second step starts a quarter of an hour in
+    expect(screen.getByText('Völkarten')).toBeInTheDocument();
+    expect(screen.getByText('09:15')).toBeInTheDocument();
+  });
+
+  it('gives a leader the material list and the safety notes', () => {
+    render(<ScheduleDetailContent entry={block} locale="de" leaderNotes={leaderNotes} />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Material' }));
+    expect(screen.getByText('Malpfosten')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Sicherheit' }));
+    expect(screen.getByText('Die TN tragen gutes Schuhwerk.')).toBeInTheDocument();
+  });
+
+  it('shows no tabs for an entry that only has an overview', () => {
+    render(<ScheduleDetailContent entry={entryWith([])} locale="de" />);
+
+    expect(screen.queryByRole('tablist')).toBeNull();
+  });
+
+  it('names when the other Quartiere have the same block', () => {
+    const other: CampScheduleEntryFrontendType = {
+      id: 'entry-2',
+      title: 'Workshop Feuermachen',
+      description: emptyRichText,
+      timeslot: { date: '2027-07-27', time: '13:45 - 15:45' },
+      // eslint-disable-next-line unicorn/no-null
+      location: null,
+      quartiere: [{ id: 'q2', name: 'Quartier 2 - West' }],
+    };
+
+    render(<ScheduleDetailContent entry={entryWith([])} locale="de" otherSlots={[other]} />);
+
+    expect(screen.getByText('13:45 – 15:45 · Quartier 2 - West')).toBeInTheDocument();
   });
 });

@@ -1,50 +1,51 @@
-import type { CampMapAnnotation } from '@/features/payload-cms/payload-types';
-import { ScheduleItem } from '@/features/schedule/components/schedule-item';
+import { ScheduleFixedRow } from '@/features/schedule/components/schedule-fixed-row';
+import { ScheduleRow } from '@/features/schedule/components/schedule-row';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { Clock } from 'lucide-react';
+import { kindOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import type React from 'react';
 
 interface ScheduleListProperties {
-  groupedEntries: { time: string; entries: CampScheduleEntryFrontendType[] }[];
-  enrolledIds?: Set<string>;
-  onMapClick: (location: CampMapAnnotation) => void;
+  /** the entries of one day, in the order to show them */
+  entries: CampScheduleEntryFrontendType[];
+  enrolledIds: ReadonlySet<string>;
+  starredIds: ReadonlySet<string>;
+  /** the time of day in minutes when the list shows today, `undefined` on any other day */
+  minutesOfToday: number | undefined;
+  /** the entry running right now, as the "Jetzt" card names it */
+  currentId: string | undefined;
+  quartierChips: ReadonlySet<string> | undefined;
 }
 
+/**
+ * The programme of one day as a dense agenda. The day stays in order at any time: what is over
+ * is dimmed in place, never moved, so the list reads the same in the morning and at night.
+ */
 export const ScheduleList: React.FC<ScheduleListProperties> = ({
-  groupedEntries,
+  entries,
   enrolledIds,
-  onMapClick,
-}) => {
-  return (
-    <div className="space-y-6">
-      {groupedEntries.map((group) => (
-        <div key={group.time} className="space-y-3">
-          {/* Sticky Time Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between rounded-xl border-y border-gray-100 bg-gray-50/95 px-3 py-2 shadow-2xs backdrop-blur-xs">
-            <div className="flex items-center gap-2">
-              <Clock className="text-conveniat-green h-4 w-4" />
-              <span className="font-heading text-xs font-bold tracking-wider text-gray-800 uppercase">
-                {group.time} Uhr
-              </span>
-            </div>
-            <span className="font-body text-[11px] font-medium text-gray-500">
-              {group.entries.length} {group.entries.length === 1 ? 'Termin' : 'Termine'}
-            </span>
-          </div>
+  starredIds,
+  minutesOfToday,
+  currentId,
+  quartierChips,
+}) => (
+  <div className="border-t border-gray-100">
+    {entries.map((entry) => {
+      const end = slotOf(entry)?.end;
+      const isPast = minutesOfToday !== undefined && end !== undefined && end <= minutesOfToday;
 
-          {/* Full Width Event Cards */}
-          <div className="space-y-3">
-            {group.entries.map((entry) => (
-              <ScheduleItem
-                key={entry.id}
-                entry={entry}
-                isEnrolled={enrolledIds?.has(entry.id) ?? false}
-                onMapClick={onMapClick}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+      return kindOf(entry) === 'program' ? (
+        <ScheduleRow
+          key={entry.id}
+          entry={entry}
+          isEnrolled={enrolledIds.has(entry.id)}
+          isStarred={starredIds.has(entry.id)}
+          isNow={entry.id === currentId}
+          isPast={isPast}
+          quartierChips={quartierChips}
+        />
+      ) : (
+        <ScheduleFixedRow key={entry.id} entry={entry} isPast={isPast} />
+      );
+    })}
+  </div>
+);

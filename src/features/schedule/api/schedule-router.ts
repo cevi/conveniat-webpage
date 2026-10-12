@@ -61,6 +61,28 @@ export const scheduleRouter = createTRPCRouter({
     return getById(input.id, locale);
   }),
 
+  /** The Quartiere of the logged-in user, which the programme opens on. Empty for a guest. */
+  getMyQuartiere: publicProcedure.query(async ({ ctx }) => {
+    const { getQuartiereOfViewer } = await import('./viewer');
+    return getQuartiereOfViewer(ctx.user ?? undefined);
+  }),
+
+  /**
+   * What a block holds for the people running it. `null` for everybody else, so the detail
+   * page shows them no leader tabs at all.
+   */
+  getLeaderNotes: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input, ctx }) => {
+      // A guest gets the same "nothing" as a participant. A 401 would sign the client out, and
+      // the detail page asks this for every block it opens.
+      // eslint-disable-next-line unicorn/no-null -- a query result has to be serialisable
+      if (!ctx.user) return null;
+      const { getLeaderNotesOfEntry } = await import('./viewer');
+      // eslint-disable-next-line unicorn/no-null
+      return (await getLeaderNotesOfEntry(ctx.user, input.id, ctx.locale)) ?? null;
+    }),
+
   getHelperShifts: publicProcedure.query(async ({ ctx }) => {
     const { locale, prisma, user } = ctx;
     const { getHelperShifts } = await import('./get-helper-shifts');

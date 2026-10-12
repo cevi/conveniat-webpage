@@ -2794,6 +2794,14 @@ export interface CampScheduleEntry {
    */
   title: string;
   /**
+   * Only programme blocks get a card and a detail page. Fixed points (e.g. Tagwache, Nachtruhe), meals and transfers show as a single compact line.
+   */
+  kind: 'program' | 'fixpoint' | 'meal' | 'transfer';
+  /**
+   * Who plans and runs the block. Shown next to the category.
+   */
+  form?: ('rp' | 'hp' | 'hpStar') | null;
+  /**
    * The description of the entry
    */
   description: {
@@ -2836,6 +2844,44 @@ export interface CampScheduleEntry {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * What participants bring to the block, one item per row, e.g. "Trinkflasche".
+   */
+  bring?:
+    | {
+        item: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * The steps of the block in order. The app works out the clock times from the start of the block and the durations, so one description fits every Quartier.
+   */
+  steps?:
+    | {
+        phase: 'intro' | 'main' | 'end';
+        duration: number;
+        title: string;
+        text?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  leaders?: {
+    materials?:
+      | {
+          amount?: string | null;
+          item: string;
+          /**
+           * Who provides it, e.g. "Hof" or "MAT".
+           */
+          responsible?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    safety?: string | null;
+    safeguarding?: string | null;
+    badWeather?: string | null;
+    attachments?: (string | Document)[] | null;
+  };
   enable_enrolment?: boolean | null;
   hide_participant_list?: boolean | null;
   participants_min?: number | null;
@@ -2844,6 +2890,10 @@ export interface CampScheduleEntry {
    * Location of the Schedule Entry
    */
   location: string | CampMapAnnotation;
+  /**
+   * The Quartiere this entry is for. Leave empty for the whole camp. A Hof sees the entries of its Quartier.
+   */
+  quartiere?: (string | Quartier)[] | null;
   /**
    * Organiser
    */
@@ -7160,6 +7210,8 @@ export interface CampCategoriesSelect<T extends boolean = true> {
  */
 export interface CampScheduleEntrySelect<T extends boolean = true> {
   title?: T;
+  kind?: T;
+  form?: T;
   description?: T;
   timeslot?:
     | T
@@ -7168,11 +7220,43 @@ export interface CampScheduleEntrySelect<T extends boolean = true> {
         time?: T;
       };
   target_group?: T;
+  bring?:
+    | T
+    | {
+        item?: T;
+        id?: T;
+      };
+  steps?:
+    | T
+    | {
+        phase?: T;
+        duration?: T;
+        title?: T;
+        text?: T;
+        id?: T;
+      };
+  leaders?:
+    | T
+    | {
+        materials?:
+          | T
+          | {
+              amount?: T;
+              item?: T;
+              responsible?: T;
+              id?: T;
+            };
+        safety?: T;
+        safeguarding?: T;
+        badWeather?: T;
+        attachments?: T;
+      };
   enable_enrolment?: T;
   hide_participant_list?: T;
   participants_min?: T;
   participants_max?: T;
   location?: T;
+  quartiere?: T;
   organiser?: T;
   category?: T;
   lastEditedByUser?: T;
