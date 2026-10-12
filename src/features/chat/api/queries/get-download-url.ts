@@ -1,11 +1,9 @@
 import { assertChatMember } from '@/features/chat/api/checks/assert-chat-member';
 import { canManageChat } from '@/lib/chat-admin-access';
 import { isImageKeyOfChat } from '@/lib/chat-images';
-import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { createPresignedDownloadUrl } from '@/lib/presigned-urls';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
-import { GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 
@@ -36,14 +34,7 @@ export const getDownloadUrl = trpcBaseProcedure
       throw new TRPCError({ code: 'FORBIDDEN', message: 'This is not an image of this chat.' });
     }
 
-    const command = new GetObjectCommand({
-      Bucket: S3_BUCKET_NAME,
-      Key: key,
-    });
-
-    const url = await getSignedUrl(s3ClientPublic, command, { expiresIn: 3600 });
-
     return {
-      url,
+      url: await createPresignedDownloadUrl(key),
     };
   });

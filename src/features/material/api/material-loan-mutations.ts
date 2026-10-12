@@ -23,15 +23,14 @@ import {
 } from '@/features/material/api/material-shared';
 import { mergeBasketLines } from '@/features/material/utils/basket';
 import { holderKey, holderOf } from '@/features/material/utils/holders';
+import { INCIDENT_PHOTO_UPLOAD } from '@/features/material/utils/incident-photo';
 import { isReturnValid } from '@/features/material/utils/returns';
+import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import type { MaterialCondition, Prisma } from '@/lib/prisma/client';
-import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
+import { uploadInputShape } from '@/lib/upload-policy';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { TRPCError } from '@trpc/server';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 const logger = createLogger('material:loans');
@@ -422,17 +421,10 @@ export const reportIncident = materialTeamProcedure
 
 /** A presigned upload for the photo of a damage, stored next to the other user uploads. */
 export const createIncidentPhotoUploadUrl = materialTeamProcedure
-  .input(z.object({ contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/) }))
-  .mutation(async ({ input }) => {
-    const extension = input.contentType.split('/')[1] ?? 'jpg';
-    const key = `material-incidents/${randomUUID()}.${extension}`;
-    const url = await getSignedUrl(
-      s3ClientPublic,
-      new PutObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key, ContentType: input.contentType }),
-      { expiresIn: 600 },
-    );
-    return { url, key };
-  });
+  .input(z.object(uploadInputShape(INCIDENT_PHOTO_UPLOAD)))
+  .mutation(({ input }) =>
+    createPresignedUploadUrl(INCIDENT_PHOTO_UPLOAD, { keyPrefix: 'material-incidents/', ...input }),
+  );
 
 /**
  * Confirms requests as they were asked for, one pickup at a time: all of them turn prepared,
