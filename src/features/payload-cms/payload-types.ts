@@ -9280,8 +9280,6 @@ export interface BillSetting {
      */
     exemptLabel?: string | null;
   };
-  accountDebit?: string | null;
-  accountCredit?: string | null;
   /**
    * Emails the registration report and the bill overview on a fixed weekday.
    */
@@ -9866,8 +9864,6 @@ export interface BillSettingsSelect<T extends boolean = true> {
         fixedReferenceYear?: T;
         exemptLabel?: T;
       };
-  accountDebit?: T;
-  accountCredit?: T;
   scheduledReport?:
     | T
     | {

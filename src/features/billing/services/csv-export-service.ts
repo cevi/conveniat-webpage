@@ -31,6 +31,14 @@ export const FINANCE_COLUMNS: (keyof FinanceCsvRow)[] = [
   'Stornogrund',
 ];
 
+/**
+ * The accounts every booking is written against. They are fixed, not a setting: the finance
+ * team's Banana file expects exactly these, and `[CA]` is the temporary counter account
+ * Banana completes on import.
+ */
+const ACCOUNT_DEBIT = '11000';
+const ACCOUNT_CREDIT = '[CA]';
+
 /** The fee label the bill was raised under, e.g. "Teilnehmendenbeitrag". */
 const resolveFeeLabel = (roleType: string, rolePricing: RolePricingEntry[]): string => {
   const match = rolePricing.find(
@@ -59,10 +67,7 @@ const formatIsoDate = (date: Date): string =>
  */
 export function buildFinanceCsvRows(
   participants: BillParticipant[],
-  settings: Pick<
-    BillSetting,
-    'rolePricing' | 'paymentDeadlineDays' | 'accountDebit' | 'accountCredit'
-  >,
+  settings: Pick<BillSetting, 'rolePricing' | 'paymentDeadlineDays'>,
 ): FinanceCsvRow[] {
   const rolePricing = (settings.rolePricing ?? []) as RolePricingEntry[];
   const paymentDeadlineDays = settings.paymentDeadlineDays ?? 30;
@@ -90,8 +95,8 @@ export function buildFinanceCsvRows(
         Amount: bill.invoiceAmount ?? undefined,
         DateExpiration: formatIsoDate(expirationDate),
         Description: description,
-        AccountDebit: settings.accountDebit ?? '',
-        AccountCredit: settings.accountCredit ?? '',
+        AccountDebit: ACCOUNT_DEBIT,
+        AccountCredit: ACCOUNT_CREDIT,
         Storniert: isCancelled(bill),
         Stornogrund: bill.cancelReason ?? '',
       };
