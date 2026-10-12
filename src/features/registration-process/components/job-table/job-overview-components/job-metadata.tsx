@@ -1,8 +1,8 @@
 import {
   DetailRow,
   ExpandableSection,
-} from '@/features/registration_process/components/job-table/job-details-shared';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
+} from '@/features/registration-process/components/job-table/job-details-shared';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
 import { Calendar, Clock, Database, Hash, RotateCw } from 'lucide-react';
 import React from 'react';
 

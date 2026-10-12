@@ -3,7 +3,7 @@ import {
   ExpandableSection,
   flattenObject,
   renderValue,
-} from '@/features/registration_process/components/job-table/job-details-shared';
+} from '@/features/registration-process/components/job-table/job-details-shared';
 import React from 'react';
 
 interface JobInputDataProperties {

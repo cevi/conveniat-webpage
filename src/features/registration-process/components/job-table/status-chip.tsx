@@ -1,5 +1,5 @@
-import type { JobStatusFilter } from '@/features/registration_process/components/job-table/types';
-import { STATUS_CONFIG } from '@/features/registration_process/components/job-table/types'; // We'll need to define types shared
+import type { JobStatusFilter } from '@/features/registration-process/components/job-table/types';
+import { STATUS_CONFIG } from '@/features/registration-process/components/job-table/types'; // We'll need to define types shared
 import { cn } from '@/utils/tailwindcss-override';
 import { Plus } from 'lucide-react';
 import React from 'react';

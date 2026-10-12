@@ -1,9 +1,9 @@
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
-import { JobApprovalSection } from '@/features/registration_process/components/job-table/job-overview-components/job-approval-section';
-import { JobOverviewError } from '@/features/registration_process/components/job-table/job-overview-components/job-error-analysis';
-import { JobInputData } from '@/features/registration_process/components/job-table/job-overview-components/job-input-data';
-import { JobMetadata } from '@/features/registration_process/components/job-table/job-overview-components/job-metadata';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
+import { JobApprovalSection } from '@/features/registration-process/components/job-table/job-overview-components/job-approval-section';
+import { JobOverviewError } from '@/features/registration-process/components/job-table/job-overview-components/job-error-analysis';
+import { JobInputData } from '@/features/registration-process/components/job-table/job-overview-components/job-input-data';
+import { JobMetadata } from '@/features/registration-process/components/job-table/job-overview-components/job-metadata';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
 import React from 'react';
 
 interface JobOverviewProperties {

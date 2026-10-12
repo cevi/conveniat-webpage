@@ -4,8 +4,8 @@ import {
   JobTable,
   type JobStatusFilter,
   type RegistrationJob,
-} from '@/features/registration_process/components/job-table';
-import { useJobFilters } from '@/features/registration_process/hooks/use-job-filters';
+} from '@/features/registration-process/components/job-table';
+import { useJobFilters } from '@/features/registration-process/hooks/use-job-filters';
 import { trpc, TRPCProvider } from '@/trpc/client';
 import { Loader2 } from 'lucide-react';
 import React from 'react';

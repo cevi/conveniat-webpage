@@ -10,7 +10,7 @@ import { uploadRouter } from '@/features/payload-cms/api/upload-router';
 import { photoContestRouter } from '@/features/photo-contest/api/photo-contest-router';
 import { presenceRouter } from '@/features/presence/api/presence-router';
 import { pushTrackingRouter } from '@/features/push-tracking/api/push-tracking-router';
-import { registrationRouter } from '@/features/registration_process/api/registration-router';
+import { registrationRouter } from '@/features/registration-process/api/registration-router';
 import { scheduleRouter } from '@/features/schedule/api/schedule-router';
 import { shiftsRouter } from '@/features/schedule/api/shifts-router';
 import { profilePictureRouter } from '@/features/settings/api/profile-picture-router';

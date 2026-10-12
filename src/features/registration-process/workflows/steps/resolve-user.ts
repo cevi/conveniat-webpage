@@ -4,7 +4,7 @@ import {
   resolveBySearch,
   type StrategyContext,
   type StrategyResult,
-} from '@/features/registration_process/workflows/steps/resolve-user-strategies';
+} from '@/features/registration-process/workflows/steps/resolve-user-strategies';
 import { EXTERNAL_ROLE_TYPE, HITOBITO_CONFIG, getHitobito } from '@/lib/hitobito';
 import type { PersonAttributes } from '@/lib/hitobito/schemas';
 import { poll } from '@/lib/hitobito/utils';

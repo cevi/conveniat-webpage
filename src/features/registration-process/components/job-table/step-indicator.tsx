@@ -1,9 +1,9 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
 import {
   STEP_MAPPING,
   WORKFLOW_STEPS,
-} from '@/features/registration_process/components/job-table/types';
+} from '@/features/registration-process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 

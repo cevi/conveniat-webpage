@@ -1,11 +1,11 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { JobDetails } from '@/features/registration_process/components/job-table/job-details';
-import { StepIndicator } from '@/features/registration_process/components/job-table/step-indicator';
+import { JobDetails } from '@/features/registration-process/components/job-table/job-details';
+import { StepIndicator } from '@/features/registration-process/components/job-table/step-indicator';
 import type {
   JobStatusFilter,
   RegistrationJob,
-} from '@/features/registration_process/components/job-table/types';
-import { STATUS_CONFIG } from '@/features/registration_process/components/job-table/types';
+} from '@/features/registration-process/components/job-table/types';
+import { STATUS_CONFIG } from '@/features/registration-process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
 import { Check, ChevronRight, Copy } from 'lucide-react';

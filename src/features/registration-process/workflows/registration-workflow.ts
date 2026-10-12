@@ -7,7 +7,7 @@ import {
 } from '@/lib/hitobito/schemas';
 import type { WorkflowConfig } from 'payload';
 
-import { MANUAL_APPROVAL_REASON } from '@/features/registration_process/manual-approval-reason';
+import { MANUAL_APPROVAL_REASON } from '@/features/registration-process/manual-approval-reason';
 import { z } from 'zod';
 
 const CreateUserOutputSchema = z.object({
