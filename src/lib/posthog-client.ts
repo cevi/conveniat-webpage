@@ -80,7 +80,16 @@ export const loadPostHog = async (): Promise<PostHog | undefined> => {
   if (!isBrowser || !isPostHogConfigured() || isLivePreviewFrame()) return undefined;
 
   initializedClient ??= initPostHog();
-  const posthog = await initializedClient;
+  let posthog: PostHog;
+  try {
+    posthog = await initializedClient;
+  } catch (error: unknown) {
+    // Offline the posthog-js chunk cannot be fetched. Forget the failure, so the next call
+    // starts over instead of awaiting it forever.
+    initializedClient = undefined;
+    console.debug('[PostHog] Could not be started:', error);
+    return undefined;
+  }
 
   const isGranted = getAnalyticsConsent() === 'granted';
   if (isGranted && posthog.has_opted_out_capturing()) {

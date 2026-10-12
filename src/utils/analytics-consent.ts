@@ -36,9 +36,15 @@ export const setAnalyticsConsent = (consent: AnalyticsConsent): void => {
 };
 
 /**
- * Calls the listener whenever the answer changes in this tab. Returns the unsubscribe function.
+ * Calls the listener whenever the answer may have changed: in this tab, or in another one by the
+ * time this tab is looked at again. Returns the unsubscribe function.
  */
 export const subscribeToAnalyticsConsent = (listener: () => void): (() => void) => {
   globalThis.addEventListener(CONSENT_CHANGED_EVENT, listener);
-  return (): void => globalThis.removeEventListener(CONSENT_CHANGED_EVENT, listener);
+  // A cookie change in another tab raises no event here, so re-read on the way back.
+  globalThis.addEventListener('focus', listener);
+  return (): void => {
+    globalThis.removeEventListener(CONSENT_CHANGED_EVENT, listener);
+    globalThis.removeEventListener('focus', listener);
+  };
 };

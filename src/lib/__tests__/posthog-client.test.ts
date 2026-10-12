@@ -3,7 +3,11 @@
  */
 
 import { loadPostHog } from '@/lib/posthog-client';
-import { getAnalyticsConsent, setAnalyticsConsent } from '@/utils/analytics-consent';
+import {
+  getAnalyticsConsent,
+  setAnalyticsConsent,
+  subscribeToAnalyticsConsent,
+} from '@/utils/analytics-consent';
 import Cookies from 'js-cookie';
 import type { CaptureResult } from 'posthog-js';
 
@@ -100,5 +104,28 @@ describe('analytics consent', () => {
     await loadPostHog();
     expect(posthog.opt_out_capturing).toHaveBeenCalledTimes(1);
     expect(initOptions().before_send(event('$autocapture'))).toBeNull();
+  });
+
+  it('opts in again when consent is granted a second time, on the same client', async () => {
+    setAnalyticsConsent('granted');
+
+    await loadPostHog();
+    expect(posthog.opt_in_capturing).toHaveBeenCalledTimes(2);
+    expect(posthog.init).toHaveBeenCalledTimes(1);
+    expect(initOptions().before_send(event('$autocapture'))).not.toBeNull();
+  });
+
+  it('picks up an answer given in another tab once this one is focused again', () => {
+    const listener = jest.fn();
+    const unsubscribe = subscribeToAnalyticsConsent(listener);
+
+    // Another tab writes the cookie, which raises no event in this one.
+    Cookies.set('conveniat-analytics-consent', 'denied');
+    expect(listener).not.toHaveBeenCalled();
+
+    globalThis.dispatchEvent(new Event('focus'));
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(getAnalyticsConsent()).toBe('denied');
+    unsubscribe();
   });
 });
