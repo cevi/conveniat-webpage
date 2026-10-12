@@ -9,6 +9,7 @@ import { LexicalRichTextSection } from '@/features/payload-cms/components/conten
 import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
 import { useCurrentLocale } from '@/hooks/use-current-locale';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -110,9 +111,9 @@ const errorStatusText: StaticTranslationString = {
 export const EmergencyComponent: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFallback, setShowFallback] = useState(true);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator === 'undefined' ? true : navigator.onLine,
-  );
+  // not `navigator.onLine` read while rendering: Node has a `navigator` without it, so the server
+  // rendered the offline text and hydration failed
+  const isOnline = useOnlineStatus();
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   const router = useRouter();
@@ -151,7 +152,6 @@ export const EmergencyComponent: React.FC = () => {
   useEffect(() => {
     const updateStatus = (): void => {
       const online = typeof navigator === 'undefined' ? true : navigator.onLine;
-      setIsOnline(online);
       const isAuthenticated = status === 'authenticated';
 
       if (!online || !isAuthenticated) {
@@ -307,15 +307,13 @@ export const EmergencyComponent: React.FC = () => {
     }
   };
 
-  const isActuallyOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-  const isFallbackActive =
-    showFallback || !isOnline || isActuallyOffline || status !== 'authenticated';
+  const isFallbackActive = showFallback || !isOnline || status !== 'authenticated';
 
   // Determine fallback texts
   let fallbackMessage = offlineStatusText[locale];
-  if (isOnline && !isActuallyOffline && status !== 'authenticated') {
+  if (isOnline && status !== 'authenticated') {
     fallbackMessage = unauthenticatedStatusText[locale];
-  } else if (isOnline && !isActuallyOffline && status === 'authenticated' && showFallback) {
+  } else if (isOnline && status === 'authenticated' && showFallback) {
     // Allows distinction for API errors if showFallback is true but online+authed
     fallbackMessage = errorStatusText[locale];
   }

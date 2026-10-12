@@ -2,7 +2,6 @@ import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 import { AppNavBarServer } from '@/components/footer/app-nav-bar-server';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
-import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
@@ -46,11 +45,7 @@ const GlobalAppFooterWrapper: React.FC<{
       locale={locale}
       isAppMode={isInAppDesign}
       appNavBar={<AppNavBarServer locale={locale} />}
-      copyrightArea={
-        <FooterCopyrightClientWrapper>
-          <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />
-        </FooterCopyrightClientWrapper>
-      }
+      copyrightArea={<FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />}
     />
   );
 };
