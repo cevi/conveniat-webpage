@@ -6,19 +6,28 @@ import {
 import { isPostHogConfigured } from '@/lib/posthog-client';
 import React from 'react';
 
+const buttonClassName =
+  'font-heading transform rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md';
+
 export const FancyLoadingScreen: React.FC<{ locale?: 'de' | 'fr' | 'en' }> = ({
   locale = 'en',
 }) => {
+  const asksForAnalytics = isPostHogConfigured();
+
   return (
     <div className="relative flex w-full flex-col items-center justify-center">
       {/* Invisible Spacer to perfect match AcceptCookie card height */}
       <div className="invisible flex flex-col items-center">
         <p className="mb-8 text-lg text-balance text-gray-700">
-          {isPostHogConfigured() ? analyticsConsentText[locale] : necessaryCookiesText[locale]}
+          {asksForAnalytics ? analyticsConsentText[locale] : necessaryCookiesText[locale]}
         </p>
-        <button className="font-heading transform rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md">
-          {acknowledgeCookiesText[locale]}
-        </button>
+        <div className="flex flex-col gap-4">
+          <button className={buttonClassName}>{acknowledgeCookiesText[locale]}</button>
+          {/* The cookie step stacks a second answer where it asks for analytics. */}
+          {asksForAnalytics && (
+            <button className={buttonClassName}>{acknowledgeCookiesText[locale]}</button>
+          )}
+        </div>
       </div>
 
       {/* Actual Loading Bar Centered Overlay */}

@@ -10,6 +10,7 @@ import {
 import { isPostHogConfigured } from '@/lib/posthog-client';
 import type { AnalyticsConsent } from '@/utils/analytics-consent';
 import { setAnalyticsConsent } from '@/utils/analytics-consent';
+import { cn } from '@/utils/tailwindcss-override';
 import Link from 'next/link';
 import React from 'react';
 
@@ -43,7 +44,12 @@ export const AcceptCookieEntrypointComponent: React.FC<{
         )}
       </p>
 
-      <div className="flex flex-wrap justify-center gap-4">
+      {/* Stacked at one width: side by side they wrap on a phone and end up uneven. */}
+      <div
+        className={cn('flex flex-col items-center gap-4', {
+          'mx-auto w-full max-w-xs items-stretch': asksForAnalytics,
+        })}
+      >
         <button onClick={() => answer('denied')} className={buttonClassName}>
           {asksForAnalytics ? necessaryCookiesOnlyText[locale] : acknowledgeCookiesText[locale]}
         </button>
