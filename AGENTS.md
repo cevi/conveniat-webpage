@@ -295,7 +295,8 @@ and `deleteThing`, and anything else after what it does, like `archiveChat`.
 ## Git and pull requests
 
 Branch from `dev`. `dev` is protected too, so everything reaching it goes through a pull request
-with lint and the test suite green — no size of change is small enough to push straight to it.
+with `eslint`, `typecheck` and the test suite green — no size of change is small enough to push
+straight to it. `typecheck` is Prettier, the Payload artifact check and `tsc` in one job.
 `main` is protected the same way, and releases merge `dev` into `main` without squashing.
 Do not bump the version in `package.json` yourself. Every merge into `main` accumulates in one
 open release pull request that release-please keeps up to date. Its version comes from the commit
