@@ -46,6 +46,10 @@ import { updateTrackingRecords } from '@/features/payload-cms/payload-cms/tasks/
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import type { Payload } from 'payload';
 
+// A report is only taken for one about a mail when it quotes the Message-ID of that mail.
+const MESSAGE_ID = '<4f0c2c1e-7a0b-4a51-9d0c-2f6f3f0a9b11@cevi.tools>';
+const RAW_REPORT = `Message-ID: ${MESSAGE_ID}`;
+
 type Row = Record<string, unknown> & { id: string };
 
 interface World {
@@ -61,7 +65,7 @@ const world = (suppressed: string[] = []): World => {
   const suppressions: Row[] = suppressed.map((email, index) => ({ id: `s-${index}`, email }));
   const rowsOf = (collection: string): Row[] =>
     collection === 'email-suppressions' ? suppressions : mails;
-  const sendEmail = jest.fn().mockResolvedValue({ accepted: [] });
+  const sendEmail = jest.fn().mockResolvedValue({ accepted: [], messageId: MESSAGE_ID });
 
   const payload = {
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() },
@@ -120,7 +124,7 @@ const bounceFrom = async (
     outgoingEmailId,
     false,
     `Action: ${bounce.action}`,
-    'raw email',
+    RAW_REPORT,
     [bounce],
   );
   return state;
@@ -148,7 +152,7 @@ const reportOn = async (
     outgoingEmailId,
     report.action !== 'failed',
     `X-Postfix-Queue-ID: ${quotedQueueId}\nAction: ${report.action}`,
-    'raw email',
+    RAW_REPORT,
     [{ email: to, ...report }],
   );
 };
@@ -369,7 +373,10 @@ describe('suppressing addresses that keep bouncing', () => {
   it('counts a late bounce of the first send for that send, not for the resend', async () => {
     const state = world();
     await mailOnDay(state, 0, unreachable);
-    state.sendEmail.mockResolvedValueOnce({ response: '250 2.0.0 Ok: queued as FIRST01' });
+    state.sendEmail.mockResolvedValueOnce({
+      response: '250 2.0.0 Ok: queued as FIRST01',
+      messageId: MESSAGE_ID,
+    });
     const mail = await sendOnDay(state, 1);
     await resendOnDay(state, mail, 7, 'SECOND1');
     await reportOn(state, mail, relayed, 'avp@example.com', 'SECOND1');
@@ -385,7 +392,10 @@ describe('suppressing addresses that keep bouncing', () => {
   it('ties a bounce from a later server to its send through the hand-off report', async () => {
     const state = world();
     await mailOnDay(state, 0, unreachable);
-    state.sendEmail.mockResolvedValueOnce({ response: '250 2.0.0 Ok: queued as FIRST01' });
+    state.sendEmail.mockResolvedValueOnce({
+      response: '250 2.0.0 Ok: queued as FIRST01',
+      messageId: MESSAGE_ID,
+    });
     const mail = await sendOnDay(state, 1);
     // Our server hands the first send to the next one, which names its own id for it.
     await updateTrackingRecords(
@@ -393,7 +403,7 @@ describe('suppressing addresses that keep bouncing', () => {
       mail,
       true,
       'X-Postfix-Queue-ID: FIRST01\nAction: relayed\n250 2.0.0 Ok: queued as NEXTHOP01',
-      'raw email',
+      RAW_REPORT,
       [{ email: 'avp@example.com', ...relayed }],
     );
     await resendOnDay(state, mail, 2, 'SECOND1');
@@ -476,6 +486,26 @@ describe('suppressing addresses that bounced', () => {
     expect(suppressions).toEqual([]);
   });
 
+  it('does not suppress on a notification that does not quote the Message-ID of the mail', async () => {
+    // Anybody can write to the address reports come back to and claim a mailbox is gone.
+    const state = world();
+    const { outgoingEmailId } = await sendTrackedEmail(state.payload, {
+      to: 'avp@example.com',
+      subject: 'Rechnung',
+    });
+    const forged = 'Message-ID: <avp@example.com>\nFinal-Recipient: rfc822; avp@example.com';
+
+    await expect(
+      updateTrackingRecords(state.payload, outgoingEmailId, false, 'Action: failed', forged, [
+        { email: 'avp@example.com', action: 'failed', status: '5.1.1' },
+      ]),
+    ).resolves.toBe(false);
+
+    expect(state.suppressions).toEqual([]);
+    expect(state.mails[0]?.['deliveryStatus']).toBe('success');
+    expect(state.mails[0]?.['smtpResults']).toHaveLength(1);
+  });
+
   it('keeps a mailing list reachable when the mailbox of one member is gone', async () => {
     // What comes back from a Cevi.DB group or a forwarding address names the member.
     const { payload, suppressions, sendEmail } = await bounceFrom('hof-uster@lists.example.com', {
@@ -503,7 +533,7 @@ describe('suppressing addresses that bounced', () => {
       String(state.mails[0]?.id),
       false,
       'Action: failed',
-      'raw email',
+      RAW_REPORT,
       [bounce],
     );
 
@@ -609,7 +639,7 @@ describe('suppressing addresses that bounced', () => {
     const bounce = { email: 'gone@example.com', action: 'failed', status: '5.1.1' };
 
     await expect(
-      updateTrackingRecords(state.payload, outgoingEmailId, false, 'Action: failed', 'raw email', [
+      updateTrackingRecords(state.payload, outgoingEmailId, false, 'Action: failed', RAW_REPORT, [
         bounce,
       ]),
     ).rejects.toThrow('connection timed out');

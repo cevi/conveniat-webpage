@@ -1,4 +1,7 @@
-import { determineDeliveryStatus } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
+import {
+  determineDeliveryStatus,
+  getQuotedMessageIds,
+} from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
 import type { ParsedMail } from 'mailparser';
 
 const notification = (subject: string, report: string): ParsedMail =>
@@ -114,5 +117,22 @@ describe('determineDeliveryStatus', () => {
     expect(determineDeliveryStatus(parsed).dsnString).toContain(
       'Final-Recipient: rfc822; coach@example.com',
     );
+  });
+});
+
+describe('getQuotedMessageIds', () => {
+  it('reads the whole Message-ID from the returned headers, so half of one finds no mail', () => {
+    const raw = [
+      'Message-ID: <20270301080000.1A2B3C@mail.example.net>',
+      'Content-Type: text/rfc822-headers',
+      '',
+      'Message-Id: <4f0c2c1e-7a0b-4a51-9d0c-2f6f3f0a9b11@cevi.tools>',
+      'To: avp@example.com',
+    ].join('\r\n');
+
+    expect(getQuotedMessageIds(notification('Undelivered', ''), raw)).toEqual([
+      '20270301080000.1A2B3C@mail.example.net',
+      '4f0c2c1e-7a0b-4a51-9d0c-2f6f3f0a9b11@cevi.tools',
+    ]);
   });
 });
