@@ -27,6 +27,24 @@ export const getOriginalEnvelopeId = (parsed: ParsedMail): string | undefined =>
   return undefined;
 };
 
+/**
+ * The Message-IDs a notification quotes, without the angle brackets. Its own is among them.
+ *
+ * @param parsed - The parsed notification.
+ * @param rawEmail - The notification as it was read from the mailbox, which is where the
+ *   returned headers of the original mail are.
+ */
+export const getQuotedMessageIds = (parsed: ParsedMail, rawEmail: string): string[] => {
+  const text = typeof parsed.text === 'string' ? parsed.text : '';
+  return [
+    ...new Set(
+      [rawEmail, text].flatMap((source) =>
+        [...source.matchAll(/Message-ID:\s*<([^<>\s]+)>/gi)].map((match) => match[1] as string),
+      ),
+    ),
+  ];
+};
+
 export interface RecipientBounce {
   email?: string;
   action?: string;
