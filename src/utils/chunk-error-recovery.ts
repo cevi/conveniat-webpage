@@ -78,13 +78,28 @@ export const isStaleBundleError = (error: unknown, fallbackMessage = ''): boolea
   );
 };
 
+/** How long the reload waits for the worker's update check before going ahead without it. */
+const SERVICE_WORKER_UPDATE_TIMEOUT_MS = 3000;
+
 /**
- * A precache written by the previous build keeps answering with the same missing chunk across
- * reloads, so it has to be dropped before reloading can pick up anything new.
+ * The worker of the previous build keeps answering from the precache it was installed with, so
+ * these errors come back on every reload until the current worker has replaced it.
  */
-const requiresServiceWorkerReset = (message: string): boolean =>
+const requiresServiceWorkerUpdate = (message: string): boolean =>
   message.includes('bad-precaching-response') ||
   message.includes('module factory is not available');
+
+/**
+ * Asks the browser to fetch the current worker, which takes over and replaces the precache as
+ * soon as it is installed.
+ *
+ * The registration is never unregistered: the Push API deactivates its push subscription with
+ * it, and the phone then stops receiving pushes without anyone noticing.
+ */
+const updateServiceWorker = async (): Promise<void> => {
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.update()));
+};
 
 /**
  * Reloads onto the current build when `error` is a stale-bundle error, and reports whether it
@@ -117,16 +132,16 @@ export const attemptStaleBundleRecovery = (error: unknown, fallbackMessage = '')
   console.warn('[chunk-recovery] Stale bundle detected, reloading onto the current build:', error);
 
   if (
-    requiresServiceWorkerReset(messageOf(error, fallbackMessage)) &&
+    requiresServiceWorkerUpdate(messageOf(error, fallbackMessage)) &&
     'serviceWorker' in navigator
   ) {
-    void navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) =>
-        Promise.all(registrations.map((registration) => registration.unregister())),
-      )
+    // On a network too slow to answer the update check, the reload is still worth trying.
+    const timeout = new Promise<void>((resolve) => {
+      setTimeout(resolve, SERVICE_WORKER_UPDATE_TIMEOUT_MS);
+    });
+    void Promise.race([updateServiceWorker(), timeout])
       .catch((error_: unknown) => {
-        console.warn('[chunk-recovery] Could not unregister the service worker:', error_);
+        console.warn('[chunk-recovery] Could not update the service worker:', error_);
       })
       .finally(() => {
         reloadPage();
