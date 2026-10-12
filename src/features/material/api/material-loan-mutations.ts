@@ -24,12 +24,10 @@ import {
 import { mergeBasketLines } from '@/features/material/utils/basket';
 import { holderKey, holderOf } from '@/features/material/utils/holders';
 import { isReturnValid } from '@/features/material/utils/returns';
+import { createPresignedUploadUrl } from '@/lib/presigned-upload';
 import type { MaterialCondition, Prisma } from '@/lib/prisma/client';
-import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -41,6 +39,9 @@ const photoKeySchema = z
   .string()
   .regex(/^material-incidents\/[\w-]+\.(jpg|jpeg|png|webp|heic|heif)$/)
   .optional();
+
+/** The photo is uploaded as taken, without resizing, so this has to fit a full-size phone photo. */
+const INCIDENT_PHOTO_MAX_BYTES = 20 * 1024 * 1024;
 
 /**
  * Books a basket at the counter in one go: every line becomes a loan, handed out now or
@@ -422,15 +423,16 @@ export const reportIncident = materialTeamProcedure
 
 /** A presigned upload for the photo of a damage, stored next to the other user uploads. */
 export const createIncidentPhotoUploadUrl = materialTeamProcedure
-  .input(z.object({ contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/) }))
+  .input(
+    z.object({
+      contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/),
+      contentLength: z.number().int().positive().max(INCIDENT_PHOTO_MAX_BYTES),
+    }),
+  )
   .mutation(async ({ input }) => {
     const extension = input.contentType.split('/')[1] ?? 'jpg';
     const key = `material-incidents/${randomUUID()}.${extension}`;
-    const url = await getSignedUrl(
-      s3ClientPublic,
-      new PutObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key, ContentType: input.contentType }),
-      { expiresIn: 600 },
-    );
+    const url = await createPresignedUploadUrl({ key, ...input, expiresInSeconds: 600 });
     return { url, key };
   });
 

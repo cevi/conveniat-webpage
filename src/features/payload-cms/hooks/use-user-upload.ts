@@ -1,4 +1,5 @@
 import type { UploadReturnType } from '@/features/payload-cms/components/user-upload/upload-user-image';
+import type { UserImageContentType } from '@/features/payload-cms/constants/user-image-upload';
 import { trpc } from '@/trpc/client';
 import { useCallback, useState } from 'react';
 
@@ -20,8 +21,9 @@ export const useUserUpload = (): UseUserUploadResult => {
 
         // Get presigned URL
         const { url, key } = await getPresignedUrlMutation.mutateAsync({
-          filename: file.name,
-          contentType: file.type,
+          // the server knows the allowed types; an unknown one is turned away there
+          contentType: file.type as UserImageContentType,
+          contentLength: file.size,
         });
 
         // Upload to S3

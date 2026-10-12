@@ -28,7 +28,10 @@ export const useIncidentPhotoUpload = (
   const upload = async (file: File): Promise<void> => {
     setIsUploading(true);
     try {
-      const { url, key } = await createUploadUrl.mutateAsync({ contentType: file.type });
+      const { url, key } = await createUploadUrl.mutateAsync({
+        contentType: file.type,
+        contentLength: file.size,
+      });
       const response = await fetch(url, {
         method: 'PUT',
         body: file,

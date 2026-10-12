@@ -7,6 +7,7 @@ import { DescriptionInput } from '@/features/image-submission/description-input'
 import { FilePreviewList } from '@/features/image-submission/file-preview-list';
 import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
 import { SubmitButton } from '@/features/image-submission/submit-button';
+import { USER_IMAGE_MAX_BYTES } from '@/features/payload-cms/constants/user-image-upload';
 import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -146,7 +147,7 @@ const ImageUploadPage: React.FC = () => {
       const newFileItems: FileItem[] = await Promise.all(
         newFiles.map(async (file) => {
           const { isValid: isValidDimensions, width, height } = await checkImageDimensions(file);
-          const isValidSize = file.size < 10 * 1024 * 1024;
+          const isValidSize = file.size <= USER_IMAGE_MAX_BYTES;
           let error: string | undefined;
 
           if (!isValidDimensions) {

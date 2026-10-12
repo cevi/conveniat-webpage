@@ -3,12 +3,12 @@ import {
   toAvatar,
 } from '@/features/payload-cms/payload-cms/utils/profile-pictures';
 import prisma from '@/lib/db/prisma';
-import { S3_BUCKET_NAME, s3Client, s3ClientPublic } from '@/lib/s3';
+import { createPresignedUploadUrl } from '@/lib/presigned-upload';
+import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'node:crypto';
@@ -38,14 +38,15 @@ const currentVersionOf = async (userId: string): Promise<string | undefined> => 
 export const profilePictureRouter = createTRPCRouter({
   /** A URL the phone uploads the photo to directly, so it does not pass through the app. */
   createProfilePictureUploadUrl: trpcBaseProcedure
-    .input(z.object({ contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/) }))
+    .input(
+      z.object({
+        contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/),
+        contentLength: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const key = `${uploadPrefixOf(ctx.user.uuid)}${randomUUID()}`;
-      const url = await getSignedUrl(
-        s3ClientPublic,
-        new PutObjectCommand({ Bucket: S3_BUCKET_NAME, Key: key, ContentType: input.contentType }),
-        { expiresIn: 600 },
-      );
+      const url = await createPresignedUploadUrl({ key, ...input, expiresInSeconds: 600 });
       return { url, key };
     }),
 
