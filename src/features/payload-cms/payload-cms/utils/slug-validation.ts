@@ -134,6 +134,7 @@ export const slugValidation: TextFieldSingleValidation = async (value, arguments
       collection: collectionSlug as CollectionSlug,
       draft: false,
       locale: locale as Locale,
+      pagination: false,
       where: {
         and: [
           { id: { not_equals: (data as { id: string })['id'] } },

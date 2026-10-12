@@ -166,6 +166,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
     const pages = await payload.find({
       collection: 'generic-page',
       depth: 1,
+      limit: limitPerCategory,
       locale,
       where: {
         and: [
@@ -211,6 +212,7 @@ const SearchPage: React.FC<LocalizedPageType> = async ({
     const blogs = await payload.find({
       collection: 'blog',
       depth: 1,
+      limit: limitPerCategory,
       locale,
       where: {
         and: [

@@ -88,6 +88,12 @@ const morningWorkshop = {
   timeslot: { date: '2027-07-24T00:00:00.000Z', time: '09:00 - 10:00' },
 };
 
+/** The two arguments that decide how many documents `payload.find` returns. */
+interface PaginationArguments {
+  pagination?: boolean;
+  limit?: number;
+}
+
 /**
  * A shift enrolment is one row among the workshop enrolments, and the workshop mutations used to
  * reach it: handing them the id of a shift took a helper out of it after the withdrawal deadline,
@@ -171,5 +177,37 @@ describe('scheduleRouter and the shift withdrawal deadline', () => {
       }),
     ).resolves.toMatchObject({ success: true });
     expect(enrollment.delete).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Payload hands back ten documents unless a query opts out of pagination, so a clash with the
+   * eleventh enrolment went unseen and the helper was booked twice for the same hour.
+   */
+  it('sees a time conflict with the eleventh shift a helper is enrolled in', async () => {
+    const shiftIds = Array.from({ length: 11 }, (_, index) => `shift-${index + 1}`);
+    enrollment.findMany.mockImplementation(({ where }: { where: { courseType: CourseType } }) =>
+      Promise.resolve(
+        where.courseType === CourseType.SHIFT ? shiftIds.map((courseId) => ({ courseId })) : [],
+      ),
+    );
+    find.mockImplementation(
+      ({ where, pagination, limit }: { where: { id: { in: string[] } } } & PaginationArguments) => {
+        const shifts = where.id.in.map((id) => ({
+          id,
+          title: 'Abwasch',
+          timeslot: {
+            date: morningWorkshop.timeslot.date,
+            time: id === 'shift-11' ? '09:30 - 11:00' : '14:00 - 15:00',
+          },
+        }));
+        const pageSize = limit ?? (pagination === false ? 0 : 10);
+        return Promise.resolve({ docs: pageSize === 0 ? shifts : shifts.slice(0, pageSize) });
+      },
+    );
+
+    await expect(caller().enrollInCourse({ courseId: 'workshop-1' })).rejects.toThrow(
+      'Time conflict with shift: Abwasch|shift-11',
+    );
+    expect(enrollment.create).not.toHaveBeenCalled();
   });
 });

@@ -199,6 +199,26 @@ const config = defineConfig([
     },
   },
 
+  // 3d. Payload queries say how many documents they want
+  //
+  // `payload.find` returns ten documents unless told otherwise, and nothing in the result looks
+  // truncated. A query that needs every match sets `pagination: false`; one that needs a single
+  // document or a page sets `limit`.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.property.name="find"] > ObjectExpression.arguments:has(> Property[key.name="collection"]):not(:has(> Property[key.name=/^(limit|pagination)$/]))',
+          message:
+            'payload.find returns only 10 documents by default. Set `pagination: false` to get every match, or an explicit `limit`.',
+        },
+      ],
+    },
+  },
+
   // typescript-eslint naming conventions
   {
     // we check typescript naming conventions only for typescript files

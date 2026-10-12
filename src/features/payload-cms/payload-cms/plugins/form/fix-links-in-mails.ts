@@ -68,13 +68,24 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
     if (uuids.length > 0) {
       const [genericPages, blogs, mapAnnotations] = await Promise.all([
-        payload.find({ collection: 'generic-page', where: { id: { in: uuids } }, depth: 0 }),
-        payload.find({ collection: 'blog', where: { id: { in: uuids } }, depth: 0 }),
+        payload.find({
+          collection: 'generic-page',
+          where: { id: { in: uuids } },
+          depth: 0,
+          pagination: false,
+        }),
+        payload.find({
+          collection: 'blog',
+          where: { id: { in: uuids } },
+          depth: 0,
+          pagination: false,
+        }),
         environmentVariables.FEATURE_ENABLE_APP_FEATURE
           ? payload.find({
               collection: 'camp-map-annotations',
               where: { id: { in: uuids } },
               depth: 0,
+              pagination: false,
             })
           : { docs: [] as { id: string }[] },
       ]);

@@ -165,6 +165,7 @@ async function saveAndFetchUserFromPayload(
     const matchedByUuid = await payload.find({
       collection: 'users',
       where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
+      limit: 1,
     });
 
     if (matchedByUuid.totalDocs > 1) {
@@ -205,6 +206,7 @@ async function saveAndFetchUserFromPayload(
     const matchedByEmail = await payload.find({
       collection: 'users',
       where: { email: { equals: userProfile.email } },
+      limit: 1,
     });
 
     if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {

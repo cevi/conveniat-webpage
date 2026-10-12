@@ -34,6 +34,7 @@ export async function getPayloadUserFromNextAuthUser(
     .find({
       collection: 'users',
       where: { id: { equals: nextAuthUser.uuid } },
+      limit: 1,
     })
     .then((response) => response.docs[0]);
 }
