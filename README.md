@@ -222,8 +222,8 @@ catch errors at compile time and improves code reliability.
 - **ESLint (`eslint.config.mjs`):** Used for identifying and reporting on patterns in JavaScript/TypeScript code.
   Includes rules from `eslint:recommended`, `typescript-eslint`, `unicorn`, `react-hooks`, `next/core-web-vitals`, and
   custom rules for conventions and import restrictions.
-- **Prettier:** Used for automatic code formatting to ensure a consistent style. Integrated via
-  `eslint-plugin-prettier`.
+- **Prettier:** Used for automatic code formatting to ensure a consistent style. It runs on its own with
+  `pnpm prettier`; `eslint-config-prettier` only switches off the ESLint rules that would fight it.
 - **Run Checks:**
   ```bash
   # Run type checking
