@@ -1,4 +1,4 @@
-import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { canOverseeAllChats, canRunSupportDesk, isSupportDeskChat } from '@/lib/chat-admin-access';
 import {
   recordSseEventDelivered,
   recordSseStreamClosed,
@@ -52,11 +52,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Filter out user.uuid as they automatically subscribe to their own channel
   const requestedChatIds = rawChatIds.filter((id) => id !== user.uuid);
 
-  // Verify membership for all requested chats (admins bypass membership check)
-  const isAdmin = hasAccessToThisUser({
-    user: { group_ids: user.group_ids },
-    requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-  });
+  // The chat oversight skips the membership check and gets everything on the `all` channel.
+  // The support desk gets the `all` channel narrowed to its own chats, see below.
+  const overseesAllChats = canOverseeAllChats(user);
+  const isAdmin = overseesAllChats || canRunSupportDesk(user);
 
   const containsAll = rawChatIds.includes('all');
   if (containsAll && !isAdmin) {
@@ -82,13 +81,14 @@ export async function GET(request: NextRequest): Promise<Response> {
   // its id until it refetches the chat list, and rejecting the whole stream for that one id
   // would cut every other chat off from realtime as well.
   let chatIds = requestedChatIds;
-  if (!isAdmin && requestedChatIds.length > 0) {
+  const requestedChats = requestedChatIds.filter((id) => id !== 'all');
+  if (!overseesAllChats && requestedChats.length > 0) {
     const memberships = await prisma.chatMembership.findMany({
-      where: { userId: user.uuid, chatId: { in: requestedChatIds } },
+      where: { userId: user.uuid, chatId: { in: requestedChats } },
       select: { chatId: true },
     });
     const memberOf = new Set(memberships.map((membership) => membership.chatId));
-    chatIds = requestedChatIds.filter((id) => memberOf.has(id));
+    chatIds = requestedChatIds.filter((id) => id === 'all' || memberOf.has(id));
 
     if (chatIds.length !== requestedChatIds.length) {
       // Debug: expected on every reconnect between a removal and the client's next refetch.
@@ -211,6 +211,25 @@ export async function GET(request: NextRequest): Promise<Response> {
         }
       };
 
+      // The `all` channel carries every chat's events, message bodies included. The support
+      // desk is handed those of its own chats only. The lookup is asynchronous, so events
+      // are chained to reach the client in the order they were published.
+      let supportDeskQueue: Promise<void> = Promise.resolve();
+      const supportDeskListener = (event: ChatRealtimeEvent): void => {
+        supportDeskQueue = supportDeskQueue
+          .then(async (): Promise<void> => {
+            if (isCleanedUp()) return;
+            if (await isSupportDeskChat(prisma, event.chatId)) listener(event);
+          })
+          .catch((error: unknown) => {
+            logger.error('Failed to check an event of the all channel against the support desk', {
+              error,
+              'chat.user.id': user.uuid,
+              'chat.event.type': event.type,
+            });
+          });
+      };
+
       // The Postgres LISTEN connection behind the pub/sub can be recycled while this
       // stream stays open. Nothing is replayed, so tell the client to refetch.
       const unsubscribeRestored = chatPubSub.onConnectionRestored((): void => {
@@ -262,7 +281,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         if (isCleanedUp()) break;
 
         try {
-          const unsubscribe = await chatPubSub.subscribe(chatId, listener);
+          const unsubscribe = await chatPubSub.subscribe(
+            chatId,
+            chatId === 'all' && !overseesAllChats ? supportDeskListener : listener,
+          );
 
           // Guard against race conditions if client aborted during the await
           if (isCleanedUp()) {

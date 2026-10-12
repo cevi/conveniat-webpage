@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { GET } from '@/app/(frontend)/api/chat/sse/route';
+import { hasAccessToThisUser } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { chatPubSub } from '@/lib/db/chat-pubsub';
 import prisma from '@/lib/db/prisma';
 import { auth } from '@/utils/auth';
@@ -11,10 +12,8 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 jest.mock('@/features/payload-cms/payload-cms/access-rules/roles', () => ({
-  Roles: {
-    FullAdmin: 'FullAdmin',
-    WebCoreTeam: 'WebCoreTeam',
-  },
+  SUPPORT_DESK_ROLES: ['support-desk'],
+  CHAT_OVERSIGHT_ROLES: ['chat-oversight'],
   hasAccessToThisUser: jest.fn().mockReturnValue(false),
 }));
 
@@ -44,6 +43,9 @@ jest.mock('@/lib/db/prisma', () => ({
     chatMembership: {
       findMany: jest.fn().mockResolvedValue([]),
     },
+    chat: {
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -56,10 +58,51 @@ const newMessage = (chatId: string, text: string): object => ({
 
 const mockAuth = auth as unknown as jest.Mock;
 const mockIsValidNextAuthUser = isValidNextAuthUser as unknown as jest.Mock;
+const mockHasAccess = hasAccessToThisUser as unknown as jest.Mock;
+
+/** Signs the next request in as someone holding exactly these role sets. */
+const signInWithRoles = (...held: string[]): void => {
+  mockAuth.mockResolvedValue({ user: { uuid: 'user-uuid-123', group_ids: [] } });
+  mockIsValidNextAuthUser.mockReturnValue(true);
+  mockHasAccess.mockImplementation(({ requiredRoles }: { requiredRoles: string[] }) =>
+    requiredRoles.some((role) => held.includes(role)),
+  );
+};
+
+/** Opens the `all` channel and returns what reaches the client for the delivered events. */
+const readAllChannel = async (events: object[], until: string): Promise<string> => {
+  let deliver: ((event: object) => void) | undefined;
+  (chatPubSub.subscribe as unknown as jest.Mock)
+    .mockImplementationOnce(() => Promise.resolve(jest.fn()))
+    .mockImplementationOnce((_channel: string, listener: (event: object) => void) => {
+      deliver = listener;
+      return Promise.resolve(jest.fn());
+    });
+
+  const response = await GET(new NextRequest('https://konekta.ch/api/chat/sse?chatIds=all'));
+  const reader = response.body?.getReader();
+  await reader?.read();
+  await reader?.read();
+  for (const event of events) deliver?.(event);
+
+  let frames = '';
+  while (!frames.includes(until)) {
+    const chunk = await reader?.read();
+    if (chunk === undefined || chunk.done) break;
+    frames += new TextDecoder().decode(chunk.value);
+  }
+  await reader?.cancel();
+  return frames;
+};
 
 describe('GET /api/chat/sse', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHasAccess.mockReturnValue(false);
+    (prisma.chat.findUnique as unknown as jest.Mock).mockImplementation(
+      ({ where }: { where: { uuid: string } }) =>
+        Promise.resolve({ type: where.uuid.startsWith('support') ? 'SUPPORT_GROUP' : 'GROUP' }),
+    );
   });
 
   it('returns 401 Unauthorized if user is not authenticated', async () => {
@@ -333,6 +376,55 @@ describe('GET /api/chat/sse', () => {
     expect(frames).toContain('still delivered');
     expect(frames).not.toContain('already queued');
     expect(frames).not.toContain('after removal');
+    await reader?.cancel();
+  });
+
+  it('hands the support desk only the events of its own chats on the "all" channel', async () => {
+    signInWithRoles('support-desk');
+
+    const frames = await readAllChannel(
+      [
+        newMessage('private-chat-1', 'between two participants'),
+        newMessage('support-chat-1', 'sent to the support'),
+      ],
+      'sent to the support',
+    );
+
+    expect(frames).toContain('sent to the support');
+    expect(frames).not.toContain('between two participants');
+  });
+
+  it('hands the chat oversight every event on the "all" channel', async () => {
+    signInWithRoles('support-desk', 'chat-oversight');
+
+    const frames = await readAllChannel(
+      [
+        newMessage('private-chat-2', 'between two participants'),
+        newMessage('support-chat-2', 'sent to the support'),
+      ],
+      'sent to the support',
+    );
+
+    expect(frames).toContain('between two participants');
+    expect(frames).toContain('sent to the support');
+  });
+
+  it('does not subscribe the support desk to a private chat it is not a member of', async () => {
+    const privateChatId = '550e8400-e29b-41d4-a716-446655440000';
+    signInWithRoles('support-desk');
+    (prisma.chatMembership.findMany as unknown as jest.Mock).mockResolvedValue([]);
+
+    const response = await GET(
+      new NextRequest(`https://konekta.ch/api/chat/sse?chatIds=all,${privateChatId}`),
+    );
+    const reader = response.body?.getReader();
+    await reader?.read();
+    await reader?.read();
+
+    const channels = (chatPubSub.subscribe as unknown as jest.Mock).mock.calls.map(
+      ([channel]) => channel as string,
+    );
+    expect(channels).toEqual(['user-uuid-123', 'all']);
     await reader?.cancel();
   });
 });
