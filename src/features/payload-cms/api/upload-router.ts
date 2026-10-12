@@ -1,11 +1,11 @@
 import {
   temporaryUploadPrefixOf,
-  USER_IMAGE_EXTENSIONS,
   USER_IMAGE_MAX_BYTES,
-  type UserImageContentType,
+  USER_IMAGE_UPLOAD,
 } from '@/features/payload-cms/constants/user-image-upload';
-import { createPresignedUploadUrl } from '@/lib/presigned-upload';
+import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { uploadInputShape } from '@/lib/upload-policy';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { rateLimit } from '@/trpc/middleware/rate-limit';
 import type { StaticTranslationString } from '@/types/types';
@@ -35,13 +35,6 @@ const ALLOWED_EXTENSIONS = [
   'arw',
 ];
 
-const USER_IMAGE_CONTENT_TYPES = Object.keys(USER_IMAGE_EXTENSIONS) as [
-  UserImageContentType,
-  ...UserImageContentType[],
-];
-
-const UPLOAD_URL_EXPIRES_IN_SECONDS = 600;
-
 /** A batch picked in one go passes at once; the window caps what one account can store. */
 const UPLOAD_RATE_LIMIT = { limit: 30, windowMs: 10 * 60 * 1000 };
 
@@ -65,28 +58,13 @@ export const uploadRouter = createTRPCRouter({
     .use(
       rateLimit({ name: 'upload.createUploadUrl', message: tooManyUploads, ...UPLOAD_RATE_LIMIT }),
     )
-    .input(
-      z.object({
-        contentType: z.enum(USER_IMAGE_CONTENT_TYPES),
-        contentLength: z.number().int().positive().max(USER_IMAGE_MAX_BYTES),
+    .input(z.object(uploadInputShape(USER_IMAGE_UPLOAD)))
+    .mutation(({ input, ctx }) =>
+      createPresignedUploadUrl(USER_IMAGE_UPLOAD, {
+        keyPrefix: temporaryUploadPrefixOf(ctx.user.uuid),
+        ...input,
       }),
-    )
-    .mutation(async ({ input, ctx }) => {
-      const extension = USER_IMAGE_EXTENSIONS[input.contentType];
-      const key = `${temporaryUploadPrefixOf(ctx.user.uuid)}${randomUUID()}.${extension}`;
-
-      const url = await createPresignedUploadUrl({
-        key,
-        contentType: input.contentType,
-        contentLength: input.contentLength,
-        expiresInSeconds: UPLOAD_URL_EXPIRES_IN_SECONDS,
-      });
-
-      return {
-        url,
-        key,
-      };
-    }),
+    ),
 
   completeUserUpload: trpcBaseProcedure
     .use(

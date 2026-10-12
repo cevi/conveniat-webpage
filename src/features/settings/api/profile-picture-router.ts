@@ -3,15 +3,15 @@ import {
   toAvatar,
 } from '@/features/payload-cms/payload-cms/utils/profile-pictures';
 import prisma from '@/lib/db/prisma';
-import { createPresignedUploadUrl } from '@/lib/presigned-upload';
+import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import { S3_BUCKET_NAME, s3Client } from '@/lib/s3';
+import { uploadInputShape, type UploadPolicy } from '@/lib/upload-policy';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
 import { createLogger } from '@/utils/server-logger';
 import { DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import { TRPCError } from '@trpc/server';
-import { randomUUID } from 'node:crypto';
 import { getPayload } from 'payload';
 import { z } from 'zod';
 
@@ -19,6 +19,17 @@ const logger = createLogger('settings:profile-picture');
 
 /** The phone shrinks the photo before it uploads it; this only stops an abuse of the URL. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+const PROFILE_PICTURE_UPLOAD: UploadPolicy = {
+  extensions: {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+  },
+  maxBytes: MAX_UPLOAD_BYTES,
+};
 
 /** Where a user's upload waits until they confirm it; nobody else can confirm it. */
 const uploadPrefixOf = (userId: string): string => `profile-pictures/uploads/${userId}/`;
@@ -38,17 +49,13 @@ const currentVersionOf = async (userId: string): Promise<string | undefined> => 
 export const profilePictureRouter = createTRPCRouter({
   /** A URL the phone uploads the photo to directly, so it does not pass through the app. */
   createProfilePictureUploadUrl: trpcBaseProcedure
-    .input(
-      z.object({
-        contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/),
-        contentLength: z.number().int().positive().max(MAX_UPLOAD_BYTES),
+    .input(z.object(uploadInputShape(PROFILE_PICTURE_UPLOAD)))
+    .mutation(({ ctx, input }) =>
+      createPresignedUploadUrl(PROFILE_PICTURE_UPLOAD, {
+        keyPrefix: uploadPrefixOf(ctx.user.uuid),
+        ...input,
       }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const key = `${uploadPrefixOf(ctx.user.uuid)}${randomUUID()}`;
-      const url = await createPresignedUploadUrl({ key, ...input, expiresInSeconds: 600 });
-      return { url, key };
-    }),
+    ),
 
   /** Makes an uploaded photo the user's picture, as a small square. */
   updateProfilePicture: trpcBaseProcedure

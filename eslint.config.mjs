@@ -169,6 +169,36 @@ const config = defineConfig([
   // 4. Consolidated TypeScript & React Custom Rules
   // These rules are applied *on top of* the Next.js defaults.
 
+  // 3c. Presigned URLs: one module signs them all
+  //
+  // A URL signed by hand accepts any content type and any size, because the presigner signs
+  // neither by default. `src/lib/presigned-urls.ts` binds an upload to a policy, so a new
+  // upload goes through it instead of getting its own signing code.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/lib/presigned-urls.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@aws-sdk/s3-request-presigner',
+              message:
+                'Sign through createPresignedUploadUrl or createPresignedDownloadUrl from @/lib/presigned-urls.',
+            },
+            {
+              name: '@/lib/s3',
+              importNames: ['s3ClientPublic'],
+              message:
+                'Only @/lib/presigned-urls signs for the browser. Use s3Client for server-side requests.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // typescript-eslint naming conventions
   {
     // we check typescript naming conventions only for typescript files

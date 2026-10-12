@@ -24,12 +24,12 @@ import {
 import { mergeBasketLines } from '@/features/material/utils/basket';
 import { holderKey, holderOf } from '@/features/material/utils/holders';
 import { isReturnValid } from '@/features/material/utils/returns';
-import { createPresignedUploadUrl } from '@/lib/presigned-upload';
+import { createPresignedUploadUrl } from '@/lib/presigned-urls';
 import type { MaterialCondition, Prisma } from '@/lib/prisma/client';
+import { uploadInputShape, type UploadPolicy } from '@/lib/upload-policy';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 
 const logger = createLogger('material:loans');
@@ -40,8 +40,17 @@ const photoKeySchema = z
   .regex(/^material-incidents\/[\w-]+\.(jpg|jpeg|png|webp|heic|heif)$/)
   .optional();
 
-/** The photo is uploaded as taken, without resizing, so this has to fit a full-size phone photo. */
-const INCIDENT_PHOTO_MAX_BYTES = 20 * 1024 * 1024;
+/** The photo is uploaded as taken, without resizing, so the size has to fit a full-size phone photo. */
+const INCIDENT_PHOTO_UPLOAD: UploadPolicy = {
+  extensions: {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/heic': 'heic',
+    'image/heif': 'heif',
+  },
+  maxBytes: 20 * 1024 * 1024,
+};
 
 /**
  * Books a basket at the counter in one go: every line becomes a loan, handed out now or
@@ -423,18 +432,10 @@ export const reportIncident = materialTeamProcedure
 
 /** A presigned upload for the photo of a damage, stored next to the other user uploads. */
 export const createIncidentPhotoUploadUrl = materialTeamProcedure
-  .input(
-    z.object({
-      contentType: z.string().regex(/^image\/(jpeg|png|webp|heic|heif)$/),
-      contentLength: z.number().int().positive().max(INCIDENT_PHOTO_MAX_BYTES),
-    }),
-  )
-  .mutation(async ({ input }) => {
-    const extension = input.contentType.split('/')[1] ?? 'jpg';
-    const key = `material-incidents/${randomUUID()}.${extension}`;
-    const url = await createPresignedUploadUrl({ key, ...input, expiresInSeconds: 600 });
-    return { url, key };
-  });
+  .input(z.object(uploadInputShape(INCIDENT_PHOTO_UPLOAD)))
+  .mutation(({ input }) =>
+    createPresignedUploadUrl(INCIDENT_PHOTO_UPLOAD, { keyPrefix: 'material-incidents/', ...input }),
+  );
 
 /**
  * Confirms requests as they were asked for, one pickup at a time: all of them turn prepared,

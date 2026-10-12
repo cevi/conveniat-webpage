@@ -1,3 +1,4 @@
+import { uploadInputShape, type UploadPolicy } from '@/lib/upload-policy';
 import { z } from 'zod';
 
 /**
@@ -14,13 +15,14 @@ export const CHAT_IMAGE_EXTENSIONS = {
 
 export type ChatImageContentType = keyof typeof CHAT_IMAGE_EXTENSIONS;
 
-const CHAT_IMAGE_CONTENT_TYPES = Object.keys(CHAT_IMAGE_EXTENSIONS) as [
-  ChatImageContentType,
-  ...ChatImageContentType[],
-];
-
 /** Photos are uploaded as picked, without resizing, so this has to fit a full-size phone photo. */
 export const CHAT_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
+
+/** What an image sent in a chat may be. */
+export const CHAT_IMAGE_UPLOAD: UploadPolicy<ChatImageContentType> = {
+  extensions: CHAT_IMAGE_EXTENSIONS,
+  maxBytes: CHAT_IMAGE_MAX_BYTES,
+};
 
 /**
  * Whether a picked file's type can be uploaded into a chat.
@@ -34,8 +36,7 @@ export const isChatImageContentType = (type: string): type is ChatImageContentTy
 /** Input of the procedures that hand out an upload URL for a chat image. */
 export const chatImageUploadInputSchema = z.object({
   chatId: z.string().uuid(),
-  contentType: z.enum(CHAT_IMAGE_CONTENT_TYPES),
-  contentLength: z.number().int().positive().max(CHAT_IMAGE_MAX_BYTES),
+  ...uploadInputShape(CHAT_IMAGE_UPLOAD),
 });
 
 export type ChatImageUploadInput = z.infer<typeof chatImageUploadInputSchema>;
