@@ -12,6 +12,26 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript-eslint';
 
+const PRESIGNING_IMPORTS = [
+  {
+    name: '@aws-sdk/s3-request-presigner',
+    message:
+      'Sign through createPresignedUploadUrl or createPresignedDownloadUrl from @/lib/presigned-urls.',
+  },
+  {
+    name: '@/lib/s3',
+    importNames: ['s3ClientPublic'],
+    message:
+      'Only @/lib/presigned-urls signs for the browser. Use s3Client for server-side requests.',
+  },
+];
+
+const LOCALE_HOOK_IMPORT = {
+  name: 'next-i18n-router/client',
+  importNames: ['useCurrentLocale'],
+  message: "Import useCurrentLocale from '@/hooks/use-current-locale' instead.",
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -173,29 +193,28 @@ const config = defineConfig([
   // A URL signed by hand accepts any content type and any size, because the presigner signs
   // neither by default. `src/lib/presigned-urls.ts` binds an upload to a policy, so a new
   // upload goes through it instead of getting its own signing code.
+  //
+  // `next-i18n-router` reads the locale cookie in the browser and only the pathname on the
+  // server, so its hook renders a prefix-less URL in two languages and hydration fails.
+  // `@/hooks/use-current-locale` wraps it.
+  //
+  // One block per file set, each naming every restriction that applies there: a later
+  // `no-restricted-imports` entry replaces an earlier one for the same file instead of adding
+  // to it.
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['src/lib/presigned-urls.ts'],
+    ignores: ['src/lib/presigned-urls.ts', 'src/hooks/use-current-locale.ts'],
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            {
-              name: '@aws-sdk/s3-request-presigner',
-              message:
-                'Sign through createPresignedUploadUrl or createPresignedDownloadUrl from @/lib/presigned-urls.',
-            },
-            {
-              name: '@/lib/s3',
-              importNames: ['s3ClientPublic'],
-              message:
-                'Only @/lib/presigned-urls signs for the browser. Use s3Client for server-side requests.',
-            },
-          ],
-        },
-      ],
+      'no-restricted-imports': ['error', { paths: [...PRESIGNING_IMPORTS, LOCALE_HOOK_IMPORT] }],
     },
+  },
+  {
+    files: ['src/lib/presigned-urls.ts'],
+    rules: { 'no-restricted-imports': ['error', { paths: [LOCALE_HOOK_IMPORT] }] },
+  },
+  {
+    files: ['src/hooks/use-current-locale.ts'],
+    rules: { 'no-restricted-imports': ['error', { paths: PRESIGNING_IMPORTS }] },
   },
 
   // 3d. Payload queries say how many documents they want

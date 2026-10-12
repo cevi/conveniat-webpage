@@ -5,7 +5,7 @@
 import { DateCarousel } from '@/features/schedule/components/date-carousel';
 import { fireEvent, render, screen } from '@testing-library/react';
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

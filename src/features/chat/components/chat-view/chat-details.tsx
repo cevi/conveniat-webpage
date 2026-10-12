@@ -40,7 +40,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { Megaphone, Siren, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-import { useCurrentLocale } from 'next-i18n-router/client';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 
 /** The function and Hof lines of a participant; empty for someone not among the contacts. */
 const participantLines = (

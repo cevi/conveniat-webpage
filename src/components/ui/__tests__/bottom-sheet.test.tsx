@@ -5,7 +5,7 @@
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { fireEvent, render, screen } from '@testing-library/react';
 
-jest.mock('next-i18n-router/client', () => ({ useCurrentLocale: (): string => 'de' }));
+jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 
 describe('BottomSheet', () => {
   it('is a named dialog that closes with its ✕', () => {

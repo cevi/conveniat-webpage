@@ -1,12 +1,12 @@
 'use client';
 
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import type { PanInfo } from 'framer-motion';
 import { motion, useDragControls, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useRef } from 'react';
 

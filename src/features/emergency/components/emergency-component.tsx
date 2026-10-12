@@ -10,6 +10,7 @@ import { ConfirmationSlider } from '@/features/emergency/components/slide-to-con
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
 import type { EmergencyCard } from '@/features/payload-cms/payload-types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatStatus, SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -20,7 +21,6 @@ import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BriefcaseMedical, Download, FileText, ImageIcon, SearchX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import type { ChangeEvent } from 'react';
 import React, { useEffect, useState } from 'react';

@@ -7,6 +7,7 @@ import {
   loginWithCeviDatabaseText,
 } from '@/features/payload-cms/components/form/static-form-texts';
 import { getFormStorageKey } from '@/features/payload-cms/components/form/utils/get-form-storage-key';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import { PERSISTER_THROTTLE_MS } from '@/trpc/query-persistence';
@@ -15,7 +16,6 @@ import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQueryClient } from '@tanstack/react-query';
 import { signIn, signOut, useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
 import type { FieldError, FieldErrorsImpl, FieldValues, Merge } from 'react-hook-form';
 import { useFormContext } from 'react-hook-form';

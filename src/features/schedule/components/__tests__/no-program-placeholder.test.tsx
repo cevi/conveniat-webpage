@@ -7,7 +7,7 @@ import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-
 import { noFilters } from '@/features/schedule/utils/schedule-filters';
 import { fireEvent, render, screen } from '@testing-library/react';
 
-jest.mock('next-i18n-router/client', () => ({ useCurrentLocale: (): string => 'de' }));
+jest.mock('@/hooks/use-current-locale', () => ({ useCurrentLocale: (): string => 'de' }));
 
 const spielwiese = { id: 'place-1', title: 'Spielwiese Mitte' } as CampMapAnnotation;
 

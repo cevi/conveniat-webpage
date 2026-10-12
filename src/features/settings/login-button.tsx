@@ -1,10 +1,10 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { LogIn } from 'lucide-react';
 import { signIn } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const loginText: StaticTranslationString = {

@@ -1,10 +1,10 @@
 'use client';
 
 import { fieldFocusRingClassName } from '@/components/ui/field';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 
