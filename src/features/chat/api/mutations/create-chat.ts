@@ -1,3 +1,4 @@
+import { assertContactable } from '@/features/chat/api/checks/assert-contactable';
 import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
 import { checkForDuplicateMembers } from '@/features/chat/api/checks/check-for-duplicate-members';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
@@ -93,6 +94,16 @@ export const createChat = trpcBaseProcedure
         return alreadyCreated.uuid;
       }
     }
+
+    // After the replay above: a chat created offline stays answered even if a member has
+    // left the contact list since.
+    await assertContactable({
+      prisma,
+      userId: user.uuid,
+      userIds: members.map((member) => member.userId),
+      locale,
+      allowOrganisers: members.length === 1,
+    });
 
     const firstMember = members[0];
     if (members.length === 1 && firstMember !== undefined) {

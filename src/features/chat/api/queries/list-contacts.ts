@@ -1,3 +1,4 @@
+import { getContactFilter } from '@/features/chat/api/checks/assert-contactable';
 import {
   describeFunktionen,
   getFunktionDirectory,
@@ -11,10 +12,7 @@ import {
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { getFeatureFlag } from '@/lib/db/redis';
-import {
-  FEATURE_FLAG_RESTRICT_CONTACT_LIST,
-  FEATURE_HIDE_HOF_AND_QUARTIER,
-} from '@/lib/feature-flags';
+import { FEATURE_HIDE_HOF_AND_QUARTIER } from '@/lib/feature-flags';
 import { trpcBaseProcedure } from '@/trpc/init';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { profilePictureUrlOrUndefined } from '@/utils/profile-picture-url';
@@ -41,11 +39,8 @@ export interface Contact {
 }
 
 /**
- * Lists the contacts of the current user.
- *
- * With the contact list restricted, that is the people sharing a Hof with the user, the
- * people in their address book (see `AddressBookEntry`), and everyone holding a function or
- * the AVP role of a Hof. Otherwise it is everyone.
+ * Lists the contacts of the current user, see `getContactFilter` for who that is. The same
+ * filter decides who `createChat` and `addParticipants` accept.
  *
  * Formats contact names as "Vorname Nachname v/o Ceviname" if nickname is present,
  * or "Vorname Nachname" if nickname is not set.
@@ -55,27 +50,8 @@ export const listContacts = trpcBaseProcedure
   .query(async ({ ctx }) => {
     const { user, prisma } = ctx;
 
-    const restrictContactList = await getFeatureFlag(FEATURE_FLAG_RESTRICT_CONTACT_LIST);
-    const self = restrictContactList
-      ? await prisma.user.findUnique({ where: { uuid: user.uuid }, select: { hofIds: true } })
-      : undefined;
-    const ownHofIds = self?.hofIds ?? [];
-
     const _contacts = await prisma.user.findMany({
-      where: {
-        uuid: { not: user.uuid },
-        hidden: false,
-        ...(restrictContactList
-          ? {
-              OR: [
-                { hofIds: { hasSome: ownHofIds } },
-                { inAddressBooksOf: { some: { ownerId: user.uuid } } },
-                { funktionIds: { isEmpty: false } },
-                { avpHofIds: { isEmpty: false } },
-              ],
-            }
-          : {}),
-      },
+      where: await getContactFilter(prisma, user.uuid),
       select: {
         uuid: true,
         name: true,

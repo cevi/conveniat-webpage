@@ -50,6 +50,10 @@ jest.mock('@/lib/db/redis', () => ({
   },
 }));
 
+// Who may be put into a chat has its own test, see `contact-restriction.test.ts`.
+jest.mock('@/features/chat/api/checks/assert-contactable', () => ({
+  assertContactable: (): Promise<void> => Promise.resolve(),
+}));
 const mockPublish = jest.fn((): Promise<void> => Promise.resolve());
 const mockSendNotification = jest.fn((): Promise<void> => Promise.resolve());
 jest.mock('@/lib/db/chat-pubsub', () => ({
