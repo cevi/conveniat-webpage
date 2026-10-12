@@ -595,6 +595,7 @@ describe('useNativePush', () => {
     });
 
     it('opens a pending target that differs from the current page only by its query', () => {
+      jest.useFakeTimers();
       const originalHref = globalThis.location.href;
       try {
         globalThis.history.replaceState({}, '', '/app/schedule');
@@ -605,6 +606,9 @@ describe('useNativePush', () => {
         expect(mockPush).toHaveBeenCalledWith('/app/schedule?id=123');
         expect(localStorage.getItem('pending_push_redirect')).toBe('/app/schedule?id=123');
       } finally {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+        localStorage.clear();
         globalThis.history.replaceState({}, '', originalHref);
       }
     });
