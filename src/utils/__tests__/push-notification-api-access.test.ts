@@ -1,12 +1,18 @@
 /**
  * Both exports of the module are server actions, so each is an endpoint anyone can post to.
- * These cover who may remove a stored push subscription through it.
+ * These cover what may be stored through it, and who may remove a stored push subscription.
  */
 jest.mock('@payload-config', () => ({}), { virtual: true });
 
 const mockPayloadDelete = jest.fn();
+const mockPayloadFind = jest.fn();
+const mockPayloadCreate = jest.fn();
 jest.mock('payload', () => ({
-  getPayload: (): { delete: jest.Mock } => ({ delete: mockPayloadDelete }),
+  getPayload: (): Record<string, jest.Mock> => ({
+    delete: mockPayloadDelete,
+    find: mockPayloadFind,
+    create: mockPayloadCreate,
+  }),
 }));
 
 const mockAuth = jest.fn();
@@ -18,13 +24,19 @@ jest.mock('@/utils/auth-helpers', () => ({
   isValidNextAuthUser: (user: unknown): boolean => user !== undefined,
 }));
 
+const mockSendNotificationToSubscription = jest.fn();
 jest.mock('@/lib/push/send-notification-to-subscription', () => ({
-  sendNotificationToSubscription: jest.fn(),
+  sendNotificationToSubscription: (...args: unknown[]): unknown =>
+    mockSendNotificationToSubscription(...args),
+}));
+
+jest.mock('@/utils/server-logger', () => ({
+  createLogger: (): Record<string, jest.Mock> => ({ warn: jest.fn() }),
 }));
 
 import * as pushNotificationApi from '@/utils/push-notification-api';
 
-const { unsubscribeUser } = pushNotificationApi;
+const { subscribeUser, unsubscribeUser } = pushNotificationApi;
 
 const subscription = {
   endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
@@ -47,6 +59,40 @@ describe('push notification server actions', () => {
       'subscribeUser',
       'unsubscribeUser',
     ]);
+  });
+
+  it('stores the subscription of a signed-in person and confirms it with a push', async () => {
+    mockAuth.mockResolvedValue({ user: { uuid: 'user-1' } });
+    mockGetPayloadUser.mockResolvedValue({ id: 'user-1' });
+    mockPayloadFind.mockResolvedValue({ totalDocs: 0, docs: [] });
+
+    await expect(subscribeUser(subscription, 'de')).resolves.toEqual({ success: true });
+
+    expect(mockPayloadCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          endpoint: subscription.endpoint,
+          user: 'user-1',
+        }) as unknown,
+      }),
+    );
+    expect(mockSendNotificationToSubscription).toHaveBeenCalled();
+  });
+
+  // The endpoint is where the server posts every later push, and the confirmation right away.
+  it('neither stores nor pushes to an endpoint that belongs to no push service', async () => {
+    mockAuth.mockResolvedValue({ user: { uuid: 'user-1' } });
+    mockGetPayloadUser.mockResolvedValue({ id: 'user-1' });
+
+    const result = await subscribeUser(
+      { ...subscription, endpoint: 'https://payload:3000/api/users' },
+      'de',
+    );
+
+    expect(result).toEqual({ success: false });
+    expect(mockPayloadCreate).not.toHaveBeenCalled();
+    expect(mockPayloadDelete).not.toHaveBeenCalled();
+    expect(mockSendNotificationToSubscription).not.toHaveBeenCalled();
   });
 
   it('deletes nothing for a caller without a session', async () => {

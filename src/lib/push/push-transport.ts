@@ -2,6 +2,7 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { PushNotificationSubscription } from '@/features/payload-cms/payload-types';
 import type { NotificationType } from '@/lib/notification-type';
 import { PushNotificationChannel } from '@/lib/prisma';
+import { isPushServiceEndpoint, UNKNOWN_PUSH_SERVICE_ERROR } from '@/lib/push/push-endpoint';
 import type { DatabasePushSubscription, SchemaPushSubscription } from '@/schemas/push';
 import {
   fitPushText,
@@ -381,6 +382,12 @@ export async function sendPushToDevice(
         outcome: 'failed',
         error: 'Web Push subscription is missing required fields (endpoint or keys).',
       };
+    }
+    // Every send passes here, so this also holds for a row stored before endpoints were
+    // checked on the way in. Failed, not expired: a push service missing from the list must
+    // show up in the log instead of costing its users their subscriptions.
+    if (!isPushServiceEndpoint(endpoint)) {
+      return { outcome: 'failed', error: UNKNOWN_PUSH_SERVICE_ERROR };
     }
     return await sendWeb(
       { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } },

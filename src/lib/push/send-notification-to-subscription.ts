@@ -2,6 +2,7 @@ import type { NotificationType } from '@/lib/notification-type';
 import { PushNotificationKind } from '@/lib/prisma';
 import { recordPushSend } from '@/lib/push-metrics';
 import { isUrgentKind, PUSH_TIME_TO_LIVE_SECONDS } from '@/lib/push/push-delivery-policy';
+import { endpointHostOf } from '@/lib/push/push-endpoint';
 import type { PushDevice } from '@/lib/push/push-transport';
 import { channelOf, composePushText, sendPushToDevice } from '@/lib/push/push-transport';
 import { getAppShortName } from '@/utils/get-app-short-name';
@@ -13,15 +14,6 @@ import type { Where } from 'payload';
 import { getPayload } from 'payload';
 
 const logger = createLogger('push:api');
-
-const endpointHostOf = (endpoint: unknown): string | undefined => {
-  if (typeof endpoint !== 'string') return undefined;
-  try {
-    return new URL(endpoint).host;
-  } catch {
-    return undefined;
-  }
-};
 
 interface SendOptions {
   ignoreIfAppOpen?: boolean;

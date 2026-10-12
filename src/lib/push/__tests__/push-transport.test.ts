@@ -25,7 +25,7 @@ import { parseRetryAfter, sendPushToDevice } from '@/lib/push/push-transport';
 const webDevice = {
   id: 'sub-web',
   platform: 'web' as const,
-  endpoint: 'https://push.example.test/abc',
+  endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
   keys: { p256dh: 'p256dh', auth: 'auth' },
 };
 const nativeDevice = { id: 'sub-native', platform: 'ios' as const, token: 'device-token' };
@@ -64,6 +64,23 @@ describe('sendPushToDevice web push', () => {
       urgency: 'normal',
       timeout: 10_000,
       topic: '01926f3c8a5e7b3d9c4f0a1b2c3d4e5f',
+    });
+  });
+
+  // A subscription comes from the client, so its endpoint could name any host this server
+  // can reach. `failed` rather than `expired`, which would delete the row of a push service
+  // that is merely missing from the list.
+  it('posts nothing to an endpoint that belongs to no push service', async () => {
+    const result = await sendPushToDevice(
+      { ...webDevice, endpoint: 'https://payload:3000/api/users' },
+      message,
+      options,
+    );
+
+    expect(mockSendWebPush).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      outcome: 'failed',
+      error: 'Web Push endpoint is not a known push service.',
     });
   });
 
