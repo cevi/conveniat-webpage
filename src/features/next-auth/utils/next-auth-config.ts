@@ -284,17 +284,27 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
   }
 }
 
-const inflightRefreshes = new Map<string, Promise<JWT>>();
+/**
+ * What the `jwt` callback answers to end a session: Auth.js clears the session cookie instead of
+ * re-signing it, and the user goes back through the Cevi.DB login.
+ */
+// eslint-disable-next-line unicorn/no-null -- Auth.js ends a session on null, not on undefined
+const SESSION_ENDED = null;
 
-async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
-  const userId = token.uuid;
+/**
+ * Refreshes in flight, by refresh token. Requests that carry the same session share one call to
+ * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
+ * different refresh tokens, so neither ever receives the other's result.
+ */
+const inflightRefreshes = new Map<string, Promise<JWT | null>>();
 
-  if (typeof userId !== 'string' || userId === '') {
-    return doRefreshAccessToken(token, reason); // skip dedup for tokens without a UUID
-  }
-
-  // If a refresh is already in-flight for this user, wait for it
-  const existing = inflightRefreshes.get(userId);
+async function refreshAccessToken(
+  token: JWT,
+  refreshToken: string,
+  reason: string,
+): Promise<JWT | null> {
+  // If a refresh is already in-flight for this session, wait for it
+  const existing = inflightRefreshes.get(refreshToken);
   if (existing) {
     return existing;
   }
@@ -302,10 +312,10 @@ async function refreshAccessToken(token: JWT, reason: string): Promise<JWT> {
   // Start the actual refresh and store the promise
   const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
-    setTimeout(() => inflightRefreshes.delete(userId), 1000);
+    setTimeout(() => inflightRefreshes.delete(refreshToken), 1000);
   });
 
-  inflightRefreshes.set(userId, refreshPromise);
+  inflightRefreshes.set(refreshToken, refreshPromise);
   return refreshPromise;
 }
 
@@ -318,9 +328,10 @@ class TerminalRefreshError extends Error {
 
 /**
  * Refreshes the access token using the refresh token.
- * returns the new token with updated expiration and access token
+ * returns the new token with updated expiration and access token, or `null` when Cevi.DB
+ * refused the refresh token for good, which ends the session.
  */
-async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
+async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null> {
   try {
     logger.info('Refreshing access token', {
       'auth.user_uuid': token.uuid,
@@ -430,20 +441,18 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT> {
       activeSpan.recordException(error as Error);
     }
     const isTerminal = error instanceof TerminalRefreshError;
-    // Terminal means the refresh token is gone for good and the user is about to be sent back
-    // through the login: worth an error. A retryable failure is the network, and the next
-    // request tries again.
+    // Terminal means the refresh token is gone for good and the session ends here: worth an
+    // error. A retryable failure is the network, and the next request tries again.
     logger[isTerminal ? 'error' : 'warn']('Error refreshing access token', {
       'auth.user_uuid': token.uuid,
       'hitobito.refresh_reason': reason,
       'hitobito.refresh_terminal': isTerminal,
       error,
     });
-    return {
-      ...token,
-      error: 'RefreshAccessTokenError',
-      ...(isTerminal ? { refresh_token: undefined } : {}),
-    };
+    // A session that can no longer be refreshed would otherwise keep the groups it was issued
+    // with for as long as its cookie is re-signed, which is on every request. Cevi.DB staying
+    // unreachable is not a reason to sign anybody out, so only the terminal case ends it.
+    return isTerminal ? SESSION_ENDED : token;
   }
 }
 
@@ -524,7 +533,7 @@ export const authOptions: NextAuthConfig = {
     },
 
     // This callback is called whenever a JSON Web Token is created (i.e. at sign in) or updated (i.e whenever a session is accessed in the client).
-    async jwt({ token, account, profile: _profile }): Promise<JWT> {
+    async jwt({ token, account, profile: _profile }): Promise<JWT | null> {
       // Initial sign in
       if (account && _profile) {
         const activeSpan = trace.getActiveSpan();
@@ -564,12 +573,14 @@ export const authOptions: NextAuthConfig = {
         return token;
       }
 
-      // Access token has expired, try to update it
+      // Access token has expired, try to update it. Without a refresh token there is no way to
+      // learn the user's current groups again, so the session ends instead of living on the
+      // groups it has.
       if (token.refresh_token === undefined || token.refresh_token === '') {
-        return {
-          ...token,
-          error: 'RefreshAccessTokenError',
-        };
+        logger.info('Ending a session that has no refresh token', {
+          'auth.user_uuid': token.uuid,
+        });
+        return SESSION_ENDED;
       }
 
       let reason: string;
@@ -581,7 +592,7 @@ export const authOptions: NextAuthConfig = {
         reason = 'token_approaching_expiry';
       }
 
-      return refreshAccessToken(token, reason);
+      return refreshAccessToken(token, token.refresh_token, reason);
     },
   },
 

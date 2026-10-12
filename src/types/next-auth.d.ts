@@ -33,7 +33,6 @@ declare module 'next-auth/jwt' {
     nickname?: string | null | undefined;
     firstName?: string | undefined;
     lastName?: string | undefined;
-    error?: string | undefined;
     email?: string | undefined;
     name?: string | undefined;
   }
