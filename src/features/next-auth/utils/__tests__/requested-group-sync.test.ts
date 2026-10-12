@@ -2,7 +2,6 @@ import type { JWT } from 'next-auth/jwt';
 
 // `next-auth` is ESM-only and cannot be imported for a value under Jest.
 jest.mock('next-auth', () => ({ customFetch: Symbol('customFetch') }));
-jest.mock('next/server', () => ({ after: jest.fn() }));
 jest.mock('payload', () => ({ getPayload: jest.fn() }));
 jest.mock('@payload-config', () => ({}), { virtual: true });
 jest.mock('undici', () => ({ Agent: jest.fn(), setGlobalDispatcher: jest.fn() }));
@@ -24,6 +23,7 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 import { authOptions } from '@/features/next-auth/utils/next-auth-config';
+import { getPayload } from 'payload';
 
 type JwtCallback = (parameters: { token: JWT; trigger?: 'update' }) => Promise<JWT | null>;
 const jwt = authOptions.callbacks?.jwt as unknown as JwtCallback;
@@ -59,6 +59,7 @@ describe('a user asking for their current Cevi.DB groups', () => {
         url.endsWith('/oauth/token')
           ? answer(200, { access_token: 'new-access-token', expires_in: 7200 })
           : answer(200, {
+              id: 4711,
               first_name: 'Mia',
               last_name: 'Muster',
               roles: groupIds.map((group_id) => ({ group_id })),
@@ -71,9 +72,16 @@ describe('a user asking for their current Cevi.DB groups', () => {
   beforeAll(() => jest.useFakeTimers({ doNotFake: ['nextTick', 'queueMicrotask'] }));
   afterAll(() => jest.useRealTimers());
 
+  const payloadUser = { id: '665f1c2ab9d4e80012a3b4c5', groups: [], fullName: 'Mia Muster' };
+
   beforeEach(() => {
     fetchMock.mockReset();
     globalThis.fetch = fetchMock as unknown as typeof fetch;
+    jest.mocked(getPayload).mockResolvedValue({
+      find: jest.fn().mockResolvedValue({ totalDocs: 1, docs: [payloadUser] }),
+      update: jest.fn().mockResolvedValue(payloadUser),
+      jobs: { queue: jest.fn() },
+    } as unknown as Awaited<ReturnType<typeof getPayload>>);
   });
 
   it('gets them although the access token is still valid', async () => {
@@ -106,6 +114,53 @@ describe('a user asking for their current Cevi.DB groups', () => {
     fetchMock.mockResolvedValue(answer(503, { error: 'unavailable' }));
     const token = validToken({ refresh_token: 'unavailable' });
 
-    await expect(jwt({ token, trigger: 'update' })).resolves.toEqual(token);
+    const kept = await jwt({ token, trigger: 'update' });
+
+    expect(kept?.group_ids).toEqual(token.group_ids);
+    expect(kept?.groups_synced_at).toBe(token.groups_synced_at);
+  });
+
+  it('does not ask an unavailable Cevi.DB again within the same minute', async () => {
+    fetchMock.mockResolvedValue(answer(503, { error: 'unavailable' }));
+
+    const afterFirstPress = await jwt({
+      token: validToken({ refresh_token: 'pressed-twice' }),
+      trigger: 'update',
+    });
+    jest.advanceTimersByTime(1000);
+    await jwt({ token: afterFirstPress as JWT, trigger: 'update' });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not count as synced when the groups could not be stored on the Payload user', async () => {
+    ceviDatabaseReportsGroups([541, 542]);
+    jest.mocked(getPayload).mockRejectedValue(new Error('database unreachable'));
+    const token = validToken({ refresh_token: 'not-stored' });
+
+    const refreshed = await jwt({ token, trigger: 'update' });
+
+    expect(refreshed?.groups_synced_at).toBe(token.groups_synced_at);
+    expect(refreshed?.access_token).toBe('new-access-token');
+  });
+
+  it('has stored the groups on the Payload user by the time it answers', async () => {
+    ceviDatabaseReportsGroups([541, 542]);
+    const update = jest.fn().mockResolvedValue(payloadUser);
+    jest.mocked(getPayload).mockResolvedValue({
+      find: jest.fn().mockResolvedValue({ totalDocs: 1, docs: [payloadUser] }),
+      update,
+      jobs: { queue: jest.fn() },
+    } as unknown as Awaited<ReturnType<typeof getPayload>>);
+
+    await jwt({ token: validToken({ refresh_token: 'stored' }), trigger: 'update' });
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          groups: [expect.objectContaining({ id: 541 }), expect.objectContaining({ id: 542 })],
+        }) as unknown,
+      }),
+    );
   });
 });
