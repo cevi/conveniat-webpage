@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
+import { reportSessionTokenKept } from '@/features/next-auth/utils/session-token-change';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -603,6 +604,7 @@ export const authOptions: NextAuthConfig = {
         trigger === 'update' && isStillValid && hasRefreshToken && !mustWaitForRequestedSync(token);
 
       if (isStillValid && !isRequestedSync) {
+        reportSessionTokenKept();
         return token;
       }
 
@@ -628,6 +630,8 @@ export const authOptions: NextAuthConfig = {
       }
 
       const refreshed = await refreshAccessToken(token, token.refresh_token, reason);
+      // Cevi.DB could not be reached, and the session goes on with what it has.
+      if (refreshed === token && !isRequestedSync) reportSessionTokenKept();
       return isRequestedSync && refreshed !== SESSION_ENDED
         ? { ...refreshed, sync_requested_at: Math.floor(Date.now() / 1000) }
         : refreshed;

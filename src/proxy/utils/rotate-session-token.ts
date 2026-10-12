@@ -1,3 +1,4 @@
+import { trackSessionToken } from '@/features/next-auth/utils/session-token-change';
 import { auth } from '@/utils/auth';
 import type { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 
@@ -28,7 +29,8 @@ function propagateCookieToRequest(request: NextRequest, cookieString: string): v
 /**
  * Programmatically runs NextAuth middleware to check for session token rotation.
  * If NextAuth rotates the token and sets a new session cookie, this helper
- * propagates the `Set-Cookie` header to the final `response`.
+ * propagates the `Set-Cookie` header to the final `response`. A session whose token stayed the
+ * same gets no cookie.
  */
 export async function rotateSessionToken(
   request: NextRequest,
@@ -40,7 +42,13 @@ export async function rotateSessionToken(
     event_: NextFetchEvent,
   ) => Promise<Response | NextResponse | undefined>;
 
-  const authResponse = await authMiddleware(request, event);
+  const { result: authResponse, isTokenKept } = await trackSessionToken(() =>
+    authMiddleware(request, event),
+  );
+
+  // Nothing rotated, so there is no cookie to pass on. Sending the same token back would let
+  // this response overwrite the cookie of one that did rotate it in the meantime.
+  if (isTokenKept) return;
 
   if (authResponse instanceof Response) {
     const headers = authResponse.headers as Headers & { getSetCookie?: () => string[] };
