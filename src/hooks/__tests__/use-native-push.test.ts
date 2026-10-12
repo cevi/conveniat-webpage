@@ -593,6 +593,21 @@ describe('useNativePush', () => {
         jest.useRealTimers();
       }
     });
+
+    it('opens a pending target that differs from the current page only by its query', () => {
+      const originalHref = globalThis.location.href;
+      try {
+        globalThis.history.replaceState({}, '', '/app/schedule');
+        localStorage.setItem('pending_push_redirect', '/app/schedule?id=123');
+
+        checkAndExecutePendingPushNavigation({ push: mockPush });
+
+        expect(mockPush).toHaveBeenCalledWith('/app/schedule?id=123');
+        expect(localStorage.getItem('pending_push_redirect')).toBe('/app/schedule?id=123');
+      } finally {
+        globalThis.history.replaceState({}, '', originalHref);
+      }
+    });
   });
 
   describe('resolveSameOriginPath', () => {

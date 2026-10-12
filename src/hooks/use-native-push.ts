@@ -190,8 +190,14 @@ function parseHttpTarget(rawUrl: string): string | undefined {
   }
 }
 
-/** The pathname of a same-origin target, to compare against `location.pathname`. */
-const pathnameOfTarget = (target: string): string => target.split(/[?#]/)[0] ?? target;
+/**
+ * Whether the page is at a same-origin target. Query and fragment count, because they select
+ * what the page shows.
+ */
+const isAtTarget = (target: string): boolean => {
+  const { pathname, search, hash } = globalThis.location;
+  return pathname + search + hash === target;
+};
 
 /**
  * Turns the URL a push carries into where the page goes: a path when the target is on this
@@ -268,7 +274,7 @@ export function performReliablePushNavigation(
       targetChatId !== '' &&
       currentPathname.includes(`/app/chat/${targetChatId}`);
 
-    const isAlreadyOnExactPath = currentPathname === pathnameOfTarget(cleanPath);
+    const isAlreadyOnExactPath = isAtTarget(cleanPath);
 
     if (!isAlreadyOnChat && !isAlreadyOnExactPath) {
       console.log(
@@ -307,7 +313,7 @@ export function checkAndExecutePendingPushNavigation(router: {
       targetChatId !== '' &&
       currentPathname.includes(`/app/chat/${targetChatId}`);
 
-    const isAlreadyOnExactPath = currentPathname === pathnameOfTarget(cleanPath);
+    const isAlreadyOnExactPath = isAtTarget(cleanPath);
 
     if (isAlreadyOnChat || isAlreadyOnExactPath) {
       sessionStorage.removeItem('pending_push_redirect');
@@ -328,7 +334,7 @@ export function checkAndExecutePendingPushNavigation(router: {
         typeof targetChatId === 'string' &&
         targetChatId !== '' &&
         nowPathname.includes(`/app/chat/${targetChatId}`);
-      const nowOnExact = nowPathname === pathnameOfTarget(cleanPath);
+      const nowOnExact = isAtTarget(cleanPath);
 
       if (!nowOnChat && !nowOnExact) {
         console.log('[NativePush:PWA] Fallback location redirect to:', cleanPath);
