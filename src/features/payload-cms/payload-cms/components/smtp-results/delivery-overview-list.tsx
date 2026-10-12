@@ -152,6 +152,22 @@ const TrailLine: React.FC<{
   </div>
 );
 
+/** One report, with the server's answer when it is a rejection or was set by hand. */
+const EventLine: React.FC<{ event: DeliveryEvent; labels: Labels; lang: SmtpLanguage }> = ({
+  event,
+  labels,
+  lang,
+}) => {
+  const answer = event.diagnostic ?? event.status;
+  const showsAnswer = event.action === 'failed' || event.manual === true;
+  return (
+    <TrailLine at={event.at} lang={lang} isProblem={event.action === 'failed'}>
+      {eventText(event, labels)}
+      {showsAnswer && answer !== undefined && `: ${answer}`}
+    </TrailLine>
+  );
+};
+
 /** The technical trail of one recipient's mail: our own server's answer, then every report. */
 const RecipientTrail: React.FC<{
   recipient: RecipientDelivery;
@@ -173,16 +189,9 @@ const RecipientTrail: React.FC<{
           {labels.trailNotAccepted}: {submission.detail}
         </TrailLine>
       )}
-      {recipient.events.map((event, index) => {
-        const answer = event.diagnostic ?? event.status;
-        const showsAnswer = event.action === 'failed' || event.manual === true;
-        return (
-          <TrailLine key={index} at={event.at} lang={lang} isProblem={event.action === 'failed'}>
-            {eventText(event, labels)}
-            {showsAnswer && answer !== undefined && `: ${answer}`}
-          </TrailLine>
-        );
-      })}
+      {recipient.events.map((event, index) => (
+        <EventLine key={index} event={event} labels={labels} lang={lang} />
+      ))}
     </div>
   );
 };
@@ -315,9 +324,7 @@ export const DeliveryOverviewList: React.FC<{
           </div>
           <div className="flex flex-col gap-1 font-mono text-xs">
             {current.unassigned.map((event, index) => (
-              <TrailLine key={index} at={event.at} lang={lang}>
-                {eventText(event, labels)}
-              </TrailLine>
+              <EventLine key={index} event={event} labels={labels} lang={lang} />
             ))}
           </div>
         </div>
