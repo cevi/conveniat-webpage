@@ -33,6 +33,8 @@ export interface SmtpResult {
   manualOverride?: boolean;
   retriggeredBy?: string;
   retriggeredAt?: string;
+  /** When this send left for our mail server. Stored since v1.30. */
+  sentAt?: string;
 
   // Appended in component logic
   _isPendingPlaceholder?: boolean;

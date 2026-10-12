@@ -151,8 +151,8 @@ describe('deriveDeliveryOverview', () => {
     expect(overview.current.recipients.map((recipient) => recipient.address)).toEqual(recipients);
     expect(overview.current.recipients.map((recipient) => recipient.state)).toEqual([
       'failed',
-      'relayed',
-      'relayed',
+      'sent',
+      'sent',
     ]);
     expect(overview.current.recipients[0]?.events.map((event) => event.action)).toEqual([
       'relayed',
@@ -209,13 +209,13 @@ describe('deriveDeliveryOverview', () => {
     const ambiguous = deriveDeliveryOverview(results, OPTIONS);
     expect(ambiguous.current.unassigned).toHaveLength(1);
     expect(statesOf(results)).toEqual({
-      'anna@example.ch': 'relayed',
-      'beat@example.ch': 'noReport',
-      'carla@example.ch': 'noReport',
+      'anna@example.ch': 'sent',
+      'beat@example.ch': 'sent',
+      'carla@example.ch': 'sent',
     });
 
     expect(statesOf([...results, stored(anonymous('two.example.net'), SYSTEM)])).toEqual({
-      'anna@example.ch': 'relayed',
+      'anna@example.ch': 'sent',
       'beat@example.ch': 'delivered',
       'carla@example.ch': 'delivered',
     });
@@ -236,7 +236,7 @@ describe('deriveDeliveryOverview', () => {
         stored(member('emil@example.ch'), 'emil@example.ch'),
         stored(forwarded, 'dora@example.org'),
       ],
-      { ...OPTIONS, now: Date.parse('2026-10-20T00:00:00.000Z') },
+      OPTIONS,
     );
 
     expect(
@@ -247,22 +247,33 @@ describe('deriveDeliveryOverview', () => {
         via,
       })),
     ).toEqual([
-      // Not overdue: the members explain why the list never reported for itself.
-      { address: 'team@example.ch', expected: true, state: 'noReport', via: undefined },
+      { address: 'team@example.ch', expected: true, state: 'sent', via: undefined },
       { address: 'emil@example.ch', expected: false, state: 'delivered', via: undefined },
-      { address: 'dora@example.org', expected: false, state: 'relayed', via: 'team@example.ch' },
+      { address: 'dora@example.org', expected: false, state: 'sent', via: 'team@example.ch' },
     ]);
   });
 
-  it('marks a recipient overdue when no server reported within two days', () => {
-    const results = [accepted(['anna@example.ch'])];
+  it('counts a mail our server took as sent, however long no report comes back', () => {
+    // Most servers never confirm a delivery, and a relay on the way drops the request to.
+    expect(statesOf([accepted(['anna@example.ch'])])).toEqual({ 'anna@example.ch': 'sent' });
+  });
 
-    expect(statesOf(results, { ...OPTIONS, now: Date.parse('2026-10-06T00:00:00.000Z') })).toEqual({
-      'anna@example.ch': 'noReport',
+  it('shows when the mail left rather than when it was queued', () => {
+    const queued = { ...accepted(['anna@example.ch']), sentAt: '2026-10-05T07:10:00.000Z' };
+
+    const { current } = deriveDeliveryOverview([queued], OPTIONS);
+
+    expect(current.startedAt).toBe('2026-10-05T07:10:00.000Z');
+    expect(current.recipients[0]?.submission?.at).toBe('2026-10-05T07:10:00.000Z');
+  });
+
+  it('falls back to the last send time of the mail for a send stored without one', () => {
+    const { current } = deriveDeliveryOverview([accepted(['anna@example.ch'])], {
+      ...OPTIONS,
+      sentAt: '2026-10-05T07:10:00.000Z',
     });
-    expect(statesOf(results, { ...OPTIONS, now: Date.parse('2026-10-08T00:00:00.000Z') })).toEqual({
-      'anna@example.ch': 'overdue',
-    });
+
+    expect(current.startedAt).toBe('2026-10-05T07:10:00.000Z');
   });
 
   it('shows the error of a mail our server never accepted, even without a usable address', () => {
@@ -271,13 +282,12 @@ describe('deriveDeliveryOverview', () => {
       OPTIONS,
     );
 
-    expect(current.recipients).toEqual([
-      expect.objectContaining({
-        address: 'email',
-        state: 'notSent',
-        submission: { accepted: false, detail: 'No recipients defined' },
-      }),
-    ]);
+    expect(current.recipients).toHaveLength(1);
+    expect(current.recipients[0]).toMatchObject({
+      address: 'email',
+      state: 'notSent',
+      submission: { accepted: false, detail: 'No recipients defined' },
+    });
   });
 
   it('shows the resend and keeps the failed first attempt apart', () => {
@@ -301,7 +311,7 @@ describe('deriveDeliveryOverview', () => {
 
     expect(overview.earlier.map((attempt) => attempt.recipients[0]?.state)).toEqual(['notSent']);
     expect(overview.current.startedAt).toBe('2026-10-06T08:00:00.000Z');
-    expect(overview.current.recipients[0]?.state).toBe('relayed');
+    expect(overview.current.recipients[0]?.state).toBe('sent');
   });
 
   it('counts a late bounce for the first attempt towards that attempt', () => {
@@ -327,7 +337,7 @@ describe('deriveDeliveryOverview', () => {
     );
 
     expect(overview.earlier[0]?.recipients[0]?.state).toBe('failed');
-    expect(overview.current.recipients[0]?.state).toBe('noReport');
+    expect(overview.current.recipients[0]?.state).toBe('sent');
   });
 
   it('shows an admin override as the outcome, marked as set by hand', () => {
@@ -406,8 +416,8 @@ describe('deriveDeliveryOverview', () => {
       );
 
       expect(overview.current.recipients.map(({ address, state }) => [address, state])).toEqual([
-        [staff, 'noReport'],
-        [submitter, 'noReport'],
+        [staff, 'sent'],
+        [submitter, 'sent'],
       ]);
       expect(overview.earlier).toHaveLength(1);
       expect(overview.earlier[0]?.recipients.map(({ address, state }) => [address, state])).toEqual(
@@ -431,7 +441,7 @@ describe('deriveDeliveryOverview', () => {
       );
 
       expect(statesOf([...bothSent, staffRelayed, anonymousBounce])).toEqual({
-        [staff]: 'noReport',
+        [staff]: 'sent',
         [submitter]: 'failed',
       });
     });
@@ -458,28 +468,6 @@ describe('deriveDeliveryOverview', () => {
           },
         ]),
       ).toEqual({ [staff]: 'delivered', [submitter]: 'failed' });
-    });
-
-    it('still marks a recipient overdue when a member report explains only the list', () => {
-      const memberReport = stored(
-        report([
-          `Original-Recipient: rfc822;${staff}\nFinal-Recipient: rfc822;dora@example.net\nAction: delivered\nStatus: 2.0.0`,
-        ]),
-        'dora@example.net',
-      );
-
-      const { current } = deriveDeliveryOverview([...bothSent, memberReport], {
-        ...OPTIONS,
-        now: Date.parse('2026-10-20T00:00:00.000Z'),
-      });
-
-      expect(
-        current.recipients.map(({ address, state, listed }) => [address, state, listed]),
-      ).toEqual([
-        [staff, 'noReport', true],
-        [submitter, 'overdue', undefined],
-        ['dora@example.net', 'delivered', undefined],
-      ]);
     });
   });
 
@@ -522,6 +510,6 @@ describe('deriveDeliveryOverview', () => {
     );
 
     expect(overview.unreadableCount).toBe(1);
-    expect(overview.current.recipients[0]?.state).toBe('noReport');
+    expect(overview.current.recipients[0]?.state).toBe('sent');
   });
 });
