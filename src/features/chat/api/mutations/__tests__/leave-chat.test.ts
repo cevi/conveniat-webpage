@@ -23,6 +23,10 @@ jest.mock('superjson', () => ({
 }));
 
 const publish = jest.fn<Promise<void>, unknown[]>(() => Promise.resolve());
+// Who may be put into a chat has its own test, see `contact-restriction.test.ts`.
+jest.mock('@/features/chat/api/checks/assert-contactable', () => ({
+  assertContactable: (): Promise<void> => Promise.resolve(),
+}));
 jest.mock('@/lib/db/chat-pubsub', () => ({
   chatPubSub: { publish: (...arguments_: unknown[]): unknown => publish(...arguments_) },
 }));

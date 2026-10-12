@@ -1,4 +1,5 @@
 import { assertChatNotArchived } from '@/features/chat/api/checks/assert-can-write-in-chat';
+import { assertContactable } from '@/features/chat/api/checks/assert-contactable';
 import { assertGroupSize } from '@/features/chat/api/checks/assert-group-size';
 import { isUserMemberOfChat } from '@/features/chat/api/checks/is-user-member-of-chat';
 import { findChatByUuid } from '@/features/chat/api/database-interactions/find-chat-by-uuid';
@@ -72,6 +73,8 @@ export const addParticipants = trpcBaseProcedure
     const newParticipantIds = [...new Set(participantIds)].filter(
       (id) => !existingMemberIds.has(id),
     );
+
+    await assertContactable({ prisma, userId: user.uuid, userIds: newParticipantIds, locale });
 
     if (chat.type === ChatType.GROUP) {
       await assertGroupSize(chat.chatMemberships.length + newParticipantIds.length, locale);
