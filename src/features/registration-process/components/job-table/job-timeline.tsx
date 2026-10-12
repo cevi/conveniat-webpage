@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
-import { STEP_MAPPING } from '@/features/registration_process/components/job-table/types';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
+import { STEP_MAPPING } from '@/features/registration-process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { formatDistanceToNow } from 'date-fns';
 import { Check, Clock, SkipForward, X } from 'lucide-react';

@@ -1,5 +1,5 @@
 import { JsonBlock } from '@/components/ui/json-block';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import { AlertCircle, Check, Copy, RefreshCcw } from 'lucide-react';

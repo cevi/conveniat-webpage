@@ -1,7 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import config from '@/features/payload-cms/payload.config';
-import { registrationInputSchema } from '@/features/registration_process/workflows/input-schema';
+import { registrationInputSchema } from '@/features/registration-process/workflows/input-schema';
 import { createTRPCRouter, trpcBaseProcedure } from '@/trpc/init';
 import { TRPCError } from '@trpc/server';
 import type { Where } from 'payload';
