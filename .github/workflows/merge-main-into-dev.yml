@@ -9,8 +9,8 @@
 # dev cannot simply be rebased or fast-forwarded onto main: its ruleset requires a pull request
 # for every update and names no bypass actors, so the merge back travels the same road as any
 # other change. This workflow drives that road on its own: it merges main into a branch off dev,
-# opens the pull request and turns auto-merge on, which keeps eslint and the test suite in play
-# rather than routing around them.
+# opens the pull request and turns auto-merge on, which keeps eslint, typecheck and the test suite
+# in play rather than routing around them.
 #
 # The pull request is opened with a personal access token for the reason
 # .github/workflows/release-please.yml already gives: one opened with GITHUB_TOKEN starts no
@@ -94,8 +94,8 @@ jobs:
           to be up to date, the next `dev` -> `main` release pull request cannot merge.
 
           Opened by `.github/workflows/merge-main-into-dev.yml`. Auto-merge is on, so this lands on its own
-          once eslint and the test suite are green. If a check fails or GitHub asks for an approval, merge
-          it by hand.
+          once eslint, typecheck and the test suite are green. If a check fails or GitHub asks for an
+          approval, merge it by hand.
           BODY
           )
 
