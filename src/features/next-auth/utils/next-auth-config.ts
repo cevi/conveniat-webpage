@@ -291,17 +291,20 @@ async function syncProfileToPayloadAsync(profile: HitobitoProfile): Promise<void
 // eslint-disable-next-line unicorn/no-null -- Auth.js ends a session on null, not on undefined
 const SESSION_ENDED = null;
 
+/**
+ * Refreshes in flight, by refresh token. Requests that carry the same session share one call to
+ * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
+ * different refresh tokens, so neither ever receives the other's result.
+ */
 const inflightRefreshes = new Map<string, Promise<JWT | null>>();
 
-async function refreshAccessToken(token: JWT, reason: string): Promise<JWT | null> {
-  const userId = token.uuid;
-
-  if (typeof userId !== 'string' || userId === '') {
-    return doRefreshAccessToken(token, reason); // skip dedup for tokens without a UUID
-  }
-
-  // If a refresh is already in-flight for this user, wait for it
-  const existing = inflightRefreshes.get(userId);
+async function refreshAccessToken(
+  token: JWT,
+  refreshToken: string,
+  reason: string,
+): Promise<JWT | null> {
+  // If a refresh is already in-flight for this session, wait for it
+  const existing = inflightRefreshes.get(refreshToken);
   if (existing) {
     return existing;
   }
@@ -309,10 +312,10 @@ async function refreshAccessToken(token: JWT, reason: string): Promise<JWT | nul
   // Start the actual refresh and store the promise
   const refreshPromise = doRefreshAccessToken(token, reason).finally(() => {
     // Clean up after a short delay to handle near-simultaneous arrivals
-    setTimeout(() => inflightRefreshes.delete(userId), 1000);
+    setTimeout(() => inflightRefreshes.delete(refreshToken), 1000);
   });
 
-  inflightRefreshes.set(userId, refreshPromise);
+  inflightRefreshes.set(refreshToken, refreshPromise);
   return refreshPromise;
 }
 
@@ -589,7 +592,7 @@ export const authOptions: NextAuthConfig = {
         reason = 'token_approaching_expiry';
       }
 
-      return refreshAccessToken(token, reason);
+      return refreshAccessToken(token, token.refresh_token, reason);
     },
   },
 
