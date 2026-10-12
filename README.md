@@ -295,8 +295,8 @@ bash create_build_info.sh
 # Generate Prisma client
 npx prisma generate --no-hints
 
-# Build the Next.js application
-pnpm next build
+# Build the Next.js application, including the cache handler bundle next.config.ts resolves
+pnpm build
 ```
 
 ### Analyse Bundle Size
