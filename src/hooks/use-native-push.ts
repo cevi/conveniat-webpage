@@ -180,13 +180,18 @@ function parseHttpTarget(rawUrl: string): string | undefined {
   try {
     const parsedUrl = new URL(rawUrl, globalThis.location.origin);
     if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') return undefined;
-    return parsedUrl.origin === globalThis.location.origin
-      ? parsedUrl.pathname + parsedUrl.search + parsedUrl.hash
-      : parsedUrl.href;
+    if (parsedUrl.origin !== globalThis.location.origin) return parsedUrl.href;
+    // `https://this-host//other-host` is on this origin, but its path alone names another one,
+    // and the path is all that is handed on.
+    if (parsedUrl.pathname.startsWith('//')) return undefined;
+    return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
   } catch {
     return undefined;
   }
 }
+
+/** The pathname of a same-origin target, to compare against `location.pathname`. */
+const pathnameOfTarget = (target: string): string => target.split(/[?#]/)[0] ?? target;
 
 /**
  * Turns the URL a push carries into where the page goes: a path when the target is on this
@@ -254,7 +259,7 @@ export function performReliablePushNavigation(
       const parts = cleanPath.split('/app/chat/');
       const firstPart = parts[1];
       if (typeof firstPart === 'string' && firstPart !== '') {
-        targetChatId = firstPart.split('?')[0];
+        targetChatId = firstPart.split(/[?#]/)[0];
       }
     }
 
@@ -263,7 +268,7 @@ export function performReliablePushNavigation(
       targetChatId !== '' &&
       currentPathname.includes(`/app/chat/${targetChatId}`);
 
-    const isAlreadyOnExactPath = currentPathname === cleanPath;
+    const isAlreadyOnExactPath = currentPathname === pathnameOfTarget(cleanPath);
 
     if (!isAlreadyOnChat && !isAlreadyOnExactPath) {
       console.log(
@@ -293,7 +298,7 @@ export function checkAndExecutePendingPushNavigation(router: {
       const parts = cleanPath.split('/app/chat/');
       const firstPart = parts[1];
       if (typeof firstPart === 'string' && firstPart !== '') {
-        targetChatId = firstPart.split('?')[0];
+        targetChatId = firstPart.split(/[?#]/)[0];
       }
     }
 
@@ -302,7 +307,7 @@ export function checkAndExecutePendingPushNavigation(router: {
       targetChatId !== '' &&
       currentPathname.includes(`/app/chat/${targetChatId}`);
 
-    const isAlreadyOnExactPath = currentPathname === cleanPath;
+    const isAlreadyOnExactPath = currentPathname === pathnameOfTarget(cleanPath);
 
     if (isAlreadyOnChat || isAlreadyOnExactPath) {
       sessionStorage.removeItem('pending_push_redirect');
@@ -323,7 +328,7 @@ export function checkAndExecutePendingPushNavigation(router: {
         typeof targetChatId === 'string' &&
         targetChatId !== '' &&
         nowPathname.includes(`/app/chat/${targetChatId}`);
-      const nowOnExact = nowPathname === cleanPath;
+      const nowOnExact = nowPathname === pathnameOfTarget(cleanPath);
 
       if (!nowOnChat && !nowOnExact) {
         console.log('[NativePush:PWA] Fallback location redirect to:', cleanPath);
@@ -794,7 +799,7 @@ export function useNativePush(): {
             const parts = targetPath.split('/app/chat/');
             const firstPart = parts[1];
             if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split('?')[0];
+              targetChatId = firstPart.split(/[?#]/)[0];
             }
           }
           refreshAndOptimisticallyUpdateChat(trpcUtils, targetChatId, payload);
@@ -826,7 +831,7 @@ export function useNativePush(): {
             const parts = rawUrl.split('/app/chat/');
             const firstPart = parts[1];
             if (typeof firstPart === 'string' && firstPart !== '') {
-              targetChatId = firstPart.split('?')[0];
+              targetChatId = firstPart.split(/[?#]/)[0];
             }
           }
 

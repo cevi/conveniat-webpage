@@ -3,6 +3,7 @@
  */
 
 import {
+  checkAndExecutePendingPushNavigation,
   extractMessageIdentifier,
   extractNotificationLogId,
   extractNotificationTitleAndBody,
@@ -562,6 +563,35 @@ describe('useNativePush', () => {
       expect(mockPush).not.toHaveBeenCalled();
       expect(assignLocation).toHaveBeenCalledWith('http://example.org/login');
       expect(localStorage.getItem('pending_push_redirect')).toBeNull();
+    });
+    it('does not follow a link on this origin whose path names another origin', () => {
+      const target = `${globalThis.location.origin}//example.org/login`;
+
+      expect(resolveSameOriginPath(target)).toBeUndefined();
+      performReliablePushNavigation({ push: mockPush }, target);
+
+      expect(assignLocation).not.toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
+    });
+
+    it('recognises a target with a query and a fragment as reached', () => {
+      jest.useFakeTimers();
+      const originalHref = globalThis.location.href;
+      try {
+        performReliablePushNavigation({ push: mockPush }, '/app/schedule?day=2#details');
+        globalThis.history.replaceState({}, '', '/app/schedule?day=2#details');
+        const hrefAfterNavigation = globalThis.location.href;
+
+        jest.advanceTimersByTime(300);
+        expect(globalThis.location.href).toBe(hrefAfterNavigation);
+
+        checkAndExecutePendingPushNavigation({ push: mockPush });
+        expect(localStorage.getItem('pending_push_redirect')).toBeNull();
+        expect(mockPush).toHaveBeenCalledTimes(1);
+      } finally {
+        globalThis.history.replaceState({}, '', originalHref);
+        jest.useRealTimers();
+      }
     });
   });
 
