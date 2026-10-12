@@ -1,9 +1,12 @@
 import {
+  acceptAnalyticsText,
   acknowledgeCookiesText,
   analyticsConsentText,
+  necessaryCookiesOnlyText,
   necessaryCookiesText,
 } from '@/components/utils/cookie-consent-texts';
 import { isPostHogConfigured } from '@/lib/posthog-client';
+import { cn } from '@/utils/tailwindcss-override';
 import React from 'react';
 
 const buttonClassName =
@@ -17,15 +20,21 @@ export const FancyLoadingScreen: React.FC<{ locale?: 'de' | 'fr' | 'en' }> = ({
   return (
     <div className="relative flex w-full flex-col items-center justify-center">
       {/* Invisible Spacer to perfect match AcceptCookie card height */}
-      <div className="invisible flex flex-col items-center">
+      <div className="invisible flex w-full flex-col items-center">
         <p className="mb-8 text-lg text-balance text-gray-700">
           {asksForAnalytics ? analyticsConsentText[locale] : necessaryCookiesText[locale]}
         </p>
-        <div className="flex flex-col gap-4">
-          <button className={buttonClassName}>{acknowledgeCookiesText[locale]}</button>
-          {/* The cookie step stacks a second answer where it asks for analytics. */}
+        {/* Same labels and widths as the cookie step, so a wrapped label reserves its height. */}
+        <div
+          className={cn('flex flex-col items-center gap-4', {
+            'mx-auto w-full max-w-xs items-stretch': asksForAnalytics,
+          })}
+        >
+          <button className={buttonClassName}>
+            {asksForAnalytics ? necessaryCookiesOnlyText[locale] : acknowledgeCookiesText[locale]}
+          </button>
           {asksForAnalytics && (
-            <button className={buttonClassName}>{acknowledgeCookiesText[locale]}</button>
+            <button className={buttonClassName}>{acceptAnalyticsText[locale]}</button>
           )}
         </div>
       </div>
