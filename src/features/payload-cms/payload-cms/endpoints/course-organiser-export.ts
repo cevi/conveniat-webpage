@@ -1,4 +1,4 @@
-import { isEditor } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import type { ParticipationExportLabels } from '@/features/payload-cms/payload-cms/endpoints/participation-export';
 import {
   QUERY_LIMIT,
@@ -33,7 +33,7 @@ export const makeCourseOrganiserExportHandler = ({
 }): PayloadHandler => {
   return async (request) => {
     try {
-      const hasAccess = isEditor({ req: request });
+      const hasAccess = hasAdminOrWebAccess({ req: request });
       if (!hasAccess) {
         return Response.json({ error: 'Unauthorized' }, { status: 401 });
       }

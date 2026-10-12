@@ -1,4 +1,4 @@
-import { isEditor } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { isOverlapping } from '@/features/schedule/utils/time-utils';
 import prisma from '@/lib/db/prisma';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -6,7 +6,7 @@ import type { PayloadHandler } from 'payload';
 
 export const handleParticipantMutation: PayloadHandler = async (request) => {
   try {
-    const hasAccess = isEditor({ req: request });
+    const hasAccess = hasAdminOrWebAccess({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

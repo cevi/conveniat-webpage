@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 'use client';
 
+import { useAuth } from '@payloadcms/ui';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useEffect, useState } from 'react';
 
 export default function PdfReportGeneratorUI(): React.ReactNode {
+  const { permissions } = useAuth();
   const [open, setOpen] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
   const [selectedFormId, setSelectedFormId] = useState<string>('');
@@ -84,6 +86,10 @@ export default function PdfReportGeneratorUI(): React.ReactNode {
       previous.includes(f) ? previous.filter((x) => x !== f) : [...previous, f],
     );
   };
+
+  // The report is built from the form submissions, so it is offered to whoever may read those;
+  // the endpoint refuses everybody else anyway.
+  if (permissions?.collections?.['form-submissions']?.read !== true) return <></>;
 
   return (
     <div style={{ marginBottom: '1rem', marginTop: '1rem' }}>
