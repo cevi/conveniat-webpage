@@ -236,9 +236,9 @@ const capabilityLabels: Record<Capability, StaticTranslationString> = {
     fr: "Ouvrir le panneau d'administration",
   },
   editor: {
-    de: 'Vorschau-Links erstellen, Exporte, Kursteilnehmende verwalten',
-    en: 'Create preview links, exports, manage course participants',
-    fr: 'Créer des liens d’aperçu, exports, gérer les participants aux cours',
+    de: 'Vorschau-Links erstellen, automatisch übersetzen',
+    en: 'Create preview links, translate automatically',
+    fr: 'Créer des liens d’aperçu, traduire automatiquement',
   },
   materialDepot: {
     de: 'Materialdepot in der App führen',

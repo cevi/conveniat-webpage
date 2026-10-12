@@ -1,4 +1,4 @@
-import { isEditor } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import {
   QUERY_LIMIT,
   findExportParticipants,
@@ -23,7 +23,7 @@ import type { PayloadHandler } from 'payload';
  */
 export const helperShiftParticipationExportHandler: PayloadHandler = async (request) => {
   try {
-    const hasAccess = isEditor({ req: request });
+    const hasAccess = hasAdminOrWebAccess({ req: request });
     if (!hasAccess) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

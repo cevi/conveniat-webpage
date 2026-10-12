@@ -136,9 +136,10 @@ export const hasEditorialAccess: ({ req }: { req: PayloadRequest }) => boolean =
 
 /**
  * The editors: everyone who works on content in the admin panel. An editor sees drafts and the
- * preview on the public site, may run the exports, and reads the reference data the content
- * points at, like the Quartiere and the Funktionen. What an editor may write is up to the rule
- * of each collection.
+ * preview on the public site, may run the automatic translation, and reads the reference data
+ * the content points at, like the Quartiere and the Funktionen. What an editor may write is up
+ * to the rule of each collection. Being an editor opens no data about people: the participant
+ * exports and the enrolments follow the rule of the collection they belong to.
  */
 export const EDITOR_ROLES: Roles[] = [
   Roles.FullAdmin,
