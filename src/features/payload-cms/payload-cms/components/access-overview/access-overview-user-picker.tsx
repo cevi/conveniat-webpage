@@ -3,7 +3,7 @@
 import { ACCESS_OVERVIEW_USER_PARAMETER } from '@/features/payload-cms/payload-cms/utils/admin-entity-access';
 import type { ReactSelectOption } from '@payloadcms/ui';
 import { ReactSelect, toast } from '@payloadcms/ui';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { stringify } from 'qs-esm';
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
@@ -82,9 +82,9 @@ const useUserSearch = (
 };
 
 /**
- * Picks the person the access overview explains. The choice lives in the address, so the page
- * with a person selected can be shared and reloaded, and clearing it returns to the admin's own
- * access.
+ * Picks a person for an admin view, the access overview by default. The choice lives in the
+ * address under `parameter`, so the page with a person selected can be shared and reloaded.
+ * Clearing it drops the parameter and leaves the others, which a view with two pickers needs.
  */
 export const AccessOverviewUserPicker: React.FC<{
   apiRoute: string;
@@ -92,24 +92,34 @@ export const AccessOverviewUserPicker: React.FC<{
   placeholder: string;
   noResults: string;
   searchFailed: string;
-}> = ({ apiRoute, selected, placeholder, noResults, searchFailed }) => {
+  parameter?: string;
+  inputId?: string;
+}> = ({
+  apiRoute,
+  selected,
+  placeholder,
+  noResults,
+  searchFailed,
+  parameter = ACCESS_OVERVIEW_USER_PARAMETER,
+  inputId = 'access-overview-user',
+}) => {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParameters = useSearchParams();
   const { options, isLoading, search } = useUserSearch(apiRoute, searchFailed);
 
   const handleChange = (option: ReactSelectOption | ReactSelectOption[] | null): void => {
     // eslint-disable-next-line unicorn/no-null
     const picked = Array.isArray(option) ? option[0] : (option ?? undefined);
-    if (picked === undefined || typeof picked.value !== 'string') {
-      router.push(pathname);
-      return;
-    }
-    router.push(`${pathname}?${stringify({ [ACCESS_OVERVIEW_USER_PARAMETER]: picked.value })}`);
+    const next = new URLSearchParams(searchParameters);
+    if (picked === undefined || typeof picked.value !== 'string') next.delete(parameter);
+    else next.set(parameter, picked.value);
+    router.push(next.size === 0 ? pathname : `${pathname}?${next.toString()}`);
   };
 
   return (
     <ReactSelect
-      inputId="access-overview-user"
+      inputId={inputId}
       isClearable
       isLoading={isLoading}
       isSearchable

@@ -123,6 +123,7 @@ import { default as default_d432a7de1921f0e10a01eefbe71b022a } from '@/features/
 import { default as default_a79319ae20aa3b9aa7415044aaf68603 } from '@/features/payload-cms/payload-cms/components/dashboard-welcome-banner'
 import { ImportExportProvider as ImportExportProvider_cdf7e044479f899a31f804427d568b36 } from '@payloadcms/plugin-import-export/rsc'
 import { default as default_1e4b7ed358a9b39713ba1bd44bbcc1f1 } from '@/features/payload-cms/payload-cms/views/access-overview-view'
+import { default as default_dbd7fa7f7e394074f3d89896acb3145a } from '@/features/payload-cms/payload-cms/views/merge-users-view'
 import { default as default_1301ab5d76cd2e924cf1719e5409e3b4 } from '@/features/material/payload-cms/material-setup-view'
 import { default as default_e7ca4c1ba39ad98f5b6b68aa103e80ee } from '@/features/payload-cms/payload-cms/widgets/emergency-widget'
 import { default as default_f2e2a798db2c97cbd7f7b11ab9c64d45 } from '@/features/presence/payload-cms/widgets/presence-count-widget'
@@ -259,6 +260,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/dashboard-welcome-banner#default": default_a79319ae20aa3b9aa7415044aaf68603,
   "@payloadcms/plugin-import-export/rsc#ImportExportProvider": ImportExportProvider_cdf7e044479f899a31f804427d568b36,
   "@/features/payload-cms/payload-cms/views/access-overview-view#default": default_1e4b7ed358a9b39713ba1bd44bbcc1f1,
+  "@/features/payload-cms/payload-cms/views/merge-users-view#default": default_dbd7fa7f7e394074f3d89896acb3145a,
   "@/features/material/payload-cms/material-setup-view#default": default_1301ab5d76cd2e924cf1719e5409e3b4,
   "@/features/payload-cms/payload-cms/widgets/emergency-widget#default": default_e7ca4c1ba39ad98f5b6b68aa103e80ee,
   "@/features/presence/payload-cms/widgets/presence-count-widget#default": default_f2e2a798db2c97cbd7f7b11ab9c64d45,
