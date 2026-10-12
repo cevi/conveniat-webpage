@@ -1,3 +1,7 @@
+import {
+  isReissuedSessionToken,
+  trackSessionToken,
+} from '@/features/next-auth/utils/session-token-change';
 import { auth } from '@/utils/auth';
 import type { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
 
@@ -28,7 +32,8 @@ function propagateCookieToRequest(request: NextRequest, cookieString: string): v
 /**
  * Programmatically runs NextAuth middleware to check for session token rotation.
  * If NextAuth rotates the token and sets a new session cookie, this helper
- * propagates the `Set-Cookie` header to the final `response`.
+ * propagates the `Set-Cookie` header to the final `response`. A session whose token stayed the
+ * same is not handed that token again.
  */
 export async function rotateSessionToken(
   request: NextRequest,
@@ -40,21 +45,28 @@ export async function rotateSessionToken(
     event_: NextFetchEvent,
   ) => Promise<Response | NextResponse | undefined>;
 
-  const authResponse = await authMiddleware(request, event);
+  const { result: authResponse, isTokenKept } = await trackSessionToken(() =>
+    authMiddleware(request, event),
+  );
+
+  // A token that was kept is not sent back: it would let this response overwrite the cookie of
+  // one that rotated it in the meantime. Every other cookie goes out as Auth.js set it.
+  const isPassedOn = (cookie: string): boolean =>
+    cookie !== '' && !(isTokenKept && isReissuedSessionToken(cookie));
 
   if (authResponse instanceof Response) {
     const headers = authResponse.headers as Headers & { getSetCookie?: () => string[] };
     const setCookies = typeof headers.getSetCookie === 'function' ? headers.getSetCookie() : [];
     if (setCookies.length > 0) {
       for (const cookie of setCookies) {
-        if (cookie !== '') {
+        if (isPassedOn(cookie)) {
           response.headers.append('set-cookie', cookie);
           propagateCookieToRequest(request, cookie);
         }
       }
     } else {
       const fallback = headers.get('set-cookie');
-      if (fallback !== null && fallback !== '') {
+      if (fallback !== null && isPassedOn(fallback)) {
         response.headers.set('set-cookie', fallback);
         propagateCookieToRequest(request, fallback);
       }

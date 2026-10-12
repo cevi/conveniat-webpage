@@ -3,16 +3,29 @@ import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
+import type { LeaderNotes } from '@/features/schedule/api/viewer';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
+import type { DetailTab } from '@/features/schedule/components/schedule-detail-tabs';
+import {
+  DetailTabBar,
+  leaderTabsOf,
+  MaterialTab,
+  SafetyTab,
+  StepsTab,
+} from '@/features/schedule/components/schedule-detail-tabs';
 import { ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
+import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import {
   ScheduleStatusProvider,
   useCourseStatus,
 } from '@/features/schedule/context/schedule-status-context';
-import { getCategoryDisplayData } from '@/features/schedule/utils/category-utils';
+import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
+import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
+import { quartiereOf, slotOf } from '@/features/schedule/utils/programme-utils';
+import { formatDuration } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -21,15 +34,18 @@ import { formatUserFullName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import {
   AlertTriangle,
-  Calendar,
+  Check,
+  ChevronRight,
   Clock,
   MapPin,
   MessageCircle,
   UserPlus,
   Users,
 } from 'lucide-react';
+import Link from 'next/link';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { useState } from 'react';
 
 const contactAdminText: StaticTranslationString = {
   de: 'Kontakt mit Organisator',
@@ -104,7 +120,26 @@ interface ScheduleDetailContentProperties {
   editData?: EditData;
   onEditDataChange?: Dispatch<SetStateAction<EditData>>;
   editError?: string | undefined;
+  /** the same block in the slots of the other Quartiere, on the same day */
+  otherSlots?: CampScheduleEntryFrontendType[];
+  /** what the block holds for the people running it; absent for everybody else */
+  leaderNotes?: LeaderNotes | null | undefined;
 }
+
+/** One line of the block's key facts: an icon, the fact and a smaller line under it. */
+const Fact: React.FC<{
+  icon: typeof Clock;
+  title: React.ReactNode;
+  children?: React.ReactNode;
+}> = ({ icon: Icon, title, children }) => (
+  <div className="flex items-start gap-3 border-b border-gray-100 px-3.5 py-2.5 last:border-b-0">
+    <Icon className="text-conveniat-green mt-0.5 h-4 w-4 shrink-0" />
+    <div className="min-w-0 flex-1">
+      <div className="font-body text-sm font-medium text-gray-900">{title}</div>
+      {children}
+    </div>
+  </div>
+);
 
 export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = ({
   entry,
@@ -115,14 +150,33 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   editData,
   onEditDataChange,
   editError,
+  otherSlots = [],
+  leaderNotes,
 }) => {
+  const [selectedTab, setSelectedTab] = useState<DetailTab>('overview');
   const location = resolveLocation(entry.location);
   const organisers = (entry.organiser ?? []) as User[];
   const dateTime = formatScheduleDateTime(locale, entry.timeslot.date, entry.timeslot.time);
   const isOnline = useOnlineStatus();
-  const { label: categoryLabel, className: categoryClassName } = getCategoryDisplayData(
-    entry.category,
-  );
+  const accent = getCategoryAccent(entry.category);
+  // guarded: a phone can restore a form this version does not know
+  const form = (programmeLabels.form as Record<string, Record<Locale, string> | undefined>)[
+    entry.form ?? ''
+  ]?.[locale];
+  const label = [accent.label, form].filter((part) => part !== undefined && part !== '');
+
+  const slot = slotOf(entry);
+  const steps = entry.steps ?? [];
+  const bring = entry.bring ?? [];
+  const quartiere = quartiereOf(entry).filter(({ name }) => name !== undefined);
+
+  // Editing happens on the overview, and a tab can vanish under the reader when the block changes.
+  const tabs: DetailTab[] = [
+    'overview',
+    ...(steps.length > 0 && slot !== undefined ? (['steps'] as const) : []),
+    ...leaderTabsOf(leaderNotes),
+  ];
+  const activeTab = !isEditing && tabs.includes(selectedTab) ? selectedTab : 'overview';
 
   const handleDescriptionChange = (value: string): void => {
     onEditDataChange?.((previous) => ({ ...previous, description: value }));
@@ -156,21 +210,20 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
           </div>
         )}
 
-        {/* Hero Header Card */}
-        <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-          {categoryLabel && (
-            <div>
-              <span
-                className={cn(
-                  'rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wide uppercase',
-                  categoryClassName,
-                )}
-              >
-                {categoryLabel}
-              </span>
+        {/* Header: category, title and what the block is about */}
+        <header className="space-y-2 px-1">
+          {label.length > 0 && (
+            <div
+              className={cn(
+                'flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase',
+                accent.text,
+              )}
+            >
+              <span className={cn('h-2 w-2 rounded-full', accent.bar)} />
+              {label.join(' · ')}
             </div>
           )}
-          <h1 className="font-heading text-xl leading-snug font-bold tracking-tight text-gray-900">
+          <h1 className="font-heading text-2xl leading-tight font-bold tracking-tight text-gray-900">
             {entry.title}
           </h1>
           {isEditing && editData ? (
@@ -186,67 +239,102 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
             </div>
           )}
-        </div>
+        </header>
 
-        {/* Date, Time & Location Card */}
-        <div className="space-y-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-          {/* Date & Time */}
-          <div className="flex items-center gap-3">
-            <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-              <Calendar className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-body text-xs font-medium text-gray-400">
-                {labels.dateTime[locale]}
-              </div>
-              <div className="font-heading text-sm font-bold text-gray-900">
-                {dateTime.formattedDate}
-              </div>
-              <div className="font-body text-conveniat-green flex items-center gap-1 text-xs font-semibold">
-                <Clock className="h-3.5 w-3.5" />
-                {entry.timeslot.time} Uhr
-              </div>
-            </div>
-          </div>
+        {tabs.length > 1 && !isEditing && (
+          <DetailTabBar
+            tabs={tabs}
+            active={activeTab}
+            onSelect={setSelectedTab}
+            accentText={accent.text}
+            locale={locale}
+          />
+        )}
 
-          {location !== undefined && (
-            <>
-              <div className="border-t border-gray-100" />
+        {activeTab === 'steps' && slot !== undefined && (
+          <StepsTab
+            steps={steps}
+            startMinutes={slot.start}
+            accentText={accent.text}
+            locale={locale}
+          />
+        )}
+        {activeTab === 'material' && leaderNotes && (
+          <MaterialTab notes={leaderNotes} locale={locale} />
+        )}
+        {activeTab === 'safety' && leaderNotes && <SafetyTab notes={leaderNotes} locale={locale} />}
 
-              {/* Location & Mini Map */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                    <MapPin className="h-5 w-5" />
+        {activeTab === 'overview' && (
+          <>
+            {/* Key facts: when, where, who */}
+            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
+              <Fact icon={Clock} title={entry.timeslot.time.replace(' - ', ' – ')}>
+                <div className="font-body text-xs text-gray-500">
+                  {[
+                    dateTime.formattedDate,
+                    slot !== undefined && slot.end > slot.start
+                      ? formatDuration(slot.end - slot.start)
+                      : undefined,
+                  ]
+                    .filter((part) => part !== undefined)
+                    .join(' · ')}
+                </div>
+              </Fact>
+
+              {location !== undefined && (
+                <Fact
+                  icon={MapPin}
+                  title={
+                    <Link
+                      href={`/app/map?locationId=${location.id}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span>
+                        {location.title}
+                        <span className="block text-xs font-normal text-gray-500">
+                          {programmeLabels.showOnMap[locale]}
+                        </span>
+                      </span>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
+                    </Link>
+                  }
+                >
+                  <div className="mt-2 overflow-hidden rounded-xl border border-gray-100">
+                    <ScheduleMiniMap location={location} />
                   </div>
-                  <div>
-                    <div className="font-body text-xs font-medium text-gray-400">
-                      {labels.location[locale]}
+                </Fact>
+              )}
+
+              {(quartiere.length > 0 || otherSlots.length > 0) && (
+                <Fact
+                  icon={Users}
+                  title={
+                    quartiere.length > 0
+                      ? quartiere.map(({ name }) => name).join(', ')
+                      : programmeLabels.wholeCamp[locale]
+                  }
+                >
+                  {otherSlots.length > 0 && (
+                    <div className="font-body mt-0.5 text-xs text-gray-500">
+                      <div>{programmeLabels.otherSlots[locale]}:</div>
+                      {otherSlots.map((other) => (
+                        <div key={other.id}>
+                          {other.timeslot.time.replace(' - ', ' – ')}
+                          {quartiereOf(other).some(({ name }) => name !== undefined) &&
+                            ` · ${quartiereOf(other)
+                              .map(({ name }) => name)
+                              .filter((name) => name !== undefined)
+                              .join(', ')}`}
+                        </div>
+                      ))}
                     </div>
-                    <div className="font-heading text-sm font-bold text-gray-900">
-                      {location.title}
-                    </div>
-                  </div>
-                </div>
-                <div className="overflow-hidden rounded-xl border border-gray-100 shadow-2xs">
-                  <ScheduleMiniMap location={location} />
-                </div>
-              </div>
-            </>
-          )}
+                  )}
+                </Fact>
+              )}
 
-          {/* Target Group */}
-          {(entry.target_group || isEditing) && (
-            <>
-              <div className="border-t border-gray-100" />
-              <div className="flex items-start gap-3">
-                <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-body text-xs font-medium text-gray-400">
-                    {labels.targetGroup[locale]}
-                  </div>
+              {/* Target Group */}
+              {(entry.target_group || isEditing) && (
+                <Fact icon={Users} title={labels.targetGroup[locale]}>
                   {isEditing && editData ? (
                     <MarkdownEditor
                       value={editData.targetGroup}
@@ -256,32 +344,22 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                     />
                   ) : undefined}
                   {!isEditing && entry.target_group && (
-                    <div className="font-body mt-0.5 text-sm font-medium text-gray-800">
+                    <div className="font-body mt-0.5 text-sm text-gray-600">
                       <LexicalRichTextSection
                         richTextSection={entry.target_group}
                         locale={locale}
                       />
                     </div>
                   )}
-                </div>
-              </div>
-            </>
-          )}
+                </Fact>
+              )}
 
-          {/* Max Participants (when editing) */}
-          {isEditing && editData && (
-            <>
-              <div className="border-t border-gray-100" />
-              <div className="flex items-start gap-3">
-                <div className="bg-conveniat-green/10 text-conveniat-green flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <label className="font-body text-xs font-medium text-gray-400">
-                    {labels.maxParticipants[locale]}
-                  </label>
+              {/* Max Participants (when editing) */}
+              {isEditing && editData && (
+                <Fact icon={Users} title={labels.maxParticipants[locale]}>
                   <input
                     type="number"
+                    aria-label={labels.maxParticipants[locale]}
                     min={courseStatus?.enrolledCount ?? 0}
                     value={editData.maxParticipants || ''}
                     onChange={handleMaxParticipantsChange}
@@ -293,72 +371,91 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} angemeldet)
                     </p>
                   )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Admin Actions (when admin & not editing) */}
-        {isAdmin && !isEditing && (
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-            <WorkshopAdminActions
-              courseId={entry.id}
-              courseTitle={entry.title}
-              isAdmin={isAdmin}
-              courseStatus={courseStatus}
-            />
-          </div>
-        )}
-
-        {/* Enrollment Section (when enabled & not editing) */}
-        {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
-
-        {/* Participant List (organisers only, when enrolment is enabled & not editing) */}
-        {!isEditing && isAdmin && (
-          <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
-        )}
-
-        {/* Contact Organisers Section */}
-        {organisers.length > 0 && !isEditing && (
-          <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-            <div className="flex items-center gap-2">
-              <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
-                <MessageCircle className="h-4 w-4" />
-              </div>
-              <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-                {contactAdminText[locale]}
-              </h3>
+                </Fact>
+              )}
             </div>
-            <div className="space-y-2.5">
-              {organisers.map((organiser) => {
-                const displayName = formatUserFullName(organiser.fullName, organiser.nickname);
 
-                return (
-                  <div
-                    key={organiser.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <PersonAvatar
-                        seed={organiser.id}
-                        name={organiser.fullName}
-                        className="h-10 w-10 text-sm font-bold shadow-xs"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="font-body truncate text-sm font-semibold text-gray-900">
-                          {displayName}
+            {bring.length > 0 && !isEditing && (
+              <section className="px-1">
+                <h3 className="font-heading text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                  {programmeLabels.bring[locale]}
+                </h3>
+                <ul className="mt-2 grid grid-cols-2 gap-1.5">
+                  {bring.map(({ id, item }, index) => (
+                    <li
+                      key={id ?? index}
+                      className="flex items-center gap-2 rounded-xl bg-gray-100 px-2.5 py-2 text-[13px] text-gray-700"
+                    >
+                      <Check className="text-conveniat-green h-3.5 w-3.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Admin Actions (when admin & not editing) */}
+            {isAdmin && !isEditing && (
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+                <WorkshopAdminActions
+                  courseId={entry.id}
+                  courseTitle={entry.title}
+                  isAdmin={isAdmin}
+                  courseStatus={courseStatus}
+                />
+              </div>
+            )}
+
+            {/* Enrollment Section (when enabled & not editing) */}
+            {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
+
+            {/* Participant List (organisers only, when enrolment is enabled & not editing) */}
+            {!isEditing && isAdmin && (
+              <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
+            )}
+
+            {/* Contact Organisers Section */}
+            {organisers.length > 0 && !isEditing && (
+              <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
+                    <MessageCircle className="h-4 w-4" />
+                  </div>
+                  <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                    {contactAdminText[locale]}
+                  </h3>
+                </div>
+                <div className="space-y-2.5">
+                  {organisers.map((organiser) => {
+                    const displayName = formatUserFullName(organiser.fullName, organiser.nickname);
+
+                    return (
+                      <div
+                        key={organiser.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <PersonAvatar
+                            seed={organiser.id}
+                            name={organiser.fullName}
+                            className="h-10 w-10 text-sm font-bold shadow-xs"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-body truncate text-sm font-semibold text-gray-900">
+                              {displayName}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          <ChatLinkButton userId={organiser.id} />
                         </div>
                       </div>
-                    </div>
-                    <div className="shrink-0">
-                      <ChatLinkButton userId={organiser.id} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </article>
     </ScheduleStatusProvider>

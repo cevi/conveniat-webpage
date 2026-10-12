@@ -5,6 +5,7 @@ import {
   ThreadCapabilities,
 } from '@/lib/capabilities/definitions/chat-capabilities';
 import type { CapabilitiesMap, Capability, CapabilitySubject } from '@/lib/capabilities/types';
+import type { PrismaClientOrTransaction } from '@/types/types';
 
 const capabilities: Capability[] = [
   new MessageCapabilities(),
@@ -14,6 +15,7 @@ const capabilities: Capability[] = [
 ];
 
 export const checkCapability = async <S extends CapabilitySubject>(
+  prisma: PrismaClientOrTransaction,
   action: CapabilitiesMap[S],
   subject: S,
   chatId?: string,
@@ -23,6 +25,5 @@ export const checkCapability = async <S extends CapabilitySubject>(
     console.warn(`No capability definition found for subject: ${subject}`);
     return false;
   }
-  const context = chatId ? { chatId } : {};
-  return capability.can(action, context);
+  return capability.can(action, chatId ? { prisma, chatId } : { prisma });
 };

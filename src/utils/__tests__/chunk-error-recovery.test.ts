@@ -15,6 +15,13 @@ const setOnline = (online: boolean): void => {
   Object.defineProperty(globalThis.navigator, 'onLine', { value: online, configurable: true });
 };
 
+const registerServiceWorker = (registration: Partial<ServiceWorkerRegistration>): void => {
+  Object.defineProperty(globalThis.navigator, 'serviceWorker', {
+    value: { getRegistrations: jest.fn().mockResolvedValue([registration]) },
+    configurable: true,
+  });
+};
+
 describe('isStaleBundleError', () => {
   it.each([
     [
@@ -104,25 +111,35 @@ describe('attemptStaleBundleRecovery', () => {
     expect(mockedReloadPage).toHaveBeenCalledTimes(2);
   });
 
-  it('drops the stale precache before reloading on a missing module factory', async () => {
+  const missingModuleFactory = new Error(
+    'Module 1 was instantiated because it was required from module 2, but the module factory is not available.',
+  );
+
+  // Unregistering deactivates the push subscription of the registration, and nothing brings
+  // it back: the phone would stop receiving pushes after a deploy.
+  it('keeps the service worker registered, and with it the push subscription', async () => {
     const unregister = jest.fn().mockResolvedValue(true);
-    Object.defineProperty(globalThis.navigator, 'serviceWorker', {
-      value: { getRegistrations: jest.fn().mockResolvedValue([{ unregister }]) },
-      configurable: true,
-    });
+    const update = jest.fn(() => Promise.resolve());
+    registerServiceWorker({ unregister, update });
 
-    expect(
-      attemptStaleBundleRecovery(
-        new Error(
-          'Module 1 was instantiated because it was required from module 2, but the module factory is not available.',
-        ),
-      ),
-    ).toBe(true);
+    expect(attemptStaleBundleRecovery(missingModuleFactory)).toBe(true);
 
-    // The reload waits for the unregister so it cannot pick the same precache back up.
+    // The reload waits for the update check so it can land on the current worker.
     expect(mockedReloadPage).not.toHaveBeenCalled();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(unregister).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(unregister).not.toHaveBeenCalled();
     expect(mockedReloadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads anyway when the update check never answers', async () => {
+    jest.useFakeTimers();
+    registerServiceWorker({ update: jest.fn(() => new Promise<never>(() => {})) });
+
+    expect(attemptStaleBundleRecovery(missingModuleFactory)).toBe(true);
+
+    await jest.advanceTimersByTimeAsync(3000);
+    expect(mockedReloadPage).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 });

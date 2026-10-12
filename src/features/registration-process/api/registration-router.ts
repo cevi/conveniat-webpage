@@ -264,6 +264,7 @@ export const registrationRouter = createTRPCRouter({
         },
       },
       sort: '-createdAt',
+      pagination: false,
     });
 
     return reviews.docs;

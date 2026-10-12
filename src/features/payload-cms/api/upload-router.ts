@@ -165,6 +165,7 @@ export const uploadRouter = createTRPCRouter({
             },
           },
           depth: 0,
+          limit: 1,
         });
 
         if (existingImages.totalDocs > 0) {

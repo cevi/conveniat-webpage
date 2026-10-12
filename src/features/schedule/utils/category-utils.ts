@@ -46,3 +46,33 @@ export function getCategoryDisplayData(category: string | CampCategory | null | 
     className: defaultClassName,
   };
 }
+
+/**
+ * A solid colour per theme, for the colour bar and the category name of the compact programme
+ * list. Written as arbitrary values because the app's Tailwind palette has no purple, indigo,
+ * rose or cyan, so the named classes for those themes compile to nothing.
+ */
+const colorThemeAccentMap: Record<string, { bar: string; text: string }> = {
+  purple: { bar: 'bg-[#7e22ce]', text: 'text-[#7e22ce]' },
+  green: { bar: 'bg-[#15803d]', text: 'text-[#15803d]' },
+  blue: { bar: 'bg-[#1d4ed8]', text: 'text-[#1d4ed8]' },
+  gray: { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]' },
+  indigo: { bar: 'bg-[#4338ca]', text: 'text-[#4338ca]' },
+  amber: { bar: 'bg-[#b45309]', text: 'text-[#b45309]' },
+  rose: { bar: 'bg-[#be123c]', text: 'text-[#be123c]' },
+  cyan: { bar: 'bg-[#0e7490]', text: 'text-[#0e7490]' },
+  orange: { bar: 'bg-[#c2410c]', text: 'text-[#c2410c]' },
+};
+
+const defaultAccent = { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]' };
+
+/** Title and accent colours of an entry's category; the gray default for an entry without one. */
+export function getCategoryAccent(category: string | CampCategory | null | undefined): {
+  label: string;
+  bar: string;
+  text: string;
+} {
+  const resolved = resolveCategory(category);
+  if (resolved === undefined) return { label: '', ...defaultAccent };
+  return { label: resolved.title, ...(colorThemeAccentMap[resolved.colorTheme] ?? defaultAccent) };
+}

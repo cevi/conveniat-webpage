@@ -131,6 +131,11 @@ const payloadConfigAdminSettings: RoutableConfig['admin'] = {
         path: '/access-overview',
         exact: true,
       },
+      mergeUsers: {
+        Component: '@/features/payload-cms/payload-cms/views/merge-users-view#default',
+        path: '/merge-users',
+        exact: true,
+      },
       materialSetup: {
         Component: '@/features/material/payload-cms/material-setup-view#default',
         path: '/material-setup',

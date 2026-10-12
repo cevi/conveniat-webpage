@@ -2,7 +2,7 @@ import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/pay
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
-import { parseTimeToMinutes } from '@/features/schedule/utils/time-utils';
+import { isSameDay, parseTimeslot } from '@/features/schedule/utils/time-utils';
 
 /**
  * A schedule entry or a helper shift, reduced to what "Programm von heute" renders.
@@ -32,36 +32,6 @@ interface SelectTodaysDashboardEventsInput {
   now: Date;
   limit: number;
 }
-
-const isSameDay = (isoDate: string, now: Date): boolean => {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return false;
-
-  return (
-    date.getDate() === now.getDate() &&
-    date.getMonth() === now.getMonth() &&
-    date.getFullYear() === now.getFullYear()
-  );
-};
-
-/**
- * `"08:00 - 12:00"` -> `{ start: 480, end: 720 }` in minutes from midnight, so that shifts and
- * schedule entries sort against each other and can be compared to the current time of day.
- *
- * A timeslot without an end (`"08:00"`) is a point in time, so it ends when it starts. A timeslot
- * we cannot parse yields `undefined` and is then treated as neither sortable nor expired, so a
- * malformed entry stays visible instead of silently disappearing from the card.
- */
-const parseTimeslot = (time: string): { start: number; end: number } | undefined => {
-  const [startString, endString] = time.split(' - ').map((part) => part.trim());
-  if (startString === undefined || startString === '') return undefined;
-
-  const start = parseTimeToMinutes(startString);
-  const end = endString === undefined ? start : parseTimeToMinutes(endString);
-  if (Number.isNaN(start) || Number.isNaN(end)) return undefined;
-
-  return { start, end };
-};
 
 /** the time of day of `now` in minutes from midnight, to compare against a parsed timeslot */
 const minutesOfDay = (now: Date): number => now.getHours() * 60 + now.getMinutes();

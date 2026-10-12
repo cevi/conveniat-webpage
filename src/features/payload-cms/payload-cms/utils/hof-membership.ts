@@ -127,6 +127,38 @@ export const findRegisteredHoefe = async (
   return hoefeOfRegistrations(hoefe, registrations.docs);
 };
 
+/**
+ * Cevi.DB namespaces the participant role twice, `Event::Role::Participant` on a plain event
+ * and `Event::Camp::Role::Participant` on a camp, so only the last segment is matched.
+ */
+const isParticipantRole = (roleType: string | null | undefined): boolean =>
+  roleType?.split('::').at(-1) === 'Participant';
+
+/**
+ * Whether a person comes to the camp to lead or help: an active registration in any role but
+ * the participant's, e.g. Leiter:in, Hilfsleiter:in, Helfer:in or Küche. A registration without
+ * a role does not count, so nobody becomes a leader by a gap in the data.
+ */
+export const hasLeadingRegistration = async (
+  payload: Payload,
+  ceviId: number,
+  request?: PayloadRequest,
+): Promise<boolean> => {
+  const { docs } = await payload.find({
+    collection: 'bill-participants',
+    where: { and: [{ userId: { equals: String(ceviId) } }, ACTIVE_REGISTRATION] },
+    depth: 0,
+    limit: MAX_REGISTRATIONS,
+    pagination: false,
+    select: { roleType: true },
+    ...(request === undefined ? {} : { req: request }),
+  });
+  return docs.some(
+    ({ roleType }) =>
+      typeof roleType === 'string' && roleType !== '' && !isParticipantRole(roleType),
+  );
+};
+
 /** Matches a person's registrations to the Höfe of their events. */
 const hoefeOfRegistrations = (
   hoefe: HofMembershipKeys[],

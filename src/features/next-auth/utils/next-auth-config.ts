@@ -1,6 +1,7 @@
 import { environmentVariables } from '@/config/environment-variables';
 import type { HitobitoProfile } from '@/features/next-auth/types/hitobito-profile';
 import { createAuthJsLogger } from '@/features/next-auth/utils/auth-js-logger';
+import { reportSessionTokenKept } from '@/features/next-auth/utils/session-token-change';
 import type { User } from '@/features/payload-cms/payload-types';
 import { withCeviDatabaseUserAgent } from '@/lib/hitobito/user-agent';
 import { formatUserFullName } from '@/utils/format-user-name';
@@ -140,7 +141,7 @@ function shouldSyncAnnouncementChats(
  * @param payload
  * @param userProfile
  */
-async function saveAndFetchUserFromPayload(
+export async function saveAndFetchUserFromPayload(
   payload: BasePayload,
   userProfile: HitobitoProfile,
 ): Promise<User> {
@@ -165,6 +166,7 @@ async function saveAndFetchUserFromPayload(
     const matchedByUuid = await payload.find({
       collection: 'users',
       where: { cevi_db_uuid: { equals: ceviDatabaseUuid } },
+      limit: 1,
     });
 
     if (matchedByUuid.totalDocs > 1) {
@@ -205,13 +207,28 @@ async function saveAndFetchUserFromPayload(
     const matchedByEmail = await payload.find({
       collection: 'users',
       where: { email: { equals: userProfile.email } },
+      limit: 1,
     });
 
-    if (matchedByEmail.totalDocs === 1 && matchedByEmail.docs[0]?.id !== undefined) {
+    const userWithSameEmail = matchedByEmail.docs[0];
+    if (matchedByEmail.totalDocs === 1 && userWithSameEmail !== undefined) {
+      // Only a user nobody has logged into yet may be claimed by its email. One that already
+      // carries a Cevi.DB id belongs to another person, and rewriting that id would hand its
+      // roles, chats and Hof over to whoever holds the address in Cevi.DB today. The email is
+      // unique, so there is no second user to create either, and the login ends here.
+      if (typeof userWithSameEmail.cevi_db_uuid === 'number') {
+        logger.warn('Refused to link a Cevi.DB login to a user of another Cevi.DB person', {
+          'auth.user_uuid': userWithSameEmail.id,
+          'hitobito.person_id': ceviDatabaseUuid,
+          'hitobito.linked_person_id': userWithSameEmail.cevi_db_uuid,
+        });
+        throw new Error('Email already belongs to a user linked to another Cevi.DB person');
+      }
+
       // Link the existing user by setting their cevi_db_uuid
       const updatedUser = await payload.update({
         collection: 'users',
-        id: matchedByEmail.docs[0].id,
+        id: userWithSameEmail.id,
         data: userData,
       });
 
@@ -316,13 +333,13 @@ const SESSION_ENDED = null;
  * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
  * different refresh tokens, so neither ever receives the other's result.
  */
-const inflightRefreshes = new Map<string, Promise<JWT | null>>();
+const inflightRefreshes = new Map<string, Promise<JWT | null | undefined>>();
 
 async function refreshAccessToken(
   token: JWT,
   refreshToken: string,
   reason: string,
-): Promise<JWT | null> {
+): Promise<JWT | null | undefined> {
   // If a refresh is already in-flight for this session, wait for it
   const existing = inflightRefreshes.get(refreshToken);
   if (existing) {
@@ -348,10 +365,11 @@ class TerminalRefreshError extends Error {
 
 /**
  * Refreshes the access token using the refresh token.
- * returns the new token with updated expiration and access token, or `null` when Cevi.DB
- * refused the refresh token for good, which ends the session.
+ * returns the new token with updated expiration and access token, `null` when Cevi.DB refused
+ * the refresh token for good, which ends the session, and `undefined` when it could not be
+ * reached and the session goes on as it is.
  */
-async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null> {
+async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null | undefined> {
   try {
     logger.info('Refreshing access token', {
       'auth.user_uuid': token.uuid,
@@ -472,9 +490,9 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
       error,
     });
     // A session that can no longer be refreshed would otherwise keep the groups it was issued
-    // with for as long as its cookie is re-signed, which is on every request. Cevi.DB staying
-    // unreachable is not a reason to sign anybody out, so only the terminal case ends it.
-    return isTerminal ? SESSION_ENDED : token;
+    // with for as long as its cookie lives. Cevi.DB staying unreachable is not a reason to sign
+    // anybody out, so only the terminal case ends it.
+    return isTerminal ? SESSION_ENDED : undefined;
   }
 }
 
@@ -603,6 +621,7 @@ export const authOptions: NextAuthConfig = {
         trigger === 'update' && isStillValid && hasRefreshToken && !mustWaitForRequestedSync(token);
 
       if (isStillValid && !isRequestedSync) {
+        reportSessionTokenKept();
         return token;
       }
 
@@ -627,10 +646,16 @@ export const authOptions: NextAuthConfig = {
         reason = 'token_approaching_expiry';
       }
 
-      const refreshed = await refreshAccessToken(token, token.refresh_token, reason);
-      return isRequestedSync && refreshed !== SESSION_ENDED
-        ? { ...refreshed, sync_requested_at: Math.floor(Date.now() / 1000) }
-        : refreshed;
+      // Undefined when Cevi.DB could not be reached: every request waiting on this refresh
+      // then goes on with the token it came with, not with the one of whoever started it.
+      const outcome = await refreshAccessToken(token, token.refresh_token, reason);
+      if (outcome === SESSION_ENDED) return SESSION_ENDED;
+      const refreshed = outcome ?? token;
+      if (isRequestedSync) {
+        return { ...refreshed, sync_requested_at: Math.floor(Date.now() / 1000) };
+      }
+      if (refreshed === token) reportSessionTokenKept();
+      return refreshed;
     },
   },
 

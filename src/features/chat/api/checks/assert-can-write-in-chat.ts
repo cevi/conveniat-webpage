@@ -2,6 +2,7 @@ import { Ability } from '@/lib/ability';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { ChatCapability, isChatArchived } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
+import type { PrismaClientOrTransaction } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import { TRPCError } from '@trpc/server';
 
@@ -14,10 +15,16 @@ const logger = createLogger('chat:mutations');
  * would be.
  */
 export const assertWriteAbilities = async (
+  prisma: PrismaClientOrTransaction,
   chatId: string,
   parentId: string | undefined,
 ): Promise<void> => {
-  const canSend = await Ability.can(CapabilityAction.Send, CapabilitySubject.Messages, chatId);
+  const canSend = await Ability.can(
+    prisma,
+    CapabilityAction.Send,
+    CapabilitySubject.Messages,
+    chatId,
+  );
   if (!canSend) {
     throw new TRPCError({
       code: 'FORBIDDEN',
@@ -26,7 +33,12 @@ export const assertWriteAbilities = async (
   }
 
   if (parentId !== undefined) {
-    const canThread = await Ability.can(CapabilityAction.Create, CapabilitySubject.Threads, chatId);
+    const canThread = await Ability.can(
+      prisma,
+      CapabilityAction.Create,
+      CapabilitySubject.Threads,
+      chatId,
+    );
     if (!canThread) {
       throw new TRPCError({
         code: 'FORBIDDEN',

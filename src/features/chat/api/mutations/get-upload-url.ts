@@ -12,6 +12,7 @@ export const getUploadUrl = trpcBaseProcedure
     await assertChatMember(ctx.prisma, ctx.user.uuid, input.chatId);
 
     const canUpload = await Ability.can(
+      ctx.prisma,
       CapabilityAction.Upload,
       CapabilitySubject.Images,
       input.chatId,
