@@ -25,6 +25,7 @@ jest.mock('@/config/environment-variables', () => ({
 }));
 
 const SESSION_COOKIE = 'authjs.session-token';
+const CSRF_COOKIE = 'authjs.csrf-token=csrf; Path=/; HttpOnly';
 
 // Stands in for Auth.js, which runs the `jwt` callback and then sets the session cookie whatever
 // came out of it: re-signed for a token, emptied for none.
@@ -35,7 +36,7 @@ jest.mock('@/utils/auth', () => ({
     const jwt = authOptions.callbacks?.jwt as unknown as (parameters: {
       token: JWT;
     }) => Promise<JWT | null>;
-    const headers = new Headers();
+    const headers = new Headers({ 'set-cookie': CSRF_COOKIE });
     if (sessionToken !== undefined) {
       const resolved = await jwt({ token: sessionToken });
       headers.append(
@@ -72,8 +73,8 @@ const answer = (status: number, body: unknown): Response =>
     json: () => Promise.resolve(body),
   }) as unknown as Response;
 
-/** The session cookies the proxy puts on the response of a request carrying this session. */
-const cookiesSetFor = async (token: JWT | undefined): Promise<string[]> => {
+/** Every cookie the proxy puts on the response of a request carrying this session. */
+const allCookiesSetFor = async (token: JWT | undefined): Promise<string[]> => {
   sessionToken = token;
   const response = NextResponse.next();
   await rotateSessionToken(
@@ -82,6 +83,12 @@ const cookiesSetFor = async (token: JWT | undefined): Promise<string[]> => {
     response,
   );
   return response.headers.getSetCookie();
+};
+
+/** The session cookies the proxy puts on the response of a request carrying this session. */
+const cookiesSetFor = async (token: JWT | undefined): Promise<string[]> => {
+  const cookies = await allCookiesSetFor(token);
+  return cookies.filter((cookie) => cookie !== CSRF_COOKIE);
 };
 
 describe('the session cookie on a response', () => {
@@ -126,6 +133,23 @@ describe('the session cookie on a response', () => {
     expect(cookies).toEqual([]);
   });
 
+  it('is left out for every request that waited on the same failed refresh', async () => {
+    fetchMock.mockResolvedValue(answer(503, { error: 'unavailable' }));
+    const expired = { refresh_token: 'shared-outage', expires_at: nowSeconds() - 60 };
+
+    const cookies = await Promise.all([
+      cookiesSetFor(session(expired)),
+      cookiesSetFor(session(expired)),
+    ]);
+
+    expect(cookies).toEqual([[], []]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not take the other cookies Auth.js sets with it', async () => {
+    await expect(allCookiesSetFor(session())).resolves.toEqual([CSRF_COOKIE]);
+  });
+
   it('is cleared when Cevi.DB refuses the refresh token', async () => {
     fetchMock.mockResolvedValue(answer(400, { error: 'invalid_grant' }));
 
@@ -161,6 +185,20 @@ describe('an Auth.js route handler', () => {
 
     expect(response.headers.getSetCookie()).toEqual(['__Host-authjs.csrf-token=csrf; Path=/']);
     await expect(response.json()).resolves.toEqual({ user: {} });
+  });
+
+  it('still clears a session that Auth.js ended after its token was kept', async () => {
+    const { reportSessionTokenKept } =
+      await import('@/features/next-auth/utils/session-token-change');
+    const cleared = `${SESSION_COOKIE}=; Max-Age=0; Path=/`;
+    const handler = withoutUnchangedSessionCookie(async () => {
+      reportSessionTokenKept();
+      return respondWith([cleared])();
+    });
+
+    const response = await handler();
+
+    expect(response.headers.getSetCookie()).toEqual([cleared]);
   });
 
   it('passes every cookie on when the session was not merely checked, as on sign-out', async () => {

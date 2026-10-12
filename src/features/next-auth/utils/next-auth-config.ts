@@ -317,13 +317,13 @@ const SESSION_ENDED = null;
  * Cevi.DB, because the second use of a refresh token is refused. Two devices of one user hold
  * different refresh tokens, so neither ever receives the other's result.
  */
-const inflightRefreshes = new Map<string, Promise<JWT | null>>();
+const inflightRefreshes = new Map<string, Promise<JWT | null | undefined>>();
 
 async function refreshAccessToken(
   token: JWT,
   refreshToken: string,
   reason: string,
-): Promise<JWT | null> {
+): Promise<JWT | null | undefined> {
   // If a refresh is already in-flight for this session, wait for it
   const existing = inflightRefreshes.get(refreshToken);
   if (existing) {
@@ -349,10 +349,11 @@ class TerminalRefreshError extends Error {
 
 /**
  * Refreshes the access token using the refresh token.
- * returns the new token with updated expiration and access token, or `null` when Cevi.DB
- * refused the refresh token for good, which ends the session.
+ * returns the new token with updated expiration and access token, `null` when Cevi.DB refused
+ * the refresh token for good, which ends the session, and `undefined` when it could not be
+ * reached and the session goes on as it is.
  */
-async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null> {
+async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | null | undefined> {
   try {
     logger.info('Refreshing access token', {
       'auth.user_uuid': token.uuid,
@@ -473,9 +474,9 @@ async function doRefreshAccessToken(token: JWT, reason: string): Promise<JWT | n
       error,
     });
     // A session that can no longer be refreshed would otherwise keep the groups it was issued
-    // with for as long as its cookie is re-signed, which is on every request. Cevi.DB staying
-    // unreachable is not a reason to sign anybody out, so only the terminal case ends it.
-    return isTerminal ? SESSION_ENDED : token;
+    // with for as long as its cookie lives. Cevi.DB staying unreachable is not a reason to sign
+    // anybody out, so only the terminal case ends it.
+    return isTerminal ? SESSION_ENDED : undefined;
   }
 }
 
@@ -629,12 +630,16 @@ export const authOptions: NextAuthConfig = {
         reason = 'token_approaching_expiry';
       }
 
-      const refreshed = await refreshAccessToken(token, token.refresh_token, reason);
-      // Cevi.DB could not be reached, and the session goes on with what it has.
-      if (refreshed === token && !isRequestedSync) reportSessionTokenKept();
-      return isRequestedSync && refreshed !== SESSION_ENDED
-        ? { ...refreshed, sync_requested_at: Math.floor(Date.now() / 1000) }
-        : refreshed;
+      // Undefined when Cevi.DB could not be reached: every request waiting on this refresh
+      // then goes on with the token it came with, not with the one of whoever started it.
+      const outcome = await refreshAccessToken(token, token.refresh_token, reason);
+      if (outcome === SESSION_ENDED) return SESSION_ENDED;
+      const refreshed = outcome ?? token;
+      if (isRequestedSync) {
+        return { ...refreshed, sync_requested_at: Math.floor(Date.now() / 1000) };
+      }
+      if (refreshed === token) reportSessionTokenKept();
+      return refreshed;
     },
   },
 
