@@ -4,8 +4,8 @@ membership in a Cevi.DB group. `ROLE_GROUP_IDS` is the one place a role meets it
 else reads the group settings. A person in several groups holds the roles of all of them, and a
 group may hold several roles.
 
-- full admin: can do everything but the billing
-- web core team: can create collection entries
+- full admin: can do everything but the billing, and alone reads the chats between participants
+- web core team: can create collection entries, and runs the support desk
 - translation team: can read and update collection entries, but not create or delete
 - program team: only the pages it was named on (field allowsEditsByUser on some collections)
 - billing team: the billing in the admin panel and nothing else
@@ -180,6 +180,20 @@ export const HOF_DASHBOARD_REVIEWER_ROLES: Roles[] = [
   Roles.WebCoreTeam,
   Roles.HofDashboardReviewer,
 ];
+
+/**
+ * Who runs the support desk in the admin panel: the full admins and the web core team. They
+ * read and answer the support chats and the emergency alerts without being a member of them,
+ * and nothing else a participant wrote. Checked in tRPC and on the realtime stream with the
+ * session user.
+ */
+export const SUPPORT_DESK_ROLES: Roles[] = [Roles.FullAdmin, Roles.WebCoreTeam];
+
+/**
+ * Who may read and manage every chat, the private ones between participants included: the
+ * full admins alone. The web core team is left out on purpose, it gets the support desk.
+ */
+export const CHAT_OVERSIGHT_ROLES: Roles[] = [Roles.FullAdmin];
 
 /** Any editor, see `EDITOR_ROLES`. */
 export const isEditor: ({ req }: { req: PayloadRequest }) => boolean = ({ req }) =>

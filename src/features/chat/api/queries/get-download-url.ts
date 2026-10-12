@@ -1,5 +1,5 @@
 import { assertChatMember } from '@/features/chat/api/checks/assert-chat-member';
-import { hasAccessToThisUser, Roles } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import { canManageChat } from '@/lib/chat-admin-access';
 import { isImageKeyOfChat } from '@/lib/chat-images';
 import { S3_BUCKET_NAME, s3ClientPublic } from '@/lib/s3';
 import { trpcBaseProcedure } from '@/trpc/init';
@@ -22,12 +22,8 @@ export const getDownloadUrl = trpcBaseProcedure
     const { chatId, key } = input;
 
     // The admin chat management renders images through this procedure too, for chats the
-    // admin is not a member of; it grants the same roles as the admin router.
-    const isChatAdmin = hasAccessToThisUser({
-      user: ctx.user,
-      requiredRoles: [Roles.FullAdmin, Roles.WebCoreTeam],
-    });
-    if (!isChatAdmin) {
+    // admin is not a member of; it grants what the admin router grants for the chat.
+    if (!(await canManageChat(ctx.prisma, ctx.user, chatId))) {
       await assertChatMember(ctx.prisma, ctx.user.uuid, chatId);
     }
 

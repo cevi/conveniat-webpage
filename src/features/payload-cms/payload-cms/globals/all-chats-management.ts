@@ -1,6 +1,6 @@
 import {
-  hasAdminOrWebAccess,
-  shouldHideInAdminPanel,
+  isFullAdmin,
+  shouldHideInAdminPanelIfNotAdmin,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
 import type { GlobalConfig } from 'payload';
@@ -20,12 +20,13 @@ export const AllChatsManagement: GlobalConfig = {
   },
   access: {
     read: () => true,
-    update: hasAdminOrWebAccess,
+    // The chat list on the first tab names every chat and its members, see `getChatList`.
+    update: isFullAdmin,
   },
   admin: {
     group: AdminPanelDashboardGroups.AppOperations.label,
     hideAPIURL: true,
-    hidden: shouldHideInAdminPanel,
+    hidden: shouldHideInAdminPanelIfNotAdmin,
   },
   fields: [
     {

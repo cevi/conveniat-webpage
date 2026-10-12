@@ -2,12 +2,13 @@ import type { Context } from '@/trpc/init';
 import { createCallerFactory, createTRPCRouter } from '@/trpc/init';
 
 const ADMIN_GROUP_ID = 4242;
+const WEB_CORE_TEAM_GROUP_ID = 4243;
 
 jest.mock('@/utils/auth', () => ({ auth: jest.fn() }));
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
     CEVIDB_GROUP_FULL_ADMIN: [4242],
-    CEVIDB_GROUP_WEB_CORE_TEAM: [],
+    CEVIDB_GROUP_WEB_CORE_TEAM: [4243],
     CEVIDB_GROUP_TRANSLATION_TEAM: [],
     CEVIDB_GROUP_PROGRAM_TEAM: [],
     CEVIDB_GROUP_MATERIAL_TEAM: [],
@@ -51,13 +52,19 @@ jest.mock('@/lib/s3', () => {
 
 const CHAT_ID = '0190a5b2-0000-7000-8000-000000000001';
 const OTHER_CHAT_ID = '0190a5b2-0000-7000-8000-000000000002';
+const SUPPORT_CHAT_ID = '0190a5b2-0000-7000-8000-000000000003';
 
 let chatCapabilities: string[];
 
 /** One chat with one member; the capability lookup reads the chat through the shared client. */
 const prisma = {
   chat: {
-    findUnique: jest.fn(() => Promise.resolve({ capabilities: chatCapabilities })),
+    findUnique: jest.fn(({ where }: { where: { uuid: string } }) =>
+      Promise.resolve({
+        capabilities: chatCapabilities,
+        type: where.uuid === SUPPORT_CHAT_ID ? 'SUPPORT_GROUP' : 'ONE_TO_ONE',
+      }),
+    ),
   },
   chatMembership: {
     findUnique: jest.fn(
@@ -87,6 +94,13 @@ const admin = {
   group_ids: [ADMIN_GROUP_ID],
   name: 'Erika Beispiel',
   email: 'e@example.test',
+};
+
+const webCoreTeam = {
+  uuid: 'web-1',
+  group_ids: [WEB_CORE_TEAM_GROUP_ID],
+  name: 'Lea Beispiel',
+  email: 'l@example.test',
 };
 
 const createCaller = createCallerFactory(createTRPCRouter({ getUploadUrl, getDownloadUrl }));
@@ -121,6 +135,21 @@ describe('chat image downloads', () => {
     await expect(
       callerAs(admin).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
     ).resolves.toHaveProperty('url');
+  });
+
+  it('lets the web core team see the images of a support chat it is not in', async () => {
+    await expect(
+      callerAs(webCoreTeam).getDownloadUrl({
+        chatId: SUPPORT_CHAT_ID,
+        key: `chat-images/${SUPPORT_CHAT_ID}/1700000000000-abc123.jpg`,
+      }),
+    ).resolves.toHaveProperty('url');
+  });
+
+  it('answers not found to the web core team for a private chat it is not in', async () => {
+    await expect(
+      callerAs(webCoreTeam).getDownloadUrl({ chatId: CHAT_ID, key: ownImage }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   it.each([
