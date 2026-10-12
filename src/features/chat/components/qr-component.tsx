@@ -1,9 +1,9 @@
 'use client';
 
 import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code-image';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
 
 import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';

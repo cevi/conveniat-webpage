@@ -10,9 +10,9 @@ import type {
   InitialMapPose,
   MapControlOptions,
 } from '@/features/map/types/types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 import { Suspense, useRef } from 'react';

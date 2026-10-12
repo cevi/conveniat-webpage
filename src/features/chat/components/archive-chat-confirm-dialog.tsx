@@ -9,9 +9,9 @@ import {
   ChatAlertDialogHeader,
   ChatAlertDialogTitle,
 } from '@/features/chat/components/ui/chat-alert-dialog';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 export const localizedDeleteChat: StaticTranslationString = {

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
 import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
 import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -23,7 +24,6 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle, Loader2, MessageSquare, Users, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import React, { useState } from 'react';
 

@@ -8,7 +8,7 @@ jest.mock('@/config/environment-variables', () => ({
   },
 }));
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => mockLocale,
 }));
 

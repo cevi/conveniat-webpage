@@ -6,11 +6,11 @@ import { useCallback, useState } from 'react';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Filter, Star, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 
 const searchPlaceholder: StaticTranslationString = {
   de: 'Suchen...',

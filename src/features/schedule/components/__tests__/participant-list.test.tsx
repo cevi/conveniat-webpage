@@ -26,7 +26,7 @@ const mockShiftUseQuery = jest.fn<typeof mockShiftQueryResult, [unknown, unknown
   () => mockShiftQueryResult,
 );
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

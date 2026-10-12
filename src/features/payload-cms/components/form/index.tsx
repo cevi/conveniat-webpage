@@ -1,10 +1,10 @@
 'use client';
 
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { usePostHog } from '@/providers/posthog-context';
 import type { Locale } from '@/types/types'; // Import Locale
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useMemo } from 'react';
 import {
   FormProvider,

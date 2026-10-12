@@ -12,11 +12,11 @@ import {
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useLeaveChatMutation } from '@/features/chat/hooks/use-leave-chat-mutation';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
 

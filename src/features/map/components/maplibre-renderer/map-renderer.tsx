@@ -16,13 +16,13 @@ import type {
   InitialMapPose,
   MapControlOptions,
 } from '@/features/map/types/types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 /**

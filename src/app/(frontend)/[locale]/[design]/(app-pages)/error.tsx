@@ -1,10 +1,10 @@
 'use client';
 import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { TeaserText } from '@/components/ui/typography/teaser-text';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef, useState } from 'react';
 
 const errorMessage: StaticTranslationString = {

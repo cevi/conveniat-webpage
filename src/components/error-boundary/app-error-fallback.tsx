@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/buttons/button';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
 

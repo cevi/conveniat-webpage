@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/buttons/button';
 import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatCapability } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Info, MessageSquare, Quote, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const quoteText: StaticTranslationString = {

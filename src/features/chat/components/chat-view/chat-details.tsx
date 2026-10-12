@@ -30,7 +30,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 
-import { useCurrentLocale } from 'next-i18n-router/client';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 
 /** The function and Hof lines of a participant; empty for someone not among the contacts. */
 const participantLines = (

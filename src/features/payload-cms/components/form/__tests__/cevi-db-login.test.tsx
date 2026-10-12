@@ -11,7 +11,7 @@ import React from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 
 jest.mock('@/config/environment-variables', () => ({ environmentVariables: {} }));
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 jest.mock('next-auth/react', () => ({

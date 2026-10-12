@@ -12,9 +12,9 @@ import {
   fieldIsNotValidText,
   fieldIsRequiredText,
 } from '@/features/payload-cms/components/form/static-form-texts';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 export const Text: React.FC<

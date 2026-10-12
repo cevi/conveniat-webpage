@@ -1,5 +1,6 @@
 'use client';
 
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -7,7 +8,6 @@ import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { Flag, Loader2, LogIn, MessageCircleQuestion, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 

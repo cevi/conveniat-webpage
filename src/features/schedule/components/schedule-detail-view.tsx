@@ -12,12 +12,12 @@ import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedu
 import { useAdjacentEntries } from '@/features/schedule/hooks/use-adjacent-entries';
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { findOtherSlots } from '@/features/schedule/utils/programme-utils';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 

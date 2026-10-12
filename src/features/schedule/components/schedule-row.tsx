@@ -7,11 +7,11 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
 import { formLabels, quartiereOf } from '@/features/schedule/utils/programme-utils';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle, Star } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';

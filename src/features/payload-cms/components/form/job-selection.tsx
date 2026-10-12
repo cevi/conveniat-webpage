@@ -5,12 +5,12 @@ import { getJobs } from '@/features/payload-cms/components/form/actions/get-jobs
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { JobSelectionBlock } from '@/features/payload-cms/components/form/types';
 import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, Search, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { Control, FieldValues } from 'react-hook-form';
 import { Controller } from 'react-hook-form';

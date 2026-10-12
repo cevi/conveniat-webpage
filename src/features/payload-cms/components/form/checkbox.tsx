@@ -1,10 +1,10 @@
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { Required } from '@/features/payload-cms/components/form/required';
 import { fieldIsRequiredText } from '@/features/payload-cms/components/form/static-form-texts';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type { CheckboxField } from 'payload';
 import type React from 'react';
 import type {

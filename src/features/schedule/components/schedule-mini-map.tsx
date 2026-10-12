@@ -5,11 +5,11 @@ import { MiniMapLibreRenderer } from '@/features/map/components/map-renderer-wra
 // eslint-disable-next-line import/no-restricted-paths -- schedule feature needs types from map
 import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ExternalLink } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import React from 'react';
 

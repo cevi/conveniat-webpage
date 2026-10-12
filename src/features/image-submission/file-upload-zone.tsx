@@ -1,8 +1,8 @@
 'use client';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { Image as LucideImageIcon } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 interface FileUploadZoneProperties {

@@ -2,10 +2,10 @@
 
 import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-boundary';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import type { SerializedEditorState } from '@payloadcms/richtext-lexical/lexical';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 const errorLoadingAnnotation: StaticTranslationString = {
