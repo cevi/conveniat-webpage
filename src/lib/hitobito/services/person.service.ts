@@ -42,7 +42,9 @@ export class PersonService {
         return { success: true, attributes: result.data.attributes };
       }
 
-      this.logger?.error(`Schema validation failed for person ${personId}`, result.error);
+      this.logger?.error(
+        `Schema validation failed for person ${personId}: ${result.error.message}`,
+      );
       throw new Error(`Schema validation failed for person ${personId}: ${result.error.message}`);
     } catch (error) {
       const message = String(error);
@@ -65,7 +67,9 @@ export class PersonService {
     const json = JSON.parse(body) as unknown;
     const parseResult = SearchResponseSchema.safeParse(json);
     if (!parseResult.success) {
-      this.logger?.warn('searchUser failed to validate response schema', parseResult.error);
+      this.logger?.warn(
+        `searchUser failed to validate response schema: ${parseResult.error.message}`,
+      );
       throw new Error(
         `searchUser failed to validate response schema: ${parseResult.error.message}`,
       );
@@ -92,7 +96,9 @@ export class PersonService {
     const json = JSON.parse(body) as unknown;
     const parseResult = SearchResponseSchema.safeParse(json);
     if (!parseResult.success) {
-      this.logger?.warn('searchPeopleQuery failed to validate response schema', parseResult.error);
+      this.logger?.warn(
+        `searchPeopleQuery failed to validate response schema: ${parseResult.error.message}`,
+      );
       throw new Error(
         `searchPeopleQuery failed to validate response schema: ${parseResult.error.message}`,
       );
@@ -126,8 +132,7 @@ export class PersonService {
         return { id: person.id, label };
       }
       this.logger?.warn(
-        `lookupByEmail failed to validate response schema for ${email}`,
-        result.error,
+        `lookupByEmail failed to validate response schema for ${email}: ${result.error.message}`,
       );
       throw new Error(`lookupByEmail failed to validate response schema: ${result.error.message}`);
     }
@@ -154,7 +159,9 @@ export class PersonService {
 
     const parsed = z.array(PersonResourceSchema).safeParse(response.data);
     if (!parsed.success) {
-      this.logger?.warn('searchByNames failed to validate response schema', parsed.error);
+      this.logger?.warn(
+        `searchByNames failed to validate response schema: ${parsed.error.message}`,
+      );
       return [];
     }
     return parsed.data;
@@ -181,8 +188,7 @@ export class PersonService {
     const parsed = z.array(PersonResourceSchema).safeParse(response.data);
     if (!parsed.success) {
       this.logger?.warn(
-        'searchByNicknameAndLastName failed to validate response schema',
-        parsed.error,
+        `searchByNicknameAndLastName failed to validate response schema: ${parsed.error.message}`,
       );
       return [];
     }
