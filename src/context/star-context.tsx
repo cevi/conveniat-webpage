@@ -31,7 +31,9 @@ export const StarProvider: React.FC<StarProviderProperties> = ({ children }) => 
   const { status } = useSession();
 
   // Use TanStack DB's useLiveQuery for reactive data
-  const { data: starItems } = useLiveQuery((q) => q.from({ star: starsCollection }), []);
+  const { data: starItems } = useLiveQuery({
+    query: (q) => q.from({ star: starsCollection }),
+  });
 
   // Memoize starredEntries to prevent unnecessary re-renders
   const starredEntries = useMemo(() => new Set(starItems.map((item) => item.id)), [starItems]);

@@ -1,30 +1,20 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { ScheduleEntriesProvider } from '@/context/schedule-entries-context';
+import { StarProvider } from '@/context/star-context';
+import type React from 'react';
 import type { ReactNode } from 'react';
-import React from 'react';
-
-const ScheduleEntriesProvider = dynamic(
-  () =>
-    import('@/context/schedule-entries-context').then((module_) => module_.ScheduleEntriesProvider),
-  { ssr: false },
-);
-
-const StarProvider = dynamic(
-  () => import('@/context/star-context').then((module_) => module_.StarProvider),
-  { ssr: false },
-);
 
 interface ClientProvidersProperties {
   children: ReactNode;
 }
 
+// Both providers render on the server. Loading them with `ssr: false` made this boundary, which
+// holds the whole application, bail out to client-side rendering and ship an empty `<body>`.
 export const ClientProviders: React.FC<ClientProvidersProperties> = ({ children }) => {
   return (
-    <React.Suspense fallback={children}>
-      <StarProvider>
-        <ScheduleEntriesProvider>{children}</ScheduleEntriesProvider>
-      </StarProvider>
-    </React.Suspense>
+    <StarProvider>
+      <ScheduleEntriesProvider>{children}</ScheduleEntriesProvider>
+    </StarProvider>
   );
 };
