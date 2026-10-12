@@ -1,5 +1,6 @@
 import { beforeSyncWithSearch } from '@/features/payload-cms/payload-cms/plugins/search/before-sync';
 import { searchOverrides } from '@/features/payload-cms/payload-cms/plugins/search/search-overrides';
+import { skipSyncOfRestrictedDocuments } from '@/features/payload-cms/payload-cms/plugins/search/skip-sync';
 import { searchPlugin } from '@payloadcms/plugin-search';
 
 /**
@@ -16,4 +17,5 @@ export const searchPluginConfiguration = searchPlugin({
   },
   searchOverrides: searchOverrides,
   beforeSync: beforeSyncWithSearch,
+  skipSync: skipSyncOfRestrictedDocuments,
 });
