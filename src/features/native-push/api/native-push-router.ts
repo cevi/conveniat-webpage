@@ -1,3 +1,4 @@
+import { PushSubscriptionSchema } from '@/schemas/push';
 import { createTRPCRouter, trpcAdminProcedure, trpcBaseProcedure } from '@/trpc/init';
 import { getPayloadUserFromNextAuthUser } from '@/utils/auth-helpers';
 import { createLogger } from '@/utils/server-logger';
@@ -288,13 +289,7 @@ export const nativePushRouter = createTRPCRouter({
   sendWebPushNotification: trpcAdminProcedure
     .input(
       z.object({
-        subscription: z.object({
-          endpoint: z.string(),
-          keys: z.object({
-            p256dh: z.string(),
-            auth: z.string(),
-          }),
-        }),
+        subscription: PushSubscriptionSchema,
         message: z.string(),
         url: z.string().optional(),
         userId: z.string().optional(),

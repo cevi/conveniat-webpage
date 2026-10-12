@@ -1,4 +1,5 @@
 import { recordPushTrackingEvent } from '@/lib/push-metrics';
+import { endpointHostOf } from '@/lib/push/push-endpoint';
 import { DatabasePushSubscriptionSchema, PushSubscriptionSchema } from '@/schemas/push';
 import { createTRPCRouter, publicProcedure, trpcFullAdminProcedure } from '@/trpc/init';
 import { createLogger } from '@/utils/server-logger';
@@ -8,14 +9,6 @@ import { getPayload } from 'payload';
 import { z } from 'zod';
 
 const logger = createLogger('push:tracking');
-
-const endpointHostOf = (endpoint: string): string | undefined => {
-  try {
-    return new URL(endpoint).host;
-  } catch {
-    return undefined;
-  }
-};
 
 /** Longer user agents are client hints stuffed with noise, not more useful. */
 const MAX_USER_AGENT_LENGTH = 512;

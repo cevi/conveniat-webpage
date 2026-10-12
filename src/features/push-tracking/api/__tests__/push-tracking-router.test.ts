@@ -67,7 +67,10 @@ const webCoreTeam = { uuid: 'web-1', groups: [{ id: 542 }] };
 const fullAdmin = { uuid: 'admin-1', groups: [{ id: 541 }] };
 
 const testSend = {
-  subscription: { endpoint: 'https://push.example/abc', keys: { p256dh: 'p', auth: 'a' } },
+  subscription: {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+    keys: { p256dh: 'p', auth: 'a' },
+  },
   message: 'Hello',
 };
 
@@ -176,6 +179,20 @@ describe('pushTrackingRouter.renewWebPushSubscription', () => {
         }) as unknown,
       }),
     );
+  });
+
+  // The call needs no session, so anyone holding a subscription of their own could otherwise
+  // point its row, and every push that follows, at a host inside the cluster.
+  it('refuses to point a row at an endpoint that belongs to no push service', async () => {
+    mockPayloadFind.mockResolvedValue({ docs: [{ id: 'sub-1', user: 'user-1' }] });
+
+    await expect(
+      callerAs(signedOut).renewWebPushSubscription({
+        oldSubscription,
+        newSubscription: { ...newSubscription, endpoint: 'https://payload:3000/api/users' },
+      }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    expect(mockPayloadUpdate).not.toHaveBeenCalled();
   });
 
   it('changes nothing when no row holds the old endpoint and auth secret', async () => {

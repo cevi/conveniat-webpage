@@ -1,10 +1,16 @@
+import { isPushServiceEndpoint, UNKNOWN_PUSH_SERVICE_ERROR } from '@/lib/push/push-endpoint';
 import { z } from 'zod';
+
+/** Refused on the way in, so no row ever holds an endpoint a push must not be posted to. */
+const PushEndpointSchema = z
+  .string()
+  .refine(isPushServiceEndpoint, { message: UNKNOWN_PUSH_SERVICE_ERROR });
 
 /**
  * Standard Web Push Subscription schema (used by web-push package)
  */
 export const PushSubscriptionSchema = z.object({
-  endpoint: z.string(),
+  endpoint: PushEndpointSchema,
   keys: z.object({
     p256dh: z.string(),
     auth: z.string(),
@@ -17,7 +23,7 @@ export const PushSubscriptionSchema = z.object({
 export const DatabasePushSubscriptionSchema = z.object({
   platform: z.enum(['web', 'ios', 'android']),
   token: z.string().nullable().optional(),
-  endpoint: z.string().nullable().optional(),
+  endpoint: PushEndpointSchema.nullable().optional(),
   keys: z
     .object({
       p256dh: z.string().nullable().optional(),
