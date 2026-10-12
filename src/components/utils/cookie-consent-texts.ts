@@ -2,9 +2,9 @@ import type { StaticTranslationString } from '@/types/types';
 
 /** Shown where PostHog is configured: the question both the banner and the onboarding ask. */
 export const analyticsConsentText: StaticTranslationString = {
-  de: 'conveniat27 braucht einige Cookies, um zu funktionieren. Dürfen wir zusätzlich mit PostHog auswerten, wie du die Seite nutzt, und dabei Fehler und einzelne Sitzungen aufzeichnen? Das hilft uns, sie zu verbessern.',
-  en: 'conveniat27 needs a few cookies to work. May we also use PostHog to analyse how you use the site, and record errors and individual sessions while doing so? It helps us improve it.',
-  fr: "conveniat27 a besoin de quelques cookies pour fonctionner. Pouvons-nous en plus analyser avec PostHog la façon dont tu utilises le site, et enregistrer des erreurs et certaines sessions ? Cela nous aide à l'améliorer.",
+  de: 'Dürfen wir mit PostHog auswerten, wie du conveniat27 nutzt, und dabei Sitzungen aufzeichnen?',
+  en: 'May we use PostHog to analyse how you use conveniat27 and record sessions?',
+  fr: 'Pouvons-nous analyser avec PostHog ton utilisation de conveniat27 et enregistrer des sessions ?',
 };
 
 /** Shown where PostHog is not configured, so there is nothing to ask. */
