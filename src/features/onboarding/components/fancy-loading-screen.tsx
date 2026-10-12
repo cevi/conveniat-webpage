@@ -1,4 +1,9 @@
-import { acceptCookiesText, cookieInfoText } from '@/features/onboarding/onboarding-constants';
+import {
+  acknowledgeCookiesText,
+  analyticsConsentText,
+  necessaryCookiesText,
+} from '@/components/utils/cookie-consent-texts';
+import { isPostHogConfigured } from '@/lib/posthog-client';
 import React from 'react';
 
 export const FancyLoadingScreen: React.FC<{ locale?: 'de' | 'fr' | 'en' }> = ({
@@ -8,9 +13,11 @@ export const FancyLoadingScreen: React.FC<{ locale?: 'de' | 'fr' | 'en' }> = ({
     <div className="relative flex w-full flex-col items-center justify-center">
       {/* Invisible Spacer to perfect match AcceptCookie card height */}
       <div className="invisible flex flex-col items-center">
-        <p className="mb-8 text-lg text-balance text-gray-700">{cookieInfoText[locale]}</p>
+        <p className="mb-8 text-lg text-balance text-gray-700">
+          {isPostHogConfigured() ? analyticsConsentText[locale] : necessaryCookiesText[locale]}
+        </p>
         <button className="font-heading transform rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md">
-          {acceptCookiesText[locale]}
+          {acknowledgeCookiesText[locale]}
         </button>
       </div>
 

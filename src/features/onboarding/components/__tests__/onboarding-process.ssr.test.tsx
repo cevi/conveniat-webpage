@@ -26,7 +26,7 @@ jest.mock('@/features/onboarding/hooks/use-onboarding', () => ({
     locale: 'de',
     onboardingStep: mockedStep,
     handleLanguageChange: jest.fn(),
-    acceptCookiesCallback: jest.fn(),
+    answerCookiesCallback: jest.fn(),
     handlePushNotification: jest.fn(),
     handleOfflineContent: jest.fn(),
     setOnboardingStep: jest.fn(),
@@ -38,6 +38,12 @@ jest.mock('@/features/onboarding/hooks/use-onboarding', () => ({
 // time and throws when the vars are absent (as in CI). Stub it so this render stays hermetic.
 jest.mock('@/features/onboarding/components/centered-conveniat-logo', () => ({
   CenteredConveniatLogo: (): undefined => undefined,
+}));
+
+// The cookie step asks for analytics consent only where PostHog is configured, which it reads
+// from the same env module.
+jest.mock('@/config/environment-variables', () => ({
+  environmentVariables: { NEXT_PUBLIC_POSTHOG_KEY: 'phc_test' },
 }));
 
 // Sibling steps pull in tRPC, next-auth and the service worker; they are not under test here.
@@ -70,11 +76,13 @@ describe('OnboardingProcessContent server-rendered markup', () => {
     expect(html).not.toMatch(INVISIBLE);
   });
 
-  it('ships the cookie banner and its accept button visible', () => {
+  it('ships the cookie banner with both answers visible', () => {
     mockedStep = OnboardingStep.Initial;
     const html = renderToString(<OnboardingProcessContent />);
 
     expect(html).toContain('bg-red-700');
+    expect(html).toContain('Akzeptieren');
+    expect(html).toContain('Nur notwendige');
     expect(html).not.toMatch(INVISIBLE);
   });
 });

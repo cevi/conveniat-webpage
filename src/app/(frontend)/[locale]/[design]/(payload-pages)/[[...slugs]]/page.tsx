@@ -1,4 +1,3 @@
-import { CookieBanner } from '@/components/utils/cookie-banner';
 import { RefreshRouteOnSave } from '@/components/utils/refresh-preview';
 import { environmentVariables } from '@/config/environment-variables';
 import { routeResolutionTable } from '@/features/payload-cms/route-resolution-table';
@@ -310,8 +309,6 @@ const CMSPage: React.FC<{
               renderInPreviewMode={renderInPreviewMode}
             />
           )}
-
-          <CookieBanner />
         </>
       );
     } else {
@@ -355,8 +352,6 @@ const CMSPage: React.FC<{
               renderInPreviewMode={renderInPreviewMode}
             />
           )}
-
-          <CookieBanner />
         </>
       );
     } else {

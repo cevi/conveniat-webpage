@@ -10,7 +10,7 @@ import type React from 'react';
 export enum Cookie {
   DESIGN_MODE = 'design-mode',
   HAS_LOGGED_IN = 'has-logged-in',
-  CONVENIAT_COOKIE_BANNER = 'conveniat-cookie-banner',
+  ANALYTICS_CONSENT = 'conveniat-analytics-consent',
   LOCALE_COOKIE = 'next-locale',
   SKIP_PUSH_NOTIFICATION = 'skip-push-notification',
   HAS_SKIPPED_AUTH = 'has-skipped-auth',
