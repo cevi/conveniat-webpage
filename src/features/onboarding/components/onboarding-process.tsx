@@ -25,7 +25,7 @@ export const OnboardingProcessContent: React.FC = () => {
     locale,
     onboardingStep,
     handleLanguageChange,
-    acceptCookiesCallback,
+    answerCookiesCallback,
     handlePushNotification,
     handleOfflineContent,
     setOnboardingStep,
@@ -63,7 +63,7 @@ export const OnboardingProcessContent: React.FC = () => {
 
   switch (onboardingStep) {
     case OnboardingStep.Initial: {
-      screen = <AcceptCookieEntrypointComponent locale={locale} callback={acceptCookiesCallback} />;
+      screen = <AcceptCookieEntrypointComponent locale={locale} callback={answerCookiesCallback} />;
       break;
     }
     case OnboardingStep.Login: {

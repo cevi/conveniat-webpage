@@ -1,6 +1,5 @@
-import { initPostHog } from '@/lib/posthog-client';
+import { loadPostHog } from '@/lib/posthog-client';
 
-// Initialize PostHog early in the client lifecycle (skip for bots)
-// This is used by Next.js as an instrumentation hook if configured,
-// or as a side-effect import in some layouts.
-initPostHog();
+// Start PostHog before hydration for people who already consented to analytics, so errors
+// thrown while the page boots are still reported. Without consent this does nothing.
+void loadPostHog();
