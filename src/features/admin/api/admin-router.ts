@@ -427,6 +427,7 @@ export const adminRouter = createTRPCRouter({
             },
           },
           depth: 0,
+          limit: 1,
         });
 
         if (announcementChannels.docs.length > 0) {

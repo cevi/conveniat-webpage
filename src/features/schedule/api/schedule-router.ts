@@ -314,6 +314,9 @@ export const scheduleRouter = createTRPCRouter({
           where: {
             id: { in: userEnrollments.map((enrollment_) => enrollment_.courseId) },
           },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
 
         for (const other of otherCourses.docs) {
@@ -345,6 +348,9 @@ export const scheduleRouter = createTRPCRouter({
           where: {
             id: { in: userShiftEnrollments.map((enrollment_) => enrollment_.courseId) },
           },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
 
         for (const other of otherShifts.docs) {
@@ -540,6 +546,9 @@ export const scheduleRouter = createTRPCRouter({
           where: {
             id: { in: remainingProgramEnrollments.map((event_) => event_.courseId) },
           },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
 
         for (const other of otherCourses.docs) {
@@ -566,6 +575,9 @@ export const scheduleRouter = createTRPCRouter({
           where: {
             id: { in: remainingShiftEnrollments.map((event_) => event_.courseId) },
           },
+          pagination: false,
+          depth: 0,
+          select: { timeslot: true, title: true },
         });
 
         for (const other of otherShifts.docs) {
