@@ -201,6 +201,27 @@ describe('an Auth.js route handler', () => {
     expect(response.headers.getSetCookie()).toEqual([cleared]);
   });
 
+  it('keeps a check that changed the session apart from one that overlaps it', async () => {
+    const { reportSessionTokenKept } =
+      await import('@/features/next-auth/utils/session-token-change');
+    const rotated = `${SESSION_COOKIE}=rotated; Path=/`;
+    const previous = `${SESSION_COOKIE}=previous; Path=/`;
+    const { promise: unchangedCheckMayFinish, resolve: finishUnchangedCheck } =
+      Promise.withResolvers<void>();
+
+    const unchangedCheck = withoutUnchangedSessionCookie(async () => {
+      reportSessionTokenKept();
+      await unchangedCheckMayFinish;
+      return respondWith([previous])();
+    })();
+    const changed = await withoutUnchangedSessionCookie(respondWith([rotated]))();
+    finishUnchangedCheck();
+    const unchanged = await unchangedCheck;
+
+    expect(changed.headers.getSetCookie()).toEqual([rotated]);
+    expect(unchanged.headers.getSetCookie()).toEqual([]);
+  });
+
   it('passes every cookie on when the session was not merely checked, as on sign-out', async () => {
     const cookies = [`${SESSION_COOKIE}=; Max-Age=0; Path=/`, 'authjs.callback-url=x; Path=/'];
     const handler = withoutUnchangedSessionCookie(respondWith(cookies));
