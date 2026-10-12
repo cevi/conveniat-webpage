@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.31.0](https://github.com/cevi/conveniat-webpage/compare/v1.30.0...v1.31.0) (2026-10-12)
+
+
+### Features
+
+* **email:** mail status says sent, and keeps the server trail behind each recipient ([b951238](https://github.com/cevi/conveniat-webpage/commit/b9512381b25cab03d03f770605645e359bd3bff0))
+* **email:** mail status says sent, with the server trail behind each recipient ([711a94b](https://github.com/cevi/conveniat-webpage/commit/711a94bbea3f4c5aeb5aedc21ccfec535a67bed8))
+
+
+### Bug Fixes
+
+* **chat:** contact restriction applies when creating a chat and adding participants ([7c737ab](https://github.com/cevi/conveniat-webpage/commit/7c737ab89ef780bc350b1821097d47ef75846303))
+* **chat:** contact restriction applies when creating a chat and adding participants ([7e72094](https://github.com/cevi/conveniat-webpage/commit/7e72094d1ca7e0be0348e6060dd3e8fda235f2c3))
+* **email:** a bounce that names no recipient shows the server's answer ([cfaa61f](https://github.com/cevi/conveniat-webpage/commit/cfaa61ff9803e537dc63156604766b22b7aaa4f4))
+* **email:** a delivery report counts only when it quotes the Message-ID of the mail ([82c815c](https://github.com/cevi/conveniat-webpage/commit/82c815c191c8eda22bf31fb1fc0f72ec008d95a6))
+* **email:** a delivery report counts only when it quotes the Message-ID of the mail ([7054ceb](https://github.com/cevi/conveniat-webpage/commit/7054ceb092637c7629483e015df5a1c8e5004e4d))
+* **email:** a display name with escaped quotes is still no recipient ([405015c](https://github.com/cevi/conveniat-webpage/commit/405015ccfad38922395d979c65fe9d76d0f0cce3))
+* **email:** a quoted display name is no recipient, a later hop's id ties a bounce to its send ([cfd4fea](https://github.com/cevi/conveniat-webpage/commit/cfd4fea5f8318b6d606ffbd763a78d313be48b36))
+* **email:** a quoted display name is no recipient, a later hop's own id ties a bounce to its send ([6969f7f](https://github.com/cevi/conveniat-webpage/commit/6969f7fac8c6682585408322446b11d94f54588b))
+* **onboarding:** a pending push target is reached only with its query and fragment ([f799115](https://github.com/cevi/conveniat-webpage/commit/f7991156662d4260f3a55236150a4b288f621a95))
+* **onboarding:** entrypoint only follows a redirect target on its own origin ([3cab72a](https://github.com/cevi/conveniat-webpage/commit/3cab72a7b26444ed53268709e77f2fedce8ed29b))
+* **onboarding:** entrypoint only follows a redirect target on its own origin ([cfbe3eb](https://github.com/cevi/conveniat-webpage/commit/cfbe3eb9c41a6a4569710a99dbff66801eb18e41))
+* **onboarding:** reject a same-origin link whose path names another origin ([9434ac6](https://github.com/cevi/conveniat-webpage/commit/9434ac6e77ed4034bd215a61c517b488e9c26829))
+* **push:** only send web pushes to known push services ([8d50902](https://github.com/cevi/conveniat-webpage/commit/8d509027020e928287b2cba0599fa1963b6ebcb1))
+* **push:** only send web pushes to known push services ([387e726](https://github.com/cevi/conveniat-webpage/commit/387e7266befa8b1cbf0df3715becb2e18d75f876))
+* **schedule:** shift withdrawal deadline holds on the workshop mutations ([6e997d4](https://github.com/cevi/conveniat-webpage/commit/6e997d4b94be01334cc7920eec971fcc6cae635c))
+* **schedule:** shift withdrawal deadline holds on the workshop mutations ([730e0e9](https://github.com/cevi/conveniat-webpage/commit/730e0e95dc1ae4a4877a39ca42cb55cf7149dc6f))
+* **seo:** llms.txt lists only published pages open to everyone ([43f605b](https://github.com/cevi/conveniat-webpage/commit/43f605be3e7074f78c477a04a0e28d59ea17d75f))
+* **seo:** llms.txt lists only published pages open to everyone ([ef2d3a0](https://github.com/cevi/conveniat-webpage/commit/ef2d3a0cc4b17dfdb082689be4cebc3718a5ebb2))
+
+
+### Performance
+
+* **next:** turn optimistic routing back on ([69aefd9](https://github.com/cevi/conveniat-webpage/commit/69aefd940a63fe6167b224fd0b14f84e8c4279cb))
+* **next:** turn optimistic routing back on ([d6880cd](https://github.com/cevi/conveniat-webpage/commit/d6880cd4e1603cbc74033bfba5773315c37a50d2))
+
+
+### Dependencies
+
+* **deps:** update Next.js to 16.4.0 ([99fd517](https://github.com/cevi/conveniat-webpage/commit/99fd517b4f00406164276eb1df3d600f834ccd00))
+* **deps:** update Next.js to 16.4.0 ([355857a](https://github.com/cevi/conveniat-webpage/commit/355857af748db04f814faf47e05e4fe7d2f82c5e))
+
 ## [1.30.0](https://github.com/cevi/conveniat-webpage/compare/v1.29.0...v1.30.0) (2026-10-10)
 
 
