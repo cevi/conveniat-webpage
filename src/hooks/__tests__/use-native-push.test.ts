@@ -7,6 +7,8 @@ import {
   extractNotificationLogId,
   extractNotificationTitleAndBody,
   extractNotificationType,
+  performReliablePushNavigation,
+  resolveSameOriginPath,
   useNativePush,
 } from '@/hooks/use-native-push';
 import { writePreference } from '@/lib/preferences';
@@ -537,6 +539,58 @@ describe('useNativePush', () => {
         expect.objectContaining({ token: 'token-reenabled', platform: 'android' }),
       );
       expect(result.current.isOptedOut).toBe(false);
+    });
+  });
+
+  describe('performReliablePushNavigation', () => {
+    beforeEach(() => {
+      sessionStorage.clear();
+      localStorage.clear();
+    });
+
+    it('never hands a javascript: URL to the browser', () => {
+      performReliablePushNavigation({ push: mockPush }, 'javascript:alert(document.domain)');
+
+      expect(assignLocation).not.toHaveBeenCalled();
+      expect(mockPush).toHaveBeenCalledWith('/app/dashboard');
+      expect(localStorage.getItem('pending_push_redirect')).toBe('/app/dashboard');
+    });
+
+    it('treats a slash-backslash target as the other origin a browser reads it as', () => {
+      performReliablePushNavigation({ push: mockPush }, String.raw`/\example.org/login`);
+
+      expect(mockPush).not.toHaveBeenCalled();
+      expect(assignLocation).toHaveBeenCalledWith('http://example.org/login');
+      expect(localStorage.getItem('pending_push_redirect')).toBeNull();
+    });
+  });
+
+  describe('resolveSameOriginPath', () => {
+    it('keeps a path on this origin with its query and fragment', () => {
+      expect(resolveSameOriginPath('/app/chat/abc?tab=info#latest')).toBe(
+        '/app/chat/abc?tab=info#latest',
+      );
+      expect(resolveSameOriginPath(`${globalThis.location.origin}/app/schedule`)).toBe(
+        '/app/schedule',
+      );
+    });
+
+    it.each([
+      'javascript:alert(1)',
+      ' JaVaScript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'https://example.org/login',
+      '//example.org/login',
+      String.raw`/\example.org/login`,
+      String.raw`\\example.org/login`,
+    ])('rejects %s', (target) => {
+      expect(resolveSameOriginPath(target)).toBeUndefined();
+    });
+
+    it('returns undefined when the link carries no target', () => {
+      // eslint-disable-next-line unicorn/no-null -- URLSearchParams.get() returns null
+      expect(resolveSameOriginPath(null)).toBeUndefined();
+      expect(resolveSameOriginPath('  ')).toBeUndefined();
     });
   });
 
