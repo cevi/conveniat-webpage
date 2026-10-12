@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
 import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
+import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -110,6 +111,12 @@ const localizedSwitchQuestionShift: StaticTranslationString = {
   fr: "Souhaitez-vous vous désinscrire de l'autre service et vous inscrire à cet atelier?",
 };
 
+const localizedSwitchBlockedShift: StaticTranslationString = {
+  de: 'Die Abmeldefrist dieses Schichteinsatzes ist abgelaufen. Wechsel nicht möglich. Melde dich bei den Organisatoren.',
+  en: 'The withdrawal deadline of this shift has passed. Switching is not possible. Contact the organisers.',
+  fr: 'Le délai de désinscription de ce service est écoulé. Changement impossible. Contacte les organisateurs.',
+};
+
 const localizedViewChat: StaticTranslationString = {
   de: 'Gruppenchat öffnen',
   en: 'View Group Chat',
@@ -133,6 +140,7 @@ export const EnrollmentAction: React.FC<{
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | undefined>();
+  const [isSwitchBlocked, setIsSwitchBlocked] = useState(false);
 
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
@@ -163,6 +171,7 @@ export const EnrollmentAction: React.FC<{
           const conflictingCourseName = match[1] ?? 'another course';
           const conflictingCourseId = match[2] ?? '';
           setConflictType(isShift ? 'shift' : 'workshop');
+          setIsSwitchBlocked(false);
           setConflictInfo({
             conflictingCourseName,
             conflictingCourseId,
@@ -190,6 +199,11 @@ export const EnrollmentAction: React.FC<{
       setConflictInfo(undefined);
     },
     onError: (error) => {
+      // switching away from a shift is a withdrawal from it, so it hits the same deadline
+      if (error.message.includes(UNENROLLMENT_DEADLINE_PASSED)) {
+        setIsSwitchBlocked(true);
+        return;
+      }
       console.error('Switch enrollment failed:', error.message);
     },
   });
@@ -336,11 +350,17 @@ export const EnrollmentAction: React.FC<{
                 {conflictInfo?.conflictingCourseName}
               </div>
             </div>
-            <p className="text-center text-sm text-gray-500">
-              {conflictType === 'shift'
-                ? localizedSwitchQuestionShift[locale]
-                : localizedSwitchQuestionWorkshop[locale]}
-            </p>
+            {isSwitchBlocked ? (
+              <p className="w-full rounded-lg bg-amber-50 px-3 py-2 text-center text-sm text-amber-800">
+                {localizedSwitchBlockedShift[locale]}
+              </p>
+            ) : (
+              <p className="text-center text-sm text-gray-500">
+                {conflictType === 'shift'
+                  ? localizedSwitchQuestionShift[locale]
+                  : localizedSwitchQuestionWorkshop[locale]}
+              </p>
+            )}
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
             <ChatAlertDialogAction
@@ -355,7 +375,7 @@ export const EnrollmentAction: React.FC<{
                   });
                 }
               }}
-              disabled={switchEnrollment.isPending}
+              disabled={switchEnrollment.isPending || isSwitchBlocked}
             >
               {switchEnrollment.isPending ? (
                 <>
