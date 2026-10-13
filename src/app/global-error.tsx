@@ -184,7 +184,7 @@ const GlobalError: React.FC<{
   // In draft/preview mode, show a minimal recovery message instead of the full error page
   if (isRecovering) {
     return (
-      <html>
+      <html lang={locale}>
         <body>
           <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
             <p className="text-gray-500">{reconnectingText[locale]}</p>
@@ -195,7 +195,7 @@ const GlobalError: React.FC<{
   }
 
   return (
-    <html>
+    <html lang={locale}>
       <body>
         <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
           <OnboardingLayout>
