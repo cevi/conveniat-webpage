@@ -13,6 +13,7 @@ jest.mock('maplibre-gl', () => ({
     return { addControl: addControlMock, remove: removeMock, on: jest.fn() };
   }),
   AttributionControl: jest.fn().mockImplementation(() => ({})),
+  getVersion: (): string => '6.13.0',
   setWorkerUrl: (url: string): void => {
     setWorkerUrlMock(url);
   },
@@ -52,10 +53,10 @@ describe('useMapInitialization', () => {
     expect(addControlMock).toHaveBeenCalledTimes(1);
   });
 
-  it('points MapLibre at the self-hosted worker before creating the map', () => {
+  it('points MapLibre at the worker built for its own version before creating the map', () => {
     renderHook(() => useMapInitialization(container, options));
 
-    expect(setWorkerUrlMock).toHaveBeenCalledWith('/maplibre-gl-worker.js');
+    expect(setWorkerUrlMock).toHaveBeenCalledWith('/maplibre-gl-worker-6.13.0.js');
     expect(setWorkerUrlMock.mock.invocationCallOrder[0]).toBeLessThan(
       mapConstructor.mock.invocationCallOrder[0] ?? 0,
     );
