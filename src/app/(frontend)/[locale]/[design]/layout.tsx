@@ -2,7 +2,6 @@ import { AppShell } from '@/app/app-shell';
 import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 import { AppNavBarServer } from '@/components/footer/app-nav-bar-server';
 import { FooterCopyrightArea } from '@/components/footer/footer-copyright-area';
-import { FooterCopyrightClientWrapper } from '@/components/footer/footer-copyright-client-wrapper';
 import { GlobalAppFooterClientWrapper } from '@/components/footer/global-app-footer-client-wrapper';
 import { HideFooterProvider } from '@/components/footer/hide-footer-context';
 import { HeaderComponent } from '@/components/header/header-component';
@@ -10,6 +9,7 @@ import { ServiceWorkerManager } from '@/components/service-worker/service-worker
 import { HideBackgroundLogoProvider } from '@/components/ui/hide-background-logo-context';
 import { CookieBanner } from '@/components/utils/cookie-banner';
 import { environmentVariables } from '@/config/environment-variables';
+import { RouteLocaleProvider } from '@/hooks/use-current-locale';
 import { getFeatureFlagForPrerender } from '@/lib/db/redis';
 import { FEATURE_FLAG_REDESIGNED_MAIN_MENU_ENABLED } from '@/lib/feature-flags';
 import type { Locale, NavigationMode } from '@/types/types';
@@ -45,11 +45,7 @@ const GlobalAppFooterWrapper: React.FC<{
       locale={locale}
       isAppMode={isInAppDesign}
       appNavBar={<AppNavBarServer locale={locale} />}
-      copyrightArea={
-        <FooterCopyrightClientWrapper>
-          <FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />
-        </FooterCopyrightClientWrapper>
-      }
+      copyrightArea={<FooterCopyrightArea locale={locale} inAppDesign={isInAppDesign} />}
     />
   );
 };
@@ -99,39 +95,41 @@ const RootLayout: React.FC<LayoutProperties> = async ({ children, params }) => {
         })}
         suppressHydrationWarning
       >
-        <SessionProvider>
-          <Toaster position="top-center" richColors closeButton />
-          <HideFooterProvider>
-            <HideBackgroundLogoProvider>
-              <ChunkErrorHandler />
-              <ServiceWorkerManager>
-                <AppShell
-                  header={
-                    <Suspense fallback={undefined}>
-                      <HeaderComponent
-                        locale={locale}
-                        inAppDesign={isInAppDesign}
-                        navigationMode={navigationMode}
-                      />
-                    </Suspense>
-                  }
-                  footer={
-                    <Suspense fallback={undefined}>
-                      <GlobalAppFooterWrapper locale={locale} design={design} />
-                    </Suspense>
-                  }
-                  inAppDesign={isInAppDesign}
-                  locale={locale}
-                  navigationMode={navigationMode}
-                >
-                  {children}
-                </AppShell>
-                {/* The app asks during onboarding and offers the answer in its settings. */}
-                {!isInAppDesign && <CookieBanner locale={locale} />}
-              </ServiceWorkerManager>
-            </HideBackgroundLogoProvider>
-          </HideFooterProvider>
-        </SessionProvider>
+        <RouteLocaleProvider locale={locale}>
+          <SessionProvider>
+            <Toaster position="top-center" richColors closeButton />
+            <HideFooterProvider>
+              <HideBackgroundLogoProvider>
+                <ChunkErrorHandler />
+                <ServiceWorkerManager>
+                  <AppShell
+                    header={
+                      <Suspense fallback={undefined}>
+                        <HeaderComponent
+                          locale={locale}
+                          inAppDesign={isInAppDesign}
+                          navigationMode={navigationMode}
+                        />
+                      </Suspense>
+                    }
+                    footer={
+                      <Suspense fallback={undefined}>
+                        <GlobalAppFooterWrapper locale={locale} design={design} />
+                      </Suspense>
+                    }
+                    inAppDesign={isInAppDesign}
+                    locale={locale}
+                    navigationMode={navigationMode}
+                  >
+                    {children}
+                  </AppShell>
+                  {/* The app asks during onboarding and offers the answer in its settings. */}
+                  {!isInAppDesign && <CookieBanner locale={locale} />}
+                </ServiceWorkerManager>
+              </HideBackgroundLogoProvider>
+            </HideFooterProvider>
+          </SessionProvider>
+        </RouteLocaleProvider>
       </body>
     </html>
   );

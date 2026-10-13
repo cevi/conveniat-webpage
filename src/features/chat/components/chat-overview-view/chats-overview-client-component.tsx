@@ -8,6 +8,7 @@ import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useMobileMenuNavigation } from '@/hooks/use-mobile-menu-navigation';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
@@ -16,7 +17,6 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatType } from '@prisma/client';
 import { MessageSquare, MessageSquarePlus } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';

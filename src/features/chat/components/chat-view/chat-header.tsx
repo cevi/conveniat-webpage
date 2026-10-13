@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/buttons/button';
 import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { ArrowLeft, Info, Loader2 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
 
 const onlineText: StaticTranslationString = {

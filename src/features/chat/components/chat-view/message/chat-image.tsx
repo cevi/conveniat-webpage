@@ -4,11 +4,11 @@
 import { ImageViewer } from '@/features/chat/components/chat-view/message/image-viewer';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Loader2 } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
 
 const imageText: StaticTranslationString = {

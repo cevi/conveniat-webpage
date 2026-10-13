@@ -6,10 +6,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { usePreviewMode } from '@/hooks/use-preview-mode';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const enableString: StaticTranslationString = {

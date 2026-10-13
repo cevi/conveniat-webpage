@@ -14,7 +14,7 @@ jest.mock('@/trpc/client', () => ({
     },
   },
 }));
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

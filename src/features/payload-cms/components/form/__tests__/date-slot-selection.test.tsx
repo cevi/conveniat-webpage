@@ -8,7 +8,7 @@ import React from 'react';
 import type { FieldValues } from 'react-hook-form';
 import { useForm, useWatch } from 'react-hook-form';
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

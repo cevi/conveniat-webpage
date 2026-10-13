@@ -8,6 +8,7 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -15,7 +16,6 @@ import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType } from '@prisma/client';
 import { Megaphone, Paperclip, Send, X } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const MAX_MESSAGE_LENGTH = 2000;

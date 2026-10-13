@@ -1,12 +1,12 @@
 'use client';
 
 import type { RealtimeConnectionStatus } from '@/features/chat/utils/realtime-connection';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { RefreshCw, WifiOff } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const notLiveText: StaticTranslationString = {

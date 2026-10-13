@@ -9,11 +9,11 @@ import { FileUploadZone } from '@/features/image-submission/file-upload-zone';
 import { SubmitButton } from '@/features/image-submission/submit-button';
 import { USER_IMAGE_MAX_BYTES } from '@/features/payload-cms/constants/user-image-upload';
 import { useUserUpload } from '@/features/payload-cms/hooks/use-user-upload';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Image as LucideImageIcon, Sparkles } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
 

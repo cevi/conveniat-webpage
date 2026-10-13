@@ -4,11 +4,11 @@ import { SetHideHeader } from '@/components/header/hide-header-context';
 import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { LinkComponent } from '@/components/ui/link-component';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
 import { LogIn } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 const loginText: StaticTranslationString = {

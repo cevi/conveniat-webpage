@@ -1,12 +1,12 @@
 'use client';
 
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const statusLabel: StaticTranslationString = {

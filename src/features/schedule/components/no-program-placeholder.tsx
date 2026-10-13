@@ -1,10 +1,10 @@
 'use client';
 
 import { Button } from '@/components/ui/buttons/button';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { Calendar, FilterX } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
 interface NoProgramPlaceholderProperties {

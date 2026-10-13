@@ -213,10 +213,9 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
   const hasHydratedReference = useRef(false);
   const hasSyncedReference = useRef(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number | undefined>();
-  const { data: localEntries } = useLiveQuery(
-    (q) => q.from({ entry: scheduleEntriesCollection }),
-    [],
-  );
+  const { data: localEntries } = useLiveQuery({
+    query: (q) => q.from({ entry: scheduleEntriesCollection }),
+  });
 
   // Convert local DB records to frontend types
   const entries = useMemo(

@@ -2,11 +2,11 @@
 import { LinkComponent } from '@/components/ui/link-component';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import { AdminPanelBackgroundFaker } from '@/features/payload-cms/payload-cms/components/login-page/admin-panel-background-faker';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { LogIn } from 'lucide-react';
 import { signIn } from 'next-auth/react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 /**

@@ -1,7 +1,7 @@
 import type { ChatMessage } from '@/features/chat/api/types';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { i18nConfig, type Locale } from '@/types/types';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 /**

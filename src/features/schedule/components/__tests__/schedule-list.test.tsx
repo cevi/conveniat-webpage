@@ -6,7 +6,7 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import { render, screen } from '@testing-library/react';
 import type React from 'react';
 
-jest.mock('next-i18n-router/client', () => ({
+jest.mock('@/hooks/use-current-locale', () => ({
   useCurrentLocale: (): string => 'de',
 }));
 

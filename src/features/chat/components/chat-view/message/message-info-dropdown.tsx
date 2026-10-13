@@ -8,12 +8,12 @@ import {
   ChatDialogTitle,
 } from '@/features/chat/components/ui/chat-dialog';
 import { useFormatDate } from '@/features/chat/hooks/use-format-date';
+import { useCurrentLocale } from '@/hooks/use-current-locale';
 import { MessageEventType } from '@/lib/prisma/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, Clock, User } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const messageInfoText: StaticTranslationString = {
