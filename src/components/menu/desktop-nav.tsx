@@ -16,6 +16,18 @@ const overflowButtonLabel: StaticTranslationString = {
   en: 'More',
 };
 
+const searchLabel: StaticTranslationString = {
+  de: 'Suchen',
+  fr: 'Rechercher',
+  en: 'Search',
+};
+
+const searchPlaceholder: StaticTranslationString = {
+  de: 'Suchen...',
+  fr: 'Rechercher...',
+  en: 'Search...',
+};
+
 /** The `openDropdownId` of the overflow flyout, which lists the items that did not fit. */
 const OVERFLOW_DROPDOWN_ID = 'overflow';
 
@@ -432,8 +444,8 @@ export const DesktopNav: React.FC<{
               'hover:border-conveniat-green/40 hover:text-conveniat-green flex size-8 items-center justify-center rounded-xl border border-gray-200 bg-gray-50/80 text-gray-600 transition-all duration-200 hover:bg-white',
               isSearchExpanded && '2xl:hidden',
             )}
-            aria-label="Suchen"
-            title="Suchen"
+            aria-label={searchLabel[locale]}
+            title={searchLabel[locale]}
           >
             <Search className="size-3.5 text-gray-500" />
           </button>
@@ -454,7 +466,7 @@ export const DesktopNav: React.FC<{
                       setIsSearchExpanded(false);
                     }
                   }}
-                  placeholder="Suchen..."
+                  placeholder={searchPlaceholder[locale]}
                   className="h-8 w-56 rounded-xl border border-gray-200 bg-white pr-7 pl-8 text-xs text-gray-800 transition-all duration-200 focus:border-gray-300 focus:ring-0 focus:outline-hidden 2xl:w-64"
                 />
                 <Search className="pointer-events-none absolute left-2.5 size-3.5 text-gray-500" />
