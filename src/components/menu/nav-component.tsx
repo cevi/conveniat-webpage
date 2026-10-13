@@ -4,13 +4,29 @@ import { Dialog, DialogPanel } from '@headlessui/react';
 import { Menu as MenuIcon, X } from 'lucide-react';
 
 import { useMobileMenuNavigation } from '@/hooks/use-mobile-menu-navigation';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 import { useCallback, useEffect, useRef } from 'react';
+
+const openMenuText: StaticTranslationString = {
+  de: 'Hauptmenü öffnen',
+  en: 'Open main menu',
+  fr: 'Ouvrir le menu principal',
+};
+
+const closeMenuText: StaticTranslationString = {
+  de: 'Menü schliessen',
+  en: 'Close menu',
+  fr: 'Fermer le menu',
+};
 
 export const NavComponent: React.FC<{
   children?: React.ReactNode;
   showDesktopSidePanel?: boolean;
-}> = ({ children, showDesktopSidePanel = true }) => {
+  // A prop, not `useCurrentLocale`: the header is part of the prerendered shell, which must not
+  // read the pathname.
+  locale: Locale;
+}> = ({ children, showDesktopSidePanel = true, locale }) => {
   const { mobileMenuOpen, setMobileMenuOpen, checkClickEvent } = useMobileMenuNavigation();
   const justClosedReference = useRef(false);
 
@@ -50,7 +66,7 @@ export const NavComponent: React.FC<{
             onClick={handleOpen}
             className="relative top-[18px] z-[105] cursor-pointer outline-hidden"
           >
-            <span className="sr-only">Open main menu</span>
+            <span className="sr-only">{openMenuText[locale]}</span>
             <MenuIcon aria-hidden="true" className="size-6" />
           </button>
         )}
@@ -61,7 +77,7 @@ export const NavComponent: React.FC<{
             className="relative top-[18px] z-[105] cursor-pointer outline-hidden"
             onClick={handleClose}
           >
-            <span className="sr-only">Close menu</span>
+            <span className="sr-only">{closeMenuText[locale]}</span>
             <X aria-hidden="true" className="size-6" />
           </button>
         )}

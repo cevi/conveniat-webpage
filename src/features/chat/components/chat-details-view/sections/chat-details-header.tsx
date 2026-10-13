@@ -14,6 +14,12 @@ interface ChatDetailsHeaderProperties {
   locale: Locale;
 }
 
+const chatDetailsText: StaticTranslationString = {
+  de: 'Chat-Details',
+  en: 'Chat Details',
+  fr: 'Détails de la discussion',
+};
+
 const saveText: StaticTranslationString = {
   de: 'Speichern',
   en: 'Save',
@@ -38,7 +44,9 @@ export const ChatDetailsHeader: React.FC<ChatDetailsHeaderProperties> = ({
       </Link>
       <div className="flex items-center gap-2">
         <Settings className="h-5 w-5 text-gray-700" />
-        <h1 className="font-heading text-lg font-semibold text-gray-900">Chat Details</h1>
+        <h1 className="font-heading text-lg font-semibold text-gray-900">
+          {chatDetailsText[locale]}
+        </h1>
       </div>
       <div className="ml-auto">
         {isEditingName && (

@@ -36,6 +36,18 @@ const allCategoriesText: StaticTranslationString = {
   fr: 'Toutes les catégories',
 };
 
+const filterByCategoryText: StaticTranslationString = {
+  de: 'Nach Kategorie filtern',
+  en: 'Filter by category',
+  fr: 'Filtrer par catégorie',
+};
+
+const removeFilterText: StaticTranslationString = {
+  de: 'Filter entfernen',
+  en: 'Remove filter',
+  fr: 'Supprimer le filtre',
+};
+
 export interface FilterState {
   searchText: string;
   selectedLocations: CampMapAnnotation[];
@@ -125,7 +137,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
               ? 'border-transparent bg-gray-900 text-white shadow-xs'
               : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
           )}
-          aria-label="Filter by category"
+          aria-label={filterByCategoryText[locale]}
         >
           <Filter
             className={cn(
@@ -216,7 +228,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
                 type="button"
                 onClick={() => handleCategoryChange()}
                 className="cursor-pointer rounded-full p-0.5 text-emerald-700 transition-colors hover:bg-emerald-200/50"
-                aria-label="Filter entfernen"
+                aria-label={removeFilterText[locale]}
               >
                 <X className="h-3 w-3" />
               </button>

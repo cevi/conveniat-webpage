@@ -6,10 +6,32 @@ import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { ChatCapability } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { Info, MessageSquare, Quote, X } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
+const quoteText: StaticTranslationString = {
+  de: 'Zitieren',
+  en: 'Quote',
+  fr: 'Citer',
+};
+
+const replyInThreadText: StaticTranslationString = {
+  de: 'Im Thread antworten',
+  en: 'Reply in thread',
+  fr: 'Répondre dans le fil',
+};
+
+const messageInfoText: StaticTranslationString = {
+  de: 'Nachrichteninfo',
+  en: 'Message info',
+  fr: 'Infos message',
+};
+
 export const ChatSelectionHeader: React.FC = () => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const { selectedMessage, setSelectedMessage, quoteMessage, replyInThread } = useChatActions();
   const [showInfo, setShowInfo] = React.useState(false);
   const { data: currentUserId } = trpc.chat.user.useQuery({});
@@ -54,7 +76,7 @@ export const ChatSelectionHeader: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={handleQuote}
-          title="Quote"
+          title={quoteText[locale]}
           className="hover:bg-gray-100"
         >
           <Quote className="h-5 w-5 text-gray-700" />
@@ -64,7 +86,7 @@ export const ChatSelectionHeader: React.FC = () => {
             variant="ghost"
             size="icon"
             onClick={handleThread}
-            title="Reply in thread"
+            title={replyInThreadText[locale]}
             className="hover:bg-gray-100"
           >
             <MessageSquare className="h-5 w-5 text-gray-700" />
@@ -74,7 +96,7 @@ export const ChatSelectionHeader: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={() => setShowInfo(true)}
-          title="Message info"
+          title={messageInfoText[locale]}
           className="hover:bg-gray-100"
         >
           <Info className="h-5 w-5 text-gray-700" />

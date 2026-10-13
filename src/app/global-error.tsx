@@ -1,13 +1,65 @@
 'use client'; // Error boundaries must be Client Components
 
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import '@/app/globals.scss';
 import { OnboardingLayout } from '@/features/onboarding/components/onboarding-layout';
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { isDraftOrPreviewMode } from '@/utils/draft-mode';
 
 const DRAFT_MODE_RELOAD_DELAY_MS = 2000;
+
+const errorTitle: StaticTranslationString = {
+  de: 'Es ist ein Fehler aufgetreten!',
+  en: 'Something went wrong!',
+  fr: "Une erreur s'est produite !",
+};
+
+const errorDescription: StaticTranslationString = {
+  de: 'Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.',
+  en: 'We are sorry, but something went wrong. Please try again.',
+  fr: "Nous sommes désolés, une erreur s'est produite. Veuillez réessayer.",
+};
+
+const debugLogCopiedText: StaticTranslationString = {
+  de: 'Fehlerprotokoll in Zwischenablage kopiert!',
+  en: 'Error log copied to the clipboard!',
+  fr: "Journal d'erreurs copié dans le presse-papiers !",
+};
+
+const retryText: StaticTranslationString = {
+  de: 'Nochmals versuchen',
+  en: 'Try again',
+  fr: 'Réessayer',
+};
+
+const reconnectingText: StaticTranslationString = {
+  de: 'Verbindung wird wiederhergestellt',
+  en: 'Reconnecting',
+  fr: 'Reconnexion en cours',
+};
+
+const unsubscribe = (): void => {};
+// The cookie does not change while the error page is shown, so there is nothing to subscribe to.
+const subscribeToNothing = (): (() => void) => unsubscribe;
+
+/**
+ * Reads the locale from its cookie. The root layout is gone when this page renders, so nothing
+ * hands a locale down, and a router hook here would read the pathname in the prerendered
+ * `/_global-error` page.
+ */
+const getLocaleFromDocumentCookie = (): Locale => {
+  const cookieLocale = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith(`${i18nConfig.localeCookie}=`))
+    ?.split('=')[1];
+  const enabledLocale = i18nConfig.locales.find((locale) => locale === cookieLocale);
+  return (enabledLocale ?? i18nConfig.defaultLocale) as Locale;
+};
+
+const getServerLocale = (): Locale => i18nConfig.defaultLocale as Locale;
 
 /**
  * This file is responsible for converting a general runtime error page.
@@ -28,6 +80,11 @@ const GlobalError: React.FC<{
   const [isRecovering, setIsRecovering] = useState(false);
   const [copiedDebug, setCopiedDebug] = useState(false);
   const clickTimestampsReference = useRef<number[]>([]);
+  const locale = useSyncExternalStore(
+    subscribeToNothing,
+    getLocaleFromDocumentCookie,
+    getServerLocale,
+  );
 
   useEffect(() => {
     // Check if the error is likely due to being offline (e.g., failed to load a JS chunk)
@@ -127,10 +184,10 @@ const GlobalError: React.FC<{
   // In draft/preview mode, show a minimal recovery message instead of the full error page
   if (isRecovering) {
     return (
-      <html>
+      <html lang={locale}>
         <body>
           <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
-            <p className="text-gray-500">Verbindung wird wiederhergestellt</p>
+            <p className="text-gray-500">{reconnectingText[locale]}</p>
           </div>
         </body>
       </html>
@@ -138,7 +195,7 @@ const GlobalError: React.FC<{
   }
 
   return (
-    <html>
+    <html lang={locale}>
       <body>
         <div className="flex h-dvh w-dvw flex-col items-center justify-center bg-gray-50 p-4">
           <OnboardingLayout>
@@ -146,21 +203,19 @@ const GlobalError: React.FC<{
               className="text-conveniat-green mb-4 cursor-pointer text-xl font-bold select-none"
               onClick={handleTitleClick}
             >
-              Es ist ein Fehler aufgetreten!
+              {errorTitle[locale]}
             </h1>
-            <p className="mb-8 text-balance text-gray-700">
-              Es tut uns leid, aber es ist ein Fehler aufgetreten. Bitte versuche es erneut.
-            </p>
+            <p className="mb-8 text-balance text-gray-700">{errorDescription[locale]}</p>
             {copiedDebug && (
               <div className="bg-conveniat-green/10 text-conveniat-green mb-4 rounded-md px-4 py-2 text-sm font-medium">
-                Fehlerprotokoll in Zwischenablage kopiert!
+                {debugLogCopiedText[locale]}
               </div>
             )}
             <button
               className="font-heading bg-conveniat-green hover:bg-conveniat-green/90 transform cursor-pointer rounded-[8px] px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] active:scale-[0.98]"
               onClick={() => globalThis.location.reload()}
             >
-              Nochmals versuchen
+              {retryText[locale]}
             </button>
           </OnboardingLayout>
         </div>

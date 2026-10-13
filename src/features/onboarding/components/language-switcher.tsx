@@ -8,13 +8,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { languageOptions } from '@/config/language-options';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { Globe } from 'lucide-react';
 import React from 'react';
 
 interface LanguageSwitcherProperties {
   onLanguageChange: (lang: string) => void;
-  currentLocale: string;
+  currentLocale: Locale;
 }
+
+const changeLanguageText: StaticTranslationString = {
+  de: 'Sprache ändern',
+  en: 'Change Language',
+  fr: 'Changer de langue',
+};
 
 export const LanguageSwitcher: React.FC<LanguageSwitcherProperties> = ({
   onLanguageChange,
@@ -30,7 +37,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProperties> = ({
             className="h-10 w-10 rounded-full bg-white/80 shadow-sm backdrop-blur-sm hover:bg-white focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
           >
             <Globe className="h-5 w-5 text-gray-700" />
-            <span className="sr-only">Change Language</span>
+            <span className="sr-only">{changeLanguageText[currentLocale]}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="border-gray-200 bg-white">

@@ -173,7 +173,7 @@ export const AnnotationDetailsDrawer: React.FC<{
 
           <AnnotationDescriptionSection description={annotation.description} />
 
-          <AnnotationOpeningHoursSection openingHours={annotation.openingHours} />
+          <AnnotationOpeningHoursSection openingHours={annotation.openingHours} locale={locale} />
 
           <AnnotationImagesSection images={annotation.images} locale={locale} />
 

@@ -12,6 +12,7 @@ interface AccordionSearchBarProperties {
   resultCount: number;
   totalCount: number;
   noResultsLabel: string;
+  clearSearchLabel: string;
 }
 
 export const AccordionSearchBar: React.FC<AccordionSearchBarProperties> = ({
@@ -21,6 +22,7 @@ export const AccordionSearchBar: React.FC<AccordionSearchBarProperties> = ({
   resultCount,
   totalCount,
   noResultsLabel,
+  clearSearchLabel,
 }) => {
   return (
     <div className="mb-4 space-y-2">
@@ -42,7 +44,7 @@ export const AccordionSearchBar: React.FC<AccordionSearchBarProperties> = ({
           <button
             type="button"
             onClick={() => onChange('')}
-            aria-label="Clear search"
+            aria-label={clearSearchLabel}
             className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer text-gray-400 transition-colors hover:text-gray-600"
           >
             <X className="h-4 w-4" />

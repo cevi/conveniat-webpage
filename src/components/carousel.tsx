@@ -6,7 +6,22 @@ import * as React from 'react';
 import { useCallback, useSyncExternalStore } from 'react';
 
 import { Button } from '@/components/ui/buttons/button';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+
+const previousSlideText: StaticTranslationString = {
+  de: 'Vorheriges Bild',
+  en: 'Previous slide',
+  fr: 'Image précédente',
+};
+
+const nextSlideText: StaticTranslationString = {
+  de: 'Nächstes Bild',
+  en: 'Next slide',
+  fr: 'Image suivante',
+};
+
+type CarouselButtonProperties = React.ComponentProps<typeof Button> & { locale: Locale };
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -239,8 +254,8 @@ const CarouselItem = React.forwardRef<
 });
 CarouselItem.displayName = 'CarouselItem';
 
-const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
-  ({ className, variant = 'outline', size = 'icon', ...properties }, reference) => {
+const CarouselPrevious = React.forwardRef<HTMLButtonElement, CarouselButtonProperties>(
+  ({ className, variant = 'outline', size = 'icon', locale, ...properties }, reference) => {
     const { orientation, scrollPrev, canScrollPrev } = useCarousel();
 
     return (
@@ -260,15 +275,15 @@ const CarouselPrevious = React.forwardRef<HTMLButtonElement, React.ComponentProp
         {...properties}
       >
         <ArrowLeft className="text-conveniat-green h-4 w-4" />
-        <span className="sr-only">Previous slide</span>
+        <span className="sr-only">{previousSlideText[locale]}</span>
       </Button>
     );
   },
 );
 CarouselPrevious.displayName = 'CarouselPrevious';
 
-const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<typeof Button>>(
-  ({ className, variant = 'outline', size = 'icon', ...properties }, reference) => {
+const CarouselNext = React.forwardRef<HTMLButtonElement, CarouselButtonProperties>(
+  ({ className, variant = 'outline', size = 'icon', locale, ...properties }, reference) => {
     const { orientation, scrollNext, canScrollNext } = useCarousel();
 
     return (
@@ -288,7 +303,7 @@ const CarouselNext = React.forwardRef<HTMLButtonElement, React.ComponentProps<ty
         {...properties}
       >
         <ArrowRight className="text-conveniat-green h-4 w-4" />
-        <span className="sr-only">Next slide</span>
+        <span className="sr-only">{nextSlideText[locale]}</span>
       </Button>
     );
   },
