@@ -9,6 +9,9 @@ import { getVersion, setWorkerUrl } from 'maplibre-gl';
  * and paired it with the new library: every tile failed to parse and the base map stayed blank
  * (#2257).
  *
+ * The build also keeps a copy under the old fixed name, for tabs that were opened before the
+ * URL was versioned and still ask for it. Drop that copy with the next maplibre-gl bump.
+ *
  * `.js` on purpose: the proxy passes it through as a static asset and Serwist precaches it
  * with the rest of `public/`, so the map keeps rendering offline.
  * @returns the URL of the worker built for the MapLibre version in this bundle
