@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.33.0](https://github.com/cevi/conveniat-webpage/compare/v1.32.0...v1.33.0) (2026-10-14)
+
+
+### Features
+
+* **forms:** name helper areas instead of Ressorts and offer a general helper ([1356e29](https://github.com/cevi/conveniat-webpage/commit/1356e29136bab196e141a6601a3b7827edbfea19))
+* **forms:** name helper areas instead of Ressorts and offer a general helper ([4419b01](https://github.com/cevi/conveniat-webpage/commit/4419b01c7abafcb68f6c6d447887782951aa3ca3))
+
+
+### Bug Fixes
+
+* **deps:** update Next.js to 16.4.1 and React to 19.2.9 ([a22b561](https://github.com/cevi/conveniat-webpage/commit/a22b56136666df9b8708867434213354746a3074))
+* **deps:** update Next.js to 16.4.1 and React to 19.2.9 ([225a79a](https://github.com/cevi/conveniat-webpage/commit/225a79a19e8dca8551783f1f90d16e814e821099))
+* **i18n:** set the lang attribute on the global error page ([5cc1260](https://github.com/cevi/conveniat-webpage/commit/5cc1260250bc8dd25d622b5108210c302216b39b))
+* **i18n:** translate hardcoded strings in the public UI ([e299891](https://github.com/cevi/conveniat-webpage/commit/e2998913833e6edb7482f68519984d05707605a0))
+* **i18n:** translate hardcoded strings in the public UI ([801be25](https://github.com/cevi/conveniat-webpage/commit/801be25b1277be67940a1c4bf8943a941f351068)), closes [#2206](https://github.com/cevi/conveniat-webpage/issues/2206)
+* **map:** keep the old worker name for tabs opened before the deploy ([9a82c61](https://github.com/cevi/conveniat-webpage/commit/9a82c619950cd4b48557fdac085d7d57a9e3b4ae))
+* **map:** load the MapLibre worker from a versioned URL ([e55d420](https://github.com/cevi/conveniat-webpage/commit/e55d420cce8bfa7fd33843ad8cf54bdf99fbfc6a))
+* **map:** load the MapLibre worker from a versioned URL ([75470c6](https://github.com/cevi/conveniat-webpage/commit/75470c617506452c2f75ad9d40266de6e2d8ff50)), closes [#2257](https://github.com/cevi/conveniat-webpage/issues/2257)
+
 ## [1.32.0](https://github.com/cevi/conveniat-webpage/compare/v1.31.1...v1.32.0) (2026-10-12)
 
 
