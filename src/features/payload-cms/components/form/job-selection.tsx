@@ -4,7 +4,10 @@ import type { JobWithQuota } from '@/features/payload-cms/components/form/action
 import { getJobs } from '@/features/payload-cms/components/form/actions/get-jobs';
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { JobSelectionBlock } from '@/features/payload-cms/components/form/types';
-import { RESSORT_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
+import {
+  HELPER_AREA_LABELS,
+  RESSORT_OPTIONS,
+} from '@/features/payload-cms/constants/ressort-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -194,15 +197,11 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
       }
     }
 
-    return RESSORT_OPTIONS.filter((opt) => (counts[opt.value] ?? 0) > 0).map((opt) => {
-      const currentLabel = opt.label[locale];
-      return {
-        ...opt,
-        label: currentLabel,
-        count: counts[opt.value] ?? 0,
-        cleanLabel: currentLabel.replace(/^(Ressort|Department|Département)\s+/, ''),
-      };
-    });
+    return RESSORT_OPTIONS.filter((opt) => (counts[opt.value] ?? 0) > 0).map((opt) => ({
+      value: opt.value,
+      label: HELPER_AREA_LABELS[opt.value][locale],
+      count: counts[opt.value] ?? 0,
+    }));
   }, [jobs, locale]);
 
   const filteredJobs = useMemo((): JobWithQuota[] => {
@@ -290,42 +289,40 @@ export const JobSelection: React.FC<JobSelectionProperties> = (props) => {
 
   const renderFilters = (): React.ReactElement => (
     <div className="flex flex-wrap gap-2">
-      {availableRessorts.map(
-        (ressort: { value: string; label: string; count: number; cleanLabel: string }) => {
-          const isActive = selectedRessorts.has(ressort.value);
-          return (
-            <button
-              key={ressort.value}
-              type="button"
-              onClick={() => {
-                const newSet = new Set(selectedRessorts);
-                if (isActive) {
-                  newSet.delete(ressort.value);
-                } else {
-                  newSet.add(ressort.value);
-                }
-                setSelectedRessorts(newSet);
-              }}
+      {availableRessorts.map((ressort: { value: string; label: string; count: number }) => {
+        const isActive = selectedRessorts.has(ressort.value);
+        return (
+          <button
+            key={ressort.value}
+            type="button"
+            onClick={() => {
+              const newSet = new Set(selectedRessorts);
+              if (isActive) {
+                newSet.delete(ressort.value);
+              } else {
+                newSet.add(ressort.value);
+              }
+              setSelectedRessorts(newSet);
+            }}
+            className={cn(
+              'flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95',
+              isActive
+                ? 'bg-green-600 text-white shadow-sm hover:bg-green-700'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700',
+            )}
+          >
+            <span>{ressort.label}</span>
+            <span
               className={cn(
-                'flex cursor-pointer items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-md active:scale-95',
-                isActive
-                  ? 'bg-green-600 text-white shadow-sm hover:bg-green-700'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700',
+                'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px]',
+                isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-400',
               )}
             >
-              <span>{ressort.cleanLabel}</span>
-              <span
-                className={cn(
-                  'flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px]',
-                  isActive ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-400',
-                )}
-              >
-                {ressort.count}
-              </span>
-            </button>
-          );
-        },
-      )}
+              {ressort.count}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 

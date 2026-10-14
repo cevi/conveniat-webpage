@@ -31,7 +31,7 @@ const Harness: React.FC<{ maxRanges?: number; asksForRessort?: boolean }> = ({
         minDays={3}
         maxRanges={maxRanges}
         ressortName={asksForRessort === true ? 'ressortwunsch' : undefined}
-        ressortLabel="In welchem Ressort möchtest du am liebsten mithelfen?"
+        ressortLabel="In welchem Bereich möchtest du am liebsten mithelfen?"
       />
       <output data-testid="value">{slots}</output>
     </>
@@ -105,6 +105,16 @@ describe('DateSlotSelection', () => {
     expect(offered).toContain('infrastruktur');
     expect(offered).not.toContain('finanzen');
     expect(offered).not.toContain('relations');
+  });
+
+  it('names areas of work instead of Ressorts and offers to help wherever needed', () => {
+    render(<Harness asksForRessort />);
+
+    const labels = screen.getAllByRole('option').map((option) => option.textContent ?? '');
+
+    expect(labels).toContain('Aufbau & Infrastruktur');
+    expect(labels).toContain('Allgemein helfende Person');
+    expect(labels.filter((label) => /ressort/i.test(label))).toEqual([]);
   });
 
   it('removes one slot and leaves the other', () => {
