@@ -29,6 +29,12 @@ interface AddParticipantsProperties {
   locale: Locale;
 }
 
+const addParticipantsText: StaticTranslationString = {
+  de: 'Teilnehmende hinzufügen',
+  en: 'Add Participants',
+  fr: 'Ajouter des participants',
+};
+
 const searchContactsPlaceholder: StaticTranslationString = {
   de: 'Kontakte suchen...',
   en: 'Search contacts to add...',
@@ -87,7 +93,9 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
 }) => {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h3 className="font-heading mb-4 text-lg font-semibold text-gray-900">Add Participants</h3>
+      <h3 className="font-heading mb-4 text-lg font-semibold text-gray-900">
+        {addParticipantsText[locale]}
+      </h3>
 
       {/* Search Input */}
       <div className="relative mb-4">

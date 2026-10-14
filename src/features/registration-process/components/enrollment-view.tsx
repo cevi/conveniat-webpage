@@ -1,7 +1,7 @@
 'use client';
 
-import type { TriggerFormData } from '@/features/registration_process/components/trigger-registration-form';
-import { TriggerRegistrationForm } from '@/features/registration_process/components/trigger-registration-form';
+import type { TriggerFormData } from '@/features/registration-process/components/trigger-registration-form';
+import { TriggerRegistrationForm } from '@/features/registration-process/components/trigger-registration-form';
 import { toast } from '@/lib/toast';
 import { TRPCProvider, trpc } from '@/trpc/client';
 import React from 'react';

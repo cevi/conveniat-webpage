@@ -1,12 +1,22 @@
-import { setWorkerUrl } from 'maplibre-gl';
+import { getVersion, setWorkerUrl } from 'maplibre-gl';
 
 /**
  * Where `build:map-worker` writes the self-contained MapLibre worker bundle.
  *
+ * The MapLibre version is part of the file name because the library and its worker only
+ * understand each other at the same version, and nginx serves everything in `public/` as
+ * immutable for a year. Under one fixed name a browser kept the worker of the previous release
+ * and paired it with the new library: every tile failed to parse and the base map stayed blank
+ * (#2257).
+ *
+ * The build also keeps a copy under the old fixed name, for tabs that were opened before the
+ * URL was versioned and still ask for it. Drop that copy with the next maplibre-gl bump.
+ *
  * `.js` on purpose: the proxy passes it through as a static asset and Serwist precaches it
  * with the rest of `public/`, so the map keeps rendering offline.
+ * @returns the URL of the worker built for the MapLibre version in this bundle
  */
-export const MAPLIBRE_WORKER_URL = '/maplibre-gl-worker.js';
+export const getMapLibreWorkerUrl = (): string => `/maplibre-gl-worker-${getVersion()}.js`;
 
 /**
  * Points MapLibre at our self-hosted worker. Call before creating a map.
@@ -18,5 +28,5 @@ export const MAPLIBRE_WORKER_URL = '/maplibre-gl-worker.js';
  * emit next to it, so we bundle both into one file instead of pointing at the emitted asset.
  */
 export const configureMapLibreWorker = (): void => {
-  setWorkerUrl(MAPLIBRE_WORKER_URL);
+  setWorkerUrl(getMapLibreWorkerUrl());
 };

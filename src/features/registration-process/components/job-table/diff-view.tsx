@@ -1,4 +1,4 @@
-import type { Candidate } from '@/features/registration_process/components/job-table/types';
+import type { Candidate } from '@/features/registration-process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Check, X } from 'lucide-react';
 import React from 'react';

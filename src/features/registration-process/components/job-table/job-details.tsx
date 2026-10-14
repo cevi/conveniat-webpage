@@ -2,11 +2,11 @@ import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-bounda
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/buttons/button';
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
-import { JobOverview } from '@/features/registration_process/components/job-table/job-overview';
-import { JobTimeline } from '@/features/registration_process/components/job-table/job-timeline';
-import { StepDetails } from '@/features/registration_process/components/job-table/step-details';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
-import { STEP_MAPPING } from '@/features/registration_process/components/job-table/types';
+import { JobOverview } from '@/features/registration-process/components/job-table/job-overview';
+import { JobTimeline } from '@/features/registration-process/components/job-table/job-timeline';
+import { StepDetails } from '@/features/registration-process/components/job-table/step-details';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
+import { STEP_MAPPING } from '@/features/registration-process/components/job-table/types';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import { useLocale } from '@payloadcms/ui';

@@ -8,7 +8,12 @@ export default await serwist({
   swSrc: 'src/features/service-worker/sw.ts',
   swDest: 'public/sw.js',
   precachePrerendered: false,
-  globIgnores: ['**/node_modules/**/*', '**/admin-block-images/**/*'],
+  globIgnores: [
+    '**/node_modules/**/*',
+    '**/admin-block-images/**/*',
+    // the unversioned copy only serves tabs opened before the worker URL was versioned (#2257)
+    '**/maplibre-gl-worker.js',
+  ],
   esbuildOptions: {
     define: {
       // Unlike Next's compiler, the standalone serwist build does not inline

@@ -1,9 +1,9 @@
-import { JobRow } from '@/features/registration_process/components/job-table/job-row';
-import { StatusChip } from '@/features/registration_process/components/job-table/status-chip';
+import { JobRow } from '@/features/registration-process/components/job-table/job-row';
+import { StatusChip } from '@/features/registration-process/components/job-table/status-chip';
 import type {
   JobStatusFilter,
   RegistrationJob,
-} from '@/features/registration_process/components/job-table/types';
+} from '@/features/registration-process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import {
   ArrowDown,

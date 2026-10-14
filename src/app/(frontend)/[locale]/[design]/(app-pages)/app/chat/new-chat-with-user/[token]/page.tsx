@@ -48,6 +48,11 @@ const labels = {
     de: 'Jeder QR-Code startet nur einen Chat und läuft nach wenigen Minuten ab. Lass dir einen neuen zeigen.',
     fr: "Chaque code QR ne démarre qu'une seule discussion et expire après quelques minutes. Demandez-en un nouveau.",
   },
+  tryAgainLater: {
+    en: 'Please try again later.',
+    de: 'Bitte versuche es später noch einmal.',
+    fr: 'Veuillez réessayer plus tard.',
+  },
   unexpectedError: {
     en: 'An unexpected error occurred.',
     de: 'Ein unerwarteter Fehler ist aufgetreten.',
@@ -182,7 +187,7 @@ const NewChatWithUserPage: React.FC<{
         <h2 className="mb-2 text-xl font-semibold text-red-600">
           {labels.unexpectedError[locale]}
         </h2>
-        <p className="mb-4">Bitte versuche es später noch einmal.</p>
+        <p className="mb-4">{labels.tryAgainLater[locale]}</p>
         <Link href="/app/chat" className="underline">
           {labels.goBackToChats[locale]}
         </Link>

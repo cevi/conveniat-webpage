@@ -126,8 +126,8 @@ export const PhotoCarousel: React.FC<PhotoCarouselBlock> = ({ images, aspectRati
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="max-lg:hidden" />
-          <CarouselNext className="max-lg:hidden" />
+          <CarouselPrevious className="max-lg:hidden" locale={locale} />
+          <CarouselNext className="max-lg:hidden" locale={locale} />
         </div>
 
         {/* all descriptions are stacked on top of each other, only the active one is visible */}

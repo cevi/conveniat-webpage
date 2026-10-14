@@ -990,9 +990,9 @@ const formDateSlotSelectionBlock: Block = {
       },
       admin: {
         description: {
-          en: 'Asks which Ressort the helper would like to support, alongside the slot. The choices are the project-wide Ressort list, minus the Ressorts that take helpers only for a concrete job.',
-          de: 'Fragt zusätzlich zum Zeitfenster, in welchem Ressort die helfende Person mithelfen möchte. Zur Auswahl steht die projektweite Ressortliste, ohne die Ressorts, die Helfende nur für einen konkreten Job aufnehmen.',
-          fr: 'Demande, en plus du créneau, dans quel département la personne souhaite aider. Les choix sont la liste des départements du projet, sans ceux qui n’accueillent des bénévoles que pour un job concret.',
+          en: 'Asks which area the helper would like to support, alongside the slot. The choices are the Ressorts, named by their area of work so helpers never read "Ressort", minus the Ressorts that take helpers only for a concrete job, plus "General helper".',
+          de: 'Fragt zusätzlich zum Zeitfenster, in welchem Bereich die helfende Person mithelfen möchte. Zur Auswahl stehen die Ressorts, benannt nach ihrem Arbeitsbereich, damit Helfende nie «Ressort» lesen, ohne die Ressorts, die Helfende nur für einen konkreten Job aufnehmen, und zusätzlich «Allgemein helfende Person».',
+          fr: 'Demande, en plus du créneau, dans quel domaine la personne souhaite aider. Les choix sont les départements, nommés d’après leur domaine de travail pour que les bénévoles ne lisent jamais « département », sans ceux qui n’accueillent des bénévoles que pour un job concret, plus « Bénévole polyvalent·e ».',
         },
       },
     },

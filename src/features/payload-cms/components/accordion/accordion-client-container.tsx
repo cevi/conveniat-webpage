@@ -20,6 +20,12 @@ const noResultsLabel: StaticTranslationString = {
   fr: 'Aucun résultat trouvé.',
 };
 
+const clearSearchLabel: StaticTranslationString = {
+  de: 'Suche löschen',
+  en: 'Clear search',
+  fr: 'Effacer la recherche',
+};
+
 /**
  * Sanitizes a title string into a URL-friendly fragment.
  */
@@ -210,6 +216,7 @@ const AccordionClientContainer: React.FC<{
           onChange={setRawQuery}
           placeholder={searchPlaceholder[effectiveLocale]}
           noResultsLabel={noResultsLabel[effectiveLocale]}
+          clearSearchLabel={clearSearchLabel[effectiveLocale]}
           resultCount={visibleBlocks.length}
           totalCount={totalCount}
         />

@@ -85,6 +85,10 @@ describe('validateFormSubmission — Ressort wish', () => {
     await expect(errorsOf('infrastruktur')).resolves.toBeUndefined();
   });
 
+  it('accepts a helper who goes wherever help is needed', async () => {
+    await expect(errorsOf('allgemein')).resolves.toBeUndefined();
+  });
+
   it('rejects a Ressort that does not exist at all', async () => {
     await expect(errorsOf('kein-ressort')).resolves.toEqual([
       { field: 'ressortwunsch', message: 'invalid_selection' },

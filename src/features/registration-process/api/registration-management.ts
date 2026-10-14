@@ -5,7 +5,7 @@ import {
   browserCookieProblemMessages,
   CLEAR_COOKIE_KEYWORD,
   findBrowserCookieProblem,
-} from '@/features/registration_process/api/cevidb-browser-cookie';
+} from '@/features/registration-process/api/cevidb-browser-cookie';
 import type { GlobalConfig } from 'payload';
 
 export const RegistrationManagement: GlobalConfig = {
@@ -33,7 +33,7 @@ export const RegistrationManagement: GlobalConfig = {
       views: {
         edit: {
           default: {
-            Component: '@/features/registration_process/components/management-view',
+            Component: '@/features/registration-process/components/management-view',
             tab: {
               label: 'Management',
               href: '',
@@ -41,7 +41,7 @@ export const RegistrationManagement: GlobalConfig = {
           },
           enrollment: {
             path: '/enrollment',
-            Component: '@/features/registration_process/components/enrollment-view',
+            Component: '@/features/registration-process/components/enrollment-view',
             tab: {
               label: 'New Enrollment',
               href: '/enrollment',

@@ -1,15 +1,15 @@
 import { environmentVariables } from '@/config/environment-variables';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Config as PayloadConfig } from '@/features/payload-cms/payload-types';
-import { JobCandidateCard } from '@/features/registration_process/components/job-table/job-overview-components/job-candidate-card';
+import { JobCandidateCard } from '@/features/registration-process/components/job-table/job-overview-components/job-candidate-card';
 import type {
   Candidate,
   RegistrationJob,
-} from '@/features/registration_process/components/job-table/types';
+} from '@/features/registration-process/components/job-table/types';
 import {
   isManualApprovalReason,
   MANUAL_APPROVAL_REASON,
-} from '@/features/registration_process/manual-approval-reason';
+} from '@/features/registration-process/manual-approval-reason';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';

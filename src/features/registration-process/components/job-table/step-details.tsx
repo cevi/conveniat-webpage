@@ -6,8 +6,8 @@ import {
   InputViewer,
   flattenObject,
   renderValue,
-} from '@/features/registration_process/components/job-table/job-details-shared';
-import type { RegistrationJob } from '@/features/registration_process/components/job-table/types';
+} from '@/features/registration-process/components/job-table/job-details-shared';
+import type { RegistrationJob } from '@/features/registration-process/components/job-table/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertCircle, Calendar, ChevronDown, Clock, Hash, RotateCw } from 'lucide-react';
 import React, { useState } from 'react';

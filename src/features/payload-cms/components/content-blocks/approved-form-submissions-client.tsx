@@ -18,6 +18,7 @@ export interface ApprovedFormSubmissionsClientProperties {
 const translations = {
   de: {
     searchPlaceholder: 'Einträge durchsuchen...',
+    clearSearch: 'Suche löschen',
     allCategories: 'Alle Kategorien',
     categoryLabel: 'Kategorie:',
     downloadPdf: 'Datei / PDF herunterladen',
@@ -32,6 +33,7 @@ const translations = {
   },
   en: {
     searchPlaceholder: 'Search entries...',
+    clearSearch: 'Clear search',
     allCategories: 'All Categories',
     categoryLabel: 'Category:',
     downloadPdf: 'Download File / PDF',
@@ -46,6 +48,7 @@ const translations = {
   },
   fr: {
     searchPlaceholder: 'Rechercher...',
+    clearSearch: 'Effacer la recherche',
     allCategories: 'Toutes les catégories',
     categoryLabel: 'Catégorie :',
     downloadPdf: 'Télécharger le fichier / PDF',
@@ -163,7 +166,7 @@ export const ApprovedFormSubmissionsClient: React.FC<ApprovedFormSubmissionsClie
             <button
               onClick={() => setSearchQuery('')}
               className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              aria-label="Clear search"
+              aria-label={t.clearSearch}
             >
               <X className="h-4 w-4" />
             </button>

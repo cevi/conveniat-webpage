@@ -1,5 +1,5 @@
-import { DiffView } from '@/features/registration_process/components/job-table/diff-view';
-import type { Candidate } from '@/features/registration_process/components/job-table/types';
+import { DiffView } from '@/features/registration-process/components/job-table/diff-view';
+import type { Candidate } from '@/features/registration-process/components/job-table/types';
 import { User } from 'lucide-react';
 import React from 'react';
 

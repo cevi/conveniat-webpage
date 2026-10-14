@@ -32,7 +32,7 @@ const features_folder = [
   'push-notifications',
   'push-tracking',
   'auth',
-  'registration_process',
+  'registration-process',
   'billing',
   'native-push',
   'presence',
@@ -411,7 +411,7 @@ const config = defineConfig([
     // service worker
     'public/sw.js',
     'public/sw.js.map',
-    'public/maplibre-gl-worker.js',
+    'public/maplibre-gl-worker*.js',
     'serwist.config.js',
   ]),
 ]);

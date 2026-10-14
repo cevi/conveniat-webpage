@@ -1,7 +1,7 @@
 import {
   createNewUser,
   type StrategyResult,
-} from '@/features/registration_process/workflows/steps/resolve-user-strategies';
+} from '@/features/registration-process/workflows/steps/resolve-user-strategies';
 import { getHitobito } from '@/lib/hitobito';
 import { type ResolveUserByDetails } from '@/lib/hitobito/schemas';
 import type { TaskConfig } from 'payload';

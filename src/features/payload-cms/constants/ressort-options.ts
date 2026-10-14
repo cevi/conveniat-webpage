@@ -123,15 +123,73 @@ export const RESSORT_OPTIONS: { label: StaticTranslationString; value: RessortCa
 ];
 
 /**
- * Ressorts that staff their helpers themselves and therefore only appear as a job category.
- * A helper signing up by availability cannot wish for them.
+ * What a helper reads instead of the Ressort name: the area of work, as the helper registration
+ * describes it. Helpers do not know the Ressorts, so the public form never names them.
  */
-const RESSORTS_WITHOUT_WISH = new Set<RessortCategory>(['finanzen', 'relations']);
+export const HELPER_AREA_LABELS: Record<RessortCategory, StaticTranslationString> = {
+  infrastruktur: {
+    de: 'Aufbau & Infrastruktur',
+    en: 'Setup & infrastructure',
+    fr: 'Montage & infrastructure',
+  },
+  finanzen: { de: 'Finanzen', en: 'Finances', fr: 'Finances' },
+  programm: { de: 'Programm & Events', en: 'Programme & events', fr: 'Programme & événements' },
+  marketing: {
+    de: 'Kommunikation & Marketing',
+    en: 'Communication & marketing',
+    fr: 'Communication & marketing',
+  },
+  verpflegung: {
+    de: 'Küche & Verpflegung',
+    en: 'Kitchen & catering',
+    fr: 'Cuisine & restauration',
+  },
+  relations: { de: 'Relations', en: 'Relations', fr: 'Relations' },
+  logistik: {
+    de: 'Logistik & Transport',
+    en: 'Logistics & transport',
+    fr: 'Logistique & transport',
+  },
+  sicherheit: { de: 'Sicherheit & Betreuung', en: 'Safety & care', fr: 'Sécurité & encadrement' },
+  admin: { de: 'Administration', en: 'Administration', fr: 'Administration' },
+  sponsoring: {
+    de: 'Sponsoring & Fundraising',
+    en: 'Sponsoring & fundraising',
+    fr: 'Sponsoring & recherche de fonds',
+  },
+  international: { de: 'International', en: 'International', fr: 'International' },
+  glaube: { de: 'Glaube', en: 'Faith', fr: 'Foi' },
+  other: { de: 'Weitere Aufgaben', en: 'Other tasks', fr: 'Autres tâches' },
+};
 
 /**
- * The Ressorts a helper can wish for when signing up by availability instead of for a concrete
- * job. A subset of {@link RESSORT_OPTIONS}, which stays complete for job categories.
+ * Ressorts that staff their helpers themselves and therefore only appear as a job category.
+ * A helper signing up by availability cannot wish for them. `other` names no area at all, so
+ * the general helper below takes its place in the wish.
  */
-export const RESSORT_WISH_OPTIONS: typeof RESSORT_OPTIONS = RESSORT_OPTIONS.filter(
-  (option) => !RESSORTS_WITHOUT_WISH.has(option.value),
-);
+const RESSORTS_WITHOUT_WISH = new Set<RessortCategory>(['finanzen', 'relations', 'other']);
+
+/** The wish of a helper who goes wherever help is needed instead of into one area. */
+export const GENERAL_HELPER_WISH = 'allgemein';
+
+/**
+ * The areas a helper can wish for when signing up by availability instead of for a concrete
+ * job, keyed by Ressort so the team can route the helper, and labelled by area.
+ */
+export const RESSORT_WISH_OPTIONS: {
+  label: StaticTranslationString;
+  value: RessortCategory | typeof GENERAL_HELPER_WISH;
+}[] = [
+  ...RESSORT_OPTIONS.filter((option) => !RESSORTS_WITHOUT_WISH.has(option.value)).map((option) => ({
+    label: HELPER_AREA_LABELS[option.value],
+    value: option.value,
+  })),
+  {
+    label: {
+      de: 'Allgemein helfende Person',
+      en: 'General helper',
+      fr: 'Bénévole polyvalent·e',
+    },
+    value: GENERAL_HELPER_WISH,
+  },
+];

@@ -90,7 +90,7 @@ const TopNavHeader: React.FC<{
 
           {/* Mobile Drawer */}
           <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
-            <NavComponent showDesktopSidePanel={false}>
+            <NavComponent showDesktopSidePanel={false} locale={locale}>
               <ForceDynamicOnBuild>
                 <MainMenu locale={locale} inAppDesign={false} />
               </ForceDynamicOnBuild>
@@ -136,7 +136,7 @@ const SideNavHeader: React.FC<{
             </span>
 
             <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
-              <NavComponent showDesktopSidePanel>
+              <NavComponent showDesktopSidePanel locale={locale}>
                 <ForceDynamicOnBuild>
                   <MainMenu locale={locale} inAppDesign={inAppDesign} />
                 </ForceDynamicOnBuild>
