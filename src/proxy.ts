@@ -3,6 +3,7 @@ import { i18nProxy } from '@/proxy/i18n-proxy';
 import { proxyChain } from '@/proxy/proxy-chain';
 
 import type { ProxyModule } from '@/proxy/types';
+import { isCrossOriginActionPost } from '@/proxy/utils/is-cross-origin-action-post';
 import { isExcludedFromPathRewrites } from '@/proxy/utils/is-excluded-from-path-rewrites';
 import { isUnhandledMultipartPost } from '@/proxy/utils/is-unhandled-multipart-post';
 import { rotateSessionToken } from '@/proxy/utils/rotate-session-token';
@@ -19,6 +20,22 @@ const rejectUnhandledFormPosts: ProxyModule = (next) => {
   return async (request, event, response) => {
     if (isUnhandledMultipartPost(request)) {
       return new NextResponse('Bad Request', { status: 400 });
+    }
+    return next(request, event, response);
+  };
+};
+
+/**
+ * Answers Server Function calls whose origin does not belong to this deployment.
+ *
+ * Next.js refuses them as CSRF attempts and reports the refusal as a 500, so the request
+ * shows up as an application error although no action ran. Answering with the 403 the
+ * refusal actually means keeps that out of the render pipeline and out of the error rate.
+ */
+const rejectCrossOriginActionPosts: ProxyModule = (next) => {
+  return async (request, event, response) => {
+    if (isCrossOriginActionPost(request)) {
+      return new NextResponse('Forbidden', { status: 403 });
     }
     return next(request, event, response);
   };
@@ -64,6 +81,7 @@ const pathnameProxy: ProxyModule = (next) => {
 
 export const proxy = proxyChain([
   { proxy: rejectUnhandledFormPosts, name: 'rejectUnhandledFormPosts' },
+  { proxy: rejectCrossOriginActionPosts, name: 'rejectCrossOriginActionPosts' },
   { proxy: authSessionProxy, name: 'authSession' },
   { proxy: skipExcludedPaths, name: 'skipExcludedPaths' },
   { proxy: pathnameProxy, name: 'pathname' },
