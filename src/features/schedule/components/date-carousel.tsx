@@ -45,14 +45,14 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
   const formattedCurrentDate = formatDate(currentDate);
 
   return (
-    <div className="flex w-full items-center justify-between gap-1.5 rounded-2xl border border-gray-100 bg-white p-1.5 shadow-xs">
+    <div className="flex w-full items-center justify-between gap-1 rounded-xl bg-gray-100 p-1">
       <Button
         variant="ghost"
         size="sm"
         onClick={onPrevious}
         disabled={startIndex <= 0}
         aria-label={previousDayAriaLabel[locale]}
-        className="h-9 w-9 shrink-0 rounded-xl p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30"
+        className="h-10 w-8 shrink-0 cursor-pointer rounded-lg p-0 text-gray-500 hover:bg-white/60 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-20"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -68,23 +68,29 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
             <button
               key={dateString}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onDateSelect(date)}
               className={cn(
-                'flex flex-1 cursor-pointer flex-col items-center justify-center rounded-xl px-1.5 py-1 transition-all',
+                'flex min-w-0 flex-1 cursor-pointer flex-col items-center justify-center rounded-lg py-1.5 transition-all select-none',
                 isSelected
-                  ? 'bg-conveniat-green scale-102 font-bold text-white shadow-xs'
-                  : 'text-gray-600 hover:bg-gray-100/70 hover:text-gray-900',
+                  ? 'bg-white font-semibold shadow-xs'
+                  : 'text-gray-600 hover:bg-white/50 hover:text-gray-900',
               )}
             >
               <span
                 className={cn(
-                  'font-heading text-[10px] tracking-wider uppercase',
-                  isSelected ? 'font-semibold text-green-100' : 'font-medium text-gray-400',
+                  'font-heading text-[10px] leading-tight tracking-wider uppercase',
+                  isSelected ? 'text-conveniat-green font-bold' : 'font-medium text-gray-400',
                 )}
               >
                 {weekday}
               </span>
-              <span className="font-heading mt-0.5 text-xs leading-none font-bold">
+              <span
+                className={cn(
+                  'font-heading mt-0.5 text-xs leading-none font-bold',
+                  isSelected ? 'text-gray-900' : 'text-gray-700',
+                )}
+              >
                 {dayNumber}.
               </span>
             </button>
@@ -98,7 +104,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
         onClick={onNext}
         disabled={startIndex >= allDates.length - maxVisible}
         aria-label={nextDayAriaLabel[locale]}
-        className="h-9 w-9 shrink-0 rounded-xl p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-30"
+        className="h-10 w-8 shrink-0 cursor-pointer rounded-lg p-0 text-gray-500 hover:bg-white/60 hover:text-gray-900 disabled:pointer-events-none disabled:opacity-20"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
