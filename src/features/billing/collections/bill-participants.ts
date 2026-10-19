@@ -393,6 +393,61 @@ export const BillParticipantsCollection: CollectionConfig = {
         disableGroupBy: true,
       },
     },
+    // Written by the payment import, from the bank's camt.054 export. Only a payment that
+    // matches the bill's QR reference and amount lands here; the rest are reported back.
+    {
+      name: 'paidDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'date',
+      label: {
+        en: 'Paid on',
+        de: 'Bezahlt am',
+        fr: 'Payée le',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        description: {
+          en: 'The booking date of the payment in the bank file.',
+          de: 'Das Buchungsdatum der Zahlung in der Bankdatei.',
+          fr: 'La date de comptabilisation du paiement dans le fichier bancaire.',
+        },
+      },
+    },
+    {
+      name: 'paidAmount',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'number',
+      label: {
+        en: 'Paid Amount (CHF)',
+        de: 'Bezahlter Betrag (CHF)',
+        fr: 'Montant payé (CHF)',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+      },
+    },
+    {
+      name: 'paymentTransactionReference',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: {
+        en: 'Bank Transaction Reference',
+        de: 'Transaktionsreferenz der Bank',
+        fr: 'Référence de transaction bancaire',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        disableListColumn: true,
+        description: {
+          en: 'Identifies the payment in the bank file, so importing the same file twice books it once.',
+          de: 'Kennzeichnet die Zahlung in der Bankdatei, damit dieselbe Datei beim zweiten Import nicht doppelt verbucht wird.',
+          fr: 'Identifie le paiement dans le fichier bancaire, pour qu’un second import du même fichier ne le comptabilise pas deux fois.',
+        },
+      },
+    },
     {
       name: 'financeNote',
       access: { read: canAccessBillingField, update: canAccessBillingField },
@@ -703,6 +758,10 @@ export const BillParticipantsCollection: CollectionConfig = {
         {
           label: { en: 'Reminder Sent', de: 'Mahnung gesendet', fr: 'Rappel envoyé' },
           value: 'reminder_sent',
+        },
+        {
+          label: { en: 'Paid', de: 'Bezahlt', fr: 'Payée' },
+          value: 'paid',
         },
       ],
       label: {

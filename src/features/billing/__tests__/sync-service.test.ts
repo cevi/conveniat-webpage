@@ -166,6 +166,9 @@ describe('Sync Service', () => {
       updateParticipationAnswer: jest
         .fn()
         .mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' }),
+      markParticipationPaid: jest
+        .fn()
+        .mockResolvedValue({ changed: true, previous: 'Rechnung gestellt' }),
     };
 
     mockSettingsRepo = {
@@ -723,6 +726,67 @@ describe('Sync Service', () => {
       expect(summary.errors[0]).toContain('Max Mustermann');
       // A failed write-back is not a reason to stop syncing the event.
       expect(summary.errors).toHaveLength(1);
+    });
+
+    it('retries the payment write-back for a paid bill the Cevi.DB does not show as paid', async () => {
+      // The import booked the payment, but its write-back never landed: the Cevi.DB still
+      // reads "Rechnung gestellt".
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+        billedRow({ status: 'paid', anmeldestatus: 'Rechnung gestellt' }),
+      );
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue({
+        ...completeAnswers,
+        'Administrationsangaben Anmeldestatus': 'Rechnung gestellt',
+      });
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(mockHitobitoService.markParticipationPaid).toHaveBeenCalledWith(
+        'group-1',
+        'event-1',
+        'part-1',
+        ['anmeldestatus'],
+        'definitiv',
+      );
+      expect(mockHitobitoService.updateParticipationAnswer).not.toHaveBeenCalled();
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.anmeldestatus).toBe('definitiv');
+      expect(update?.status).toBe('paid');
+      expect(summary.errors).toHaveLength(0);
+    });
+
+    it('keeps a paid bill paid when the registration changes afterwards', async () => {
+      // The money is in; a change in the Cevi.DB is a refund question, and parking the row
+      // for review would hide that it is paid.
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+        billedRow({ status: 'paid', anmeldestatus: 'definitiv' }),
+      );
+      mockHitobitoService.fetchParticipations.mockResolvedValue([
+        externalParticipant({ town: 'Bern' }),
+      ]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue({
+        ...completeAnswers,
+        'Administrationsangaben Anmeldestatus': 'definitiv',
+      });
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.status).toBe('paid');
+      expect(update?.town).toBe('Bern');
+      expect(mockHitobitoService.markParticipationPaid).not.toHaveBeenCalled();
+      expect(summary.needsReviewCount).toBe(0);
     });
 
     it('leaves a billed participant alone when nothing about them changed', async () => {

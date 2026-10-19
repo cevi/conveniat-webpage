@@ -8,11 +8,15 @@ import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   ANMELDESTATUS_WRITTEN_ACTION,
   needsAnmeldestatusWriteBack,
+  needsPaymentWriteBack,
+  PAYMENT_WRITTEN_ACTION,
   writeBackAnmeldestatus,
+  writeBackPayment,
 } from '@/features/billing/services/anmeldestatus-writeback';
 import {
   hasRaisedBill,
   NEEDS_MANUAL_REVIEW,
+  PAID,
   resolveSyncStatus,
 } from '@/features/billing/services/billing-status';
 import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
@@ -56,6 +60,18 @@ interface SyncLogger {
  * bill's mail is queued, so a bill still waiting to leave counts.
  */
 const BILL_IS_OUT_STATUSES = new Set(['bill_mail_pending', 'bill_sent', 'reminder_sent']);
+
+/** The write-back the Cevi.DB still owes a row in this status, if any. */
+function pendingWriteBackFor(
+  status: string,
+  anmeldestatus: string | null,
+): typeof writeBackAnmeldestatus | undefined {
+  if (status === PAID) return needsPaymentWriteBack(anmeldestatus) ? writeBackPayment : undefined;
+  if (BILL_IS_OUT_STATUSES.has(status) && needsAnmeldestatusWriteBack(anmeldestatus)) {
+    return writeBackAnmeldestatus;
+  }
+  return undefined;
+}
 
 /**
  * Below this many active registrations, a large proportional drop says nothing — losing
@@ -239,18 +255,17 @@ async function syncSingleEvent(
       const document_ = existing;
 
       // Reverse state for a write-back that never landed: once a bill has been mailed the
-      // Cevi.DB must read "Rechnung gestellt". If it does not, the write-back at send time
-      // failed (or somebody set the answer back), so it is retried once here. The retried
-      // value is what the comparison below sees, so a successful retry is not also
-      // reported as an incoming change.
+      // Cevi.DB must read "Rechnung gestellt", and once it is paid "definitiv" with the
+      // "bezahlt" box ticked. If it does not, the write-back at send or import time failed
+      // (or somebody set the answer back), so it is retried once here. The retried value is
+      // what the comparison below sees, so a successful retry is not also reported as an
+      // incoming change.
       let effectiveAnmeldestatus: string | null = anmeldestatus;
       let wroteAnmeldestatus = false;
       const writeBackEntries: SyncHistoryEntry[] = [];
-      if (
-        BILL_IS_OUT_STATUSES.has(String(document_.status)) &&
-        needsAnmeldestatusWriteBack(anmeldestatus)
-      ) {
-        const writeBack = await writeBackAnmeldestatus(
+      const pendingWriteBack = pendingWriteBackFor(String(document_.status), anmeldestatus);
+      if (pendingWriteBack !== undefined) {
+        const writeBack = await pendingWriteBack(
           hitobitoService,
           {
             groupId: event.groupId,
@@ -264,7 +279,9 @@ async function syncSingleEvent(
         );
         effectiveAnmeldestatus = writeBack.anmeldestatus ?? null;
         wroteAnmeldestatus = writeBack.historyEntries.some(
-          (entry) => entry.action === ANMELDESTATUS_WRITTEN_ACTION,
+          (entry) =>
+            entry.action === ANMELDESTATUS_WRITTEN_ACTION ||
+            entry.action === PAYMENT_WRITTEN_ACTION,
         );
         writeBackEntries.push(...writeBack.historyEntries);
         if (writeBack.error !== undefined) {

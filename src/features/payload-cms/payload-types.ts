@@ -246,6 +246,7 @@ export interface Config {
       sendBills: TaskSendBills;
       sendWeeklyReport: TaskSendWeeklyReport;
       sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
+      writeBackPayments: TaskWriteBackPayments;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       syncFunktionen: TaskSyncFunktionen;
       autoCheckoutPresence: TaskAutoCheckoutPresence;
@@ -4706,6 +4707,15 @@ export interface BillParticipant {
   billCreatedDate?: string | null;
   billSentDate?: string | null;
   /**
+   * The booking date of the payment in the bank file.
+   */
+  paidDate?: string | null;
+  paidAmount?: number | null;
+  /**
+   * Identifies the payment in the bank file, so importing the same file twice books it once.
+   */
+  paymentTransactionReference?: string | null;
+  /**
    * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
    */
   financeNote?: string | null;
@@ -4758,7 +4768,8 @@ export interface BillParticipant {
     | 'removed'
     | 're_added'
     | 'updated'
-    | 'reminder_sent';
+    | 'reminder_sent'
+    | 'paid';
   missingStammdaten?:
     | {
         [k: string]: unknown;
@@ -5250,6 +5261,7 @@ export interface PayloadJob {
           | 'sendBills'
           | 'sendWeeklyReport'
           | 'sendPflichtangabenReminders'
+          | 'writeBackPayments'
           | 'cleanupTemporaryFormFiles'
           | 'syncFunktionen'
           | 'autoCheckoutPresence'
@@ -5312,6 +5324,7 @@ export interface PayloadJob {
         | 'sendBills'
         | 'sendWeeklyReport'
         | 'sendPflichtangabenReminders'
+        | 'writeBackPayments'
         | 'cleanupTemporaryFormFiles'
         | 'syncFunktionen'
         | 'autoCheckoutPresence'
@@ -7446,6 +7459,9 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   lastSyncDate?: T;
   billCreatedDate?: T;
   billSentDate?: T;
+  paidDate?: T;
+  paidAmount?: T;
+  paymentTransactionReference?: T;
   financeNote?: T;
   removedDate?: T;
   reAddedDate?: T;
@@ -10332,6 +10348,24 @@ export interface TaskSendWeeklyReport {
  */
 export interface TaskSendPflichtangabenReminders {
   input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskWriteBackPayments".
+ */
+export interface TaskWriteBackPayments {
+  input: {
+    participantIds:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
   output?: unknown;
 }
 /**

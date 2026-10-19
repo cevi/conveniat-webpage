@@ -3,6 +3,7 @@ import {
   billingExportCsvHandler,
   billingExportXlsxHandler,
   billingGenerateHandler,
+  billingImportPaymentsHandler,
   billingPopulateSubeventsHandler,
   billingPreviewPdfHandler,
   billingRegenerateAllHandler,
@@ -82,6 +83,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/preview-pdf',
     method: 'get',
     handler: billingPreviewPdfHandler,
+  },
+  {
+    path: '/confidential/billing/import-payments',
+    method: 'post',
+    handler: billingImportPaymentsHandler,
   },
   {
     path: '/confidential/billing/cancel',

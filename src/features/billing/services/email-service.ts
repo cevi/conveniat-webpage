@@ -372,10 +372,13 @@ async function sendBillsLocked(
 }
 
 /**
- * The Cevi.DB client for a send run, or `undefined` when no browser cookie is configured.
+ * The Cevi.DB client for a run that writes back, or `undefined` when no browser cookie is
+ * configured.
  * Built exactly like the sync builds it.
  */
-async function createHitobitoService(payload: Payload): Promise<HitobitoServicePort | undefined> {
+export async function createHitobitoService(
+  payload: Payload,
+): Promise<HitobitoServicePort | undefined> {
   const regManagement = await payload.findGlobal({
     slug: 'registration-management',
     context: { internal: true },

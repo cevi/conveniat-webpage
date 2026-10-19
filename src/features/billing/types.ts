@@ -134,6 +134,7 @@ export enum BillingTaskSlug {
   SendBills = 'sendBills',
   SendWeeklyReport = 'sendWeeklyReport',
   SendPflichtangabenReminders = 'sendPflichtangabenReminders',
+  WriteBackPayments = 'writeBackPayments',
 }
 
 /**

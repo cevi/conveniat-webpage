@@ -42,6 +42,7 @@ import { syncActivePiketMembersTask } from '@/features/payload-cms/payload-cms/t
 import { syncFunktionenTask } from '@/features/payload-cms/payload-cms/tasks/sync-funktionen';
 import { syncNewUserAnnouncementChatsTask } from '@/features/payload-cms/payload-cms/tasks/sync-new-user-announcement-chats';
 import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/sync-participants';
+import { writeBackPaymentsTask } from '@/features/payload-cms/payload-cms/tasks/write-back-payments';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/auto-checkout-presence';
 import { registrationWorkflow } from '@/features/registration-process/workflows/registration-workflow';
@@ -388,6 +389,7 @@ const jobsConfig: JobsConfig = {
       sendBillsTask,
       sendWeeklyReportTask,
       sendPflichtangabenRemindersTask,
+      writeBackPaymentsTask,
       cleanupTemporaryFormFilesTask,
       syncFunktionenTask,
       autoCheckoutPresenceTask,

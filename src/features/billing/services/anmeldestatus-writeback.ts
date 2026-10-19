@@ -1,4 +1,7 @@
-import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
+import type {
+  HitobitoServicePort,
+  ParticipationAnswerUpdate,
+} from '@/features/billing/ports/hitobito-service.port';
 import { CEVIDB_SESSION_EXPIRED_MESSAGE } from '@/features/billing/services/cevidb-session';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
 
@@ -6,16 +9,19 @@ import { SessionExpiredError } from '@/lib/hitobito/errors';
 export const ANMELDESTATUS_INVOICED = 'Rechnung gestellt';
 
 /**
- * The Anmeldeverantwortliche closes a registration with this value. A write-back never
- * replaces it, because doing so would move a finished registration backwards.
+ * The registration is settled: the Anmeldeverantwortliche closes it with this value, and a
+ * booked payment sets it. The invoice write-back never replaces it, because doing so would
+ * move a finished registration backwards.
  */
-const ANMELDESTATUS_FINAL = 'definitiv';
+export const ANMELDESTATUS_FINAL = 'definitiv';
 
 /** "Administrationsangaben » Anmeldestatus", matched loosely; editors reword the question. */
 const ANMELDESTATUS_KEYWORDS = ['anmeldestatus'];
 
 export const ANMELDESTATUS_WRITTEN_ACTION = 'anmeldestatus_written_to_cevidb';
 export const ANMELDESTATUS_FAILED_ACTION = 'anmeldestatus_writeback_failed';
+export const PAYMENT_WRITTEN_ACTION = 'payment_written_to_cevidb';
+export const PAYMENT_FAILED_ACTION = 'payment_writeback_failed';
 
 /** Both cookie failures read the same to an operator: go to the settings and paste a new one. */
 const MISSING_COOKIE_REASON =
@@ -51,6 +57,74 @@ export function needsAnmeldestatusWriteBack(current: string | null | undefined):
 }
 
 /**
+ * Whether the Cevi.DB still has to be told that this registration has been paid.
+ *
+ * Only the Anmeldestatus is synced, not the "bezahlt" box, so a status already at
+ * `definitiv` is taken to mean the write-back landed.
+ */
+export function needsPaymentWriteBack(current: string | null | undefined): boolean {
+  return (current ?? '').trim().toLowerCase() !== ANMELDESTATUS_FINAL;
+}
+
+interface WriteBackParticipation {
+  groupId: string;
+  eventId: string;
+  participationUuid: string;
+  fullName: string;
+  anmeldestatus: string | null | undefined;
+}
+
+interface WriteBackLogger {
+  warn: (message: string) => void;
+  debug?: (message: string) => void;
+}
+
+/** What one kind of write-back sets in the Cevi.DB, and how its history entries read. */
+interface WriteBackTarget {
+  /** The Anmeldestatus the Cevi.DB reads afterwards. */
+  value: string;
+  /** What was asked of the Cevi.DB, completing «… konnte in der Cevi.DB nicht …». */
+  failedWhat: string;
+  writtenAction: string;
+  failedAction: string;
+  write: (
+    hitobitoService: HitobitoServicePort,
+    participation: WriteBackParticipation,
+  ) => Promise<ParticipationAnswerUpdate>;
+}
+
+const INVOICED_TARGET: WriteBackTarget = {
+  value: ANMELDESTATUS_INVOICED,
+  failedWhat: `Anmeldestatus konnte in der Cevi.DB nicht auf «${ANMELDESTATUS_INVOICED}» gesetzt werden`,
+  writtenAction: ANMELDESTATUS_WRITTEN_ACTION,
+  failedAction: ANMELDESTATUS_FAILED_ACTION,
+  write: (hitobitoService, participation) =>
+    hitobitoService.updateParticipationAnswer(
+      participation.groupId,
+      participation.eventId,
+      participation.participationUuid,
+      ANMELDESTATUS_KEYWORDS,
+      ANMELDESTATUS_INVOICED,
+      [ANMELDESTATUS_FINAL],
+    ),
+};
+
+const PAID_TARGET: WriteBackTarget = {
+  value: ANMELDESTATUS_FINAL,
+  failedWhat: `Zahlung konnte in der Cevi.DB nicht als bezahlt mit Anmeldestatus «${ANMELDESTATUS_FINAL}» eingetragen werden`,
+  writtenAction: PAYMENT_WRITTEN_ACTION,
+  failedAction: PAYMENT_FAILED_ACTION,
+  write: (hitobitoService, participation) =>
+    hitobitoService.markParticipationPaid(
+      participation.groupId,
+      participation.eventId,
+      participation.participationUuid,
+      ANMELDESTATUS_KEYWORDS,
+      ANMELDESTATUS_FINAL,
+    ),
+};
+
+/**
  * Sets a participation's Anmeldestatus in the Cevi.DB to "Rechnung gestellt".
  *
  * Used both right after a bill has been mailed and by the nightly sync, which retries a
@@ -62,35 +136,66 @@ export function needsAnmeldestatusWriteBack(current: string | null | undefined):
  */
 export async function writeBackAnmeldestatus(
   hitobitoService: HitobitoServicePort | undefined,
-  participation: {
-    groupId: string;
-    eventId: string;
-    participationUuid: string;
-    fullName: string;
-    anmeldestatus: string | null | undefined;
-  },
+  participation: WriteBackParticipation,
   now: string,
-  logger: { warn: (message: string) => void; debug?: (message: string) => void },
+  logger: WriteBackLogger,
+): Promise<AnmeldestatusWriteBackResult> {
+  if (!needsAnmeldestatusWriteBack(participation.anmeldestatus)) {
+    return { anmeldestatus: participation.anmeldestatus, historyEntries: [] };
+  }
+  return writeBack(INVOICED_TARGET, hitobitoService, participation, now, logger);
+}
+
+/**
+ * Marks a participation as paid in the Cevi.DB: ticks "bezahlt" and sets the Anmeldestatus
+ * to "definitiv".
+ *
+ * Used right after the payment import booked a payment, and by the nightly sync, which
+ * retries one that never landed. Like the invoice write-back it returns the outcome, so a
+ * failure leaves the row paid.
+ *
+ * Always asks the Cevi.DB, even when the synced Anmeldestatus already reads "definitiv": an
+ * Anmeldeverantwortliche may have closed the registration before the money arrived, and the
+ * box still has to be ticked.
+ */
+export async function writeBackPayment(
+  hitobitoService: HitobitoServicePort | undefined,
+  participation: WriteBackParticipation,
+  now: string,
+  logger: WriteBackLogger,
+): Promise<AnmeldestatusWriteBackResult> {
+  return writeBack(PAID_TARGET, hitobitoService, participation, now, logger);
+}
+
+/**
+ * Runs one write-back and turns its outcome into what the caller stores on the row.
+ *
+ * @param hitobitoService `undefined` when no browser cookie is configured, which is
+ *   reported like any other failure so the operator sees the affected people.
+ */
+async function writeBack(
+  target: WriteBackTarget,
+  hitobitoService: HitobitoServicePort | undefined,
+  participation: WriteBackParticipation,
+  now: string,
+  logger: WriteBackLogger,
 ): Promise<AnmeldestatusWriteBackResult> {
   const current = participation.anmeldestatus;
-  if (!needsAnmeldestatusWriteBack(current)) {
-    return { anmeldestatus: current, historyEntries: [] };
-  }
 
   const fail = (reason: string, cookieInvalid = false): AnmeldestatusWriteBackResult => {
     logger.warn(
-      `Anmeldestatus write-back failed for participation ${participation.participationUuid} (${participation.fullName}): ${reason}`,
+      `Cevi.DB write-back "${target.writtenAction}" failed for participation ${participation.participationUuid} (${participation.fullName}): ${reason}`,
     );
     return {
       anmeldestatus: current,
       historyEntries: [
         {
           date: now,
-          action: ANMELDESTATUS_FAILED_ACTION,
-          reviewReason: `Der Anmeldestatus konnte in der Cevi.DB nicht auf «${ANMELDESTATUS_INVOICED}» gesetzt werden: ${reason}`,
+          action: target.failedAction,
+          reviewReason: `${target.failedWhat}: ${reason}`,
         },
       ],
-      error: `${participation.fullName}: Anmeldestatus konnte in der Cevi.DB nicht auf «${ANMELDESTATUS_INVOICED}» gesetzt werden – ${reason}`,
+      error: `${participation.fullName}: ${target.failedWhat} – ${reason}`,
       ...(cookieInvalid ? { cookieInvalid: true } : {}),
     };
   };
@@ -100,32 +205,23 @@ export async function writeBackAnmeldestatus(
   }
 
   try {
-    const result = await hitobitoService.updateParticipationAnswer(
-      participation.groupId,
-      participation.eventId,
-      participation.participationUuid,
-      ANMELDESTATUS_KEYWORDS,
-      ANMELDESTATUS_INVOICED,
-      [ANMELDESTATUS_FINAL],
-    );
+    const result = await target.write(hitobitoService, participation);
 
     if (!result.changed) {
-      // The Cevi.DB moved on since the row was last synced: it already reads "Rechnung
-      // gestellt", or it is "definitiv" and must be left alone. Adopt what it holds.
+      // The Cevi.DB moved on since the row was last synced: it already holds the target,
+      // or a value that must be left alone. Adopt what it holds.
       logger.debug?.(
-        `Anmeldestatus for participation ${participation.participationUuid} left at "${result.previous}"; nothing written.`,
+        `Cevi.DB write-back "${target.writtenAction}" for participation ${participation.participationUuid} left at "${result.previous}"; nothing written.`,
       );
       return { anmeldestatus: result.previous, historyEntries: [] };
     }
 
     logger.debug?.(
-      `Anmeldestatus for participation ${participation.participationUuid}: "${result.previous}" -> "${ANMELDESTATUS_INVOICED}".`,
+      `Cevi.DB write-back "${target.writtenAction}" for participation ${participation.participationUuid}: "${result.previous}" -> "${target.value}".`,
     );
     return {
-      anmeldestatus: ANMELDESTATUS_INVOICED,
-      historyEntries: [
-        { date: now, action: ANMELDESTATUS_WRITTEN_ACTION, value: ANMELDESTATUS_INVOICED },
-      ],
+      anmeldestatus: target.value,
+      historyEntries: [{ date: now, action: target.writtenAction, value: target.value }],
     };
   } catch (error) {
     // A dead session reaches here as a login page every scraper fails to read, so it is
