@@ -15,6 +15,7 @@ export enum Cookie {
   SKIP_PUSH_NOTIFICATION = 'skip-push-notification',
   HAS_SKIPPED_AUTH = 'has-skipped-auth',
   OFFLINE_CONTENT_HANDLED = 'skip-offline-content',
+  FORM_UPLOADER = 'form-uploader',
 }
 
 export enum Header {

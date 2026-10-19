@@ -3,6 +3,7 @@ import {
   type EmailSendCondition,
   matchesEmailSendCondition,
 } from '@/features/payload-cms/payload-cms/plugins/form/email-send-condition';
+import { isUploadedBySender } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import {
   type CustomAutoLinkNode,
   escapeHTML,
@@ -190,11 +191,8 @@ export const beforeEmailChangeHook: BeforeEmail = async (
 
         // A temporary file goes only with the submission of the person who uploaded it: its
         // id is all an answer names, and the ids of other people's uploads can be guessed.
-        const uploader = fileDocument.uploadedBy;
-        const uploaderId =
-          typeof uploader === 'object' && uploader !== null ? uploader.id : uploader;
-        const senderId = (beforeChangeParameters as { req?: PayloadRequest }).req?.user?.id;
-        if (fileDocument.isTemporary && (uploaderId == undefined || uploaderId !== senderId)) {
+        const senderRequest = (beforeChangeParameters as { req?: PayloadRequest }).req ?? {};
+        if (fileDocument.isTemporary && !isUploadedBySender(fileDocument, senderRequest)) {
           continue;
         }
 

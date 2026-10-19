@@ -1,5 +1,6 @@
 jest.mock('@/config/environment-variables', () => ({
   environmentVariables: {
+    APP_HOST_URL: 'https://conveniat27.ch',
     CEVIDB_GROUP_FULL_ADMIN: [541],
     CEVIDB_GROUP_WEB_CORE_TEAM: [105],
     CEVIDB_GROUP_TRANSLATION_TEAM: [106],
@@ -25,6 +26,7 @@ jest.mock('@/utils/server-logger', () => ({
 }));
 
 import { GET, POST } from '@/app/api/form-upload/route';
+import { hashUploaderSecret } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import { getPayload } from 'payload';
 
 const FILE_ID = '0123456789abcdef01234567';
@@ -34,9 +36,13 @@ const WEB_CORE_TEAM_MEMBER = { id: 'editor', groups: [{ id: 105 }] };
 describe('GET /api/form-upload', () => {
   const mockPayload = { auth: jest.fn(), find: jest.fn() };
 
-  const lookUp = (user: object | null): Promise<Response> => {
+  const lookUp = (user: object | null, cookie?: string): Promise<Response> => {
     mockPayload.auth.mockResolvedValue({ user });
-    return GET(new Request(`http://localhost/api/form-upload?ids=${FILE_ID}`));
+    return GET(
+      new Request(`http://localhost/api/form-upload?ids=${FILE_ID}`, {
+        headers: cookie === undefined ? {} : { cookie },
+      }),
+    );
   };
 
   beforeEach(() => {
@@ -45,7 +51,7 @@ describe('GET /api/form-upload', () => {
     mockPayload.find.mockResolvedValue({ docs: [] });
   });
 
-  it('refuses an anonymous request', async () => {
+  it('refuses a request with neither a sign-in nor an upload of its own', async () => {
     // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
     const response = await lookUp(null);
     expect(response.status).toBe(401);
@@ -77,6 +83,22 @@ describe('GET /api/form-upload', () => {
       }),
     );
   });
+
+  it('only shows a browser without a sign-in the files it uploaded itself', async () => {
+    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    await lookUp(null, 'form-uploader=browser-secret');
+    expect(mockPayload.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          and: [
+            { id: { in: [FILE_ID] } },
+            { isTemporary: { equals: true } },
+            { uploaderSecretHash: { equals: hashUploaderSecret('browser-secret') } },
+          ],
+        },
+      }),
+    );
+  });
 });
 
 describe('POST /api/form-upload', () => {
@@ -87,7 +109,7 @@ describe('POST /api/form-upload', () => {
   const XHTML = '<html xmlns="http://www.w3.org/1999/xhtml"><script>alert(1)</script></html>';
 
   /** Hands in a file on the form's upload field `plan`, which takes the given preset. */
-  const upload = (file: File, allowedFileTypes = 'pdf'): Promise<Response> => {
+  const upload = (file: File, allowedFileTypes = 'pdf', cookie?: string): Promise<Response> => {
     mockPayload.findByID.mockResolvedValue({
       id: 'form-1',
       sections: [
@@ -98,7 +120,13 @@ describe('POST /api/form-upload', () => {
     body.set('file', file);
     body.set('formId', 'form-1');
     body.set('fieldName', 'plan');
-    return POST(new Request('http://localhost/api/form-upload', { method: 'POST', body }));
+    return POST(
+      new Request('http://localhost/api/form-upload', {
+        method: 'POST',
+        body,
+        headers: cookie === undefined ? {} : { cookie },
+      }),
+    );
   };
 
   /** The type the upload was stored with. */
@@ -125,6 +153,40 @@ describe('POST /api/form-upload', () => {
           isTemporary: true,
           form: 'form-1',
           uploadedBy: PARTICIPANT.id,
+        }) as unknown,
+      }),
+    );
+  });
+
+  it('takes a file without a sign-in, owned by a secret only that browser holds', async () => {
+    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    mockPayload.auth.mockResolvedValue({ user: null });
+    const response = await upload(new File([PDF], 'stand.pdf', { type: 'application/pdf' }));
+
+    expect(response.status).toBe(200);
+    const cookie = response.headers.get('set-cookie') ?? '';
+    expect(cookie).toMatch(/HttpOnly/i);
+    const secret = /form-uploader=([^;]+)/.exec(cookie)?.[1] ?? '';
+    expect(secret).not.toBe('');
+    const [[created]] = mockPayload.create.mock.calls as [[{ data: Record<string, unknown> }]];
+    expect(created.data['uploaderSecretHash']).toBe(hashUploaderSecret(secret));
+    expect(created.data['uploadedBy']).toBeUndefined();
+  });
+
+  it('keeps the secret a browser already holds, so its earlier files stay its own', async () => {
+    // eslint-disable-next-line unicorn/no-null -- payload.auth reports a request without a session as null
+    mockPayload.auth.mockResolvedValue({ user: null });
+    const response = await upload(
+      new File([PDF], 'stand.pdf', { type: 'application/pdf' }),
+      'pdf',
+      'form-uploader=browser-secret',
+    );
+
+    expect(response.headers.get('set-cookie')).toContain('form-uploader=browser-secret');
+    expect(mockPayload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          uploaderSecretHash: hashUploaderSecret('browser-secret'),
         }) as unknown,
       }),
     );
