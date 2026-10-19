@@ -35,6 +35,7 @@ const statusColors: Record<BillingStatus, string> = {
     'border-amber-200 bg-amber-100 text-amber-800 dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
   reminder_sent:
     'border-cyan-200 bg-cyan-100 text-cyan-800 dark:border-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200',
+  paid: 'border-emerald-300 bg-emerald-200 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-800/50 dark:text-emerald-100',
 };
 
 const baseClasses =

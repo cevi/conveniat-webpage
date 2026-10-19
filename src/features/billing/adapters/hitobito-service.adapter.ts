@@ -11,6 +11,7 @@ import { HitobitoClient } from '@/lib/hitobito/client';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
 import {
   decodeDisplayText,
+  extractFormFields,
   parseParticipationAnswerFields,
   type ParticipationAnswerField,
 } from '@/lib/hitobito/html-parser';
@@ -47,6 +48,9 @@ interface LegacyParticipationsResponse {
     } | null>;
   };
 }
+
+/** The participation's "bezahlt" checkbox on the edit form. */
+const PAYED_FIELD = 'event_participation[payed]';
 
 /** The answer control whose question text contains every keyword, case-insensitively. */
 function findAnswerField(
@@ -338,26 +342,9 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       return { changed: false, previous };
     }
 
-    const { response } = await this.client.submitRailsForm({
-      getFormUrl: editPath,
-      postUrl: `/groups/${groupId}/events/${eventId}/participations/${participationId}`,
-      method: 'PATCH',
-      // Every other answer is re-sent unchanged; only this one field is overridden.
-      extractExtraFields: true,
-      formData: { [before.fieldName]: value, button: '' },
-      extraHeaders: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-        Accept: 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
-        Origin: this.client.config.baseUrl,
-      },
+    await this.patchParticipation(groupId, eventId, participationId, {
+      [before.fieldName]: value,
     });
-
-    // Turbo answers a successful update with a redirect, so a 3xx is not a failure.
-    if (response.status < 200 || response.status >= 400) {
-      throw new Error(
-        `Anmeldestatus-Rückschreibung für Teilnahme ${participationId} fehlgeschlagen: Status ${String(response.status)}.`,
-      );
-    }
 
     const after = findAnswerField(await this.fetchEditForm(editPath), questionKeywords);
     const confirmed = (after?.value ?? '').trim();
@@ -368,6 +355,84 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     }
 
     return { changed: true, previous };
+  }
+
+  async markParticipationPaid(
+    groupId: string,
+    eventId: string,
+    participationId: string,
+    questionKeywords: string[],
+    value: string,
+  ): Promise<ParticipationAnswerUpdate> {
+    const editPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}/edit`;
+
+    const form = await this.fetchEditForm(editPath);
+    const before = findAnswerField(form, questionKeywords);
+    if (before === undefined) {
+      throw new Error(
+        `Keine Frage mit «${questionKeywords.join(' ')}» auf dem Anmeldeformular ${editPath} gefunden.`,
+      );
+    }
+    // Rails renders the box behind a hidden zero, so the field is there whether or not it is
+    // ticked. Missing means this session may not see it, and a save would not set it.
+    const wasPaid = extractFormFields(form)[PAYED_FIELD];
+    if (wasPaid === undefined) {
+      throw new Error(`Das Feld «bezahlt» fehlt auf dem Anmeldeformular ${editPath}.`);
+    }
+
+    const previous = (before.value ?? '').trim();
+    if (previous === value.trim() && wasPaid === '1') {
+      return { changed: false, previous };
+    }
+
+    await this.patchParticipation(groupId, eventId, participationId, {
+      [before.fieldName]: value,
+      [PAYED_FIELD]: '1',
+    });
+
+    const after = await this.fetchEditForm(editPath);
+    const confirmed = (findAnswerField(after, questionKeywords)?.value ?? '').trim();
+    const isPaid = extractFormFields(after)[PAYED_FIELD] === '1';
+    if (confirmed !== value.trim() || !isPaid) {
+      throw new Error(
+        `Zahlung für Teilnahme ${participationId} nicht bestätigt: erwartet «${value}» und bezahlt, Formular zeigt «${confirmed}» und ${isPaid ? 'bezahlt' : 'nicht bezahlt'}.`,
+      );
+    }
+
+    return { changed: true, previous };
+  }
+
+  /**
+   * Saves the participation form with every field as the Cevi.DB holds it, except those in
+   * `overrides`.
+   */
+  private async patchParticipation(
+    groupId: string,
+    eventId: string,
+    participationId: string,
+    overrides: Record<string, string>,
+  ): Promise<void> {
+    const participationPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}`;
+    const { response } = await this.client.submitRailsForm({
+      getFormUrl: `${participationPath}/edit`,
+      postUrl: participationPath,
+      method: 'PATCH',
+      // Every other answer is re-sent unchanged; only the overridden fields change.
+      extractExtraFields: true,
+      formData: { ...overrides, button: '' },
+      extraHeaders: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        Accept: 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml',
+        Origin: this.client.config.baseUrl,
+      },
+    });
+
+    // Turbo answers a successful update with a redirect, so a 3xx is not a failure.
+    if (response.status < 200 || response.status >= 400) {
+      throw new Error(
+        `Rückschreibung für Teilnahme ${participationId} fehlgeschlagen: Status ${String(response.status)}.`,
+      );
+    }
   }
 
   /** Fetches the participation edit page, failing loudly rather than parsing an error page. */

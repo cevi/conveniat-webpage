@@ -201,6 +201,21 @@ describe('canTransition', () => {
     expect(canTransition('needs_manual_review', 'new')).toBe(true);
   });
 
+  it('lets every open bill be paid, and nothing that has no open bill', () => {
+    for (const status of ['bill_created', 'bill_mail_pending', 'bill_sent', 'reminder_sent']) {
+      expect(canTransition(status, 'paid')).toBe(true);
+    }
+    expect(canTransition('needs_manual_review', 'paid')).toBe(true);
+    expect(canTransition('new', 'paid')).toBe(false);
+    expect(canTransition('removed', 'paid')).toBe(false);
+  });
+
+  it('refuses to reissue a paid bill', () => {
+    // A second bill against money already received could never be matched again.
+    expect(canTransition('paid', 'new')).toBe(false);
+    expect(canTransition('paid', 'bill_sent')).toBe(false);
+  });
+
   it('does not strand a row whose status predates the table', () => {
     expect(canTransition('some_legacy_status', 'removed')).toBe(true);
   });
@@ -240,6 +255,20 @@ describe('resolveSyncStatus — a participation that comes back', () => {
         hasChanges: false,
       }).status,
     ).toBe('re_added');
+  });
+});
+
+describe('resolveSyncStatus — a paid bill', () => {
+  it('stays paid whatever the Cevi.DB reports afterwards', () => {
+    expect(
+      resolveSyncStatus({
+        currentStatus: 'paid',
+        hasBill: true,
+        isRoleOk: false,
+        isMissingMandatoryData: true,
+        hasChanges: true,
+      }).status,
+    ).toBe('paid');
   });
 });
 

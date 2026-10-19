@@ -31,6 +31,7 @@ export const BILLING_STATUSES = [
   're_added',
   'updated',
   'reminder_sent',
+  'paid',
 ] as const;
 
 export type BillingStatus = (typeof BILLING_STATUSES)[number];
@@ -38,12 +39,16 @@ export type BillingStatus = (typeof BILLING_STATUSES)[number];
 /** A bill exists, but the sync found something an operator has to judge before it is reissued. */
 export const NEEDS_MANUAL_REVIEW = 'needs_manual_review';
 
+/** A payment matching the bill's reference and amount has been booked from the bank file. */
+export const PAID = 'paid';
+
 /** Statuses that mean a bill has been raised and is out there. */
 export const BILLED_STATUSES = [
   'bill_created',
   'bill_mail_pending',
   'bill_sent',
   'reminder_sent',
+  PAID,
 ] as const;
 
 /**
@@ -53,6 +58,15 @@ export const BILLED_STATUSES = [
  * make a booked bill disappear from the exports the moment the sync flagged it.
  */
 export const ACCOUNTED_STATUSES = [...BILLED_STATUSES, NEEDS_MANUAL_REVIEW] as const;
+
+/** Statuses whose bill is still open, so a payment from the bank file may settle it. */
+export const PAYABLE_STATUSES = [
+  'bill_created',
+  'bill_mail_pending',
+  'bill_sent',
+  'reminder_sent',
+  NEEDS_MANUAL_REVIEW,
+] as const;
 
 /** Statuses a bill can still be raised for. */
 export const BILLABLE_STATUSES = ['new', 'updated', 're_added'] as const;
@@ -132,6 +146,11 @@ export const resolveSyncStatus = ({
     };
   }
 
+  // The money is in. Whatever changes in the Cevi.DB afterwards is a question of a refund or
+  // a second bill, which an operator raises; parking the row for review would hide that it
+  // is paid, and the next payment import would no longer recognise it.
+  if (currentStatus === PAID) return { status: PAID };
+
   // A row whose *status* says a bill exists carries one even if the invoice fields are
   // empty. The case this is really for: the camp admin clears a Pflichtangabe in the
   // Cevi.DB on someone who has already been invoiced. That is an ordinary thing to happen,
@@ -178,6 +197,7 @@ export const BILLING_STATUS_LABELS_DE: Record<BillingStatus, string> = {
   re_added: 'Erneut hinzugefügt',
   updated: 'Aktualisiert',
   reminder_sent: 'Mahnung gesendet',
+  paid: 'Bezahlt',
 };
 
 /** The German label for a status, falling back to the raw value for anything unknown. */
@@ -251,21 +271,32 @@ export const ALLOWED_TRANSITIONS: Record<BillingStatus, readonly BillingStatus[]
     'needs_manual_review',
     'removed',
   ],
-  // A raised bill can be sent, chased, flagged for a human, cancelled, or — only through
-  // the explicit per-row action — deliberately reissued.
+  // A raised bill can be sent, chased, paid, flagged for a human, cancelled, or — only
+  // through the explicit per-row action — deliberately reissued.
   bill_created: [
     'bill_mail_pending',
     'bill_sent',
     'reminder_sent',
+    'paid',
     'needs_manual_review',
     'new',
     'removed',
   ],
   // The mail is in the outgoing queue. It becomes `bill_sent` when the mail has left.
-  bill_mail_pending: ['bill_sent', 'reminder_sent', 'needs_manual_review', 'new', 'removed'],
-  bill_sent: ['reminder_sent', 'needs_manual_review', 'new', 'removed'],
-  reminder_sent: ['bill_sent', 'needs_manual_review', 'new', 'removed'],
-  needs_manual_review: ['new', 'bill_created', 'bill_sent', 'reminder_sent', 'removed'],
+  bill_mail_pending: [
+    'bill_sent',
+    'reminder_sent',
+    'paid',
+    'needs_manual_review',
+    'new',
+    'removed',
+  ],
+  bill_sent: ['reminder_sent', 'paid', 'needs_manual_review', 'new', 'removed'],
+  reminder_sent: ['bill_sent', 'paid', 'needs_manual_review', 'new', 'removed'],
+  needs_manual_review: ['new', 'bill_created', 'bill_sent', 'reminder_sent', 'paid', 'removed'],
+  // Settled. Reissuing would put a second bill against money already received, so the only
+  // way on is a cancellation, after which the refund is the finance team's.
+  paid: ['removed'],
   // Cancelled. Only a genuine re-enrolment brings a participation back.
   removed: ['re_added'],
 };

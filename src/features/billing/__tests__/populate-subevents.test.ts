@@ -43,6 +43,7 @@ describe('populateSubeventsUseCase', () => {
       fetchPersonDetails: jest.fn(),
       fetchAddressManagers: jest.fn().mockResolvedValue([]),
       updateParticipationAnswer: jest.fn(),
+      markParticipationPaid: jest.fn(),
     };
 
     mockSettingsRepo = {

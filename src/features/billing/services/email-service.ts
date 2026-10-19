@@ -4,6 +4,10 @@ import { RedisRunLockAdapter } from '@/features/billing/adapters/redis-run-lock.
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import { writeBackAnmeldestatus } from '@/features/billing/services/anmeldestatus-writeback';
 import { BILL_MAIL_PENDING } from '@/features/billing/services/bill-mail-status';
+import {
+  canTransition,
+  describeRefusedTransition,
+} from '@/features/billing/services/billing-status';
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
@@ -29,6 +33,10 @@ interface SyncHistoryEntry {
   /** Why a step after the send failed, for the operator reading the row. */
   reviewReason?: string;
 }
+
+/** The status a bill sent on the spot leaves behind: a reminder stays a reminder. */
+const sentStatusOf = (status: string): 'reminder_sent' | 'bill_sent' =>
+  status === 'reminder_sent' ? 'reminder_sent' : 'bill_sent';
 
 /** What `sendBills` lets a test replace. */
 interface SendBillsDependencies {
@@ -191,6 +199,18 @@ async function sendBillsLocked(
       const pdfDocuments = (document_.billPdfs as (string | { id: string })[] | undefined) ?? [];
       const latestPdfId = pdfDocuments.at(-1);
 
+      // Resending by hand skips the status filter, so a paid or cancelled registration
+      // would get its bill again and only then fail to record it. Ask first.
+      const isQueued = participantId === undefined;
+      const sentStatus = isQueued ? BILL_MAIL_PENDING : sentStatusOf(document_.status);
+      if (!canTransition(document_.status, sentStatus)) {
+        summary.errors.push(
+          `${fullName}: ${describeRefusedTransition(document_.status, sentStatus)} Rechnung nicht versendet.`,
+        );
+        summary.failedCount++;
+        continue;
+      }
+
       if (!latestPdfId) {
         summary.errors.push(`No PDF for participant ${String(document_.id)} (${fullName})`);
         summary.failedCount++;
@@ -277,7 +297,6 @@ async function sendBillsLocked(
         'replaced by a newer mail for this registration',
       );
 
-      const isQueued = participantId === undefined;
       await (isQueued
         ? queueBackgroundEmail(payload, billMail, String(document_.id))
         : sendTrackedEmail(payload, billMail, undefined, String(document_.id)));
@@ -308,7 +327,7 @@ async function sendBillsLocked(
           context: { internal: true },
           id: document_.id,
           data: {
-            status: document_.status === 'reminder_sent' ? 'reminder_sent' : 'bill_sent',
+            status: sentStatus,
             billSentDate: new Date().toISOString(),
             syncHistory: historyAfterSend,
           },
@@ -372,10 +391,13 @@ async function sendBillsLocked(
 }
 
 /**
- * The Cevi.DB client for a send run, or `undefined` when no browser cookie is configured.
+ * The Cevi.DB client for a run that writes back, or `undefined` when no browser cookie is
+ * configured.
  * Built exactly like the sync builds it.
  */
-async function createHitobitoService(payload: Payload): Promise<HitobitoServicePort | undefined> {
+export async function createHitobitoService(
+  payload: Payload,
+): Promise<HitobitoServicePort | undefined> {
   const regManagement = await payload.findGlobal({
     slug: 'registration-management',
     context: { internal: true },

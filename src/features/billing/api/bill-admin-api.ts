@@ -263,6 +263,59 @@ export const billingRemoveParticipantHandler: PayloadHandler = async (request) =
   }
 };
 
+/** A bank file covers a day or a week of payments; this is far beyond either. */
+const MAX_PAYMENT_CSV_LENGTH = 5_000_000;
+
+const ImportPaymentsSchema = z.object({
+  csv: z
+    .string()
+    .min(1, 'Die Datei ist leer.')
+    .max(MAX_PAYMENT_CSV_LENGTH, 'Die Datei ist zu gross für einen Zahlungsimport.'),
+});
+
+/**
+ * POST /api/confidential/billing/import-payments – book the payments of a bank CSV.
+ *
+ * Takes the file as text: the admin panel decodes it, because Excel and the e-banking save
+ * it in different encodings. Nothing of the file is stored beyond what each booked
+ * registration records.
+ */
+export const billingImportPaymentsHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const bodyJson = (await (request as unknown as Request).json()) as unknown;
+    const parseResult = ImportPaymentsSchema.safeParse(bodyJson);
+    if (!parseResult.success) {
+      return Response.json(
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 },
+      );
+    }
+
+    const { importPayments, PaymentFileError } =
+      await import('@/features/billing/services/payment-import');
+    try {
+      const summary = await importPayments(
+        request.payload,
+        parseResult.data.csv,
+        describeActor(request.user),
+      );
+      return Response.json({ success: true, ...summary });
+    } catch (error) {
+      if (error instanceof PaymentFileError) {
+        return Response.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Payment import failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
 /**
  * POST /api/confidential/billing/send – Send bills via email
  */

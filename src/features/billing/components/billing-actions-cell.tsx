@@ -153,6 +153,8 @@ export const BillingActionsCell: React.FC<{
   const hasPdf = Array.isArray(rowData.billPdfs) && rowData.billPdfs.length > 0;
   // Only a registration the sync parked as incomplete has anything to remind about.
   const isMissingPflichtangaben = rowData.status === 'pflichtangaben_missing';
+  // A paid or cancelled registration has no open bill to send.
+  const canSendBill = hasPdf && rowData.status !== 'paid' && rowData.status !== 'removed';
 
   const handlePreview = (): void => {
     window.open(
@@ -315,7 +317,7 @@ export const BillingActionsCell: React.FC<{
             onClick={(): void => {
               setConfirmAction('send');
             }}
-            disabled={!hasPdf}
+            disabled={!canSendBill}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             Email senden

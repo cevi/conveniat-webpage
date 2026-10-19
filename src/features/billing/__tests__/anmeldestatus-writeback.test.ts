@@ -2,13 +2,19 @@ import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-ser
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import {
   needsAnmeldestatusWriteBack,
+  needsPaymentWriteBack,
   writeBackAnmeldestatus,
+  writeBackPayment,
 } from '@/features/billing/services/anmeldestatus-writeback';
 import type { HitobitoClient } from '@/lib/hitobito/client';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
 
-/** The participation edit form, with the Anmeldestatus option given by the test. */
-const editForm = (selected: string): string => `
+/**
+ * The participation edit form, with the Anmeldestatus option given by the test, and the
+ * "bezahlt" box as Rails renders it: a hidden zero in front of the checkbox. `'absent'`
+ * leaves the box out, as for a session that may not see it.
+ */
+const editForm = (selected: string, payed: boolean | 'absent' = false): string => `
 <html><head><meta name="csrf-token" content="meta" /></head><body>
 <form>
   <input type="hidden" name="authenticity_token" value="tok" />
@@ -23,6 +29,12 @@ const editForm = (selected: string): string => `
       .join('')}
   </select>
   <input value="13656" type="hidden" name="event_participation[answers_attributes][1][question_id]" />
+  ${
+    payed === 'absent'
+      ? ''
+      : `<input name="event_participation[payed]" type="hidden" value="0" />
+  <input type="checkbox" value="1" ${payed ? 'checked="checked" ' : ''}name="event_participation[payed]" />`
+  }
 </form>
 </body></html>`;
 
@@ -69,6 +81,10 @@ const logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
 /** A Hitobito service that is nothing but the write-back the helper calls. */
 const serviceWith = (update: jest.Mock): HitobitoServicePort =>
   ({ updateParticipationAnswer: update }) as unknown as HitobitoServicePort;
+
+/** A Hitobito service that is nothing but the payment write-back. */
+const serviceMarking = (mark: jest.Mock): HitobitoServicePort =>
+  ({ markParticipationPaid: mark }) as unknown as HitobitoServicePort;
 
 const adapterFor = (
   forms: string[],
@@ -160,6 +176,175 @@ describe('HitobitoServiceAdapter.updateParticipationAnswer', () => {
     await expect(
       adapter.updateParticipationAnswer('7', '42', '900', ['anmeldestatus'], 'Rechnung gestellt'),
     ).rejects.toThrow('Keine Frage');
+  });
+});
+
+describe('HitobitoServiceAdapter.markParticipationPaid', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('ticks bezahlt and sets definitiv in one save', async () => {
+    const { adapter, submissions } = adapterFor([
+      editForm('Rechnung gestellt'),
+      editForm('definitiv', true),
+    ]);
+
+    const result = await adapter.markParticipationPaid(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      'definitiv',
+    );
+
+    expect(result).toEqual({ changed: true, previous: 'Rechnung gestellt' });
+    expect(submissions).toHaveLength(1);
+    expect(submissions[0]?.formData).toEqual({
+      'event_participation[answers_attributes][1][answer]': 'definitiv',
+      'event_participation[payed]': '1',
+      button: '',
+    });
+  });
+
+  it('still ticks bezahlt when the registration was already closed as definitiv', async () => {
+    const { adapter, submissions } = adapterFor([
+      editForm('definitiv', false),
+      editForm('definitiv', true),
+    ]);
+
+    const result = await adapter.markParticipationPaid(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      'definitiv',
+    );
+
+    expect(result.changed).toBe(true);
+    expect(submissions[0]?.formData['event_participation[payed]']).toBe('1');
+  });
+
+  it('writes nothing when both are already set', async () => {
+    const { adapter, submissions } = adapterFor([editForm('definitiv', true)]);
+
+    const result = await adapter.markParticipationPaid(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      'definitiv',
+    );
+
+    expect(result).toEqual({ changed: false, previous: 'definitiv' });
+    expect(submissions).toHaveLength(0);
+  });
+
+  it('fails when the form does not show the box ticked afterwards', async () => {
+    const { adapter } = adapterFor([editForm('Rechnung gestellt'), editForm('definitiv', false)]);
+
+    await expect(
+      adapter.markParticipationPaid('7', '42', '900', ['anmeldestatus'], 'definitiv'),
+    ).rejects.toThrow('nicht bestätigt');
+  });
+
+  it('refuses to save a form that has no bezahlt box', async () => {
+    const { adapter, submissions } = adapterFor([editForm('Rechnung gestellt', 'absent')]);
+
+    await expect(
+      adapter.markParticipationPaid('7', '42', '900', ['anmeldestatus'], 'definitiv'),
+    ).rejects.toThrow('bezahlt');
+    expect(submissions).toHaveLength(0);
+  });
+});
+
+describe('writeBackPayment', () => {
+  const participation = {
+    groupId: '7',
+    eventId: '42',
+    participationUuid: '900',
+    fullName: 'Max Mustermann',
+    anmeldestatus: 'Rechnung gestellt',
+  };
+  const writeBackLogger = { warn: jest.fn(), debug: jest.fn() };
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('records definitiv once the Cevi.DB confirmed the payment', async () => {
+    const mark = jest.fn().mockResolvedValue({ changed: true, previous: 'Rechnung gestellt' });
+
+    const result = await writeBackPayment(
+      serviceMarking(mark),
+      participation,
+      '2027-02-01T00:00:00.000Z',
+      writeBackLogger,
+    );
+
+    expect(mark).toHaveBeenCalledWith('7', '42', '900', ['anmeldestatus'], 'definitiv');
+    expect(result.anmeldestatus).toBe('definitiv');
+    expect(result.historyEntries).toEqual([
+      {
+        date: '2027-02-01T00:00:00.000Z',
+        action: 'payment_written_to_cevidb',
+        value: 'definitiv',
+      },
+    ]);
+  });
+
+  it('asks the Cevi.DB even when the synced status already reads definitiv', async () => {
+    const mark = jest.fn().mockResolvedValue({ changed: true, previous: 'definitiv' });
+
+    await writeBackPayment(
+      serviceMarking(mark),
+      { ...participation, anmeldestatus: 'definitiv' },
+      '2027-02-01T00:00:00.000Z',
+      writeBackLogger,
+    );
+
+    expect(mark).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the person and keeps the row when the Cevi.DB refuses', async () => {
+    const mark = jest.fn().mockRejectedValue(new Error('Status 422'));
+
+    const result = await writeBackPayment(
+      serviceMarking(mark),
+      participation,
+      '2027-02-01T00:00:00.000Z',
+      writeBackLogger,
+    );
+
+    expect(result.anmeldestatus).toBe('Rechnung gestellt');
+    expect(result.historyEntries[0]?.action).toBe('payment_writeback_failed');
+    expect(result.error).toContain('Max Mustermann');
+    expect(result.error).toContain('bezahlt');
+  });
+});
+
+describe('needsPaymentWriteBack', () => {
+  const written = [
+    { action: 'payment_booked' },
+    { action: 'payment_written_to_cevidb' },
+    { action: 'synced' },
+  ];
+
+  it('is needed while the Cevi.DB does not read definitiv, whatever the history says', () => {
+    expect(needsPaymentWriteBack('Rechnung gestellt', written)).toBe(true);
+    expect(needsPaymentWriteBack('erfasst durch AVP', written)).toBe(true);
+    expect(needsPaymentWriteBack('', written)).toBe(true);
+  });
+
+  it('is done once the Cevi.DB reads definitiv and the write-back was confirmed', () => {
+    expect(needsPaymentWriteBack('definitiv', written)).toBe(false);
+  });
+
+  it('is still needed when the AVP set definitiv but the write-back failed', () => {
+    // The sync cannot see the "bezahlt" box, so definitiv alone does not mean it is ticked.
+    expect(
+      needsPaymentWriteBack('definitiv', [
+        { action: 'payment_booked' },
+        { action: 'payment_writeback_failed' },
+      ]),
+    ).toBe(true);
+    expect(needsPaymentWriteBack('definitiv', [{ action: 'payment_booked' }])).toBe(true);
   });
 });
 
