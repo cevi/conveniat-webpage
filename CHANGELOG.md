@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.34.0](https://github.com/cevi/conveniat-webpage/compare/v1.33.0...v1.34.0) (2026-10-19)
+
+
+### Features
+
+* **billing:** every booked payment names the bank transaction that paid it ([e3f2d50](https://github.com/cevi/conveniat-webpage/commit/e3f2d50147a27f9a5e44c43de5a17f40ee02bd1d))
+* **billing:** import bank payments and mark matched bills paid ([573cfc8](https://github.com/cevi/conveniat-webpage/commit/573cfc88de70ececa4cb47164756d3268310d891))
+* **billing:** import bank payments and mark matched bills paid ([957c900](https://github.com/cevi/conveniat-webpage/commit/957c900cd9befe5414736a53bb88993d76ee22ec))
+
+
+### Bug Fixes
+
+* **billing:** a paid bill is never mailed again, re-booked or lost by the sync ([0c3f744](https://github.com/cevi/conveniat-webpage/commit/0c3f744113ef46782f3cddbb7ecc01d1bea0c2e9))
+* **forms:** attach files to a form without signing in ([6db4dee](https://github.com/cevi/conveniat-webpage/commit/6db4deec0183af1006598ba19632773c93cd1084))
+* **forms:** attach files to a form without signing in ([449a997](https://github.com/cevi/conveniat-webpage/commit/449a997084edb062d70dfae7b69dc273b5257b74))
+
 ## [1.33.0](https://github.com/cevi/conveniat-webpage/compare/v1.32.0...v1.33.0) (2026-10-14)
 
 
