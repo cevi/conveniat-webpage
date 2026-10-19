@@ -435,6 +435,26 @@ describe('Sync Service', () => {
     expect(summary.needsReviewCount).toBe(1);
   });
 
+  it('leaves a paid bill on an Aufbau- or Abbaulager alone instead of failing the run', async () => {
+    // A paid row cannot be parked for review; the hook would refuse it and end the sync.
+    mockSettingsRepo.getHofEvents.mockResolvedValue([
+      { eventId: 'abbau-1', eventName: 'Abbaulager conveniat27 - Test', groupId: '1' },
+    ]);
+    mockParticipantRepo.findActiveForEvent.mockResolvedValue([
+      { id: 'part-abbau-1', status: 'paid', invoiceNumber: '2027-0042', eventId: 'abbau-1' },
+    ] as never);
+
+    const summary = await syncParticipantsUseCase(
+      mockParticipantRepo,
+      mockHitobitoService,
+      mockSettingsRepo,
+      mockLogger,
+    );
+
+    expect(mockParticipantRepo.update).not.toHaveBeenCalled();
+    expect(summary.needsReviewCount).toBe(0);
+  });
+
   it('safely handles malformed settings rows with missing or non-string eventName without throwing', async () => {
     mockSettingsRepo.getHofEvents.mockResolvedValue([
       { eventId: 'h-1', eventName: 'Hauptlager conveniat27 - Test', groupId: '1' },
@@ -761,11 +781,50 @@ describe('Sync Service', () => {
       expect(summary.errors).toHaveLength(0);
     });
 
+    it('retries the payment write-back when the AVP had already set definitiv', async () => {
+      // "definitiv" came from the AVP, not from the import, whose write-back failed: the
+      // "bezahlt" box is still empty.
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+        billedRow({
+          status: 'paid',
+          anmeldestatus: 'definitiv',
+          syncHistory: [
+            { date: '2027-02-01T00:00:00Z', action: 'payment_booked' },
+            { date: '2027-02-01T00:00:05Z', action: 'payment_writeback_failed' },
+          ],
+        }),
+      );
+      mockHitobitoService.fetchParticipations.mockResolvedValue([externalParticipant()]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue({
+        ...completeAnswers,
+        'Administrationsangaben Anmeldestatus': 'definitiv',
+      });
+
+      await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      expect(mockHitobitoService.markParticipationPaid).toHaveBeenCalledTimes(1);
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      const history = update?.syncHistory as unknown as { action: string }[];
+      expect(history.map((entry) => entry.action)).toContain('payment_written_to_cevidb');
+    });
+
     it('keeps a paid bill paid when the registration changes afterwards', async () => {
       // The money is in; a change in the Cevi.DB is a refund question, and parking the row
       // for review would hide that it is paid.
       mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
-        billedRow({ status: 'paid', anmeldestatus: 'definitiv' }),
+        billedRow({
+          status: 'paid',
+          anmeldestatus: 'definitiv',
+          syncHistory: [
+            { date: '2027-02-01T00:00:00Z', action: 'payment_booked' },
+            { date: '2027-02-01T00:00:05Z', action: 'payment_written_to_cevidb' },
+          ],
+        }),
       );
       mockHitobitoService.fetchParticipations.mockResolvedValue([
         externalParticipant({ town: 'Bern' }),
@@ -862,6 +921,15 @@ describe('Sync Service', () => {
           'bereits versendet und wurde deshalb storniert.',
       });
       expect(summary.removedCount).toBe(1);
+    });
+
+    it('asks for a refund when the cancelled bill was already paid', async () => {
+      await syncWithout(billedRow({ status: 'paid', billSentDate: '2027-01-06T10:00:00Z' }));
+
+      const removal = updateOf(mockParticipantRepo.update, 'doc-1');
+      expect(removal?.status).toBe('removed');
+      const history = removal?.syncHistory as unknown as { reviewReason?: string }[];
+      expect(history.at(-1)?.reviewReason).toContain('zurückerstattet');
     });
 
     it('cancels a bill parked for manual review as well', async () => {

@@ -182,12 +182,15 @@ export function matchPayments(
 
     const who = `${participant.fullName}, Rechnung ${participant.invoiceNumber ?? '–'}`;
     const earlierInFile = bookedInFile.get(participant.id);
+    // Checked before the status, so a file imported again after a cancellation still reads
+    // as already booked rather than as a fresh payment to refund.
+    if (
+      payment.transactionReference === participant.paymentTransactionReference ||
+      payment.transactionReference === earlierInFile?.transactionReference
+    ) {
+      return reject('already_booked', `${who}: bereits verbucht.`, participant);
+    }
     if (participant.status === PAID || earlierInFile !== undefined) {
-      const bookedTransaction =
-        earlierInFile?.transactionReference ?? participant.paymentTransactionReference ?? '';
-      if (payment.transactionReference === bookedTransaction) {
-        return reject('already_booked', `${who}: bereits verbucht.`, participant);
-      }
       return reject(
         'already_paid',
         `${who} ist bereits bezahlt. Möglicherweise wurde doppelt bezahlt.`,

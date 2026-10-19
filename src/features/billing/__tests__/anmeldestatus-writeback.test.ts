@@ -320,11 +320,31 @@ describe('writeBackPayment', () => {
 });
 
 describe('needsPaymentWriteBack', () => {
-  it('is false only once the Cevi.DB reads definitiv', () => {
-    expect(needsPaymentWriteBack('Rechnung gestellt')).toBe(true);
-    expect(needsPaymentWriteBack('erfasst durch AVP')).toBe(true);
-    expect(needsPaymentWriteBack('')).toBe(true);
-    expect(needsPaymentWriteBack('definitiv')).toBe(false);
+  const written = [
+    { action: 'payment_booked' },
+    { action: 'payment_written_to_cevidb' },
+    { action: 'synced' },
+  ];
+
+  it('is needed while the Cevi.DB does not read definitiv, whatever the history says', () => {
+    expect(needsPaymentWriteBack('Rechnung gestellt', written)).toBe(true);
+    expect(needsPaymentWriteBack('erfasst durch AVP', written)).toBe(true);
+    expect(needsPaymentWriteBack('', written)).toBe(true);
+  });
+
+  it('is done once the Cevi.DB reads definitiv and the write-back was confirmed', () => {
+    expect(needsPaymentWriteBack('definitiv', written)).toBe(false);
+  });
+
+  it('is still needed when the AVP set definitiv but the write-back failed', () => {
+    // The sync cannot see the "bezahlt" box, so definitiv alone does not mean it is ticked.
+    expect(
+      needsPaymentWriteBack('definitiv', [
+        { action: 'payment_booked' },
+        { action: 'payment_writeback_failed' },
+      ]),
+    ).toBe(true);
+    expect(needsPaymentWriteBack('definitiv', [{ action: 'payment_booked' }])).toBe(true);
   });
 });
 

@@ -20,6 +20,7 @@ const ANMELDESTATUS_KEYWORDS = ['anmeldestatus'];
 
 export const ANMELDESTATUS_WRITTEN_ACTION = 'anmeldestatus_written_to_cevidb';
 export const ANMELDESTATUS_FAILED_ACTION = 'anmeldestatus_writeback_failed';
+export const PAYMENT_BOOKED_ACTION = 'payment_booked';
 export const PAYMENT_WRITTEN_ACTION = 'payment_written_to_cevidb';
 export const PAYMENT_FAILED_ACTION = 'payment_writeback_failed';
 
@@ -56,14 +57,27 @@ export function needsAnmeldestatusWriteBack(current: string | null | undefined):
   return value !== ANMELDESTATUS_INVOICED.toLowerCase() && value !== ANMELDESTATUS_FINAL;
 }
 
+const PAYMENT_ACTIONS = new Set([
+  PAYMENT_BOOKED_ACTION,
+  PAYMENT_WRITTEN_ACTION,
+  PAYMENT_FAILED_ACTION,
+]);
+
 /**
  * Whether the Cevi.DB still has to be told that this registration has been paid.
  *
- * Only the Anmeldestatus is synced, not the "bezahlt" box, so a status already at
- * `definitiv` is taken to mean the write-back landed.
+ * The sync reads the Anmeldestatus but not the "bezahlt" box, so the Anmeldestatus alone
+ * cannot say whether the write-back landed: an Anmeldeverantwortliche may have set
+ * `definitiv` before the money arrived. The row's own history says it instead — the last
+ * payment entry has to be a confirmed write.
  */
-export function needsPaymentWriteBack(current: string | null | undefined): boolean {
-  return (current ?? '').trim().toLowerCase() !== ANMELDESTATUS_FINAL;
+export function needsPaymentWriteBack(
+  current: string | null | undefined,
+  history: readonly { action: string }[] | null | undefined,
+): boolean {
+  if ((current ?? '').trim().toLowerCase() !== ANMELDESTATUS_FINAL) return true;
+  const lastPaymentEntry = (history ?? []).findLast((entry) => PAYMENT_ACTIONS.has(entry.action));
+  return lastPaymentEntry?.action !== PAYMENT_WRITTEN_ACTION;
 }
 
 interface WriteBackParticipation {

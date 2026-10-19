@@ -104,6 +104,15 @@ describe('matchPayments', () => {
     expect(match?.outcome).toBe('already_booked');
   });
 
+  it('recognises a booked transaction even after the registration was cancelled', () => {
+    const [match] = matchPayments(
+      [payment()],
+      [bill({ status: 'removed', paymentTransactionReference: 'GS00000000000001' })],
+    );
+
+    expect(match?.outcome).toBe('already_booked');
+  });
+
   it('flags a second payment of a paid bill as a possible double payment', () => {
     const [match] = matchPayments(
       [payment({ transactionReference: 'GS00000000000002' })],

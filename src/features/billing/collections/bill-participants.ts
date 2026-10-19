@@ -83,6 +83,26 @@ export const BillParticipantsCollection: CollectionConfig = {
           throw new Error(describeRefusedTransition(previous, next));
         }
 
+        // Two imports reading the same open bill at once would both book it, and the
+        // second would overwrite the transaction of the first. A booked payment is never
+        // replaced, so the second one surfaces as a payment for a human to look at.
+        const bookedTransaction = (
+          originalDoc as { paymentTransactionReference?: unknown } | undefined
+        )?.paymentTransactionReference;
+        const nextTransaction = (data as { paymentTransactionReference?: unknown })
+          .paymentTransactionReference;
+        if (
+          operation === 'update' &&
+          typeof bookedTransaction === 'string' &&
+          bookedTransaction !== '' &&
+          nextTransaction !== undefined &&
+          nextTransaction !== bookedTransaction
+        ) {
+          throw new Error(
+            `Die Anmeldung ist bereits mit der Transaktion ${bookedTransaction} bezahlt.`,
+          );
+        }
+
         return data as Record<string, unknown>;
       },
       recordIssuedBills,

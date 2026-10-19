@@ -1,4 +1,7 @@
-import { writeBackPayment } from '@/features/billing/services/anmeldestatus-writeback';
+import {
+  PAYMENT_BOOKED_ACTION,
+  writeBackPayment,
+} from '@/features/billing/services/anmeldestatus-writeback';
 import { PAID } from '@/features/billing/services/billing-status';
 import { createHitobitoService } from '@/features/billing/services/email-service';
 import type { BankPayment } from '@/features/billing/services/payment-csv';
@@ -12,8 +15,6 @@ import {
 import { BillingTaskSlug } from '@/features/billing/types';
 import type { BillParticipant } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
-
-export const PAYMENT_BOOKED_ACTION = 'payment_booked';
 
 /** The input of the `writeBackPayments` task. */
 export interface WriteBackPaymentsInput {

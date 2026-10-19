@@ -192,4 +192,20 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
     expect(typeof updates[0]?.['billSentDate']).toBe('string');
     expect(summary).toMatchObject({ sentCount: 1, failedCount: 0 });
   });
+
+  it.each(['paid', 'removed'])(
+    'does not send the bill again to a %s registration',
+    async (status) => {
+      const { payload, updates } = payloadDouble(participantRow({ status }));
+
+      const summary = await sendBills(payload, 'doc-1', {
+        hitobitoService: hitobitoDouble(jest.fn()),
+      });
+
+      expect(sendTrackedEmail).not.toHaveBeenCalled();
+      expect(updates).toHaveLength(0);
+      expect(summary.failedCount).toBe(1);
+      expect(summary.errors[0]).toContain('Max Mustermann');
+    },
+  );
 });
