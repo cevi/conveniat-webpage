@@ -4261,6 +4261,7 @@ export interface FormCollection {
   form?: (string | null) | Form;
   formSubmission?: (string | null) | FormSubmission;
   uploadedBy?: (string | null) | User;
+  uploaderSecretHash?: string | null;
   originalFilename?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
@@ -7002,6 +7003,7 @@ export interface FormCollectionSelect<T extends boolean = true> {
   form?: T;
   formSubmission?: T;
   uploadedBy?: T;
+  uploaderSecretHash?: T;
   originalFilename?: T;
   _objectKey?: T;
   updatedAt?: T;

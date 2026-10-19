@@ -78,13 +78,22 @@ export const FormCollection: CollectionConfig = {
     },
     {
       // A temporary upload is claimed by a submission through its id alone, and ids are
-      // guessable: only the person who uploaded a file may attach it.
+      // guessable: only the person who uploaded a file may attach it. Unset for an upload
+      // without a sign-in, which `uploaderSecretHash` names instead.
       name: 'uploadedBy',
       type: 'relationship',
       relationTo: 'users',
       index: true,
       label: { en: 'Uploaded by', de: 'Hochgeladen von', fr: 'Téléversé par' },
       admin: { readOnly: true },
+    },
+    {
+      // Who uploaded a file without being signed in: the hash of the secret their browser holds
+      // in a cookie, see `form-file-uploader.ts`.
+      name: 'uploaderSecretHash',
+      type: 'text',
+      index: true,
+      admin: { hidden: true },
     },
     {
       name: 'originalFilename',

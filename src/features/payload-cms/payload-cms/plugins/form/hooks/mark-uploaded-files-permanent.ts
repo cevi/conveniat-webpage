@@ -1,3 +1,4 @@
+import { isUploadedBySender } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import type { FormSubmission } from '@/features/payload-cms/payload-types';
 import type { CollectionAfterChangeHook } from 'payload';
 
@@ -42,13 +43,7 @@ export const markUploadedFilesPermanent: CollectionAfterChangeHook<FormSubmissio
           continue;
         }
         // and that the one submitting uploaded it: a form can be shared, e.g. by every Hof
-        const uploaderId =
-          typeof fileDocument.uploadedBy === 'object' && fileDocument.uploadedBy !== null
-            ? fileDocument.uploadedBy.id
-            : fileDocument.uploadedBy;
-        if (uploaderId === undefined || uploaderId === null || uploaderId !== req.user?.id) {
-          continue;
-        }
+        if (!isUploadedBySender(fileDocument, req)) continue;
 
         if (fileDocument.isTemporary) {
           await req.payload.update({
