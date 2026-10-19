@@ -83,6 +83,26 @@ export const BillParticipantsCollection: CollectionConfig = {
           throw new Error(describeRefusedTransition(previous, next));
         }
 
+        // Two imports reading the same open bill at once would both book it, and the
+        // second would overwrite the transaction of the first. A booked payment is never
+        // replaced, so the second one surfaces as a payment for a human to look at.
+        const bookedTransaction = (
+          originalDoc as { paymentTransactionReference?: unknown } | undefined
+        )?.paymentTransactionReference;
+        const nextTransaction = (data as { paymentTransactionReference?: unknown })
+          .paymentTransactionReference;
+        if (
+          operation === 'update' &&
+          typeof bookedTransaction === 'string' &&
+          bookedTransaction !== '' &&
+          nextTransaction !== undefined &&
+          nextTransaction !== bookedTransaction
+        ) {
+          throw new Error(
+            `Die Anmeldung ist bereits mit der Transaktion ${bookedTransaction} bezahlt.`,
+          );
+        }
+
         return data as Record<string, unknown>;
       },
       recordIssuedBills,
@@ -391,6 +411,62 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
       admin: {
         disableGroupBy: true,
+      },
+    },
+    // Written by the payment import, from the bank's camt.054 export. Only a payment that
+    // matches the bill's QR reference and amount lands here; the rest are reported back.
+    {
+      name: 'paidDate',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'date',
+      label: {
+        en: 'Paid on',
+        de: 'Bezahlt am',
+        fr: 'Payée le',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        description: {
+          en: 'The booking date of the payment in the bank file.',
+          de: 'Das Buchungsdatum der Zahlung in der Bankdatei.',
+          fr: 'La date de comptabilisation du paiement dans le fichier bancaire.',
+        },
+      },
+    },
+    {
+      name: 'paidAmount',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'number',
+      label: {
+        en: 'Paid Amount (CHF)',
+        de: 'Bezahlter Betrag (CHF)',
+        fr: 'Montant payé (CHF)',
+      },
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+      },
+    },
+    {
+      name: 'paymentTransactionReference',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'text',
+      label: {
+        en: 'Bank Transaction Reference',
+        de: 'Transaktionsreferenz der Bank',
+        fr: 'Référence de transaction bancaire',
+      },
+      // Searched by when the finance team traces a booking back to its bank transaction.
+      index: true,
+      admin: {
+        readOnly: true,
+        disableGroupBy: true,
+        description: {
+          en: 'The bank transaction (Transaktionsreferenz in the bank file) that paid this bill. Importing the same file again books it only once.',
+          de: 'Die Banktransaktion (Transaktionsreferenz in der Bankdatei), mit der diese Rechnung bezahlt wurde. Ein erneuter Import derselben Datei verbucht sie nur einmal.',
+          fr: 'La transaction bancaire (Transaktionsreferenz dans le fichier bancaire) qui a payé cette facture. Un nouvel import du même fichier ne la comptabilise qu’une fois.',
+        },
       },
     },
     {
@@ -703,6 +779,10 @@ export const BillParticipantsCollection: CollectionConfig = {
         {
           label: { en: 'Reminder Sent', de: 'Mahnung gesendet', fr: 'Rappel envoyé' },
           value: 'reminder_sent',
+        },
+        {
+          label: { en: 'Paid', de: 'Bezahlt', fr: 'Payée' },
+          value: 'paid',
         },
       ],
       label: {

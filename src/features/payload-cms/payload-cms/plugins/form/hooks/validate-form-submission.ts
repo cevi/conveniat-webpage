@@ -8,6 +8,7 @@ import {
   parseMaterialAnswer,
 } from '@/features/payload-cms/components/form/utils/material-list';
 import { RESSORT_WISH_OPTIONS } from '@/features/payload-cms/constants/ressort-options';
+import { uploadedBySenderWhere } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import type { Form, FormSubmission } from '@/features/payload-cms/payload-types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
@@ -340,8 +341,9 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
           .split(',')
           .map((id) => id.trim())
           .filter((id) => id !== '');
+        const uploadedBySender = uploadedBySenderWhere(req);
         const { totalDocs: ownUploads } =
-          !req.user || fileIds.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))
+          uploadedBySender === undefined || fileIds.some((id) => !/^[0-9a-fA-F]{24}$/.test(id))
             ? { totalDocs: 0 }
             : await req.payload.count({
                 collection: 'form_collection',
@@ -350,7 +352,7 @@ export const validateFormSubmission: CollectionBeforeChangeHook<FormSubmission> 
                     { id: { in: fileIds } },
                     { form: { equals: formId } },
                     { isTemporary: { equals: true } },
-                    { uploadedBy: { equals: req.user.id } },
+                    uploadedBySender,
                   ],
                 },
                 overrideAccess: true,

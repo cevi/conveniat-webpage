@@ -74,4 +74,20 @@ export interface HitobitoServicePort {
     value: string,
     keepValues?: string[],
   ): Promise<ParticipationAnswerUpdate>;
+  /**
+   * Marks a participation as paid in the Cevi.DB: ticks its "bezahlt" box and writes one
+   * custom-question answer in the same save, read back like `updateParticipationAnswer`.
+   *
+   * `changed` is false when both already held what was asked for.
+   *
+   * @param questionKeywords all of which the question text must contain, case-insensitively
+   * @param value the answer to write
+   */
+  markParticipationPaid(
+    groupId: string,
+    eventId: string,
+    participationId: string,
+    questionKeywords: string[],
+    value: string,
+  ): Promise<ParticipationAnswerUpdate>;
 }

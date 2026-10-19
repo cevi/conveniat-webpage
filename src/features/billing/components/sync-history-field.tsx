@@ -23,6 +23,9 @@ const ACTION_LABELS: Record<string, string> = {
   manually_removed: 'Storniert',
   anmeldestatus_written_to_cevidb: 'Anmeldestatus in der Cevi.DB gesetzt',
   anmeldestatus_writeback_failed: 'Anmeldestatus konnte in der Cevi.DB nicht gesetzt werden',
+  payment_booked: 'Zahlung verbucht',
+  payment_written_to_cevidb: 'In der Cevi.DB als bezahlt eingetragen',
+  payment_writeback_failed: 'Konnte in der Cevi.DB nicht als bezahlt eingetragen werden',
 };
 
 const actionLabel = (action: string): string => {

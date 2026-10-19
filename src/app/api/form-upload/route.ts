@@ -1,5 +1,14 @@
+import { environmentVariables } from '@/config/environment-variables';
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
+import {
+  createUploaderSecret,
+  FORM_UPLOADER_COOKIE_MAX_AGE_SECONDS,
+  hashUploaderSecret,
+  uploadedBySenderWhere,
+  uploaderSecretOf,
+} from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import { formFileKey } from '@/lib/form-file-key';
+import { Cookie } from '@/types/types';
 import { createLogger } from '@/utils/server-logger';
 import config from '@payload-config';
 import { fileTypeFromBuffer } from 'file-type/core';
@@ -100,38 +109,36 @@ export async function GET(request: Request): Promise<NextResponse> {
     const payload = await getPayload({ config });
 
     const { user } = await payload.auth({ headers: request.headers });
-    if (user === null) {
+    const uploadedBySender = uploadedBySenderWhere({ user, headers: request.headers });
+    if (uploadedBySender === undefined) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const accessRequest = await createLocalReq({ user }, payload);
+    const accessRequest = user === null ? undefined : await createLocalReq({ user }, payload);
 
-    // Editors read through the collection's own access rules, as over REST. Anyone else is a
-    // participant restoring the files they just attached to a form they are still filling in:
+    // Editors read through the collection's own access rules, as over REST. Anyone else, signed
+    // in or not, is restoring the files they just attached to a form they are still filling in:
     // their own uploads, while still temporary. Once a submission claims a file, it is out of
     // reach here.
-    const result = hasAdminOrWebAccess({ req: accessRequest })
-      ? await payload.find({
-          collection: 'form_collection',
-          where: { id: { in: ids } },
-          limit: ids.length,
-          depth: 0,
-          overrideAccess: false,
-          req: accessRequest,
-        })
-      : await payload.find({
-          collection: 'form_collection',
-          where: {
-            and: [
-              { id: { in: ids } },
-              { isTemporary: { equals: true } },
-              { uploadedBy: { equals: user.id } },
-            ],
-          },
-          limit: ids.length,
-          depth: 0,
-          overrideAccess: true,
-        });
+    const result =
+      accessRequest !== undefined && hasAdminOrWebAccess({ req: accessRequest })
+        ? await payload.find({
+            collection: 'form_collection',
+            where: { id: { in: ids } },
+            limit: ids.length,
+            depth: 0,
+            overrideAccess: false,
+            req: accessRequest,
+          })
+        : await payload.find({
+            collection: 'form_collection',
+            where: {
+              and: [{ id: { in: ids } }, { isTemporary: { equals: true } }, uploadedBySender],
+            },
+            limit: ids.length,
+            depth: 0,
+            overrideAccess: true,
+          });
 
     const documents = result.docs.map((fileDocument) => ({
       id: fileDocument.id,
@@ -174,8 +181,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     const payload = await getPayload({ config });
 
     const { user } = await payload.auth({ headers: request.headers });
+    // Forms are open to everyone, so is attaching a file to one. Without a sign-in, the browser
+    // is what owns the upload, see `form-file-uploader.ts`.
+    let uploaderSecret: string | undefined;
+    let uploader: { uploadedBy: string } | { uploaderSecretHash: string };
     if (user === null) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      uploaderSecret = uploaderSecretOf({ headers: request.headers }) ?? createUploaderSecret();
+      uploader = { uploaderSecretHash: hashUploaderSecret(uploaderSecret) };
+    } else {
+      uploader = { uploadedBy: user.id };
     }
 
     // Fetch form configuration
@@ -246,7 +260,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         isTemporary: true,
         form: formId,
         originalFilename: file.name,
-        uploadedBy: user.id,
+        ...uploader,
       },
       file: {
         data: buffer,
@@ -259,13 +273,24 @@ export async function POST(request: Request): Promise<NextResponse> {
       req: { user },
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       docId: fileDocument.id,
       filename: file.name,
       filesize: file.size,
       mimetype: mimeType,
       url: typeof fileDocument.url === 'string' ? fileDocument.url : undefined,
     });
+    if (uploaderSecret !== undefined) {
+      // renewed with every upload, so it lasts as long as the newest unclaimed file
+      response.cookies.set(Cookie.FORM_UPLOADER, uploaderSecret, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: environmentVariables.APP_HOST_URL.startsWith('https:'),
+        path: '/',
+        maxAge: FORM_UPLOADER_COOKIE_MAX_AGE_SECONDS,
+      });
+    }
+    return response;
   } catch (error) {
     logger.error('Failed to upload a file for a form', { error });
     return NextResponse.json(

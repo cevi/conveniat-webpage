@@ -12,21 +12,22 @@ export default function ScheduleLoading(): React.ReactNode {
     <div className="fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto bg-[#f8fafc] xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <article className="mx-auto w-full max-w-2xl px-4 py-8">
         {/* DateCarousel Skeleton */}
-        <div className="flex justify-center">
-          <div className="flex items-center gap-2">
-            {/* Left arrow */}
-            <div className="h-8 w-8 animate-pulse rounded-md bg-gray-200" />
+        <div className="flex w-full items-center justify-between gap-1 rounded-xl bg-gray-100 p-1">
+          {/* Left arrow */}
+          <div className="h-10 w-8 shrink-0 animate-pulse rounded-lg bg-gray-200" />
 
-            {/* Date pills container */}
-            <div className="flex gap-2 rounded-lg bg-gray-100 p-1">
-              {[1, 2, 3, 4, 5].map((index) => (
-                <div key={index} className="h-10 w-16 animate-pulse rounded-md bg-gray-200" />
-              ))}
-            </div>
-
-            {/* Right arrow */}
-            <div className="h-8 w-8 animate-pulse rounded-md bg-gray-200" />
+          {/* Date pills container */}
+          <div className="flex flex-1 items-center justify-around gap-1">
+            {[1, 2, 3, 4, 5].map((index) => (
+              <div
+                key={index}
+                className="h-10 min-w-0 flex-1 animate-pulse rounded-lg bg-gray-200"
+              />
+            ))}
           </div>
+
+          {/* Right arrow */}
+          <div className="h-10 w-8 shrink-0 animate-pulse rounded-lg bg-gray-200" />
         </div>
 
         {/* SearchFilterBar Skeleton */}

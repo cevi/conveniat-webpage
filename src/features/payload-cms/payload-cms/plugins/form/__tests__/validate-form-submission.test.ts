@@ -1,3 +1,4 @@
+import { hashUploaderSecret } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import { validateFormSubmission } from '@/features/payload-cms/payload-cms/plugins/form/hooks/validate-form-submission';
 import type { CollectionBeforeChangeHook } from 'payload';
 
@@ -219,6 +220,10 @@ const SECOND_OWN_FILE = 'bbbbbbbbbbbbbbbbbbbbbbbb';
 const FOREIGN_FILE = 'cccccccccccccccccccccccc';
 const CLAIMED_FILE = 'dddddddddddddddddddddddd';
 const OTHER_FORM_FILE = 'eeeeeeeeeeeeeeeeeeeeeeee';
+const ANONYMOUS_FILE = 'ffffffffffffffffffffffff';
+
+/** The secret in the cookie of the browser that uploaded ANONYMOUS_FILE without a sign-in. */
+const BROWSER_SECRET = 'browser-secret';
 
 /** The uploads the database holds, as form_collection stores them. */
 const UPLOADS: Record<string, unknown>[] = [
@@ -227,12 +232,25 @@ const UPLOADS: Record<string, unknown>[] = [
   { id: FOREIGN_FILE, form: 'form-id', isTemporary: true, uploadedBy: 'someone-else' },
   { id: CLAIMED_FILE, form: 'form-id', isTemporary: false, uploadedBy: 'hof-admin' },
   { id: OTHER_FORM_FILE, form: 'other-form', isTemporary: true, uploadedBy: 'hof-admin' },
+  {
+    id: ANONYMOUS_FILE,
+    form: 'form-id',
+    isTemporary: true,
+    uploaderSecretHash: hashUploaderSecret(BROWSER_SECRET),
+  },
 ];
 
-type Condition = Record<string, { equals?: unknown; in?: unknown[] }>;
+type Condition = Record<string, { equals?: unknown; in?: unknown[] }> | { or: Condition[] };
+
+const matches = (upload: Record<string, unknown>, condition: Condition): boolean =>
+  'or' in condition
+    ? (condition.or as Condition[]).some((alternative) => matches(upload, alternative))
+    : Object.entries(condition).every(([key, test]) =>
+        test.in === undefined ? upload[key] === test.equals : test.in.includes(upload[key]),
+      );
 
 /**
- * Counts the uploads a `where: { and: [...] }` of equals and in conditions matches. Like
+ * Counts the uploads a `where: { and: [...] }` of equals, in and or conditions matches. Like
  * Mongo, it cannot look up an id that is no ObjectId.
  */
 const countUploads = ({
@@ -242,33 +260,35 @@ const countUploads = ({
 }): Promise<{ totalDocs: number }> =>
   where.and.some(
     (condition) =>
+      !('or' in condition) &&
       condition['id']?.in?.some((id) => typeof id !== 'string' || !/^[\da-f]{24}$/i.test(id)) ===
-      true,
+        true,
   )
     ? Promise.reject(new Error('Cast to ObjectId failed'))
     : Promise.resolve({
         totalDocs: UPLOADS.filter((upload) =>
-          where.and.every((condition) =>
-            Object.entries(condition).every(([key, test]) =>
-              test.in === undefined ? upload[key] === test.equals : test.in.includes(upload[key]),
-            ),
-          ),
+          where.and.every((condition) => matches(upload, condition)),
         ).length,
       });
 
 /** The one who uploaded most of the files above. */
 const HOF_ADMIN = { id: 'hof-admin' };
 
-/** The field errors of a submission naming the given files, or undefined when accepted. */
+/**
+ * The field errors of a submission naming the given files, or undefined when accepted. It comes
+ * from the given user, or from a browser holding the given cookie.
+ */
 const uploadErrorsOf = async (
   value: string,
   user: { id: string } | null = HOF_ADMIN,
+  cookie?: string,
 ): Promise<unknown> => {
   const hookArguments = {
     data: { form: 'form-id', submissionData: [{ field: 'plan', value }] },
     operation: 'create',
     req: {
       user,
+      headers: new Headers(cookie === undefined ? {} : { cookie }),
       payload: {
         findByID: (): Promise<unknown> => Promise.resolve(uploadForm),
         count: countUploads,
@@ -309,5 +329,20 @@ describe('validateFormSubmission — file upload', () => {
   it('rejects files named by a signed-out request', async () => {
     // eslint-disable-next-line unicorn/no-null -- Payload reports a request without a session as null
     await expect(uploadErrorsOf(OWN_FILE, null)).resolves.toEqual(invalid);
+  });
+
+  it('accepts a file uploaded without a sign-in from the browser that uploaded it', async () => {
+    await expect(
+      // eslint-disable-next-line unicorn/no-null -- Payload reports a request without a session as null
+      uploadErrorsOf(ANONYMOUS_FILE, null, `locale=de; form-uploader=${BROWSER_SECRET}`),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects a file uploaded without a sign-in from any other browser', async () => {
+    await expect(
+      // eslint-disable-next-line unicorn/no-null -- Payload reports a request without a session as null
+      uploadErrorsOf(ANONYMOUS_FILE, null, 'form-uploader=another-secret'),
+    ).resolves.toEqual(invalid);
+    await expect(uploadErrorsOf(ANONYMOUS_FILE)).resolves.toEqual(invalid);
   });
 });

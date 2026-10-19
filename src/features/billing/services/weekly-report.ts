@@ -136,7 +136,8 @@ export function buildWeeklyReport(
     row.total++;
     const status = participant.status;
     if (isBilled(status)) row.billed++;
-    if (status === 'bill_sent' || status === 'reminder_sent') row.sent++;
+    // A paid bill reached its recipient, so it stays counted as sent.
+    if (status === 'bill_sent' || status === 'reminder_sent' || status === 'paid') row.sent++;
     if (isPending(status)) row.pending++;
     if (!isBilled(status) && !isPending(status)) row.blocked++;
     byAbteilung.set(name, row);
