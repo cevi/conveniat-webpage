@@ -4712,7 +4712,7 @@ export interface BillParticipant {
   paidDate?: string | null;
   paidAmount?: number | null;
   /**
-   * Identifies the payment in the bank file, so importing the same file twice books it once.
+   * The bank transaction (Transaktionsreferenz in the bank file) that paid this bill. Importing the same file again books it only once.
    */
   paymentTransactionReference?: string | null;
   /**

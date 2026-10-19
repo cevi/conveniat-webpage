@@ -32,8 +32,8 @@ describe('parsePaymentCsv', () => {
 
   it('finds the columns by header in a semicolon file with quotes and a byte order mark', () => {
     const csv = [
-      '\uFEFFMitteilung;Betrag;Referenz;Zahlungspflichtiger',
-      '"Lager; Cevi Uster";"1\'274,50";"09 00001 23012 34000 05670 00010";"Muster ""Gecko"" Max"',
+      '\uFEFFMitteilung;Betrag;Referenz;Zahlungspflichtiger;Transaktionsreferenz',
+      '"Lager; Cevi Uster";"1\'274,50";"09 00001 23012 34000 05670 00010";"Muster ""Gecko"" Max";GS00000000000001',
     ].join('\n');
 
     const [payment] = parsePaymentCsv(csv).payments;
@@ -53,6 +53,13 @@ describe('parsePaymentCsv', () => {
 
     expect(payments).toEqual([]);
     expect(error).toContain('«referenz»');
+  });
+
+  it('refuses a file without a Transaktionsreferenz, which every booking has to name', () => {
+    const { payments, error } = parsePaymentCsv('Referenz;Betrag\n090000123012340000567000010;330');
+
+    expect(payments).toEqual([]);
+    expect(error).toContain('«transaktionsreferenz»');
   });
 
   it('does not take the Transaktionsreferenz for the Referenz', () => {

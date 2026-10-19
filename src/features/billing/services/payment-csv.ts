@@ -45,7 +45,8 @@ const COLUMNS = {
 
 type ColumnKey = keyof typeof COLUMNS;
 
-const REQUIRED_COLUMNS: ColumnKey[] = ['reference', 'amount'];
+/** The transaction reference is required: a booked bill must name the transaction that paid it. */
+const REQUIRED_COLUMNS: ColumnKey[] = ['reference', 'amount', 'transactionReference'];
 
 const DELIMITERS = ['\t', ';', ','] as const;
 
@@ -172,8 +173,9 @@ export function parsePaymentCsv(text: string): ParsedPaymentCsv {
     return {
       payments: [],
       error:
-        `Die Datei hat keine Spalte ${missing.map((key) => `«${COLUMNS[key][0]}»`).join(' und ')}. ` +
-        'Erwartet wird der CSV-Export der camt.054-Gutschriften mit den Spalten Referenz und Betrag.',
+        `Die Datei hat keine Spalte ${missing.map((key) => `«${COLUMNS[key][0]}»`).join(', ')}. ` +
+        'Erwartet wird der CSV-Export der camt.054-Gutschriften mit den Spalten Referenz, Betrag ' +
+        'und Transaktionsreferenz.',
     };
   }
 

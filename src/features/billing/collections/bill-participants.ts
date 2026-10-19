@@ -437,14 +437,15 @@ export const BillParticipantsCollection: CollectionConfig = {
         de: 'Transaktionsreferenz der Bank',
         fr: 'Référence de transaction bancaire',
       },
+      // Searched by when the finance team traces a booking back to its bank transaction.
+      index: true,
       admin: {
         readOnly: true,
         disableGroupBy: true,
-        disableListColumn: true,
         description: {
-          en: 'Identifies the payment in the bank file, so importing the same file twice books it once.',
-          de: 'Kennzeichnet die Zahlung in der Bankdatei, damit dieselbe Datei beim zweiten Import nicht doppelt verbucht wird.',
-          fr: 'Identifie le paiement dans le fichier bancaire, pour qu’un second import du même fichier ne le comptabilise pas deux fois.',
+          en: 'The bank transaction (Transaktionsreferenz in the bank file) that paid this bill. Importing the same file again books it only once.',
+          de: 'Die Banktransaktion (Transaktionsreferenz in der Bankdatei), mit der diese Rechnung bezahlt wurde. Ein erneuter Import derselben Datei verbucht sie nur einmal.',
+          fr: 'La transaction bancaire (Transaktionsreferenz dans le fichier bancaire) qui a payé cette facture. Un nouvel import du même fichier ne la comptabilise qu’une fois.',
         },
       },
     },

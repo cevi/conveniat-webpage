@@ -34,7 +34,9 @@ export type PaymentOutcome =
   /** The registration is in a status no open bill belongs to. */
   | 'not_payable'
   | 'wrong_currency'
-  | 'invalid_amount';
+  | 'invalid_amount'
+  /** Without the bank's transaction id a booking could not be traced back to the payment. */
+  | 'missing_transaction_reference';
 
 export interface PaymentMatch {
   payment: BankPayment;
@@ -148,6 +150,12 @@ export function matchPayments(
     const invalidReference = describeInvalidReference(payment.reference);
     if (invalidReference !== undefined) return reject('invalid_reference', invalidReference);
 
+    if (payment.transactionReference === '') {
+      return reject(
+        'missing_transaction_reference',
+        'Die Zahlung hat keine Transaktionsreferenz und kann deshalb nicht nachvollziehbar verbucht werden. Bitte von Hand zuordnen.',
+      );
+    }
     if (payment.amount === undefined || payment.amount <= 0) {
       return reject('invalid_amount', 'Der Betrag ist keine Gutschrift und wurde nicht verbucht.');
     }
@@ -177,10 +185,7 @@ export function matchPayments(
     if (participant.status === PAID || earlierInFile !== undefined) {
       const bookedTransaction =
         earlierInFile?.transactionReference ?? participant.paymentTransactionReference ?? '';
-      if (
-        payment.transactionReference !== '' &&
-        payment.transactionReference === bookedTransaction
-      ) {
+      if (payment.transactionReference === bookedTransaction) {
         return reject('already_booked', `${who}: bereits verbucht.`, participant);
       }
       return reject(

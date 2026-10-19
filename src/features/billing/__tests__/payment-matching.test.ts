@@ -122,6 +122,13 @@ describe('matchPayments', () => {
     expect(matches.map((match) => match.outcome)).toEqual(['booked', 'already_paid']);
   });
 
+  it('does not book a payment the bank gave no transaction reference', () => {
+    // A booking has to name the transaction that paid it, or nobody can trace it later.
+    const [match] = matchPayments([payment({ transactionReference: '' })], [bill()]);
+
+    expect(match?.outcome).toBe('missing_transaction_reference');
+  });
+
   it('does not book foreign currency or a debit', () => {
     expect(matchPayments([payment({ currency: 'EUR' })], [bill()])[0]?.outcome).toBe(
       'wrong_currency',
