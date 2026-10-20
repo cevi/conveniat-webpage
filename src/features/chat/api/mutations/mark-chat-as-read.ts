@@ -59,19 +59,15 @@ export const markChatAsRead = trpcBaseProcedure
       }
     }
 
-    // 3. Backward compatibility: Create a READ event only for small chats (< LARGE_CHAT_THRESHOLD)
-    const chat = await prisma.chat.findUnique({
-      where: { uuid: chatId },
-      select: {
-        chatMemberships: {
-          select: {
-            userId: true,
-          },
-        },
-      },
+    // 3. Small chats also keep a READ event for the read ticks, large ones only the high-water
+    // mark. Counting stops at the threshold: an announcement channel has thousands of members,
+    // and each of them runs this when they open an announcement.
+    const memberCount = await prisma.chatMembership.count({
+      where: { chatId },
+      take: LARGE_CHAT_THRESHOLD,
     });
 
-    if (chat && chat.chatMemberships.length < LARGE_CHAT_THRESHOLD) {
+    if (memberCount < LARGE_CHAT_THRESHOLD) {
       await prisma.messageEvent.createMany({
         data: [{ messageId: lastMessageId, userId: user.uuid, type: 'READ' }],
         skipDuplicates: true,
