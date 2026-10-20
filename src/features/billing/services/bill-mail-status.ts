@@ -229,46 +229,102 @@ export const markBillMailFailed = async (
   });
   if (delivered.docs.length > 0) return;
 
-  const now = new Date().toISOString();
-  const history = historyOf(participant);
-  const failure: HistoryEntry = {
-    date: now,
-    action: `${MAIL_FAILED_ACTION_PREFIX}${email.to}`,
-    outgoingEmail: email.id,
-    statusBefore: participant.status,
-    reviewReason:
-      `Die Rechnung wurde nicht an ${email.to} zugestellt. Warum, steht im Zustellverlauf der ` +
-      `ausgehenden E-Mail ${email.id}. Ist die Adresse falsch, sie in der Cevi.DB korrigieren ` +
-      `und abgleichen, danach die Rechnung erneut versenden.`,
-  };
-  // Parked before the Cevi.DB is touched: a park that fails must not leave a reverted
-  // Cevi.DB behind a row that still says sent.
-  const parked = [...history, failure];
-  await payload.update({
-    collection: 'bill-participants',
-    id: participantId,
-    context: { internal: true },
-    data: { status: NEEDS_MANUAL_REVIEW, syncHistory: parked },
-  });
+  await parkAndRevert(
+    payload,
+    participant,
+    {
+      date: new Date().toISOString(),
+      action: `${MAIL_FAILED_ACTION_PREFIX}${email.to}`,
+      outgoingEmail: email.id,
+      statusBefore: participant.status,
+      reviewReason:
+        `Die Rechnung wurde nicht an ${email.to} zugestellt. Warum, steht im Zustellverlauf der ` +
+        `ausgehenden E-Mail ${email.id}. Ist die Adresse falsch, sie in der Cevi.DB korrigieren ` +
+        `und abgleichen, danach die Rechnung erneut versenden.`,
+    },
+    connect,
+  );
   payload.logger.warn(
     `Bill mail ${email.id} to participant ${participantId} failed; parked for manual review.`,
   );
+};
 
+/**
+ * Parks a bill whose mail could not even be queued, after the Cevi.DB had already been told
+ * it was invoiced, and puts the Anmeldestatus back. See {@link markBillMailFailed}.
+ */
+export const markBillMailNotQueued = async (
+  payload: Payload,
+  participantId: string,
+  reason: string,
+  connect: ConnectCeviDB = connectWithStoredCookie,
+): Promise<void> => {
+  const participant = await payload.findByID({
+    collection: 'bill-participants',
+    id: participantId,
+    depth: 0,
+    context: { internal: true },
+  });
+  await parkAndRevert(
+    payload,
+    participant,
+    {
+      date: new Date().toISOString(),
+      action: 'bill_mail_not_queued',
+      statusBefore: participant.status,
+      reviewReason: `Die Rechnung konnte nicht zum Versand eingereiht werden: ${reason}. Danach die Rechnung erneut versenden.`,
+    },
+    connect,
+  );
+  payload.logger.warn(
+    `Bill mail for participant ${participantId} could not be queued; parked for manual review.`,
+  );
+};
+
+/**
+ * Moves a bill to `needs_manual_review` with `failure` as the reason, then puts the Cevi.DB
+ * Anmeldestatus back to what it was before "Rechnung gestellt".
+ *
+ * Parked before the Cevi.DB is touched: a park that fails must not leave a reverted Cevi.DB
+ * behind a row that still says sent.
+ */
+const parkAndRevert = async (
+  payload: Payload,
+  participant: BillParticipant,
+  failure: HistoryEntry,
+  connect: ConnectCeviDB,
+): Promise<void> => {
+  const history = historyOf(participant);
+  const parked = [...history, failure];
+  await payload.update({
+    collection: 'bill-participants',
+    id: participant.id,
+    context: { internal: true },
+    data: { status: NEEDS_MANUAL_REVIEW, syncHistory: parked },
+  });
+
+  let hitobitoService: HitobitoServicePort | undefined;
+  // Only connect when there is something to revert: the session costs a request.
+  if (history.some((entry) => entry.action === ANMELDESTATUS_WRITTEN_ACTION)) {
+    try {
+      hitobitoService = await connect(payload);
+    } catch (error) {
+      // Reported like a missing cookie below, so the row says the Cevi.DB was not reverted.
+      payload.logger.warn({ err: error, msg: 'Could not open a Cevi.DB session for a revert.' });
+    }
+  }
   const revert = await revertAnmeldestatus(
-    // Only connect when there is something to revert: the session costs a request.
-    history.some((entry) => entry.action === ANMELDESTATUS_WRITTEN_ACTION)
-      ? await connect(payload)
-      : undefined,
+    hitobitoService,
     participationOf(participant),
     history,
-    now,
+    failure.date,
     payload.logger,
   );
   if (revert.historyEntries.length === 0 && revert.anmeldestatus === participant.anmeldestatus)
     return;
   await payload.update({
     collection: 'bill-participants',
-    id: participantId,
+    id: participant.id,
     context: { internal: true },
     data: {
       ...(revert.anmeldestatus === undefined ? {} : { anmeldestatus: revert.anmeldestatus }),

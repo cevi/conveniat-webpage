@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-null */
 import {
   markBillMailFailed,
+  markBillMailNotQueued,
   markBillMailSent,
   staleBillMailReason,
 } from '@/features/billing/services/bill-mail-status';
@@ -40,7 +41,7 @@ const payloadDouble = (
     findByID: jest.fn().mockResolvedValue(participant),
     find,
     update,
-    logger: { warn: jest.fn(), debug: jest.fn() },
+    logger: { info: jest.fn(), warn: jest.fn(), debug: jest.fn() },
   } as unknown as Payload;
   return { payload, update, find, row };
 };
@@ -220,6 +221,19 @@ describe('markBillMailFailed', () => {
     expect(row.syncHistory?.at(-1)?.reviewReason).toContain('Status 500');
   });
 
+  it('records that the Cevi.DB was not reverted when no session could be opened', async () => {
+    const { payload, row } = payloadDouble({
+      ...registration,
+      status: 'bill_sent',
+      syncHistory: [written],
+    });
+
+    await markBillMailFailed(payload, 'p1', mail, jest.fn().mockRejectedValue(new Error('down')));
+
+    expect(row.status).toBe('needs_manual_review');
+    expect(row.syncHistory?.at(-1)?.action).toBe('anmeldestatus_revert_failed');
+  });
+
   it('does not contact the Cevi.DB when nothing was written to it', async () => {
     const { payload } = payloadDouble({ ...registration, status: 'bill_created', syncHistory: [] });
     const { connect } = ceviDB(REVERTED);
@@ -308,6 +322,25 @@ const parkedBy = async (
   double.update.mockClear();
   return double;
 };
+
+describe('markBillMailNotQueued', () => {
+  it('parks a bill whose mail could not be queued and reverts the Cevi.DB', async () => {
+    const { payload, row } = payloadDouble({
+      ...registration,
+      status: 'bill_mail_pending',
+      syncHistory: [written],
+    });
+
+    await markBillMailNotQueued(payload, 'p1', 'S3 unreachable', ceviDB(REVERTED).connect);
+
+    expect(row.status).toBe('needs_manual_review');
+    expect(row.anmeldestatus).toBe('erfasst durch AVP');
+    expect(actionsOf(row).slice(-2)).toEqual([
+      'bill_mail_not_queued',
+      'anmeldestatus_reverted_in_cevidb',
+    ]);
+  });
+});
 
 describe('a bill parked because its mail failed, when that mail arrives after all', () => {
   it('goes back to sent, and the Cevi.DB reads "Rechnung gestellt" again', async () => {

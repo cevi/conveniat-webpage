@@ -30,6 +30,11 @@ jest.mock('@/features/payload-cms/payload-cms/utils/email-outbox', () => ({
   discardQueuedEmailsFor: jest.fn(),
   queueBackgroundEmail: jest.fn().mockResolvedValue({ success: true, outgoingEmailId: 'mail-2' }),
 }));
+const mockMarkBillMailNotQueued = jest.fn();
+jest.mock('@/features/billing/services/bill-mail-status', () => ({
+  ...jest.requireActual('@/features/billing/services/bill-mail-status'),
+  markBillMailNotQueued: (...args: unknown[]): unknown => mockMarkBillMailNotQueued(...args),
+}));
 jest.mock('@/lib/hitobito', () => ({
   HITOBITO_CONFIG: { baseUrl: 'http://mock', apiToken: 'mock' },
 }));
@@ -192,6 +197,23 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
     // The send date belongs to the moment the mail leaves the queue.
     expect(updates[0]).not.toHaveProperty('billSentDate');
     expect(summary).toMatchObject({ sentCount: 0, queuedCount: 1, failedCount: 0 });
+  });
+
+  it('parks the bill when its mail cannot be queued, after the Cevi.DB was told', async () => {
+    (queueBackgroundEmail as jest.Mock).mockRejectedValueOnce(new Error('S3 unreachable'));
+    const { payload, updates } = payloadDouble(participantRow());
+
+    const summary = await sendBills(payload, undefined, {
+      hitobitoService: hitobitoDouble(
+        jest.fn().mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' }),
+      ),
+    });
+
+    // The row recorded the write-back before the mail was attempted, so the park can revert it.
+    expect(updates[0]?.['status']).toBe('bill_mail_pending');
+    expect(mockMarkBillMailNotQueued).toHaveBeenCalledWith(payload, 'doc-1', 'S3 unreachable');
+    expect(summary.queuedCount ?? 0).toBe(0);
+    expect(summary.failedCount).toBe(1);
   });
 
   it('sends a single bill an operator asked for on the spot', async () => {

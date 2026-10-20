@@ -3,7 +3,10 @@ import { HitobitoServiceAdapter } from '@/features/billing/adapters/hitobito-ser
 import { RedisRunLockAdapter } from '@/features/billing/adapters/redis-run-lock.adapter';
 import type { HitobitoServicePort } from '@/features/billing/ports/hitobito-service.port';
 import { writeBackAnmeldestatus } from '@/features/billing/services/anmeldestatus-writeback';
-import { BILL_MAIL_PENDING } from '@/features/billing/services/bill-mail-status';
+import {
+  BILL_MAIL_PENDING,
+  markBillMailNotQueued,
+} from '@/features/billing/services/bill-mail-status';
 import {
   canTransition,
   describeRefusedTransition,
@@ -326,12 +329,11 @@ async function sendBillsLocked(
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
 
       if (isQueued) {
-        // The Cevi.DB is written before the mail is queued, and the row in the same update
-        // that marks it waiting. The other way round, the outbox could send the mail, and see
-        // it fail, while this run was still writing: the failure would find no record of
-        // what to put back, and this run would then overwrite the row it had just parked.
+        // Cevi.DB first, then the row, then the mail. The outbox can send a mail the moment
+        // it exists: queued any earlier, it would be discarded as stale while the row still
+        // said `bill_created`, or could fail before the row recorded what the Cevi.DB held,
+        // leaving nothing to put back.
         const writeBack = await writeBackToCeviDB();
-        await queueBackgroundEmail(payload, billMail, String(document_.id));
         // `bill_sent` and the send date follow when the mail leaves the queue; see
         // `markBillMailSent`.
         await payload.update({
@@ -350,6 +352,13 @@ async function sendBillsLocked(
             ],
           },
         });
+        try {
+          await queueBackgroundEmail(payload, billMail, String(document_.id));
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          await markBillMailNotQueued(payload, String(document_.id), reason);
+          throw error;
+        }
         summary.queuedCount = (summary.queuedCount ?? 0) + 1;
         continue;
       }
