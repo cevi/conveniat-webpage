@@ -75,20 +75,23 @@ export async function renderWeeklyReportPdf(report: WeeklyReport): Promise<Buffe
     let y = document_.y + mm2pt(8);
 
     // ── Headline figures ─────────────────────────────────────────────────────
+    // The first row is the Anmeldestand, the second follows a bill from raised to paid.
+    const tilesPerRow = 4;
     const tiles: { label: string; value: string; muted?: boolean }[] = [
       { label: 'Anmeldungen', value: String(report.totals.participants) },
       { label: 'Neu diese Woche', value: `+${String(report.newSinceLastWeek)}` },
-      { label: 'Rechnung erstellt', value: String(report.totals.billed) },
-      { label: 'Rechnung versendet', value: String(report.totals.sent) },
       { label: 'Offen', value: String(report.totals.pending), muted: true },
       { label: 'Blockiert', value: String(report.totals.blocked), muted: true },
+      { label: 'Rechnung erstellt', value: String(report.totals.billed) },
+      { label: 'Rechnung versendet', value: String(report.totals.sent) },
+      { label: 'Bezahlt', value: String(report.totals.paid) },
     ];
 
-    const tileWidth = contentWidth / 3;
+    const tileWidth = contentWidth / tilesPerRow;
     const tileHeight = mm2pt(16);
     for (const [index, tile] of tiles.entries()) {
-      const column = index % 3;
-      const row = Math.floor(index / 3);
+      const column = index % tilesPerRow;
+      const row = Math.floor(index / tilesPerRow);
       const x = left + column * tileWidth;
       const top = y + row * tileHeight;
 
@@ -100,7 +103,7 @@ export async function renderWeeklyReportPdf(report: WeeklyReport): Promise<Buffe
         .fillColor(tile.muted === true ? MUTED : INK);
       document_.text(tile.value, x, top + mm2pt(3.5), { width: tileWidth - 6, lineBreak: false });
     }
-    y += Math.ceil(tiles.length / 3) * tileHeight + mm2pt(4);
+    y += Math.ceil(tiles.length / tilesPerRow) * tileHeight + mm2pt(4);
 
     const sectionHeading = (text: string): void => {
       document_.font(headingFont()).fontSize(11).fillColor(ACCENT);
@@ -114,10 +117,11 @@ export async function renderWeeklyReportPdf(report: WeeklyReport): Promise<Buffe
     sectionHeading('Anmeldestand nach Abteilung');
 
     const columns = [
-      { key: 'name', label: 'Abteilung', width: contentWidth - mm2pt(88), align: 'left' as const },
+      { key: 'name', label: 'Abteilung', width: contentWidth - mm2pt(110), align: 'left' as const },
       { key: 'total', label: 'Total', width: mm2pt(22), align: 'right' as const },
       { key: 'billed', label: 'Verrechnet', width: mm2pt(22), align: 'right' as const },
       { key: 'sent', label: 'Versendet', width: mm2pt(22), align: 'right' as const },
+      { key: 'paid', label: 'Bezahlt', width: mm2pt(22), align: 'right' as const },
       { key: 'blocked', label: 'Blockiert', width: mm2pt(22), align: 'right' as const },
     ];
 
@@ -171,6 +175,7 @@ export async function renderWeeklyReportPdf(report: WeeklyReport): Promise<Buffe
           String(row.total),
           String(row.billed),
           String(row.sent),
+          String(row.paid),
           row.blocked === 0 ? '–' : String(row.blocked),
         ],
         { color: row.blocked > 0 ? INK : INK, rule: true },
@@ -183,6 +188,7 @@ export async function renderWeeklyReportPdf(report: WeeklyReport): Promise<Buffe
         String(report.totals.participants),
         String(report.totals.billed),
         String(report.totals.sent),
+        String(report.totals.paid),
         String(report.totals.blocked),
       ],
       { bold: true },
