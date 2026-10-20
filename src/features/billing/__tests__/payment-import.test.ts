@@ -69,6 +69,21 @@ describe('importPayments', () => {
     });
   });
 
+  it('notes in the history how much more than the bill was paid', async () => {
+    const { payload, update } = fakePayload();
+    const overpaid = csv.replace('\t330\t', '\t332\t');
+
+    const summary = await importPayments(payload, overpaid, 'Finanzen');
+
+    expect(summary.bookedCount).toBe(1);
+    expect(summary.errors).toEqual([]);
+    const [call] = update.mock.calls as [{ data: Record<string, unknown> }][];
+    const data = call?.[0].data ?? {};
+    expect(data['paidAmount']).toBe(332);
+    const history = data['syncHistory'] as { action: string; value?: string }[];
+    expect(history.at(-1)?.value).toContain('CHF 2.00 mehr als die Rechnung über CHF 330.00');
+  });
+
   it('refuses a file that cannot name the transactions', async () => {
     const { payload, update } = fakePayload();
 

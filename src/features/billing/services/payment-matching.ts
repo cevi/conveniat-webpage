@@ -10,15 +10,16 @@ import type { BillParticipant } from '@/features/payload-cms/payload-types';
 /**
  * Decides, for every payment in the bank file, which bill it settles, if any.
  *
- * A payment only books a bill when both its QR reference and its amount match. Everything
- * else is reported back for the finance team to resolve by hand: guessing at a payment
- * would mark someone paid who is not, and nobody would look at that registration again.
+ * A payment only books a bill when its QR reference matches and it pays at least the bill's
+ * amount, and at most `OVERPAYMENT_TOLERANCE` more. Everything else is reported back for the
+ * finance team to resolve by hand: guessing at a payment would mark someone paid who is not,
+ * and nobody would look at that registration again.
  *
  * Kept free of Payload runtime imports, like `billing-status`, so it can be tested on its own.
  */
 
 export type PaymentOutcome =
-  /** Reference and amount match an open bill; the import marks it paid. */
+  /** The reference matches an open bill and the amount pays it; the import marks it paid. */
   | 'booked'
   /** The same bank transaction is already booked on this bill: the file was imported before. */
   | 'already_booked'
@@ -65,6 +66,16 @@ const QR_REFERENCE = /^\d{27}$/;
 const SPREADSHEET_NUMBER = /^-?\d+(?:[.,]\d+)?e[+-]?\d+$/i;
 
 const toRappen = (amount: number): number => Math.round(amount * 100);
+
+/**
+ * How much more than the bill a payment may be and still settle it, in CHF.
+ *
+ * Bills carry amounts like CHF 172.96, and whoever types the amount instead of scanning the
+ * QR code rounds it up. Refunding a few francs costs more than it is worth, so the finance
+ * team books the difference as rounding instead. An underpayment is never booked: the bill
+ * would read as settled while money is still owed.
+ */
+export const OVERPAYMENT_TOLERANCE = 5;
 
 /** `CHF 1'274.50`, the way the bill prints it. */
 export const formatChf = (amount: number | null | undefined): string =>
@@ -215,10 +226,14 @@ export function matchPayments(
     }
 
     const invoiceAmount = participant.invoiceAmount;
+    const overpaidRappen =
+      invoiceAmount === null || invoiceAmount === undefined
+        ? undefined
+        : toRappen(payment.amount) - toRappen(invoiceAmount);
     if (
-      invoiceAmount === null ||
-      invoiceAmount === undefined ||
-      toRappen(invoiceAmount) !== toRappen(payment.amount)
+      overpaidRappen === undefined ||
+      overpaidRappen < 0 ||
+      overpaidRappen > toRappen(OVERPAYMENT_TOLERANCE)
     ) {
       return reject(
         'amount_mismatch',
