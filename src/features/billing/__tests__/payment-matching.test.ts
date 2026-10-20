@@ -1,6 +1,10 @@
 import type { BankPayment } from '@/features/billing/services/payment-csv';
 import type { MatchableParticipant } from '@/features/billing/services/payment-matching';
-import { isValidQrReference, matchPayments } from '@/features/billing/services/payment-matching';
+import {
+  isValidQrReference,
+  matchPayments,
+  OVERPAYMENT_TOLERANCE,
+} from '@/features/billing/services/payment-matching';
 import { generateQrReference } from '@/features/billing/utils';
 
 const reference = generateQrReference('123012', '34000', '0567000', 1);
@@ -43,6 +47,27 @@ describe('matchPayments', () => {
       expect(matchPayments([payment()], [bill({ status })])[0]?.outcome).toBe('booked');
     },
   );
+
+  it('books a bill paid with a few francs too much, as when the amount was rounded up', () => {
+    const [match] = matchPayments([payment({ amount: 173 })], [bill({ invoiceAmount: 172.96 })]);
+
+    expect(match).toEqual(expect.objectContaining({ outcome: 'booked', participantId: 'row-1' }));
+  });
+
+  it('books an overpayment of exactly the tolerance, and leaves one Rappen more', () => {
+    expect(
+      matchPayments([payment({ amount: 330 + OVERPAYMENT_TOLERANCE })], [bill()])[0]?.outcome,
+    ).toBe('booked');
+    expect(
+      matchPayments([payment({ amount: 330.01 + OVERPAYMENT_TOLERANCE })], [bill()])[0]?.outcome,
+    ).toBe('amount_mismatch');
+  });
+
+  it('never books a payment short of the bill, even by one Rappen', () => {
+    const [match] = matchPayments([payment({ amount: 329.99 })], [bill()]);
+
+    expect(match?.outcome).toBe('amount_mismatch');
+  });
 
   it('leaves a payment of a different amount for the finance team, naming both amounts', () => {
     const [match] = matchPayments([payment({ amount: 300 })], [bill()]);

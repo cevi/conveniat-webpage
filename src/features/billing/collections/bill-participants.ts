@@ -414,7 +414,8 @@ export const BillParticipantsCollection: CollectionConfig = {
       },
     },
     // Written by the payment import, from the bank's camt.054 export. Only a payment that
-    // matches the bill's QR reference and amount lands here; the rest are reported back.
+    // matches the bill's QR reference and pays its amount, or slightly more, lands here; the
+    // rest are reported back.
     {
       name: 'paidDate',
       access: { read: canAccessBillingField, update: canAccessBillingField },

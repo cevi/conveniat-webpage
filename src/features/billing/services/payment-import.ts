@@ -48,9 +48,28 @@ const formatSwissDate = (isoDate: string): string => {
   return `${day ?? ''}.${month ?? ''}.${year ?? ''}`;
 };
 
-const describePayment = (payment: BankPayment, actor: string): string =>
+/** `CHF 0.04 mehr als die Rechnung über CHF 172.96`, for a payment above the bill's amount. */
+const describeOverpayment = (
+  payment: BankPayment,
+  invoiceAmount: number | null | undefined,
+): string | undefined => {
+  if (payment.amount === undefined || invoiceAmount === null || invoiceAmount === undefined) {
+    return undefined;
+  }
+  const overpaid = Math.round((payment.amount - invoiceAmount) * 100) / 100;
+  return overpaid > 0
+    ? `${formatChf(overpaid)} mehr als die Rechnung über ${formatChf(invoiceAmount)}`
+    : undefined;
+};
+
+const describePayment = (
+  payment: BankPayment,
+  invoiceAmount: number | null | undefined,
+  actor: string,
+): string =>
   [
     formatChf(payment.amount),
+    describeOverpayment(payment, invoiceAmount),
     payment.bookingDate === undefined
       ? undefined
       : `gebucht am ${formatSwissDate(payment.bookingDate)}`,
@@ -142,7 +161,11 @@ export async function importPayments(
           paymentTransactionReference: payment.transactionReference,
           syncHistory: [
             ...history,
-            { date: now, action: PAYMENT_BOOKED_ACTION, value: describePayment(payment, actor) },
+            {
+              date: now,
+              action: PAYMENT_BOOKED_ACTION,
+              value: describePayment(payment, participant?.invoiceAmount, actor),
+            },
           ],
         },
       });
