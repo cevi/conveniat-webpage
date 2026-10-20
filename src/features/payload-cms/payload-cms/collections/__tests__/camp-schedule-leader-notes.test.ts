@@ -34,14 +34,15 @@ jest.mock('@/features/payload-cms/payload-cms/endpoints/course-participants-mana
 
 import {
   LEADER_NOTES_CONTEXT,
-  onlyForLeaders,
+  hideLeaderNotes,
 } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
 
 const notes = { safety: 'Gutes Schuhwerk.' };
+const block = { id: 'entry-1', title: 'Kennenlernspiel', leaders: notes };
 
-/** Runs the hook the way Payload does for one read of the `leaders` group. */
+/** Runs the hook the way Payload does for one block it is about to hand out. */
 const read = (request: { user: unknown; context: Record<string, unknown> }): unknown =>
-  onlyForLeaders({ value: notes, req: request } as never);
+  (hideLeaderNotes({ doc: block, req: request } as never) as { leaders?: unknown }).leaders;
 
 describe('leader notes of a Lager-Programmblock', () => {
   beforeEach(() => hasAdminOrWebAccess.mockReturnValue(false));

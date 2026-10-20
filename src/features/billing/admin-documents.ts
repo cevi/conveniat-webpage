@@ -11,9 +11,9 @@ export const BILLING_ADMIN_DOCUMENTS = {
   registrationManagement: {
     href: '/admin/globals/registration-management',
     label: {
-      de: 'Anmeldungs-Verwaltung öffnen',
-      en: 'Open Registration Management',
-      fr: 'Ouvrir la gestion des inscriptions',
+      de: 'Cevi.DB-Sitzung öffnen',
+      en: 'Open Cevi.DB session',
+      fr: 'Ouvrir la session Cevi.DB',
     } satisfies StaticTranslationString,
   },
   hoefe: {

@@ -118,7 +118,7 @@ describe('withActiveWorkflowTracking', () => {
     const step = withActiveJobTracking(task(() => ({ output: {} })));
     let idAfterStep: string[] = [];
     const workflow = {
-      slug: 'registrationWorkflow',
+      slug: 'brevoContactWorkflow',
       handler: async ({ job }: { job: { id: string } }) => {
         // A step is handed the id of the workflow's job, not one of its own.
         await runTask(step, job.id);
@@ -133,7 +133,7 @@ describe('withActiveWorkflowTracking', () => {
   });
 
   it('leaves a workflow alone that is defined as a list of steps', () => {
-    const jsonWorkflow = { slug: 'registrationWorkflow', handler: [] } as unknown as JobWorkflow;
+    const jsonWorkflow = { slug: 'brevoContactWorkflow', handler: [] } as unknown as JobWorkflow;
 
     expect(withActiveWorkflowTracking(jsonWorkflow)).toBe(jsonWorkflow);
   });

@@ -1,9 +1,12 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { dropUnansweredLines } from '@/features/payload-cms/payload-cms/plugins/form/drop-unanswered-lines';
 import {
   type EmailSendCondition,
   matchesEmailSendCondition,
 } from '@/features/payload-cms/payload-cms/plugins/form/email-send-condition';
+import { getFormFieldNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import { isUploadedBySender } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
+import { getMailDisplayValues } from '@/features/payload-cms/payload-cms/plugins/form/mail-display-values';
 import {
   type CustomAutoLinkNode,
   escapeHTML,
@@ -11,6 +14,8 @@ import {
 import { phoneLinkHTMLConverters } from '@/features/payload-cms/payload-cms/utils/phone-link-html-converter';
 import { sendTrackedEmail } from '@/features/payload-cms/payload-cms/utils/send-tracked-email';
 import { FORM_FILE_BUCKET_NAME, s3Client } from '@/lib/s3';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
 import config from '@payload-config';
 import type { BeforeEmail, FormattedEmail } from '@payloadcms/plugin-form-builder/types';
@@ -350,28 +355,53 @@ export const beforeEmailChangeHook: BeforeEmail = async (
     }
   }
   wildcardHtmlTable += '</table>';
+  // The message is read from the form in the default locale, so its answers are shown in it too
+  const displayValues = getMailDisplayValues(
+    formDocument_,
+    submissionDict,
+    i18nConfig.defaultLocale as Locale,
+  );
+  for (const [field, displayValue] of Object.entries(displayValues)) {
+    placeholderValues[field] = neutralisePlaceholderSyntax(displayValue);
+  }
+  // A question of the form nobody answered shows as nothing rather than as `{{name}}`
+  const formSections = Array.isArray(formDocument_?.['sections'])
+    ? (formDocument_['sections'] as { formSection?: { fields?: unknown[] | null } | null }[])
+    : [];
+  const unansweredFields = new Set(
+    formSections
+      .flatMap((section) => getFormFieldNames(section.formSection?.fields))
+      .filter((name) => (submissionDict[name] ?? '') === ''),
+  );
+  for (const name of unansweredFields) placeholderValues[name] = '';
   Object.assign(placeholderValues, reservedPlaceholders);
 
   interface MinimalLexicalNode {
     type: string;
     text?: string;
+    version?: number;
     children?: MinimalLexicalNode[];
   }
 
   const replaceVariables = (node: MinimalLexicalNode): void => {
-    if (typeof node === 'object') {
-      if (node.type === 'text' && typeof node.text === 'string') {
-        node.text = node.text.replaceAll(/\{\{([^}]+)\}\}/g, (match: string, p1: string) => {
-          const key = p1.trim();
-          return placeholderValues[key] ?? match;
-        });
+    if (!Array.isArray(node.children)) return;
+    node.children = node.children.flatMap((child): MinimalLexicalNode[] => {
+      if (child.type !== 'text' || typeof child.text !== 'string') {
+        replaceVariables(child);
+        return [child];
       }
-      if (Array.isArray(node.children)) {
-        for (const child of node.children) {
-          replaceVariables(child);
-        }
-      }
-    }
+      const text = child.text.replaceAll(/\{\{([^}]+)\}\}/g, (match: string, p1: string) => {
+        const key = p1.trim();
+        return placeholderValues[key] ?? match;
+      });
+      // An answer of several lines, like a textarea or a list of date slots, keeps its lines
+      return text
+        .split(/\r?\n/)
+        .flatMap((line, index) => [
+          ...(index === 0 ? [] : [{ type: 'linebreak', version: 1 }]),
+          { ...child, text: line },
+        ]);
+    });
   };
   // --- Lexical Re-generation end ---
 
@@ -415,10 +445,9 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       const lexicalData = structuredClone(originalEmailConfig.message) as MinimalLexicalNode & {
         root?: MinimalLexicalNode;
       };
-      if (lexicalData.root && Array.isArray(lexicalData.root.children)) {
-        for (const child of lexicalData.root.children) {
-          replaceVariables(child);
-        }
+      if (lexicalData.root) {
+        dropUnansweredLines(lexicalData.root, (name) => unansweredFields.has(name));
+        replaceVariables(lexicalData.root);
       }
 
       updatedHtml = `<div>${convertLexicalToHTML({

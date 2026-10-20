@@ -61,7 +61,6 @@ export interface Config {
     permissions: Permission;
     form_collection: FormCollection;
     'helper-jobs': HelperJob;
-    'blocked-jobs': BlockedJob;
     'announcement-channels': AnnouncementChannel;
     announcements: Announcement;
     'emergency-cards': EmergencyCard;
@@ -136,7 +135,6 @@ export interface Config {
     permissions: PermissionsSelect<false> | PermissionsSelect<true>;
     form_collection: FormCollectionSelect<false> | FormCollectionSelect<true>;
     'helper-jobs': HelperJobsSelect<false> | HelperJobsSelect<true>;
-    'blocked-jobs': BlockedJobsSelect<false> | BlockedJobsSelect<true>;
     'announcement-channels': AnnouncementChannelsSelect<false> | AnnouncementChannelsSelect<true>;
     announcements: AnnouncementsSelect<false> | AnnouncementsSelect<true>;
     'emergency-cards': EmergencyCardsSelect<false> | EmergencyCardsSelect<true>;
@@ -182,7 +180,6 @@ export interface Config {
     footer: Footer;
     SEO: SEO;
     'donation-barometer': DonationBarometer;
-    'registration-management': RegistrationManagement;
     'app-landing-page': AppLandingPage;
     'alert-management': AlertManagement;
     alert_settings: AlertSetting;
@@ -193,6 +190,7 @@ export interface Config {
     'app-feature-flags': AppFeatureFlag;
     'bill-settings': BillSetting;
     'hof-dashboard-settings': HofDashboardSetting;
+    'registration-management': RegistrationManagement;
     'payload-jobs-stats': PayloadJobsStat;
   };
   globalsSelect: {
@@ -200,7 +198,6 @@ export interface Config {
     footer: FooterSelect<false> | FooterSelect<true>;
     SEO: SEOSelect<false> | SEOSelect<true>;
     'donation-barometer': DonationBarometerSelect<false> | DonationBarometerSelect<true>;
-    'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
     'app-landing-page': AppLandingPageSelect<false> | AppLandingPageSelect<true>;
     'alert-management': AlertManagementSelect<false> | AlertManagementSelect<true>;
     alert_settings: AlertSettingsSelect<false> | AlertSettingsSelect<true>;
@@ -211,6 +208,7 @@ export interface Config {
     'app-feature-flags': AppFeatureFlagsSelect<false> | AppFeatureFlagsSelect<true>;
     'bill-settings': BillSettingsSelect<false> | BillSettingsSelect<true>;
     'hof-dashboard-settings': HofDashboardSettingsSelect<false> | HofDashboardSettingsSelect<true>;
+    'registration-management': RegistrationManagementSelect<false> | RegistrationManagementSelect<true>;
     'payload-jobs-stats': PayloadJobsStatsSelect<false> | PayloadJobsStatsSelect<true>;
   };
   locale: 'en' | 'de' | 'fr';
@@ -225,15 +223,7 @@ export interface Config {
   user: User | PayloadMcpApiKey;
   jobs: {
     tasks: {
-      resolveUser: TaskResolveUser;
-      createUser: CreateUserInputOutput;
-      blockJob: TaskBlockJob;
-      cleanupTemporaryRoles: TaskCleanupTemporaryRoles;
-      ensureGroupMembership: TaskEnsureGroupMembership;
-      ensureEventMembership: TaskEnsureEventMembership;
-      confirmationMessage: TaskConfirmationMessage;
       fetchSmtpBounces: TaskFetchSmtpBounces;
-      checkHitobitoApprovals: TaskCheckHitobitoApprovals;
       generatePdfThumbnail: TaskGeneratePdfThumbnail;
       publishScheduledAnnouncements: TaskPublishScheduledAnnouncements;
       drainPushQueue: TaskDrainPushQueue;
@@ -258,7 +248,6 @@ export interface Config {
       };
     };
     workflows: {
-      registrationWorkflow: WorkflowRegistrationWorkflow;
       brevoContactWorkflow: WorkflowBrevoContactWorkflow;
     };
   };
@@ -4279,52 +4268,6 @@ export interface FormCollection {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blocked-jobs".
- */
-export interface BlockedJob {
-  id: string;
-  /**
-   * The original payload job ID that was blocked.
-   */
-  originalJobId: string;
-  /**
-   * The workflow that will be re-queued upon resolution.
-   */
-  workflowSlug: string;
-  /**
-   * The original input data for the workflow.
-   */
-  input:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  status: 'pending' | 'resolved' | 'rejected';
-  /**
-   * The reason why the job was blocked.
-   */
-  reason?: string | null;
-  /**
-   * Resolution data to merge into the workflow input when re-queued.
-   */
-  resolutionData?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "announcement-channels".
  */
 export interface AnnouncementChannel {
@@ -5241,15 +5184,7 @@ export interface PayloadJob {
         completedAt: string;
         taskSlug:
           | 'inline'
-          | 'resolveUser'
-          | 'createUser'
-          | 'blockJob'
-          | 'cleanupTemporaryRoles'
-          | 'ensureGroupMembership'
-          | 'ensureEventMembership'
-          | 'confirmationMessage'
           | 'fetchSmtpBounces'
-          | 'checkHitobitoApprovals'
           | 'generatePdfThumbnail'
           | 'publishScheduledAnnouncements'
           | 'drainPushQueue'
@@ -5300,19 +5235,11 @@ export interface PayloadJob {
         id?: string | null;
       }[]
     | null;
-  workflowSlug?: ('registrationWorkflow' | 'brevoContactWorkflow') | null;
+  workflowSlug?: 'brevoContactWorkflow' | null;
   taskSlug?:
     | (
         | 'inline'
-        | 'resolveUser'
-        | 'createUser'
-        | 'blockJob'
-        | 'cleanupTemporaryRoles'
-        | 'ensureGroupMembership'
-        | 'ensureEventMembership'
-        | 'confirmationMessage'
         | 'fetchSmtpBounces'
-        | 'checkHitobitoApprovals'
         | 'generatePdfThumbnail'
         | 'publishScheduledAnnouncements'
         | 'drainPushQueue'
@@ -5394,10 +5321,6 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'helper-jobs';
         value: string | HelperJob;
-      } | null)
-    | ({
-        relationTo: 'blocked-jobs';
-        value: string | BlockedJob;
       } | null)
     | ({
         relationTo: 'announcement-channels';
@@ -7056,20 +6979,6 @@ export interface HelperJobsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "blocked-jobs_select".
- */
-export interface BlockedJobsSelect<T extends boolean = true> {
-  originalJobId?: T;
-  workflowSlug?: T;
-  input?: T;
-  status?: T;
-  reason?: T;
-  resolutionData?: T;
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -8841,37 +8750,6 @@ export interface DonationBarometer {
   createdAt?: string | null;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "registration-management".
- */
-export interface RegistrationManagement {
-  id: string;
-  /**
-   * Email sent to the helper after registration. This email confirms a provisional registration. The final confirmation is sent by the responsible department.
-   */
-  confirmationEmail?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
-   */
-  browserCookie?: string | null;
-  updatedAt?: string | null;
-  createdAt?: string | null;
-}
-/**
  * Configure the app dashboard landing page: title, welcome content, and action card visibility.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -9235,10 +9113,6 @@ export interface AppFeatureFlag {
    */
   forumEnabled?: boolean | null;
   /**
-   * Toggles whether the scheduled task checks Cevi.DB approvals for pending registrations.
-   */
-  checkHitobitoApprovalsEnabled?: boolean | null;
-  /**
    * Toggles the redesigned inline top navigation bar on desktop screens.
    */
   redesignedMainMenuEnabled?: boolean | null;
@@ -9465,6 +9339,19 @@ export interface HofDashboardSetting {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "registration-management".
+ */
+export interface RegistrationManagement {
+  id: string;
+  /**
+   * Session cookie of a signed-in Cevi.DB browser. Highly sensitive, write-only: the value is never shown after saving. Sign in with "Remember me" ticked and paste the whole Cookie header, including remember_person_token. The app uses the session every ten minutes to keep it alive, but signing out of Cevi.DB in that browser ends it for good. Leave empty to keep the current value. Type "CLEAR" to delete the cookie.
+   */
+  browserCookie?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats".
  */
 export interface PayloadJobsStat {
@@ -9655,17 +9542,6 @@ export interface DonationBarometerSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
-  updatedAt?: T;
-  createdAt?: T;
-  globalType?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "registration-management_select".
- */
-export interface RegistrationManagementSelect<T extends boolean = true> {
-  confirmationEmail?: T;
-  browserCookie?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
@@ -9892,7 +9768,6 @@ export interface AppFeatureFlagsSelect<T extends boolean = true> {
   photoContestEnabled?: T;
   reservationsEnabled?: T;
   forumEnabled?: T;
-  checkHitobitoApprovalsEnabled?: T;
   redesignedMainMenuEnabled?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -10017,6 +9892,16 @@ export interface HofDashboardSettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "registration-management_select".
+ */
+export interface RegistrationManagementSelect<T extends boolean = true> {
+  browserCookie?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-jobs-stats_select".
  */
 export interface PayloadJobsStatsSelect<T extends boolean = true> {
@@ -10087,163 +9972,9 @@ export interface CollectionsWidget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskResolveUser".
- */
-export interface TaskResolveUser {
-  input: {
-    peopleId?: string | null;
-    email?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    nickname?: string | null;
-    birthDate?: string | null;
-    address?: string | null;
-    company?: string | null;
-  };
-  output: {
-    peopleId: string;
-    firstName: string;
-    lastName: string;
-    nickname: string;
-    birthDate: string;
-    address: string;
-    status: 'found' | 'created' | 'ambiguous';
-    reason: string;
-    candidates?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "CreateUserInputOutput".
- */
-export interface CreateUserInputOutput {
-  input: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    nickname?: string | null;
-  };
-  output: {
-    personId: string;
-    success: boolean;
-    error?: string | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskBlockJob".
- */
-export interface TaskBlockJob {
-  input: {
-    workflowSlug?: string | null;
-    reason?: string | null;
-    originalInput?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-  };
-  output: {
-    blocked?: boolean | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskCleanupTemporaryRoles".
- */
-export interface TaskCleanupTemporaryRoles {
-  input: {
-    userId: string;
-  };
-  output: {
-    success?: boolean | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskEnsureGroupMembership".
- */
-export interface TaskEnsureGroupMembership {
-  input: {
-    userId: string;
-  };
-  output: {
-    success?: boolean | null;
-    approvalRequired?: boolean | null;
-    approvalGroupName?: string | null;
-    approvalGroupUrl?: string | null;
-    status?: string | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskEnsureEventMembership".
- */
-export interface TaskEnsureEventMembership {
-  input: {
-    userId: string;
-    firstName?: string | null;
-    lastName?: string | null;
-    answers?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    internalComment?: string | null;
-  };
-  output: {
-    success?: boolean | null;
-    participationId?: string | null;
-    status?: string | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskConfirmationMessage".
- */
-export interface TaskConfirmationMessage {
-  input: {
-    email: string;
-    formSubmissionId?: string | null;
-    locale?: string | null;
-    skip?: boolean | null;
-    skipReason?: string | null;
-  };
-  output: {
-    sent?: boolean | null;
-    skipped?: boolean | null;
-    skipReason?: string | null;
-  };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "TaskFetchSmtpBounces".
  */
 export interface TaskFetchSmtpBounces {
-  input?: unknown;
-  output?: unknown;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "TaskCheckHitobitoApprovals".
- */
-export interface TaskCheckHitobitoApprovals {
   input?: unknown;
   output?: unknown;
 }
@@ -10416,7 +10147,6 @@ export interface TaskCreateCollectionExport {
       | 'permissions'
       | 'form_collection'
       | 'helper-jobs'
-      | 'blocked-jobs'
       | 'announcement-channels'
       | 'announcements'
       | 'emergency-cards'
@@ -10484,23 +10214,6 @@ export interface TaskCreateCollectionImport {
     maxLimit?: number | null;
   };
   output?: unknown;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "WorkflowRegistrationWorkflow".
- */
-export interface WorkflowRegistrationWorkflow {
-  input: {
-    input:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

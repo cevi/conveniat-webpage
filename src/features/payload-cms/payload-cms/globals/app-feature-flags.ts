@@ -1,4 +1,3 @@
-import { environmentVariables } from '@/config/environment-variables';
 import {
   isFullAdmin,
   shouldHideInAdminPanelIfNotAdmin,
@@ -7,7 +6,6 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import { flushPageCacheOnChangeGlobal } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { setFeatureFlag } from '@/lib/db/redis';
 import {
-  FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED,
   FEATURE_FLAG_CREATE_CHATS_ENABLED,
   FEATURE_FLAG_FORUM_ENABLED,
   FEATURE_FLAG_HELPER_SHIFTS_ENABLED,
@@ -277,32 +275,6 @@ export const AppFeatureFlags: GlobalConfig = {
         afterChange: [
           async ({ value }): Promise<void> => {
             await setFeatureFlag(FEATURE_FLAG_FORUM_ENABLED, Boolean(value));
-          },
-        ],
-      },
-    },
-    {
-      name: 'checkHitobitoApprovalsEnabled',
-      label: {
-        en: 'Enable the Cevi.DB approvals check task',
-        de: 'Task zur Prüfung der Cevi.DB-Freigaben aktivieren',
-        fr: "Activer la tâche d'approbations Cevi.DB",
-      },
-      type: 'checkbox',
-      defaultValue: true,
-      admin: {
-        condition: () => environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT,
-        description:
-          'Toggles whether the scheduled task checks Cevi.DB approvals for pending registrations.',
-        components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle',
-        },
-      },
-      hooks: {
-        afterChange: [
-          async ({ value }): Promise<void> => {
-            await setFeatureFlag(FEATURE_FLAG_CHECK_HITOBITO_APPROVALS_ENABLED, Boolean(value));
           },
         ],
       },

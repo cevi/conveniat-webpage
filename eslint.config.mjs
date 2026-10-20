@@ -32,7 +32,6 @@ const features_folder = [
   'push-notifications',
   'push-tracking',
   'auth',
-  'registration-process',
   'billing',
   'native-push',
   'presence',
