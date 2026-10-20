@@ -1,5 +1,6 @@
 import type { RecipientBounce } from '@/features/payload-cms/payload-cms/tasks/fetch-smtp-bounces/email-parser';
 import { applyDeliveryReport } from '@/features/payload-cms/payload-cms/utils/email-suppression';
+import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
 const MAX_RAW_EMAIL_LENGTH = 20_000;
@@ -25,6 +26,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isRetriggered = (result: unknown): boolean =>
   isRecord(result) && result['retriggeredBy'] !== undefined;
+
+/** How mail servers title or word a delay notice: Postfix, Exchange, Exim, Gmail. */
+const DELAY_WORDING =
+  /action:\s*delayed|delayed mail|delivery (?:has been |is )?delayed|delivery status notification \(delay\)|warning: message .* delayed/i;
 
 const isBounce = (result: unknown): boolean =>
   isRecord(result) &&
@@ -148,6 +153,7 @@ export const updateTrackingRecords = async (
         to?: string;
         smtpReceivedAt?: string | null;
         createdAt?: string | null;
+        deliveryStatus?: OutgoingEmail['deliveryStatus'];
       }
     | undefined;
 
@@ -251,6 +257,16 @@ export const updateTrackingRecords = async (
     // `delayed` one is temporary, and a resend or a manual override starts over.
     const lastReset = results.findLastIndex((result) => isRetriggered(result));
     const hasBounced = !isSuccess || results.slice(lastReset + 1).some((r) => isBounce(r));
+    // A delay notice only says the mail is still being retried. It is no verdict, so the mail
+    // keeps the state it had until the report that follows decides; a bill whose mail was
+    // greylisted for an hour must not read as undeliverable meanwhile.
+    // A notice without per-recipient blocks is only read by its words.
+    const isDelayNotice =
+      bounces.length > 0
+        ? bounces.every((bounce) => bounce.action === 'delayed')
+        : DELAY_WORDING.test(dsnString) && !/action:\s*failed/i.test(dsnString);
+    let deliveryStatus: OutgoingEmail['deliveryStatus'] = hasBounced ? 'error' : 'success';
+    if (isDelayNotice) deliveryStatus = outgoingEmail.deliveryStatus ?? 'pending';
 
     // Reports are placed by when their send left, not by when they are read.
     const sentAt = sentAtOfReport(
@@ -269,7 +285,7 @@ export const updateTrackingRecords = async (
         smtpResults: results,
         rawSmtpResults: results,
         rawDsnEmail: newRawDsnEmail,
-        deliveryStatus: hasBounced ? 'error' : 'success',
+        deliveryStatus,
         dsnReceivedAt: new Date().toISOString(),
       },
     });
