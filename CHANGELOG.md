@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.35.0](https://github.com/cevi/conveniat-webpage/compare/v1.34.0...v1.35.0) (2026-10-20)
+
+
+### Features
+
+* **forms:** availability calendar marks Aufbau, Hauptlager and Abbau ([e71bbe2](https://github.com/cevi/conveniat-webpage/commit/e71bbe20f9d390be9648457b8f260c885837b30d))
+* **forms:** availability calendar marks Aufbau, Hauptlager and Abbau ([2becebe](https://github.com/cevi/conveniat-webpage/commit/2becebe7eb8111fbf98595578439c1378e21bf46))
+
+
+### Bug Fixes
+
+* **forms:** calmer phase colours on the availability calendar ([c142355](https://github.com/cevi/conveniat-webpage/commit/c142355139f17d94ebe2877ec4d8d2c5de2d8198))
+* **forms:** confirmation mail lists marked days as readable dates ([1449b9c](https://github.com/cevi/conveniat-webpage/commit/1449b9cbb6dc8684be9910af1557b66da7acf4da))
+* **forms:** confirmation mail lists marked days as readable dates ([25f266d](https://github.com/cevi/conveniat-webpage/commit/25f266d2e94bf3c2554365e117e1d79b5703ef19))
+* **forms:** confirmation mail shows the labels of chosen answers ([28778e5](https://github.com/cevi/conveniat-webpage/commit/28778e547cd06007f9a16b824617f1b444727b9a))
+* **forms:** confirmation mail shows the labels of chosen answers ([52d770c](https://github.com/cevi/conveniat-webpage/commit/52d770c575c4e5017de9e171b79c67a02c40daf9))
+* **forms:** confirmation mail skips lines about unanswered questions ([d7a6764](https://github.com/cevi/conveniat-webpage/commit/d7a6764139bec17da0439cf611fd84138304a41d))
+* **forms:** confirmation mail skips lines about unanswered questions ([9263752](https://github.com/cevi/conveniat-webpage/commit/926375297fd9fd2d22fbae6f5bd70c99b79bea98))
+* **schedule:** leader notes no longer reach participants through the programme ([12f5bee](https://github.com/cevi/conveniat-webpage/commit/12f5bee83173fdc232ff689ccf7059bed3301d17))
+
+
+### Performance
+
+* **chat:** count chat members only up to the large-chat threshold when marking read ([239dd6b](https://github.com/cevi/conveniat-webpage/commit/239dd6bb348a20087024f7e7ff5ccaafd9e72608))
+* **chat:** count chat members only up to the large-chat threshold when marking read ([778702f](https://github.com/cevi/conveniat-webpage/commit/778702f4c7c5c70138a604dade3a65fa7cedeb54)), closes [#2166](https://github.com/cevi/conveniat-webpage/issues/2166)
+
 ## [1.34.0](https://github.com/cevi/conveniat-webpage/compare/v1.33.0...v1.34.0) (2026-10-19)
 
 
