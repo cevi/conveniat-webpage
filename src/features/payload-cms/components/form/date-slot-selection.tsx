@@ -2,6 +2,11 @@
 
 import { Required } from '@/features/payload-cms/components/form/required';
 import type { DateSlotSelectionBlock } from '@/features/payload-cms/components/form/types';
+import type { CampPhase } from '@/features/payload-cms/components/form/utils/camp-phases';
+import {
+  findCampPhase,
+  getCampPhasesWithin,
+} from '@/features/payload-cms/components/form/utils/camp-phases';
 import type {
   DateRange,
   SelectableDays,
@@ -124,6 +129,13 @@ const inRangeMarker: StaticTranslationString = {
   fr: 'sélectionné',
 };
 
+/** Background of a phase's bar under the days and of its swatch in the legend. */
+const phaseColor: Record<CampPhase['key'], string> = {
+  setup: 'bg-amber-400',
+  main: 'bg-red-700',
+  teardown: 'bg-slate-400',
+};
+
 /** A Monday, used to print the weekday column headers in the reader's locale. */
 const FIRST_MONDAY = Date.UTC(2024, 0, 1);
 
@@ -238,6 +250,11 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
     [selectable.firstDay, selectable.lastDay],
   );
 
+  const phases = useMemo(
+    () => getCampPhasesWithin(selectable.firstDay, selectable.lastDay),
+    [selectable.firstDay, selectable.lastDay],
+  );
+
   const weekdays = useMemo(
     () =>
       Array.from({ length: 7 }, (_, dayIndex) =>
@@ -296,8 +313,27 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
     year: 'numeric',
   };
 
+  const phaseDate: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit' };
+
   return (
     <div className="flex flex-col gap-4">
+      {phases.length > 0 && (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+          {phases.map((phase) => (
+            <li key={phase.key} className="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className={cn('h-1 w-4 rounded-full', phaseColor[phase.key])}
+              />
+              <span className="font-medium text-gray-900">{phase.label[locale]}</span>
+              <span>
+                {formatIsoDay(phase.startDate, locale, phaseDate)} –{' '}
+                {formatIsoDay(phase.endDate, locale, phaseDate)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
       <div role="group" aria-label={label} className="grid grid-cols-1 gap-6 @xl:grid-cols-2">
         {months.map((calendarMonth) => (
           <div key={calendarMonth.key}>
@@ -327,33 +363,50 @@ const DayRangeCalendar: React.FC<DayRangeCalendarProperties> = ({
                 const isInRange = range !== undefined;
                 const isEnabled = isSelectable(day);
                 const marker = getDayMarker(day);
-                const dayName = formatIsoDay(day, locale, {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                });
+                const phase = findCampPhase(day);
+                const dayName = [
+                  formatIsoDay(day, locale, {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  }),
+                  phase?.label[locale],
+                ]
+                  .filter(Boolean)
+                  .join(', ');
 
                 return (
-                  <button
-                    key={day}
-                    type="button"
-                    disabled={!isEnabled}
-                    aria-label={marker === undefined ? dayName : `${dayName}, ${marker}`}
-                    onClick={() => handleDayClick(day)}
-                    className={cn(
-                      'flex h-10 items-center justify-center text-sm tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1',
-                      {
-                        'rounded-md bg-green-600 font-bold text-white': isEndpoint,
-                        'bg-green-100 text-green-900': isInRange && !isEndpoint,
-                        'cursor-pointer rounded-md text-gray-900 hover:bg-gray-100':
-                          isEnabled && !isEndpoint && !isInRange,
-                        'cursor-not-allowed text-gray-300': !isEnabled && !isEndpoint && !isInRange,
-                      },
-                    )}
-                  >
-                    {Number(day.slice(8))}
-                  </button>
+                  <div key={day} className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      disabled={!isEnabled}
+                      aria-label={marker === undefined ? dayName : `${dayName}, ${marker}`}
+                      onClick={() => handleDayClick(day)}
+                      className={cn(
+                        'flex h-10 items-center justify-center text-sm tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-1',
+                        {
+                          'rounded-md bg-green-600 font-bold text-white': isEndpoint,
+                          'bg-green-100 text-green-900': isInRange && !isEndpoint,
+                          'cursor-pointer rounded-md text-gray-900 hover:bg-gray-100':
+                            isEnabled && !isEndpoint && !isInRange,
+                          'cursor-not-allowed text-gray-300':
+                            !isEnabled && !isEndpoint && !isInRange,
+                        },
+                      )}
+                    >
+                      {Number(day.slice(8))}
+                    </button>
+                    {/* One continuous bar per phase along each week row, rounded where it begins and ends. */}
+                    <span
+                      aria-hidden="true"
+                      className={cn('h-1', phase !== undefined && phaseColor[phase.key], {
+                        'rounded-l-full': day === phase?.startDate,
+                        'rounded-r-full': day === phase?.endDate,
+                        'opacity-40': !isEnabled && !isEndpoint && !isInRange,
+                      })}
+                    />
+                  </div>
                 );
               })}
             </div>
