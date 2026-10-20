@@ -131,9 +131,9 @@ const lockReasons: Record<'sync' | 'generate', Record<PipelineLock, StaticTransl
       fr: 'La synchronisation est encore en cours',
     },
     unsuccessful: {
-      de: 'Der letzte Abgleich lief nicht fehlerfrei durch. Bitte erneut abgleichen.',
-      en: 'The last sync did not finish cleanly. Please sync again.',
-      fr: "La dernière synchronisation ne s'est pas terminée sans erreur. Veuillez la relancer.",
+      de: 'Der letzte Abgleich ist fehlgeschlagen oder wurde abgebrochen. Bitte erneut abgleichen.',
+      en: 'The last sync failed or was cancelled. Please sync again.',
+      fr: 'La dernière synchronisation a échoué ou a été annulée. Veuillez la relancer.',
     },
   },
   generate: {
@@ -148,9 +148,9 @@ const lockReasons: Record<'sync' | 'generate', Record<PipelineLock, StaticTransl
       fr: 'La génération est encore en cours',
     },
     unsuccessful: {
-      de: 'Die letzte Generierung lief nicht fehlerfrei durch. Bitte erneut generieren.',
-      en: 'The last generation did not finish cleanly. Please generate again.',
-      fr: "La dernière génération ne s'est pas terminée sans erreur. Veuillez la relancer.",
+      de: 'Die letzte Generierung ist fehlgeschlagen oder wurde abgebrochen. Bitte erneut generieren.',
+      en: 'The last generation failed or was cancelled. Please generate again.',
+      fr: 'La dernière génération a échoué ou a été annulée. Veuillez la relancer.',
     },
   },
 };
