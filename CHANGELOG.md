@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.36.0](https://github.com/cevi/conveniat-webpage/compare/v1.35.0...v1.36.0) (2026-10-20)
+
+
+### Features
+
+* **billing:** bills whose mail fails are reviewed and reverted in the Cevi.DB ([d18ba7b](https://github.com/cevi/conveniat-webpage/commit/d18ba7b91a79b3efc3ec225be291fff7770c5b5f))
+* **billing:** bills whose mail fails or bounces need manual review ([4f90c03](https://github.com/cevi/conveniat-webpage/commit/4f90c037c85866dc65faa2088af4bd1463c407fb))
+* **billing:** optional daily bill generation and sending ([3db00a8](https://github.com/cevi/conveniat-webpage/commit/3db00a8c81eff0f9053fccec2302aa25c33c2c9f))
+* **billing:** optional daily bill generation and sending ([177933e](https://github.com/cevi/conveniat-webpage/commit/177933e3ce50d484e0935adbb3bb49c1bf47c018))
+* **billing:** revert the Cevi.DB Anmeldestatus when a bill mail fails ([da7b054](https://github.com/cevi/conveniat-webpage/commit/da7b05494ab98fd0b5849fad06b72fa169ead088))
+* **billing:** weekly report shows paid registrations ([b9d72f5](https://github.com/cevi/conveniat-webpage/commit/b9d72f5c53233f5ff2c7e2f1f3ee6042faf139ec))
+* **billing:** weekly report shows paid registrations ([9454c93](https://github.com/cevi/conveniat-webpage/commit/9454c93a0bd60d19909d2ecdce7cd16863678852))
+
+
+### Bug Fixes
+
+* **billing:** a sync with errors no longer locks bill generation ([1833b98](https://github.com/cevi/conveniat-webpage/commit/1833b9888302b63c8cbf78325102fc3af36873a0))
+* **billing:** a sync with errors no longer locks bill generation ([f94d45b](https://github.com/cevi/conveniat-webpage/commit/f94d45b1b75b70e79ac9f57f6d0f1b5a8fac5691))
+* **billing:** book a bill paid with up to CHF 5 too much ([10e3346](https://github.com/cevi/conveniat-webpage/commit/10e33462774664e85f7310900dde80c8122863fd))
+* **billing:** book a bill paid with up to CHF 5 too much ([aeafc79](https://github.com/cevi/conveniat-webpage/commit/aeafc7903899fa0ad90b07b97feab52f142d7db5))
+* **billing:** close the gaps a second review found in failed bill mails ([37a571b](https://github.com/cevi/conveniat-webpage/commit/37a571bee6c3b7b6aed01fca87fa9361bd839534))
+* **billing:** refuse an Anmeldestatus the Cevi.DB question does not offer ([381e429](https://github.com/cevi/conveniat-webpage/commit/381e42970f45b5f30e07878d9925ad55d9a59f58))
+* **billing:** refuse an Anmeldestatus the Cevi.DB question does not offer ([29eff5c](https://github.com/cevi/conveniat-webpage/commit/29eff5caa55d2bc787d34d3fe918a68954964ad8))
+* cn() resolves Tailwind v4 class conflicts ([9ab38c6](https://github.com/cevi/conveniat-webpage/commit/9ab38c6944a394f7ec7edfcbcf3b4370fd8948a6))
+* cn() resolves Tailwind v4 class conflicts ([4e79099](https://github.com/cevi/conveniat-webpage/commit/4e79099c45b73b53877297ce1f6cc8fc2092b270)), closes [#2196](https://github.com/cevi/conveniat-webpage/issues/2196)
+* **email:** a delay notice no longer marks a mail as failed ([e83cf44](https://github.com/cevi/conveniat-webpage/commit/e83cf44d8afc56f18c91ce06599123a6c8801c05))
+* **email:** a delay notice no longer marks a mail as failed ([e546eca](https://github.com/cevi/conveniat-webpage/commit/e546eca72d945b1f8811720136b9dceb47f7b049))
+* **email:** read a delay notice without recipient blocks by its wording ([ab6b902](https://github.com/cevi/conveniat-webpage/commit/ab6b9024db08f778d1b3dbeb4d7d1eced4451fe5))
+* **menu:** nav section headers keep Montserrat under tailwind-merge 3 ([4c0a004](https://github.com/cevi/conveniat-webpage/commit/4c0a004838d8c88897296730fb9adeddb49bf24c))
+
 ## [1.35.0](https://github.com/cevi/conveniat-webpage/compare/v1.34.0...v1.35.0) (2026-10-20)
 
 
