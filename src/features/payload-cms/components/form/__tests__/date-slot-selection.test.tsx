@@ -13,9 +13,10 @@ jest.mock('next-i18n-router/client', () => ({
 }));
 
 /** Renders the block in a real form and prints the field value the submission would carry. */
-const Harness: React.FC<{ maxRanges?: number; asksForRessort?: boolean }> = ({
+const Harness: React.FC<{ maxRanges?: number; asksForRessort?: boolean; endDate?: string }> = ({
   maxRanges,
   asksForRessort,
+  endDate = '2027-08-06T00:00:00.000Z',
 }) => {
   const { control } = useForm<FieldValues>({ defaultValues: { slots: '' } });
   const slots = useWatch({ control, name: 'slots' }) as string;
@@ -27,7 +28,7 @@ const Harness: React.FC<{ maxRanges?: number; asksForRessort?: boolean }> = ({
         name="slots"
         label="Verfügbarkeit"
         startDate="2027-07-12T00:00:00.000Z"
-        endDate="2027-08-06T00:00:00.000Z"
+        endDate={endDate}
         minDays={3}
         maxRanges={maxRanges}
         ressortName={asksForRessort === true ? 'ressortwunsch' : undefined}
@@ -115,6 +116,31 @@ describe('DateSlotSelection', () => {
     expect(labels).toContain('Aufbau & Infrastruktur');
     expect(labels).toContain('Allgemein helfende Person');
     expect(labels.filter((label) => /ressort/i.test(label))).toEqual([]);
+  });
+
+  it('names the camp phase of each day and lists the phases in the window', () => {
+    render(<Harness />);
+
+    expect(day(23)).toHaveAccessibleName(/23\. Juli 2027, Aufbaulager$/);
+    expect(day(24)).toHaveAccessibleName(/24\. Juli 2027, Hauptlager$/);
+    expect(
+      screen.getByRole('button', { name: /, 3\. August 2027, Abbaulager$/ }),
+    ).toBeInTheDocument();
+
+    const legend = screen.getAllByRole('listitem').map((item) => item.textContent);
+    expect(legend).toEqual([
+      'Aufbaulager12.07. – 23.07.',
+      'Hauptlager24.07. – 02.08.',
+      'Abbaulager03.08. – 15.08.',
+    ]);
+  });
+
+  it('leaves out the phases a window does not reach', () => {
+    render(<Harness endDate="2027-07-20T00:00:00.000Z" />);
+
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Aufbaulager12.07. – 23.07.',
+    ]);
   });
 
   it('removes one slot and leaves the other', () => {
