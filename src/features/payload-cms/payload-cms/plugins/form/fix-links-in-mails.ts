@@ -1,8 +1,10 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { dropUnansweredLines } from '@/features/payload-cms/payload-cms/plugins/form/drop-unanswered-lines';
 import {
   type EmailSendCondition,
   matchesEmailSendCondition,
 } from '@/features/payload-cms/payload-cms/plugins/form/email-send-condition';
+import { getFormFieldNames } from '@/features/payload-cms/payload-cms/plugins/form/form-block-names';
 import { isUploadedBySender } from '@/features/payload-cms/payload-cms/plugins/form/form-file-uploader';
 import { getMailDisplayValues } from '@/features/payload-cms/payload-cms/plugins/form/mail-display-values';
 import {
@@ -362,6 +364,16 @@ export const beforeEmailChangeHook: BeforeEmail = async (
   for (const [field, displayValue] of Object.entries(displayValues)) {
     placeholderValues[field] = neutralisePlaceholderSyntax(displayValue);
   }
+  // A question of the form nobody answered shows as nothing rather than as `{{name}}`
+  const formSections = Array.isArray(formDocument_?.['sections'])
+    ? (formDocument_['sections'] as { formSection?: { fields?: unknown[] | null } | null }[])
+    : [];
+  const unansweredFields = new Set(
+    formSections
+      .flatMap((section) => getFormFieldNames(section.formSection?.fields))
+      .filter((name) => (submissionDict[name] ?? '') === ''),
+  );
+  for (const name of unansweredFields) placeholderValues[name] = '';
   Object.assign(placeholderValues, reservedPlaceholders);
 
   interface MinimalLexicalNode {
@@ -433,7 +445,10 @@ export const beforeEmailChangeHook: BeforeEmail = async (
       const lexicalData = structuredClone(originalEmailConfig.message) as MinimalLexicalNode & {
         root?: MinimalLexicalNode;
       };
-      if (lexicalData.root) replaceVariables(lexicalData.root);
+      if (lexicalData.root) {
+        dropUnansweredLines(lexicalData.root, (name) => unansweredFields.has(name));
+        replaceVariables(lexicalData.root);
+      }
 
       updatedHtml = `<div>${convertLexicalToHTML({
         converters: {

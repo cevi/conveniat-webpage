@@ -25,3 +25,24 @@ export const getFormBlockNames = (
   fields: unknown[] | null | undefined,
   blockType: string,
 ): string[] => getFormBlocks(fields, blockType).map((block) => block['name'] as string);
+
+/**
+ * The name of every answer a form section can hold: each named block, those inside a
+ * conditioned block too, and the Ressort wish a date slot selection asks next to its days.
+ */
+export const getFormFieldNames = (fields: unknown[] | null | undefined): string[] => {
+  if (!Array.isArray(fields)) return [];
+  return fields.flatMap((field): string[] => {
+    if (field === null || typeof field !== 'object') return [];
+    const block = field as {
+      blockType?: string;
+      name?: unknown;
+      ressortName?: unknown;
+      fields?: unknown[] | null;
+    };
+    if (block.blockType === 'conditionedBlock') return getFormFieldNames(block.fields);
+    return [block.name, block.ressortName].filter(
+      (name): name is string => typeof name === 'string' && name !== '',
+    );
+  });
+};

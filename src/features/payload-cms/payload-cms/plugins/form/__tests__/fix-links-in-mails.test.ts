@@ -203,4 +203,19 @@ describe('beforeEmailChangeHook — answers shown for people', () => {
     ]);
     expect(html).toBe('<div>Bemerkungen: Ab Mittag\nMit Velo</div>');
   });
+
+  it('shows a question from a branch the person never saw as nothing, not as its placeholder', async () => {
+    const html = await sentHtmlFor(
+      'Hallo {{vorname}}, Pioniertechnik: {{pioniertechnik}}',
+      [{ field: 'vorname', value: 'Anna' }],
+      [
+        { blockType: 'text', name: 'vorname' },
+        {
+          blockType: 'conditionedBlock',
+          fields: [{ blockType: 'select', name: 'pioniertechnik', options: [] }],
+        },
+      ],
+    );
+    expect(html).toBe('<div>Hallo Anna, Pioniertechnik: </div>');
+  });
 });
