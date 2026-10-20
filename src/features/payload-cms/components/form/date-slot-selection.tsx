@@ -132,8 +132,8 @@ const inRangeMarker: StaticTranslationString = {
 /** Background of a phase's bar under the days and of its swatch in the legend. */
 const phaseColor: Record<CampPhase['key'], string> = {
   setup: 'bg-amber-400',
-  main: 'bg-blue-500',
-  teardown: 'bg-teal-500',
+  main: 'bg-red-700',
+  teardown: 'bg-slate-400',
 };
 
 /** A Monday, used to print the weekday column headers in the reader's locale. */
