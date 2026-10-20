@@ -34,6 +34,7 @@ import { generateBillsTask } from '@/features/payload-cms/payload-cms/tasks/gene
 import { generatePdfThumbnailTask } from '@/features/payload-cms/payload-cms/tasks/generate-pdf-thumbnail';
 import { keepCeviDatabaseSessionAliveTask } from '@/features/payload-cms/payload-cms/tasks/keep-cevidb-session-alive';
 import { publishScheduledAnnouncementsTask } from '@/features/payload-cms/payload-cms/tasks/publish-scheduled-announcements';
+import { runDailyBillingTask } from '@/features/payload-cms/payload-cms/tasks/run-daily-billing';
 import { sendBillsTask } from '@/features/payload-cms/payload-cms/tasks/send-bills';
 import { sendPflichtangabenRemindersTask } from '@/features/payload-cms/payload-cms/tasks/send-pflichtangaben-reminders';
 import { sendWeeklyReportTask } from '@/features/payload-cms/payload-cms/tasks/send-weekly-report';
@@ -372,6 +373,7 @@ const jobsConfig: JobsConfig = {
       sendBillsTask,
       sendWeeklyReportTask,
       sendPflichtangabenRemindersTask,
+      runDailyBillingTask,
       writeBackPaymentsTask,
       cleanupTemporaryFormFilesTask,
       syncFunktionenTask,
