@@ -5,8 +5,9 @@ import { LastEditedByUserField } from '@/features/payload-cms/payload-cms/shared
 import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import { patchRichTextLinkHook } from '@/features/payload-cms/payload-cms/utils/link-field-logic';
 import { getValidationMessage } from '@/features/payload-cms/payload-cms/utils/validation-messages';
+import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { CourseType } from '@/lib/prisma';
-import type { CollectionConfig, FieldHook, TextFieldSingleValidation } from 'payload';
+import type { CollectionAfterReadHook, CollectionConfig, TextFieldSingleValidation } from 'payload';
 
 import { hasAdminOrWebAccess } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { campScheduleOrganiserExportHandler } from '@/features/payload-cms/payload-cms/endpoints/course-organiser-export';
@@ -23,21 +24,28 @@ export const LEADER_NOTES_CONTEXT = 'scheduleLeaderNotes';
 /**
  * Material, safety notes and attachments are for the people running a block. The app reads
  * blocks through the local API, which skips field access, so the list, the map and every other
- * reader would hand them to all participants. Hiding them here keeps each of those readers safe
- * without knowing about it; editors still get them, or saving in the admin panel would empty
- * the fields.
+ * reader would hand them to all participants. Removing them here keeps each of those readers
+ * safe without knowing about it; editors still get them, or saving in the admin panel would
+ * empty the fields.
+ *
+ * On the collection, not on the `leaders` group: Payload reads the fields of a group after the
+ * group's own `afterRead` hook and fills the group back in, so a hook there removes nothing.
  */
-export const onlyForLeaders: FieldHook = ({ value, req }) =>
-  req.context[LEADER_NOTES_CONTEXT] === true || (req.user !== null && hasAdminOrWebAccess({ req }))
-    ? (value as unknown)
-    : undefined;
+export const hideLeaderNotes: CollectionAfterReadHook<CampScheduleEntry> = ({ doc, req }) => {
+  if (req.context[LEADER_NOTES_CONTEXT] === true) return doc;
+  if (req.user !== null && hasAdminOrWebAccess({ req })) return doc;
+
+  const publicPart = { ...doc };
+  delete publicPart.leaders;
+  return publicPart;
+};
 
 export const CampScheduleEntryCollection: CollectionConfig = {
   slug: 'camp-schedule-entry',
   trash: true,
   hooks: {
     afterChange: [flushPageCacheOnChange, syncOrganisers],
-    afterRead: [makeInjectEnrollmentCount(CourseType.PROGRAM)],
+    afterRead: [hideLeaderNotes, makeInjectEnrollmentCount(CourseType.PROGRAM)],
   },
   endpoints: [
     {
@@ -412,7 +420,6 @@ export const CampScheduleEntryCollection: CollectionConfig = {
               name: 'leaders',
               label: false,
               type: 'group',
-              hooks: { afterRead: [onlyForLeaders] },
               fields: [
                 {
                   name: 'materials',
