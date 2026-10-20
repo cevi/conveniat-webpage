@@ -3,14 +3,18 @@ import { createJobProgressReporter } from '@/features/billing/services/job-progr
 import { BillingTaskSlug } from '@/features/billing/types';
 import type { PayloadRequest, TaskConfig } from 'payload';
 
-export const generateBillsTask: TaskConfig = {
+export const generateBillsTask: TaskConfig<'generateBills'> = {
   slug: 'generateBills',
   retries: 0,
-  inputSchema: [],
+  // Set by the daily billing run, which wants the bills mailed once they exist. The toolbar
+  // queues generation without it, because there an operator decides when to send.
+  inputSchema: [{ name: 'sendAfterwards', type: 'checkbox' }],
   handler: async ({
+    input,
     job,
     req,
   }: {
+    input: { sendAfterwards?: boolean | null };
     job: { id: number | string };
     req: PayloadRequest;
   }): Promise<{ output: Record<string, unknown> }> => {
@@ -30,6 +34,16 @@ export const generateBillsTask: TaskConfig = {
     // Clearing the live record is the job of whoever holds the run lock, not of
     // every worker that reaches this handler — see `JobProgressReporter.finish`.
     const result = await generateBills(payload, undefined, undefined, reporter, String(job.id));
+
+    // The same rule as the toolbar's lock on the send step: only a generation that ran to
+    // the end hands over. A duplicate execution did nothing, and the worker that did the
+    // work queues the send exactly once.
+    if (input.sendAfterwards === true && result.duplicate !== true && result.cancelled !== true) {
+      const sendJob = await payload.jobs.queue({ task: BillingTaskSlug.SendBills, input: {} });
+      payload.logger.info(
+        `Bill generation job ${String(job.id)} queued bill sending as job ${String(sendJob.id)}.`,
+      );
+    }
 
     return {
       output: {
