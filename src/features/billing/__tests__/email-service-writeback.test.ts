@@ -193,6 +193,26 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
     expect(summary).toMatchObject({ sentCount: 1, failedCount: 0 });
   });
 
+  it('does not mark a single bill as sent when the mail server refuses it', async () => {
+    (sendTrackedEmail as jest.Mock).mockResolvedValueOnce({
+      success: false,
+      outgoingEmailId: 'mail-1',
+      error: '550 mailbox unavailable',
+    });
+    const { payload, updates } = payloadDouble(participantRow());
+    const update = jest.fn();
+
+    const summary = await sendBills(payload, 'doc-1', {
+      hitobitoService: hitobitoDouble(update),
+    });
+
+    // The failed mail has parked the bill for review; nothing here may overwrite that.
+    expect(updates).toHaveLength(0);
+    expect(update).not.toHaveBeenCalled();
+    expect(summary).toMatchObject({ sentCount: 0, failedCount: 1 });
+    expect(summary.errors[0]).toContain('550 mailbox unavailable');
+  });
+
   it.each(['paid', 'removed'])(
     'does not send the bill again to a %s registration',
     async (status) => {

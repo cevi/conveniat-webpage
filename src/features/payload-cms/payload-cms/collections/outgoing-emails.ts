@@ -15,22 +15,40 @@ import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
 import type { CollectionAfterChangeHook, CollectionConfig, FieldHook } from 'payload';
 
 /**
- * A bill counts as sent once its mail has left, and a mail can turn `success` from three
- * places: the queue, a resend, an admin's override. Watching the row covers all of them.
+ * Keeps a bill's status in step with its mail. A mail can turn `success` or `error` from
+ * several places: the queue, the bounce check, a resend, an admin's override. Watching the
+ * row covers all of them.
+ *
+ * A mail the queue discarded is not a failed delivery: it was overtaken by a newer bill or
+ * a changed registration, and says so with `mailDiscarded` in the context.
  *
  * Billing is imported lazily, because its collections import this config.
  */
-const markBillSentOnDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
+const syncBillWithDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
   doc,
   previousDoc,
   req,
 }) => {
   const before = (previousDoc as Partial<OutgoingEmail> | undefined)?.deliveryStatus;
-  if (doc.deliveryStatus !== 'success' || before === 'success') return doc;
-  const { billParticipantIdOf, markBillMailSent } =
+  if (doc.deliveryStatus === before) return doc;
+  if (doc.deliveryStatus !== 'success' && doc.deliveryStatus !== 'error') return doc;
+  if (req.context['mailDiscarded'] === true) return doc;
+
+  const { billParticipantIdOf, markBillMailFailed, markBillMailSent } =
     await import('@/features/billing/services/bill-mail-status');
   const participantId = billParticipantIdOf(doc);
-  if (participantId !== undefined) await markBillMailSent(req.payload, participantId, doc.to);
+  if (participantId === undefined) return doc;
+  try {
+    await (doc.deliveryStatus === 'success'
+      ? markBillMailSent(req.payload, participantId, doc.to)
+      : markBillMailFailed(req.payload, participantId, doc));
+  } catch (error) {
+    // Thrown from here, it would undo the delivery status the mail has just been given.
+    req.payload.logger.error({
+      err: error,
+      msg: `Could not update bill ${participantId} after its mail ${doc.id} turned ${String(doc.deliveryStatus)}.`,
+    });
+  }
   return doc;
 };
 
@@ -71,7 +89,7 @@ export const OutgoingEmails: CollectionConfig = {
     delete: () => false,
   },
   hooks: {
-    afterChange: [markBillSentOnDelivery],
+    afterChange: [syncBillWithDelivery],
     beforeOperation: [
       // eslint-disable-next-line @typescript-eslint/no-deprecated
       ({ args, operation }): void => {

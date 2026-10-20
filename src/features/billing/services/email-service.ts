@@ -297,9 +297,20 @@ async function sendBillsLocked(
         'replaced by a newer mail for this registration',
       );
 
-      await (isQueued
+      const mailResult = await (isQueued
         ? queueBackgroundEmail(payload, billMail, String(document_.id))
         : sendTrackedEmail(payload, billMail, undefined, String(document_.id)));
+
+      // The mail server refused it, or the address is suppressed. The mail's row has already
+      // parked the bill for review, and marking it sent here would bury that.
+      if (!mailResult.success) {
+        summary.errors.push(
+          `${fullName}: Rechnung konnte nicht an ${email} versendet werden` +
+            (mailResult.error === undefined ? '.' : ` (${mailResult.error}).`),
+        );
+        summary.failedCount++;
+        continue;
+      }
 
       const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
       let historyAfterSend: SyncHistoryEntry[];

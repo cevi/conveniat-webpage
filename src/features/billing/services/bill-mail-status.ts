@@ -1,8 +1,21 @@
+import { NEEDS_MANUAL_REVIEW } from '@/features/billing/services/billing-status';
 import type { OutgoingEmail } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
 
 /** A bill whose mail is in the outgoing queue and has not left yet. */
 export const BILL_MAIL_PENDING = 'bill_mail_pending';
+
+/**
+ * Statuses that say the participant has the bill, or is about to get it. A paid or
+ * cancelled registration has nothing left to deliver, and one without a bill was never sent.
+ */
+const AWAITING_BILL_STATUSES: ReadonlySet<string> = new Set([
+  'bill_created',
+  BILL_MAIL_PENDING,
+  'bill_sent',
+  'reminder_sent',
+  NEEDS_MANUAL_REVIEW,
+]);
 
 const relationId = (relation: unknown): string | undefined => {
   if (typeof relation === 'string') return relation;
@@ -50,6 +63,55 @@ export const markBillMailSent = async (
       syncHistory: [...history, { date: sentAt, action: `bill_sent_to_${recipient}` }],
     },
   });
+};
+
+/**
+ * Parks a bill for manual review once its mail could not be sent or came back.
+ *
+ * The participant does not have the bill, while the row would still say it was sent and the
+ * finance team would wait for a payment that cannot come. Someone has to look at the
+ * address, so the row moves to `needs_manual_review` with the reason in its history. It
+ * leaves through "Rechnung versenden" on the row, which sends the same bill again.
+ *
+ * The row is re-read, because a bounce arrives hours or days after the mail left.
+ */
+export const markBillMailFailed = async (
+  payload: Payload,
+  participantId: string,
+  email: Pick<OutgoingEmail, 'id' | 'to'>,
+): Promise<void> => {
+  const participant = await payload.findByID({
+    collection: 'bill-participants',
+    id: participantId,
+    depth: 0,
+    disableErrors: true,
+    context: { internal: true },
+  });
+  if (participant === null || !AWAITING_BILL_STATUSES.has(participant.status)) return;
+
+  const history = Array.isArray(participant.syncHistory) ? participant.syncHistory : [];
+  await payload.update({
+    collection: 'bill-participants',
+    id: participantId,
+    context: { internal: true },
+    data: {
+      status: NEEDS_MANUAL_REVIEW,
+      syncHistory: [
+        ...history,
+        {
+          date: new Date().toISOString(),
+          action: `bill_mail_failed_to_${email.to}`,
+          reviewReason:
+            `Die Rechnung konnte nicht an ${email.to} zugestellt werden. Den Zustellverlauf der ` +
+            `ausgehenden E-Mail ${email.id} prüfen, eine falsche Adresse in der Cevi.DB ` +
+            `korrigieren und abgleichen, dann die Rechnung erneut versenden.`,
+        },
+      ],
+    },
+  });
+  payload.logger.warn(
+    `Bill mail ${email.id} to participant ${participantId} failed; parked for manual review.`,
+  );
 };
 
 /**

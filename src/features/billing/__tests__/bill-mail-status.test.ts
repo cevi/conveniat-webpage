@@ -1,5 +1,6 @@
 /* eslint-disable unicorn/no-null */
 import {
+  markBillMailFailed,
   markBillMailSent,
   staleBillMailReason,
 } from '@/features/billing/services/bill-mail-status';
@@ -12,6 +13,7 @@ const payloadDouble = (
   const payload = {
     findByID: jest.fn().mockResolvedValue(participant),
     update,
+    logger: { warn: jest.fn() },
   } as unknown as Payload;
   return { payload, update };
 };
@@ -50,6 +52,50 @@ describe('markBillMailSent', () => {
       expect(update).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('markBillMailFailed', () => {
+  const mail = { id: 'mail-1', to: 'eltern@example.com' };
+
+  it.each(['bill_created', 'bill_mail_pending', 'bill_sent', 'reminder_sent'])(
+    'parks a bill in "%s" for review once its mail bounced, and says why',
+    async (status) => {
+      const earlier = {
+        date: '2027-01-10T08:00:00.000Z',
+        action: 'bill_sent_to_eltern@example.com',
+      };
+      const { payload, update } = payloadDouble({ status, syncHistory: [earlier] });
+
+      await markBillMailFailed(payload, 'p1', mail);
+
+      const [[written]] = update.mock.calls as [
+        [{ data: { status: string; syncHistory: { action: string; reviewReason?: string }[] } }],
+      ];
+      expect(written.data.status).toBe('needs_manual_review');
+      expect(written.data.syncHistory[0]).toEqual(earlier);
+      expect(written.data.syncHistory[1]?.reviewReason).toContain('eltern@example.com');
+      expect(written.data.syncHistory[1]?.reviewReason).toContain('mail-1');
+    },
+  );
+
+  it.each(['paid', 'removed', 'new', 'pflichtangaben_missing'])(
+    'leaves a registration in "%s" alone',
+    async (status) => {
+      const { payload, update } = payloadDouble({ status, syncHistory: [] });
+
+      await markBillMailFailed(payload, 'p1', mail);
+
+      expect(update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does nothing for a registration that no longer exists', async () => {
+    const { payload, update } = payloadDouble(null);
+
+    await markBillMailFailed(payload, 'p1', mail);
+
+    expect(update).not.toHaveBeenCalled();
+  });
 });
 
 describe('staleBillMailReason', () => {
