@@ -27,6 +27,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isRetriggered = (result: unknown): boolean =>
   isRecord(result) && result['retriggeredBy'] !== undefined;
 
+/** How mail servers title or word a delay notice: Postfix, Exchange, Exim, Gmail. */
+const DELAY_WORDING =
+  /action:\s*delayed|delayed mail|delivery (?:has been |is )?delayed|delivery status notification \(delay\)|warning: message .* delayed/i;
+
 const isBounce = (result: unknown): boolean =>
   isRecord(result) &&
   result['bounceReport'] === true &&
@@ -256,8 +260,11 @@ export const updateTrackingRecords = async (
     // A delay notice only says the mail is still being retried. It is no verdict, so the mail
     // keeps the state it had until the report that follows decides; a bill whose mail was
     // greylisted for an hour must not read as undeliverable meanwhile.
+    // A notice without per-recipient blocks is only read by its words.
     const isDelayNotice =
-      bounces.length > 0 && bounces.every((bounce) => bounce.action === 'delayed');
+      bounces.length > 0
+        ? bounces.every((bounce) => bounce.action === 'delayed')
+        : DELAY_WORDING.test(dsnString) && !/action:\s*failed/i.test(dsnString);
     let deliveryStatus: OutgoingEmail['deliveryStatus'] = hasBounced ? 'error' : 'success';
     if (isDelayNotice) deliveryStatus = outgoingEmail.deliveryStatus ?? 'pending';
 

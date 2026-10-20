@@ -136,6 +136,22 @@ describe('updateTrackingRecords', () => {
     expect(call[0].data.deliveryStatus).toBe('success');
   });
 
+  it('reads a delay notice without recipient blocks by its wording', async () => {
+    const payload = fakePayload();
+    payload.findByID.mockResolvedValueOnce({ smtpResults: [sent], deliveryStatus: 'success' });
+
+    await updateTrackingRecords(
+      payload as unknown as Payload,
+      '6aaf08b5969d13ac1b1ae867',
+      false,
+      'Delivery Status Notification. Subject: Delayed Mail (still being retried).',
+      REPORT,
+    );
+
+    const call = payload.update.mock.calls[0] as [{ data: { deliveryStatus: unknown } }];
+    expect(call[0].data.deliveryStatus).toBe('success');
+  });
+
   it('marks an email failed when its recipient server finally gives up', async () => {
     const payload = fakePayload();
     payload.findByID.mockResolvedValueOnce({ smtpResults: [sent], deliveryStatus: 'success' });
