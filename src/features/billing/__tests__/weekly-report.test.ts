@@ -139,6 +139,24 @@ describe('buildWeeklyReport', () => {
     expect((row?.billed ?? 0) + (row?.pending ?? 0) + (row?.blocked ?? 0)).toBe(row?.total);
   });
 
+  it('counts a paid bill as paid, and still as billed and sent', () => {
+    const report = buildWeeklyReport(
+      [
+        participant({ status: 'paid' }),
+        participant({ status: 'paid', eventName: 'Hauptlager conveniat27 - Cevi Uster' }),
+        participant({ status: 'bill_sent' }),
+        participant({ status: 'reminder_sent' }),
+      ],
+      NOW,
+    );
+
+    const zueri = report.abteilungen.find((row) => row.name === 'Züri 11');
+    expect(zueri?.paid).toBe(1);
+    expect(zueri?.sent).toBe(3);
+    expect(zueri?.billed).toBe(3);
+    expect(report.totals.paid).toBe(2);
+  });
+
   it('keeps a removed registration out of the Anmeldestand', () => {
     const report = buildWeeklyReport(
       [participant({ status: 'new' }), participant({ status: 'removed' })],
