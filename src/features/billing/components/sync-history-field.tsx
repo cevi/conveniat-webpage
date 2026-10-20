@@ -23,6 +23,8 @@ const ACTION_LABELS: Record<string, string> = {
   manually_removed: 'Storniert',
   anmeldestatus_written_to_cevidb: 'Anmeldestatus in der Cevi.DB gesetzt',
   anmeldestatus_writeback_failed: 'Anmeldestatus konnte in der Cevi.DB nicht gesetzt werden',
+  anmeldestatus_reverted_in_cevidb: 'Anmeldestatus in der Cevi.DB zurückgesetzt',
+  anmeldestatus_revert_failed: 'Anmeldestatus konnte in der Cevi.DB nicht zurückgesetzt werden',
   payment_booked: 'Zahlung verbucht',
   payment_written_to_cevidb: 'In der Cevi.DB als bezahlt eingetragen',
   payment_writeback_failed: 'Konnte in der Cevi.DB nicht als bezahlt eingetragen werden',
@@ -31,6 +33,8 @@ const ACTION_LABELS: Record<string, string> = {
 const actionLabel = (action: string): string => {
   const known = ACTION_LABELS[action];
   if (known !== undefined) return known;
+  if (action.startsWith('bill_mail_failed_to_'))
+    return `Rechnung nicht zugestellt an ${action.slice('bill_mail_failed_to_'.length)}`;
   if (action.startsWith('bill_queued_for_'))
     return `Rechnung zum Versand eingereiht an ${action.slice('bill_queued_for_'.length)}`;
   return action.startsWith('bill_sent_to_')

@@ -46,6 +46,22 @@ export const resendOutgoingEmailHandler: PayloadHandler = async (request) => {
     // attachments waiting. Resending it means "send it now", attachments included.
     const attachments = await loadQueuedAttachments(emailDocument);
 
+    // A bill mail is its PDF, and only a queued one keeps it. Resent without it, the mail
+    // would read as delivered to billing and clear the review its failure raised, while the
+    // participant still has no bill.
+    const isBillMail =
+      emailDocument.billParticipant !== null && emailDocument.billParticipant !== undefined;
+    if (isBillMail && attachments.length === 0) {
+      return Response.json(
+        {
+          error:
+            'Diese Rechnungs-E-Mail hat ihr PDF nicht mehr. Bitte die Rechnung in der ' +
+            'Rechnungsverwaltung über «Email senden» erneut versenden.',
+        },
+        { status: 409 },
+      );
+    }
+
     // Prepare email options
     const emailOptions = {
       to: suppressed.length > 0 ? deliverable : emailDocument.to,
