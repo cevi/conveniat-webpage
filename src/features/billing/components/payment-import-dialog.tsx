@@ -2,6 +2,7 @@
 
 import { BillingErrorsDialog } from '@/features/billing/components/billing-errors-dialog';
 import { usePaymentImport } from '@/features/billing/hooks/use-payment-import';
+import { formatChf, OVERPAYMENT_TOLERANCE } from '@/features/billing/services/payment-matching';
 import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { Banner, Button } from '@payloadcms/ui';
@@ -14,10 +15,12 @@ const titleLabel: StaticTranslationString = {
   fr: 'Importer les paiements de la banque',
 };
 
+const tolerance = formatChf(OVERPAYMENT_TOLERANCE);
+
 const messageLabel: StaticTranslationString = {
-  de: 'Lade den CSV-Export der camt.054-Gutschriften hoch, ohne ihn vorher in Excel zu speichern.\n\nJede Zahlung, deren QR-Referenz und Betrag zu einer offenen Rechnung passen, wird als bezahlt verbucht und in der Cevi.DB als bezahlt mit Anmeldestatus «definitiv» eingetragen. Alle anderen Zahlungen werden aufgelistet und nicht verbucht.',
-  en: 'Upload the CSV export of the camt.054 credit notifications, without saving it in Excel first.\n\nEvery payment whose QR reference and amount match an open bill is booked as paid and marked as paid with registration status «definitiv» in Cevi.DB. All other payments are listed and not booked.',
-  fr: "Téléversez l'export CSV des avis de crédit camt.054, sans l'enregistrer auparavant dans Excel.\n\nChaque paiement dont la référence QR et le montant correspondent à une facture ouverte est comptabilisé comme payé et inscrit comme payé avec le statut d'inscription «definitiv» dans Cevi.DB. Tous les autres paiements sont listés et ne sont pas comptabilisés.",
+  de: `Lade den CSV-Export der camt.054-Gutschriften hoch, ohne ihn vorher in Excel zu speichern.\n\nJede Zahlung, deren QR-Referenz zu einer offenen Rechnung passt und die den Rechnungsbetrag oder höchstens ${tolerance} mehr bezahlt, wird als bezahlt verbucht und in der Cevi.DB als bezahlt mit Anmeldestatus «definitiv» eingetragen. Alle anderen Zahlungen werden aufgelistet und nicht verbucht.`,
+  en: `Upload the CSV export of the camt.054 credit notifications, without saving it in Excel first.\n\nEvery payment whose QR reference matches an open bill and that pays the bill's amount or at most ${tolerance} more is booked as paid and marked as paid with registration status «definitiv» in Cevi.DB. All other payments are listed and not booked.`,
+  fr: `Téléversez l'export CSV des avis de crédit camt.054, sans l'enregistrer auparavant dans Excel.\n\nChaque paiement dont la référence QR correspond à une facture ouverte et qui paie le montant de la facture ou au plus ${tolerance} de plus est comptabilisé comme payé et inscrit comme payé avec le statut d'inscription «definitiv» dans Cevi.DB. Tous les autres paiements sont listés et ne sont pas comptabilisés.`,
 };
 
 const confirmLabel: StaticTranslationString = {

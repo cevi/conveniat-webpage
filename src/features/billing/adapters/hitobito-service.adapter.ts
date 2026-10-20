@@ -62,6 +62,21 @@ function findAnswerField(
   );
 }
 
+/**
+ * Refuses to post an answer the question does not offer. Hitobito would save it anyway, and
+ * the Cevi.DB would then show the participation with no choice ticked: a Hof whose choice
+ * reads «definitv» lost its Anmeldestatus that way.
+ */
+function assertOffered(field: ParticipationAnswerField, value: string): void {
+  // A blank answer is never listed as a choice, but it is what an unanswered question
+  // holds, and a reverted write-back may have to put it back.
+  if (value.trim() === '') return;
+  if (field.choices.length === 0 || field.choices.includes(value.trim())) return;
+  throw new Error(
+    `Die Frage «${field.label}» bietet «${value}» nicht an, nur ${field.choices.map((choice) => `«${choice}»`).join(', ')}. Bitte die Auswahl in der Cevi.DB korrigieren.`,
+  );
+}
+
 export class HitobitoServiceAdapter implements HitobitoServicePort {
   private readonly client: HitobitoClient;
   private readonly eventService: EventService;
@@ -324,6 +339,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     questionKeywords: string[],
     value: string,
     keepValues: string[] = [],
+    onlyFrom?: string,
   ): Promise<ParticipationAnswerUpdate> {
     const editPath = `/groups/${groupId}/events/${eventId}/participations/${participationId}/edit`;
 
@@ -338,9 +354,11 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
 
     const previous = (before.value ?? '').trim();
     const isKept = keepValues.some((kept) => kept.toLowerCase() === previous.toLowerCase());
-    if (previous === value.trim() || isKept) {
+    const isMovedOn = onlyFrom !== undefined && onlyFrom.toLowerCase() !== previous.toLowerCase();
+    if (previous === value.trim() || isKept || isMovedOn) {
       return { changed: false, previous };
     }
+    assertOffered(before, value);
 
     await this.patchParticipation(groupId, eventId, participationId, {
       [before.fieldName]: value,
@@ -384,6 +402,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     if (previous === value.trim() && wasPaid === '1') {
       return { changed: false, previous };
     }
+    assertOffered(before, value);
 
     await this.patchParticipation(groupId, eventId, participationId, {
       [before.fieldName]: value,
@@ -393,6 +412,13 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
     const after = await this.fetchEditForm(editPath);
     const confirmed = (findAnswerField(after, questionKeywords)?.value ?? '').trim();
     const isPaid = extractFormFields(after)[PAYED_FIELD] === '1';
+    if (confirmed === value.trim() && !isPaid) {
+      // hitobito_cevi shows the box to whoever may edit the participation, but saves it only
+      // for someone who may edit the event, and drops it without an error otherwise.
+      throw new Error(
+        `Zahlung für Teilnahme ${participationId} nicht bestätigt: Die Cevi.DB hat «bezahlt» nicht übernommen, weil das Konto der Cevi.DB-Sitzung den Anlass ${eventId} nicht bearbeiten darf.`,
+      );
+    }
     if (confirmed !== value.trim() || !isPaid) {
       throw new Error(
         `Zahlung für Teilnahme ${participationId} nicht bestätigt: erwartet «${value}» und bezahlt, Formular zeigt «${confirmed}» und ${isPaid ? 'bezahlt' : 'nicht bezahlt'}.`,

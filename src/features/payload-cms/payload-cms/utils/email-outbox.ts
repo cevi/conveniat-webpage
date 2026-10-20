@@ -190,6 +190,8 @@ export const discardQueuedEmail = async (
   await payload.update({
     collection: 'outgoing-emails',
     id: email.id,
+    // Not a failed delivery, so a bill waiting for this mail is not parked for review.
+    context: { mailDiscarded: true },
     data: {
       deliveryStatus: 'error',
       smtpResults: results,

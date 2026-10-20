@@ -10,18 +10,22 @@ import type { HitobitoClient } from '@/lib/hitobito/client';
 import { SessionExpiredError } from '@/lib/hitobito/errors';
 
 /**
- * The participation edit form, with the Anmeldestatus option given by the test, and the
- * "bezahlt" box as Rails renders it: a hidden zero in front of the checkbox. `'absent'`
+ * The participation edit form, with the Anmeldestatus option given by the test out of the
+ * choices the event offers, and the "bezahlt" box as Rails renders it: a hidden zero in front of the checkbox. `'absent'`
  * leaves the box out, as for a session that may not see it.
  */
-const editForm = (selected: string, payed: boolean | 'absent' = false): string => `
+const editForm = (
+  selected: string,
+  payed: boolean | 'absent' = false,
+  choices: string[] = ['erfasst durch AVP', 'Rechnung gestellt', 'definitiv'],
+): string => `
 <html><head><meta name="csrf-token" content="meta" /></head><body>
 <form>
   <input type="hidden" name="authenticity_token" value="tok" />
   <label class="control-label" for="event_participation_answers_attributes_1_answer">Administrationsangaben &raquo; Anmeldestatus</label>
   <select name="event_participation[answers_attributes][1][answer]">
     <option value=""></option>
-    ${['erfasst durch AVP', 'Rechnung gestellt', 'definitiv']
+    ${choices
       .map(
         (option) =>
           `<option ${option === selected ? 'selected="selected" ' : ''}value="${option}">${option}</option>`,
@@ -170,6 +174,51 @@ describe('HitobitoServiceAdapter.updateParticipationAnswer', () => {
     ).rejects.toThrow('Status 422');
   });
 
+  it('refuses a value the question does not offer', async () => {
+    const { adapter, submissions } = adapterFor([
+      editForm('erfasst durch AVP', false, ['erfasst durch AVP', 'Rechnung gestelt']),
+    ]);
+
+    await expect(
+      adapter.updateParticipationAnswer('7', '42', '900', ['anmeldestatus'], 'Rechnung gestellt'),
+    ).rejects.toThrow('«Rechnung gestelt»');
+    expect(submissions).toHaveLength(0);
+  });
+
+  it('reverts only while the Cevi.DB still reads the value it is asked to replace', async () => {
+    const { adapter, submissions } = adapterFor([editForm('definitiv')]);
+
+    const result = await adapter.updateParticipationAnswer(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      'erfasst durch AVP',
+      [],
+      'Rechnung gestellt',
+    );
+
+    expect(result).toEqual({ changed: false, previous: 'definitiv' });
+    expect(submissions).toHaveLength(0);
+  });
+
+  it('can put back a blank answer, which no question lists as a choice', async () => {
+    const { adapter, submissions } = adapterFor([editForm('Rechnung gestellt'), editForm('')]);
+
+    const result = await adapter.updateParticipationAnswer(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      '',
+      [],
+      'Rechnung gestellt',
+    );
+
+    expect(result).toEqual({ changed: true, previous: 'Rechnung gestellt' });
+    expect(submissions).toHaveLength(1);
+  });
+
   it('says so when the form carries no such question', async () => {
     const { adapter } = adapterFor(['<form></form>']);
 
@@ -238,12 +287,36 @@ describe('HitobitoServiceAdapter.markParticipationPaid', () => {
     expect(submissions).toHaveLength(0);
   });
 
-  it('fails when the form does not show the box ticked afterwards', async () => {
-    const { adapter } = adapterFor([editForm('Rechnung gestellt'), editForm('definitiv', false)]);
+  it('fails when the form does not show the answer afterwards', async () => {
+    const { adapter } = adapterFor([
+      editForm('Rechnung gestellt'),
+      editForm('Rechnung gestellt', true),
+    ]);
 
     await expect(
       adapter.markParticipationPaid('7', '42', '900', ['anmeldestatus'], 'definitiv'),
     ).rejects.toThrow('nicht bestätigt');
+  });
+
+  it('names the missing event permission when the Cevi.DB drops the box', async () => {
+    // hitobito_cevi saves «bezahlt» only for someone who may edit the event, and keeps the
+    // rest of the form when it drops it.
+    const { adapter } = adapterFor([editForm('Rechnung gestellt'), editForm('definitiv', false)]);
+
+    await expect(
+      adapter.markParticipationPaid('7', '42', '900', ['anmeldestatus'], 'definitiv'),
+    ).rejects.toThrow('den Anlass 42 nicht bearbeiten darf');
+  });
+
+  it('writes nothing when the event spells definitiv differently', async () => {
+    const { adapter, submissions } = adapterFor([
+      editForm('Rechnung gestellt', false, ['erfasst durch AVP', 'Rechnung gestellt', 'definitv']),
+    ]);
+
+    await expect(
+      adapter.markParticipationPaid('7', '42', '900', ['anmeldestatus'], 'definitiv'),
+    ).rejects.toThrow('bietet «definitiv» nicht an');
+    expect(submissions).toHaveLength(0);
   });
 
   it('refuses to save a form that has no bezahlt box', async () => {
@@ -285,6 +358,7 @@ describe('writeBackPayment', () => {
         date: '2027-02-01T00:00:00.000Z',
         action: 'payment_written_to_cevidb',
         value: 'definitiv',
+        previous: 'Rechnung gestellt',
       },
     ]);
   });
@@ -376,6 +450,8 @@ describe('writeBackAnmeldestatus', () => {
         date: '2027-02-01T00:00:00.000Z',
         action: 'anmeldestatus_written_to_cevidb',
         value: 'Rechnung gestellt',
+        // Kept so a bill whose mail never arrives can put it back.
+        previous: 'erfasst durch AVP',
       },
     ]);
     expect(result.error).toBeUndefined();
