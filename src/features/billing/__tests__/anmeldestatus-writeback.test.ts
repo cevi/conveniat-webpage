@@ -412,7 +412,7 @@ describe('writeBackAnmeldestatus', () => {
     expect(writeBackLogger.warn).toHaveBeenCalledTimes(1);
   });
 
-  it('points at the Registrierungs-Einstellungen when no cookie is configured', async () => {
+  it('points at the Cevi.DB session settings when no cookie is configured', async () => {
     const result = await writeBackAnmeldestatus(
       undefined,
       participation,
@@ -420,7 +420,7 @@ describe('writeBackAnmeldestatus', () => {
       writeBackLogger,
     );
 
-    expect(result.error).toContain('Registrierungs-Einstellungen');
+    expect(result.error).toContain('«Cevi.DB-Sitzung»');
     expect(result.cookieInvalid).toBe(true);
   });
 
@@ -439,7 +439,7 @@ describe('writeBackAnmeldestatus', () => {
     );
 
     expect(result.error).toContain('Sitzung ist abgelaufen');
-    expect(result.error).toContain('Registrierungs-Einstellungen');
+    expect(result.error).toContain('«Cevi.DB-Sitzung»');
     expect(result.cookieInvalid).toBe(true);
     expect(result.anmeldestatus).toBe('erfasst durch AVP');
   });

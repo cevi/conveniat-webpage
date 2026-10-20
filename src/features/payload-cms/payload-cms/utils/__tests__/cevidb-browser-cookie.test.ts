@@ -1,4 +1,4 @@
-import { findBrowserCookieProblem } from '@/features/registration-process/api/cevidb-browser-cookie';
+import { findBrowserCookieProblem } from '@/features/payload-cms/payload-cms/utils/cevidb-browser-cookie';
 
 describe('findBrowserCookieProblem', () => {
   it('accepts the full header of a browser signed in with "remember me"', () => {

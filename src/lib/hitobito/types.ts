@@ -1,8 +1,4 @@
-import type {
-  PersonAttributesSchema,
-  PersonResourceSchema,
-  SearchCandidateSchema,
-} from '@/lib/hitobito/schemas';
+import type { PersonAttributesSchema, PersonResourceSchema } from '@/lib/hitobito/schemas';
 import type { z } from 'zod';
 
 export interface Logger {
@@ -13,22 +9,6 @@ export interface Logger {
 
 export type PersonAttributes = z.infer<typeof PersonAttributesSchema>;
 export type PersonResource = z.infer<typeof PersonResourceSchema>;
-export type SearchCandidate = z.infer<typeof SearchCandidateSchema>;
-
-export interface RoleAttributes {
-  group_id: number | string;
-  event_id?: number | string | null;
-  type: string;
-  label?: string | null;
-  end_on?: string | null;
-  [key: string]: unknown;
-}
-
-export interface RoleResource {
-  id: string | number;
-  type: string;
-  attributes: RoleAttributes;
-}
 
 export interface HitobitoConfig {
   baseUrl: string;

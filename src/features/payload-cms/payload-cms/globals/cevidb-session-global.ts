@@ -5,15 +5,22 @@ import {
   browserCookieProblemMessages,
   CLEAR_COOKIE_KEYWORD,
   findBrowserCookieProblem,
-} from '@/features/registration-process/api/cevidb-browser-cookie';
+} from '@/features/payload-cms/payload-cms/utils/cevidb-browser-cookie';
 import type { GlobalConfig } from 'payload';
 
-export const RegistrationManagement: GlobalConfig = {
+/**
+ * The signed-in Cevi.DB browser session that billing, the Funktionen sync and the session
+ * keepalive borrow for the pages the Cevi.DB API does not cover.
+ *
+ * The slug is left over from the helper registration this global used to configure. It stays
+ * because the stored cookie lives under it and the billing UI links to it.
+ */
+export const CeviDatabaseSessionGlobal: GlobalConfig = {
   slug: 'registration-management',
   label: {
-    en: 'Helper Registration',
-    de: 'Helfer Anmeldung',
-    fr: 'Inscription des assistants',
+    en: 'Cevi.DB session',
+    de: 'Cevi.DB-Sitzung',
+    fr: 'Session Cevi.DB',
   },
   access: {
     read: (args) => {
@@ -27,56 +34,10 @@ export const RegistrationManagement: GlobalConfig = {
   },
   admin: {
     hidden: () => !environmentVariables.FEATURE_ENABLE_REGISTRATION_MANAGEMENT,
-    group: AdminPanelDashboardGroups.WebpageHelpers.label,
+    group: AdminPanelDashboardGroups.BackofficeSystem.label,
     hideAPIURL: true,
-    components: {
-      views: {
-        edit: {
-          default: {
-            Component: '@/features/registration-process/components/management-view',
-            tab: {
-              label: 'Management',
-              href: '',
-            },
-          },
-          enrollment: {
-            path: '/enrollment',
-            Component: '@/features/registration-process/components/enrollment-view',
-            tab: {
-              label: 'New Enrollment',
-              href: '/enrollment',
-            },
-          },
-          // @ts-expect-error Payload falls back to default Document View when Component is omitted
-          config: {
-            path: '/config',
-            tab: {
-              label: 'Settings',
-              href: '/config',
-            },
-          },
-        },
-      },
-    },
   },
   fields: [
-    {
-      name: 'confirmationEmail',
-      type: 'richText',
-      localized: true,
-      label: {
-        en: 'Confirmation Email',
-        de: 'Bestätigungs-E-Mail',
-        fr: 'E-mail de confirmation',
-      },
-      admin: {
-        description: {
-          en: 'Email sent to the helper after registration. This email confirms a provisional registration. The final confirmation is sent by the responsible department.',
-          de: 'E-Mail an den Helfer nach der Anmeldung. Diese Mail bestätigt eine provisorische Anmeldung. Die definitive Bestätigung erfolgt durch das entsprechende Ressort.',
-          fr: "E-mail envoyé à l'assistant après l'inscription. Cet e-mail confirme une inscription provisoire. La confirmation définitive est envoyée par le département responsable.",
-        },
-      },
-    },
     {
       name: 'browserCookie',
       type: 'text',

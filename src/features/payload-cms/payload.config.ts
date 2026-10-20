@@ -21,7 +21,6 @@ import {
   withActiveJobTracking,
   withActiveWorkflowTracking,
 } from '@/features/payload-cms/payload-cms/tasks/active-job-tracking';
-import { checkHitobitoApprovalsTask } from '@/features/payload-cms/payload-cms/tasks/check-hitobito-approvals';
 import {
   DEFAULT_QUEUE,
   MAIL_QUEUE,
@@ -45,14 +44,6 @@ import { syncParticipantsTask } from '@/features/payload-cms/payload-cms/tasks/s
 import { writeBackPaymentsTask } from '@/features/payload-cms/payload-cms/tasks/write-back-payments';
 import { smartphoneBreakpoints } from '@/features/payload-cms/utils/smartphone-breakpoints';
 import { autoCheckoutPresenceTask } from '@/features/presence/payload-cms/tasks/auto-checkout-presence';
-import { registrationWorkflow } from '@/features/registration-process/workflows/registration-workflow';
-import { blockJobStep } from '@/features/registration-process/workflows/steps/block-job';
-import { cleanupTemporaryRolesStep } from '@/features/registration-process/workflows/steps/cleanup-temporary-roles';
-import { confirmationMessageStep } from '@/features/registration-process/workflows/steps/confirmation-message';
-import { createUserStep } from '@/features/registration-process/workflows/steps/create-user';
-import { ensureEventMembershipStep } from '@/features/registration-process/workflows/steps/ensure-event-membership';
-import { ensureGroupMembershipStep } from '@/features/registration-process/workflows/steps/ensure-group-membership';
-import { resolveUserStep } from '@/features/registration-process/workflows/steps/resolve-user';
 import type { RoutableConfig } from '@/types/types';
 import { redirectsTranslations } from '@payloadcms/plugin-redirects';
 import path from 'node:path';
@@ -368,15 +359,7 @@ const jobsConfig: JobsConfig = {
   // is running; `instrumentTasks` wraps the whole run, so the span covers both.
   tasks: instrumentTasks(
     [
-      resolveUserStep,
-      createUserStep,
-      blockJobStep,
-      cleanupTemporaryRolesStep,
-      ensureGroupMembershipStep,
-      ensureEventMembershipStep,
-      confirmationMessageStep,
       fetchSmtpBouncesTask,
-      checkHitobitoApprovalsTask,
       generatePdfThumbnailTask,
       publishScheduledAnnouncementsTask,
       drainPushQueueTask,
@@ -395,9 +378,7 @@ const jobsConfig: JobsConfig = {
       autoCheckoutPresenceTask,
     ].map((task) => withActiveJobTracking(task)),
   ),
-  workflows: [registrationWorkflow, brevoContactWorkflow].map((workflow) =>
-    withActiveWorkflowTracking(workflow),
-  ),
+  workflows: [brevoContactWorkflow].map((workflow) => withActiveWorkflowTracking(workflow)),
   autoRun: env.FEATURE_ENABLE_WORKFLOWS
     ? [
         {

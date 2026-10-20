@@ -32,7 +32,6 @@ import { UserSubmittedImagesCollection } from '@/features/payload-cms/payload-cm
 import { asInstrumentalCollection } from '@/features/payload-cms/payload-cms/utils/instrumentalized-collection';
 import { slugToUrlMapping } from '@/features/payload-cms/slug-to-url-mapping';
 import { PresenceLogCollection } from '@/features/presence/payload-cms/collections/presence-log-collection';
-import { BlockedJobs } from '@/features/registration-process/collections/blocked-jobs';
 import type { RoutableCollectionConfigs } from '@/types/types';
 import type { CollectionConfig } from 'payload';
 
@@ -54,7 +53,6 @@ const rawCollectionsConfig: CollectionConfig[] = [
   PermissionsCollection,
   FormCollection,
   JobCollection,
-  BlockedJobs,
 
   // App
   AnnouncementChannelsCollection,
