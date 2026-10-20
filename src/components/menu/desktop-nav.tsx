@@ -332,12 +332,12 @@ export const DesktopNav: React.FC<{
                             href={subItem.itemLink}
                             openInNewTab={subItem.openInNewTab}
                             prefetch
-                            className="group/head text-conveniat-green hover:text-conveniat-green/80 border-conveniat-green/20 mb-3 flex h-8 items-center border-b pb-1 font-['Montserrat'] text-xs font-extrabold tracking-wider uppercase transition-colors"
+                            className="group/head text-conveniat-green hover:text-conveniat-green/80 border-conveniat-green/20 font-heading mb-3 flex h-8 items-center border-b pb-1 text-xs font-extrabold tracking-wider uppercase transition-colors"
                           >
                             <span className="truncate">{subItem.label}</span>
                           </LinkComponent>
                         ) : (
-                          <div className="text-conveniat-green border-conveniat-green/20 mb-3 flex h-8 items-center border-b pb-1 font-['Montserrat'] text-xs font-extrabold tracking-wider uppercase">
+                          <div className="text-conveniat-green border-conveniat-green/20 font-heading mb-3 flex h-8 items-center border-b pb-1 text-xs font-extrabold tracking-wider uppercase">
                             <span className="truncate">{subItem.label}</span>
                           </div>
                         )}
