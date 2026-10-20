@@ -40,10 +40,11 @@ const syncBillWithDelivery: CollectionAfterChangeHook<OutgoingEmail> = async ({
   if (participantId === undefined) return doc;
   try {
     await (doc.deliveryStatus === 'success'
-      ? markBillMailSent(req.payload, participantId, doc.to)
+      ? markBillMailSent(req.payload, participantId, doc)
       : markBillMailFailed(req.payload, participantId, doc));
   } catch (error) {
-    // Thrown from here, it would undo the delivery status the mail has just been given.
+    // The mail's own status is what is true; a bill that could not follow it is logged,
+    // not allowed to fail the write that recorded it.
     req.payload.logger.error({
       err: error,
       msg: `Could not update bill ${participantId} after its mail ${doc.id} turned ${String(doc.deliveryStatus)}.`,

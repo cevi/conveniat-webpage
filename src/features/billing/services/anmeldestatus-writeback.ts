@@ -20,6 +20,8 @@ const ANMELDESTATUS_KEYWORDS = ['anmeldestatus'];
 
 export const ANMELDESTATUS_WRITTEN_ACTION = 'anmeldestatus_written_to_cevidb';
 export const ANMELDESTATUS_FAILED_ACTION = 'anmeldestatus_writeback_failed';
+export const ANMELDESTATUS_REVERTED_ACTION = 'anmeldestatus_reverted_in_cevidb';
+export const ANMELDESTATUS_REVERT_FAILED_ACTION = 'anmeldestatus_revert_failed';
 export const PAYMENT_BOOKED_ACTION = 'payment_booked';
 export const PAYMENT_WRITTEN_ACTION = 'payment_written_to_cevidb';
 export const PAYMENT_FAILED_ACTION = 'payment_writeback_failed';
@@ -33,6 +35,8 @@ export interface AnmeldestatusHistoryEntry {
   action: string;
   /** The value written to the Cevi.DB. */
   value?: string;
+  /** What the Cevi.DB held before, so a bill whose mail never arrived can put it back. */
+  previous?: string;
   /** Why the write-back failed, for the operator reading the row. */
   reviewReason?: string;
 }
@@ -80,7 +84,7 @@ export function needsPaymentWriteBack(
   return lastPaymentEntry?.action !== PAYMENT_WRITTEN_ACTION;
 }
 
-interface WriteBackParticipation {
+export interface WriteBackParticipation {
   groupId: string;
   eventId: string;
   participationUuid: string;
@@ -182,6 +186,71 @@ export async function writeBackPayment(
 }
 
 /**
+ * Puts the Anmeldestatus back to what it was before "Rechnung gestellt" was written, once
+ * the bill's mail turned out not to have arrived. The Cevi.DB would otherwise tell the
+ * Abteilung that the participant has been invoiced.
+ *
+ * Only reverts while the Cevi.DB still reads "Rechnung gestellt": a value someone set since
+ * is theirs, and is adopted instead. Returns no entries when the last write-back of this
+ * row was already reverted, or never happened.
+ */
+export async function revertAnmeldestatus(
+  hitobitoService: HitobitoServicePort | undefined,
+  participation: WriteBackParticipation,
+  history: readonly { action: string; previous?: unknown }[],
+  now: string,
+  logger: WriteBackLogger,
+): Promise<AnmeldestatusWriteBackResult> {
+  const last = history.findLast(
+    (entry) =>
+      entry.action === ANMELDESTATUS_WRITTEN_ACTION ||
+      entry.action === ANMELDESTATUS_REVERTED_ACTION,
+  );
+  if (last?.action !== ANMELDESTATUS_WRITTEN_ACTION) {
+    return { anmeldestatus: participation.anmeldestatus, historyEntries: [] };
+  }
+
+  const previous = last.previous;
+  const failedWhat = `Anmeldestatus konnte in der Cevi.DB nicht von «${ANMELDESTATUS_INVOICED}» zurückgesetzt werden`;
+  if (typeof previous !== 'string') {
+    // Written before the previous value was recorded.
+    const reason = 'Der Wert davor ist nicht bekannt. Bitte in der Cevi.DB von Hand zurücksetzen.';
+    logger.warn(
+      `Cevi.DB revert failed for participation ${participation.participationUuid} (${participation.fullName}): previous value unknown`,
+    );
+    return {
+      anmeldestatus: participation.anmeldestatus,
+      historyEntries: [
+        {
+          date: now,
+          action: ANMELDESTATUS_REVERT_FAILED_ACTION,
+          reviewReason: `${failedWhat}: ${reason}`,
+        },
+      ],
+      error: `${participation.fullName}: ${failedWhat} – ${reason}`,
+    };
+  }
+
+  const target: WriteBackTarget = {
+    value: previous,
+    failedWhat,
+    writtenAction: ANMELDESTATUS_REVERTED_ACTION,
+    failedAction: ANMELDESTATUS_REVERT_FAILED_ACTION,
+    write: (service, { groupId, eventId, participationUuid }) =>
+      service.updateParticipationAnswer(
+        groupId,
+        eventId,
+        participationUuid,
+        ANMELDESTATUS_KEYWORDS,
+        previous,
+        [],
+        ANMELDESTATUS_INVOICED,
+      ),
+  };
+  return writeBack(target, hitobitoService, participation, now, logger);
+}
+
+/**
  * Runs one write-back and turns its outcome into what the caller stores on the row.
  *
  * @param hitobitoService `undefined` when no browser cookie is configured, which is
@@ -235,7 +304,9 @@ async function writeBack(
     );
     return {
       anmeldestatus: target.value,
-      historyEntries: [{ date: now, action: target.writtenAction, value: target.value }],
+      historyEntries: [
+        { date: now, action: target.writtenAction, value: target.value, previous: result.previous },
+      ],
     };
   } catch (error) {
     // A dead session reaches here as a login page every scraper fails to read, so it is

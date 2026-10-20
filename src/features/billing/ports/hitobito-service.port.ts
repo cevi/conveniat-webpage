@@ -65,6 +65,7 @@ export interface HitobitoServicePort {
    * @param questionKeywords all of which the question text must contain, case-insensitively
    * @param value the answer to write
    * @param keepValues answers that must not be overwritten; the write is then skipped
+   * @param onlyFrom write only while the answer still reads this; otherwise skip the write
    */
   updateParticipationAnswer(
     groupId: string,
@@ -73,6 +74,7 @@ export interface HitobitoServicePort {
     questionKeywords: string[],
     value: string,
     keepValues?: string[],
+    onlyFrom?: string,
   ): Promise<ParticipationAnswerUpdate>;
   /**
    * Marks a participation as paid in the Cevi.DB: ticks its "bezahlt" box and writes one

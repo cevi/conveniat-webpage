@@ -297,9 +297,64 @@ async function sendBillsLocked(
         'replaced by a newer mail for this registration',
       );
 
-      const mailResult = await (isQueued
-        ? queueBackgroundEmail(payload, billMail, String(document_.id))
-        : sendTrackedEmail(payload, billMail, undefined, String(document_.id)));
+      // The bill is on its way, so the Cevi.DB has to read "Rechnung gestellt" — already
+      // for a queued one, which leaves within hours or days. A row that is
+      // already there, or that the Anmeldeverantwortliche has closed as "definitiv", is
+      // left alone — a write-back must never move a registration backwards.
+      const writeBackToCeviDB = async (): Promise<
+        Awaited<ReturnType<typeof writeBackAnmeldestatus>>
+      > => {
+        const result = await writeBackAnmeldestatus(
+          hitobitoService,
+          {
+            groupId: document_.groupId ?? '',
+            eventId: document_.eventId,
+            participationUuid: document_.participationUuid,
+            fullName,
+            anmeldestatus: document_.anmeldestatus,
+          },
+          new Date().toISOString(),
+          writeBackLogger,
+        );
+        if (result.error !== undefined) {
+          summary.errors.push(result.error);
+          // The operator can only fix a cookie in one place, so link them to it.
+          if (result.cookieInvalid === true) summary.relatedDocuments = ['registrationManagement'];
+        }
+        return result;
+      };
+      const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
+
+      if (isQueued) {
+        // The Cevi.DB is written before the mail is queued, and the row in the same update
+        // that marks it waiting. The other way round, the outbox could send the mail, and see
+        // it fail, while this run was still writing: the failure would find no record of
+        // what to put back, and this run would then overwrite the row it had just parked.
+        const writeBack = await writeBackToCeviDB();
+        await queueBackgroundEmail(payload, billMail, String(document_.id));
+        // `bill_sent` and the send date follow when the mail leaves the queue; see
+        // `markBillMailSent`.
+        await payload.update({
+          collection: 'bill-participants',
+          context: { internal: true },
+          id: document_.id,
+          data: {
+            status: BILL_MAIL_PENDING,
+            ...(writeBack.anmeldestatus === undefined
+              ? {}
+              : { anmeldestatus: writeBack.anmeldestatus }),
+            syncHistory: [
+              ...history,
+              { date: new Date().toISOString(), action: `bill_queued_for_${email}` },
+              ...writeBack.historyEntries,
+            ],
+          },
+        });
+        summary.queuedCount = (summary.queuedCount ?? 0) + 1;
+        continue;
+      }
+
+      const mailResult = await sendTrackedEmail(payload, billMail, undefined, String(document_.id));
 
       // The mail server refused it, or the address is suppressed. The mail's row has already
       // parked the bill for review, and marking it sent here would bury that.
@@ -312,63 +367,24 @@ async function sendBillsLocked(
         continue;
       }
 
-      const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
-      let historyAfterSend: SyncHistoryEntry[];
-      if (isQueued) {
-        // `bill_sent` and the send date follow when the mail leaves the queue; see
-        // `markBillMailSent`.
-        historyAfterSend = [
-          ...history,
-          { date: new Date().toISOString(), action: `bill_queued_for_${email}` },
-        ];
-        await payload.update({
-          collection: 'bill-participants',
-          context: { internal: true },
-          id: document_.id,
-          data: { status: BILL_MAIL_PENDING, syncHistory: historyAfterSend },
-        });
-        summary.queuedCount = (summary.queuedCount ?? 0) + 1;
-      } else {
-        historyAfterSend = [
-          ...history,
-          { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
-        ];
-        await payload.update({
-          collection: 'bill-participants',
-          context: { internal: true },
-          id: document_.id,
-          data: {
-            status: sentStatus,
-            billSentDate: new Date().toISOString(),
-            syncHistory: historyAfterSend,
-          },
-        });
-        summary.sentCount++;
-      }
-
-      // The bill is on its way, so the Cevi.DB has to read "Rechnung gestellt" — already
-      // for a queued one, which leaves within hours or days. A row that is
-      // already there, or that the Anmeldeverantwortliche has closed as "definitiv", is
-      // left alone — a write-back must never move a registration backwards.
-      const writeBack = await writeBackAnmeldestatus(
-        hitobitoService,
-        {
-          groupId: document_.groupId ?? '',
-          eventId: document_.eventId,
-          participationUuid: document_.participationUuid,
-          fullName,
-          anmeldestatus: document_.anmeldestatus,
+      const historyAfterSend = [
+        ...history,
+        { date: new Date().toISOString(), action: `bill_sent_to_${email}` },
+      ];
+      await payload.update({
+        collection: 'bill-participants',
+        context: { internal: true },
+        id: document_.id,
+        data: {
+          status: sentStatus,
+          billSentDate: new Date().toISOString(),
+          syncHistory: historyAfterSend,
         },
-        new Date().toISOString(),
-        writeBackLogger,
-      );
+      });
+      summary.sentCount++;
 
-      if (writeBack.error !== undefined) {
-        summary.errors.push(writeBack.error);
-        // The operator can only fix a cookie in one place, so link them to it.
-        if (writeBack.cookieInvalid === true) summary.relatedDocuments = ['registrationManagement'];
-      }
-
+      // Written after the row says sent, so a failing write-back cannot cost it that.
+      const writeBack = await writeBackToCeviDB();
       if (
         writeBack.historyEntries.length > 0 ||
         writeBack.anmeldestatus !== document_.anmeldestatus

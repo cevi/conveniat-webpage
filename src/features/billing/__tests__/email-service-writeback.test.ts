@@ -99,11 +99,27 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
       'Rechnung gestellt',
       ['definitiv'],
     );
-    // The status is written first, so a failing write-back cannot cost the bill its
-    // place in the queue; the answer follows in a second update.
+    expect(updates).toHaveLength(1);
     expect(updates[0]?.['status']).toBe('bill_mail_pending');
-    expect(updates[1]?.['anmeldestatus']).toBe('Rechnung gestellt');
+    expect(updates[0]?.['anmeldestatus']).toBe('Rechnung gestellt');
     expect(summary.errors).toHaveLength(0);
+  });
+
+  it('tells the Cevi.DB before the mail can leave, so a failed mail finds what to put back', async () => {
+    const { payload, updates } = payloadDouble(participantRow());
+    const update = jest.fn().mockResolvedValue({ changed: true, previous: 'erfasst durch AVP' });
+    (queueBackgroundEmail as jest.Mock).mockClear();
+
+    await sendBills(payload, undefined, { hitobitoService: hitobitoDouble(update) });
+
+    const [writtenAt] = update.mock.invocationCallOrder;
+    const [queuedAt] = (queueBackgroundEmail as jest.Mock).mock.invocationCallOrder;
+    expect(writtenAt).toBeLessThan(queuedAt ?? 0);
+    const history = updates[0]?.['syncHistory'] as { action: string; previous?: string }[];
+    expect(history.at(-1)).toMatchObject({
+      action: 'anmeldestatus_written_to_cevidb',
+      previous: 'erfasst durch AVP',
+    });
   });
 
   it('never touches a registration that is already definitiv', async () => {
@@ -130,10 +146,11 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
     expect(summary.queuedCount).toBe(1);
     expect(summary.failedCount).toBe(0);
     expect(summary.errors[0]).toContain('Max Mustermann');
-    const history = updates[1]?.['syncHistory'] as { action: string }[];
+    expect(updates[0]?.['status']).toBe('bill_mail_pending');
+    const history = updates[0]?.['syncHistory'] as { action: string }[];
     expect(history.at(-1)?.action).toBe('anmeldestatus_writeback_failed');
     // The failed write-back must not invent a value on the row.
-    expect(updates[1]?.['anmeldestatus']).toBe('erfasst durch AVP');
+    expect(updates[0]?.['anmeldestatus']).toBe('erfasst durch AVP');
   });
 
   it('links the operator to the Cevi.DB session settings when no cookie is configured', async () => {

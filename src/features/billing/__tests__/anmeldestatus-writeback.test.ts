@@ -185,6 +185,40 @@ describe('HitobitoServiceAdapter.updateParticipationAnswer', () => {
     expect(submissions).toHaveLength(0);
   });
 
+  it('reverts only while the Cevi.DB still reads the value it is asked to replace', async () => {
+    const { adapter, submissions } = adapterFor([editForm('definitiv')]);
+
+    const result = await adapter.updateParticipationAnswer(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      'erfasst durch AVP',
+      [],
+      'Rechnung gestellt',
+    );
+
+    expect(result).toEqual({ changed: false, previous: 'definitiv' });
+    expect(submissions).toHaveLength(0);
+  });
+
+  it('can put back a blank answer, which no question lists as a choice', async () => {
+    const { adapter, submissions } = adapterFor([editForm('Rechnung gestellt'), editForm('')]);
+
+    const result = await adapter.updateParticipationAnswer(
+      '7',
+      '42',
+      '900',
+      ['anmeldestatus'],
+      '',
+      [],
+      'Rechnung gestellt',
+    );
+
+    expect(result).toEqual({ changed: true, previous: 'Rechnung gestellt' });
+    expect(submissions).toHaveLength(1);
+  });
+
   it('says so when the form carries no such question', async () => {
     const { adapter } = adapterFor(['<form></form>']);
 
@@ -324,6 +358,7 @@ describe('writeBackPayment', () => {
         date: '2027-02-01T00:00:00.000Z',
         action: 'payment_written_to_cevidb',
         value: 'definitiv',
+        previous: 'Rechnung gestellt',
       },
     ]);
   });
@@ -415,6 +450,8 @@ describe('writeBackAnmeldestatus', () => {
         date: '2027-02-01T00:00:00.000Z',
         action: 'anmeldestatus_written_to_cevidb',
         value: 'Rechnung gestellt',
+        // Kept so a bill whose mail never arrives can put it back.
+        previous: 'erfasst durch AVP',
       },
     ]);
     expect(result.error).toBeUndefined();

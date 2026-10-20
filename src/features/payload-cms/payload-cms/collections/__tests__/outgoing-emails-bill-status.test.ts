@@ -46,7 +46,7 @@ describe('a bill follows the delivery of its mail', () => {
     expect(mockMarkBillMailSent).toHaveBeenCalledWith(
       expect.anything(),
       'p1',
-      'eltern@example.com',
+      expect.objectContaining({ id: 'mail-1' }),
     );
     expect(mockMarkBillMailFailed).not.toHaveBeenCalled();
   });
