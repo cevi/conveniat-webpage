@@ -66,7 +66,7 @@ describe('resending an outgoing email from its row', () => {
   it('resends any other mail without attachments', async () => {
     mockLoadQueuedAttachments.mockResolvedValue([]);
 
-    const { sendEmail } = await resend({ billParticipant: null });
+    const { sendEmail } = await resend({});
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
   });

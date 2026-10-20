@@ -32,7 +32,7 @@ jest.mock('@/features/payload-cms/payload-cms/utils/email-outbox', () => ({
 }));
 const mockMarkBillMailNotQueued = jest.fn();
 jest.mock('@/features/billing/services/bill-mail-status', () => ({
-  ...jest.requireActual('@/features/billing/services/bill-mail-status'),
+  ...jest.requireActual<object>('@/features/billing/services/bill-mail-status'),
   markBillMailNotQueued: (...args: unknown[]): unknown => mockMarkBillMailNotQueued(...args),
 }));
 jest.mock('@/lib/hitobito', () => ({
