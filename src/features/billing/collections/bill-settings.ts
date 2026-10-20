@@ -1063,6 +1063,67 @@ export const BillSettingsGlobal: GlobalConfig = {
           },
           fields: [
             {
+              name: 'dailyBillingRun',
+              type: 'group',
+              label: {
+                en: 'Daily billing run',
+                de: 'Täglicher Rechnungslauf',
+                fr: 'Facturation quotidienne',
+              },
+              admin: {
+                description: {
+                  en: 'Generates the bills once a day after the nightly sync and emails every generated bill that has not been sent yet, with the template below. Runs only once that day’s sync has run to the end.',
+                  de: 'Generiert einmal täglich nach dem nächtlichen Abgleich die Rechnungen und versendet alle generierten, noch nicht versendeten Rechnungen mit der Vorlage unten. Läuft erst, wenn der Abgleich des Tages vollständig durchgelaufen ist.',
+                  fr: 'Génère les factures une fois par jour après la synchronisation nocturne et envoie par e-mail toutes les factures générées pas encore envoyées, avec le modèle ci-dessous. Ne démarre que lorsque la synchronisation du jour est allée jusqu’au bout.',
+                },
+              },
+              fields: [
+                {
+                  name: 'enabled',
+                  type: 'checkbox',
+                  defaultValue: false,
+                  label: {
+                    en: 'Generate and send bills automatically every day',
+                    de: 'Rechnungen täglich automatisch generieren und versenden',
+                    fr: 'Générer et envoyer les factures automatiquement chaque jour',
+                  },
+                },
+                {
+                  name: 'hour',
+                  type: 'number',
+                  defaultValue: 6,
+                  min: 0,
+                  max: 23,
+                  label: {
+                    en: 'From hour (0–23, Europe/Zurich)',
+                    de: 'Ab Stunde (0–23, Europe/Zürich)',
+                    fr: 'À partir de l’heure (0–23, Europe/Zurich)',
+                  },
+                  admin: {
+                    description: {
+                      en: 'The earliest start. If the sync is not done by then, it is checked again every hour until midnight.',
+                      de: 'Frühester Start. Ist der Abgleich dann noch nicht fertig, wird bis Mitternacht stündlich erneut geprüft.',
+                      fr: 'Le démarrage au plus tôt. Si la synchronisation n’est pas terminée, une nouvelle vérification a lieu chaque heure jusqu’à minuit.',
+                    },
+                  },
+                },
+                {
+                  name: 'lastRunAt',
+                  type: 'date',
+                  label: { en: 'Last started', de: 'Zuletzt gestartet', fr: 'Dernier démarrage' },
+                  admin: {
+                    readOnly: true,
+                    date: { pickerAppearance: 'dayAndTime' },
+                    description: {
+                      en: 'Written by the scheduler. Also what stops a second run on the same day.',
+                      de: 'Wird vom Zeitplan gesetzt. Verhindert zugleich einen zweiten Lauf am selben Tag.',
+                      fr: 'Écrit par le planificateur; empêche un second lancement le même jour.',
+                    },
+                  },
+                },
+              ],
+            },
+            {
               name: 'invoiceEmailSubject',
               type: 'text',
               defaultValue: 'conveniat27 – Anmeldebestätigung und Rechnung',

@@ -236,6 +236,7 @@ export interface Config {
       sendBills: TaskSendBills;
       sendWeeklyReport: TaskSendWeeklyReport;
       sendPflichtangabenReminders: TaskSendPflichtangabenReminders;
+      runDailyBilling: TaskRunDailyBilling;
       writeBackPayments: TaskWriteBackPayments;
       cleanupTemporaryFormFiles: TaskCleanupTemporaryFormFiles;
       syncFunktionen: TaskSyncFunktionen;
@@ -5197,6 +5198,7 @@ export interface PayloadJob {
           | 'sendBills'
           | 'sendWeeklyReport'
           | 'sendPflichtangabenReminders'
+          | 'runDailyBilling'
           | 'writeBackPayments'
           | 'cleanupTemporaryFormFiles'
           | 'syncFunktionen'
@@ -5252,6 +5254,7 @@ export interface PayloadJob {
         | 'sendBills'
         | 'sendWeeklyReport'
         | 'sendPflichtangabenReminders'
+        | 'runDailyBilling'
         | 'writeBackPayments'
         | 'cleanupTemporaryFormFiles'
         | 'syncFunktionen'
@@ -9300,6 +9303,20 @@ export interface BillSetting {
    * Comma-separated list of email addresses for the weekly bill overview (Excel).
    */
   financeEmailRecipients?: string | null;
+  /**
+   * Generates the bills once a day after the nightly sync and emails every generated bill that has not been sent yet, with the template below. Runs only once that day’s sync has run to the end.
+   */
+  dailyBillingRun?: {
+    enabled?: boolean | null;
+    /**
+     * The earliest start. If the sync is not done by then, it is checked again every hour until midnight.
+     */
+    hour?: number | null;
+    /**
+     * Written by the scheduler. Also what stops a second run on the same day.
+     */
+    lastRunAt?: string | null;
+  };
   invoiceEmailSubject?: string | null;
   /**
    * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.
@@ -9860,6 +9877,13 @@ export interface BillSettingsSelect<T extends boolean = true> {
         lastSentAt?: T;
       };
   financeEmailRecipients?: T;
+  dailyBillingRun?:
+    | T
+    | {
+        enabled?: T;
+        hour?: T;
+        lastRunAt?: T;
+      };
   invoiceEmailSubject?: T;
   invoiceEmailBody?: T;
   updatedAt?: T;
@@ -10056,7 +10080,9 @@ export interface TaskSyncParticipants {
  * via the `definition` "TaskGenerateBills".
  */
 export interface TaskGenerateBills {
-  input?: unknown;
+  input: {
+    sendAfterwards?: boolean | null;
+  };
   output?: unknown;
 }
 /**
@@ -10080,6 +10106,14 @@ export interface TaskSendWeeklyReport {
  * via the `definition` "TaskSendPflichtangabenReminders".
  */
 export interface TaskSendPflichtangabenReminders {
+  input?: unknown;
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskRunDailyBilling".
+ */
+export interface TaskRunDailyBilling {
   input?: unknown;
   output?: unknown;
 }

@@ -6,7 +6,11 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
-import { buildLatestJobWhere, selectTaskLogOutput } from '@/features/billing/services/job-log';
+import {
+  buildLatestJobWhere,
+  getJobDerivedStatus,
+  selectTaskLogOutput,
+} from '@/features/billing/services/job-log';
 import { populateSubeventsUseCase } from '@/features/billing/services/populate-subevents';
 import { previewPdfUseCase } from '@/features/billing/services/preview-pdf';
 import type { PopulateSubeventsStreamMessage } from '@/features/billing/types';
@@ -700,16 +704,6 @@ interface SyncJobStatus {
   updatedAt: string;
   /** Only present while the job is running and reporting. */
   progress?: BillingJobProgress;
-}
-
-function getJobDerivedStatus(job: {
-  completedAt?: string | null;
-  hasError?: boolean | null;
-}): BillingJobStatus {
-  if (job.hasError === true) return BillingJobStatus.Failed;
-  if (typeof job.completedAt === 'string' && job.completedAt.length > 0)
-    return BillingJobStatus.Success;
-  return BillingJobStatus.Pending;
 }
 
 function getJobErrorMessage(job: {
