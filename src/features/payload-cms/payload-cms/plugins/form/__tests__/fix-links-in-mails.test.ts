@@ -22,13 +22,16 @@ jest.mock('@/features/payload-cms/payload-cms/utils/send-tracked-email', () => (
 }));
 
 interface TextNode {
+  type?: string;
   text?: string;
   children?: TextNode[];
 }
 
-/** Renders the text of a Lexical tree, which is all the placeholders touch. */
+/** Renders the text of a Lexical tree, which is all the placeholders touch, a line break as `\n`. */
 const textOf = (node: TextNode): string =>
-  (node.text ?? '') + (node.children ?? []).map((child) => textOf(child)).join('');
+  node.type === 'linebreak'
+    ? '\n'
+    : (node.text ?? '') + (node.children ?? []).map((child) => textOf(child)).join('');
 
 // `@payloadcms/richtext-lexical` ships ESM only, which Jest cannot require
 jest.mock('@payloadcms/richtext-lexical/html', () => ({
@@ -49,8 +52,9 @@ import { beforeEmailChangeHook } from '@/features/payload-cms/payload-cms/plugin
 import type { FormattedEmail } from '@payloadcms/plugin-form-builder/types';
 
 /** A form whose one email asks the approver to confirm, with a Lexical message. */
-const formWithMessage = (text: string): Record<string, unknown> => ({
+const formWithMessage = (text: string, fields: unknown[] = []): Record<string, unknown> => ({
   id: 'form-1',
+  sections: [{ formSection: { fields } }],
   emails: [
     {
       message: {
@@ -67,8 +71,9 @@ const formWithMessage = (text: string): Record<string, unknown> => ({
 const sentHtmlFor = async (
   text: string,
   submissionData: { field: string; value: string }[],
+  fields: unknown[] = [],
 ): Promise<string> => {
-  mockPayload.findByID.mockResolvedValue(formWithMessage(text));
+  mockPayload.findByID.mockResolvedValue(formWithMessage(text, fields));
   const email = { to: 'approver@example.com', subject: 'Bitte bestätigen', html: '' };
   await beforeEmailChangeHook([email as FormattedEmail], {
     doc: { id: 'submission-1', form: 'form-1', approvalToken: APPROVAL_TOKEN, submissionData },
@@ -177,5 +182,25 @@ describe('beforeEmailChangeHook — placeholders in answers', () => {
       [{ data: { subject: string } }],
     ];
     expect(data.subject).toBe('Anmeldung {{approval-link}}');
+  });
+});
+
+describe('beforeEmailChangeHook — answers shown for people', () => {
+  it('lists the marked days one range per line, as the calendar showed them', async () => {
+    const html = await sentHtmlFor(
+      'Deine Zeiten: {{zeitfenster}}',
+      [{ field: 'zeitfenster', value: '2027-07-15 – 2027-07-23, 2027-08-10 – 2027-08-12' }],
+      [{ blockType: 'dateSlotSelection', name: 'zeitfenster' }],
+    );
+    expect(html).toBe(
+      '<div>Deine Zeiten: Do., 15.07.2027 – Fr., 23.07.2027 · 9 Tage\nDi., 10.08.2027 – Do., 12.08.2027 · 3 Tage</div>',
+    );
+  });
+
+  it('keeps the lines of a multi-line answer', async () => {
+    const html = await sentHtmlFor('Bemerkungen: {{bemerkungen}}', [
+      { field: 'bemerkungen', value: 'Ab Mittag\nMit Velo' },
+    ]);
+    expect(html).toBe('<div>Bemerkungen: Ab Mittag\nMit Velo</div>');
   });
 });
