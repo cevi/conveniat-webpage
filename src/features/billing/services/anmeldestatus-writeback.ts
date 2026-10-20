@@ -26,7 +26,7 @@ export const PAYMENT_FAILED_ACTION = 'payment_writeback_failed';
 
 /** Both cookie failures read the same to an operator: go to the settings and paste a new one. */
 const MISSING_COOKIE_REASON =
-  'Es ist kein gültiger Browser-Cookie hinterlegt. Bitte trage ihn in den Registrierungs-Einstellungen ein.';
+  'Es ist kein gültiger Browser-Cookie hinterlegt. Bitte trage ihn unter «Cevi.DB-Sitzung» ein.';
 
 export interface AnmeldestatusHistoryEntry {
   date: string;

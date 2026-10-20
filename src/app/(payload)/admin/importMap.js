@@ -103,8 +103,6 @@ import { default as default_d37e91e5b9afb343d4dc268d1c9ab212 } from '@/features/
 import { default as default_b88029698d058420c6ac4a1d03de1941 } from '@/features/payload-cms/payload-cms/components/jobs-summary-banner'
 import { FolderTypeField as FolderTypeField_2b8867833a34864a02ddf429b0728a40 } from '@payloadcms/next/client'
 import { MainEntryRowLabel as MainEntryRowLabel_576220226adef27d36922a63f8de9abd } from '@/features/payload-cms/payload-cms/components/main-menu-row-label'
-import { default as default_9c69260518b3dd0313dbaee3714d2ccb } from '@/features/registration-process/components/management-view'
-import { default as default_0e6429b0b2a4492830df773ad85db722 } from '@/features/registration-process/components/enrollment-view'
 import { default as default_ab019a1f47fb69008664ade9a2845503 } from '@/features/payload-cms/payload-cms/views/alert-management'
 import { default as default_72094444c4748ea6819cf00010baebe6 } from '@/features/payload-cms/payload-cms/components/alert-settings-key-component'
 import { default as default_54174459954867e20e36ce19080dde49 } from '@/features/payload-cms/payload-cms/views/chat-management'
@@ -240,8 +238,6 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/jobs-summary-banner#default": default_b88029698d058420c6ac4a1d03de1941,
   "@payloadcms/next/client#FolderTypeField": FolderTypeField_2b8867833a34864a02ddf429b0728a40,
   "@/features/payload-cms/payload-cms/components/main-menu-row-label#MainEntryRowLabel": MainEntryRowLabel_576220226adef27d36922a63f8de9abd,
-  "@/features/registration-process/components/management-view#default": default_9c69260518b3dd0313dbaee3714d2ccb,
-  "@/features/registration-process/components/enrollment-view#default": default_0e6429b0b2a4492830df773ad85db722,
   "@/features/payload-cms/payload-cms/views/alert-management#default": default_ab019a1f47fb69008664ade9a2845503,
   "@/features/payload-cms/payload-cms/components/alert-settings-key-component#default": default_72094444c4748ea6819cf00010baebe6,
   "@/features/payload-cms/payload-cms/views/chat-management#default": default_54174459954867e20e36ce19080dde49,

@@ -33,14 +33,12 @@ export const environmentVariables = createEnv({
     HITOBITO_BASE_URL: z.string().url(),
     HITOBITO_FORWARD_URL: z.string().url(),
     API_TOKEN: z.string().default(''),
-    HELPER_GROUP: z.string().optional(),
     // Destructive: resets every participant to `new` and overwrites their PDFs and
     // invoice numbers. Off unless a deployment opts in explicitly.
     BILLING_ALLOW_REGENERATE_ALL: z
       .string()
       .optional()
       .transform((value) => value === 'true'),
-    EVENT_ID: z.string().optional(),
     BREVO_API_KEY: z.string().optional(),
     GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
     FIREBASE_SERVICE_ACCOUNT_KEY_PATH: z.string().optional(),
@@ -160,7 +158,6 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_ENABLED_LOCALES: z.string().optional(),
     NEXT_PUBLIC_DISABLE_SERWIST: z.boolean().default(false),
     NEXT_PUBLIC_HITOBITO_API_URL: z.string().url().optional(),
-    NEXT_PUBLIC_SUPPORT_GROUP_ID: z.string().min(1).optional(),
   },
 
   experimental__runtimeEnv: {
@@ -172,7 +169,6 @@ export const environmentVariables = createEnv({
     NEXT_PUBLIC_ENABLED_LOCALES: process.env['NEXT_PUBLIC_ENABLED_LOCALES'],
     NEXT_PUBLIC_DISABLE_SERWIST: process.env['NEXT_PUBLIC_DISABLE_SERWIST'] === 'true',
     NEXT_PUBLIC_HITOBITO_API_URL: process.env['NEXT_PUBLIC_HITOBITO_API_URL'],
-    NEXT_PUBLIC_SUPPORT_GROUP_ID: process.env['NEXT_PUBLIC_SUPPORT_GROUP_ID'],
   },
 
   /**

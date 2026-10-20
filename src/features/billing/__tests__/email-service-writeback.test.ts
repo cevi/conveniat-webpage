@@ -136,14 +136,14 @@ describe('sendBills writes the Anmeldestatus back to the Cevi.DB', () => {
     expect(updates[1]?.['anmeldestatus']).toBe('erfasst durch AVP');
   });
 
-  it('links the operator to Registration Management when no cookie is configured', async () => {
+  it('links the operator to the Cevi.DB session settings when no cookie is configured', async () => {
     const { payload } = payloadDouble(participantRow(), '');
 
     const summary = await sendBills(payload);
 
     expect(summary.queuedCount).toBe(1);
     expect(summary.relatedDocuments).toEqual(['registrationManagement']);
-    expect(summary.errors[0]).toContain('Registrierungs-Einstellungen');
+    expect(summary.errors[0]).toContain('«Cevi.DB-Sitzung»');
   });
 });
 

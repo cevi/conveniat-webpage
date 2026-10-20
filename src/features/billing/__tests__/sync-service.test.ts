@@ -553,7 +553,7 @@ describe('Sync Service', () => {
     });
   });
 
-  it('points the operator at Registration Management when the browser cookie is missing', async () => {
+  it('points the operator at the Höfe when no event is configured', async () => {
     mockSettingsRepo.getHofEvents.mockResolvedValue([]);
     mockSettingsRepo.getBillSettings.mockResolvedValue(
       {} as unknown as Awaited<ReturnType<typeof mockSettingsRepo.getBillSettings>>,

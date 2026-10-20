@@ -134,7 +134,7 @@ async function syncSingleEvent(
     if (participation.participantId.length === 0) {
       unreadableParticipations++;
       summary.errors.push(
-        `Teilnahme ${participation.participationId} konnte nicht synchronisiert werden: Personen-ID fehlt. Bitte stelle sicher, dass ein gültiger Browser-Cookie in den Registrierungs-Einstellungen eingetragen ist.`,
+        `Teilnahme ${participation.participationId} konnte nicht synchronisiert werden: Personen-ID fehlt. Bitte stelle sicher, dass ein gültiger Browser-Cookie unter «Cevi.DB-Sitzung» eingetragen ist.`,
       );
       continue;
     }
@@ -828,7 +828,7 @@ async function syncParticipantsLocked(
 
   if (browserCookie.trim() === '') {
     const errorMessage =
-      'Hitobito browser cookie is missing in Registration Management settings. Aborting participant sync to prevent data loss.';
+      'Hitobito browser cookie is missing in the Cevi.DB session settings. Aborting participant sync to prevent data loss.';
     logger.error(errorMessage);
     return {
       newCount: 0,

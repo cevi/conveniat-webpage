@@ -81,7 +81,7 @@ export class HitobitoServiceAdapter implements HitobitoServicePort {
       'apiRequest' in configOrClient ? configOrClient : new HitobitoClient(configOrClient, logger);
     this.eventService = new EventService(this.client, logger);
     this.personService = new PersonService(this.client, logger);
-    this.groupService = new GroupService(this.client, logger);
+    this.groupService = new GroupService(this.client);
   }
 
   async fetchParticipations(

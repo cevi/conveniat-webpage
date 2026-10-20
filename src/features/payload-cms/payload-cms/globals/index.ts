@@ -5,6 +5,7 @@ import { AlertSettingsGlobal } from '@/features/payload-cms/payload-cms/globals/
 import { AllChatsManagement } from '@/features/payload-cms/payload-cms/globals/all-chats-management';
 import { AppFeatureFlags } from '@/features/payload-cms/payload-cms/globals/app-feature-flags';
 import { AppLandingPageGlobal } from '@/features/payload-cms/payload-cms/globals/app-landing-page-global';
+import { CeviDatabaseSessionGlobal } from '@/features/payload-cms/payload-cms/globals/cevidb-session-global';
 import { DonationBarometerGlobal } from '@/features/payload-cms/payload-cms/globals/donation-barometer-global';
 import { FooterGlobal } from '@/features/payload-cms/payload-cms/globals/footer-global';
 import { HeaderGlobal } from '@/features/payload-cms/payload-cms/globals/header-global';
@@ -12,7 +13,6 @@ import { PWAGlobal } from '@/features/payload-cms/payload-cms/globals/pwa-global
 import { SeoGlobal } from '@/features/payload-cms/payload-cms/globals/seo-global';
 import { SupportChatManagement } from '@/features/payload-cms/payload-cms/globals/support-chat-management';
 import { CampsitePresenceGlobal } from '@/features/presence/payload-cms/globals/campsite-presence';
-import { RegistrationManagement } from '@/features/registration-process/api/registration-management';
 import type { GlobalConfig } from 'payload';
 
 /**
@@ -25,7 +25,6 @@ export const globalConfig: GlobalConfig[] = [
   FooterGlobal,
   SeoGlobal,
   DonationBarometerGlobal,
-  RegistrationManagement,
 
   // App
   AppLandingPageGlobal,
@@ -40,4 +39,5 @@ export const globalConfig: GlobalConfig[] = [
   // Backoffice
   BillSettingsGlobal,
   HofDashboardSettingsGlobal,
+  CeviDatabaseSessionGlobal,
 ];

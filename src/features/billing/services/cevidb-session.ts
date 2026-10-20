@@ -6,4 +6,4 @@
  * it the same way.
  */
 export const CEVIDB_SESSION_EXPIRED_MESSAGE =
-  'Die Cevi.DB-Sitzung ist abgelaufen, die Anfrage landete auf der Anmeldeseite. Bitte hinterlege einen neuen Browser-Cookie in den Registrierungs-Einstellungen.';
+  'Die Cevi.DB-Sitzung ist abgelaufen, die Anfrage landete auf der Anmeldeseite. Bitte hinterlege einen neuen Browser-Cookie unter «Cevi.DB-Sitzung».';
