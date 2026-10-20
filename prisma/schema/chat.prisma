@@ -61,6 +61,10 @@ model Chat {
   /// keeps the chat above all others in the chat overview, set from the CMS for announcement channels
   pinned Boolean @default(false)
 
+  /// the last position handed to a message of this chat, see `Message.seq`; it only goes up, so
+  /// the position of a deleted message is never handed out again
+  lastMessageSeq Int @default(0)
+
   messages        Message[]
   chatMemberships ChatMembership[]
   capabilities    ChatCapability[]
@@ -128,14 +132,18 @@ model ChatMembership {
   /// indicates whether the user has deleted the chat
   hasDeleted Boolean @default(false)
 
-  /// High-water mark for read receipts
+  /// the `Message.seq` the user has read up to, null if they never read the chat
+  lastReadSeq Int?
+
+  /// the message at `lastReadSeq`, still written so the release before it keeps working;
+  /// nothing reads it any more
   lastReadMessageId String?
 
   chatPermission ChatMembershipPermission @default(MEMBER)
 
   @@id([userId, chatId])
   @@index([userId])
-  @@index([chatId])
+  @@index([chatId, lastReadSeq])
 }
 
 enum MessageType {
@@ -162,7 +170,15 @@ model Message {
   uuid String      @id @default(uuid(7))
   type MessageType @default(TEXT_MSG)
 
+  /// shown as the time of the message; the order of a chat is `seq`
   createdAt DateTime @default(now())
+
+  /// the position of the message in its chat, the order in which messages became visible. A
+  /// database trigger takes it from `Chat.lastMessageSeq` on insert, and the chat row stays
+  /// locked until the transaction commits, so a message with a lower position is always
+  /// committed first. Read markers compare positions: a timestamp is taken before the commit
+  /// and can be set by the caller, so it can put an unseen message behind a read marker.
+  seq Int @default(dbgenerated())
 
   chatId String
   chat   Chat   @relation(fields: [chatId], references: [uuid], onDelete: Cascade)
@@ -183,6 +199,7 @@ model Message {
   replies   Message[]         @relation("Thread")
   reactions MessageReaction[]
 
+  @@unique([chatId, seq])
   @@index([chatId, createdAt(sort: Asc)])
   @@index([parentId])
 }

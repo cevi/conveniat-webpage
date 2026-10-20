@@ -110,9 +110,9 @@ container name.
 both, and fails on any difference. Generate them with the same feature flags and enabled locales CI
 uses, and commit the result with your change.
 
-**Pointing destructive commands at a remote database.** `pnpm db:seed` resets. The dev container
-runs `prisma db push --accept-data-loss` on boot. Both are local only. The `db:tunnel-*` scripts
-open real databases, so read through them and nothing else unless I asked for exactly that.
+**Pointing destructive commands at a remote database.** `pnpm db:seed` resets, and it is local
+only. The `db:tunnel-*` scripts open real databases, so read through them and nothing else unless
+I asked for exactly that.
 
 **Force pushing.** Your feature branches are yours. Coordinate on `dev`. Never on `main`, which is
 protected anyway.

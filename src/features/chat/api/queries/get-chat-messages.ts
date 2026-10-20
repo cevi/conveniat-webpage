@@ -55,7 +55,7 @@ export const getChatMessages = trpcBaseProcedure
           parentId: parentId ?? null,
         },
         ...(cursor == undefined ? {} : { cursor: { uuid: cursor }, skip: 1 }),
-        orderBy: [{ createdAt: 'desc' }, { uuid: 'desc' }],
+        orderBy: { seq: 'desc' },
         include: {
           messageEvents: {
             where: { type: { in: USER_RELEVANT_MESSAGE_EVENTS } },

@@ -20,7 +20,7 @@ export const markChatAsRead = trpcBaseProcedure
         uuid: lastMessageId,
         chatId: chatId,
       },
-      select: { uuid: true },
+      select: { seq: true },
     });
 
     if (!message) {
@@ -30,20 +30,17 @@ export const markChatAsRead = trpcBaseProcedure
       });
     }
 
-    // 2. Advance the high-water mark in one statement, so concurrent calls cannot move it
-    // backwards: it only moves when unset or when the stored message is not newer than this one
-    // (a stored id pointing at a deleted message counts as unset).
-    const updatedRows = await prisma.$executeRaw`
-      UPDATE "ChatMembership" AS membership
-      SET "lastReadMessageId" = ${lastMessageId}
-      WHERE membership."userId" = ${user.uuid}
-        AND membership."chatId" = ${chatId}
-        AND NOT EXISTS (
-          SELECT 1 FROM "Message" AS current
-          WHERE current."uuid" = membership."lastReadMessageId"
-            AND current."createdAt" > (SELECT "createdAt" FROM "Message" WHERE "uuid" = ${lastMessageId})
-        )
-    `;
+    // 2. Advance the read marker to the position of this message. The condition is part of the
+    // UPDATE, so concurrent calls cannot move it backwards.
+    const { count: updatedRows } = await prisma.chatMembership.updateMany({
+      where: {
+        userId: user.uuid,
+        chatId,
+        // eslint-disable-next-line unicorn/no-null -- Prisma matches a SQL NULL only through null
+        OR: [{ lastReadSeq: null }, { lastReadSeq: { lt: message.seq } }],
+      },
+      data: { lastReadSeq: message.seq, lastReadMessageId: lastMessageId },
+    });
 
     if (updatedRows === 0) {
       const membership = await prisma.chatMembership.findUnique({

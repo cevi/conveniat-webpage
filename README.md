@@ -66,6 +66,12 @@ Ensure you have the following installed on your system:
   ```
   After running this, you'll need to restart the server with `docker compose up --build` to re-initialize and
   potentially re-seed the database based on Payload's configuration.
+- **Postgres Schema:** The dev container applies the Prisma migrations when it starts (`prisma migrate deploy`), the
+  same way CI and the deployments do. A schema change therefore needs its migration, see
+  [Migrate Production Database](#migrate-production-database). A local Postgres created by the earlier
+  `prisma db push` setup has no migration history, and the start keeps repeating Prisma's error `P3005`. Remove that
+  volume once with `docker compose down` and `docker volume rm <project>_postgress-data` (`docker volume ls` shows the
+  name); this drops the local chat data only.
 
 ### Observability Stack
 

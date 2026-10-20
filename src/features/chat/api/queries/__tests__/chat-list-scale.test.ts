@@ -102,7 +102,7 @@ interface Membership {
   userId: string;
   chatId: string;
   chatPermission: string;
-  lastReadMessageId: string | undefined;
+  lastReadSeq: number | null;
 }
 
 /**
@@ -120,7 +120,8 @@ const createPrisma = (
     userId,
     chatId,
     chatPermission: 'MEMBER',
-    lastReadMessageId: undefined,
+    // eslint-disable-next-line unicorn/no-null
+    lastReadSeq: null,
   });
   const memberships: Membership[] = [
     membership(caller.uuid, ONE_TO_ONE_ID),

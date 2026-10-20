@@ -361,7 +361,7 @@ export const emergencyRouter = createTRPCRouter({
             orderBy: { revision: 'desc' },
           },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { seq: 'asc' },
       });
 
       // Publish new_message events for each message to notify administrators in real-time
