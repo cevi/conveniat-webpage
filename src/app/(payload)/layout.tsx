@@ -16,6 +16,13 @@ type Args = {
   children: React.ReactNode;
 };
 
+// The admin panel renders per request (see `DynamicAdminWrapper`), so a navigation into it
+// always waits on the server. Next.js validates every page for instant navigation in
+// development and, failing to explain why the admin cannot be instant, fills the dev overlay
+// with an InvariantError on every admin page. Setting `false` here, at the top of the admin
+// tree, opts the whole panel out of that validation and of the static-shell check.
+export const instant = false;
+
 const serverFunction: ServerFunctionClient = async function (args) {
   'use server';
   return handleServerFunctions({
