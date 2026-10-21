@@ -353,22 +353,22 @@ export const BillParticipantsCollection: CollectionConfig = {
                     disableListColumn: true,
                   },
                 },
-                {
-                  name: 'vatExempt',
-                  access: { read: canAccessBillingField, update: canAccessBillingField },
-                  type: 'checkbox',
-                  label: {
-                    en: 'VAT Exempt (youth)',
-                    de: 'MWST-befreit (Jugendliche)',
-                    fr: 'Exonéré de TVA (jeunes)',
-                  },
-                  admin: {
-                    readOnly: true,
-                    disableGroupBy: true,
-                    disableListColumn: true,
-                  },
-                },
               ],
+            },
+            {
+              name: 'vatExempt',
+              access: { read: canAccessBillingField, update: canAccessBillingField },
+              type: 'checkbox',
+              label: {
+                en: 'VAT Exempt (youth)',
+                de: 'MWST-befreit (Jugendliche)',
+                fr: 'Exonéré de TVA (jeunes)',
+              },
+              admin: {
+                readOnly: true,
+                disableGroupBy: true,
+                disableListColumn: true,
+              },
             },
             {
               // Frozen at generation time on purpose: the settings can change after a bill has gone
@@ -382,6 +382,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                 fr: 'Détail de la TVA',
               },
               admin: {
+                components: { Field: '@/features/billing/components/read-only-array-table' },
                 readOnly: true,
                 disableListColumn: true,
                 disableListFilter: true,
@@ -433,6 +434,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: 'Date de création de la facture',
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
                     disableGroupBy: true,
                   },
                 },
@@ -446,6 +448,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: "Date d'envoi de la facture",
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
                     disableGroupBy: true,
                   },
                 },
@@ -463,6 +466,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                 fr: 'PDFs de factures',
               },
               admin: {
+                readOnly: true,
                 disableListColumn: true,
                 disableListFilter: true,
                 disableGroupBy: true,
@@ -482,6 +486,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                 fr: 'Factures émises',
               },
               admin: {
+                components: { Field: '@/features/billing/components/read-only-array-table' },
                 readOnly: true,
                 disableListColumn: true,
                 disableListFilter: true,
@@ -551,6 +556,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: 'Payée le',
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
                     readOnly: true,
                     disableGroupBy: true,
                     description: {
@@ -900,6 +906,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: "Date d'inscription (Cevi.DB)",
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
                     disableGroupBy: true,
                   },
                 },
@@ -913,6 +920,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: "Date d'annulation",
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
                     disableGroupBy: true,
                   },
                 },
@@ -926,6 +934,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: 'Date de ré-ajout',
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
                     disableGroupBy: true,
                   },
                 },
@@ -1062,6 +1071,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: 'Date de première synchronisation',
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayAndTime', displayFormat: 'dd.MM.yyyy HH:mm' },
                     disableGroupBy: true,
                   },
                 },
@@ -1075,6 +1085,7 @@ export const BillParticipantsCollection: CollectionConfig = {
                     fr: 'Date de dernière synchronisation',
                   },
                   admin: {
+                    date: { pickerAppearance: 'dayAndTime', displayFormat: 'dd.MM.yyyy HH:mm' },
                     disableGroupBy: true,
                   },
                 },

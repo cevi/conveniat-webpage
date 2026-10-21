@@ -62,6 +62,7 @@ import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/
 import { default as default_861a0172410057db13945839747e3602 } from '@/features/billing/components/billing-actions-field'
 import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
 import { default as default_8fab6db47fe75a227550f4f88fec6865 } from '@/features/billing/components/hitobito-link-field'
+import { default as default_5f8bfd464e92455f8ae88e1b0e4c07b4 } from '@/features/billing/components/read-only-array-table'
 import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
 import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
 import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
@@ -200,6 +201,7 @@ export const importMap = {
   "@/features/billing/components/billing-actions-field#default": default_861a0172410057db13945839747e3602,
   "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
   "@/features/billing/components/hitobito-link-field#default": default_8fab6db47fe75a227550f4f88fec6865,
+  "@/features/billing/components/read-only-array-table#default": default_5f8bfd464e92455f8ae88e1b0e4c07b4,
   "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
   "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
   "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
