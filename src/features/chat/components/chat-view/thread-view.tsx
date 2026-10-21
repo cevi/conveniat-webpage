@@ -3,7 +3,6 @@
 import { OfflineBanner } from '@/components/offline-banner';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatMessage } from '@/features/chat/api/types';
-import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
 import { ChatTextAreaInput } from '@/features/chat/components/chat-view/chat-text-area-input';
 import { MessageList } from '@/features/chat/components/chat-view/message-list';
 import { ChatImage } from '@/features/chat/components/chat-view/message/chat-image';
@@ -162,7 +161,7 @@ interface ThreadViewProperties {
 export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const chatId = useChatId();
-  const { selectedMessage, closeThread, scrollToMessage, threadHistory } = useChatActions();
+  const { closeThread, scrollToMessage, threadHistory } = useChatActions();
   const { data: chatDetails } = useChatDetail(chatId);
   const { data: currentUserId } = trpc.chat.user.useQuery({});
   const trpcUtils = trpc.useUtils();
@@ -220,32 +219,26 @@ export const ThreadView: React.FC<ThreadViewProperties> = ({ threadId, onClose }
 
   return (
     <div className="bg-page flex h-full w-full flex-col">
-      {/* Thread Header; a long-pressed reply gets its quote, thread and info actions here, the
-          chat header being hidden under this overlay */}
-      {selectedMessage === undefined ? (
-        <div className="border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
-            aria-label={backButtonLabel[locale]}
-          >
-            <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
-          </button>
-          <div className="flex min-w-0 flex-col pl-1">
-            <h1 className="font-heading text-heading text-[17px] leading-tight font-bold">
-              {threadTitle[locale]}
-            </h1>
-            {chatDetails !== undefined && (
-              <p className="mt-0.5 truncate text-[13px] text-green-700">
-                {inChatText[locale].replace('{name}', chatDetails.name)}
-              </p>
-            )}
-          </div>
+      <div className="border-line flex h-[60px] shrink-0 items-center gap-1 border-b bg-white pr-2 pl-1">
+        <button
+          type="button"
+          onClick={onClose}
+          className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
+          aria-label={backButtonLabel[locale]}
+        >
+          <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+        </button>
+        <div className="flex min-w-0 flex-col pl-1">
+          <h1 className="font-heading text-heading text-[17px] leading-tight font-bold">
+            {threadTitle[locale]}
+          </h1>
+          {chatDetails !== undefined && (
+            <p className="mt-0.5 truncate text-[13px] text-green-700">
+              {inChatText[locale].replace('{name}', chatDetails.name)}
+            </p>
+          )}
         </div>
-      ) : (
-        <ChatSelectionHeader />
-      )}
+      </div>
       <OfflineBanner locale={locale} />
 
       {/* Message List with Parent */}

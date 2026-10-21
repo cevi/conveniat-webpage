@@ -42,6 +42,42 @@ describe('useLongPress', () => {
     expect(click.prevented()).toBe(true);
   });
 
+  it('also swallows that tap where it lands on what the press opened, and only that one', () => {
+    const { result } = renderHook(() => useLongPress(jest.fn()));
+    const closeButton = document.createElement('button');
+    const onClose = jest.fn();
+    closeButton.addEventListener('click', onClose);
+    document.body.append(closeButton);
+
+    act(() => result.current.onPointerDown(touch()));
+    act(() => jest.advanceTimersByTime(450));
+    document.dispatchEvent(new Event('pointerup'));
+    closeButton.click();
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => jest.advanceTimersByTime(1000));
+    closeButton.click();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    closeButton.remove();
+  });
+
+  it('lets the next tap through after a press that ended in none', () => {
+    const { result } = renderHook(() => useLongPress(jest.fn()));
+    const button = document.createElement('button');
+    const onClick = jest.fn();
+    button.addEventListener('click', onClick);
+    document.body.append(button);
+
+    act(() => result.current.onPointerDown(touch()));
+    act(() => jest.advanceTimersByTime(450));
+    document.dispatchEvent(new Event('pointercancel'));
+    act(() => jest.advanceTimersByTime(1000));
+    button.click();
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    button.remove();
+  });
+
   it('lets a short tap through', () => {
     const onLongPress = jest.fn();
     const { result } = renderHook(() => useLongPress(onLongPress));

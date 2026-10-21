@@ -2,7 +2,6 @@
 'use client';
 
 import { ImageViewer } from '@/features/chat/components/chat-view/message/image-viewer';
-import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -38,13 +37,11 @@ interface ChatImageProperties {
  *
  * Images uploaded through the chat live in a private bucket and are addressed by their S3
  * key, so they need a pre-signed URL; images attached to an announcement come from the CMS
- * and are already served under a public URL. A tap opens the image full screen, unless a
- * message is selected, where a tap selects this message instead.
+ * and are already served under a public URL. A tap opens the image full screen.
  */
 export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) => {
   const chatId = useChatId();
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const { selectedMessage } = useChatActions();
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const isS3Key = url.startsWith(S3_KEY_PREFIX);
 
@@ -75,7 +72,6 @@ export const ChatImage: React.FC<ChatImageProperties> = ({ url, alt, caption }) 
         aria-label={openImageText[locale]}
         className="block w-full cursor-zoom-in"
         onClick={(event) => {
-          if (selectedMessage !== undefined) return;
           // the bubble would otherwise toggle its time
           event.stopPropagation();
           setIsViewerOpen(true);

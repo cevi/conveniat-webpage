@@ -5,8 +5,6 @@ import type React from 'react';
 import { IconTile } from '@/components/ui/icon-tile';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { ChatDetails } from '@/features/chat/api/types';
-import { ChatSelectionHeader } from '@/features/chat/components/chat-view/chat-selection-header';
-import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { useOnlineStatus } from '@/hooks/use-online-status';
@@ -145,15 +143,10 @@ export const ChatHeader: React.FC = () => {
   const chatId = useChatId();
   const { data: user } = trpc.chat.user.useQuery({});
   const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
-  const { selectedMessage } = useChatActions();
   const isOnline = useOnlineStatus();
 
   if (!chatDetails) {
     return <ChatHeaderSkeleton />;
-  }
-
-  if (selectedMessage) {
-    return <ChatSelectionHeader />;
   }
 
   // Only a partner who is online is shown, as a label saying "Offline" read as if it were about

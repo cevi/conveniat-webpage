@@ -7,6 +7,32 @@ import { useCallback, useEffect, useRef } from 'react';
 const LONG_PRESS_MS = 450;
 /** How far the finger may drift, e.g. starting a scroll or a swipe, before it is no press. */
 const MOVE_TOLERANCE_PX = 10;
+/** How long after the finger lifts its tap may still arrive. */
+const LATE_TAP_MS = 400;
+
+/**
+ * Drops the tap that ends a held press wherever it lands. What the press opened now lies under
+ * the finger, e.g. a sheet with its ✕ right there, and the tap would hit that instead.
+ */
+const swallowTheEndingTap = (): void => {
+  const listening = new AbortController();
+  const options = { capture: true, signal: listening.signal };
+  document.addEventListener(
+    'click',
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      listening.abort();
+    },
+    options,
+  );
+  // a press that ends in no tap at all must not eat the next real one
+  const stopSoon = (): void => {
+    setTimeout(() => listening.abort(), LATE_TAP_MS);
+  };
+  document.addEventListener('pointerup', stopSoon, options);
+  document.addEventListener('pointercancel', stopSoon, options);
+};
 
 export interface LongPressHandlers {
   onPointerDown: (event: React.PointerEvent) => void;
@@ -22,7 +48,8 @@ export interface LongPressHandlers {
 /**
  * Opens something for an element on a long press of a finger, on a right click, and on the
  * context-menu key or Shift+F10, while a plain tap keeps doing what it does. The tap that ends
- * a long press is swallowed, so the press does not also open the link underneath. A light
+ * a long press is swallowed, so the press neither opens the link underneath nor hits what it
+ * opened. A light
  * vibration confirms the press where the phone has one.
  *
  * @param onLongPress - what the press opens
@@ -43,6 +70,7 @@ export const useLongPress = (onLongPress: () => void): LongPressHandlers => {
 
   const fire = useCallback((): void => {
     hasFired.current = true;
+    swallowTheEndingTap();
     onLongPress();
   }, [onLongPress]);
 

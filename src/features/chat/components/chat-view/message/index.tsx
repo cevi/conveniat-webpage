@@ -8,13 +8,9 @@ import { ChatImage } from '@/features/chat/components/chat-view/message/chat-ima
 import { FailedMessageActions } from '@/features/chat/components/chat-view/message/failed-message-actions';
 import { ImageMessage } from '@/features/chat/components/chat-view/message/image-message';
 import { LocationMessage } from '@/features/chat/components/chat-view/message/location-message';
+import { MessageActionsSheet } from '@/features/chat/components/chat-view/message/message-actions-sheet';
 import { MessageFrame } from '@/features/chat/components/chat-view/message/message-frame';
-import { MessageInfoDropdown } from '@/features/chat/components/chat-view/message/message-info-dropdown';
-import {
-  HoverToolbar,
-  ReactionBadge,
-  ReactionBar,
-} from '@/features/chat/components/chat-view/message/message-reaction-menus';
+import { ReactionBadge } from '@/features/chat/components/chat-view/message/message-reaction-menus';
 import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/message/reaction-details-dialog';
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
@@ -25,6 +21,7 @@ import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
+import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
@@ -32,7 +29,7 @@ import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, Check, Clock } from 'lucide-react';
+import { AlertCircle, Check, Clock, Ellipsis } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 const replyToMessageText: StaticTranslationString = {
@@ -45,6 +42,25 @@ const youText: StaticTranslationString = {
   de: 'Du',
   en: 'You',
   fr: 'Toi',
+};
+
+const messageActionsText: StaticTranslationString = {
+  de: 'Aktionen zur Nachricht',
+  en: 'Message actions',
+  fr: 'Actions du message',
+};
+
+/** How far a finger swipes a bubble to the right before letting go quotes it. */
+const SWIPE_TO_QUOTE_PX = 60;
+const SWIPE_MAX_PX = 80;
+/** Past this, the finger is scrolling or swiping, and the bubble stops looking pressed. */
+const PRESS_TOLERANCE_PX = 10;
+
+/** The text of a message, for the clipboard; undefined where there is none, as on an image. */
+const textOf = (payload: ChatMessage['messagePayload']): string | undefined => {
+  const text: unknown =
+    typeof payload === 'string' ? payload : (payload as Record<string, unknown>)['text'];
+  return typeof text === 'string' && text.trim() !== '' ? text : undefined;
 };
 
 /** Rounder outside a run of bubbles, tighter where two bubbles of one sender meet. */
@@ -110,36 +126,25 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   locale,
 }) => {
   const activeLocale = locale;
-  const [isLongPressing, setIsLongPressing] = useState(false);
+  const [isPressing, setIsPressing] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
-  const isPointerDown = useRef(false);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const longPressTimerReference = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const swipeStart = useRef<{ x: number; y: number } | undefined>(undefined);
+  const bubbleReference = useRef<HTMLDivElement>(null);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
   const renderedContent = formatMessageContent(message.messagePayload, activeLocale);
   const attachedImages = extractMessageImages(message.messagePayload, activeLocale);
-  const {
-    replyInThread,
-    quoteMessage,
-    scrollToMessage,
-    highlightedMessageId,
-    activeThreadId,
-    selectedMessage,
-    setSelectedMessage,
-  } = useChatActions();
+  const { replyInThread, quoteMessage, scrollToMessage, highlightedMessageId, activeThreadId } =
+    useChatActions();
   const isHighlighted = highlightedMessageId === message.id;
   const showMeta = isLastInGroup || message.sendFailed === true;
   const hasAvatarSlot =
     !isCurrentUser && chatType === 'GROUP' && typeof message.senderId === 'string';
-  const isSelected = selectedMessage?.id === message.id;
 
   const [isHovered, setIsHovered] = useState(false);
-  const [placeReactionsBelow, setPlaceReactionsBelow] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
   const [showReactors, setShowReactors] = useState(false);
   // touch has no hover: a tap reveals the time of a bubble that does not show it
   const [isTimeRevealed, setIsTimeRevealed] = useState(false);
-  const isTimeRevealedOrHovered = isHovered || isSelected || isTimeRevealed;
+  const isTimeRevealedOrHovered = isHovered || isTimeRevealed;
 
   const chatId = useChatId();
   const { data: chatDetails } = trpc.chat.chatDetails.useQuery({ chatId });
@@ -175,7 +180,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
 
   const react = (emoji: string): void => {
     toggleReactionMutation.mutate({ messageId: message.id, emoji });
-    if (isSelected) setSelectedMessage(undefined);
   };
 
   const groupedReactions = React.useMemo(() => {
@@ -205,84 +209,52 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   else if (quotedMessage.senderName !== undefined)
     quotedAuthor = splitDisplayName(quotedMessage.senderName).primary;
 
-  const selectThisMessage = (pressedElement: Element): void => {
-    // no room above a bubble right under the header: open the reactions below it
-    setPlaceReactionsBelow(pressedElement.getBoundingClientRect().top < 180);
-    setSelectedMessage(message);
-    setIsLongPressing(false);
+  const openActions = (): void => {
+    // the finger that held the bubble may still move; that is no swipe any more
+    swipeStart.current = undefined;
+    setIsPressing(false);
+    setSwipeX(0);
+    // the sheet hands focus back to what had it, and a long press focuses nothing
+    bubbleReference.current?.focus({ preventScroll: true });
+    setIsActionsOpen(true);
   };
+  const longPress = useLongPress(openActions);
 
   const handlePointerDown = (event: React.PointerEvent): void => {
-    // Only handle primary button
-    if (event.button !== 0) return;
-
-    // Check pointer type to only run long press on touch devices
-    if (event.pointerType === 'touch') {
-      isPointerDown.current = true;
-      touchStartX.current = event.clientX;
-      touchStartY.current = event.clientY;
-      setIsLongPressing(true);
-
-      // Capture the pointer to ensure we receive events even if the pointer leaves the element
-      event.currentTarget.setPointerCapture(event.pointerId);
-
-      const pressedElement = event.currentTarget;
-      longPressTimerReference.current = setTimeout(() => {
-        if ('vibrate' in navigator) navigator.vibrate(50);
-        selectThisMessage(pressedElement);
-        longPressTimerReference.current = undefined;
-      }, 500); // 500ms for long press selection
-    }
+    longPress.onPointerDown(event);
+    if (event.pointerType !== 'touch' || event.button !== 0) return;
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+    setIsPressing(true);
   };
 
-  const handlePointerUp = (event: React.PointerEvent): void => {
-    if (!isPointerDown.current) return;
-    isPointerDown.current = false;
-
-    // Release the pointer capture
-    event.currentTarget.releasePointerCapture(event.pointerId);
-    if (longPressTimerReference.current) {
-      clearTimeout(longPressTimerReference.current);
-      longPressTimerReference.current = undefined;
+  const handlePointerMove = (event: React.PointerEvent): void => {
+    longPress.onPointerMove(event);
+    if (swipeStart.current === undefined) return;
+    const deltaX = event.clientX - swipeStart.current.x;
+    const deltaY = event.clientY - swipeStart.current.y;
+    if (Math.abs(deltaX) > PRESS_TOLERANCE_PX || Math.abs(deltaY) > PRESS_TOLERANCE_PX) {
+      setIsPressing(false);
     }
-    setIsLongPressing(false);
+    // only to the right; a vertical drag is the browser's scroll (`pan-y`), which cancels this
+    setSwipeX(Math.max(0, Math.min(deltaX, SWIPE_MAX_PX)));
+  };
 
-    // Trigger quote if swiped right enough
-    if (swipeX > 60) {
-      if (typeof navigator.vibrate === 'function') {
-        navigator.vibrate(30);
-      }
+  const handlePointerUp = (): void => {
+    longPress.onPointerUp();
+    if (swipeStart.current === undefined) return;
+    swipeStart.current = undefined;
+    setIsPressing(false);
+    if (swipeX > SWIPE_TO_QUOTE_PX && canSendMessages) {
+      if (typeof navigator.vibrate === 'function') navigator.vibrate(30);
       quoteMessage(message.id);
     }
     setSwipeX(0);
   };
 
-  const handlePointerMove = (event: React.PointerEvent): void => {
-    if (!isPointerDown.current) return;
-
-    const deltaX = event.clientX - touchStartX.current;
-    const deltaY = event.clientY - touchStartY.current;
-
-    // Only allow right swipe, cap at 80px
-    const newSwipeX = Math.max(0, Math.min(deltaX, 80));
-    setSwipeX(newSwipeX);
-
-    // Cancel long-press if user moves significantly
-    if ((Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) && longPressTimerReference.current) {
-      clearTimeout(longPressTimerReference.current);
-      longPressTimerReference.current = undefined;
-      setIsLongPressing(false);
-    }
-  };
-
-  const handlePointerCancel = (event: React.PointerEvent): void => {
-    if (longPressTimerReference.current) {
-      clearTimeout(longPressTimerReference.current);
-      longPressTimerReference.current = undefined;
-    }
-    isPointerDown.current = false;
-    event.currentTarget.releasePointerCapture(event.pointerId);
-    setIsLongPressing(false);
+  const handlePointerCancel = (): void => {
+    longPress.onPointerCancel();
+    swipeStart.current = undefined;
+    setIsPressing(false);
     setSwipeX(0);
   };
 
@@ -369,6 +341,74 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     );
   }
 
+  // a message the server has not stored yet has nothing to react or reply to
+  const isSent =
+    message.sendFailed !== true &&
+    message.isPendingOffline !== true &&
+    message.status !== MessageEventType.CREATED;
+  const bubbleColorClassName = isCurrentUser
+    ? 'bg-conveniat-green text-white'
+    : 'border-line border bg-white text-green-900';
+  // what this message answers; it scrolls there
+  const quoteBlock = quotedMessageId !== undefined && (
+    <button
+      type="button"
+      onClick={(event_) => {
+        event_.stopPropagation();
+        scrollToMessage(quotedMessageId);
+      }}
+      className={cn(
+        'relative mt-0.5 mb-2 block w-full cursor-pointer rounded-[8px] border-l-[3px] py-1.5 pr-2 pl-2.5 text-left transition-colors',
+        // brand green on the white bubble; on the green one a white bar and white text,
+        // both above 4.5:1 on the lightened green
+        isCurrentUser
+          ? 'border-white bg-white/15 text-white'
+          : 'border-conveniat-green bg-quiet text-green-700',
+      )}
+    >
+      {quotedAuthor !== undefined && (
+        <span
+          className={cn(
+            'block truncate text-[13px] leading-snug font-semibold',
+            isCurrentUser ? 'text-white' : 'text-green-900',
+          )}
+        >
+          {quotedAuthor}
+        </span>
+      )}
+      <span className="line-clamp-2 text-[13px] leading-snug">
+        {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
+          ? quotedSnippet
+          : replyToMessageText[activeLocale]}
+      </span>
+    </button>
+  );
+  // the bubble's content without its time, for the top of the actions sheet
+  const bubbleBody = (
+    <>
+      {quoteBlock}
+      {message.type === MessageType.IMAGE_MSG ? (
+        <ImageMessage message={message} />
+      ) : (
+        <>
+          {attachedImages.length > 0 && (
+            <div className="mb-2 flex flex-col gap-2">
+              {attachedImages.map((image) => (
+                <ChatImage
+                  key={image.url}
+                  url={image.url}
+                  alt={image.alt}
+                  caption={image.caption}
+                />
+              ))}
+            </div>
+          )}
+          <div className="text-[15px] leading-[21px]">{renderedContent}</div>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div
       id={`message-${message.id}`}
@@ -376,11 +416,6 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         'group relative flex w-full items-end gap-2 transition-colors duration-200',
         isCurrentUser ? 'justify-end' : 'justify-start',
         isHighlighted && 'animate-message-highlight rounded-xl',
-        isSelected && 'bg-tint',
-        // the swipe transform makes every bubble its own stacking context, so the reaction
-        // bar's z-index only counts inside this row; lift the row over its neighbours and
-        // the sticky day divider, or the next bubble covers a bar opened below
-        isSelected && 'z-30',
       )}
       onPointerEnter={(event) => {
         if (event.pointerType === 'mouse') setIsHovered(true);
@@ -418,22 +453,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             {senderFunktionen !== '' && ` · ${senderFunktionen}`}
           </span>
         )}
+        {/* a long press, a right click or the context-menu key opens the message's actions */}
         <div
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
           onPointerMove={handlePointerMove}
           onPointerCancel={handlePointerCancel}
-          onContextMenu={(event) => {
-            // a long press sends this too, on Android and in a desktop browser's touch mode: the
-            // browser's own menu would open over the reactions. A right click opens them as well.
-            event.preventDefault();
-            if (isSelected) return;
-            if (longPressTimerReference.current !== undefined) {
-              clearTimeout(longPressTimerReference.current);
-              longPressTimerReference.current = undefined;
-            }
-            selectThisMessage(event.currentTarget);
-          }}
+          onPointerLeave={longPress.onPointerLeave}
+          onContextMenu={longPress.onContextMenu}
+          onKeyDown={longPress.onKeyDown}
+          onClickCapture={longPress.onClickCapture}
           style={{
             touchAction: 'pan-y', // Allow vertical scrolling
             transform: `translateX(${swipeX}px)`,
@@ -443,92 +472,28 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             userSelect: 'none',
           }}
           className="relative cursor-pointer select-none"
-          onClick={(event) => {
-            if (selectedMessage && selectedMessage.id !== message.id) {
-              event.preventDefault();
-              event.stopPropagation(); // Prevent opening thread or other click actions
-              setSelectedMessage(message);
-              return;
-            }
-            setIsTimeRevealed((revealed) => !revealed);
-          }}
+          onClick={() => setIsTimeRevealed((revealed) => !revealed)}
         >
-          {isSelected && canReact && (
-            <ReactionBar
-              reactedEmojis={reactedEmojis}
-              isCurrentUser={isCurrentUser}
-              placeBelow={placeReactionsBelow}
-              locale={activeLocale}
-              onReact={react}
-            />
-          )}
-          {isHovered && selectedMessage === undefined && (
-            <HoverToolbar
-              reactedEmojis={reactedEmojis}
-              isCurrentUser={isCurrentUser}
-              canReact={canReact}
-              canQuote={canSendMessages}
-              canThread={canThread}
-              locale={activeLocale}
-              onReact={react}
-              onQuote={() => quoteMessage(message.id)}
-              onThread={() => replyInThread(message.id)}
-              onInfo={() => setShowInfo(true)}
-            />
-          )}
           <div
+            ref={bubbleReference}
+            // reachable by keyboard for the context-menu key, and where focus returns from the sheet
+            tabIndex={0}
             className={cn(
               'relative rounded-[16px] px-3.5 py-2 transition-transform duration-150',
               // `anywhere`, not `break-word`: only it lowers the min-content width, so a long URL
               // wraps inside the bubble instead of stretching it past the screen edge
               'max-w-full min-w-[64px] wrap-anywhere',
-              isCurrentUser
-                ? 'bg-conveniat-green text-white'
-                : 'border-line border bg-white text-green-900',
+              bubbleColorClassName,
               bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
               // pending shows as a quieter bubble and a clock, never a spinner
               message.status === MessageEventType.CREATED &&
                 message.sendFailed !== true &&
                 'opacity-80',
               message.sendFailed === true && 'ring-danger ring-2',
-              (isLongPressing || isSelected) && 'scale-[0.98]',
-              isSelected && 'ring-conveniat-green/30 ring-2',
+              isPressing && 'scale-[0.98]',
             )}
           >
-            {/* Quoted message preview */}
-            {quotedMessageId && (
-              <button
-                type="button"
-                onClick={(event_) => {
-                  event_.stopPropagation();
-                  scrollToMessage(quotedMessageId);
-                }}
-                className={cn(
-                  'relative mt-0.5 mb-2 block w-full cursor-pointer rounded-[8px] border-l-[3px] py-1.5 pr-2 pl-2.5 text-left transition-colors',
-                  // brand green on the white bubble; on the green one a white bar and white text,
-                  // both above 4.5:1 on the lightened green
-                  isCurrentUser
-                    ? 'border-white bg-white/15 text-white'
-                    : 'border-conveniat-green bg-quiet text-green-700',
-                )}
-              >
-                {quotedAuthor !== undefined && (
-                  <span
-                    className={cn(
-                      'block truncate text-[13px] leading-snug font-semibold',
-                      isCurrentUser ? 'text-white' : 'text-green-900',
-                    )}
-                  >
-                    {quotedAuthor}
-                  </span>
-                )}
-                <span className="line-clamp-2 text-[13px] leading-snug">
-                  {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
-                    ? quotedSnippet
-                    : replyToMessageText[activeLocale]}
-                </span>
-              </button>
-            )}
+            {quoteBlock}
             {message.type === MessageType.IMAGE_MSG ? (
               <div className={cn(showMeta && 'pb-4')}>
                 <ImageMessage message={message} />
@@ -575,18 +540,37 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                 </span>
                 {renderMessageStatus()}
               </div>
-            ) : (
-              isTimeRevealedOrHovered &&
-              !hasAvatarSlot && (
-                <span
-                  className={cn(
-                    'pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center text-[11px] whitespace-nowrap text-green-700',
-                    isCurrentUser ? 'right-full mr-2' : 'left-full ml-2',
-                  )}
-                >
-                  {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
-                </span>
-              )
+            ) : undefined}
+            {/* beside the bubble, towards the middle: the time where the bubble does not show it,
+                and under a mouse the way to the actions a finger reaches by holding the bubble */}
+            {isTimeRevealedOrHovered && (
+              <div
+                className={cn(
+                  'absolute top-1/2 flex -translate-y-1/2 items-center gap-1',
+                  isCurrentUser ? 'right-full mr-2 flex-row-reverse' : 'left-full ml-2',
+                )}
+              >
+                {!showMeta && !hasAvatarSlot && (
+                  <span className="pointer-events-none text-[11px] whitespace-nowrap text-green-700">
+                    {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
+                  </span>
+                )}
+                {isHovered && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      // the bubble would otherwise toggle its time
+                      event.stopPropagation();
+                      openActions();
+                    }}
+                    aria-label={messageActionsText[activeLocale]}
+                    title={messageActionsText[activeLocale]}
+                    className="hover:bg-quiet flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-green-700 hover:text-green-900"
+                  >
+                    <Ellipsis className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -642,16 +626,31 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         />
       )}
 
-      {showInfo && (
-        <MessageInfoDropdown
+      {isActionsOpen && (
+        <MessageActionsSheet
           message={message}
           isCurrentUser={isCurrentUser}
-          onClose={() => {
-            setShowInfo(false);
-            if (isSelected) {
-              setSelectedMessage(undefined);
-            }
-          }}
+          locale={activeLocale}
+          preview={
+            <div
+              inert
+              className={cn(
+                'max-h-[35dvh] max-w-[85%] min-w-[64px] overflow-hidden rounded-[16px] px-3.5 py-2 wrap-anywhere',
+                bubbleColorClassName,
+              )}
+            >
+              {bubbleBody}
+            </div>
+          }
+          onClose={() => setIsActionsOpen(false)}
+          reactions={canReact && isSent ? { reactedEmojis, onReact: react } : undefined}
+          onReply={canSendMessages && isSent ? (): void => quoteMessage(message.id) : undefined}
+          onReplyInThread={
+            canThread && isSent && activeThreadId !== message.id
+              ? (): void => replyInThread(message.id)
+              : undefined
+          }
+          textToCopy={textOf(message.messagePayload)}
         />
       )}
     </div>
