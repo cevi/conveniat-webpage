@@ -24,8 +24,8 @@ export interface TimelineTransfer {
   key: string;
   /** how long the walk is, when there is one answer for everybody */
   minutes: number | undefined;
-  /** where the walk goes: the stop after it */
-  to: Entry;
+  /** where the walk goes: the stop after it, none for the walk that ends the day */
+  to: Entry | undefined;
   /** the Quartiere walk at different times, as in the view of the whole camp */
   perQuartier: boolean;
   slots: [Entry, ...Entry[]];
@@ -101,18 +101,18 @@ export const buildTimeline = (
     );
   }
 
-  // each transfer leads to the first stop that starts after it does
-  const transfersBefore = new Map<TimelineStop, Entry[]>();
+  // each transfer leads to the first stop that starts after it does; the walk home after the
+  // last stop leads nowhere on this day, and still belongs on it
+  const transfersBefore = new Map<TimelineStop | undefined, Entry[]>();
   for (const transfer of sorted.filter((entry) => kindOf(entry) === 'transfer')) {
     const start = slotOf(transfer)?.start ?? 0;
     const next = stops.find((stop) => (slotOf(stop.slots[0])?.start ?? 0) > start);
-    if (next === undefined) continue;
     transfersBefore.set(next, [...(transfersBefore.get(next) ?? []), transfer]);
   }
 
-  return stops.flatMap((stop): TimelineItem[] => {
+  const transferTo = (stop?: TimelineStop): TimelineTransfer[] => {
     const transfers = transfersBefore.get(stop);
-    if (transfers === undefined) return [stop];
+    if (transfers === undefined) return [];
 
     const durations = transfers.map((transfer) => {
       const slot = slotOf(transfer);
@@ -131,13 +131,17 @@ export const buildTimeline = (
         type: 'transfer',
         key: `transfer-${transfers.map(({ id }) => id).join('-')}`,
         minutes: minutes === 0 ? undefined : minutes,
-        to: stop.slots[0],
+        to: stop?.slots[0],
         perQuartier,
         slots: transfers as [Entry, ...Entry[]],
       },
-      stop,
     ];
-  });
+  };
+
+  return [
+    ...stops.flatMap((stop): TimelineItem[] => [...transferTo(stop), stop]),
+    ...transferTo(),
+  ];
 };
 
 /** The minutes from midnight a timeline item starts at: its first slot's. */

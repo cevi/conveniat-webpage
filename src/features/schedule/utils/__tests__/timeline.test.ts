@@ -59,7 +59,7 @@ const day = [
 const describe_ = (items: TimelineItem[]): string[] =>
   items.map((item) => {
     if (item.type === 'transfer') {
-      return `→ ${item.to.title} ${item.perQuartier ? 'je nach Quartier' : String(item.minutes)}`;
+      return `→ ${item.to?.title ?? 'Tagesende'} ${item.perQuartier ? 'je nach Quartier' : String(item.minutes)}`;
     }
     return item.slots.length > 1
       ? `${item.slots[0].title} ×${item.slots.length}`
@@ -143,6 +143,20 @@ describe('buildTimeline', () => {
     );
 
     expect(describe_(items)).toEqual(['Ballspiele', 'Ballspiele']);
+  });
+});
+
+describe('buildTimeline at the end of the day', () => {
+  it('keeps the walk after the last stop', () => {
+    const items = buildTimeline(
+      [
+        entry('Eröffnungsfeier', '20:15 - 21:45', 'program'),
+        entry('Verschiebung', '21:45 - 22:15', 'transfer'),
+      ],
+      { groupSlots: false },
+    );
+
+    expect(describe_(items)).toEqual(['Eröffnungsfeier', '→ Tagesende 30']);
   });
 });
 

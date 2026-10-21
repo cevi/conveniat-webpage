@@ -103,7 +103,7 @@ export const ScheduleTransferRow: React.FC<{ transfer: TimelineTransfer; isPast:
   isPast,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const place = resolveLocation(transfer.to.location)?.title;
+  const place = resolveLocation(transfer.to?.location)?.title;
   const duration = transfer.minutes === undefined ? '' : formatDuration(transfer.minutes);
 
   let text: string = programmeLabels.transferPerQuartier[locale];
