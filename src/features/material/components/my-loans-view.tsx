@@ -252,30 +252,33 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
 
   return (
     <li className={cn('space-y-2 px-4 py-3', status === 'OVERDUE' && 'bg-live-soft')}>
-      <div className="flex items-center gap-3">
+      {/* the badge drops below rather than squeezing the name: it can be wide */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <MaterialItemImage
           name={loan.item.name}
           imageUrl={loan.item.imageUrl}
           className="size-11"
         />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold text-green-900">
+        <div className="min-w-36 flex-1">
+          <div className="line-clamp-2 font-semibold break-words text-green-900">
             <span className="tabular-nums">{quantityOf(loan)} ×</span> {loan.item.name}
           </div>
           <div
             className={cn(
-              'truncate text-sm',
+              'text-sm',
               status === 'OVERDUE' ? 'text-live-text font-semibold' : 'text-green-700',
             )}
           >
             {out ? when : `#${loan.number}`}
           </div>
         </div>
-        {announced === undefined ? (
-          <LoanStatusBadge status={status} locale={locale} />
-        ) : (
-          <span className={cn(chip, chipTone.ready)}>{labels.returnAnnounced[locale]}</span>
-        )}
+        <span className="ml-auto">
+          {announced === undefined ? (
+            <LoanStatusBadge status={status} locale={locale} />
+          ) : (
+            <span className={cn(chip, chipTone.ready)}>{labels.returnAnnounced[locale]}</span>
+          )}
+        </span>
       </div>
       {rejected && (
         <p className="bg-live-soft text-live-text rounded-[10px] px-3 py-2 text-sm">

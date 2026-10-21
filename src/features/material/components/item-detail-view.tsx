@@ -421,7 +421,8 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
               />
             </div>
           </Panel>
-          <div className="grid grid-cols-3 gap-2 [&>button]:min-w-0 [&>button]:px-2">
+          {/* wraps instead of cutting a label short on a narrow phone */}
+          <div className="flex flex-wrap gap-2 [&>button]:flex-1">
             <MaterialButton variant="outlined" onClick={() => setEditing(true)}>
               <Pencil aria-hidden />
               {labels.edit[locale]}
@@ -432,7 +433,7 @@ export const ItemDetailView: React.FC<{ code: string }> = ({ code }) => {
             </MaterialButton>
             <MaterialButton variant="outlined" onClick={() => setReporting(true)}>
               <AlertTriangle aria-hidden />
-              <span className="truncate">{text.damage[locale]}</span>
+              {text.damage[locale]}
             </MaterialButton>
           </div>
         </div>
