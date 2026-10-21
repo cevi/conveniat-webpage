@@ -114,7 +114,7 @@ export const AnnotationScheduleTableComponent: React.FC<{
           <li key={entry.id} className="border-line border-b last:border-b-0">
             <Link
               href={`/app/schedule?date=${dayKey}&id=${entry.id}`}
-              className="flex min-h-[52px] items-center gap-2.5 py-1.5"
+              className="focus-visible:focus-ring-inset hover:bg-quiet -mx-4 flex min-h-[52px] items-center gap-2.5 px-4 py-1.5 transition-colors"
             >
               <span className="w-16 shrink-0">
                 <span className="block text-xs font-medium text-green-500">

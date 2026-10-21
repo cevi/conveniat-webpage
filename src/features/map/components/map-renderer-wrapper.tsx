@@ -12,25 +12,30 @@ import type {
 } from '@/features/map/types/types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { Loader2 } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import dynamic from 'next/dynamic';
 import type React from 'react';
 import { Suspense, useRef } from 'react';
 
 const mapLoadingText: StaticTranslationString = {
-  en: 'Loading map...',
-  de: 'Karte wird geladen...',
-  fr: 'Chargement de la carte...',
+  en: 'Loading map …',
+  de: 'Karte wird geladen …',
+  fr: 'Chargement de la carte …',
 };
 
+/** The map's box in the quiet grey of a page loading, with a word on what is coming. */
 const MapLoadingFallback: React.FC = () => {
   const locale = (useCurrentLocale(i18nConfig) as Locale | undefined) ?? 'de';
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <div className="border-conveniat-green mx-auto h-12 w-12 animate-spin rounded-full border-3 border-solid border-t-transparent" />
-        <p className="mt-4 text-sm text-gray-500">{mapLoadingText[locale]}</p>
-      </div>
+    <div className="bg-quiet flex h-full w-full items-center justify-center">
+      <p
+        role="status"
+        className="flex items-center gap-2 rounded-full bg-white px-3.5 py-2 text-[13px] font-medium text-green-700 shadow-[0_2px_10px_rgba(0,0,0,0.15)]"
+      >
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        {mapLoadingText[locale]}
+      </p>
     </div>
   );
 };
@@ -42,7 +47,7 @@ const LazyMapLibreRenderer = dynamic(
   },
 );
 
-const MiniMapLoadingFallback: React.FC = () => <Skeleton className="h-full w-full bg-gray-200" />;
+const MiniMapLoadingFallback: React.FC = () => <Skeleton className="h-full w-full rounded-none" />;
 
 const LazyMiniMapLibreRenderer = dynamic(
   () => import('@/features/map/components/maplibre-renderer/map-renderer'),

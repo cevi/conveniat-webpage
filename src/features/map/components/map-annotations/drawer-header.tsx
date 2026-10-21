@@ -45,7 +45,7 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
           </h2>
           {/* read defensively: a phone can restore a map from before the Quartier was an object */}
           {typeof annotation.quartier?.name === 'string' && annotation.quartier.name !== '' && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-green-500">
+            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-green-700">
               <QuartierDot quartier={annotation.quartier} />
               {annotation.quartier.name}
             </p>
@@ -53,11 +53,11 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
         </div>
         <button
           type="button"
-          className="bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900"
+          className="bg-quiet hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors"
           onClick={closeDrawer}
           aria-label={labels.close[locale]}
         >
-          <X className="h-5 w-5" />
+          <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 

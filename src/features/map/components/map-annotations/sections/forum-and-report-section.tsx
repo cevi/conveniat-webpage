@@ -129,7 +129,10 @@ export const AnnotationForumAndReportSection: React.FC<{
       </button>
       {/* the server words the rate limit in the user's language, with what to do instead */}
       {reportError?.data?.code === 'TOO_MANY_REQUESTS' && (
-        <p role="alert" className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-sm">
+        <p
+          role="alert"
+          className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-[13px] font-medium"
+        >
           {reportError.message}
         </p>
       )}

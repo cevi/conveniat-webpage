@@ -1,13 +1,13 @@
 'use client';
 
-import { fieldFocusRingClassName } from '@/components/ui/field';
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { useFitToSearchResults } from '@/features/map/hooks/use-fit-to-search-results';
 import { useLocateControl, useLocateOnArrival } from '@/features/map/hooks/use-locate-control';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Loader2, LocateFixed, LocateOff, Search, X } from 'lucide-react';
+import { Loader2, LocateFixed, LocateOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 import { useState } from 'react';
@@ -16,12 +16,6 @@ const searchLabel: StaticTranslationString = {
   de: 'Ort oder Quartier suchen',
   en: 'Search for a place or Quartier',
   fr: 'Chercher un lieu ou un Quartier',
-};
-
-const clearLabel: StaticTranslationString = {
-  de: 'Suche leeren',
-  en: 'Clear search',
-  fr: 'Effacer la recherche',
 };
 
 const locateLabel: StaticTranslationString = {
@@ -84,33 +78,15 @@ export const MapSearchRow: React.FC<{
   return (
     <div className="absolute top-3 right-4 left-4 z-50">
       <div className="flex items-center gap-2">
-        <label
-          className={cn(
-            'flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full pl-4',
-            floatingClassName,
-            fieldFocusRingClassName,
-          )}
-        >
-          <Search className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
-          <span className="sr-only">{searchLabel[locale]}</span>
-          <input
-            type="search"
-            value={value}
-            placeholder={searchLabel[locale]}
-            onChange={(event) => search(event.target.value)}
-            className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-green-900 outline-hidden placeholder:text-green-500 [&::-webkit-search-cancel-button]:hidden"
-          />
-          {value !== '' && (
-            <button
-              type="button"
-              onClick={() => search('')}
-              aria-label={clearLabel[locale]}
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
-        </label>
+        {/* the app's search, white with a line as on the grey page, floating over the map */}
+        <AppSearchBar
+          onPage
+          placeholder={searchLabel[locale]}
+          value={value}
+          onChange={(event) => search(event.target.value)}
+          onClear={() => search('')}
+          className={cn('flex-1', floatingClassName)}
+        />
         <button
           type="button"
           onClick={locate}
@@ -118,9 +94,11 @@ export const MapSearchRow: React.FC<{
           aria-pressed={locateState === 'active'}
           aria-busy={locateState === 'searching'}
           className={cn(
-            'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full',
+            'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors',
             floatingClassName,
-            locateState === 'active' ? 'bg-conveniat-green text-white' : 'text-green-900',
+            locateState === 'active'
+              ? 'bg-conveniat-green text-white hover:bg-green-700'
+              : 'hover:bg-quiet text-green-900',
           )}
         >
           <LocateIcon

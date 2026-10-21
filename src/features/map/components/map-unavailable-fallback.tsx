@@ -23,9 +23,9 @@ export const MapUnavailableFallback: React.FC<{ children?: React.ReactNode }> = 
   const locale = (useCurrentLocale(i18nConfig) as Locale | undefined) ?? 'de';
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 p-4 text-center">
-      <MapPinOff className="h-8 w-8 text-gray-400" />
-      <p className="text-sm text-balance text-gray-500">{mapUnavailableText[locale]}</p>
+    <div className="bg-quiet flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center">
+      <MapPinOff className="h-8 w-8 text-green-500" aria-hidden="true" />
+      <p className="text-[13px] text-balance text-green-700">{mapUnavailableText[locale]}</p>
       {children}
     </div>
   );
