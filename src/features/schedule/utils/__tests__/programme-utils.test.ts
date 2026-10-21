@@ -2,6 +2,8 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import {
   findNowAndNext,
   findOtherSlots,
+  findWhatComesNext,
+  isDescriptionRedundant,
   isForQuartiere,
   kindOf,
   withClockTimes,
@@ -151,5 +153,63 @@ describe('findOtherSlots', () => {
     expect(
       findOtherSlots([first, second, otherDay, lunch, elsewhere], second).map(({ id }) => id),
     ).toEqual(['1']);
+  });
+});
+
+const richText = (text: string): unknown => ({
+  root: {
+    type: 'root',
+    version: 1,
+    children: [{ type: 'paragraph', version: 1, children: [{ type: 'text', version: 1, text }] }],
+  },
+});
+
+describe('isDescriptionRedundant', () => {
+  it('hides a description that only repeats the title', () => {
+    expect(isDescriptionRedundant(richText('Ballspiele.'), 'Ballspiele')).toBe(true);
+    expect(isDescriptionRedundant(richText('  ballspiele  '), 'Ballspiele')).toBe(true);
+  });
+
+  it('hides an empty or unreadable description', () => {
+    expect(isDescriptionRedundant(richText(''), 'Ballspiele')).toBe(true);
+    // a draft skips validation and can leave the description empty
+    // eslint-disable-next-line unicorn/no-null
+    expect(isDescriptionRedundant(null, 'Ballspiele')).toBe(true);
+  });
+
+  it('keeps a description that says more', () => {
+    expect(isDescriptionRedundant(richText('Ballspiele für alle Stufen.'), 'Ballspiele')).toBe(
+      false,
+    );
+  });
+});
+
+describe('findWhatComesNext', () => {
+  const mine = new Set(['q5']);
+  const ballspiele = entry('ballspiele', '17:00 - 17:30', 'program', [{ id: 'q5', name: 'Q5' }]);
+
+  it('names the meal that follows and the block after it, on the own timeline', () => {
+    const { next, nextBlock } = findWhatComesNext(
+      [
+        ballspiele,
+        entry('walk', '17:45 - 18:00', 'transfer', [{ id: 'q5', name: 'Q5' }]),
+        entry('essen-q1', '17:30 - 18:00', 'meal', [{ id: 'q1', name: 'Q1' }]),
+        entry('essen', '18:00 - 18:30', 'meal', [{ id: 'q5', name: 'Q5' }]),
+        entry('freies-spiel', '18:45 - 19:30', 'program', [{ id: 'q5', name: 'Q5' }]),
+        entry('feier', '20:15 - 21:45', 'program'),
+      ],
+      ballspiele,
+      mine,
+    );
+
+    expect(next?.id).toBe('essen');
+    expect(nextBlock?.id).toBe('freies-spiel');
+  });
+
+  it('has nothing to say after the last stop of the day', () => {
+    expect(findWhatComesNext([ballspiele], ballspiele, mine)).toEqual({
+      next: undefined,
+      nextBlock: undefined,
+    });
   });
 });

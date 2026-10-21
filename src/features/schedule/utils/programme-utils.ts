@@ -195,3 +195,55 @@ export const formatQuartierRange = (names: readonly (string | undefined)[]): str
   );
   return [...runs, ...unnumbered].join(', ');
 };
+
+const normalizedText = (text: string): string =>
+  text
+    .toLowerCase()
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .replace(/[.!?…:;,]+$/, '')
+    .trim();
+
+/** The words of a Lexical rich text, whatever shape a draft left it in. */
+const textOfRichText = (node: unknown): string => {
+  if (typeof node !== 'object' || node === null) return '';
+  const { text, children, root } = node as { text?: unknown; children?: unknown; root?: unknown };
+  if (typeof text === 'string') return text;
+  if (root !== undefined) return textOfRichText(root);
+  return Array.isArray(children) ? children.map((child) => textOfRichText(child)).join(' ') : '';
+};
+
+/**
+ * Whether a block's description says nothing the title does not: empty, or the title again, as
+ * in "Ballspiele." under "Ballspiele". Drafts skip validation, so a description in any shape is
+ * read for its words, and one without any counts as empty.
+ */
+export const isDescriptionRedundant = (description: unknown, title: string): boolean => {
+  const normalized = normalizedText(textOfRichText(description));
+  return normalized === '' || normalized === normalizedText(title);
+};
+
+/**
+ * What comes after a block on its own timeline, the one of the Quartiere it is for: the next
+ * stop, often a meal, and the next block, which has a page to open.
+ */
+export const findWhatComesNext = <
+  T extends Pick<CampScheduleEntryFrontendType, 'id' | 'kind' | 'timeslot' | 'quartiere'>,
+>(
+  entries: readonly T[],
+  current: T,
+  quartierIds: ReadonlySet<string>,
+): { next: T | undefined; nextBlock: T | undefined } => {
+  const end = slotOf(current)?.end ?? 0;
+  const later = entries
+    .filter(
+      (entry) =>
+        entry.id !== current.id &&
+        kindOf(entry) !== 'transfer' &&
+        entry.timeslot.date === current.timeslot.date &&
+        (slotOf(entry)?.start ?? -1) >= end &&
+        isForQuartiere(entry, quartierIds),
+    )
+    .sort(byStart);
+  return { next: later[0], nextBlock: later.find((entry) => kindOf(entry) === 'program') };
+};

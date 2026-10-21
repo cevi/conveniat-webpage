@@ -8,13 +8,14 @@ import { useMemo } from 'react';
 
 interface DetailStarButtonProperties {
   entryId: string;
+  className?: string;
 }
 
 /**
  * Client component for starring schedule entries from the detail page.
  * Handles enrollment check to determine if the star is locked.
  */
-export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId }) => {
+export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId, className }) => {
   const { isStarred, toggleStar } = useStar();
 
   // Get enrolled courses to check if this entry is enrolled
@@ -31,6 +32,7 @@ export const DetailStarButton: React.FC<DetailStarButtonProperties> = ({ entryId
       isStared={currentlyStarred}
       toggleStar={toggleStar}
       isLocked={isEnrolled}
+      className={className}
     />
   );
 };

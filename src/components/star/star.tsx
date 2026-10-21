@@ -30,7 +30,7 @@ export const StarButton: React.FC<{
   toggleStar: (id: string) => void;
   /** When true, the star is locked (enrolled items can't be un-starred) */
   isLocked?: boolean;
-  className?: string;
+  className?: string | undefined;
 }> = ({ id, isStared, toggleStar, isLocked = false, className }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 

@@ -32,6 +32,10 @@ interface ScheduleMiniMapProperties {
    * "open in map" button is the way out to a map that does respond.
    */
   interactive?: boolean;
+  /** the "open in map" button; left out where something else on the page leads to the map */
+  showOpenInMap?: boolean;
+  /** how close the map starts; a wide map can come closer and still show the surroundings */
+  zoom?: number;
 }
 
 interface CoordinateObject {
@@ -99,6 +103,8 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
   location,
   className,
   interactive = true,
+  showOpenInMap = true,
+  zoom = 13.5,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   // Fetch all polygon annotations for context
@@ -179,7 +185,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
           key={location.id}
           initialMapPose={{
             initialMapCenter: [longitude, latitude],
-            zoom: 13.5,
+            zoom,
           }}
           ceviLogoMarkers={[]}
           campMapAnnotationPoints={
@@ -223,16 +229,18 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
       */}
       {!interactive && <div className="absolute inset-0 z-[5]" aria-hidden="true" />}
 
-      {/* The one way from here to the full map, which answers taps */}
-      <div className="absolute top-3 right-3 z-10">
-        <Link
-          href={`/app/map?locationId=${location.id}`}
-          className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-gray-900 shadow-md transition-colors hover:bg-gray-50"
-        >
-          <MapPin className="h-4 w-4 shrink-0" />
-          {labels.openInMap[locale]}
-        </Link>
-      </div>
+      {/* The way from here to the full map, which answers taps */}
+      {showOpenInMap && (
+        <div className="absolute top-3 right-3 z-10">
+          <Link
+            href={`/app/map?locationId=${location.id}`}
+            className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-gray-900 shadow-md transition-colors hover:bg-gray-50"
+          >
+            <MapPin className="h-4 w-4 shrink-0" />
+            {labels.openInMap[locale]}
+          </Link>
+        </div>
+      )}
     </div>
   );
 };

@@ -20,6 +20,10 @@ interface ScheduleEditHeaderActionsProperties {
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSave: () => void;
+  /** the look of the round buttons, such as white and floating over a map */
+  buttonClassName?: string;
+  /** shown before the star, such as sharing */
+  before?: React.ReactNode;
 }
 
 /**
@@ -35,6 +39,8 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
   onStartEdit,
   onCancelEdit,
   onSave,
+  buttonClassName = 'rounded-lg p-2 transition-colors hover:bg-gray-100',
+  before,
 }) => {
   return (
     <div className="flex shrink-0 items-center gap-2">
@@ -42,7 +48,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
         <button
           type="button"
           onClick={onStartEdit}
-          className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+          className={buttonClassName}
           aria-label={labels.edit[locale]}
         >
           <Edit className="h-5 w-5 text-gray-700" />
@@ -53,7 +59,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
           <button
             type="button"
             onClick={onCancelEdit}
-            className="rounded-lg p-2 transition-colors hover:bg-gray-100"
+            className={buttonClassName}
             aria-label={labels.cancel[locale]}
           >
             <X className="h-5 w-5 text-gray-500" />
@@ -62,7 +68,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="bg-conveniat-green hover:bg-conveniat-green-dark flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50"
+            className="bg-conveniat-green hover:bg-conveniat-green-dark flex h-11 items-center gap-1 rounded-full px-4 text-sm font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors disabled:opacity-50"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -73,7 +79,8 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
           </button>
         </>
       )}
-      <DetailStarButton entryId={entryId} />
+      {before}
+      <DetailStarButton entryId={entryId} className={buttonClassName} />
     </div>
   );
 };

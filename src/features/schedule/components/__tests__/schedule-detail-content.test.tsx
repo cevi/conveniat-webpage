@@ -54,11 +54,15 @@ jest.mock('@/features/schedule/components/enrollment-action', () => ({
 }));
 
 jest.mock('@/features/schedule/components/schedule-mini-map', () => ({
+  mapCenterOf: (): undefined => undefined,
   ScheduleMiniMap: (): React.ReactNode => <></>,
 }));
 
+// prints the words of the rich text, so a test can tell whether a description is shown
 jest.mock('@/features/payload-cms/components/content-blocks/lexical-rich-text-section', () => ({
-  LexicalRichTextSection: (): React.ReactNode => <></>,
+  LexicalRichTextSection: ({ richTextSection }: { richTextSection: unknown }): React.ReactNode => (
+    <>{/"text":"([^"]*)"/.exec(JSON.stringify(richTextSection))?.[1]}</>
+  ),
 }));
 
 jest.mock('@/components/ui/markdown-editor', () => ({
@@ -177,7 +181,7 @@ describe('ScheduleDetailContent tabs', () => {
     expect(screen.queryByRole('tablist')).toBeNull();
   });
 
-  it('names when the other Quartiere have the same block', () => {
+  it('lists when the other Quartiere have the same block', () => {
     const other: CampScheduleEntryFrontendType = {
       id: 'entry-2',
       title: 'Workshop Feuermachen',
@@ -190,6 +194,99 @@ describe('ScheduleDetailContent tabs', () => {
 
     render(<ScheduleDetailContent entry={entryWith([])} locale="de" otherSlots={[other]} />);
 
-    expect(screen.getByText('13:45 – 15:45 · Quartier 2 - West')).toBeInTheDocument();
+    expect(screen.getByText('Weitere Zeitfenster')).toBeInTheDocument();
+    expect(screen.getByText('13:45–15:45')).toBeInTheDocument();
+    expect(screen.getByText('· Q2 West')).toBeInTheDocument();
+  });
+});
+
+const richText = (text: string): CampScheduleEntry['description'] =>
+  ({
+    root: {
+      type: 'root',
+      version: 1,
+      children: [{ type: 'paragraph', version: 1, children: [{ type: 'text', version: 1, text }] }],
+    },
+  }) as unknown as CampScheduleEntry['description'];
+
+const q = (number: number, name: string): { id: string; name: string } => ({
+  id: `q${number}`,
+  name: `Quartier ${number} - ${name}`,
+});
+
+const slot = (
+  id: string,
+  time: string,
+  quartiere: { id: string; name: string }[],
+  extra: Partial<CampScheduleEntryFrontendType> = {},
+): CampScheduleEntryFrontendType => ({
+  id,
+  title: 'Ballspiele',
+  description: richText('Ballspiele.'),
+  timeslot: { date: '2027-07-24T12:00:00.000Z', time },
+  // eslint-disable-next-line unicorn/no-null
+  location: null,
+  kind: 'program',
+  quartiere,
+  ...extra,
+});
+
+const mine = slot('mine', '17:00 - 17:30', [q(4, 'Kitsune'), q(5, 'Greif'), q(6, 'Cerberus')]);
+const theirs = slot('theirs', '17:00 - 18:00', [q(7, 'Phönix'), q(8, 'Baku')]);
+
+const renderDetail = (
+  properties: Partial<React.ComponentProps<typeof ScheduleDetailContent>> = {},
+): void => {
+  render(
+    <ScheduleDetailContent
+      entry={theirs as unknown as CampScheduleEntry}
+      locale="de"
+      slotEntry={mine}
+      isOwnSlot
+      myQuartierIds={new Set(['q5'])}
+      otherSlots={[theirs]}
+      {...properties}
+    />,
+  );
+};
+
+describe('ScheduleDetailContent slots and what comes next', () => {
+  it("leads with the user's own slot, even when another slot was opened", () => {
+    renderDetail();
+
+    expect(screen.getByText(/17:00–17:30/)).toBeInTheDocument();
+    expect(screen.getByText('30 min · Zeitfenster deines Quartiers')).toBeInTheDocument();
+    expect(screen.getByText('Weitere Zeitfenster')).toBeInTheDocument();
+    expect(screen.getByText('17:00–18:00')).toBeInTheDocument();
+  });
+
+  it('hides a description that only repeats the title, and shows one that says more', () => {
+    const { unmount } = render(
+      <ScheduleDetailContent entry={mine as unknown as CampScheduleEntry} locale="de" />,
+    );
+    expect(screen.queryByText('Ballspiele.')).toBeNull();
+    unmount();
+
+    renderDetail({
+      entry: {
+        ...mine,
+        description: richText('Ballspiele für alle Stufen.'),
+      } as unknown as CampScheduleEntry,
+    });
+    expect(screen.getByText('Ballspiele für alle Stufen.')).toBeInTheDocument();
+  });
+
+  it('says what comes next and opens the next block', () => {
+    const onOpenEntry = jest.fn();
+    const essen = slot('essen', '18:00 - 18:30', [q(5, 'Greif')], { title: 'Essen', kind: 'meal' });
+    const freiesSpiel = slot('freies-spiel', '18:45 - 19:30', [q(5, 'Greif')], {
+      title: 'Freies Spiel',
+    });
+
+    renderDetail({ whatComesNext: { next: essen, nextBlock: freiesSpiel }, onOpenEntry });
+
+    const after = screen.getByRole('link', { name: /Danach 18:00 Essen · dann Freies Spiel/ });
+    fireEvent.click(after);
+    expect(onOpenEntry).toHaveBeenCalledWith('freies-spiel');
   });
 });
