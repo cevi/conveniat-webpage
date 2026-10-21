@@ -226,7 +226,7 @@ export const ProfileAvatar: React.FC<{
       >
         {step === 'choose' && (
           <div className="space-y-3">
-            <p className="bg-quiet flex items-start gap-2 rounded-xl px-3 py-2.5 text-[13px] leading-[18px] text-green-700">
+            <p className="bg-quiet flex items-start gap-2 rounded-[14px] px-3 py-2.5 text-[13px] leading-[18px] text-green-700">
               <Eye className="mt-px h-4 w-4 shrink-0" aria-hidden="true" />
               {labels.visibility[locale]}
             </p>
@@ -362,7 +362,7 @@ export const ProfileAvatar: React.FC<{
                 {labels.cancel[locale]}
               </Button>
               <Button
-                variant="outlined"
+                variant="danger"
                 size="touch"
                 className="flex-1"
                 disabled={isBusy}

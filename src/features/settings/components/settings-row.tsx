@@ -1,3 +1,4 @@
+import { Card } from '@/components/ui/card';
 import { IconTile } from '@/components/ui/icon-tile';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
@@ -24,15 +25,14 @@ export const SettingsCard: React.FC<{ children: React.ReactNode; className?: str
   children,
   className,
 }) => (
-  <div
+  <Card
     className={cn(
-      'border-line overflow-hidden rounded-[14px] border bg-white',
-      '[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:top-0 [&>*+*]:before:right-0 [&>*+*]:before:left-4 [&>*+*]:before:h-px [&>*+*]:before:bg-green-100',
+      '[&>*+*]:before:bg-line [&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:top-0 [&>*+*]:before:right-0 [&>*+*]:before:left-4 [&>*+*]:before:h-px',
       className,
     )}
   >
     {children}
-  </div>
+  </Card>
 );
 
 /** One setting: what it is, its state below and its control on the right. */
@@ -82,7 +82,10 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
 };
 
 /** A fact about the user: its name on the left, the value right-aligned. */
-export const SettingsFactRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+export const SettingsFactRow: React.FC<{ label: string; value: React.ReactNode }> = ({
+  label,
+  value,
+}) => (
   <div className="flex min-h-[52px] items-center gap-4 px-4 py-2.5">
     <span className="shrink-0 text-[15px] font-medium text-green-900">{label}</span>
     <span className="min-w-0 flex-1 text-right text-[15px] break-words text-green-700">

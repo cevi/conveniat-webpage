@@ -28,6 +28,13 @@ const pleaseSignInForPushText: StaticTranslationString = {
   fr: 'Veuillez vous connecter pour les notifications push',
 };
 
+// one line, like the description it replaces, so the row keeps its height once it is known
+const blockedText: StaticTranslationString = {
+  de: 'Im Browser blockiert',
+  en: 'Blocked in this browser',
+  fr: 'Bloquées par le navigateur',
+};
+
 const notSupportedText: StaticTranslationString = {
   de: 'Nicht unterstützt',
   en: 'Not supported',
@@ -39,6 +46,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   const isAuthenticated = authStatus === 'authenticated';
 
   const {
+    isChecked: isWebChecked,
     isSupported: isWebSupported,
     isSubscribed: isWebSubscribed,
     isLoading: isWebLoading,
@@ -113,9 +121,17 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   let subtitle = notSupportedText[locale];
   if (isUnauthenticated) {
     subtitle = pleaseSignInForPushText[locale];
-  } else if (isSupported) {
+  } else if (isSupported || (!isNativeApp && !isWebChecked)) {
+    // until the browser was asked, the row says what it is for rather than "not supported"
     subtitle = pushNotificationDescription[locale];
   }
+  // the hook's message spells out where to unblock; the row has room for one line. Read after
+  // the check only, which runs in the browser, so the first render matches the server's.
+  const isBlockedInBrowser =
+    errorMessage !== undefined &&
+    !isNativeApp &&
+    'Notification' in globalThis &&
+    globalThis.Notification.permission === 'denied';
 
   const handleToggle = (): void => {
     Cookies.remove(Cookie.SKIP_PUSH_NOTIFICATION);
@@ -239,7 +255,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
       <SettingsRow
         title={pushNotificationSettingsTitle[locale]}
         subtitle={subtitle}
-        error={errorMessage}
+        error={isBlockedInBrowser ? blockedText[locale] : errorMessage}
         action={
           <Switch
             checked={isSubscribed}

@@ -1,10 +1,8 @@
+import { SettingsCard } from '@/features/settings/components/settings-row';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
 const pulse = 'animate-pulse bg-quiet';
-
-const cardClassName =
-  'border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white';
 
 const LabelSkeleton: React.FC<{ width: string }> = ({ width }) => (
   <div className="mb-2 flex h-4 items-center px-1">
@@ -51,7 +49,7 @@ export const SettingsSkeleton: React.FC = () => (
       </div>
       <section>
         <LabelSkeleton width="w-24" />
-        <div className={cardClassName}>
+        <SettingsCard>
           <FactRowSkeleton value="w-24" />
           <FactRowSkeleton value="w-32" />
           <FactRowSkeleton value="w-40" />
@@ -60,13 +58,13 @@ export const SettingsSkeleton: React.FC = () => (
             <div className={cn('h-11 w-28 rounded-xl', pulse)} />
           </div>
           <SettingRowSkeleton title="w-36" />
-        </div>
+        </SettingsCard>
       </section>
     </div>
 
     <section>
       <LabelSkeleton width="w-10" />
-      <div className={cardClassName}>
+      <SettingsCard>
         <SettingRowSkeleton title="w-48" />
         <div className="px-4 py-2.5">
           <div className={cn('h-4 w-20 rounded', pulse)} />
@@ -74,15 +72,15 @@ export const SettingsSkeleton: React.FC = () => (
           <div className={cn('mt-3 h-11 rounded-xl', pulse)} />
         </div>
         <SettingRowSkeleton title="w-32" />
-      </div>
+      </SettingsCard>
     </section>
 
     <section>
       <LabelSkeleton width="w-12" />
-      <div className={cardClassName}>
+      <SettingsCard>
         <SettingRowSkeleton title="w-44" withSwitch={false} />
         <SettingRowSkeleton title="w-36" withSwitch={false} />
-      </div>
+      </SettingsCard>
     </section>
 
     <div className="border-line h-11 rounded-xl border bg-white" />

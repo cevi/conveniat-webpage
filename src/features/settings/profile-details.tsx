@@ -1,3 +1,4 @@
+import { QuartierDot } from '@/components/quartier/quartier-badge';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { environmentVariables } from '@/config/environment-variables';
@@ -17,6 +18,7 @@ import React from 'react';
 import {
   describeHofRoles,
   getHofDirectory,
+  type HofQuartier,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { SettingsCard, SettingsFactRow } from '@/features/settings/components/settings-row';
@@ -63,10 +65,13 @@ const idsOf = (value: unknown): string[] =>
 
 /**
  * The Höfe of the logged-in user, from their registration, each with its Quartier and whether
- * they are its AVP. Undefined when they cannot be read, so the page says so instead of claiming
- * the user has no Hof.
+ * they are its AVP, and their Quartiere, each once, with the number that picks the house icon.
+ * Undefined when they cannot be read, so the page says so instead of claiming the user has no
+ * Hof.
  */
-const findHofRolesOfUser = async (userId: string): Promise<HofRole[] | undefined> => {
+const findHofRolesOfUser = async (
+  userId: string,
+): Promise<{ roles: HofRole[]; quartiere: HofQuartier[] } | undefined> => {
   try {
     const payload = await getPayload({ config });
     const [user, directory] = await Promise.all([
@@ -78,20 +83,37 @@ const findHofRolesOfUser = async (userId: string): Promise<HofRole[] | undefined
       }),
       getHofDirectory(payload),
     ]);
-    return describeHofRoles(idsOf(user.hoefe), idsOf(user.avpHoefe), directory);
+    const hofIds = idsOf(user.hoefe);
+    const quartiere = new Map<string, HofQuartier>();
+    for (const id of hofIds) {
+      const quartier = directory.get(id)?.quartier;
+      if (quartier !== undefined) quartiere.set(quartier.id, quartier);
+    }
+    return {
+      roles: describeHofRoles(hofIds, idsOf(user.avpHoefe), directory),
+      quartiere: [...quartiere.values()],
+    };
   } catch (error: unknown) {
     logger.warn('Could not read the Höfe of the user', { error, 'user.id': userId });
     return undefined;
   }
 };
 
-/** "Cevi Uster (AVP), Züri 11" and their Quartiere, each once. */
-const describeHofRolesForProfile = (roles: HofRole[]): { hoefe: string; quartiere: string } => ({
-  hoefe: roles.map(({ hof, isAvp }) => (isAvp ? `${hof} (AVP)` : hof)).join(', '),
-  quartiere: [
-    ...new Set(roles.map(({ quartier }) => quartier).filter((name) => name !== undefined)),
-  ].join(', '),
-});
+/** "Cevi Uster (AVP), Züri 11" */
+const describeHofRolesForProfile = (roles: HofRole[]): string =>
+  roles.map(({ hof, isAvp }) => (isAvp ? `${hof} (AVP)` : hof)).join(', ');
+
+/** "Quartier 5 - Greif", each Quartier behind the icon of its house. */
+const QuartierList: React.FC<{ quartiere: HofQuartier[] }> = ({ quartiere }) => (
+  <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+    {quartiere.map((quartier) => (
+      <span key={quartier.id} className="inline-flex items-center gap-1.5">
+        <QuartierDot quartier={quartier} />
+        {quartier.name}
+      </span>
+    ))}
+  </span>
+);
 
 const guestTitle: StaticTranslationString = {
   de: 'Gast',
@@ -176,15 +198,19 @@ export const ProfileDetails: React.FC = async () => {
     // Default to false if Redis is unreachable
   }
   const hofRoles = hideHofAndQuartier ? undefined : await findHofRolesOfUser(user.uuid);
-  const hofSummary = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles);
+  const hoefe = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles.roles);
   const hofText = (): string => {
-    if (hofSummary === undefined) return notAvailable[locale];
-    return hofSummary.hoefe === '' ? noHofYet[locale] : hofSummary.hoefe;
+    if (hoefe === undefined) return notAvailable[locale];
+    return hoefe === '' ? noHofYet[locale] : hoefe;
   };
-  const quartierText = (): string => {
-    if (hofSummary === undefined) return notAvailable[locale];
-    if (hofSummary.hoefe === '') return noHofYet[locale];
-    return hofSummary.quartiere === '' ? noQuartierYet[locale] : hofSummary.quartiere;
+  const quartierValue = (): React.ReactNode => {
+    if (hofRoles === undefined) return notAvailable[locale];
+    if (hoefe === '') return noHofYet[locale];
+    return hofRoles.quartiere.length === 0 ? (
+      noQuartierYet[locale]
+    ) : (
+      <QuartierList quartiere={hofRoles.quartiere} />
+    );
   };
 
   let pictureUrl: string | undefined;
@@ -221,7 +247,7 @@ export const ProfileDetails: React.FC = async () => {
             <SettingsFactRow label={factLabels.hof[locale]} value={hofText()} />
           )}
           {!hideHofAndQuartier && (
-            <SettingsFactRow label={factLabels.quartier[locale]} value={quartierText()} />
+            <SettingsFactRow label={factLabels.quartier[locale]} value={quartierValue()} />
           )}
           <SettingsFactRow label={factLabels.email[locale]} value={getDetail(user.email)} />
           <CeviDatabaseGroupSync />
