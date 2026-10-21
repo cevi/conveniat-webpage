@@ -509,7 +509,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
           )}
 
           {status === 'CLOSED_HIDDEN' && (
-            <div className="bg-quiet mt-4 flex items-start gap-2.5 rounded-xl px-4 py-3 text-[13px] leading-relaxed text-green-900">
+            <div className="bg-quiet mt-4 flex items-start gap-2.5 rounded-[14px] px-4 py-3 text-[13px] leading-relaxed text-green-900">
               <Lock className="mt-0.5 size-4 shrink-0 text-green-700" aria-hidden="true" />
               <p>{t('resultsHidden')}</p>
             </div>

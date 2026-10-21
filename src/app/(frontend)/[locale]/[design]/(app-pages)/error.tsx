@@ -1,6 +1,6 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
-import { IconTile } from '@/components/ui/icon-tile';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
@@ -234,37 +234,48 @@ const ErrorPage: React.FC<{
   const lang = (locale ?? 'de') as Locale;
 
   return (
-    <main className="flex min-h-[60vh] w-full items-center justify-center px-4 py-6">
-      <article className="border-line flex w-full max-w-md flex-col items-center rounded-[14px] border bg-white px-6 py-8 text-center">
-        <IconTile icon={isActuallyOffline ? WifiOff : AlertTriangle} size="lg" />
-        <h1
-          className="font-heading text-heading mt-4 cursor-pointer text-lg font-bold select-none"
-          onClick={handleTitleClick}
-        >
-          {isActuallyOffline
+    // like every other "nothing to show" of the app, on the page and without a frame; tapping it
+    // five times copies the details for the support, as the fifth retry does
+    <main
+      className="flex min-h-[60vh] w-full items-center justify-center px-4 py-6 select-none"
+      onClick={handleTitleClick}
+    >
+      <EmptyState
+        icon={isActuallyOffline ? WifiOff : AlertTriangle}
+        title={
+          isActuallyOffline
             ? offlineMessage[lang] || offlineMessage.de
-            : errorMessage[lang] || errorMessage.de}
-        </h1>
-        <p className="mt-1.5 max-w-xs text-[15px] leading-normal text-green-700">
-          {isActuallyOffline
-            ? offlineDescription[lang] || offlineDescription.de
-            : errorDescription[lang] || errorDescription.de}
-        </p>
-        {copiedDebug && (
-          <p className="bg-tint mt-4 rounded-lg px-3 py-2 text-[13px] font-semibold text-green-900">
-            {debugCopiedMessage[lang] || debugCopiedMessage.de}
-          </p>
-        )}
-        <Button
-          variant="primary"
-          size="touch"
-          className="mt-5 w-64 max-w-full"
-          onClick={handleRetry}
-        >
-          <RefreshCw aria-hidden="true" />
-          {retryButtonTranslation[lang]}
-        </Button>
-      </article>
+            : errorMessage[lang] || errorMessage.de
+        }
+        description={
+          <>
+            {isActuallyOffline
+              ? offlineDescription[lang] || offlineDescription.de
+              : errorDescription[lang] || errorDescription.de}
+            {copiedDebug && (
+              <span className="bg-quiet mt-4 block rounded-[14px] px-3 py-2 text-[13px] font-semibold text-green-900">
+                {debugCopiedMessage[lang] || debugCopiedMessage.de}
+              </span>
+            )}
+          </>
+        }
+        className="w-full max-w-md"
+        action={
+          <Button
+            variant="primary"
+            size="touch"
+            className="w-64 max-w-full"
+            onClick={(event) => {
+              // a retry is not one of the five taps
+              event.stopPropagation();
+              handleRetry();
+            }}
+          >
+            <RefreshCw aria-hidden="true" />
+            {retryButtonTranslation[lang]}
+          </Button>
+        }
+      />
     </main>
   );
 };
