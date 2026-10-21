@@ -234,6 +234,11 @@ export const MapLibreRenderer = ({
     return visibleAnnotationPolygons.filter((annotation) => matchesSearch(annotation, searchTerm));
   }, [visibleAnnotationPolygons, searchTerm]);
 
+  const searchResults = useMemo(
+    () => [...filteredAnnotationPoints, ...filteredAnnotationPolygons],
+    [filteredAnnotationPoints, filteredAnnotationPolygons],
+  );
+
   const handleSearch = useCallback(
     (term: string) => {
       setSearchTerm(term);
@@ -265,7 +270,7 @@ export const MapLibreRenderer = ({
         />
       )}
       <div className="h-full w-full" ref={(element) => setMapContainer(element ?? undefined)} />
-      {enableSearch && <MapSearchRow onSearch={handleSearch} />}
+      {enableSearch && <MapSearchRow onSearch={handleSearch} results={searchResults} />}
       <MaplibreMap
         openAnnotation={openAnnotation}
         setOpenAnnotation={setOpenAnnotation}
