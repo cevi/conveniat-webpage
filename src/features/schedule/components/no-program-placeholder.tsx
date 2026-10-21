@@ -5,7 +5,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import type { FilterState } from '@/features/schedule/components/search-filter-bar';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { CalendarX, FilterX, SearchX, Star } from 'lucide-react';
+import { CalendarX, FilterX, MapPinOff, SearchX, Star } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
@@ -37,6 +37,17 @@ const labels = {
     en: 'Nothing in “{{category}}” on this day',
     fr: 'Rien dans « {{category}} » ce jour-là',
   },
+  nothingAtPlace: {
+    de: 'Nichts an «{{place}}» an diesem Tag',
+    en: 'Nothing at “{{place}}” on this day',
+    fr: 'Rien à « {{place}} » ce jour-là',
+  },
+  nothingAtPlaces: {
+    de: 'Nichts an diesen {{count}} Orten an diesem Tag',
+    en: 'Nothing at these {{count}} places on this day',
+    fr: 'Rien à ces {{count}} lieux ce jour-là',
+  },
+  allPlaces: { de: 'Alle Orte', en: 'All places', fr: 'Tous les lieux' },
   allCategories: { de: 'Alle Kategorien', en: 'All categories', fr: 'Toutes les catégories' },
   noMatches: { de: 'Keine Treffer', en: 'No matches', fr: 'Aucun résultat' },
   noMatchesHelp: {
@@ -76,7 +87,10 @@ export const NoProgramPlaceholder: React.FC<{
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const hasSearch = filters.searchText.trim() !== '';
   const hasCategory = filters.selectedCategory !== undefined;
-  const activeCount = [hasSearch, hasCategory, filters.starredOnly].filter(Boolean).length;
+  const hasPlace = filters.selectedLocations.length > 0;
+  const activeCount = [hasSearch, hasCategory, hasPlace, filters.starredOnly].filter(
+    Boolean,
+  ).length;
 
   const action = (label: string, next: FilterState): React.ReactNode => (
     <Button variant="quiet" size="touch" onClick={() => onFiltersChange(next)}>
@@ -123,6 +137,24 @@ export const NoProgramPlaceholder: React.FC<{
         title={labels.nothingFound[locale].replace('{{term}}', filters.searchText.trim())}
         description={labels.nothingFoundHelp[locale]}
         action={action(labels.clearSearch[locale], { ...filters, searchText: '' })}
+      />
+    );
+  }
+
+  if (hasPlace) {
+    const [onlyPlace] = filters.selectedLocations;
+    return (
+      <EmptyState
+        icon={MapPinOff}
+        title={
+          filters.selectedLocations.length === 1 && onlyPlace !== undefined
+            ? labels.nothingAtPlace[locale].replace('{{place}}', onlyPlace.title)
+            : labels.nothingAtPlaces[locale].replace(
+                '{{count}}',
+                String(filters.selectedLocations.length),
+              )
+        }
+        action={action(labels.allPlaces[locale], { ...filters, selectedLocations: [] })}
       />
     );
   }

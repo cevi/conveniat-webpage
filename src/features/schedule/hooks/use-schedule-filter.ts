@@ -61,8 +61,9 @@ export const useScheduleFilters = (
       }
 
       // Text search in title and description
-      if (filters.searchText !== '') {
-        const searchLower = filters.searchText.toLowerCase();
+      // a search of only spaces is no search
+      const searchLower = filters.searchText.trim().toLowerCase();
+      if (searchLower !== '') {
         const titleMatch = entry.title.toLowerCase().includes(searchLower);
 
         // Search in description (assuming it's a rich text object)
@@ -123,7 +124,7 @@ export const useScheduleFilters = (
 
   const hasActiveFilters = useMemo(() => {
     return (
-      filters.searchText !== '' ||
+      filters.searchText.trim() !== '' ||
       filters.selectedLocations.length > 0 ||
       filters.selectedCategory !== undefined ||
       filters.starredOnly
