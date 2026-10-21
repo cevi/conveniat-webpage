@@ -380,7 +380,7 @@ export const ChatTextAreaInput: React.FC = () => {
         </div>
       )}
 
-      <div className="border-line focus-within:border-rail-node flex flex-col rounded-[22px] border bg-white">
+      <div className="border-line focus-within:border-rail-node flex flex-col rounded-[26px] border bg-white">
         {/* Staged attachment sits above the text it will be sent with */}
         {stagedImage !== undefined && (
           <div className="flex items-end gap-3 px-3 pt-3">
@@ -416,9 +416,11 @@ export const ChatTextAreaInput: React.FC = () => {
             )}
           </div>
         )}
-        <div className="flex items-end">
+        {/* One inset on every side, and a line of text exactly as tall as the 44px buttons: a
+            single line sits on the buttons' centre, and as the field grows they stay at its foot. */}
+        <div className="flex items-end gap-[4px] p-[4px]">
           {canUploadPictures && (
-            <div className="mb-0.5 ml-0.5">
+            <div>
               <input
                 type="file"
                 ref={fileInputReference}
@@ -431,7 +433,7 @@ export const ChatTextAreaInput: React.FC = () => {
                 aria-label={attachImageText[locale]}
                 size="icon"
                 variant="ghost"
-                className="h-11 w-11 shrink-0 cursor-pointer rounded-full text-green-700 hover:bg-transparent [&_svg]:size-5"
+                className="h-[44px] w-[44px] shrink-0 cursor-pointer rounded-full text-green-700 hover:bg-transparent [&_svg]:size-5"
               >
                 <Paperclip aria-hidden="true" />
               </Button>
@@ -448,22 +450,24 @@ export const ChatTextAreaInput: React.FC = () => {
                 }
               }}
               placeholder={messagePlaceholder[locale]}
-              className="w-full resize-none border-0 bg-transparent px-3 py-3 text-base text-green-900 placeholder:text-green-500 focus:ring-0 focus:outline-none"
+              // px, not rem: the root font is larger on desktop, and the line has to match the
+              // buttons, which are 44px everywhere
+              className="block w-full resize-none [scrollbar-width:thin] border-0 bg-transparent px-2 py-[10px] text-[16px] leading-[24px] text-green-900 placeholder:text-green-500 focus:ring-0 focus:outline-none"
               rows={1}
               enterKeyHint="send"
               // five lines, then the textarea scrolls instead of eating the conversation
-              style={{ minHeight: '48px', maxHeight: '144px' }}
+              style={{ minHeight: '44px', maxHeight: '140px' }}
               aria-label={messagePlaceholder[locale]}
             />
           </div>
 
-          {/* Send button - sticky at bottom */}
-          <div className="mr-0.5 mb-0.5">
+          {/* Send button, at the foot of the field however tall it grows */}
+          <div>
             {isTooLong ? (
               <Button
                 onClick={() => void handleSplitAndSend()}
                 size="sm"
-                className="bg-live my-0.5 h-10 shrink-0 rounded-full px-4 font-semibold text-white"
+                className="bg-live h-[44px] shrink-0 rounded-full px-4 font-semibold text-white"
               >
                 {splitAndSendText[locale]}
               </Button>
@@ -473,7 +477,7 @@ export const ChatTextAreaInput: React.FC = () => {
                 size="icon"
                 variant="ghost"
                 aria-label={sendLabel[locale]}
-                className="bg-conveniat-green disabled:bg-quiet h-11 w-11 shrink-0 rounded-full text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
+                className="bg-conveniat-green disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-full text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
                 disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
               >
                 <Send aria-hidden="true" />
