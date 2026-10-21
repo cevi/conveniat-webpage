@@ -14,14 +14,14 @@ import {
 /* eslint-enable import/no-restricted-paths */
 import { Button } from '@/components/ui/buttons/button';
 import { useCourseStatus } from '@/features/schedule/context/schedule-status-context';
-import { getSpotsLeftText } from '@/features/schedule/utils/spots-left-text';
 import { UNENROLLMENT_DEADLINE_PASSED } from '@/features/schedule/utils/unenrollment-deadline';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { handleLogin } from '@/utils/login-handler';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle, Loader2, MessageSquare, Users, WifiOff } from 'lucide-react';
+import { CheckCircle, Loader2, LogIn, MessageSquare, Users, WifiOff } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
@@ -61,12 +61,6 @@ const localizedOffline: StaticTranslationString = {
   de: 'Du bist offline. Anmeldung nicht möglich.',
   en: 'You are offline. Enrollment unavailable.',
   fr: 'Vous êtes hors ligne. Inscription impossible.',
-};
-
-const localizedOfflineShort: StaticTranslationString = {
-  de: 'Offline',
-  en: 'Offline',
-  fr: 'Hors ligne',
 };
 
 const localizedConflictDescWorkshop: StaticTranslationString = {
@@ -117,6 +111,48 @@ const localizedSwitchBlockedShift: StaticTranslationString = {
   fr: 'Le délai de désinscription de ce service est écoulé. Changement impossible. Contacte les organisateurs.',
 };
 
+const localizedSpotsOf: StaticTranslationString = {
+  de: '{{left}} von {{max}} Plätzen frei',
+  en: '{{left}} of {{max}} spots left',
+  fr: '{{left}} places libres sur {{max}}',
+};
+
+const localizedSpotOf: StaticTranslationString = {
+  de: '1 von {{max}} Plätzen frei',
+  en: '1 of {{max}} spots left',
+  fr: '1 place libre sur {{max}}',
+};
+
+const localizedEnrolledCount: StaticTranslationString = {
+  de: '{{count}} eingeschrieben',
+  en: '{{count}} enrolled',
+  fr: '{{count}} inscrits',
+};
+
+const localizedLoginToEnrol: StaticTranslationString = {
+  de: 'Zum Einschreiben anmelden',
+  en: 'Log in to enrol',
+  fr: 'Se connecter pour s’inscrire',
+};
+
+const localizedLeft: StaticTranslationString = {
+  de: 'Du bist abgemeldet.',
+  en: 'You have left this block.',
+  fr: 'Tu t’es désinscrit.',
+};
+
+const localizedUndo: StaticTranslationString = {
+  de: 'Rückgängig',
+  en: 'Undo',
+  fr: 'Annuler',
+};
+
+const localizedFailed: StaticTranslationString = {
+  de: 'Das hat nicht geklappt. Versuche es nochmals.',
+  en: 'That did not work. Please try again.',
+  fr: 'Cela n’a pas fonctionné. Réessaie.',
+};
+
 const localizedViewChat: StaticTranslationString = {
   de: 'Gruppenchat öffnen',
   en: 'View Group Chat',
@@ -141,6 +177,8 @@ export const EnrollmentAction: React.FC<{
   const [conflictType, setConflictType] = useState<'workshop' | 'shift'>('workshop');
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | undefined>();
   const [isSwitchBlocked, setIsSwitchBlocked] = useState(false);
+  // leaving is one tap, so it can be undone for as long as the block is on screen
+  const [hasJustLeft, setHasJustLeft] = useState(false);
 
   const enroll = trpc.schedule.enrollInCourse.useMutation({
     onSuccess: () => {
@@ -151,6 +189,7 @@ export const EnrollmentAction: React.FC<{
       void utils.schedule.getMyEnrollments.invalidate();
       void utils.schedule.getHelperShifts.invalidate();
       void utils.shifts.getShifts.invalidate();
+      setHasJustLeft(false);
       // Auto-star when enrolling
       if (!isStarred(courseId)) {
         toggleStar(courseId);
@@ -210,6 +249,7 @@ export const EnrollmentAction: React.FC<{
 
   const unenroll = trpc.schedule.unenrollFromCourse.useMutation({
     onSuccess: () => {
+      setHasJustLeft(true);
       void utils.schedule.getCourseStatuses.invalidate();
       // The detail page reads the singular status for the roster and the admin actions; without
       // this it kept showing the participant list from before this enrolment.
@@ -223,114 +263,132 @@ export const EnrollmentAction: React.FC<{
   // Show offline warning only if we don't have cached data
   if (!isOnline && !status) {
     return (
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-700">
-          <WifiOff className="h-5 w-5 flex-shrink-0" />
-          <span className="text-sm">{localizedOffline[locale]}</span>
-        </div>
-        <Button
-          className="h-12 cursor-not-allowed bg-gray-200 text-lg font-bold text-gray-500"
-          disabled
-        >
-          <WifiOff className="mr-2 h-5 w-5" />
-          {localizedOfflineShort[locale]}
-        </Button>
+      <div className="bg-quiet flex min-h-11 items-center gap-2 rounded-[14px] px-3.5 py-2.5 text-green-700">
+        <WifiOff className="h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className="text-[15px]">{localizedOffline[locale]}</span>
       </div>
     );
   }
 
   if (isLoading && !status)
-    return (
-      <div className="flex flex-col gap-3">
-        {/* Skeleton for participant count */}
-        <div className="flex items-center gap-2">
-          <div className="h-4 w-4 animate-pulse rounded bg-gray-200" />
-          <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
-        </div>
-        {/* Skeleton for enrollment button */}
-        <div className="h-12 w-full animate-pulse rounded-lg bg-gray-200" />
-      </div>
-    );
+    return <div className="bg-quiet h-11 w-full animate-pulse rounded-xl" />;
 
   if (!status?.enableEnrolment) return;
 
   const { isEnrolled, enrolledCount, maxParticipants } = status;
   const isFull = maxParticipants !== undefined && enrolledCount >= maxParticipants;
   const spotsLeft = maxParticipants === undefined ? undefined : maxParticipants - enrolledCount;
+  // a conflict opens its own dialog; anything else would otherwise fail without a word
+  const hasFailed =
+    (enroll.isError && conflictInfo === undefined) || unenroll.isError || switchEnrollment.isError;
+
+  let capacity = localizedEnrolledCount[locale].replace('{{count}}', String(enrolledCount));
+  if (isFull) capacity = localizedFull[locale];
+  else if (spotsLeft !== undefined && maxParticipants !== undefined) {
+    capacity = (spotsLeft === 1 ? localizedSpotOf : localizedSpotsOf)[locale]
+      .replace('{{left}}', String(spotsLeft))
+      .replace('{{max}}', String(maxParticipants));
+  }
+
+  const failedLine = hasFailed && (
+    <p
+      role="alert"
+      className="bg-live-soft text-live-text rounded-xl px-3 py-2 text-[13px] font-medium"
+    >
+      {localizedFailed[locale]}
+    </p>
+  );
 
   if (isEnrolled) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="font-medium text-green-600">{localizedEnrolled[locale]}</span>
-            {maxParticipants && (
-              <span className="text-gray-400">
-                ({enrolledCount} / {maxParticipants})
-              </span>
-            )}
+      <div className="flex flex-col gap-2">
+        <div className="border-tint-line bg-tint rounded-[14px] border px-3.5 py-2">
+          <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2">
+            <span className="flex items-center gap-2 text-[15px] font-semibold text-green-900">
+              <CheckCircle className="text-conveniat-green h-5 w-5 shrink-0" aria-hidden="true" />
+              {localizedEnrolled[locale]}
+            </span>
+            <Button
+              variant="outlined"
+              size="touch"
+              onClick={() => unenroll.mutate({ courseId })}
+              disabled={unenroll.isPending}
+              className="ml-auto"
+            >
+              {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+              {localizedUnenroll[locale]}
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => unenroll.mutate({ courseId })}
-            disabled={unenroll.isPending}
-            className="h-8 text-sm"
-          >
-            {unenroll.isPending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-            {localizedUnenroll[locale]}
-          </Button>
+          <p className="pb-1 text-[13px] text-green-700">{capacity}</p>
         </div>
         {status.chatId && (
-          <Button variant="outline" size="sm" className="gap-2" asChild>
+          <Button variant="quiet" size="touch" asChild>
             <Link href={`/app/chat/${status.chatId}`}>
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare aria-hidden="true" />
               {localizedViewChat[locale]}
             </Link>
           </Button>
         )}
+        {failedLine}
       </div>
+    );
+  }
+
+  let action: React.ReactNode = (
+    <Button
+      variant="primary"
+      size="touch"
+      className="w-full"
+      disabled={enroll.isPending}
+      onClick={() => enroll.mutate({ courseId })}
+    >
+      {enroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+      {localizedEnroll[locale]}
+    </Button>
+  );
+  // a full block is a state to read, so its line says so and there is no dead button
+  if (isFull) action = undefined;
+  else if (!isAuthorized) {
+    action = (
+      <Button variant="primary" size="touch" className="w-full" onClick={() => handleLogin()}>
+        <LogIn aria-hidden="true" />
+        {localizedLoginToEnrol[locale]}
+      </Button>
     );
   }
 
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Users className="h-4 w-4" />
-          <span>
-            {enrolledCount}
-            {maxParticipants ? ` / ${maxParticipants}` : ''}
-          </span>
-          {spotsLeft !== undefined && spotsLeft > 0 && (
-            <span className="text-green-600">
-              ({spotsLeft} {getSpotsLeftText(spotsLeft, locale)})
-            </span>
-          )}
-          {isFull && <span className="font-medium text-red-500">({localizedFull[locale]})</span>}
-        </div>
-
-        <Button
+      <div className="flex flex-col gap-2">
+        <p
           className={cn(
-            'h-12 text-lg font-bold transition-all duration-200 active:scale-95',
-            isFull || !isAuthorized
-              ? 'cursor-not-allowed bg-gray-200 text-gray-500'
-              : 'bg-conveniat-green hover:bg-conveniat-green-dark text-white hover:scale-[1.02]',
-            enroll.isPending && 'opacity-80',
+            'flex items-center gap-2 text-[15px] text-green-700',
+            isFull && 'text-live-text font-semibold',
           )}
-          disabled={isFull || enroll.isPending || !isAuthorized}
-          onClick={() => enroll.mutate({ courseId })}
         >
-          {enroll.isPending && (
-            <span className="flex items-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              {localizedEnroll[locale]}...
-            </span>
-          )}
-          {!enroll.isPending && isFull && localizedFull[locale]}
-          {!enroll.isPending && !isFull && localizedEnroll[locale]}
-        </Button>
+          <Users className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+          {capacity}
+        </p>
+        {action}
+        {hasJustLeft && (
+          <p
+            aria-live="polite"
+            className="flex min-h-11 items-center justify-between gap-2 text-[13px] text-green-700"
+          >
+            {localizedLeft[locale]}
+            {!isFull && (
+              <Button
+                variant="quiet"
+                size="touch"
+                disabled={enroll.isPending}
+                onClick={() => enroll.mutate({ courseId })}
+              >
+                {localizedUndo[locale]}
+              </Button>
+            )}
+          </p>
+        )}
+        {failedLine}
       </div>
 
       {/* Time Conflict Alert Dialog */}

@@ -48,7 +48,6 @@ import {
   MapPin,
   MessageCircle,
   Target,
-  UserPlus,
   Users,
 } from 'lucide-react';
 import type React from 'react';
@@ -86,17 +85,12 @@ const EnrollmentSection: React.FC<{
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-      <div className="flex items-center gap-2">
-        <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
-          <UserPlus className="h-4 w-4" />
-        </div>
-        <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-          {labels.enrollment[locale]}
-        </h3>
+    <section>
+      <SectionLabel>{labels.enrollment[locale]}</SectionLabel>
+      <div className="mt-2">
+        <EnrollmentAction courseId={courseId} />
       </div>
-      <EnrollmentAction courseId={courseId} />
-    </div>
+    </section>
   );
 };
 
