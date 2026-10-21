@@ -6,11 +6,12 @@ import type React from 'react';
 
 export type QuartierDotSize = 'sm' | 'md' | 'lg' | 'xl';
 
+// px, not rem: the root font is larger on desktop. Below 24px the animals are no longer legible.
 const dotSizeClassNames: Record<QuartierDotSize, string> = {
-  sm: 'h-5 w-5', // 20px, in a chip or a line of text
-  md: 'h-8 w-8',
-  lg: 'h-11 w-11',
-  xl: 'h-24 w-24',
+  sm: 'h-[24px] w-[24px]', // in a chip or a line of text
+  md: 'h-[32px] w-[32px]',
+  lg: 'h-[44px] w-[44px]',
+  xl: 'h-[96px] w-[96px]',
 };
 
 /**
