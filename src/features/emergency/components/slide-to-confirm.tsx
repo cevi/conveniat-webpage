@@ -173,9 +173,9 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
       <div
         ref={trackReference}
         className={cn(
-          'relative flex h-16 cursor-grab items-center rounded-full shadow-md transition-all duration-500',
+          'relative flex h-16 cursor-grab items-center rounded-full transition-all duration-500',
           {
-            'bg-green-500 shadow-green-200': isConfirmed,
+            'bg-conveniat-green': isConfirmed,
             'bg-red-600 hover:bg-red-700': !isConfirmed,
             'cursor-not-allowed': isProcessing,
           },
@@ -192,7 +192,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
         <div
           ref={handleReference}
           className={cn(
-            'relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg',
+            'relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md',
             {
               'left-2': isConfirmed,
               'absolute left-2': !isConfirmed,
@@ -204,18 +204,18 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
             <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200 opacity-50"></div>
           )}
 
-          {isConfirmed && <Check className="relative z-10 text-green-700" size={24} />}
+          {isConfirmed && <Check className="text-conveniat-green relative z-10" size={24} />}
           {!isConfirmed && isProcessing && (
-            <LoaderCircle className="relative z-10 animate-spin text-gray-600" size={24} />
+            <LoaderCircle className="relative z-10 animate-spin text-red-700" size={24} />
           )}
           {!isConfirmed && !isProcessing && (
-            <ChevronRight className="relative z-10 text-gray-600" size={24} />
+            <ChevronRight className="relative z-10 text-red-700" size={24} />
           )}
         </div>
 
         <div
           className={cn(
-            'text-md pointer-events-none absolute left-1/2 -translate-x-1/2 transform font-medium text-white',
+            'pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-base font-semibold text-white',
             {
               'opacity-100': isConfirmed,
             },

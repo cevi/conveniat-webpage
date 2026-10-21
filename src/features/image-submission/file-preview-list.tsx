@@ -1,8 +1,17 @@
 'use client';
 
+import type { Locale, StaticTranslationString } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Image as LucideImageIcon, Trash2 } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
+
+const removeLabel: StaticTranslationString = {
+  en: 'Remove',
+  de: 'Entfernen',
+  fr: 'Retirer',
+};
 
 interface FilePreviewListProperties {
   files: File[];
@@ -24,6 +33,7 @@ const FilePreviewItem: React.FC<{
   errorMessage?: string | undefined;
   onRemove: (index: number) => void;
 }> = ({ file, index, errorMessage, onRemove }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const [preview, setPreview] = React.useState<string | undefined>();
 
   React.useEffect((): (() => void) => {
@@ -38,20 +48,20 @@ const FilePreviewItem: React.FC<{
   return (
     <div
       className={cn(
-        'flex items-center justify-between p-4 transition-colors',
-        errorMessage ? 'bg-red-50' : 'bg-transparent',
+        'flex items-center justify-between gap-2 py-3 pr-2 pl-4 transition-colors',
+        errorMessage ? 'bg-live-soft' : 'bg-transparent',
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-gray-100 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="bg-quiet relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px]">
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={preview} alt={file.name} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <LucideImageIcon
-                  className={cn('h-4 w-4', errorMessage ? 'text-red-400' : 'text-gray-400')}
+                  className={cn('h-4 w-4', errorMessage ? 'text-live-text' : 'text-green-500')}
                 />
               </div>
             )}
@@ -59,26 +69,28 @@ const FilePreviewItem: React.FC<{
           <div className="flex min-w-0 flex-col">
             <span
               className={cn(
-                'truncate text-base font-semibold',
-                errorMessage ? 'text-red-900' : 'text-gray-900',
+                'truncate text-[15px] font-semibold',
+                errorMessage ? 'text-live-text' : 'text-green-900',
               )}
             >
               {file.name}
             </span>
-            <span className={cn('text-xs', errorMessage ? 'text-red-500' : 'text-gray-500')}>
+            <span className={cn('text-[13px]', errorMessage ? 'text-live-text' : 'text-green-700')}>
               {formatFileSize(file.size)}
             </span>
           </div>
         </div>
-        {errorMessage && <p className="mt-1 text-sm font-medium text-red-600">{errorMessage}</p>}
+        {errorMessage && (
+          <p className="text-live-text mt-1 text-[13px] font-semibold">{errorMessage}</p>
+        )}
       </div>
       <button
         type="button"
         onClick={() => onRemove(index)}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500 focus:outline-none"
-        aria-label={`Remove ${file.name}`}
+        className="hover:bg-quiet focus-visible:ring-conveniat-green flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700 transition-colors focus:outline-none focus-visible:ring-2"
+        aria-label={`${removeLabel[locale]}: ${file.name}`}
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-5 w-5" aria-hidden="true" />
       </button>
     </div>
   );

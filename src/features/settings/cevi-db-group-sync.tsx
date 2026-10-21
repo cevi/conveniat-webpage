@@ -61,15 +61,14 @@ export const CeviDatabaseGroupSync: React.FC = () => {
       error={state === 'failed' ? failedText[locale] : undefined}
       action={
         <Button
-          variant="ghost"
-          size="icon"
+          variant="quiet"
+          size="touchIcon"
           onClick={() => void sync()}
           disabled={state === 'syncing'}
           title={syncButton[locale]}
           aria-label={syncButton[locale]}
-          className="h-8 w-8 text-gray-400 hover:text-blue-600"
         >
-          <RefreshCw className={cn('h-4 w-4', state === 'syncing' && 'animate-spin')} />
+          <RefreshCw className={cn(state === 'syncing' && 'animate-spin')} aria-hidden="true" />
         </Button>
       }
     />

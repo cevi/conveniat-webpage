@@ -1,9 +1,10 @@
 'use client';
 
 import { languageNames, languageOptions } from '@/config/language-options';
+import { SettingsRow } from '@/features/settings/components/settings-row';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
-import { ChevronDown, Languages } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { Languages } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 
@@ -42,33 +43,28 @@ export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
   };
 
   return (
-    <div className="space-y-2">
-      <Disclosure as="div" className="-mx-3">
-        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 hover:bg-gray-50">
-          <div className="flex items-center gap-3">
-            <Languages className="h-5 w-5 text-gray-400" />
-            <div className="text-left">
-              <p className="font-medium text-gray-900">{languageLabel[locale]}</p>
-              <p className="text-sm text-gray-500">{languageNames[locale]}</p>
-            </div>
-          </div>
-          <ChevronDown
-            aria-hidden="true"
-            className="size-5 flex-none text-gray-400 group-data-open:rotate-180"
-          />
-        </DisclosureButton>
-        <DisclosurePanel className="mt-2 space-y-1 px-3.5">
-          {languageOptions.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => handleLanguageChange(value)}
-              className="block w-full cursor-pointer rounded-lg px-6 py-2 text-left text-sm font-semibold text-gray-500 hover:bg-gray-50"
-            >
-              {label}
-            </button>
-          ))}
-        </DisclosurePanel>
-      </Disclosure>
-    </div>
+    <SettingsRow icon={Languages} title={languageLabel[locale]} subtitle={languageNames[locale]}>
+      <div
+        role="group"
+        aria-label={languageLabel[locale]}
+        className="bg-quiet flex h-11 rounded-xl p-[3px]"
+      >
+        {languageOptions.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            lang={value}
+            onClick={() => handleLanguageChange(value)}
+            aria-current={value === locale ? 'true' : undefined}
+            className={cn(
+              'flex-1 cursor-pointer rounded-[9px] text-sm font-semibold transition-colors',
+              value === locale ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </SettingsRow>
   );
 };

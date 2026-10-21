@@ -1,9 +1,10 @@
 'use client';
+import { Button } from '@/components/ui/buttons/button';
 import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscriptions';
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
@@ -26,7 +27,10 @@ export const LogoutButton: React.FC = () => {
   const releasePushSubscriptions = useReleasePushSubscriptions();
 
   return (
-    <button
+    <Button
+      variant="outlined"
+      size="touch"
+      className="w-full"
       onClick={() => {
         setIsLoading(true);
         void releasePushSubscriptions()
@@ -43,16 +47,18 @@ export const LogoutButton: React.FC = () => {
           });
       }}
       disabled={isLoading}
-      className="font-heading mt-10 w-full cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-70"
     >
       {isLoading ? (
-        <span className="flex items-center justify-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin" />
+        <>
+          <Loader2 className="animate-spin" aria-hidden="true" />
           {loggingOutText[locale]}
-        </span>
+        </>
       ) : (
-        logoutText[locale]
+        <>
+          <LogOut aria-hidden="true" />
+          {logoutText[locale]}
+        </>
       )}
-    </button>
+    </Button>
   );
 };

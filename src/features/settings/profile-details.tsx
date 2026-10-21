@@ -1,5 +1,6 @@
-import { Card } from '@/components/ui/card';
+import { IconTile } from '@/components/ui/icon-tile';
 import { LinkComponent } from '@/components/ui/link-component';
+import { SectionLabel } from '@/components/ui/section-label';
 import { environmentVariables } from '@/config/environment-variables';
 import { CeviDatabaseGroupSync } from '@/features/settings/cevi-db-group-sync';
 import { LoginButton } from '@/features/settings/login-button';
@@ -8,7 +9,7 @@ import type { StaticTranslationString } from '@/types/types';
 import { auth } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin } from 'lucide-react';
+import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, Tent } from 'lucide-react';
 import React from 'react';
 
 import {
@@ -16,7 +17,7 @@ import {
   getHofDirectory,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
-import { SettingsRow } from '@/features/settings/components/settings-row';
+import { SettingsCard, SettingsRow } from '@/features/settings/components/settings-row';
 import { ProfileAvatar } from '@/features/settings/profile-avatar';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
@@ -192,76 +193,77 @@ export const ProfileDetails: React.FC = async () => {
 
   return (
     <div className="space-y-6">
-      {/* Profile Header */}
-      <Card contentClassName="p-6">
-        {isAuthenticated ? (
-          <ProfileAvatar
-            userId={user.uuid}
-            name={user.name}
-            pictureUrl={pictureUrl}
-            locale={locale}
-          >
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">{getDetail(user.name)}</h2>
-              <p className="text-sm text-gray-500">{profileDetailsExplanation[locale]}</p>
-            </div>
-          </ProfileAvatar>
-        ) : (
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
-              <LogIn className="h-7 w-7 text-gray-400" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900">{guestTitle[locale]}</h2>
-              <p className="text-sm text-gray-500">{guestDescription[locale]}</p>
-            </div>
+      {/* Profile: who is logged in and what Cevi.DB knows about them */}
+      <div className="space-y-3">
+        <SettingsCard>
+          <div className="p-4">
+            {isAuthenticated ? (
+              <ProfileAvatar
+                userId={user.uuid}
+                name={user.name}
+                pictureUrl={pictureUrl}
+                locale={locale}
+              >
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-heading text-heading text-lg leading-tight font-bold">
+                    {getDetail(user.name)}
+                  </h2>
+                  <p className="mt-0.5 text-[13px] text-green-700">
+                    {profileDetailsExplanation[locale]}
+                  </p>
+                </div>
+              </ProfileAvatar>
+            ) : (
+              <div className="flex items-center gap-4">
+                <IconTile icon={LogIn} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-heading text-heading text-lg leading-tight font-bold">
+                    {guestTitle[locale]}
+                  </h2>
+                  <p className="mt-0.5 text-[13px] text-green-700">{guestDescription[locale]}</p>
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        {isAuthenticated ? (
-          <>
-            {/* User Details List */}
-            <div className="mt-6 space-y-4">
-              <SettingsRow icon={Mail} title="E-Mail" subtitle={getDetail(user.email)} />
+          {isAuthenticated && (
+            <SettingsRow icon={Mail} title="E-Mail" subtitle={getDetail(user.email)} />
+          )}
+          {shouldShowHofAndQuartier && <SettingsRow icon={Tent} title="Hof" subtitle={hofText()} />}
+          {shouldShowHofAndQuartier && (
+            <SettingsRow icon={MapPin} title="Quartier" subtitle={quartierText()} />
+          )}
+          {isAuthenticated && (
+            <SettingsRow
+              icon={Hash}
+              title={userIdLabel[locale]}
+              subtitle={getDetail(user.uuid)}
+              subtitleClassName="font-mono text-xs"
+            />
+          )}
+          {isAuthenticated && <CeviDatabaseGroupSync />}
+        </SettingsCard>
 
-              {shouldShowHofAndQuartier && (
-                <>
-                  <SettingsRow icon={MapPin} title="Hof" subtitle={hofText()} />
-                  <SettingsRow icon={MapPin} title="Quartier" subtitle={quartierText()} />
-                </>
-              )}
-
-              <SettingsRow
-                icon={Hash}
-                title={userIdLabel[locale]}
-                subtitle={getDetail(user.uuid)}
-                subtitleClassName="font-mono text-xs text-gray-600"
-              />
-
-              <CeviDatabaseGroupSync />
-            </div>
-
-            <LogoutButton />
-          </>
-        ) : (
-          <LoginButton />
-        )}
-      </Card>
+        {isAuthenticated ? <LogoutButton /> : <LoginButton />}
+      </div>
 
       {/* Support Section */}
-      <Card title={supportTitle[locale]} showBorder={false} contentClassName="p-6 pt-0">
-        <LinkComponent
-          href={mailSupportLink}
-          className="-mx-3 block rounded-lg px-3 transition-colors hover:bg-gray-50"
-          hideExternalIcon
-        >
-          <SettingsRow
-            icon={LifeBuoy}
-            title={contactSupportText[locale]}
-            action={<ExternalLink className="h-4 w-4 text-gray-400" />}
-          />
-        </LinkComponent>
-      </Card>
+      <section>
+        <SectionLabel className="mb-2 px-1">{supportTitle[locale]}</SectionLabel>
+        <SettingsCard>
+          <LinkComponent
+            href={mailSupportLink}
+            className="hover:bg-quiet block transition-colors"
+            hideExternalIcon
+          >
+            <SettingsRow
+              icon={LifeBuoy}
+              title={contactSupportText[locale]}
+              action={<ExternalLink className="h-5 w-5 text-green-500" aria-hidden="true" />}
+            />
+          </LinkComponent>
+        </SettingsCard>
+      </section>
     </div>
   );
 };

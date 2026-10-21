@@ -2,7 +2,8 @@
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/accordion';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
-import { ParagraphText } from '@/components/ui/typography/paragraph-text';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { EmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
@@ -16,7 +17,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import { Accordion } from '@radix-ui/react-accordion';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BriefcaseMedical, Download, FileText, ImageIcon } from 'lucide-react';
+import { BriefcaseMedical, Download, FileText, ImageIcon, SearchX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
@@ -60,9 +61,9 @@ const imagesHeading: StaticTranslationString = {
 };
 
 const noAlertsFound: StaticTranslationString = {
-  de: 'Keine Notfallkarten gefunden.',
-  en: 'No emergency cards found.',
-  fr: 'Aucune carte d’urgence trouvée.',
+  de: 'Keine Notfallkarten gefunden',
+  en: 'No emergency cards found',
+  fr: 'Aucune carte d’urgence trouvée',
 };
 
 const alarmText: StaticTranslationString = {
@@ -325,13 +326,13 @@ export const EmergencyComponent: React.FC = () => {
       return Array.from({ length: 4 }).map((_, index) => (
         <div
           key={`skeleton-${index}`}
-          className="animate-pulse overflow-hidden rounded-2xl bg-white px-4 py-5 shadow-sm"
+          className="border-line animate-pulse overflow-hidden rounded-[14px] border bg-white px-3.5 py-3"
         >
-          <div className="flex w-full items-center gap-4 pr-4">
-            <div className="h-11 w-11 shrink-0 rounded-xl bg-gray-200" />
+          <div className="flex w-full items-center gap-3">
+            <div className="h-[38px] w-[38px] shrink-0 rounded-[10px] bg-red-50" />
             <div className="flex flex-1 flex-col gap-2">
-              <div className="h-4 w-1/3 rounded bg-gray-200" />
-              <div className="h-3 w-1/4 rounded bg-gray-200" />
+              <div className="bg-chip h-4 w-1/3 rounded" />
+              <div className="bg-quiet h-3 w-1/4 rounded" />
             </div>
           </div>
         </div>
@@ -340,9 +341,10 @@ export const EmergencyComponent: React.FC = () => {
 
     if (filteredAlerts.length === 0) {
       return (
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 py-8 text-center text-gray-500 shadow-sm">
-          {noAlertsFound[locale]}
-        </div>
+        <EmptyState
+          icon={searchTerm === '' ? BriefcaseMedical : SearchX}
+          title={noAlertsFound[locale]}
+        />
       );
     }
 
@@ -354,55 +356,58 @@ export const EmergencyComponent: React.FC = () => {
           value={`item-${alert.id}`}
           key={alert.id}
           disabled={isNonMinifiable}
-          className="overflow-hidden rounded-2xl border-none bg-white px-4 shadow-sm"
+          className="border-line overflow-hidden rounded-[14px] border bg-white px-3.5"
         >
           <AccordionTrigger
             disabled={isNonMinifiable}
             className={cn(
-              'py-4 hover:no-underline [&>svg]:h-8 [&>svg]:w-8 [&>svg]:rounded-xl [&>svg]:bg-gray-100 [&>svg]:p-1.5 [&>svg]:text-gray-600',
+              'min-h-[60px] py-2.5 hover:no-underline [&>svg]:h-5 [&>svg]:w-5 [&>svg]:text-green-500',
               isNonMinifiable && 'cursor-default [&>svg:last-child]:hidden',
             )}
           >
-            <div className="flex w-full items-center gap-4 pr-4 text-left">
-              <div className="shrink-0 rounded-xl bg-gray-100 p-2.5">
-                <BriefcaseMedical className="h-6 w-6 text-gray-700" />
+            <div className="flex w-full items-center gap-3 pr-3 text-left">
+              {/* red is the emergency colour, and this is the emergency screen */}
+              <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] bg-red-50 text-red-700">
+                <BriefcaseMedical className="h-5 w-5" aria-hidden="true" />
               </div>
               <div className="flex flex-1 flex-col">
-                <span className="text-lg font-bold text-gray-900">{alert.title}</span>
+                <span className="font-heading text-heading text-base leading-5 font-bold">
+                  {alert.title}
+                </span>
                 {!isNonMinifiable && (
-                  <span className="text-sm font-normal text-gray-500">
+                  <span className="mt-px text-[13px] font-normal text-green-700">
                     {tapForDetailsText[locale]}
                   </span>
                 )}
               </div>
             </div>
           </AccordionTrigger>
-          <AccordionContent className="space-y-4 pt-2 pb-4 text-gray-600">
-            <div className="text-gray-800">
-              <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+          <AccordionContent className="space-y-4 pt-1 pb-4 text-[15px] text-green-900">
+            <div>
+              <SectionLabel as="h3" className="mb-1">
                 {descriptionLabel[locale]}
-              </strong>
-              <ParagraphText>{alert.description}</ParagraphText>
+              </SectionLabel>
+              <p className="leading-relaxed break-words">{alert.description}</p>
             </div>
 
             {/* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */}
             {alert.procedure?.root?.children && alert.procedure.root.children.length > 0 && (
-              <div className="text-gray-800">
-                <strong className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+              <div>
+                <SectionLabel as="h3" className="mb-1">
                   {procedureLabel[locale]}
-                </strong>
-                <div className="prose prose-sm max-w-none text-sm leading-relaxed">
+                </SectionLabel>
+                <div className="prose prose-sm prose-p:text-green-900 prose-li:text-green-900 max-w-none text-[15px] leading-relaxed text-green-900">
                   <LexicalRichTextSection richTextSection={alert.procedure} locale={locale} />
                 </div>
               </div>
             )}
 
             {alert.documents && alert.documents.length > 0 && (
-              <div className="mt-4 border-t border-gray-100 pt-3">
-                <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
-                  <FileText className="h-3.5 w-3.5 text-gray-400" />
+              <div className="border-line border-t pt-3">
+                <SectionLabel as="h3" className="mb-2 flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                   {documentsHeading[locale]}
-                </strong>
+                </SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {alert.documents.map((documentOrId) => {
                     if (typeof documentOrId === 'string') return;
@@ -418,9 +423,9 @@ export const EmergencyComponent: React.FC = () => {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-100"
+                        className="border-rail hover:bg-quiet inline-flex min-h-11 items-center gap-2 rounded-full border bg-white px-3.5 py-2 text-sm font-semibold text-green-900 transition-colors"
                       >
-                        <Download className="h-3.5 w-3.5 text-gray-500" />
+                        <Download className="h-4 w-4 text-green-700" aria-hidden="true" />
                         <span>{displayName}</span>
                       </a>
                     );
@@ -430,11 +435,11 @@ export const EmergencyComponent: React.FC = () => {
             )}
 
             {alert.images && alert.images.length > 0 && (
-              <div className="mt-4 border-t border-gray-100 pt-3">
-                <strong className="mb-2 block flex items-center gap-1 text-xs font-bold tracking-wider text-gray-500 uppercase">
-                  <ImageIcon className="h-3.5 w-3.5 text-gray-400" />
+              <div className="border-line border-t pt-3">
+                <SectionLabel as="h3" className="mb-2 flex items-center gap-1">
+                  <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
                   {imagesHeading[locale]}
-                </strong>
+                </SectionLabel>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {alert.images.map((imgOrId) => {
                     if (typeof imgOrId === 'string') return;
@@ -482,7 +487,7 @@ export const EmergencyComponent: React.FC = () => {
                     return (
                       <div
                         key={imgOrId.id}
-                        className="group relative overflow-hidden rounded-xl border border-gray-200 bg-gray-50"
+                        className="group border-line bg-quiet relative overflow-hidden rounded-xl border"
                       >
                         <a
                           href={imgOrId.url ?? undefined}
@@ -497,7 +502,7 @@ export const EmergencyComponent: React.FC = () => {
                           />
                         </a>
                         {captionText && (
-                          <div className="truncate border-t border-gray-100 bg-white p-1.5 text-center text-[10px] text-gray-500">
+                          <div className="border-line truncate border-t bg-white p-1.5 text-center text-xs text-green-700">
                             {captionText}
                           </div>
                         )}
@@ -514,11 +519,11 @@ export const EmergencyComponent: React.FC = () => {
   };
 
   return (
-    <article className="container mx-auto mt-8 py-6">
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-8">
+    <article className="mx-auto w-full max-w-2xl px-4 pt-4 pb-6">
+      <div className="space-y-4">
         {cards.length > 3 && (
-          <div className="pb-4">
-            <div className="mb-2">
+          <div>
+            <div>
               <AppSearchBar
                 placeholder={searchPlaceholder[locale]}
                 value={searchTerm}
@@ -535,7 +540,7 @@ export const EmergencyComponent: React.FC = () => {
           type="multiple"
           value={expandedValues}
           onValueChange={handleAccordionValueChange}
-          className="mb-20 flex flex-col gap-4"
+          className="mb-28 flex flex-col gap-2.5"
         >
           {renderAccordionContent()}
         </Accordion>
@@ -553,10 +558,12 @@ export const EmergencyComponent: React.FC = () => {
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                 className="mx-auto w-full max-w-md space-y-2 p-4"
               >
-                <p className="text-center text-sm font-medium text-gray-600">{fallbackMessage}</p>
+                <p className="text-center text-[15px] font-semibold text-green-900">
+                  {fallbackMessage}
+                </p>
                 <a
                   href={`tel:${emergencyPhoneNumber}`}
-                  className="flex h-16 w-full items-center justify-center rounded-full bg-red-600 text-lg font-bold text-white shadow-md hover:bg-red-700"
+                  className="flex h-16 w-full items-center justify-center rounded-full bg-red-600 text-lg font-bold text-white hover:bg-red-700"
                 >
                   {offlineCallText[locale]}: {emergencyPhoneNumber}
                 </a>

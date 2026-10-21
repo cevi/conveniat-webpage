@@ -1,9 +1,11 @@
 'use client';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
-import { TeaserText } from '@/components/ui/typography/teaser-text';
+import { Button } from '@/components/ui/buttons/button';
+import { IconTile } from '@/components/ui/icon-tile';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { attemptStaleBundleRecovery } from '@/utils/chunk-error-recovery';
+import { retryButtonTranslation } from '@/utils/shared-translations';
+import { AlertTriangle, RefreshCw, WifiOff } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useRef, useState } from 'react';
 
@@ -232,34 +234,36 @@ const ErrorPage: React.FC<{
   const lang = (locale ?? 'de') as Locale;
 
   return (
-    <main className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
-      <article className="my-8 w-full max-w-2xl px-8 max-xl:mx-auto">
-        <HeadlineH1 className="cursor-pointer select-none" onClick={handleTitleClick}>
+    <main className="flex min-h-[60vh] w-full items-center justify-center px-4 py-6">
+      <article className="border-line flex w-full max-w-md flex-col items-center rounded-[14px] border bg-white px-6 py-8 text-center">
+        <IconTile icon={isActuallyOffline ? WifiOff : AlertTriangle} size="lg" />
+        <h1
+          className="font-heading text-heading mt-4 cursor-pointer text-lg font-bold select-none"
+          onClick={handleTitleClick}
+        >
           {isActuallyOffline
             ? offlineMessage[lang] || offlineMessage.de
             : errorMessage[lang] || errorMessage.de}
-        </HeadlineH1>
-        <div className="mt-4">
-          <TeaserText>
-            {isActuallyOffline
-              ? offlineDescription[lang] || offlineDescription.de
-              : errorDescription[lang] || errorDescription.de}
-          </TeaserText>
-        </div>
+        </h1>
+        <p className="mt-1.5 max-w-xs text-[15px] leading-normal text-green-700">
+          {isActuallyOffline
+            ? offlineDescription[lang] || offlineDescription.de
+            : errorDescription[lang] || errorDescription.de}
+        </p>
         {copiedDebug && (
-          <div className="bg-conveniat-green/10 text-conveniat-green mt-4 inline-block rounded-md px-4 py-2 text-sm font-medium transition-all">
+          <p className="bg-tint mt-4 rounded-lg px-3 py-2 text-[13px] font-semibold text-green-900">
             {debugCopiedMessage[lang] || debugCopiedMessage.de}
-          </div>
+          </p>
         )}
-        <div className="mt-8 flex justify-center">
-          <button
-            className="bg-conveniat-green hover:bg-conveniat-green/90 cursor-pointer rounded-lg px-6 py-3 font-semibold text-white transition active:scale-95"
-            onClick={handleRetry}
-            type="button"
-          >
-            Erneut versuchen
-          </button>
-        </div>
+        <Button
+          variant="primary"
+          size="touch"
+          className="mt-5 w-64 max-w-full"
+          onClick={handleRetry}
+        >
+          <RefreshCw aria-hidden="true" />
+          {retryButtonTranslation[lang]}
+        </Button>
       </article>
     </main>
   );

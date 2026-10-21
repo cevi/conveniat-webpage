@@ -33,19 +33,17 @@ export const AnalyticsSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
   }
 
   return (
-    <div className="px-6 py-4">
-      <SettingsRow
-        icon={ChartNoAxesColumn}
-        title={analyticsSettingsTitle[locale]}
-        subtitle={analyticsSettingsSubtitle[locale]}
-        action={
-          <Switch
-            checked={consent === 'granted'}
-            onCheckedChange={(checked) => setAnalyticsConsent(checked ? 'granted' : 'denied')}
-            aria-label={analyticsSettingsTitle[locale]}
-          />
-        }
-      />
-    </div>
+    <SettingsRow
+      icon={ChartNoAxesColumn}
+      title={analyticsSettingsTitle[locale]}
+      subtitle={analyticsSettingsSubtitle[locale]}
+      action={
+        <Switch
+          checked={consent === 'granted'}
+          onCheckedChange={(checked) => setAnalyticsConsent(checked ? 'granted' : 'denied')}
+          aria-label={analyticsSettingsTitle[locale]}
+        />
+      }
+    />
   );
 };

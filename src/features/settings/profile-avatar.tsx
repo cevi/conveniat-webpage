@@ -77,7 +77,7 @@ export const ProfileAvatar: React.FC<{
             pictureUrl={pictureUrl}
             className="h-14 w-14 text-lg"
           />
-          <span className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-gray-600 shadow-sm ring-1 ring-gray-200">
+          <span className="ring-line absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-green-700 ring-1">
             {isBusy ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
@@ -105,15 +105,15 @@ export const ProfileAvatar: React.FC<{
       {isMenuOpen && (
         <div
           id="profile-picture-actions"
-          className="font-body mt-4 rounded-xl bg-gray-50 p-2 text-sm"
+          className="bg-quiet mt-4 rounded-[14px] p-1.5 text-[15px]"
         >
           <button
             type="button"
             disabled={isBusy}
             onClick={() => fileInput.current?.click()}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left font-medium text-gray-800 hover:bg-gray-100 disabled:opacity-50"
+            className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left font-semibold text-green-900 hover:bg-white disabled:opacity-50"
           >
-            <Camera className="h-5 w-5 text-gray-400" />
+            <Camera className="h-5 w-5 text-green-700" aria-hidden="true" />
             {pictureUrl === undefined ? uploadLabel[locale] : replaceLabel[locale]}
           </button>
           {pictureUrl !== undefined && (
@@ -124,20 +124,20 @@ export const ProfileAvatar: React.FC<{
                 setIsMenuOpen(false);
                 void remove();
               }}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left font-semibold text-green-900 hover:bg-white disabled:opacity-50"
             >
-              <Trash2 className="h-5 w-5" />
+              <Trash2 className="h-5 w-5 text-green-700" aria-hidden="true" />
               {removeLabel[locale]}
             </button>
           )}
-          <p className="m-0 px-3 pt-1 pb-2 text-xs leading-relaxed text-gray-500">
+          <p className="m-0 px-3 pt-1 pb-2 text-[13px] leading-relaxed text-green-700">
             {visibilityHint[locale]}
           </p>
         </div>
       )}
 
       {hasFailed && (
-        <p className="font-body mt-4 rounded-xl bg-red-50 p-3 text-xs text-red-700">
+        <p className="bg-quiet mt-4 rounded-[14px] p-3 text-[13px] font-medium text-green-900">
           {failedText[locale]}
         </p>
       )}

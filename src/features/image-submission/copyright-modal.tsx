@@ -79,33 +79,28 @@ export const CopyrightModal: React.FC<CopyrightModalProperties> = ({
           <ChatAlertDialogTitle>{requiredConfirmations[locale]}</ChatAlertDialogTitle>
           <ChatAlertDialogDescription asChild>
             <div className="pt-4 text-left">
-              <div
-                className="flex cursor-pointer items-start rounded-xl border border-gray-200 p-3 transition-colors hover:bg-gray-50"
-                onClick={() => setRightsTransferred(!rightsTransferred)}
+              <label
+                htmlFor="rights-modal"
+                className="border-line hover:bg-quiet flex cursor-pointer items-start gap-3 rounded-[14px] border p-3.5 transition-colors"
               >
-                <div className="flex h-6 items-center">
+                <span className="flex h-6 items-center">
                   <input
                     id="rights-modal"
                     type="checkbox"
                     checked={rightsTransferred}
                     onChange={(event) => setRightsTransferred(event.target.checked)}
-                    className="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 transition focus:ring-blue-500 focus:ring-offset-0"
-                    onClick={(event) => event.stopPropagation()}
+                    className="accent-conveniat-green h-5 w-5 cursor-pointer"
                   />
-                </div>
-                <div className="ml-4 select-none">
-                  <label
-                    htmlFor="rights-modal"
-                    className="cursor-pointer text-sm font-semibold text-gray-800"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {rightsTitle[locale]} <span className="text-cevi-red">*</span>
-                  </label>
-                  <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                </span>
+                <span className="select-none">
+                  <span className="block text-[15px] font-semibold text-green-900">
+                    {rightsTitle[locale]} <span className="text-green-700">*</span>
+                  </span>
+                  <span className="mt-1 block text-[13px] leading-relaxed text-green-700">
                     {rightsDescription[locale]}
-                  </p>
-                </div>
-              </div>
+                  </span>
+                </span>
+              </label>
             </div>
           </ChatAlertDialogDescription>
         </ChatAlertDialogHeader>

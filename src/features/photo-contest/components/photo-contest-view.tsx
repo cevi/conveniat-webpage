@@ -1,5 +1,7 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -199,10 +201,10 @@ const statusLabelKey: Record<ContestStatus, TranslationKey> = {
 };
 
 const statusBadgeClassName: Record<ContestStatus, string> = {
-  HIDDEN: 'border-gray-300 bg-gray-100 text-gray-700',
-  ACTIVE: 'border-green-300 bg-green-100 text-conveniat-green',
-  CLOSED_HIDDEN: 'border-gray-300 bg-gray-100 text-gray-700',
-  CLOSED: 'border-green-300 bg-green-100 text-conveniat-green',
+  HIDDEN: 'bg-chip text-green-900',
+  ACTIVE: 'bg-tint text-green-900',
+  CLOSED_HIDDEN: 'bg-chip text-green-900',
+  CLOSED: 'bg-tint text-green-900',
 };
 
 interface PhotoContestViewProperties {
@@ -405,11 +407,11 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
       (!currentContestQuery.isPending && !currentContestQuery.isFetching));
 
   return (
-    <div className={cn('mx-auto max-w-3xl px-4 py-6', showStickyBar && 'pb-28')}>
+    <div className={cn('mx-auto max-w-3xl px-4 pt-4 pb-6', showStickyBar && 'pb-28')}>
       {/* ---- Contest switcher ---- sits above the intro card, because the description, the
            rules and the point budget below it all belong to the selected contest. ---- */}
       {contests.length > 1 && (
-        <div className="mb-4 flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-gray-100 bg-white p-1.5 shadow-xs">
+        <div className="bg-quiet mb-4 flex h-11 w-full items-stretch overflow-x-auto rounded-xl p-[3px]">
           {contests.map((contestItem) => {
             const isSelected = activeSlug === contestItem.slug;
 
@@ -423,16 +425,13 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                   setLastSavedVotes(undefined);
                   setSelectedSlug(contestItem.slug);
                 }}
+                aria-current={isSelected ? 'true' : undefined}
                 className={cn(
-                  'flex-1 cursor-pointer rounded-xl px-3 py-2 whitespace-nowrap transition-all',
-                  isSelected
-                    ? 'bg-conveniat-green scale-102 text-white shadow-xs'
-                    : 'text-gray-600 hover:bg-gray-100/70 hover:text-gray-900',
+                  'flex-1 cursor-pointer rounded-[9px] px-3 whitespace-nowrap transition-colors',
+                  isSelected ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
                 )}
               >
-                <span className="font-heading text-xs leading-none font-bold">
-                  {contestItem.title}
-                </span>
+                <span className="text-sm font-semibold">{contestItem.title}</span>
               </button>
             );
           })}
@@ -441,18 +440,18 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
 
       {/* ---- Intro ---- */}
       {contest !== undefined && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
-          <span className="text-conveniat-green text-xs font-bold tracking-wider uppercase">
+        <div className="border-line rounded-[14px] border bg-white p-4">
+          <span className="text-xs font-bold tracking-[0.08em] text-green-700 uppercase">
             {t('eyebrow')}
           </span>
-          <h1 className="font-heading text-conveniat-green mt-1 text-2xl font-bold tracking-tight">
+          <h1 className="font-heading text-heading mt-1 text-[28px] leading-[1.15] font-extrabold">
             {contest.title}
           </h1>
 
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span
               className={cn(
-                'rounded-full border px-2.5 py-0.5 text-xs font-bold',
+                'rounded-md px-1.5 py-0.5 text-xs font-bold',
                 statusBadgeClassName[status ?? 'HIDDEN'],
               )}
             >
@@ -461,12 +460,12 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
           </div>
 
           {contest.description !== null && contest.description.length > 0 && (
-            <p className="mt-3 text-sm leading-relaxed text-gray-600">{contest.description}</p>
+            <p className="mt-3 text-[15px] leading-relaxed text-green-700">{contest.description}</p>
           )}
 
           {/* Points meter — the single place that answers "how many votes do I have left?" */}
           {isVotingOpen && isAuthenticated && (
-            <div className="mt-4 flex items-center gap-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <div className="bg-tint mt-4 flex items-center gap-4 rounded-xl px-4 py-3">
               <div className="flex items-center gap-1.5">
                 {Array.from({ length: maxPoints }, (_, index) => (
                   <Heart
@@ -474,50 +473,46 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                     className={cn(
                       'size-5',
                       index < pointsAllocated
-                        ? 'text-cevi-red fill-current'
-                        : 'fill-none text-green-300',
+                        ? 'text-conveniat-green fill-current'
+                        : 'fill-none text-green-500',
                     )}
                   />
                 ))}
               </div>
               <div className="text-sm leading-tight">
-                <div className="text-conveniat-green font-bold">
+                <div className="text-[15px] font-bold text-green-900 tabular-nums">
                   {pointsRemaining} / {maxPoints}
                 </div>
-                <div className="text-xs text-gray-600">{t('pointsLeftLabel')}</div>
+                <div className="text-[13px] text-green-700">{t('pointsLeftLabel')}</div>
               </div>
             </div>
           )}
 
           {isVotingOpen && !isAuthenticated && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
-              <div className="flex items-center gap-2.5 text-sm text-gray-700">
+            <div className="bg-tint mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2.5 text-sm text-green-900">
                 <LogIn className="text-conveniat-green size-4 shrink-0" />
                 <span>{t('loginHint')}</span>
               </div>
-              <button
-                type="button"
-                onClick={handleLogin}
-                className="bg-conveniat-green cursor-pointer rounded-lg px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-green-700"
-              >
+              <Button type="button" variant="primary" size="touch" onClick={handleLogin}>
                 {t('login')}
-              </button>
+              </Button>
             </div>
           )}
 
           {isVotingOpen && (
-            <div className="mt-3 flex items-start gap-2.5 text-xs leading-relaxed text-gray-600">
-              <Info className="mt-0.5 size-4 shrink-0 text-gray-400" />
+            <div className="mt-3 flex items-start gap-2.5 text-[13px] leading-relaxed text-green-700">
+              <Info className="mt-0.5 size-4 shrink-0 text-green-500" aria-hidden="true" />
               <p>
-                <span className="font-bold text-gray-700">{t('rulesTitle')}: </span>
+                <span className="font-bold text-green-900">{t('rulesTitle')}: </span>
                 {t('rulesBody', { max: maxPoints, perImage: maxPointsPerImage })}
               </p>
             </div>
           )}
 
           {status === 'CLOSED_HIDDEN' && (
-            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">
-              <Lock className="mt-0.5 size-4 shrink-0 text-gray-400" />
+            <div className="bg-quiet mt-4 flex items-start gap-2.5 rounded-xl px-4 py-3 text-[13px] leading-relaxed text-green-900">
+              <Lock className="mt-0.5 size-4 shrink-0 text-green-700" aria-hidden="true" />
               <p>{t('resultsHidden')}</p>
             </div>
           )}
@@ -536,16 +531,14 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
               <div
                 key={image.id}
                 className={cn(
-                  'overflow-hidden rounded-2xl border bg-white transition-colors',
-                  isVoted
-                    ? 'border-conveniat-green ring-conveniat-green/20 shadow-md ring-2'
-                    : 'border-gray-200 shadow-xs',
+                  'overflow-hidden rounded-[14px] border bg-white transition-colors',
+                  isVoted ? 'border-conveniat-green ring-conveniat-green ring-1' : 'border-line',
                 )}
               >
                 <button
                   type="button"
                   onClick={() => setSelectedImage(image.imageUrl)}
-                  className="relative block w-full cursor-zoom-in bg-gray-100"
+                  className="bg-quiet relative block w-full cursor-zoom-in"
                 >
                   <Image
                     src={image.imageUrl}
@@ -558,14 +551,14 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
 
                   {/* The voted marker is the loudest thing on the card on purpose. */}
                   {isVoted && (
-                    <span className="bg-cevi-red absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-white shadow-lg">
+                    <span className="bg-conveniat-green absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-white shadow-md">
                       <Heart className="size-4 fill-current" />
                       {myPoints}
                     </span>
                   )}
 
                   {showResults && rank <= 3 && (
-                    <span className="text-conveniat-green absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-sm font-bold shadow-md backdrop-blur-xs">
+                    <span className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-sm font-bold text-green-900 shadow-md backdrop-blur-xs">
                       <Trophy className="size-4" />
                       {t('rank', { n: rank })}
                     </span>
@@ -576,18 +569,20 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                 <div
                   className={cn(
                     'flex items-center justify-between gap-3 px-4 py-3 transition-colors',
-                    isVoted ? 'bg-green-50' : 'bg-white',
+                    isVoted ? 'bg-tint' : 'bg-white',
                   )}
                 >
                   <div className="min-w-0">
                     {image.title !== null && image.title.length > 0 && (
-                      <p className="truncate text-sm font-bold text-gray-900">{image.title}</p>
+                      <p className="truncate text-[15px] font-semibold text-green-900">
+                        {image.title}
+                      </p>
                     )}
                     {isVotingOpen && (
                       <p
                         className={cn(
-                          'text-xs font-medium',
-                          isVoted ? 'text-conveniat-green' : 'text-gray-500',
+                          'text-[13px] font-medium',
+                          isVoted ? 'text-green-900' : 'text-green-700',
                         )}
                       >
                         {isVoted
@@ -598,12 +593,12 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                     {/* Once voting is over the user keeps seeing what they voted for, in both
                         closed states — only the overall tally is held back until CLOSED. */}
                     {!isVotingOpen && isVoted && (
-                      <p className="text-conveniat-green text-xs font-medium">
+                      <p className="text-[13px] font-medium text-green-900">
                         {t('yourVote')}: {myPoints} {myPoints === 1 ? t('point') : t('points')}
                       </p>
                     )}
                     {showResults && (
-                      <p className="text-xs font-bold text-gray-700">
+                      <p className="text-[13px] font-bold text-green-700">
                         {t('totalPoints', { n: totalPoints })}
                       </p>
                     )}
@@ -616,15 +611,15 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                         onClick={() => handleRemovePoint(image.id)}
                         disabled={myPoints === 0}
                         aria-label={t('removePoint')}
-                        className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                        className="border-rail hover:bg-quiet flex size-11 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 transition-colors disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Minus className="size-4" />
                       </button>
 
                       <span
                         className={cn(
-                          'flex min-w-11 items-center justify-center gap-1 text-base font-bold',
-                          isVoted ? 'text-cevi-red' : 'text-gray-300',
+                          'flex min-w-11 items-center justify-center gap-1 text-base font-bold tabular-nums',
+                          isVoted ? 'text-conveniat-green' : 'text-green-500',
                         )}
                       >
                         <Heart className={cn('size-5', isVoted && 'fill-current')} />
@@ -639,7 +634,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                           (pointsRemaining === 0 || myPoints >= maxPointsPerImage)
                         }
                         aria-label={t('addPoint')}
-                        className="bg-conveniat-green flex size-10 cursor-pointer items-center justify-center rounded-full text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-30"
+                        className="bg-conveniat-green flex size-11 cursor-pointer items-center justify-center rounded-full text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-30"
                       >
                         <Plus className="size-4" />
                       </button>
@@ -654,34 +649,31 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
 
       {/* ---- Empty states ---- */}
       {contest?.images.length === 0 && (
-        <div className="mt-4 flex flex-col items-center rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center shadow-xs">
-          <Camera className="text-conveniat-green size-10" />
-          <h2 className="mt-3 text-base font-bold text-gray-900">{t('emptyTitle')}</h2>
-          <p className="mt-1 max-w-sm text-sm text-balance text-gray-600">{t('emptyBody')}</p>
-        </div>
+        <EmptyState
+          icon={Camera}
+          title={t('emptyTitle')}
+          description={t('emptyBody')}
+          className="mt-4"
+        />
       )}
 
       {isEverythingLoaded && contest === undefined && (
-        <div className="mt-4 flex flex-col items-center rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center shadow-xs">
-          <Trophy className="text-conveniat-green size-10" />
-          <h2 className="mt-3 text-base font-bold text-gray-900">{t('noContestsTitle')}</h2>
-          <p className="mt-1 max-w-sm text-sm text-balance text-gray-600">{t('noContestsBody')}</p>
-        </div>
+        <EmptyState icon={Trophy} title={t('noContestsTitle')} description={t('noContestsBody')} />
       )}
 
       {/* ---- Sticky status bar, above the app nav bar ---- */}
       {showStickyBar && (
-        <div className="fixed bottom-20 left-0 z-30 w-full border-t border-gray-200 bg-white/95 px-4 py-3 backdrop-blur-sm xl:left-[480px] xl:w-[calc(100%-480px)]">
+        <div className="border-line fixed bottom-20 left-0 z-30 w-full border-t bg-white/95 px-4 py-3 backdrop-blur-sm xl:left-[480px] xl:w-[calc(100%-480px)]">
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-            <div className="text-conveniat-green text-sm font-bold">
+            <div className="text-[15px] font-bold text-green-900 tabular-nums">
               {pointsAllocated} / {maxPoints} {t('points')}
             </div>
 
             {/* Votes write themselves through, so this only reports the state — never asks. */}
             <div
               className={cn(
-                'flex shrink-0 items-center gap-1.5 text-xs font-bold',
-                isSaving ? 'text-gray-500' : 'text-conveniat-green',
+                'flex shrink-0 items-center gap-1.5 text-[13px] font-semibold',
+                isSaving ? 'text-green-700' : 'text-conveniat-green',
               )}
             >
               {isSaving ? (
@@ -705,7 +697,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
             type="button"
             aria-label={t('closePreview')}
             onClick={() => setSelectedImage(undefined)}
-            className="absolute top-4 right-4 cursor-pointer rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+            className="absolute top-4 right-4 flex size-11 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
           >
             <X className="size-6" />
           </button>

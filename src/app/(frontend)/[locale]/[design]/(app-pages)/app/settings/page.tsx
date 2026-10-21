@@ -1,7 +1,8 @@
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
-import { Card } from '@/components/ui/card';
+import { SectionLabel } from '@/components/ui/section-label';
 import { AboutSettings } from '@/features/settings/about-settings';
 import { AnalyticsSettings } from '@/features/settings/analytics-settings';
+import { SettingsCard } from '@/features/settings/components/settings-row';
 import { LanguageSettings } from '@/features/settings/language-settings';
 import { OfflineContentSettings } from '@/features/settings/offline-content-settings';
 import { ProfileDetails } from '@/features/settings/profile-details';
@@ -31,37 +32,25 @@ const Settings: React.FC<{ params: Promise<{ locale: Locale }> }> = async ({ par
       {/* Set the dynamic page title based on the locale */}
       <SetDynamicPageTitle newTitle={settingsTitle[locale]} />
 
-      {/* Main content section */}
-      <section className="container mx-auto mt-6 mb-6 pt-6 pb-12">
-        <div className="mx-auto w-full max-w-2xl space-y-6 px-4">
-          {/* Profile Section */}
-          <ProfileDetails />
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 pt-4 pb-12">
+        {/* Profile and support */}
+        <ProfileDetails />
 
-          {/* App Preferences Section */}
-          <Card title={appPreferencesTitle[locale]} divided>
-            {/* Push Notifications Row */}
-            <div className="px-6 py-4">
-              <PushNotificationSettings locale={locale} />
-            </div>
-
-            {/* Language Row */}
-            <div className="px-6 py-4">
-              <LanguageSettings locale={locale} />
-            </div>
-
-            {/* Offline Content Row */}
-            <div className="px-6 py-4">
-              <OfflineContentSettings locale={locale} />
-            </div>
-
-            {/* Analytics Consent Row, brings its own padding because it can be absent */}
+        {/* App Preferences */}
+        <section>
+          <SectionLabel className="mb-2 px-1">{appPreferencesTitle[locale]}</SectionLabel>
+          <SettingsCard>
+            <PushNotificationSettings locale={locale} />
+            <LanguageSettings locale={locale} />
+            <OfflineContentSettings locale={locale} />
+            {/* renders nothing on a deployment without PostHog */}
             <AnalyticsSettings locale={locale} />
-          </Card>
+          </SettingsCard>
+        </section>
 
-          {/* About Section */}
-          <AboutSettings locale={locale} webBuild={build} />
-        </div>
-      </section>
+        {/* About */}
+        <AboutSettings locale={locale} webBuild={build} />
+      </div>
     </>
   );
 };
