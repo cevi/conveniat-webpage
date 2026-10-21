@@ -14,6 +14,8 @@ jest.mock('@/config/environment-variables', () => ({
 import {
   canAccessBilling,
   canOpenAdminPanel,
+  canReadOutgoingEmail,
+  canReadUser,
   getRolesOfGroups,
   hasAdminOrWebAccess,
   hasBillingOrAdminOrWebAccess,
@@ -152,6 +154,34 @@ describe('canAccessBilling', () => {
   });
 });
 
+describe('canReadOutgoingEmail', () => {
+  it('lets the full admins read every mail', () => {
+    expect(canReadOutgoingEmail({ req: requestFor(FULL_ADMIN) })).toBe(true);
+  });
+
+  it('narrows the billing team to the mails of its registrations', () => {
+    expect(canReadOutgoingEmail({ req: requestFor(BILLING) })).toEqual({
+      and: [
+        { formSubmission: { exists: false } },
+        { or: [{ billParticipant: { exists: true } }, { billParticipants: { exists: true } }] },
+      ],
+    });
+  });
+
+  it('stops everyone else, the web core team included', () => {
+    for (const group of [
+      WEB_CORE_TEAM,
+      TRANSLATION_TEAM,
+      PROGRAM_TEAM,
+      MATERIAL_TEAM,
+      PARTICIPANT,
+    ]) {
+      expect(canReadOutgoingEmail({ req: requestFor(group) })).toBe(false);
+    }
+    expect(canReadOutgoingEmail({ req: anonymous })).toBe(false);
+  });
+});
+
 describe('hasBillingOrAdminOrWebAccess', () => {
   it('lets the billing team, the admins and the web core team in, and nobody else', () => {
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(BILLING) })).toBe(true);
@@ -161,6 +191,23 @@ describe('hasBillingOrAdminOrWebAccess', () => {
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PROGRAM_TEAM) })).toBe(false);
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PARTICIPANT) })).toBe(false);
     expect(hasBillingOrAdminOrWebAccess({ req: anonymous })).toBe(false);
+  });
+});
+
+describe('canReadUser', () => {
+  it('lets the admins and the web core team read every user', () => {
+    expect(canReadUser({ req: requestFor(FULL_ADMIN) })).toBe(true);
+    expect(canReadUser({ req: requestFor(WEB_CORE_TEAM) })).toBe(true);
+  });
+
+  it('narrows everyone else to their own user document', () => {
+    for (const group of [BILLING, MATERIAL_TEAM, PROGRAM_TEAM, TRANSLATION_TEAM, PARTICIPANT]) {
+      expect(canReadUser({ req: requestFor(group) })).toEqual({ id: { equals: 'u1' } });
+    }
+  });
+
+  it('stops an anonymous request', () => {
+    expect(canReadUser({ req: anonymous })).toBe(false);
   });
 });
 

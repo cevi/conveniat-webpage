@@ -1,6 +1,7 @@
 import {
   ADMIN_PANEL_ROLES,
   canOpenAdminPanel,
+  canReadUser,
   hasAccessToThisUser,
   hasAdminOrWebAccess,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
@@ -196,7 +197,7 @@ export const UserCollection: CollectionConfig = {
     // Opening the admin panel grants nothing by itself: the billing team and the material team
     // come for one thing each, and every collection still denies them.
     admin: canOpenAdminPanel,
-    read: hasAdminOrWebAccess,
+    read: canReadUser,
     create: () => false,
     delete: () => false,
     update: hasAdminOrWebAccess,
