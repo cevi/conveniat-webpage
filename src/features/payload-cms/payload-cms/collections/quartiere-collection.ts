@@ -3,6 +3,7 @@ import {
   isEditor,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
+import { flushPageCacheOnChange } from '@/features/payload-cms/payload-cms/utils/flush-page-cache-on-change';
 import type { CollectionConfig } from 'payload';
 
 /**
@@ -19,6 +20,8 @@ export const QuartiereCollection: CollectionConfig = {
   // A document that links a Quartier needs its name. Without this, the link would also carry
   // the joined Höfe to every reader, e.g. to the programme of all participants.
   defaultPopulate: { name: true },
+  // the cached Karte and Programm show the names, so a renamed Quartier has to reach them
+  hooks: { afterChange: [flushPageCacheOnChange] },
   labels: {
     singular: { en: 'Quartier', de: 'Quartier', fr: 'Quartier' },
     plural: { en: 'Quartiers', de: 'Quartiere', fr: 'Quartiers' },
