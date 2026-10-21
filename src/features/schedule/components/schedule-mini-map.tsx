@@ -8,7 +8,7 @@ import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-ty
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ExternalLink } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import React from 'react';
@@ -43,7 +43,7 @@ interface CoordinateObject {
 
 const labels = {
   openInMap: {
-    de: 'In Karte öffnen',
+    de: 'Auf Karte öffnen',
     en: 'Open in map',
     fr: 'Ouvrir dans la carte',
   },
@@ -72,6 +72,26 @@ function parsePolygonCoordinates(rawCoords: unknown): [number, number][] {
 }
 
 /**
+ * Where a map of the location is centred: the middle of its polygon, else its marker.
+ * `undefined` when the location has neither, and then there is no map to show.
+ */
+export const mapCenterOf = (location: CampMapAnnotation): [number, number] | undefined => {
+  const polygon =
+    location.annotationType === 'polygon'
+      ? parsePolygonCoordinates(location.polygonCoordinates)
+      : [];
+  if (polygon.length > 0) {
+    const longitudes = polygon.map(([longitude]) => longitude);
+    const latitudes = polygon.map(([, latitude]) => latitude);
+    return [
+      (Math.min(...longitudes) + Math.max(...longitudes)) / 2,
+      (Math.min(...latitudes) + Math.max(...latitudes)) / 2,
+    ];
+  }
+  return location.geometry ?? undefined;
+};
+
+/**
  * A mini map component for the schedule details page.
  * Displays the location with a marker/polygon and all other polygons with reduced opacity.
  */
@@ -89,26 +109,11 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
     refetchOnWindowFocus: true,
   });
 
-  // Compute map center - for polygons, calculate centroid from polygon coordinates
-  let mapCenter: [number, number] | undefined;
-
   const currentPolygonCoords =
     location.annotationType === 'polygon'
       ? parsePolygonCoordinates(location.polygonCoordinates)
       : [];
-
-  if (currentPolygonCoords.length > 0) {
-    const minLng = Math.min(...currentPolygonCoords.map((c) => c[0]));
-    const maxLng = Math.max(...currentPolygonCoords.map((c) => c[0]));
-    const minLat = Math.min(...currentPolygonCoords.map((c) => c[1]));
-    const maxLat = Math.max(...currentPolygonCoords.map((c) => c[1]));
-    mapCenter = [(minLng + maxLng) / 2, (minLat + maxLat) / 2];
-  }
-
-  // Fallback to geometry centroid if polygon center couldn't be computed
-  if (!mapCenter && location.geometry) {
-    mapCenter = location.geometry;
-  }
+  const mapCenter = mapCenterOf(location);
 
   // If no coordinates, don't render the map
   if (!mapCenter) {
@@ -218,14 +223,14 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
       */}
       {!interactive && <div className="absolute inset-0 z-[5]" aria-hidden="true" />}
 
-      {/* Overlay Button: Open in Map - styled like maplibregl controls */}
-      <div className="absolute top-2 right-2 z-10">
+      {/* The one way from here to the full map, which answers taps */}
+      <div className="absolute top-3 right-3 z-10">
         <Link
           href={`/app/map?locationId=${location.id}`}
-          className="flex h-10 w-10 items-center justify-center rounded border border-gray-200 bg-white text-gray-700 shadow-md transition-colors hover:bg-gray-100"
-          title={labels.openInMap[locale]}
+          className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-gray-900 shadow-md transition-colors hover:bg-gray-50"
         >
-          <ExternalLink className="h-5 w-5" />
+          <MapPin className="h-4 w-4 shrink-0" />
+          {labels.openInMap[locale]}
         </Link>
       </div>
     </div>

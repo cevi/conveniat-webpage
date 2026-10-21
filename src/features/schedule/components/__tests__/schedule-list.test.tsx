@@ -88,7 +88,9 @@ describe('ScheduleList', () => {
 
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.getByText('07:30')).toBeInTheDocument();
-    expect(screen.getByText('08:00 – 09:00')).toBeInTheDocument();
+    expect(screen.queryByText('bis 07:30')).toBeNull();
+    expect(screen.getByText('08:00')).toBeInTheDocument();
+    expect(screen.getByText('bis 09:00')).toBeInTheDocument();
     expect(screen.getByText('30 min Verschiebung')).toBeInTheDocument();
   });
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
 import { DateCarousel } from '@/features/schedule/components/date-carousel';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -8,15 +7,15 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import React from 'react';
 
 const nextDayLabel: StaticTranslationString = {
-  en: 'Go to next day',
-  de: 'Zum nächsten Tag',
-  fr: 'Aller au jour suivant',
+  en: 'Next day',
+  de: 'Nächster Tag',
+  fr: 'Jour suivant',
 };
 
 const previousDayLabel: StaticTranslationString = {
-  en: 'Go to previous day',
-  de: 'Zum vorherigen Tag',
-  fr: 'Aller au jour précédent',
+  en: 'Previous day',
+  de: 'Vorheriger Tag',
+  fr: 'Jour précédent',
 };
 
 interface DateCarouselViewWrapperProperties {
@@ -30,6 +29,9 @@ interface DateCarouselViewWrapperProperties {
   onCarouselNext: () => void;
   children: React.ReactNode;
 }
+
+const dayLinkClassName =
+  'flex h-13 w-full cursor-pointer items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-4 text-left text-[15px] text-gray-500 transition-colors hover:border-gray-300';
 
 const slideVariants = {
   enter: (direction_: number): { x: number; opacity: number } => ({
@@ -131,35 +133,38 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
 
               {/* Navigation Links */}
               {(previousDay ?? nextDate) && (
-                <div className="flex flex-col space-y-3 pt-4">
+                <div className="flex flex-col space-y-3 pt-2">
                   {/* Prev Day Link */}
                   {previousDay && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                    <button
+                      type="button"
+                      className={dayLinkClassName}
                       onClick={() => onDateSelect(previousDay)}
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <ArrowLeft className="text-conveniat-green h-5 w-5 shrink-0" />
                       <span>{previousDayLabel[locale]}</span>
                       <span className="font-semibold text-gray-900">
-                        {previousDay.toLocaleDateString(locale, { weekday: 'long' })}
+                        {previousDay.toLocaleDateString(locale, {
+                          weekday: 'long',
+                          day: 'numeric',
+                        })}
                       </span>
-                    </Button>
+                    </button>
                   )}
 
                   {/* Next Day Link */}
                   {nextDate && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 border-dashed text-gray-500 hover:text-gray-900"
+                    <button
+                      type="button"
+                      className={dayLinkClassName}
                       onClick={() => onDateSelect(nextDate)}
                     >
                       <span>{nextDayLabel[locale]}</span>
                       <span className="font-semibold text-gray-900">
-                        {nextDate.toLocaleDateString(locale, { weekday: 'long' })}
+                        {nextDate.toLocaleDateString(locale, { weekday: 'long', day: 'numeric' })}
                       </span>
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                      <ArrowRight className="text-conveniat-green ml-auto h-5 w-5 shrink-0" />
+                    </button>
                   )}
                 </div>
               )}

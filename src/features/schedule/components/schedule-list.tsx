@@ -17,7 +17,7 @@ interface ScheduleListProperties {
 }
 
 /**
- * The programme of one day as a dense agenda. The day stays in order at any time: what is over
+ * The programme of one day as a timeline. The day stays in order at any time: what is over
  * is dimmed in place, never moved, so the list reads the same in the morning and at night.
  */
 export const ScheduleList: React.FC<ScheduleListProperties> = ({
@@ -28,7 +28,7 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
   currentId,
   quartierChips,
 }) => (
-  <div className="border-t border-gray-100">
+  <ol className="pt-1">
     {entries.map((entry) => {
       const end = slotOf(entry)?.end;
       const isPast = minutesOfToday !== undefined && end !== undefined && end <= minutesOfToday;
@@ -47,5 +47,5 @@ export const ScheduleList: React.FC<ScheduleListProperties> = ({
         <ScheduleFixedRow key={entry.id} entry={entry} isPast={isPast} />
       );
     })}
-  </div>
+  </ol>
 );

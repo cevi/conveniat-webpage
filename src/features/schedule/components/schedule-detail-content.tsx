@@ -14,7 +14,7 @@ import {
   SafetyTab,
   StepsTab,
 } from '@/features/schedule/components/schedule-detail-tabs';
-import { ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
+import { mapCenterOf, ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { WorkshopAdminActions } from '@/features/schedule/components/workshop-admin-actions';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import {
@@ -34,6 +34,7 @@ import { formatUserFullName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import {
   AlertTriangle,
+  CalendarDays,
   Check,
   ChevronRight,
   Clock,
@@ -141,6 +142,17 @@ const Fact: React.FC<{
   </div>
 );
 
+/** One fact about when the block is, as a chip next to the others. */
+const FactChip: React.FC<{ icon: typeof Clock; children: React.ReactNode }> = ({
+  icon: Icon,
+  children,
+}) => (
+  <div className="flex h-10 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-[0.9375rem] font-medium text-gray-900 tabular-nums">
+    <Icon className="h-4 w-4 shrink-0 text-green-500" />
+    {children}
+  </div>
+);
+
 export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = ({
   entry,
   locale,
@@ -169,6 +181,9 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
   const steps = entry.steps ?? [];
   const bring = entry.bring ?? [];
   const quartiere = quartiereOf(entry).filter(({ name }) => name !== undefined);
+  const hasMap = location !== undefined && mapCenterOf(location) !== undefined;
+  const hasMoreFacts =
+    quartiere.length > 0 || otherSlots.length > 0 || Boolean(entry.target_group) || isEditing;
 
   // Editing happens on the overview, and a tab can vanish under the reader when the block changes.
   const tabs: DetailTab[] = [
@@ -193,270 +208,300 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
   return (
     <ScheduleStatusProvider courseIds={[entry.id]} isOnline={isOnline}>
-      <article className="mx-auto w-full max-w-xl space-y-4 overflow-x-hidden p-4 pb-24 sm:p-6">
-        {/* Edit Warning Banner */}
-        {isEditing && (
-          <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 shadow-xs">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
-            {labels.editWarning[locale]}
-          </div>
-        )}
-
-        {/* Error Banner */}
-        {editError && (
-          <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-xs">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
-            {editError}
-          </div>
-        )}
-
-        {/* Header: category, title and what the block is about */}
-        <header className="space-y-2 px-1">
-          {label.length > 0 && (
-            <div
-              className={cn(
-                'flex items-center gap-2 text-[11px] font-bold tracking-wider uppercase',
-                accent.text,
-              )}
-            >
-              <span className={cn('h-2 w-2 rounded-full', accent.bar)} />
-              {label.join(' · ')}
-            </div>
-          )}
-          <h1 className="font-heading text-2xl leading-tight font-bold tracking-tight text-gray-900">
-            {entry.title}
-          </h1>
-          {isEditing && editData ? (
-            <MarkdownEditor
-              label={labels.description[locale]}
-              value={editData.description}
-              onChange={handleDescriptionChange}
-              rows={6}
-              placeholder="..."
-            />
-          ) : (
-            <div className="prose prose-gray max-w-none text-sm leading-relaxed text-gray-600">
-              <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
-            </div>
-          )}
-        </header>
-
-        {tabs.length > 1 && !isEditing && (
-          <DetailTabBar
-            tabs={tabs}
-            active={activeTab}
-            onSelect={setSelectedTab}
-            accentText={accent.text}
-            locale={locale}
+      <article className="mx-auto w-full max-w-xl overflow-x-hidden pb-24">
+        {/* Where it is, first and large: the question people open a block with */}
+        {location !== undefined && hasMap && (
+          <ScheduleMiniMap
+            location={location}
+            interactive={false}
+            // the sheet below overlaps the map's bottom edge; the swisstopo credit stays above it
+            className="mt-0 h-[300px] rounded-none border-0 [&_.maplibregl-ctrl-bottom-right]:bottom-5"
           />
         )}
 
-        {activeTab === 'steps' && slot !== undefined && (
-          <StepsTab
-            steps={steps}
-            startMinutes={slot.start}
-            accentText={accent.text}
-            locale={locale}
-          />
-        )}
-        {activeTab === 'material' && leaderNotes && (
-          <MaterialTab notes={leaderNotes} locale={locale} />
-        )}
-        {activeTab === 'safety' && leaderNotes && <SafetyTab notes={leaderNotes} locale={locale} />}
-
-        {activeTab === 'overview' && (
-          <>
-            {/* Key facts: when, where, who */}
-            <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xs">
-              <Fact icon={Clock} title={entry.timeslot.time.replace(' - ', ' – ')}>
-                <div className="font-body text-xs text-gray-500">
-                  {[
-                    dateTime.formattedDate,
-                    slot !== undefined && slot.end > slot.start
-                      ? formatDuration(slot.end - slot.start)
-                      : undefined,
-                  ]
-                    .filter((part) => part !== undefined)
-                    .join(' · ')}
-                </div>
-              </Fact>
-
-              {location !== undefined && (
-                <Fact
-                  icon={MapPin}
-                  title={
-                    <Link
-                      href={`/app/map?locationId=${location.id}`}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <span>
-                        {location.title}
-                        <span className="block text-xs font-normal text-gray-500">
-                          {programmeLabels.showOnMap[locale]}
-                        </span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-gray-300" />
-                    </Link>
-                  }
-                >
-                  <div className="mt-2 overflow-hidden rounded-xl border border-gray-100">
-                    <ScheduleMiniMap location={location} />
-                  </div>
-                </Fact>
-              )}
-
-              {(quartiere.length > 0 || otherSlots.length > 0) && (
-                <Fact
-                  icon={Users}
-                  title={
-                    quartiere.length > 0
-                      ? quartiere.map(({ name }) => name).join(', ')
-                      : programmeLabels.wholeCamp[locale]
-                  }
-                >
-                  {otherSlots.length > 0 && (
-                    <div className="font-body mt-0.5 text-xs text-gray-500">
-                      <div>{programmeLabels.otherSlots[locale]}:</div>
-                      {otherSlots.map((other) => (
-                        <div key={other.id}>
-                          {other.timeslot.time.replace(' - ', ' – ')}
-                          {quartiereOf(other).some(({ name }) => name !== undefined) &&
-                            ` · ${quartiereOf(other)
-                              .map(({ name }) => name)
-                              .filter((name) => name !== undefined)
-                              .join(', ')}`}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Fact>
-              )}
-
-              {/* Target Group */}
-              {(entry.target_group || isEditing) && (
-                <Fact icon={Users} title={labels.targetGroup[locale]}>
-                  {isEditing && editData ? (
-                    <MarkdownEditor
-                      value={editData.targetGroup}
-                      onChange={handleTargetGroupChange}
-                      rows={3}
-                      placeholder="..."
-                    />
-                  ) : undefined}
-                  {!isEditing && entry.target_group && (
-                    <div className="font-body mt-0.5 text-sm text-gray-600">
-                      <LexicalRichTextSection
-                        richTextSection={entry.target_group}
-                        locale={locale}
-                      />
-                    </div>
-                  )}
-                </Fact>
-              )}
-
-              {/* Max Participants (when editing) */}
-              {isEditing && editData && (
-                <Fact icon={Users} title={labels.maxParticipants[locale]}>
-                  <input
-                    type="number"
-                    aria-label={labels.maxParticipants[locale]}
-                    min={courseStatus?.enrolledCount ?? 0}
-                    value={editData.maxParticipants || ''}
-                    onChange={handleMaxParticipantsChange}
-                    className="font-body focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:outline-hidden"
-                    placeholder="0 = unbegrenzt"
-                  />
-                  {courseStatus && courseStatus.enrolledCount > 0 && (
-                    <p className="font-body mt-1 text-xs text-gray-500">
-                      Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} angemeldet)
-                    </p>
-                  )}
-                </Fact>
-              )}
+        <div
+          className={cn(
+            'relative space-y-4 bg-gray-50 p-4 sm:p-6',
+            hasMap && '-mt-5 rounded-t-[20px]',
+          )}
+        >
+          {/* Edit Warning Banner */}
+          {isEditing && (
+            <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 shadow-xs">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+              {labels.editWarning[locale]}
             </div>
+          )}
 
-            {bring.length > 0 && !isEditing && (
-              <section className="px-1">
-                <h3 className="font-heading text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-                  {programmeLabels.bring[locale]}
-                </h3>
-                <ul className="mt-2 grid grid-cols-2 gap-1.5">
-                  {bring.map(({ id, item }, index) => (
-                    <li
-                      key={id ?? index}
-                      className="flex items-center gap-2 rounded-xl bg-gray-100 px-2.5 py-2 text-[13px] text-gray-700"
-                    >
-                      <Check className="text-conveniat-green h-3.5 w-3.5 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+          {/* Error Banner */}
+          {editError && (
+            <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-xs">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+              {editError}
+            </div>
+          )}
 
-            {/* Admin Actions (when admin & not editing) */}
-            {isAdmin && !isEditing && (
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-                <WorkshopAdminActions
-                  courseId={entry.id}
-                  courseTitle={entry.title}
-                  isAdmin={isAdmin}
-                  courseStatus={courseStatus}
-                />
+          {/* Header: category, title and what the block is about */}
+          <header className="space-y-2 px-1">
+            {label.length > 0 && (
+              <div
+                className={cn(
+                  'flex items-center gap-2 text-xs font-bold tracking-wider uppercase',
+                  accent.text,
+                )}
+              >
+                <span className={cn('h-2 w-2 rounded-full', accent.bar)} />
+                {label.join(' · ')}
               </div>
             )}
-
-            {/* Enrollment Section (when enabled & not editing) */}
-            {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
-
-            {/* Participant List (organisers only, when enrolment is enabled & not editing) */}
-            {!isEditing && isAdmin && (
-              <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
+            <h1 className="font-heading text-[1.625rem] leading-tight font-bold tracking-tight text-gray-900">
+              {entry.title}
+            </h1>
+            {isEditing && editData ? (
+              <MarkdownEditor
+                label={labels.description[locale]}
+                value={editData.description}
+                onChange={handleDescriptionChange}
+                rows={6}
+                placeholder="..."
+              />
+            ) : (
+              <div className="prose prose-gray max-w-none text-base leading-relaxed text-gray-600">
+                <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
+              </div>
             )}
+          </header>
 
-            {/* Contact Organisers Section */}
-            {organisers.length > 0 && !isEditing && (
-              <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
-                    <MessageCircle className="h-4 w-4" />
-                  </div>
-                  <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-                    {contactAdminText[locale]}
-                  </h3>
-                </div>
-                <div className="space-y-2.5">
-                  {organisers.map((organiser) => {
-                    const displayName = formatUserFullName(organiser.fullName, organiser.nickname);
+          {tabs.length > 1 && !isEditing && (
+            <DetailTabBar
+              tabs={tabs}
+              active={activeTab}
+              onSelect={setSelectedTab}
+              accentText={accent.text}
+              locale={locale}
+            />
+          )}
 
-                    return (
-                      <div
-                        key={organiser.id}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
-                      >
-                        <div className="flex min-w-0 flex-1 items-center gap-3">
-                          <PersonAvatar
-                            seed={organiser.id}
-                            name={organiser.fullName}
-                            className="h-10 w-10 text-sm font-bold shadow-xs"
+          {activeTab === 'steps' && slot !== undefined && (
+            <StepsTab
+              steps={steps}
+              startMinutes={slot.start}
+              accentText={accent.text}
+              locale={locale}
+            />
+          )}
+          {activeTab === 'material' && leaderNotes && (
+            <MaterialTab notes={leaderNotes} locale={locale} />
+          )}
+          {activeTab === 'safety' && leaderNotes && (
+            <SafetyTab notes={leaderNotes} locale={locale} />
+          )}
+
+          {activeTab === 'overview' && (
+            <>
+              {/* When: two chips that read at a glance */}
+              <div className="flex flex-wrap gap-2">
+                <FactChip icon={Clock}>
+                  {entry.timeslot.time.replace(' - ', ' – ')}
+                  {slot !== undefined && slot.end > slot.start && (
+                    <span className="font-normal text-gray-400">
+                      {formatDuration(slot.end - slot.start)}
+                    </span>
+                  )}
+                </FactChip>
+                {dateTime.formattedDate !== '' && (
+                  <FactChip icon={CalendarDays}>{dateTime.formattedDate}</FactChip>
+                )}
+              </div>
+
+              {/* Where: the place by name, and the way to the full map */}
+              {location !== undefined && (
+                <Link
+                  href={`/app/map?locationId=${location.id}`}
+                  className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 transition-colors hover:border-gray-300"
+                >
+                  <span
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                      accent.tint,
+                      accent.text,
+                    )}
+                  >
+                    <MapPin className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold text-gray-900">
+                      {location.title}
+                    </span>
+                    <span className="block text-sm text-gray-500">
+                      {programmeLabels.showOnMap[locale]}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-5 w-5 shrink-0 text-gray-300" />
+                </Link>
+              )}
+
+              {/* Who: the Quartiere, other slots and the target group */}
+              {hasMoreFacts && (
+                <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                  {(quartiere.length > 0 || otherSlots.length > 0) && (
+                    <Fact
+                      icon={Users}
+                      title={
+                        quartiere.length > 0
+                          ? quartiere.map(({ name }) => name).join(', ')
+                          : programmeLabels.wholeCamp[locale]
+                      }
+                    >
+                      {otherSlots.length > 0 && (
+                        <div className="font-body mt-0.5 text-xs text-gray-500">
+                          <div>{programmeLabels.otherSlots[locale]}:</div>
+                          {otherSlots.map((other) => (
+                            <div key={other.id}>
+                              {other.timeslot.time.replace(' - ', ' – ')}
+                              {quartiereOf(other).some(({ name }) => name !== undefined) &&
+                                ` · ${quartiereOf(other)
+                                  .map(({ name }) => name)
+                                  .filter((name) => name !== undefined)
+                                  .join(', ')}`}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </Fact>
+                  )}
+
+                  {/* Target Group */}
+                  {(entry.target_group || isEditing) && (
+                    <Fact icon={Users} title={labels.targetGroup[locale]}>
+                      {isEditing && editData ? (
+                        <MarkdownEditor
+                          value={editData.targetGroup}
+                          onChange={handleTargetGroupChange}
+                          rows={3}
+                          placeholder="..."
+                        />
+                      ) : undefined}
+                      {!isEditing && entry.target_group && (
+                        <div className="font-body mt-0.5 text-sm text-gray-600">
+                          <LexicalRichTextSection
+                            richTextSection={entry.target_group}
+                            locale={locale}
                           />
-                          <div className="min-w-0 flex-1">
-                            <div className="font-body truncate text-sm font-semibold text-gray-900">
-                              {displayName}
+                        </div>
+                      )}
+                    </Fact>
+                  )}
+
+                  {/* Max Participants (when editing) */}
+                  {isEditing && editData && (
+                    <Fact icon={Users} title={labels.maxParticipants[locale]}>
+                      <input
+                        type="number"
+                        aria-label={labels.maxParticipants[locale]}
+                        min={courseStatus?.enrolledCount ?? 0}
+                        value={editData.maxParticipants || ''}
+                        onChange={handleMaxParticipantsChange}
+                        className="font-body focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:outline-hidden"
+                        placeholder="0 = unbegrenzt"
+                      />
+                      {courseStatus && courseStatus.enrolledCount > 0 && (
+                        <p className="font-body mt-1 text-xs text-gray-500">
+                          Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount}{' '}
+                          angemeldet)
+                        </p>
+                      )}
+                    </Fact>
+                  )}
+                </div>
+              )}
+
+              {bring.length > 0 && !isEditing && (
+                <section className="px-1">
+                  <h3 className="font-heading text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                    {programmeLabels.bring[locale]}
+                  </h3>
+                  <ul className="mt-2 grid grid-cols-2 gap-1.5">
+                    {bring.map(({ id, item }, index) => (
+                      <li
+                        key={id ?? index}
+                        className="flex items-center gap-2 rounded-xl bg-gray-100 px-2.5 py-2 text-[13px] text-gray-700"
+                      >
+                        <Check className="text-conveniat-green h-3.5 w-3.5 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* Admin Actions (when admin & not editing) */}
+              {isAdmin && !isEditing && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+                  <WorkshopAdminActions
+                    courseId={entry.id}
+                    courseTitle={entry.title}
+                    isAdmin={isAdmin}
+                    courseStatus={courseStatus}
+                  />
+                </div>
+              )}
+
+              {/* Enrollment Section (when enabled & not editing) */}
+              {!isEditing && <EnrollmentSection courseId={entry.id} locale={locale} />}
+
+              {/* Participant List (organisers only, when enrolment is enabled & not editing) */}
+              {!isEditing && isAdmin && (
+                <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
+              )}
+
+              {/* Contact Organisers Section */}
+              {organisers.length > 0 && !isEditing && (
+                <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
+                      <MessageCircle className="h-4 w-4" />
+                    </div>
+                    <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
+                      {contactAdminText[locale]}
+                    </h3>
+                  </div>
+                  <div className="space-y-2.5">
+                    {organisers.map((organiser) => {
+                      const displayName = formatUserFullName(
+                        organiser.fullName,
+                        organiser.nickname,
+                      );
+
+                      return (
+                        <div
+                          key={organiser.id}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
+                        >
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                            <PersonAvatar
+                              seed={organiser.id}
+                              name={organiser.fullName}
+                              className="h-10 w-10 text-sm font-bold shadow-xs"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-body truncate text-sm font-semibold text-gray-900">
+                                {displayName}
+                              </div>
                             </div>
                           </div>
+                          <div className="shrink-0">
+                            <ChatLinkButton userId={organiser.id} />
+                          </div>
                         </div>
-                        <div className="shrink-0">
-                          <ChatLinkButton userId={organiser.id} />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </article>
     </ScheduleStatusProvider>
   );

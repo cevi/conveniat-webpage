@@ -122,7 +122,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
             placeholder={searchPlaceholder[locale]}
             value={filters.searchText}
             onChange={(event) => handleSearchChange(event.target.value)}
-            className="h-10 text-xs"
+            className="h-11 rounded-xl text-[15px] shadow-none"
           />
         </div>
 
@@ -132,17 +132,17 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           size="sm"
           onClick={() => setShowCategoryFilter(!showCategoryFilter)}
           className={cn(
-            'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
+            'h-11 min-w-11 shrink-0 cursor-pointer rounded-xl px-0 text-sm font-semibold shadow-none transition-colors sm:px-3',
             showCategoryFilter || hasCategoryFilter
-              ? 'border-transparent bg-gray-900 text-white shadow-xs'
-              : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
+              ? 'bg-conveniat-green border-transparent text-white'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-white',
           )}
           aria-label={filterByCategoryText[locale]}
         >
           <Filter
             className={cn(
-              'h-4 w-4',
-              showCategoryFilter || hasCategoryFilter ? 'text-white' : 'text-gray-500',
+              'h-[18px] w-[18px]',
+              showCategoryFilter || hasCategoryFilter ? 'text-white' : 'text-gray-700',
             )}
           />
           <span className="hidden sm:inline">Filter</span>
@@ -156,17 +156,17 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
             size="sm"
             onClick={() => onFiltersChange({ ...filters, starredOnly: !filters.starredOnly })}
             className={cn(
-              'font-heading h-10 shrink-0 cursor-pointer rounded-xl px-3 text-xs font-semibold transition-all duration-200',
+              'h-11 min-w-11 shrink-0 cursor-pointer rounded-xl px-0 text-sm font-semibold shadow-none transition-colors sm:px-3',
               filters.starredOnly
-                ? 'border-transparent bg-gray-900 text-white shadow-xs'
-                : 'border-gray-100 bg-white text-gray-700 shadow-2xs hover:border-gray-200 hover:bg-gray-50',
+                ? 'bg-conveniat-green border-transparent text-white'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-white',
             )}
             aria-label={starredOnlyText[locale]}
           >
             <Star
               className={cn(
-                'h-4 w-4',
-                filters.starredOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-500',
+                'h-[18px] w-[18px]',
+                filters.starredOnly ? 'fill-amber-400 text-amber-400' : 'text-gray-700',
               )}
             />
             <span className="hidden sm:inline">{starredOnlyText[locale]}</span>

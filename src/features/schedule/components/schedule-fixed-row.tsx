@@ -1,11 +1,16 @@
+import { ScheduleTimelineItem } from '@/features/schedule/components/schedule-timeline-item';
+import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { kindOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
+import type { Locale } from '@/types/types';
+import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Clock, Moon, Sunrise, Utensils } from 'lucide-react';
+import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
 
-const iconClassName = 'text-conveniat-green h-3.5 w-3.5 shrink-0';
+const iconClassName = 'h-4 w-4 shrink-0 text-green-400';
 
 /** A fixed point of the morning gets a sunrise, one of the late evening a moon. */
 const FixedRowIcon: React.FC<{ entry: CampScheduleEntryFrontendType }> = ({ entry }) => {
@@ -21,43 +26,46 @@ const FixedRowIcon: React.FC<{ entry: CampScheduleEntryFrontendType }> = ({ entr
 };
 
 /**
- * What frames the day without being a programme block: a meal or a fixed point as one gray
- * line, a transfer as a small note with its duration. None of them opens a detail page.
+ * What frames the day without being a programme block: a meal or a fixed point as a quiet
+ * stop on the rail, a transfer as a dashed stretch of it with its duration. None of them
+ * opens a detail page.
  */
 export const ScheduleFixedRow: React.FC<{
   entry: CampScheduleEntryFrontendType;
   isPast: boolean;
 }> = ({ entry, isPast }) => {
+  const locale = useCurrentLocale(i18nConfig) as Locale;
   const slot = slotOf(entry);
+  const [start = '', end = ''] = entry.timeslot.time.split(' - ');
 
   if (kindOf(entry) === 'transfer') {
     return (
-      <div
-        className={cn(
-          'border-b border-gray-100 py-1 pr-2 pl-7 text-[11px] text-gray-400',
-          isPast && 'opacity-50',
-        )}
-      >
-        {slot !== undefined && slot.end > slot.start && `${formatDuration(slot.end - slot.start)} `}
-        {entry.title}
-      </div>
+      <ScheduleTimelineItem dashed className={cn(isPast && 'opacity-50')}>
+        <div className="pb-4 text-xs leading-5 text-gray-400">
+          {slot !== undefined &&
+            slot.end > slot.start &&
+            `${formatDuration(slot.end - slot.start)} `}
+          {entry.title}
+        </div>
+      </ScheduleTimelineItem>
     );
   }
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-2.5 border-b border-gray-100 bg-gray-50 px-2 py-1.5 text-xs text-gray-500',
-        isPast && 'opacity-50',
-      )}
+    <ScheduleTimelineItem
+      className={cn(isPast && 'opacity-50')}
+      time={<time className="text-gray-500">{start}</time>}
+      node={<span className="h-3 w-3 rounded-full border-2 border-green-300 bg-[#f8fafc]" />}
     >
-      <FixedRowIcon entry={entry} />
-      <span className="truncate">{entry.title}</span>
-      <time className="ml-auto shrink-0 tabular-nums">
-        {slot !== undefined && slot.end === slot.start
-          ? entry.timeslot.time.split(' - ')[0]
-          : entry.timeslot.time.replace(' - ', ' – ')}
-      </time>
-    </div>
+      <div className="flex items-center gap-2 pb-4 text-sm leading-5 text-gray-600">
+        <FixedRowIcon entry={entry} />
+        <span className="truncate">{entry.title}</span>
+        {slot !== undefined && slot.end !== slot.start && (
+          <time className="ml-auto shrink-0 text-[0.8125rem] text-gray-400 tabular-nums">
+            {programmeLabels.until[locale].replace('{{time}}', end)}
+          </time>
+        )}
+      </div>
+    </ScheduleTimelineItem>
   );
 };

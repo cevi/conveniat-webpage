@@ -17,7 +17,7 @@ export const ScheduleScopeSwitch: React.FC<{
   ];
 
   return (
-    <div className="mb-3 flex rounded-xl bg-gray-100 p-1">
+    <div className="mb-3 flex rounded-xl bg-gray-100 p-[3px]">
       {options.map(({ value, label }) => (
         <button
           key={value}
@@ -25,8 +25,8 @@ export const ScheduleScopeSwitch: React.FC<{
           aria-pressed={scope === value}
           onClick={() => onScopeChange(value)}
           className={cn(
-            'min-w-0 flex-1 cursor-pointer truncate rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors',
-            scope === value ? 'text-conveniat-green bg-white shadow-xs' : 'text-gray-500',
+            'h-9 min-w-0 flex-1 cursor-pointer truncate rounded-[9px] px-2 text-sm font-semibold transition-colors',
+            scope === value ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500',
           )}
         >
           {label}

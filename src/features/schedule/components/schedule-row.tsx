@@ -1,6 +1,7 @@
 'use client';
 
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { ScheduleTimelineItem } from '@/features/schedule/components/schedule-timeline-item';
 import { scheduleLabels } from '@/features/schedule/constants/schedule-labels';
 import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-restoration';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
@@ -10,7 +11,7 @@ import { formLabels, quartiereOf } from '@/features/schedule/utils/programme-uti
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle, Star } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, Star } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -38,7 +39,7 @@ interface ScheduleRowProperties {
   quartierChips?: ReadonlySet<string> | undefined;
 }
 
-/** One programme block of the compact list: two lines behind a bar in its category's colour. */
+/** One programme block of the day: a card on the timeline, its node in its category's colour. */
 export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   entry,
   isEnrolled,
@@ -63,39 +64,61 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
   parameters.set('id', entry.id);
 
   return (
-    <div
-      className={cn(
-        'relative border-b border-gray-100',
-        isNow && 'bg-conveniat-green/5',
-        isPast && 'opacity-50',
-      )}
+    <ScheduleTimelineItem
+      className={cn(isPast && 'opacity-50')}
+      time={<time className="font-semibold text-gray-900">{start}</time>}
+      node={
+        <span
+          className={cn('h-3.5 w-3.5 rounded-full border-[3px] border-[#f8fafc]', accent.bar)}
+        />
+      }
     >
-      <Link
-        href={`/app/schedule?${parameters.toString()}`}
-        onClick={saveScrollPosition}
-        className="flex items-center gap-3 px-2 py-2.5"
+      <div
+        className={cn(
+          'mb-3 overflow-hidden rounded-2xl border bg-white shadow-xs',
+          isNow ? 'border-conveniat-green ring-conveniat-green/15 ring-2' : 'border-gray-200',
+        )}
       >
-        <span className={cn('w-2 shrink-0 self-stretch rounded-full', accent.bar)} />
-        <div className="min-w-0 flex-1">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+        <Link
+          href={`/app/schedule?${parameters.toString()}`}
+          onClick={saveScrollPosition}
+          className="block px-3.5 py-3"
+        >
+          {label.length > 0 && (
+            <span
+              className={cn(
+                'inline-flex max-w-full truncate rounded-md px-2 py-0.5 text-xs font-semibold',
+                accent.tint,
+                accent.text,
+              )}
+            >
+              {label.join(' · ')}
+            </span>
+          )}
+          <h3 className="font-heading mt-1.5 flex items-center gap-1.5 text-[1.0625rem] leading-snug font-bold text-gray-900">
             <span className="truncate">{entry.title}</span>
-            {isStarred && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+            {isStarred && <Star className="h-4 w-4 shrink-0 fill-amber-400 text-amber-400" />}
             {isEnrolled && (
               <CheckCircle
-                className="text-conveniat-green h-3.5 w-3.5 shrink-0"
+                className="text-conveniat-green h-4 w-4 shrink-0"
                 aria-label={scheduleLabels.enrolledBadge[locale]}
               />
             )}
           </h3>
-          <p className="mt-0.5 truncate text-xs text-gray-500">
-            {label.length > 0 && (
-              <span className={cn('font-semibold', accent.text)}>{label.join(' · ')}</span>
+          <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.8125rem] text-gray-500">
+            <span className="flex items-center gap-1 tabular-nums">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              {end === '' ? start : `${start} – ${end}`}
+            </span>
+            {location?.title && (
+              <span className="flex min-w-0 items-center gap-1">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{location.title}</span>
+              </span>
             )}
-            {label.length > 0 && location?.title ? ' · ' : ''}
-            {location?.title}
           </p>
           {quartiere.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1">
               {quartiere.map(({ id, name }) => (
                 <span
                   key={id}
@@ -111,18 +134,14 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
               ))}
             </div>
           )}
-        </div>
-        <time className="shrink-0 text-right text-xs leading-tight font-semibold text-gray-700 tabular-nums">
-          {start}
-          <span className="block font-normal text-gray-400">{end}</span>
-        </time>
-      </Link>
+        </Link>
 
-      {entry.enable_enrolment === true && (
-        <div className="px-2 pb-2.5 pl-7">
-          <EnrollmentAction courseId={entry.id} />
-        </div>
-      )}
-    </div>
+        {entry.enable_enrolment === true && (
+          <div className="border-t border-gray-100 px-3.5 py-2.5">
+            <EnrollmentAction courseId={entry.id} />
+          </div>
+        )}
+      </div>
+    </ScheduleTimelineItem>
   );
 };

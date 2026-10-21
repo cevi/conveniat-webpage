@@ -56,6 +56,7 @@ export const programmeLabels = {
   },
   badWeather: { de: 'Schlechtwetter', en: 'Bad weather', fr: 'Mauvais temps' },
   showOnMap: { de: 'Auf der Karte zeigen', en: 'Show on the map', fr: 'Afficher sur la carte' },
+  until: { de: 'bis {{time}}', en: 'until {{time}}', fr: "jusqu'à {{time}}" },
   otherSlots: {
     de: 'Dieser Block zu anderen Zeiten',
     en: 'This block at other times',
