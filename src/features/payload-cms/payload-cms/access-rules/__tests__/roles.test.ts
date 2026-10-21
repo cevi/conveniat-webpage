@@ -15,6 +15,7 @@ import {
   canAccessBilling,
   canOpenAdminPanel,
   canReadOutgoingEmail,
+  canReadUser,
   getRolesOfGroups,
   hasAdminOrWebAccess,
   hasBillingOrAdminOrWebAccess,
@@ -190,6 +191,23 @@ describe('hasBillingOrAdminOrWebAccess', () => {
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PROGRAM_TEAM) })).toBe(false);
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PARTICIPANT) })).toBe(false);
     expect(hasBillingOrAdminOrWebAccess({ req: anonymous })).toBe(false);
+  });
+});
+
+describe('canReadUser', () => {
+  it('lets the admins and the web core team read every user', () => {
+    expect(canReadUser({ req: requestFor(FULL_ADMIN) })).toBe(true);
+    expect(canReadUser({ req: requestFor(WEB_CORE_TEAM) })).toBe(true);
+  });
+
+  it('narrows everyone else to their own user document', () => {
+    for (const group of [BILLING, MATERIAL_TEAM, PROGRAM_TEAM, TRANSLATION_TEAM, PARTICIPANT]) {
+      expect(canReadUser({ req: requestFor(group) })).toEqual({ id: { equals: 'u1' } });
+    }
+  });
+
+  it('stops an anonymous request', () => {
+    expect(canReadUser({ req: anonymous })).toBe(false);
   });
 });
 
