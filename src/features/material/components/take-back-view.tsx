@@ -2,7 +2,6 @@
 
 import { IconTile } from '@/components/ui/icon-tile';
 import {
-  HolderAvatar,
   holderName,
   loanSummary,
   positionCount,
@@ -42,7 +41,7 @@ import { parseScan } from '@/features/material/utils/scan';
 import { trpc } from '@/trpc/client';
 import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Building2, ChevronRight, Hash, PackageCheck, SlidersHorizontal, User } from 'lucide-react';
+import { Building2, Check, ChevronRight, Hash, User } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useState } from 'react';
@@ -125,10 +124,8 @@ const DueCard: React.FC<{
   };
 
   return (
-    <Panel className="space-y-3 p-3">
+    <Panel className="space-y-3 p-4">
       <div className="flex items-start gap-3">
-        {/* the badge and the date say "overdue" already, an orange tile would say it a third time */}
-        <HolderAvatar name={name} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {group.holder.kind === 'PERSON' && (
@@ -141,7 +138,7 @@ const DueCard: React.FC<{
               </span>
             )}
             {overdue && !announced && (
-              <span className={cn(chip, chipTone.overdue, 'ml-auto')}>
+              <span className={cn(chip, chipTone.warning, 'ml-auto')}>
                 {labels.overdue[locale]}
               </span>
             )}
@@ -170,13 +167,12 @@ const DueCard: React.FC<{
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1fr)_auto]">
-          {/* quiet: every card has this action, and a view has one primary at most */}
-          <MaterialButton variant="quiet" onClick={() => setAsking(true)}>
-            <PackageCheck aria-hidden />
+          {/* primary on every card, as on the hand-out: each return is its own task */}
+          <MaterialButton onClick={() => setAsking(true)}>
+            <Check aria-hidden />
             {text.allOk[locale]}
           </MaterialButton>
           <MaterialButton variant="outlined" onClick={() => onOpen(group.holder)}>
-            <SlidersHorizontal aria-hidden />
             {text.deviation[locale]}
           </MaterialButton>
         </div>
@@ -214,7 +210,7 @@ const DueReturns: React.FC<{ onOpen: (holder: LoanHolder) => void }> = ({ onOpen
 };
 
 const rowButton = cn(
-  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-3 py-2 text-left hover:bg-quiet',
+  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left hover:bg-quiet',
   focusRing,
   'focus-visible:ring-inset',
 );
@@ -286,7 +282,6 @@ const HolderSearch: React.FC<{
           {rows.map((row) => (
             <li key={`${row.holder.kind}:${row.holder.id}`}>
               <button type="button" className={rowButton} onClick={() => onOpen(row.holder)}>
-                <HolderAvatar name={row.name} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold text-green-900">{row.name}</span>
                   <span className="flex items-center gap-1 text-xs text-green-500">

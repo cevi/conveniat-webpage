@@ -15,7 +15,7 @@ import { stepQuantity } from '@/features/material/utils/basket';
 import type { LoanHolder } from '@/features/material/utils/holders';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Camera, Minus, Plus, ScanLine, Search } from 'lucide-react';
+import { Minus, Plus, ScanLine, Search } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -58,11 +58,11 @@ export const holderInitials = (name: string): string => {
   return initials === '' ? '?' : initials.toUpperCase();
 };
 
-/** "Wolldecke 40 · Zelttuch 60", what a holder takes or has. */
+/** "40 × Wolldecke · 60 × Zelttuch", what a holder takes or has. */
 export const loanSummary = (
   loans: readonly { quantity: number; issuedQuantity: number | null; item: { name: string } }[],
 ): string =>
-  loans.map((loan) => `${loan.item.name} ${loan.issuedQuantity ?? loan.quantity}`).join(' · ');
+  loans.map((loan) => `${loan.issuedQuantity ?? loan.quantity} × ${loan.item.name}`).join(' · ');
 
 /** "3 Positionen" or "1 Position". */
 export const positionCount = (count: number, locale: Locale): string =>
@@ -190,7 +190,7 @@ const ScannerView: React.FC<{ onResult: (value: string) => boolean }> = ({ onRes
 };
 
 /**
- * A search field with the camera at its end: the scanner lives where the code would be typed,
+ * A search field with the scanner next to it: the scanner lives where the code would be typed,
  * not on a page of its own. `onScan` answers whether it used the code; the sheet closes then.
  */
 export const SearchField: React.FC<{
@@ -205,25 +205,27 @@ export const SearchField: React.FC<{
   return (
     <form
       role="search"
-      className="relative"
+      className="flex gap-2"
       onSubmit={(event) => {
         event.preventDefault();
         onSubmit?.();
       }}
     >
-      <Search
-        className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-green-500"
-        aria-hidden
-      />
-      <input
-        type="search"
-        aria-label={placeholder}
-        placeholder={placeholder}
-        className={cn(inputClass, 'h-12 rounded-xl pl-9', onScan !== undefined && 'pr-14')}
-        value={value}
-        enterKeyHint="search"
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <div className="relative min-w-0 flex-1">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-green-500"
+          aria-hidden
+        />
+        <input
+          type="search"
+          aria-label={placeholder}
+          placeholder={placeholder}
+          className={cn(inputClass, 'pl-9')}
+          value={value}
+          enterKeyHint="search"
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </div>
       {onScan !== undefined && (
         <>
           <button
@@ -232,11 +234,11 @@ export const SearchField: React.FC<{
             title={labels.scan[locale]}
             onClick={() => setScanning(true)}
             className={cn(
-              'bg-conveniat-green absolute top-1/2 right-0.5 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-[10px] text-white',
+              'bg-conveniat-green flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-white',
               focusRing,
             )}
           >
-            <Camera className="size-5" aria-hidden />
+            <ScanLine className="size-5" aria-hidden />
           </button>
           <MaterialSheet open={scanning} onOpenChange={setScanning} title={labels.scan[locale]}>
             {scanning && (
