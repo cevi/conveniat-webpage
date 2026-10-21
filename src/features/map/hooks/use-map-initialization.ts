@@ -1,5 +1,4 @@
 import type { InitialMapPose } from '@/features/map/types/types';
-import { addPaperImage, PAPER_IMAGE_ID } from '@/features/map/utils/camp-map-images';
 import { mapLibreLocaleOf } from '@/features/map/utils/maplibre-locale';
 import { configureMapLibreWorker } from '@/lib/maplibre-worker';
 import type { Locale } from '@/types/types';
@@ -78,10 +77,6 @@ export const useMapInitialization = (
       });
 
       mapInstance.addControl(new AttributionControl({ compact: true }));
-      // the camp style paints its background with a texture drawn at runtime
-      mapInstance.on('styleimagemissing', ({ id }) => {
-        if (id === PAPER_IMAGE_ID) addPaperImage(mapInstance);
-      });
     } catch (error) {
       console.warn('Failed to initialize the map, rendering fallback instead:', error);
       // eslint-disable-next-line react-hooks/set-state-in-effect
