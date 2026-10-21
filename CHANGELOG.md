@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.40.0](https://github.com/cevi/conveniat-webpage/compare/v1.39.0...v1.40.0) (2026-10-21)
+
+
+### Features
+
+* **billing:** flag billed rows only for bill-relevant changes and allow closing a review ([59ad38e](https://github.com/cevi/conveniat-webpage/commit/59ad38e8d54f886254597307a716b3242a1c0bfd))
+* **billing:** flag billed rows only for bill-relevant changes and allow closing a review ([3bc05f5](https://github.com/cevi/conveniat-webpage/commit/3bc05f52810d3bcfdaf6c2d9ef3fb844b561da61))
+
+
+### Bug Fixes
+
+* **billing:** label the bill's assigned payments «Buchungen» ([34c5cd2](https://github.com/cevi/conveniat-webpage/commit/34c5cd2f6348f86fc4d108fcde6c1165ac796674))
+* **billing:** label the bill's assigned payments «Buchungen» ([911e477](https://github.com/cevi/conveniat-webpage/commit/911e4776ac78a43a5e222c24db8495f26e1d3fe0))
+
 ## [1.39.0](https://github.com/cevi/conveniat-webpage/compare/v1.38.0...v1.39.0) (2026-10-21)
 
 
