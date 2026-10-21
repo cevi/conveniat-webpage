@@ -205,6 +205,13 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   else if (quotedMessage.senderName !== undefined)
     quotedAuthor = splitDisplayName(quotedMessage.senderName).primary;
 
+  const selectThisMessage = (pressedElement: Element): void => {
+    // no room above a bubble right under the header: open the reactions below it
+    setPlaceReactionsBelow(pressedElement.getBoundingClientRect().top < 180);
+    setSelectedMessage(message);
+    setIsLongPressing(false);
+  };
+
   const handlePointerDown = (event: React.PointerEvent): void => {
     // Only handle primary button
     if (event.button !== 0) return;
@@ -221,11 +228,8 @@ export const MessageComponent: React.FC<MessageProperties> = ({
 
       const pressedElement = event.currentTarget;
       longPressTimerReference.current = setTimeout(() => {
-        // no room above a bubble right under the header: open the reactions below it
-        setPlaceReactionsBelow(pressedElement.getBoundingClientRect().top < 180);
         if ('vibrate' in navigator) navigator.vibrate(50);
-        setSelectedMessage(message);
-        setIsLongPressing(false);
+        selectThisMessage(pressedElement);
         longPressTimerReference.current = undefined;
       }, 500); // 500ms for long press selection
     }
@@ -419,6 +423,17 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           onPointerUp={handlePointerUp}
           onPointerMove={handlePointerMove}
           onPointerCancel={handlePointerCancel}
+          onContextMenu={(event) => {
+            // a long press sends this too, on Android and in a desktop browser's touch mode: the
+            // browser's own menu would open over the reactions. A right click opens them as well.
+            event.preventDefault();
+            if (isSelected) return;
+            if (longPressTimerReference.current !== undefined) {
+              clearTimeout(longPressTimerReference.current);
+              longPressTimerReference.current = undefined;
+            }
+            selectThisMessage(event.currentTarget);
+          }}
           style={{
             touchAction: 'pan-y', // Allow vertical scrolling
             transform: `translateX(${swipeX}px)`,
