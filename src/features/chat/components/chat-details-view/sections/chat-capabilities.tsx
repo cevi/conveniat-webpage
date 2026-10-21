@@ -2,7 +2,7 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { ChatCapability } from '@/lib/chat-shared';
 import { ChatMembershipPermission } from '@/lib/prisma/client';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Minus } from 'lucide-react';
+import { Ban, Check, Lock } from 'lucide-react';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
@@ -15,142 +15,128 @@ interface ChatCapabilitiesProperties {
 }
 
 const capabilitiesSectionText: StaticTranslationString = {
-  de: 'Chat-Funktionen',
-  en: 'Chat Capabilities',
-  fr: 'Fonctionnalités du chat',
+  de: 'In diesem Chat',
+  en: 'In this chat',
+  fr: 'Dans ce chat',
 };
 
-const capabilityLabels: Record<string, StaticTranslationString> = {
-  PICTURE_UPLOAD: {
-    de: 'Bilder senden',
-    en: 'Send Pictures',
-    fr: 'Envoyer des images',
-  },
+/** What a chip says, with the capability and without it. */
+const capabilityLabels: Record<
+  string,
+  { on: StaticTranslationString; off: StaticTranslationString }
+> = {
   CAN_SEND_MESSAGES: {
-    de: 'Nachrichten senden',
-    en: 'Send Messages',
-    fr: 'Envoyer des messages',
+    on: { de: 'Nachrichten', en: 'Messages', fr: 'Messages' },
+    off: { de: 'Keine Nachrichten', en: 'No messages', fr: 'Pas de messages' },
+  },
+  PICTURE_UPLOAD: {
+    on: { de: 'Bilder', en: 'Pictures', fr: 'Images' },
+    off: { de: 'Keine Bilder', en: 'No pictures', fr: "Pas d'images" },
   },
   THREADS: {
-    de: 'Im Thread antworten',
-    en: 'Reply in thread',
-    fr: 'Répondre dans le fil',
+    on: { de: 'Threads', en: 'Threads', fr: 'Fils' },
+    off: { de: 'Keine Threads', en: 'No threads', fr: 'Pas de fils' },
   },
   EMOJI_REACTIONS: {
-    de: 'Emoji-Reaktionen',
-    en: 'Emoji Reactions',
-    fr: 'Réactions emoji',
+    on: { de: 'Reaktionen', en: 'Reactions', fr: 'Réactions' },
+    off: { de: 'Keine Reaktionen', en: 'No reactions', fr: 'Pas de réactions' },
   },
 };
 
 /**
  * THREAD_REPLIES only lets guests reply in threads, which members may do anyway, so it has no
- * row of its own: it decides whether the thread row is ticked for a guest.
+ * chip of its own: it decides whether the thread chip is on for a guest.
  */
 const allPossibleCapabilities = Object.values(ChatCapability).filter(
   (capability) => capability !== ChatCapability.THREAD_REPLIES,
 );
 
-const adminOnlyRemarkText: StaticTranslationString = {
-  de: 'Diese Einstellungen können nicht geändert werden.',
-  en: 'These settings cannot be changed.',
-  fr: 'Ces paramètres ne peuvent pas être modifiés.',
+const fixedForTypeText: StaticTranslationString = {
+  de: 'Für diesen Chat-Typ festgelegt',
+  en: 'Set for this type of chat',
+  fr: 'Défini pour ce type de chat',
 };
 
-const noCapabilitiesText: StaticTranslationString = {
-  de: 'Keine speziellen Funktionen definiert.',
-  en: 'No special capabilities defined.',
-  fr: 'Aucune fonctionnalité spéciale définie.',
+const isCapabilityEnabled = (
+  capabilityKey: ChatCapability,
+  capabilities: string[],
+  chatPermission: ChatMembershipPermission | undefined,
+  isAnnouncement: boolean,
+): boolean => {
+  let isEnabled = capabilities.includes(capabilityKey);
+  const isSending =
+    capabilityKey === ChatCapability.CAN_SEND_MESSAGES ||
+    capabilityKey === ChatCapability.PICTURE_UPLOAD;
+  if (isAnnouncement) {
+    const isAdmin =
+      chatPermission === ChatMembershipPermission.OWNER ||
+      chatPermission === ChatMembershipPermission.ADMIN;
+    if (!isAdmin && isSending) isEnabled = false;
+  } else if (chatPermission === ChatMembershipPermission.GUEST && isSending) {
+    isEnabled = false;
+  }
+  if (
+    capabilityKey === ChatCapability.THREADS &&
+    chatPermission === ChatMembershipPermission.GUEST &&
+    !capabilities.includes(ChatCapability.THREAD_REPLIES)
+  ) {
+    isEnabled = false;
+  }
+  return isEnabled;
 };
 
-const enabledText: StaticTranslationString = {
-  de: 'Erlaubt',
-  en: 'Allowed',
-  fr: 'Autorisé',
-};
-
-const disabledText: StaticTranslationString = {
-  de: 'Nicht erlaubt',
-  en: 'Not allowed',
-  fr: 'Non autorisé',
-};
-
+/**
+ * What can be done in the chat, as read-only chips: a tick for what is on, a dashed chip for
+ * what is off. Nobody can change them, the chat's type decides, and the note says so.
+ */
 export const ChatCapabilities: React.FC<ChatCapabilitiesProperties> = ({
   capabilities,
   chatPermission,
   isAnnouncement = false,
   locale,
 }) => {
+  const chips = allPossibleCapabilities
+    .map((key) => ({
+      key,
+      isEnabled: isCapabilityEnabled(key, capabilities, chatPermission, isAnnouncement),
+    }))
+    // what is on first, as the design reads
+    .sort((a, b) => Number(b.isEnabled) - Number(a.isEnabled));
+
   return (
     <section>
-      <SectionLabel>{capabilitiesSectionText[locale]}</SectionLabel>
-      <p className="mt-1 mb-2 text-[13px] text-green-700">{adminOnlyRemarkText[locale]}</p>
-      <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
-        {allPossibleCapabilities.map((capabilityKey) => {
-          let isEnabled = capabilities.includes(capabilityKey);
-
-          if (isAnnouncement) {
-            const isAdmin =
-              chatPermission === ChatMembershipPermission.OWNER ||
-              chatPermission === ChatMembershipPermission.ADMIN;
-            if (
-              !isAdmin &&
-              (capabilityKey === ChatCapability.CAN_SEND_MESSAGES ||
-                capabilityKey === ChatCapability.PICTURE_UPLOAD)
-            ) {
-              isEnabled = false;
-            }
-          } else if (
-            chatPermission === ChatMembershipPermission.GUEST &&
-            (capabilityKey === ChatCapability.CAN_SEND_MESSAGES ||
-              capabilityKey === ChatCapability.PICTURE_UPLOAD)
-          ) {
-            isEnabled = false;
-          }
-
-          if (
-            capabilityKey === ChatCapability.THREADS &&
-            chatPermission === ChatMembershipPermission.GUEST &&
-            !capabilities.includes(ChatCapability.THREAD_REPLIES)
-          ) {
-            isEnabled = false;
-          }
-
+      <SectionLabel className="mb-2">{capabilitiesSectionText[locale]}</SectionLabel>
+      <ul className="flex flex-wrap gap-2">
+        {chips.map(({ key, isEnabled }) => {
+          const label = capabilityLabels[key]?.[isEnabled ? 'on' : 'off'][locale] ?? key;
           return (
             <li
-              key={capabilityKey}
-              className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5"
+              key={key}
+              className={cn(
+                'flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px]',
+                isEnabled
+                  ? 'border-line bg-white font-semibold text-green-900'
+                  : 'border-rail-dash border-dashed text-green-700',
+              )}
             >
-              <span
-                className={cn(
-                  'text-[15px]',
-                  isEnabled ? 'font-semibold text-green-900' : 'text-green-700',
-                )}
-              >
-                {capabilityLabels[capabilityKey]?.[locale] ?? capabilityKey}
-              </span>
               {isEnabled ? (
                 <Check
-                  className="text-conveniat-green h-5 w-5"
-                  strokeWidth={3}
-                  aria-label={enabledText[locale]}
-                  role="img"
+                  className="text-conveniat-green h-4 w-4"
+                  strokeWidth={2.5}
+                  aria-hidden="true"
                 />
               ) : (
-                <Minus
-                  className="h-5 w-5 text-green-500"
-                  strokeWidth={3}
-                  aria-label={disabledText[locale]}
-                  role="img"
-                />
+                <Ban className="h-4 w-4" aria-hidden="true" />
               )}
+              {label}
             </li>
           );
         })}
-        {allPossibleCapabilities.length === 0 && (
-          <li className="px-4 py-3 text-[15px] text-green-700">{noCapabilitiesText[locale]}</li>
-        )}
       </ul>
+      <p className="mt-2 flex items-center gap-1.5 text-[13px] text-green-700">
+        <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+        {fixedForTypeText[locale]}
+      </p>
     </section>
   );
 };

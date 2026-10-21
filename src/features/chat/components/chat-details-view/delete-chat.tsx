@@ -1,10 +1,9 @@
 'use client';
-import { Button } from '@/components/ui/buttons/button';
 import {
   ArchiveChatConfirmDialog,
   localizedDeleteChat,
 } from '@/features/chat/components/archive-chat-confirm-dialog';
-import { destructiveButtonClassName } from '@/features/chat/components/ui/chat-alert-dialog';
+import { detailsActionRowClassName } from '@/features/chat/components/chat-details-view/leave-chat';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -25,6 +24,24 @@ const localizedRoleNames: Record<ChatMembershipPermission, StaticTranslationStri
   [ChatMembershipPermission.ADMIN]: { en: 'Admin', de: 'Admin', fr: 'Admin' },
   [ChatMembershipPermission.MEMBER]: { en: 'Member', de: 'Mitglied', fr: 'Membre' },
   [ChatMembershipPermission.GUEST]: { en: 'Guest', de: 'Gast', fr: 'Invité' },
+};
+
+const deleteForEveryoneText: StaticTranslationString = {
+  de: 'Chat für alle löschen',
+  en: 'Delete chat for everyone',
+  fr: 'Supprimer le chat pour tout le monde',
+};
+
+const localizedRemoveFromViewText: StaticTranslationString = {
+  de: 'Er verschwindet nur aus deiner Chat-Liste.',
+  en: 'It only disappears from your chat list.',
+  fr: 'Il disparaît seulement de ta liste de chats.',
+};
+
+const historyGoneText = (count: number, locale: Locale): string => {
+  if (locale === 'de') return `Der Verlauf verschwindet für alle ${count} Teilnehmenden.`;
+  if (locale === 'fr') return `L'historique disparaît pour les ${count} participant·es.`;
+  return `The history disappears for all ${count} participants.`;
 };
 
 const getCannotDeleteExplanation = (role: ChatMembershipPermission, locale: Locale): string => {
@@ -71,31 +88,41 @@ export const DeleteChat: React.FC = () => {
     );
   };
 
+  const isForEveryone = chatDetails === undefined || !isChatArchived(chatDetails);
+  const participantCount = chatDetails?.participants.length ?? 0;
+  let subtitle = getCannotDeleteExplanation(userRole, locale);
+  if (canUserArchiveChat) {
+    subtitle = isForEveryone
+      ? historyGoneText(participantCount, locale)
+      : localizedRemoveFromViewText[locale];
+  }
+
   return (
     <>
-      <Button
-        className={cn(destructiveButtonClassName, 'w-full')}
+      {/* red: it deletes the chat for everybody and cannot be undone, and it says so */}
+      <button
+        type="button"
+        className={cn(detailsActionRowClassName, 'hover:bg-danger-soft')}
         onClick={() => setIsDialogOpen(true)}
         disabled={
           !canUserArchiveChat || updateChatMutation.isPending || deleteChatMutation.isPending
         }
       >
-        <Trash2 aria-hidden="true" />
-        {localizedDeleteChat[locale]}
-      </Button>
-
-      {!canUserArchiveChat && (
-        <p className="px-1 text-[13px] text-green-700">
-          {getCannotDeleteExplanation(userRole, locale)}
-        </p>
-      )}
+        <Trash2 className="text-danger-text h-5 w-5 shrink-0" aria-hidden="true" />
+        <span className="min-w-0">
+          <span className="text-danger-text block text-[15px] font-semibold">
+            {isForEveryone ? deleteForEveryoneText[locale] : localizedDeleteChat[locale]}
+          </span>
+          <span className="block text-[13px] text-green-700">{subtitle}</span>
+        </span>
+      </button>
 
       <ArchiveChatConfirmDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onConfirm={handleDeleteChat}
         isPending={deleteChatMutation.isPending}
-        archivesForEveryone={chatDetails === undefined || !isChatArchived(chatDetails)}
+        archivesForEveryone={isForEveryone}
       />
     </>
   );

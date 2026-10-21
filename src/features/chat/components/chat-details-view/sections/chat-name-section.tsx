@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/buttons/button';
 import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
-import { SectionLabel } from '@/components/ui/section-label';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Pencil } from 'lucide-react';
@@ -8,24 +7,23 @@ import type React from 'react';
 import { useState } from 'react';
 
 interface ChatNameSectionProperties {
+  /** The group's icon or the other person's avatar, above the name. */
+  avatar: React.ReactNode;
   currentName: string;
+  /** e.g. "Gruppe · erstellt von dir", under the name */
+  meta: string;
   description?: string | null | undefined;
-  isGroupChat: boolean;
+  /** Whether the pencil is shown, see `ChatDetails`. */
+  canRename: boolean;
   onSaveName: (newName: string) => void;
   isSaving: boolean;
   locale: Locale;
 }
 
-const chatNameSectionText: StaticTranslationString = {
+const chatNameText: StaticTranslationString = {
   de: 'Chat-Name',
-  en: 'Chat Name',
+  en: 'Chat name',
   fr: 'Nom du chat',
-};
-
-const chatDescriptionLabelText: StaticTranslationString = {
-  de: 'Beschreibung',
-  en: 'Description',
-  fr: 'Description',
 };
 
 const chatNamePlaceholder: StaticTranslationString = {
@@ -52,11 +50,8 @@ const cancelText: StaticTranslationString = {
   fr: 'Annuler',
 };
 
-const chatNameLengthText: StaticTranslationString = {
-  de: 'Chat-Name muss zwischen 2-50 Zeichen lang sein',
-  en: 'Chat name must be between 2-50 characters',
-  fr: 'Le nom du chat doit contenir entre 2 et 50 caractères',
-};
+const MIN_NAME_LENGTH = 2;
+const MAX_NAME_LENGTH = 50;
 
 const validationMessages = {
   emptyName: {
@@ -70,131 +65,131 @@ const validationMessages = {
     fr: 'Le nom du chat doit contenir au moins 2 caractères',
   },
   tooLong: {
-    de: 'Chat-Name muss weniger als 50 Zeichen haben',
-    en: 'Chat name must be less than 50 characters',
-    fr: 'Le nom du chat doit contenir moins de 50 caractères',
+    de: 'Chat-Name darf höchstens 50 Zeichen haben',
+    en: 'Chat name can have at most 50 characters',
+    fr: 'Le nom du chat peut contenir au plus 50 caractères',
   },
-};
+} satisfies Record<string, StaticTranslationString>;
 
 const validateChatName = (name: string, locale: Locale): string => {
   if (name.trim().length === 0) return validationMessages.emptyName[locale];
-  if (name.trim().length < 2) return validationMessages.tooShort[locale];
-  if (name.trim().length > 50) return validationMessages.tooLong[locale];
+  if (name.trim().length < MIN_NAME_LENGTH) return validationMessages.tooShort[locale];
+  if (name.trim().length > MAX_NAME_LENGTH) return validationMessages.tooLong[locale];
   return '';
 };
 
+/**
+ * The head of the chat details: who or what the chat is, its name with the pencil to rename
+ * it in place, what kind of chat it is and who made it, and its description.
+ */
 export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
+  avatar,
   currentName,
+  meta,
   description,
-  isGroupChat,
+  canRename,
   onSaveName,
   isSaving,
   locale,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(currentName);
-  const [error, setError] = useState('');
+  // the rule is only shown once a save broke it, or once the name runs too long
+  const [hasTriedToSave, setHasTriedToSave] = useState(false);
 
-  const handleSave = (): void => {
-    const validationError = validateChatName(name, locale);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
+  const validationError = validateChatName(name, locale);
+  const isTooLong = name.trim().length > MAX_NAME_LENGTH;
+  const shownError = hasTriedToSave || isTooLong ? validationError : '';
 
-    if (name.trim() !== '' && name !== currentName) {
-      onSaveName(name.trim());
-      setIsEditing(false);
-    } else {
-      setIsEditing(false);
-    }
+  const stopEditing = (): void => {
+    setName(currentName);
+    setIsEditing(false);
+    setHasTriedToSave(false);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent): void => {
-    if (event.key === 'Enter') handleSave();
-    else if (event.key === 'Escape') {
-      setName(currentName);
-      setIsEditing(false);
-      setError('');
+  const handleSave = (): void => {
+    if (validationError !== '') {
+      setHasTriedToSave(true);
+      return;
     }
+    if (name.trim() !== currentName) onSaveName(name.trim());
+    setIsEditing(false);
+    setHasTriedToSave(false);
   };
 
   return (
-    <section>
-      <div className="mb-2 flex min-h-11 items-center justify-between gap-3">
-        <SectionLabel>{chatNameSectionText[locale]}</SectionLabel>
-        {isGroupChat && !isEditing && (
-          <Button
-            variant="quiet"
-            size="touchIcon"
-            onClick={() => {
-              setName(currentName);
-              setIsEditing(true);
-            }}
-            aria-label={editNameText[locale]}
+    <section className="flex flex-col items-center text-center">
+      {avatar}
+      {isEditing ? (
+        <div className="mt-4 w-full max-w-sm space-y-2 text-left">
+          <label className={cn(formFieldClassName, shownError !== '' && 'border-danger')}>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleSave();
+                else if (event.key === 'Escape') stopEditing();
+              }}
+              autoFocus
+              aria-label={chatNameText[locale]}
+              aria-invalid={shownError !== ''}
+              aria-describedby="chat-name-hint"
+              className={fieldInputClassName}
+              placeholder={chatNamePlaceholder[locale]}
+              disabled={isSaving}
+            />
+          </label>
+          <p
+            id="chat-name-hint"
+            aria-live="polite"
+            className={cn(
+              'flex justify-between gap-3 text-[13px]',
+              shownError === '' ? 'text-green-700' : 'text-danger-text font-semibold',
+            )}
           >
-            <Pencil aria-hidden="true" />
-          </Button>
-        )}
-      </div>
-      <div className="border-line rounded-[14px] border bg-white p-4">
-        {isEditing ? (
-          <div className="space-y-2">
-            <label className={cn(formFieldClassName, error !== '' && 'border-live')}>
-              <input
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                  if (error) setError('');
-                }}
-                onKeyDown={handleKeyDown}
-                autoFocus
-                aria-label={chatNameSectionText[locale]}
-                aria-invalid={error !== ''}
-                className={fieldInputClassName}
-                placeholder={chatNamePlaceholder[locale]}
-                disabled={isSaving}
-              />
-            </label>
-            <p
-              aria-live="polite"
-              className={cn(
-                'text-[13px]',
-                error === '' ? 'text-green-500' : 'text-live-text font-semibold',
-              )}
+            <span>{shownError}</span>
+            <span className="shrink-0 tabular-nums">
+              {name.trim().length}/{MAX_NAME_LENGTH}
+            </span>
+          </p>
+          <div className="flex justify-center gap-2 pt-1">
+            <Button variant="primary" size="touch" onClick={handleSave} disabled={isSaving}>
+              {saveText[locale]}
+            </Button>
+            <Button variant="quiet" size="touch" onClick={stopEditing} disabled={isSaving}>
+              {cancelText[locale]}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 flex max-w-full items-center gap-1">
+          {/* a pencil on the right only: its width on the left keeps the name centred */}
+          {canRename && <span className="w-11 shrink-0" aria-hidden="true" />}
+          <h2 className="font-heading text-heading min-w-0 text-[24px] leading-tight font-extrabold wrap-anywhere">
+            {currentName}
+          </h2>
+          {canRename && (
+            <Button
+              variant="ghost"
+              size="touchIcon"
+              className="shrink-0 text-green-700"
+              onClick={() => {
+                setName(currentName);
+                setIsEditing(true);
+              }}
+              aria-label={editNameText[locale]}
             >
-              {error === '' ? chatNameLengthText[locale] : error}
-            </p>
-            <div className="flex gap-2 pt-1">
-              <Button variant="primary" size="touch" onClick={handleSave} disabled={isSaving}>
-                {saveText[locale]}
-              </Button>
-              <Button
-                variant="quiet"
-                size="touch"
-                onClick={() => {
-                  setName(currentName);
-                  setIsEditing(false);
-                  setError('');
-                }}
-                disabled={isSaving}
-              >
-                {cancelText[locale]}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <p className="font-heading text-heading text-lg font-bold">{currentName}</p>
-        )}
-        {description && description.trim() !== '' && (
-          <div className="border-line mt-4 border-t pt-4">
-            <SectionLabel as="h3">{chatDescriptionLabelText[locale]}</SectionLabel>
-            <p className="mt-1 text-[15px] leading-normal whitespace-pre-wrap text-green-900">
-              {description}
-            </p>
-          </div>
-        )}
-      </div>
+              <Pencil aria-hidden="true" />
+            </Button>
+          )}
+        </div>
+      )}
+      {meta !== '' && <p className="mt-1 text-[13px] text-green-700">{meta}</p>}
+      {description && description.trim() !== '' && (
+        <p className="mt-3 max-w-md text-[15px] leading-normal whitespace-pre-wrap text-green-900">
+          {description}
+        </p>
+      )}
     </section>
   );
 };

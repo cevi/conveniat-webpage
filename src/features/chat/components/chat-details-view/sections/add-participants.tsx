@@ -1,4 +1,5 @@
 import { AppSearchBar } from '@/components/ui/app-search-bar';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -7,6 +8,7 @@ import {
   describeContactFunktionen,
   describeContactHof,
 } from '@/features/chat/utils/contact-search';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
@@ -14,6 +16,8 @@ import { Check, Loader2, UserPlus, X } from 'lucide-react';
 import type React from 'react';
 
 interface AddParticipantsProperties {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedContacts: Contact[];
@@ -32,14 +36,14 @@ interface AddParticipantsProperties {
 
 const addParticipantsText: StaticTranslationString = {
   de: 'Teilnehmende hinzufügen',
-  en: 'Add Participants',
-  fr: 'Ajouter des participants',
+  en: 'Add participants',
+  fr: 'Ajouter des participant·es',
 };
 
 const searchContactsPlaceholder: StaticTranslationString = {
-  de: 'Kontakte suchen...',
-  en: 'Search contacts to add...',
-  fr: 'Rechercher des contacts à ajouter...',
+  de: 'Name, Ceviname oder Hof',
+  en: 'Name, Cevi name or Hof',
+  fr: 'Nom, nom Cevi ou Hof',
 };
 
 const noContactsToAddText: StaticTranslationString = {
@@ -72,10 +76,15 @@ const groupLimitReachedText: StaticTranslationString = {
   fr: 'Un groupe compte au plus {max} membres.',
 };
 
-const addSelectedText: StaticTranslationString = {
-  de: 'Ausgewählte hinzufügen',
-  en: 'Add Selected',
-  fr: 'Ajouter la sélection',
+const addCountText = (count: number, locale: Locale): string => {
+  if (count === 0) {
+    if (locale === 'de') return 'Hinzufügen';
+    if (locale === 'fr') return 'Ajouter';
+    return 'Add';
+  }
+  if (locale === 'de') return `${count} hinzufügen`;
+  if (locale === 'fr') return `Ajouter ${count}`;
+  return `Add ${count}`;
 };
 
 const selectedText: StaticTranslationString = {
@@ -90,7 +99,13 @@ const removeText: StaticTranslationString = {
   fr: 'Retirer {name}',
 };
 
+/**
+ * The sheet to add people to a group: a search over the contacts, the people picked so far,
+ * and one button that adds them all.
+ */
 export const AddParticipants: React.FC<AddParticipantsProperties> = ({
+  open,
+  onOpenChange,
   searchQuery,
   onSearchChange,
   selectedContacts,
@@ -105,135 +120,148 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
   locale,
 }) => {
   return (
-    <section className="flex flex-col gap-3">
-      <SectionLabel>{addParticipantsText[locale]}</SectionLabel>
-
-      {/* on the grey page of the details, so the white field with a line */}
-      <AppSearchBar
-        onPage
-        placeholder={searchContactsPlaceholder[locale]}
-        value={searchQuery}
-        onChange={(event) => onSearchChange(event.target.value)}
-        onClear={() => onSearchChange('')}
-      />
-
-      {selectedContacts.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <SectionLabel as="h3">
-            {selectedText[locale]} ({selectedContacts.length})
-          </SectionLabel>
-          <ul className="flex flex-wrap gap-2">
-            {selectedContacts.map((contact) => (
-              <li key={contact.userId}>
-                <button
-                  type="button"
-                  onClick={() => onToggleSelection(contact)}
-                  aria-label={removeText[locale].replace('{name}', getContactDisplayName(contact))}
-                  className="border-rail flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border bg-white pr-3 pl-4 text-sm font-semibold text-green-900"
-                >
-                  {getContactShortName(contact)}
-                  <X className="h-4 w-4 text-green-700" aria-hidden="true" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {isAtGroupLimit && maxGroupMembers !== undefined && (
-        <p className="text-[13px] text-green-700">
-          {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
-        </p>
-      )}
-
-      {isLoadingContacts && (
-        <div
-          className="flex items-center justify-center gap-2 py-6 text-[15px] text-green-700"
-          role="status"
+    <BottomSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={addParticipantsText[locale]}
+      footer={
+        <Button
+          variant="primary"
+          size="touch"
+          className="w-full"
+          onClick={onAddParticipants}
+          disabled={selectedContacts.length === 0 || isAdding}
         >
-          <Loader2 className="h-5 w-5 animate-spin text-green-500" aria-hidden="true" />
-          {loadingContactsText[locale]}
-        </div>
-      )}
-      {!isLoadingContacts && addableContacts.length === 0 && (
-        <p className="border-line rounded-[14px] border bg-white px-4 py-6 text-center text-[15px] text-green-700">
-          {searchQuery === '' ? noContactsToAddText[locale] : noContactsFoundText[locale]}
-        </p>
-      )}
-      {!isLoadingContacts && addableContacts.length > 0 && (
-        <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
-          {addableContacts.map((contact) => {
-            const isSelected = selectedContacts.some((c) => c.userId === contact.userId);
-            return (
-              <li key={contact.userId}>
-                <button
-                  type="button"
-                  onClick={() => onToggleSelection(contact)}
-                  disabled={!isSelected && isAtGroupLimit}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    'flex min-h-[64px] w-full cursor-pointer items-center gap-3 px-4 py-3 text-left disabled:cursor-not-allowed disabled:opacity-50',
-                    isSelected ? 'bg-tint' : 'hover:bg-page',
-                  )}
-                >
-                  <PersonAvatar
-                    seed={contact.userId}
-                    name={contact.name}
-                    pictureUrl={contact.pictureUrl}
-                    className="h-11 w-11 text-sm"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] leading-5 font-semibold text-green-900">
-                      {getContactDisplayName(contact)}
-                    </span>
-                    {contact.description && (
-                      <span className="mt-0.5 block text-[13px] text-green-700">
-                        {contact.description}
-                      </span>
+          {isAdding ? (
+            <Loader2 className="animate-spin" aria-hidden="true" />
+          ) : (
+            <UserPlus aria-hidden="true" />
+          )}
+          {isAdding ? addingText[locale] : addCountText(selectedContacts.length, locale)}
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-3 pt-1">
+        {/* on the white sheet, so the filled field */}
+        <AppSearchBar
+          placeholder={searchContactsPlaceholder[locale]}
+          value={searchQuery}
+          onChange={(event) => onSearchChange(event.target.value)}
+          onClear={() => onSearchChange('')}
+        />
+
+        {selectedContacts.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <SectionLabel as="h3">
+              {selectedText[locale]} ({selectedContacts.length})
+            </SectionLabel>
+            <ul className="flex flex-wrap gap-2">
+              {selectedContacts.map((contact) => (
+                <li key={contact.userId}>
+                  <button
+                    type="button"
+                    onClick={() => onToggleSelection(contact)}
+                    aria-label={removeText[locale].replace(
+                      '{name}',
+                      getContactDisplayName(contact),
                     )}
-                    {describeContactFunktionen(contact) !== '' && (
-                      <span className="text-conveniat-green mt-0.5 block text-[13px] font-semibold">
-                        {describeContactFunktionen(contact)}
-                      </span>
-                    )}
-                    {describeContactHof(contact) !== '' && (
-                      <span className="mt-0.5 block text-[13px] text-green-700">
-                        {describeContactHof(contact)}
-                      </span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      'flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
-                      isSelected ? 'bg-conveniat-green text-white' : 'border-rail border-2',
-                    )}
-                    aria-hidden="true"
+                    className="border-rail flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border bg-white pr-3 pl-4 text-sm font-semibold text-green-900"
                   >
-                    {isSelected && <Check className="h-4 w-4" strokeWidth={3} />}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                    {splitDisplayName(getContactShortName(contact)).primary}
+                    <X className="h-4 w-4 text-green-700" aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-      {addError !== undefined && (
-        <p className="text-sm font-semibold text-green-900" role="alert">
-          {addError}
-        </p>
-      )}
+        {isAtGroupLimit && maxGroupMembers !== undefined && (
+          <p className="text-[13px] text-green-700">
+            {groupLimitReachedText[locale].replace('{max}', String(maxGroupMembers))}
+          </p>
+        )}
 
-      <Button
-        variant="primary"
-        size="touch"
-        className="w-full"
-        onClick={onAddParticipants}
-        disabled={selectedContacts.length === 0 || isAdding}
-      >
-        <UserPlus aria-hidden="true" />
-        {isAdding ? addingText[locale] : `${addSelectedText[locale]} (${selectedContacts.length})`}
-      </Button>
-    </section>
+        {isLoadingContacts && (
+          <div
+            className="flex items-center justify-center gap-2 py-6 text-[15px] text-green-700"
+            role="status"
+          >
+            <Loader2 className="h-5 w-5 animate-spin text-green-500" aria-hidden="true" />
+            {loadingContactsText[locale]}
+          </div>
+        )}
+        {!isLoadingContacts && addableContacts.length === 0 && (
+          <p className="py-6 text-center text-[15px] text-green-700">
+            {searchQuery === '' ? noContactsToAddText[locale] : noContactsFoundText[locale]}
+          </p>
+        )}
+        {!isLoadingContacts && addableContacts.length > 0 && (
+          // rows on the white sheet, divided by lines, without a card of their own
+          <ul className="divide-line -mx-5 divide-y">
+            {addableContacts.map((contact) => {
+              const isSelected = selectedContacts.some((c) => c.userId === contact.userId);
+              const { primary, secondary } = splitDisplayName(getContactDisplayName(contact));
+              const subtitle = [
+                contact.description ?? '',
+                describeContactFunktionen(contact),
+                describeContactHof(contact),
+              ]
+                .filter((line) => line !== '')
+                .join(' · ');
+              return (
+                <li key={contact.userId}>
+                  <button
+                    type="button"
+                    onClick={() => onToggleSelection(contact)}
+                    disabled={!isSelected && isAtGroupLimit}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      'flex min-h-[64px] w-full cursor-pointer items-center gap-3 px-5 py-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50',
+                      isSelected ? 'bg-tint' : 'hover:bg-page',
+                    )}
+                  >
+                    <PersonAvatar
+                      seed={contact.userId}
+                      name={contact.name}
+                      pictureUrl={contact.pictureUrl}
+                      className="h-11 w-11 text-sm"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] leading-5 text-green-900">
+                        <span className="font-semibold">{primary}</span>
+                        {secondary !== undefined && (
+                          <span className="text-green-700"> {secondary}</span>
+                        )}
+                      </span>
+                      {subtitle !== '' && (
+                        <span className="mt-0.5 block truncate text-[13px] text-green-700">
+                          {subtitle}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full',
+                        isSelected ? 'bg-conveniat-green text-white' : 'border-rail border-2',
+                      )}
+                      aria-hidden="true"
+                    >
+                      {isSelected && <Check className="h-4 w-4" strokeWidth={3} />}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {addError !== undefined && (
+          <p className="text-sm font-semibold text-green-900" role="alert">
+            {addError}
+          </p>
+        )}
+      </div>
+    </BottomSheet>
   );
 };

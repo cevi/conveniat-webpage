@@ -1,5 +1,4 @@
 'use client';
-import { Button } from '@/components/ui/buttons/button';
 import {
   ChatAlertDialog,
   ChatAlertDialogAction,
@@ -9,7 +8,6 @@ import {
   ChatAlertDialogFooter,
   ChatAlertDialogHeader,
   ChatAlertDialogTitle,
-  destructiveButtonClassName,
 } from '@/features/chat/components/ui/chat-alert-dialog';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { useChatDetail } from '@/features/chat/hooks/use-chats';
@@ -18,7 +16,6 @@ import { ChatMembershipPermission } from '@/lib/prisma';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import { Loader2, LogOut } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import type React from 'react';
@@ -145,8 +142,13 @@ export const LeaveChatDialog: React.FC<{
   );
 };
 
+/** A row of the actions card at the foot of the chat details. */
+export const detailsActionRowClassName =
+  'flex min-h-14 w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left hover:bg-page disabled:cursor-not-allowed disabled:opacity-60';
+
 /**
- * Lets any member of a group chat leave it, whatever their permission.
+ * Lets any member of a group chat leave it, whatever their permission: a neutral row, as
+ * leaving can be undone by an admin adding them again.
  */
 export const LeaveChat: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
@@ -154,13 +156,16 @@ export const LeaveChat: React.FC = () => {
 
   return (
     <>
-      <Button
-        className={cn(destructiveButtonClassName, 'w-full')}
+      <button
+        type="button"
+        className={detailsActionRowClassName}
         onClick={() => setIsDialogOpen(true)}
       >
-        <LogOut aria-hidden="true" />
-        {localizedLeaveChat[locale]}
-      </Button>
+        <LogOut className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+        <span className="text-[15px] font-semibold text-green-900">
+          {localizedLeaveChat[locale]}
+        </span>
+      </button>
       <LeaveChatDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
     </>
   );
