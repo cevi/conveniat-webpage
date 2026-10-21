@@ -319,7 +319,10 @@ by its role once a second screen needs it, not before.
 - **Controls.** Touch targets are at least 44×44px. One `primary` button per view, the rest
   `quiet` or `outlined`; a destructive action is `outlined` in the `live` orange and either asks
   before it acts or can be undone right after. A segmented control takes its track and segments
-  from `src/components/ui/segmented-control.ts`. Chips are small and square on
+  from `src/components/ui/segmented-control.ts`. A text field takes its frame from
+  `src/components/ui/field.ts` and a search is `AppSearchBar`: 44px, 12px radius, a search filled
+  grey and a form field white with a line, both focused by the same green ring. A field never
+  styles its own border, radius or focus. Chips are small and square on
   `bg-chip`, the user's own one filled brand green; pills are round and outlined.
 - **Header.** App titles sit on the left, next to the menu. A page puts its buttons on the right
   with `SetHeaderActions`, as 44px icons, instead of adding a bar of its own. The app footer is
