@@ -49,9 +49,10 @@ describe('DateCarousel', () => {
   it('renders every day, so a swipe brings in days that are already there', () => {
     renderCarousel(dates[1] as Date);
 
-    const days = screen.getAllByRole('button', { pressed: false });
-    expect(days).toHaveLength(5);
-    expect(screen.getByRole('button', { pressed: true })).toHaveTextContent('26');
+    const days = screen.getAllByRole('button').filter((button) => button.textContent !== '');
+    expect(days).toHaveLength(6);
+    expect(days.filter((day) => day.getAttribute('aria-current') === 'date')).toEqual([days[1]]);
+    expect(days[1]).toHaveTextContent('26');
     expect(screen.getByText('30')).toBeInTheDocument();
   });
 

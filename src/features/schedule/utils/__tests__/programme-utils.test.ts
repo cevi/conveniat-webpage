@@ -9,7 +9,7 @@ import {
 
 type Entry = Pick<
   CampScheduleEntryFrontendType,
-  'id' | 'title' | 'timeslot' | 'kind' | 'quartiere'
+  'id' | 'title' | 'timeslot' | 'kind' | 'quartiere' | 'location' | 'category'
 >;
 
 const entry = (
@@ -23,6 +23,8 @@ const entry = (
   timeslot: { date: '2027-07-25T12:00:00.000Z', time },
   kind,
   quartiere,
+  location: 'spielwiese-mitte',
+  category: 'lagersport',
 });
 
 const at = (time: string): number => {
@@ -140,9 +142,14 @@ describe('findOtherSlots', () => {
       timeslot: { date: '2027-07-26T12:00:00.000Z', time: '13:45 - 15:45' },
     };
     const lunch = { ...entry('4', '12:30 - 13:00', 'meal'), title: 'Kennenlernspiel' };
+    const elsewhere = {
+      ...entry('5', '13:45 - 15:45', 'program'),
+      title: 'Kennenlernspiel',
+      location: 'buehne',
+    };
 
-    expect(findOtherSlots([first, second, otherDay, lunch], second).map(({ id }) => id)).toEqual([
-      '1',
-    ]);
+    expect(
+      findOtherSlots([first, second, otherDay, lunch, elsewhere], second).map(({ id }) => id),
+    ).toEqual(['1']);
   });
 });

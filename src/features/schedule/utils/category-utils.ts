@@ -59,7 +59,8 @@ const colorThemeAccentMap: Record<string, { bar: string; text: string; tint: str
   gray: { bar: 'bg-[#6d6e76]', text: 'text-[#4c4d52]', tint: 'bg-[#ededee]' },
   indigo: { bar: 'bg-[#4338ca]', text: 'text-[#4338ca]', tint: 'bg-[#ecebfb]' },
   amber: { bar: 'bg-[#b45309]', text: 'text-[#b45309]', tint: 'bg-[#fbf0e3]' },
-  rose: { bar: 'bg-[#be123c]', text: 'text-[#be123c]', tint: 'bg-[#fbe9ed]' },
+  // pink, not rose: red is kept for Notfall, so a category never reads as an emergency
+  rose: { bar: 'bg-[#be185d]', text: 'text-[#be185d]', tint: 'bg-[#fce7f3]' },
   cyan: { bar: 'bg-[#0e7490]', text: 'text-[#0e7490]', tint: 'bg-[#e2f3f7]' },
   orange: { bar: 'bg-[#c2410c]', text: 'text-[#c2410c]', tint: 'bg-[#fcece3]' },
 };

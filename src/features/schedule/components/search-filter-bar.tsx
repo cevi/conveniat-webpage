@@ -9,7 +9,7 @@ import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/pay
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Filter, Star, X } from 'lucide-react';
+import { Filter, Search, Star, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const searchPlaceholder: StaticTranslationString = {
@@ -62,6 +62,13 @@ interface SearchFilterBarProperties {
   availableCategories: CampCategory[];
   /** Helper shifts cannot be starred, so consumers can hide the starred toggle. */
   showStarredToggle?: boolean;
+  /**
+   * Set when buttons elsewhere, in the app header, open the search and the category filter: the
+   * bar then shows the search field only while it is open or holds a search, and no buttons.
+   */
+  isSearchOpen?: boolean;
+  isFilterOpen?: boolean;
+  onFilterOpenChange?: (open: boolean) => void;
   className?: string;
 }
 
@@ -70,10 +77,22 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   onFiltersChange,
   availableCategories,
   showStarredToggle = true,
+  isSearchOpen,
+  isFilterOpen,
+  onFilterOpenChange,
   className = '',
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  const [showCategoryFilterInline, setShowCategoryFilterInline] = useState(false);
+  const isOpenedFromHeader = isSearchOpen !== undefined;
+  const showCategoryFilter = isOpenedFromHeader ? isFilterOpen === true : showCategoryFilterInline;
+  const setShowCategoryFilter = useCallback(
+    (open: boolean): void => {
+      if (isOpenedFromHeader) onFilterOpenChange?.(open);
+      else setShowCategoryFilterInline(open);
+    },
+    [isOpenedFromHeader, onFilterOpenChange],
+  );
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -93,7 +112,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
       });
       setShowCategoryFilter(false);
     },
-    [filters, onFiltersChange],
+    [filters, onFiltersChange, setShowCategoryFilter],
   );
 
   const clearAllFilters = useCallback(() => {
@@ -114,9 +133,35 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   const hasCategoryFilter = filters.selectedCategory !== undefined;
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={cn('space-y-2', className)}>
+      {isOpenedFromHeader && (isSearchOpen || filters.searchText !== '') && (
+        <label className="flex h-11 items-center gap-2.5 rounded-xl border border-green-100 bg-white pl-3.5 focus-within:border-green-300">
+          <Search className="h-[18px] w-[18px] shrink-0 text-green-500" aria-hidden="true" />
+          <span className="sr-only">{searchPlaceholder[locale]}</span>
+          <input
+            type="search"
+            // opened by a tap on the search button, so the keyboard should come up with it
+            autoFocus={isSearchOpen}
+            placeholder={searchPlaceholder[locale]}
+            value={filters.searchText}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-green-900 outline-hidden placeholder:text-green-500 [&::-webkit-search-cancel-button]:hidden"
+          />
+          {filters.searchText !== '' && (
+            <button
+              type="button"
+              onClick={() => handleSearchChange('')}
+              aria-label={clearAllText[locale]}
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center text-green-500"
+            >
+              <X className="h-[18px] w-[18px]" />
+            </button>
+          )}
+        </label>
+      )}
+
       {/* Search Input with Filter and Starred Toggle */}
-      <div className="flex items-center gap-2">
+      <div className={cn('flex items-center gap-2', isOpenedFromHeader && 'hidden')}>
         <div className="relative flex-1">
           <AppSearchBar
             placeholder={searchPlaceholder[locale]}

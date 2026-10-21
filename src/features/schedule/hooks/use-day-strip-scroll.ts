@@ -49,7 +49,7 @@ export const useDayStripScroll = (
 
   useEffect(() => {
     const strip = stripReference.current;
-    const selected = strip?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    const selected = strip?.querySelector<HTMLElement>('[aria-current="date"]');
     if (strip === null || selected === null || selected === undefined) return;
 
     const start = selected.offsetLeft;

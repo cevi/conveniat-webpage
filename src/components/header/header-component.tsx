@@ -1,4 +1,5 @@
 import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
+import { AppHeaderTitle } from '@/components/header/header-actions';
 import { PreviewModeBannerServerComponent } from '@/components/header/preview-mode-banner-server';
 import { DesktopNav } from '@/components/menu/desktop-nav';
 import {
@@ -131,9 +132,7 @@ const SideNavHeader: React.FC<{
               </LinkComponent>
             )}
 
-            <span className="absolute top-[16px] left-0 flex w-full items-center justify-center font-['Montserrat'] text-[24px] leading-normal font-extrabold xl:hidden">
-              <DynamicAppTitleName />
-            </span>
+            <AppHeaderTitle />
 
             <React.Suspense fallback={<div className="h-[60px] xl:hidden" />}>
               <NavComponent showDesktopSidePanel locale={locale}>

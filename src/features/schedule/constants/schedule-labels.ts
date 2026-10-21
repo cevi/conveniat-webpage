@@ -57,6 +57,37 @@ export const programmeLabels = {
   badWeather: { de: 'Schlechtwetter', en: 'Bad weather', fr: 'Mauvais temps' },
   showOnMap: { de: 'Auf der Karte zeigen', en: 'Show on the map', fr: 'Afficher sur la carte' },
   until: { de: 'bis {{time}}', en: 'until {{time}}', fr: "jusqu'à {{time}}" },
+  forMe: { de: 'Für mich', en: 'For me', fr: 'Pour moi' },
+  allQuartiere: { de: 'Alle Quartiere', en: 'All Quartiere', fr: 'Tous les Quartiere' },
+  view: { de: 'Ansicht', en: 'View', fr: 'Affichage' },
+  favouritesOnly: { de: 'Nur Favoriten', en: 'Favourites only', fr: 'Favoris seulement' },
+  search: {
+    de: 'Programm durchsuchen',
+    en: 'Search the programme',
+    fr: 'Rechercher dans le programme',
+  },
+  filter: { de: 'Nach Kategorie filtern', en: 'Filter by category', fr: 'Filtrer par catégorie' },
+  running: {
+    de: 'Läuft · noch {{duration}}',
+    en: 'Running · {{duration}} left',
+    fr: 'En cours · encore {{duration}}',
+  },
+  nowAt: { de: 'Jetzt, {{time}}', en: 'Now, {{time}}', fr: 'Maintenant, {{time}}' },
+  transfer: {
+    de: '{{duration}} Verschiebung',
+    en: '{{duration}} transfer',
+    fr: '{{duration}} de déplacement',
+  },
+  transferTo: {
+    de: '{{duration}} Verschiebung → {{place}}',
+    en: '{{duration}} transfer → {{place}}',
+    fr: '{{duration}} de déplacement → {{place}}',
+  },
+  transferPerQuartier: {
+    de: 'Verschiebung, je nach Quartier',
+    en: 'Transfer, depending on the Quartier',
+    fr: 'Déplacement, selon le Quartier',
+  },
   otherSlots: {
     de: 'Dieser Block zu anderen Zeiten',
     en: 'This block at other times',

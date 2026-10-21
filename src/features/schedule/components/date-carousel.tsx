@@ -22,8 +22,9 @@ const nextDayAriaLabel: StaticTranslationString = {
   fr: 'Jour suivant',
 };
 
+// a phone swipes the strip; the arrows are for wider screens, where seven days leave them room
 const arrowClassName =
-  'h-14 w-7 shrink-0 cursor-pointer rounded-lg p-0 text-gray-500 hover:bg-transparent hover:text-gray-900 disabled:pointer-events-none disabled:opacity-25';
+  'hidden h-[58px] w-7 shrink-0 cursor-pointer rounded-lg p-0 text-green-500 hover:bg-transparent hover:text-green-900 disabled:pointer-events-none disabled:opacity-25 sm:flex';
 
 interface DateCarouselProperties {
   allDates: Date[];
@@ -33,7 +34,7 @@ interface DateCarouselProperties {
 
 /**
  * Every day of the camp in one strip that scrolls sideways under the finger and snaps to whole
- * days, five at a time. The arrows scroll it by a day for those without a touch screen.
+ * days, seven at a time. The arrows scroll it by a day for those without a touch screen.
  */
 export const DateCarousel: React.FC<DateCarouselProperties> = ({
   allDates,
@@ -74,19 +75,19 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
             <button
               key={dateString}
               type="button"
-              aria-pressed={isSelected}
+              aria-current={isSelected ? 'date' : undefined}
               onClick={() => onDateSelect(date)}
               className={cn(
-                'flex h-14 w-[calc((100%-4*0.375rem)/5)] shrink-0 cursor-pointer snap-start flex-col items-center justify-center gap-0.5 rounded-xl border transition-colors select-none',
+                'flex h-[58px] w-[calc((100%-6*0.375rem)/7)] shrink-0 cursor-pointer snap-start flex-col items-center justify-center gap-1 rounded-xl border transition-colors select-none',
                 isSelected
-                  ? 'bg-conveniat-green border-conveniat-green shadow-md shadow-green-900/20'
-                  : 'border-gray-200 bg-white hover:border-gray-300',
+                  ? 'bg-conveniat-green border-conveniat-green'
+                  : 'border-green-100 bg-white hover:border-green-200',
               )}
             >
               <span
                 className={cn(
-                  'text-[11px] leading-none font-semibold tracking-wider uppercase',
-                  isSelected ? 'text-white/75' : 'text-gray-400',
+                  'text-[11px] leading-none font-semibold tracking-wide uppercase',
+                  isSelected ? 'text-white/80' : 'text-green-500',
                 )}
               >
                 {weekday}
@@ -94,7 +95,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
               <span
                 className={cn(
                   'font-heading text-lg leading-none font-bold tabular-nums',
-                  isSelected ? 'text-white' : 'text-gray-900',
+                  isSelected ? 'text-white' : 'text-green-900',
                 )}
               >
                 {dayNumber}

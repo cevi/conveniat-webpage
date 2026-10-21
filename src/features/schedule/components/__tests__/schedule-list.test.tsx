@@ -3,7 +3,7 @@
  */
 
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
 
 jest.mock('next-i18n-router/client', () => ({
@@ -61,13 +61,24 @@ const renderList = (
       entries={entries}
       enrolledIds={new Set()}
       starredIds={new Set()}
-      minutesOfToday={undefined}
-      currentId={undefined}
-      quartierChips={undefined}
+      onToggleStar={jest.fn()}
+      myQuartierIds={new Set()}
+      groupSlots={false}
+      now={undefined}
       {...properties}
     />,
   );
 };
+
+const q = (number: number): { id: string; name: string } => ({
+  id: `q${number}`,
+  name: `Quartier ${number}`,
+});
+
+beforeAll(() => {
+  // jsdom lays nothing out and cannot scroll
+  Element.prototype.scrollIntoView = jest.fn();
+});
 
 describe('ScheduleList', () => {
   it('opens the detail page of a programme block, with the date kept', () => {
@@ -79,19 +90,30 @@ describe('ScheduleList', () => {
     );
   });
 
-  it('shows a meal, a fixed point and a transfer as plain lines that open nothing', () => {
+  it('shows the start once, in the time column, and the end on the card', () => {
+    renderList([entry('Kennenlernspiel', '15:45 - 17:45', { kind: 'program' })]);
+
+    expect(screen.getAllByText('15:45')).toHaveLength(1);
+    expect(screen.getByText(/bis 17:45 · 2 h/)).toBeInTheDocument();
+  });
+
+  it('shows meals and fixed points as lines that open nothing, and a transfer on the rail', () => {
     renderList([
       entry('Tagwache', '07:30 - 07:30', { kind: 'fixpoint' }),
       entry('Essen', '08:00 - 09:00', { kind: 'meal' }),
       entry('Verschiebung', '09:00 - 09:30', { kind: 'transfer' }),
+      entry('Lageraufbau', '09:30 - 11:00', {
+        kind: 'fixpoint',
+        location: { id: 'platz', title: 'Lagerplatz' } as never,
+      }),
     ]);
 
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.getByText('07:30')).toBeInTheDocument();
     expect(screen.queryByText('bis 07:30')).toBeNull();
-    expect(screen.getByText('08:00')).toBeInTheDocument();
     expect(screen.getByText('bis 09:00')).toBeInTheDocument();
-    expect(screen.getByText('30 min Verschiebung')).toBeInTheDocument();
+    expect(screen.getByText('30 min Verschiebung → Lagerplatz')).toBeInTheDocument();
+    expect(screen.queryByText('Verschiebung')).toBeNull();
   });
 
   it('treats an entry saved before the kind existed as a programme block', () => {
@@ -110,31 +132,44 @@ describe('ScheduleList', () => {
   });
 
   it('names the Quartiere of a block in the view of the whole camp only', () => {
-    const block = entry('Turnierformen', '13:45 - 15:45', {
-      quartiere: [
-        { id: 'q1', name: 'Quartier 1 - Ost' },
-        { id: 'q3', name: 'Quartier 3 - Nord' },
-      ],
-    });
+    const block = entry('Turnierformen', '13:45 - 15:45', { quartiere: [q(1), q(3)] });
 
     renderList([block]);
     expect(screen.queryByText('Q1')).toBeNull();
   });
 
-  it('shortens the Quartier names to chips', () => {
+  it('shows the slots of one block as one card, the own slot first in line to open', () => {
     renderList(
       [
-        entry('Turnierformen', '13:45 - 15:45', {
-          quartiere: [
-            { id: 'q1', name: 'Quartier 1 - Ost' },
-            { id: 'q3', name: 'Quartier 3 - Nord' },
-          ],
-        }),
+        entry('Ballspiele', '17:00 - 17:30', { quartiere: [q(4), q(5), q(6)] }),
+        { ...entry('Ballspiele', '17:00 - 18:00', { quartiere: [q(7), q(8)] }), id: 'other' },
       ],
-      { quartierChips: new Set(['q1']) },
+      { groupSlots: true, myQuartierIds: new Set(['q5']) },
     );
 
-    expect(screen.getByText('Q1')).toBeInTheDocument();
-    expect(screen.getByText('Q3')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: 'Ballspiele' })).toHaveLength(1);
+    expect(screen.getByText('17:00–17:30')).toBeInTheDocument();
+    expect(screen.getByText('17:00–18:00')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Ballspiele/ })).toHaveAttribute(
+      'href',
+      '/app/schedule?date=2027-07-25&id=Ballspiele',
+    );
+  });
+
+  it('marks what is running and draws the line of now through it', () => {
+    renderList([entry('Ballspiele', '17:00 - 17:30')], {
+      now: { dayKey: '2027-07-25', minutes: 17 * 60 + 12 },
+    });
+
+    expect(screen.getByText('Läuft · noch 18 min')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Jetzt, 17:12' })).toBeInTheDocument();
+  });
+
+  it('stars the block from its card', () => {
+    const onToggleStar = jest.fn();
+    renderList([entry('Ballspiele', '17:00 - 17:30')], { onToggleStar });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zu Favoriten hinzufügen' }));
+    expect(onToggleStar).toHaveBeenCalledWith('Ballspiele');
   });
 });

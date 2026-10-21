@@ -50,8 +50,8 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({ locale, i
   const currentLoadingHref = isPending ? loadingHref : undefined;
 
   return (
-    <div className="fixed bottom-0 left-(--app-content-left) z-40 flex h-20 w-[calc(100dvw-var(--app-content-left))] border-t-2 border-gray-200 bg-[#f8fafc]">
-      <nav className="flex w-full items-center justify-around px-4">
+    <div className="fixed bottom-0 left-(--app-content-left) z-40 flex h-20 w-[calc(100dvw-var(--app-content-left))] border-t border-green-100 bg-white">
+      <nav className="flex w-full items-center justify-around px-2">
         {navItems.map((item) => {
           const isActive = longestMatch === item.href || currentLoadingHref === item.href;
           const IconComponent = APP_NAV_BAR_ICONS[item.iconName] ?? House;
@@ -63,6 +63,7 @@ export const FooterAppNavBar: React.FC<FooterAppNavBarProperties> = ({ locale, i
               icon={IconComponent}
               label={item.label}
               isActive={isActive}
+              isCurrent={longestMatch === item.href}
               color={item.color}
               onClick={handleNavClick}
               isLoading={isPending}

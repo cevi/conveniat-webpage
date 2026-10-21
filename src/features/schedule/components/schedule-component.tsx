@@ -1,12 +1,13 @@
 'use client';
 
+import { SetHeaderActions } from '@/components/header/header-actions';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 import { ScheduleNowCard } from '@/features/schedule/components/schedule-now-card';
-import { ScheduleScopeSwitch } from '@/features/schedule/components/schedule-scope-switch';
+import { ScheduleViewToggles } from '@/features/schedule/components/schedule-view-toggles';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
@@ -16,15 +17,17 @@ import { useScheduleFilters } from '@/features/schedule/hooks/use-schedule-filte
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { byStart, findNowAndNext, isForQuartiere } from '@/features/schedule/utils/programme-utils';
-import { dayKeyOf, todayKeyOf } from '@/features/schedule/utils/time-utils';
+import { campClockOf, dayKeyOf } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { useStar } from '@/hooks/use-star';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { cn } from '@/utils/tailwindcss-override';
+import { Search, SlidersHorizontal } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 const foundEventsText: StaticTranslationString = {
   en: 'Found {{count}} event{{plural}} for ',
@@ -39,7 +42,9 @@ const foundEventsText: StaticTranslationString = {
 export const ScheduleComponent: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
-  const { starredEntries } = useStar();
+  const { starredEntries, toggleStar } = useStar();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isOnline = useOnlineStatus();
   const now = useNow();
   const { syncFromServer, entries: localEntries } = useScheduleEntries();
@@ -109,8 +114,7 @@ export const ScheduleComponent: React.FC = () => {
   const hasProgram = currentProgram.length > 0;
 
   // "Now" is about today, whichever day the list shows and whatever it is filtered by.
-  const minutesOfDay = now.getHours() * 60 + now.getMinutes();
-  const todayKey = todayKeyOf(now);
+  const { dayKey: todayKey, minutes: minutesOfDay } = campClockOf(now);
   const today = allDates.find((date) => dayKeyOf(date) === todayKey);
   const isToday = dayKeyOf(currentDate) === todayKey;
   // In the view of the whole camp several Quartiere have something on at once, so "now" stays
@@ -165,24 +169,49 @@ export const ScheduleComponent: React.FC = () => {
       locale={locale}
       onDateSelect={actions.handleDateSelect}
     >
-      {myQuartiere.length > 0 && (
-        <ScheduleScopeSwitch
-          myQuartiere={myQuartiere}
-          scope={scope}
-          onScopeChange={setScope}
-          locale={locale}
-        />
-      )}
+      <SetHeaderActions>
+        <button
+          type="button"
+          aria-label={programmeLabels.search[locale]}
+          aria-expanded={isSearchOpen}
+          onClick={() => setIsSearchOpen((open) => !open)}
+          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
+        >
+          <Search className="h-[22px] w-[22px]" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          aria-label={programmeLabels.filter[locale]}
+          aria-expanded={isFilterOpen}
+          onClick={() => setIsFilterOpen((open) => !open)}
+          className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
+        >
+          <SlidersHorizontal className="h-[22px] w-[22px]" aria-hidden="true" />
+          {filters.selectedCategory !== undefined && (
+            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-emerald-500" />
+          )}
+        </button>
+      </SetHeaderActions>
 
-      {/* Search and Filter Bar */}
-      <div className="mb-3">
-        <SearchFilterBar
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          availableLocations={availableLocations}
-          availableCategories={availableCategories}
-        />
-      </div>
+      <SearchFilterBar
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        availableLocations={availableLocations}
+        availableCategories={availableCategories}
+        isSearchOpen={isSearchOpen}
+        isFilterOpen={isFilterOpen}
+        onFilterOpenChange={setIsFilterOpen}
+        className={cn((isSearchOpen || isFilterOpen || hasActiveFilters) && 'mb-3')}
+      />
+
+      <ScheduleViewToggles
+        myQuartiere={myQuartiere}
+        scope={scope}
+        onScopeChange={setScope}
+        starredOnly={filters.starredOnly}
+        onStarredOnlyChange={(starredOnly) => handleFiltersChange({ ...filters, starredOnly })}
+        locale={locale}
+      />
 
       {isToday && !hasActiveFilters && (
         <ScheduleNowCard nowAndNext={nowAndNext} locale={locale} hrefOf={hrefOf} />
@@ -227,9 +256,10 @@ export const ScheduleComponent: React.FC = () => {
             entries={currentProgram}
             enrolledIds={enrolledIds}
             starredIds={starredEntries}
-            minutesOfToday={isToday ? minutesOfDay : undefined}
-            currentId={isToday ? nowAndNext.current?.id : undefined}
-            quartierChips={scope === 'all' ? myQuartierIds : undefined}
+            onToggleStar={toggleStar}
+            myQuartierIds={myQuartierIds}
+            groupSlots={scope === 'all'}
+            now={isToday ? { dayKey: todayKey, minutes: minutesOfDay } : undefined}
           />
         </ScheduleStatusProvider>
       ) : (
