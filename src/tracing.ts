@@ -2,6 +2,7 @@ import build from '@/build';
 import { BackgroundPollSampler } from '@/lib/background-poll-sampler';
 import { HealthCheckSampler } from '@/lib/health-check-sampler';
 import { registerRuntimeMemoryMetrics } from '@/lib/runtime-memory-metrics';
+import { SeededIdGenerator } from '@/lib/trace-id-generator';
 import { diag, DiagConsoleLogger, type DiagLogger, DiagLogLevel } from '@opentelemetry/api';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -16,37 +17,10 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
   AlwaysOnSampler,
   BatchSpanProcessor,
-  type IdGenerator,
   ParentBasedSampler,
   TraceIdRatioBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
-
-/**
- * Custom ID generator that uses `crypto.getRandomValues()` instead of `Math.random()`.
- *
- * Next.js 16's prerender guard intercepts `Math.random()` inside `'use cache'` and
- * ISR/static-generation contexts, causing `NEXT_STATIC_GEN_BAILOUT` errors when
- * OpenTelemetry's default `RandomIdGenerator` creates span/trace IDs via `Math.random()`.
- *
- * `crypto.getRandomValues()` is available in both Node.js and Edge Runtime environments
- * (unlike `node:crypto`) and is not intercepted by the prerender guard.
- *
- * @see https://github.com/vercel/next.js/issues/54751
- */
-class CryptoIdGenerator implements IdGenerator {
-  generateTraceId(): string {
-    const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  generateSpanId(): string {
-    const bytes = new Uint8Array(8);
-    crypto.getRandomValues(bytes);
-    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  }
-}
 
 // Environment variables with fallbacks
 const TRACE_URL =
@@ -234,7 +208,7 @@ const SAMPLING_RATIO = ((): number => {
 export const sdk = new NodeSDK({
   traceExporter,
   metricReaders: [metricsReader],
-  idGenerator: new CryptoIdGenerator(),
+  idGenerator: new SeededIdGenerator(),
   spanProcessors: [
     new BatchSpanProcessor(traceExporter, {
       exportTimeoutMillis: 5000,
