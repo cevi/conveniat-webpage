@@ -30,6 +30,7 @@ import {
   isAufbauOrAbbaulager,
   resolveRoleOptions,
 } from '@/features/billing/utils';
+import type { BillSetting } from '@/features/payload-cms/payload-types';
 import type { HitobitoClient } from '@/lib/hitobito/client';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
@@ -94,6 +95,47 @@ export function resolvePricing(
     }
   }
   return undefined;
+}
+
+/** Reads an optional settings text, treating an empty one as not configured. */
+const optionalSetting = (value: string | null | undefined): string | undefined =>
+  typeof value === 'string' && value !== '' ? value : undefined;
+
+/**
+ * The creditor printed on every bill, built from the bill settings. Issued bills and the
+ * settings preview both go through here, so the preview shows what a participant receives.
+ * The MWST-Nr. is not optional in practice: adult bills charge VAT, which requires it.
+ */
+export function buildCreditorFromSettings(
+  settings: Pick<
+    BillSetting,
+    | 'creditorName'
+    | 'creditorIban'
+    | 'creditorStreet'
+    | 'creditorBuildingNumber'
+    | 'creditorZip'
+    | 'creditorCity'
+    | 'creditorUid'
+    | 'creditorEmail'
+    | 'creditorWebsite'
+  >,
+): PdfGenerationParameters['creditor'] {
+  const buildingNumber = optionalSetting(settings.creditorBuildingNumber);
+  const uid = optionalSetting(settings.creditorUid);
+  const email = optionalSetting(settings.creditorEmail);
+  const website = optionalSetting(settings.creditorWebsite);
+  return {
+    name: settings.creditorName,
+    street: settings.creditorStreet,
+    ...(buildingNumber === undefined ? {} : { buildingNumber }),
+    zip: settings.creditorZip ?? '',
+    city: settings.creditorCity ?? '',
+    account: settings.creditorIban,
+    country: 'CH',
+    ...(uid === undefined ? {} : { uid }),
+    ...(email === undefined ? {} : { email }),
+    ...(website === undefined ? {} : { website }),
+  };
 }
 
 /** Separator between the footer's items, and the only place the footer may wrap. */
@@ -626,21 +668,9 @@ export async function generateBillsUseCase(
           ? documentTitle_
           : 'ANMELDEBESTÄTIGUNG UND RECHNUNG';
 
-      const creditorBuildingNumber = settings.creditorBuildingNumber;
-
       const pdfBuffer = await generateQrBillPdf({
         documentTitle,
-        creditor: {
-          name: settings.creditorName,
-          street: settings.creditorStreet,
-          ...(typeof creditorBuildingNumber === 'string' && creditorBuildingNumber !== ''
-            ? { buildingNumber: creditorBuildingNumber }
-            : {}),
-          zip: settings.creditorZip ?? '',
-          city: settings.creditorCity ?? '',
-          account: settings.creditorIban,
-          country: 'CH',
-        },
+        creditor: buildCreditorFromSettings(settings),
         debtor: {
           name: `${firstName} ${lastName}`.trim(),
           street,

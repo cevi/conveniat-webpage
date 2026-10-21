@@ -7,6 +7,7 @@ import type { ParticipantRepositoryPort } from '@/features/billing/ports/partici
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   buildCreditorFooterItems,
+  buildCreditorFromSettings,
   generateBillsUseCase,
   layoutFooterLines,
   resolvePricing,
@@ -317,6 +318,45 @@ describe('buildCreditorFooterItems', () => {
   it('drops the dangling separator when there is no building number', () => {
     const items = buildCreditorFooterItems({ ...creditor, street: '', buildingNumber: undefined });
     expect(items[0]).toBe('conveniat27');
+  });
+});
+
+describe('buildCreditorFromSettings', () => {
+  const settings = {
+    creditorName: 'conveniat27',
+    creditorIban: 'CH1030700114904034095',
+    creditorStreet: 'Sihlstrasse',
+    creditorBuildingNumber: '33',
+    creditorZip: '8001',
+    creditorCity: 'Zürich',
+    creditorUid: 'CHE-470.917.124',
+    creditorEmail: 'admin.conveniat27@cevi.ch',
+    creditorWebsite: 'conveniat27.ch',
+  };
+
+  it('prints the MWST-Nr., e-mail and website from the settings on an issued bill', () => {
+    expect(buildCreditorFooterItems(buildCreditorFromSettings(settings))).toEqual([
+      'conveniat27 | Sihlstrasse 33',
+      '8001 Zürich',
+      'IBAN: CH1030700114904034095',
+      'MWST-Nr.: CHE-470.917.124',
+      'E-Mail: admin.conveniat27@cevi.ch',
+      'Web: conveniat27.ch',
+    ]);
+  });
+
+  it('leaves out what an operator cleared', () => {
+    const creditor = buildCreditorFromSettings({
+      ...settings,
+      creditorBuildingNumber: '',
+      // eslint-disable-next-line unicorn/no-null -- Payload stores a cleared text field as null
+      creditorEmail: null,
+      creditorWebsite: '',
+    });
+    expect(creditor).not.toHaveProperty('buildingNumber');
+    expect(creditor).not.toHaveProperty('email');
+    expect(creditor).not.toHaveProperty('website');
+    expect(creditor.uid).toBe('CHE-470.917.124');
   });
 });
 
