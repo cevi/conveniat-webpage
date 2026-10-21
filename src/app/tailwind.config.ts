@@ -83,6 +83,8 @@ module.exports = {
       live: { DEFAULT: '#C2410C', soft: '#FFF1E8', text: '#9A3412', line: '#F2C6A8' },
       // red is for what went wrong, is blocked or overdue, and for destructive actions
       danger: { DEFAULT: '#C41333', soft: '#FFF1F1', text: '#9F1230', line: '#FECDD0' },
+      /** a message that was read: its double tick in the chat list and, lighter, on the own bubble */
+      read: { DEFAULT: '#059669', 'on-brand': '#A7F3D0' },
 
       red: {
         50: '#FFF1F1',
