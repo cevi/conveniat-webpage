@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -411,7 +412,7 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
       {/* ---- Contest switcher ---- sits above the intro card, because the description, the
            rules and the point budget below it all belong to the selected contest. ---- */}
       {contests.length > 1 && (
-        <div className="bg-quiet mb-4 flex h-11 w-full items-stretch overflow-x-auto rounded-xl p-[3px]">
+        <div className={cn(segmentedTrackClassName, 'mb-4 w-full items-stretch overflow-x-auto')}>
           {contests.map((contestItem) => {
             const isSelected = activeSlug === contestItem.slug;
 
@@ -425,11 +426,8 @@ export const PhotoContestView: React.FC<PhotoContestViewProperties> = ({ initial
                   setLastSavedVotes(undefined);
                   setSelectedSlug(contestItem.slug);
                 }}
-                aria-current={isSelected ? 'true' : undefined}
-                className={cn(
-                  'flex-1 cursor-pointer rounded-[9px] px-3 whitespace-nowrap transition-colors',
-                  isSelected ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
-                )}
+                aria-pressed={isSelected}
+                className={cn(segmentClassName(isSelected), 'flex-1 px-3 whitespace-nowrap')}
               >
                 <span className="text-sm font-semibold">{contestItem.title}</span>
               </button>

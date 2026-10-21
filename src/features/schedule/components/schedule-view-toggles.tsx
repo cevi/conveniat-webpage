@@ -1,3 +1,4 @@
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import type { ScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import type { Locale } from '@/types/types';
@@ -20,17 +21,17 @@ export const ScheduleViewToggles: React.FC<{
     <div
       role="group"
       aria-label={programmeLabels.view[locale]}
-      className="bg-quiet mb-3 flex h-11 rounded-xl p-[3px]"
+      className={cn(segmentedTrackClassName, 'mb-3')}
     >
       {(['mine', 'all'] as const).map((value) => (
         <button
           key={value}
           type="button"
-          aria-current={scope === value ? 'true' : undefined}
+          aria-pressed={scope === value}
           onClick={() => onScopeChange(value)}
           className={cn(
-            'flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] px-2 text-sm font-semibold transition-colors',
-            scope === value ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
+            segmentClassName(scope === value),
+            'flex-1 gap-1.5 px-2 text-sm font-semibold',
           )}
         >
           <span className="truncate">

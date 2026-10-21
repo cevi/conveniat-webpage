@@ -317,8 +317,9 @@ by its role once a second screen needs it, not before.
   even a destructive button or an overdue count. Warnings and "now" use the `live` orange. Each
   programme category keeps its colour, and one that would read as red is shifted to pink.
 - **Controls.** Touch targets are at least 44×44px. One `primary` button per view, the rest
-  `quiet` or `outlined`; a destructive action is `outlined` and asks before it acts. A segmented
-  control sits on a `bg-quiet` track with the active segment white. Chips are small and square on
+  `quiet` or `outlined`; a destructive action is `outlined` in the `live` orange and either asks
+  before it acts or can be undone right after. A segmented control takes its track and segments
+  from `src/components/ui/segmented-control.ts`. Chips are small and square on
   `bg-chip`, the user's own one filled brand green; pills are round and outlined.
 - **Header.** App titles sit on the left, next to the menu. A page puts its buttons on the right
   with `SetHeaderActions`, as 44px icons, instead of adding a bar of its own. The app footer is
@@ -327,9 +328,9 @@ by its role once a second screen needs it, not before.
   not again on the card. Hide a description that only repeats the title. Lead with what concerns
   the user, such as the slot of their own Quartier, and list the rest under it. Show what comes
   next. "Now" is the camp's time, Europe/Zurich, never the phone's timezone.
-- **Accessibility.** Every icon-only button has an `aria-label`, a toggle has `aria-pressed`, the
-  active tab, segment or day has `aria-current`. Text reaches 4.5:1 contrast. Use real buttons and
-  links, never a clickable `div`.
+- **Accessibility.** Every icon-only button has an `aria-label`, a toggle and the chosen segment
+  of a segmented control have `aria-pressed`, the current page and day have `aria-current`. Text
+  reaches 4.5:1 contrast. Use real buttons and links, never a clickable `div`.
 - **Phones.** Lists scroll natively and snap; content follows the finger and is there before it
   is released. Nothing floats over content that the user needs, except a map's controls.
 

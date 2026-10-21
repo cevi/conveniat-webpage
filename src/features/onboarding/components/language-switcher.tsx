@@ -1,5 +1,6 @@
 'use client';
 
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { languageOptions } from '@/config/language-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -29,7 +30,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProperties> = ({
     <div
       role="group"
       aria-label={languageText[currentLocale]}
-      className="bg-quiet flex h-11 shrink-0 rounded-xl p-[3px]"
+      className={cn(segmentedTrackClassName, 'shrink-0')}
     >
       {languageOptions.map((option) => {
         const isCurrent = currentLocale === option.value;
@@ -38,11 +39,11 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProperties> = ({
             key={option.value}
             type="button"
             lang={option.value}
-            aria-current={isCurrent ? 'true' : undefined}
+            aria-pressed={isCurrent}
             onClick={() => onLanguageChange(option.value)}
             className={cn(
-              'min-w-11 cursor-pointer rounded-[9px] px-2 text-[13px] font-bold uppercase',
-              isCurrent ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
+              segmentClassName(isCurrent),
+              'min-w-11 px-2 text-[13px] font-bold uppercase',
             )}
           >
             <span aria-hidden="true">{option.value}</span>

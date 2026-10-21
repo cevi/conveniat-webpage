@@ -1,6 +1,7 @@
 'use client';
 
 import { SectionLabel } from '@/components/ui/section-label';
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { format, labels } from '@/features/material/components/material-labels';
 import {
   focusRing,
@@ -269,7 +270,7 @@ export const Segmented = <Value extends string>({
   <div
     role="radiogroup"
     aria-label={label}
-    className="bg-quiet grid h-11 auto-cols-fr grid-flow-col rounded-xl p-[3px]"
+    className={cn(segmentedTrackClassName, 'grid auto-cols-fr grid-flow-col')}
   >
     {options.map((option) => (
       <button
@@ -279,9 +280,8 @@ export const Segmented = <Value extends string>({
         aria-checked={value === option.value}
         onClick={() => onChange(option.value)}
         className={cn(
-          'flex min-w-0 cursor-pointer items-center justify-center gap-2 rounded-[9px] px-2 text-sm font-semibold transition-colors [&_svg]:size-4',
-          focusRing,
-          value === option.value ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
+          segmentClassName(value === option.value),
+          'gap-2 px-2 text-sm font-semibold [&_svg]:size-4',
         )}
       >
         {option.icon}

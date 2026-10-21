@@ -1,6 +1,7 @@
 'use client';
 
 import { SectionLabel } from '@/components/ui/section-label';
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { languageOptions } from '@/config/language-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -55,22 +56,15 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
   return (
     <section className="px-3 py-4">
       <SectionLabel className="mb-2">{language[locale]}</SectionLabel>
-      <div
-        role="group"
-        aria-label={language[locale]}
-        className="bg-quiet flex h-11 rounded-xl p-[3px]"
-      >
+      <div role="group" aria-label={language[locale]} className={segmentedTrackClassName}>
         {languageOptions.map(({ value, label }) => (
           <button
             key={value}
             type="button"
             lang={value}
             onClick={() => handleLanguageChange(value)}
-            aria-current={value === locale ? 'true' : undefined}
-            className={cn(
-              'flex-1 cursor-pointer rounded-[9px] text-sm font-semibold transition-colors',
-              value === locale ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
-            )}
+            aria-pressed={value === locale}
+            className={cn(segmentClassName(value === locale), 'flex-1 text-sm font-semibold')}
           >
             {label}
           </button>

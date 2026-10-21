@@ -1,5 +1,6 @@
 'use client';
 
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { languageNames, languageOptions } from '@/config/language-options';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -44,22 +45,15 @@ export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   return (
     <SettingsRow icon={Languages} title={languageLabel[locale]} subtitle={languageNames[locale]}>
-      <div
-        role="group"
-        aria-label={languageLabel[locale]}
-        className="bg-quiet flex h-11 rounded-xl p-[3px]"
-      >
+      <div role="group" aria-label={languageLabel[locale]} className={segmentedTrackClassName}>
         {languageOptions.map(({ value, label }) => (
           <button
             key={value}
             type="button"
             lang={value}
             onClick={() => handleLanguageChange(value)}
-            aria-current={value === locale ? 'true' : undefined}
-            className={cn(
-              'flex-1 cursor-pointer rounded-[9px] text-sm font-semibold transition-colors',
-              value === locale ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
-            )}
+            aria-pressed={value === locale}
+            className={cn(segmentClassName(value === locale), 'flex-1 text-sm font-semibold')}
           >
             {label}
           </button>

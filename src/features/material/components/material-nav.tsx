@@ -1,7 +1,7 @@
 'use client';
 
+import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { labels } from '@/features/material/components/material-labels';
-import { focusRing } from '@/features/material/components/material-ui';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { useMaterialRole } from '@/features/material/hooks/use-material-role';
 import type { StaticTranslationString } from '@/types/types';
@@ -57,7 +57,8 @@ export const MaterialNav: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign })
       ) : (
         <div
           className={cn(
-            'bg-quiet mx-auto grid h-11 max-w-xl rounded-xl p-[3px]',
+            segmentedTrackClassName,
+            'mx-auto grid max-w-xl',
             tabs.length === 4 ? 'grid-cols-4' : 'grid-cols-2',
           )}
         >
@@ -69,11 +70,8 @@ export const MaterialNav: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign })
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  'flex min-w-0 items-center justify-center rounded-[9px] px-0.5 text-xs font-semibold tracking-tight transition-colors min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
-                  focusRing,
-                  active
-                    ? 'bg-white text-green-900 shadow-xs'
-                    : 'text-green-700 hover:text-green-900',
+                  segmentClassName(active),
+                  'px-0.5 text-xs font-semibold tracking-tight min-[360px]:px-1 min-[360px]:text-sm min-[360px]:tracking-normal',
                 )}
               >
                 <span className="truncate">{tab.label[locale]}</span>
