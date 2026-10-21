@@ -226,7 +226,7 @@ export const CreateNewGroupPage: React.FC = () => {
             <span
               id={nameErrorId}
               role={showNameError ? 'alert' : undefined}
-              className="text-live-text font-semibold"
+              className="text-danger-text font-semibold"
             >
               {showNameError ? text.nameTooShort[locale] : ''}
             </span>

@@ -92,12 +92,12 @@ const ChatAlertDialogDescription = React.forwardRef<
 ChatAlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName;
 
 /**
- * What sets a destructive button apart from an ordinary `outlined` one: the live orange, since
- * red stays with the emergency UI. For the confirm in a dialog and for the button that opens it.
+ * What sets a destructive button apart from an ordinary `outlined` one: red. For the confirm in a
+ * dialog and for the button that opens it.
  */
 export const destructiveButtonClassName = cn(
   buttonVariants({ variant: 'outlined', size: 'touch' }),
-  'border-live-line text-live-text hover:bg-live-soft',
+  'border-danger-line text-danger-text hover:bg-danger-soft',
 );
 
 /**

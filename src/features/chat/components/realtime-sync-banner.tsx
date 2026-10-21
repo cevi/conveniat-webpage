@@ -52,8 +52,8 @@ export const RealtimeSyncBanner: React.FC<RealtimeSyncBannerProperties> = ({
       onClick={onReconnect}
       aria-live="polite"
       className={cn(
-        'bg-live-soft text-live-text flex min-h-11 w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[13px]',
-        'border-live-line border-y',
+        'bg-danger-soft text-danger-text flex min-h-11 w-full cursor-pointer items-center gap-2 px-4 py-2 text-left text-[13px]',
+        'border-danger-line border-y',
         className,
       )}
     >

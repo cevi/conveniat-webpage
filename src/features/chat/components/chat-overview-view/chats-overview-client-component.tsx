@@ -257,7 +257,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       {listActions.hasFailed && (
         <p
           role="alert"
-          className="bg-live-soft text-live-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
+          className="bg-danger-soft text-danger-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
         >
           {actionFailedText[locale]}
           <button
@@ -280,7 +280,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       <RealtimeSyncBanner
         status={realtimeStatus}
         onReconnect={reconnectRealtime}
-        className="border-live-line rounded-[14px] border"
+        className="border-danger-line rounded-[14px] border"
       />
 
       {/* only once there is something to search */}

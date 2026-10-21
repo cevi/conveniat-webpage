@@ -70,8 +70,8 @@ const ActionRow: React.FC<{ icon: LucideIcon; label: string; onClick: () => void
 
 /**
  * What a long press on a chat of the list offers: pin, mute, mark (un)read, its details, and
- * leaving or deleting it with the same question the details ask. Leaving and deleting are in
- * the live orange, as red belongs to Notfall.
+ * leaving or deleting it with the same question the details ask. Leaving and deleting are red,
+ * as every destructive action is.
  */
 export const ChatActionsSheet: React.FC<{
   chat: ChatWithMessagePreview | undefined;
@@ -152,7 +152,7 @@ export const ChatActionsSheet: React.FC<{
                   setConfirm({ kind: canLeave ? 'leave' : 'delete', chat });
                   onClose();
                 }}
-                className={cn(rowClassName, 'text-live-text')}
+                className={cn(rowClassName, 'text-danger-text')}
               >
                 {canLeave ? (
                   <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />

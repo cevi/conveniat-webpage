@@ -159,7 +159,7 @@ export const CreateNewChatPage: React.FC = () => {
       {hasOpenFailed && (
         <p
           role="alert"
-          className="text-live-text bg-live-soft mx-4 mt-4 rounded-xl px-4 py-3 text-sm"
+          className="text-danger-text bg-danger-soft mx-4 mt-4 rounded-xl px-4 py-3 text-sm"
         >
           {text.openFailed[locale]}
         </p>
