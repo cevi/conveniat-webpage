@@ -20,6 +20,10 @@ export default function EmergencyLoading(): React.ReactNode {
           </div>
         ))}
       </div>
+      {/* where the Alarmieren slider will be, so it does not pop in */}
+      <div className="fixed bottom-20 left-0 w-full p-4 xl:left-[480px] xl:w-[calc(100%-480px)]">
+        <div className="mx-auto h-16 max-w-md animate-pulse rounded-full bg-red-100" />
+      </div>
     </div>
   );
 }

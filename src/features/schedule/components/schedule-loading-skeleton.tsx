@@ -36,8 +36,18 @@ const TimelineRow: React.FC<{ isBlock: boolean }> = ({ isBlock }) => (
  * The Programm while it loads, in the layout it loads into: the seven days, the switch between
  * the own Quartier and all of them, the filter chips, and a timeline of logistics rows and
  * blocks. The route's loading screen shows the same, so nothing jumps when the data arrives.
+ * The Schichteinsätze share the layout without the switch, and with shifts only.
  */
-export const ScheduleLoadingSkeleton: React.FC = () => (
+export const ScheduleLoadingSkeleton: React.FC<{
+  showScope?: boolean;
+  /** `true` for a card on the timeline, `false` for a logistics row */
+  rows?: boolean[];
+  chips?: string[];
+}> = ({
+  showScope = true,
+  rows = [false, false, false, true, false, true, true],
+  chips = ['w-24', 'w-32', 'w-32', 'w-20'],
+}) => (
   <article className="mx-auto w-full max-w-2xl p-4 sm:p-6" aria-hidden="true">
     <div className="flex gap-1.5">
       {[1, 2, 3, 4, 5, 6, 7].map((index) => (
@@ -51,10 +61,10 @@ export const ScheduleLoadingSkeleton: React.FC = () => (
       ))}
     </div>
 
-    <div className="bg-quiet mt-4 h-11 rounded-xl" />
+    {showScope && <div className="bg-quiet mt-4 h-11 rounded-xl" />}
 
-    <div className="mt-3 flex gap-2 overflow-hidden">
-      {['w-24', 'w-32', 'w-32', 'w-20'].map((width, index) => (
+    <div className={cn('flex gap-2 overflow-hidden', showScope ? 'mt-3' : 'mt-4')}>
+      {chips.map((width, index) => (
         <div
           key={index}
           className={cn('border-line h-11 shrink-0 rounded-full border bg-white', width)}
@@ -63,7 +73,7 @@ export const ScheduleLoadingSkeleton: React.FC = () => (
     </div>
 
     <ol className="mt-5">
-      {[false, false, false, true, false, true, true].map((isBlock, index) => (
+      {rows.map((isBlock, index) => (
         <TimelineRow key={index} isBlock={isBlock} />
       ))}
     </ol>
