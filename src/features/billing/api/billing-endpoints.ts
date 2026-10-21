@@ -1,5 +1,6 @@
 import {
   billingCancelHandler,
+  billingDoublePaymentsPdfHandler,
   billingExportCsvHandler,
   billingExportXlsxHandler,
   billingGenerateHandler,
@@ -78,6 +79,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/weekly-report-pdf',
     method: 'get',
     handler: billingWeeklyReportPdfHandler,
+  },
+  {
+    path: '/confidential/billing/double-payments-pdf',
+    method: 'get',
+    handler: billingDoublePaymentsPdfHandler,
   },
   {
     path: '/confidential/billing/preview-pdf',

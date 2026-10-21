@@ -1,4 +1,5 @@
 import { BillParticipantsCollection } from '@/features/billing/collections/bill-participants';
+import { BillPaymentsCollection } from '@/features/billing/collections/bill-payments';
 import { BillPdfsCollection } from '@/features/billing/collections/bill-pdfs-collection';
 import { AnnouncementChannelsCollection } from '@/features/payload-cms/payload-cms/collections/announcement-channels';
 import { AnnouncementsCollection } from '@/features/payload-cms/payload-cms/collections/announcements';
@@ -72,6 +73,7 @@ const rawCollectionsConfig: CollectionConfig[] = [
   FunktionenCollection,
   PresenceLogCollection,
   BillParticipantsCollection,
+  BillPaymentsCollection,
   BillPdfsCollection,
   HoefeCollection,
   OutgoingEmails,

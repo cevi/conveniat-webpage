@@ -1032,6 +1032,16 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                 },
+                {
+                  name: 'doublePaymentsDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/double-payments-download-button#DoublePaymentsDownloadButton',
+                    },
+                  },
+                },
               ],
             },
             {
@@ -1126,11 +1136,18 @@ export const BillSettingsGlobal: GlobalConfig = {
             {
               name: 'invoiceEmailSubject',
               type: 'text',
-              defaultValue: 'conveniat27 – Anmeldebestätigung und Rechnung',
+              defaultValue: 'conveniat27 – Anmeldebestätigung und Rechnung {{registrationNumber}}',
               label: {
                 en: 'Email Subject',
                 de: 'E-Mail-Betreff',
                 fr: "Sujet de l'e-mail",
+              },
+              admin: {
+                description: {
+                  en: 'Same placeholders as the email body.',
+                  de: 'Gleiche Platzhalter wie beim E-Mail-Text.',
+                  fr: "Mêmes espaces réservés que le corps de l'e-mail.",
+                },
               },
             },
             {
@@ -1145,9 +1162,9 @@ export const BillSettingsGlobal: GlobalConfig = {
               },
               admin: {
                 description: {
-                  en: 'Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.',
-                  de: 'Verwende {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} als Platzhalter.',
-                  fr: 'Utilisez {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} comme espaces réservés.',
+                  en: 'Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} as placeholders. {{registrationNumber}} is the Registration Number printed on the PDF.',
+                  de: 'Verwende {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} als Platzhalter. {{registrationNumber}} ist die Anmeldenummer, die auf dem PDF steht.',
+                  fr: "Utilisez {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} comme espaces réservés. {{registrationNumber}} est le numéro d'inscription imprimé sur le PDF.",
                 },
               },
             },

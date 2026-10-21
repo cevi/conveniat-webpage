@@ -7,6 +7,7 @@ import type { ParticipantRepositoryPort } from '@/features/billing/ports/partici
 import type { SettingsPort } from '@/features/billing/ports/settings.port';
 import {
   buildCreditorFooterItems,
+  buildCreditorFromSettings,
   generateBillsUseCase,
   layoutFooterLines,
   resolvePricing,
@@ -320,6 +321,45 @@ describe('buildCreditorFooterItems', () => {
   });
 });
 
+describe('buildCreditorFromSettings', () => {
+  const settings = {
+    creditorName: 'conveniat27',
+    creditorIban: 'CH1030700114904034095',
+    creditorStreet: 'Sihlstrasse',
+    creditorBuildingNumber: '33',
+    creditorZip: '8001',
+    creditorCity: 'Zürich',
+    creditorUid: 'CHE-470.917.124',
+    creditorEmail: 'admin.conveniat27@cevi.ch',
+    creditorWebsite: 'conveniat27.ch',
+  };
+
+  it('prints the MWST-Nr., e-mail and website from the settings on an issued bill', () => {
+    expect(buildCreditorFooterItems(buildCreditorFromSettings(settings))).toEqual([
+      'conveniat27 | Sihlstrasse 33',
+      '8001 Zürich',
+      'IBAN: CH1030700114904034095',
+      'MWST-Nr.: CHE-470.917.124',
+      'E-Mail: admin.conveniat27@cevi.ch',
+      'Web: conveniat27.ch',
+    ]);
+  });
+
+  it('leaves out what an operator cleared', () => {
+    const creditor = buildCreditorFromSettings({
+      ...settings,
+      creditorBuildingNumber: '',
+      // eslint-disable-next-line unicorn/no-null -- Payload stores a cleared text field as null
+      creditorEmail: null,
+      creditorWebsite: '',
+    });
+    expect(creditor).not.toHaveProperty('buildingNumber');
+    expect(creditor).not.toHaveProperty('email');
+    expect(creditor).not.toHaveProperty('website');
+    expect(creditor.uid).toBe('CHE-470.917.124');
+  });
+});
+
 // One unit per character, so the packing is decided by lengths the test can state.
 const measure = (text: string): number => text.length;
 
@@ -376,5 +416,28 @@ describe('generateBillsUseCase with Aufbau- or Abbaulager participant', () => {
     expect(summary.errors[0]).toContain(
       'ist ein Aufbau- oder Abbaulager und für die Abrechnung ausgeschlossen',
     );
+  });
+});
+
+describe('generateBillsUseCase stores the Anmeldenummer', () => {
+  it('keeps the number the PDF prints on the row', async () => {
+    const { participantRepo, settingsRepo, hitobitoService, logger } = buildDependencies([
+      participant({ roleType: 'Event::Role::Leader' }),
+    ]);
+    const settings = await settingsRepo.getBillSettings();
+    settingsRepo.getBillSettings.mockResolvedValue({
+      ...settings,
+      creditorStreet: 'Lagerstrasse',
+      creditorBuildingNumber: '1',
+      creditorZip: '8000',
+      creditorCity: 'Zürich',
+      customReferenceTemplate: '{{event-id}}-{{participation-id}}',
+    });
+
+    await generateBillsUseCase(participantRepo, settingsRepo, hitobitoService, logger);
+
+    const [, update] = participantRepo.update.mock.calls.at(-1) ?? [];
+    expect(update?.status).toBe('bill_created');
+    expect(update?.registrationNumber).toBe('1234-9012');
   });
 });

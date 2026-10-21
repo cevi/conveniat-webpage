@@ -23,8 +23,11 @@ export type PaymentOutcome =
   | 'booked'
   /** The same bank transaction is already booked on this bill: the file was imported before. */
   | 'already_booked'
-  /** The bill is already paid by another transaction: possibly paid twice. */
-  | 'already_paid'
+  /**
+   * The bill is already paid by another transaction. The payment is linked to the bill
+   * anyway and the bill is flagged, so finance can refund it or assign it to another bill.
+   */
+  | 'double_payment'
   | 'amount_mismatch'
   | 'unknown_reference'
   | 'invalid_reference'
@@ -38,6 +41,41 @@ export type PaymentOutcome =
   | 'invalid_amount'
   /** Without the bank's transaction id a booking could not be traced back to the payment. */
   | 'missing_transaction_reference';
+
+/** How each outcome reads where finance sees it, on a stored payment. */
+export const PAYMENT_OUTCOME_LABELS: Record<
+  PaymentOutcome,
+  { de: string; en: string; fr: string }
+> = {
+  booked: { de: 'Verbucht', en: 'Booked', fr: 'Comptabilisé' },
+  already_booked: { de: 'Bereits importiert', en: 'Already imported', fr: 'Déjà importé' },
+  double_payment: { de: 'Doppelzahlung', en: 'Double payment', fr: 'Double paiement' },
+  amount_mismatch: { de: 'Betrag passt nicht', en: 'Amount mismatch', fr: 'Montant différent' },
+  unknown_reference: {
+    de: 'Unbekannte Referenz',
+    en: 'Unknown reference',
+    fr: 'Référence inconnue',
+  },
+  invalid_reference: {
+    de: 'Ungültige Referenz',
+    en: 'Invalid reference',
+    fr: 'Référence invalide',
+  },
+  superseded_bill: {
+    de: 'Ersetzte Rechnung',
+    en: 'Replaced bill',
+    fr: 'Facture remplacée',
+  },
+  cancelled: { de: 'Anmeldung storniert', en: 'Registration cancelled', fr: 'Inscription annulée' },
+  not_payable: { de: 'Keine offene Rechnung', en: 'No open bill', fr: 'Aucune facture ouverte' },
+  wrong_currency: { de: 'Andere Währung', en: 'Other currency', fr: 'Autre devise' },
+  invalid_amount: { de: 'Kein Zahlungseingang', en: 'Not a credit', fr: 'Pas un crédit' },
+  missing_transaction_reference: {
+    de: 'Ohne Transaktionsreferenz',
+    en: 'No transaction reference',
+    fr: 'Sans référence de transaction',
+  },
+};
 
 export interface PaymentMatch {
   payment: BankPayment;
@@ -65,7 +103,15 @@ const QR_REFERENCE = /^\d{27}$/;
 /** What a number looks like once Excel has had it: `-9.22337E+18`. */
 const SPREADSHEET_NUMBER = /^-?\d+(?:[.,]\d+)?e[+-]?\d+$/i;
 
-const toRappen = (amount: number): number => Math.round(amount * 100);
+/**
+ * Whether a reference was turned into a number by whatever saved the file, so the row says
+ * nothing about the payment it came from anymore.
+ */
+export const isConvertedReference = (reference: string): boolean =>
+  SPREADSHEET_NUMBER.test(reference) || reference.startsWith('-');
+
+/** Amounts are compared in Rappen, so 0.1 + 0.2 never decides whether a bill is paid. */
+export const toRappen = (amount: number): number => Math.round(amount * 100);
 
 /**
  * How much more than the bill a payment may be and still settle it, in CHF.
@@ -93,7 +139,7 @@ const describeInvalidReference = (reference: string): string | undefined => {
   if (reference === '') {
     return 'Die Zahlung hat keine QR-Referenz. Bitte von Hand zuordnen.';
   }
-  if (SPREADSHEET_NUMBER.test(reference) || reference.startsWith('-')) {
+  if (isConvertedReference(reference)) {
     return (
       `Die Referenz «${reference}» ist keine QR-Referenz mehr, sondern eine umgewandelte Zahl. ` +
       'Das passiert, wenn die Datei in Excel geöffnet und wieder gespeichert wird. ' +
@@ -136,10 +182,13 @@ const indexByReference = (participants: MatchableParticipant[]): ReferenceIndex 
  *
  * @param participants every registration whose current or earlier bill carries one of the
  *   file's references
+ * @param knownTransactions the transactions already stored as payments, so a file imported
+ *   a second time adds nothing
  */
 export function matchPayments(
   payments: BankPayment[],
   participants: MatchableParticipant[],
+  knownTransactions: ReadonlySet<string> = new Set(),
 ): PaymentMatch[] {
   const index = indexByReference(participants);
   // Bills booked earlier in this same file, so a payment listed twice is not booked twice.
@@ -157,6 +206,16 @@ export function matchPayments(
       message: `${prefix}: ${reason}`,
       ...(participant === undefined ? {} : { participantId: participant.id }),
     });
+
+    if (
+      payment.transactionReference !== '' &&
+      knownTransactions.has(payment.transactionReference)
+    ) {
+      return reject(
+        'already_booked',
+        `Transaktion ${payment.transactionReference}: bereits importiert.`,
+      );
+    }
 
     const invalidReference = describeInvalidReference(payment.reference);
     if (invalidReference !== undefined) return reject('invalid_reference', invalidReference);
@@ -203,8 +262,9 @@ export function matchPayments(
     }
     if (participant.status === PAID || earlierInFile !== undefined) {
       return reject(
-        'already_paid',
-        `${who} ist bereits bezahlt. Möglicherweise wurde doppelt bezahlt.`,
+        'double_payment',
+        `${who} ist bereits bezahlt. Die Zahlung ist als Doppelzahlung bei der Anmeldung ` +
+          'hinterlegt: bitte zurückerstatten oder unter «Zahlungen» einer anderen Rechnung zuordnen.',
         participant,
       );
     }
