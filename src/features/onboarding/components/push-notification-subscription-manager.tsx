@@ -4,7 +4,9 @@ import { NativePushSubscriptionManager } from '@/features/onboarding/components/
 import { PushNotificationActions } from '@/features/onboarding/components/push-notification-actions';
 import { PushNotificationNotSupported } from '@/features/onboarding/components/push-notification-not-supported';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
+import { Cookie } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
+import Cookies from 'js-cookie';
 
 import React, { useSyncExternalStore } from 'react';
 
@@ -33,7 +35,16 @@ export const PushNotificationSubscriptionManager: React.FC<{
   }
 
   if (!isSupported) {
-    return <PushNotificationNotSupported locale={locale} onSkip={callback} />;
+    // Skipping here stores the same choice as the step's own skip, or the flow stays put.
+    return (
+      <PushNotificationNotSupported
+        locale={locale}
+        onSkip={() => {
+          Cookies.set(Cookie.SKIP_PUSH_NOTIFICATION, 'true', { expires: 7 });
+          callback();
+        }}
+      />
+    );
   }
 
   return (

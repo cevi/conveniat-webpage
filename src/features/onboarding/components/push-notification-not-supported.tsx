@@ -5,7 +5,6 @@ import {
   OnboardingStepScreen,
 } from '@/features/onboarding/components/onboarding-step';
 import {
-  offlineContentNotNowButton,
   pushNotificationReason,
   pushNotificationTitle,
 } from '@/features/onboarding/onboarding-constants';
@@ -26,6 +25,14 @@ const notSupportedDeviceText: StaticTranslationString = {
   fr: 'Les notifications push ne sont pas prises en charge sur cet appareil.',
 };
 
+// Not "Nicht jetzt": the step's own skip below already says that, and here there is nothing to
+// turn down, only a way on.
+const continueText: StaticTranslationString = {
+  en: 'Continue',
+  de: 'Weiter',
+  fr: 'Continuer',
+};
+
 interface PushNotificationNotSupportedProperties {
   locale: 'de' | 'fr' | 'en';
   onSkip: () => void;
@@ -44,8 +51,8 @@ export const PushNotificationNotSupported: React.FC<PushNotificationNotSupported
       title={pushNotificationTitle[locale]}
       description={pushNotificationReason[locale]}
       actions={
-        <Button variant="quiet" size="touch" onClick={onSkip}>
-          {offlineContentNotNowButton[locale]}
+        <Button variant="primary" size="touch" onClick={onSkip}>
+          {continueText[locale]}
         </Button>
       }
     >
