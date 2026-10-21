@@ -66,6 +66,12 @@ const noAlertsFound: StaticTranslationString = {
   fr: 'Aucune carte d’urgence trouvée',
 };
 
+const alarmStillWorks: StaticTranslationString = {
+  de: 'Im Notfall alarmierst du unten mit «Alarmieren» das Notfallteam.',
+  en: 'In an emergency, slide “Alert” below to call the emergency team.',
+  fr: 'En cas d’urgence, fais glisser « Alerter » ci-dessous pour appeler l’équipe d’urgence.',
+};
+
 const alarmText: StaticTranslationString = {
   de: 'Alarmieren',
   en: 'Alert',
@@ -344,6 +350,8 @@ export const EmergencyComponent: React.FC = () => {
         <EmptyState
           icon={searchTerm === '' ? BriefcaseMedical : SearchX}
           title={noAlertsFound[locale]}
+          // the cards are only a guide; the alarm below works without them
+          description={alarmStillWorks[locale]}
         />
       );
     }
