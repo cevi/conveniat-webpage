@@ -31,11 +31,12 @@ import { cn } from '@/utils/tailwindcss-override';
 import { AlertCircle, Check, Clock, MessageSquare } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
+/** two checks of the single tick's size, the second overlapping the first */
 const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={cn('relative flex h-2 w-4.5 items-center', className)}>
-    <Check className="absolute left-0 h-2 w-2" />
-    <Check className="absolute left-1.5 h-2 w-2" />
-  </div>
+  <span className={cn('relative flex h-3.5 w-5 items-center', className)}>
+    <Check className="absolute left-0 h-3.5 w-3.5" strokeWidth={2.5} />
+    <Check className="absolute left-1.5 h-3.5 w-3.5" strokeWidth={2.5} />
+  </span>
 );
 
 const replyToMessageText: StaticTranslationString = {
@@ -294,13 +295,14 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     // sent and delivered stay faint; read takes a colour of its own, so it shows at a glance
     switch (message.status) {
       case MessageEventType.STORED: {
-        return <Check className="ml-1 h-3.5 w-3.5 text-white/50" />;
+        return <Check className="ml-1 h-3.5 w-3.5 text-white/60" strokeWidth={2.5} />;
       }
       case MessageEventType.RECEIVED: {
-        return <DoubleCheck className="ml-1 text-white/50" />;
+        return <DoubleCheck className="ml-1 text-white/60" />;
       }
       case MessageEventType.READ: {
-        return <DoubleCheck className="ml-1 text-emerald-300" />;
+        // 6:1 on the bubble, and a colour of its own beside the faint white of delivered
+        return <DoubleCheck className="ml-1 text-emerald-200" />;
       }
 
       default: {
