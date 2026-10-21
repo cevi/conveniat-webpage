@@ -218,17 +218,6 @@ export const canAccessBillingField: FieldAccess = ({ req }) => {
 };
 
 /**
- * The billing team, the full admins and the web core team.
- *
- * For shared reference data the billing sync owns but other areas look up, like the Höfe:
- * billing maintains it, admin and web have to see it to build on it.
- */
-export const hasBillingOrAdminOrWebAccess: Access = (args) => {
-  if (hasAdminOrWebAccess({ req: args.req })) return true;
-  return canAccessBilling(args);
-};
-
-/**
  * Who reads the outgoing mails: the full admins all of them, the billing team the mails sent
  * for a registration, the bills and the reminders about missing details, which the E-Mails
  * tab of a registration lists. Form submission mails stay with the admins: they carry what
@@ -246,6 +235,17 @@ export const canReadOutgoingEmail = ({ req }: { req: PayloadRequest }): boolean 
       { or: [{ billParticipant: { exists: true } }, { billParticipants: { exists: true } }] },
     ],
   };
+};
+
+/**
+ * The billing team, the full admins and the web core team.
+ *
+ * For shared reference data the billing sync owns but other areas look up, like the Höfe:
+ * billing maintains it, admin and web have to see it to build on it.
+ */
+export const hasBillingOrAdminOrWebAccess: Access = (args) => {
+  if (hasAdminOrWebAccess({ req: args.req })) return true;
+  return canAccessBilling(args);
 };
 
 export const hasAccessToThisHelper = ({

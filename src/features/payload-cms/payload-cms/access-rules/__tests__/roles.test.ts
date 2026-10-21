@@ -153,18 +153,6 @@ describe('canAccessBilling', () => {
   });
 });
 
-describe('hasBillingOrAdminOrWebAccess', () => {
-  it('lets the billing team, the admins and the web core team in, and nobody else', () => {
-    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(BILLING) })).toBe(true);
-    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(FULL_ADMIN) })).toBe(true);
-    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(WEB_CORE_TEAM) })).toBe(true);
-    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(TRANSLATION_TEAM) })).toBe(false);
-    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PROGRAM_TEAM) })).toBe(false);
-    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PARTICIPANT) })).toBe(false);
-    expect(hasBillingOrAdminOrWebAccess({ req: anonymous })).toBe(false);
-  });
-});
-
 describe('canReadOutgoingEmail', () => {
   it('lets the full admins read every mail', () => {
     expect(canReadOutgoingEmail({ req: requestFor(FULL_ADMIN) })).toBe(true);
@@ -190,6 +178,18 @@ describe('canReadOutgoingEmail', () => {
       expect(canReadOutgoingEmail({ req: requestFor(group) })).toBe(false);
     }
     expect(canReadOutgoingEmail({ req: anonymous })).toBe(false);
+  });
+});
+
+describe('hasBillingOrAdminOrWebAccess', () => {
+  it('lets the billing team, the admins and the web core team in, and nobody else', () => {
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(BILLING) })).toBe(true);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(FULL_ADMIN) })).toBe(true);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(WEB_CORE_TEAM) })).toBe(true);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(TRANSLATION_TEAM) })).toBe(false);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PROGRAM_TEAM) })).toBe(false);
+    expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PARTICIPANT) })).toBe(false);
+    expect(hasBillingOrAdminOrWebAccess({ req: anonymous })).toBe(false);
   });
 });
 
