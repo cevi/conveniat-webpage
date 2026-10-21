@@ -1,5 +1,6 @@
 'use client';
 
+import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
 import { supportMailLink } from '@/features/settings/utils/support-mail';
@@ -31,7 +32,8 @@ const tileClassName =
 const TileContent: React.FC<{ icon: LucideIcon; label: string }> = ({ icon, label }) => (
   <>
     <IconTile icon={icon} />
-    <span className="min-w-0">{label}</span>
+    {/* balanced, so "Mein QR-Code" breaks before the word and not at its hyphen */}
+    <span className="min-w-0 text-balance">{label}</span>
   </>
 );
 
@@ -55,7 +57,7 @@ export const DashboardQuickAccess: React.FC<{
   const { data: session, status } = useSession();
   const parsedUser = HitobitoNextAuthUserSchema.safeParse(session?.user);
   const user = parsedUser.success ? parsedUser.data : undefined;
-  const isGuest = status !== 'loading' && user === undefined;
+  const isGuest = user === undefined;
 
   const linkTiles: { key: string; href: string; icon: LucideIcon; label: string }[] = [
     ...(user !== undefined && flags.imageUploadEnabled
@@ -69,6 +71,10 @@ export const DashboardQuickAccess: React.FC<{
       ? [{ key: 'material', href: '/app/material', icon: Package, label: labels.material[locale] }]
       : []),
   ];
+
+  // until the session is known, the tiles that need an account are unknown too; without them
+  // "Hilfe & Support" would jump from the first cell to the last
+  if (status === 'loading') return <QuickAccessSkeleton />;
 
   return (
     <section className="space-y-2">

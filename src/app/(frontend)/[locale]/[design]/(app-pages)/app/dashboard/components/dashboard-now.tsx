@@ -2,6 +2,7 @@
 
 import { JetztSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { selectJetzt } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/select-jetzt';
+import { Card } from '@/components/ui/card';
 import { SectionLabel } from '@/components/ui/section-label';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
@@ -14,7 +15,7 @@ import { formatDuration, formatMinutesAsTime } from '@/features/schedule/utils/t
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChevronRight, MapPin } from 'lucide-react';
+import { CalendarCheck, ChevronRight, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
 import { useMemo } from 'react';
@@ -114,7 +115,9 @@ const JetztContent: React.FC<{
 
   if (lead === undefined) {
     return (
-      <p className="bg-quiet rounded-[14px] px-4 py-3.5 text-[15px] text-green-700">
+      // only good to know, so neutral, with its sign like every notice
+      <p className="bg-quiet flex items-center gap-3 rounded-[14px] px-4 py-3.5 text-[15px] text-green-700">
+        <CalendarCheck className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
         {nothingMoreToday[locale]}
       </p>
     );
@@ -124,7 +127,7 @@ const JetztContent: React.FC<{
     <div className="space-y-3">
       <LeadCard entry={lead} isRunning={isRunning} minutes={minutes} locale={locale} />
       {later.length > 0 && (
-        <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+        <Card as="ul" divided>
           {later.map((entry) => {
             const slot = slotOf(entry);
             return (
@@ -144,7 +147,7 @@ const JetztContent: React.FC<{
               </li>
             );
           })}
-        </ul>
+        </Card>
       )}
     </div>
   );
@@ -188,7 +191,7 @@ export const DashboardNow: React.FC<{ locale: Locale }> = ({ locale }) => {
         <SectionLabel>{programmeLabels.now[locale]}</SectionLabel>
         <Link
           href="/app/schedule"
-          className="text-conveniat-green -my-3 flex min-h-11 items-center text-[13px] font-semibold"
+          className="text-conveniat-green -my-3 flex min-h-11 items-center text-[13px] font-semibold underline-offset-2 hover:underline"
         >
           {wholeProgramme[locale]}
         </Link>

@@ -1,3 +1,4 @@
+import { Card } from '@/components/ui/card';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
@@ -23,7 +24,7 @@ export const GreetingSkeleton: React.FC = () => (
 /** "Jetzt" while the programme loads: the card of the running block and two rows after it. */
 export const JetztSkeleton: React.FC = () => (
   <div className="space-y-3" aria-hidden="true">
-    <div className="border-line rounded-[14px] border bg-white px-4 py-3.5">
+    <Card className="px-4 py-3.5">
       <div className="flex h-5 items-center justify-between gap-3">
         <div className={cn('h-3.5 w-36 rounded', pulse)} />
         <div className={cn('h-5 w-24 rounded-full', pulse)} />
@@ -34,15 +35,15 @@ export const JetztSkeleton: React.FC = () => (
       <div className="mt-1.5 flex h-[18px] items-center">
         <div className={cn('h-3.5 w-44 rounded', pulse)} />
       </div>
-    </div>
-    <div className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+    </Card>
+    <Card divided>
       {['w-20', 'w-28'].map((width) => (
         <div key={width} className="flex min-h-[52px] items-center gap-3 px-4 py-2.5">
           <div className={cn('h-4 w-12 rounded', pulse)} />
           <div className={cn('h-4 rounded', width, pulse)} />
         </div>
       ))}
-    </div>
+    </Card>
   </div>
 );
 
