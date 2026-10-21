@@ -16,6 +16,11 @@ const actionsHeading: StaticTranslationString = {
   fr: 'Actions',
 };
 
+// Payload's Button has no destructive style (`error` is typed but unstyled), so the secondary
+// one takes the theme's error colours, which follow dark mode.
+const destructiveButtonClasses =
+  '[--btn-border:1px_solid_var(--theme-error-500)]! [--color:var(--theme-error-500)]! [--hover-btn-border:1px_solid_var(--theme-error-400)]! [--hover-color:var(--theme-error-400)]!';
+
 const readString = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined;
 
@@ -95,7 +100,8 @@ export const BillingActionsField: React.FC = () => {
       </div>
       <div className="flex flex-wrap gap-2">
         <Button
-          buttonStyle="error"
+          buttonStyle="secondary"
+          className={destructiveButtonClasses}
           size="small"
           margin={false}
           onClick={(): void => actions.request('regenerate')}
@@ -103,7 +109,8 @@ export const BillingActionsField: React.FC = () => {
           {billingActionLabels.regenerate[locale]}
         </Button>
         <Button
-          buttonStyle="error"
+          buttonStyle="secondary"
+          className={destructiveButtonClasses}
           size="small"
           margin={false}
           onClick={(): void => actions.request('remove')}
