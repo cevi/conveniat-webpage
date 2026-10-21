@@ -6,9 +6,10 @@ import { io } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type React from 'react';
 
+/** Holds the place of the "Mein Code" pill while the session is read. */
 export const QrCodeIconSkeleton: React.FC = () => (
-  <div className="flex h-11 w-11 items-center justify-center">
-    <QrCode className="h-[22px] w-[22px] animate-pulse text-green-500" aria-hidden="true" />
+  <div className="border-line flex h-11 w-[124px] animate-pulse items-center gap-2 rounded-full border bg-white px-4">
+    <QrCode className="h-[18px] w-[18px] text-green-500" aria-hidden="true" />
   </div>
 );
 
