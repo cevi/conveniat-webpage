@@ -1,60 +1,65 @@
 'use client';
 
 import { OnboardingStep } from '@/features/onboarding/types';
-import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { motion } from 'framer-motion';
 import React from 'react';
 
-/** The steps a user answers, in the order the flow asks them. */
-export const onboardingQuestionSteps = [
+const steps = [
   OnboardingStep.Initial,
   OnboardingStep.Login,
   OnboardingStep.PushNotifications,
   OnboardingStep.OfflineContent,
-] as const;
-
-const stepOfText: StaticTranslationString = {
-  de: 'Schritt {step} von {total}',
-  en: 'Step {step} of {total}',
-  fr: 'Étape {step} sur {total}',
-};
+];
 
 interface OnboardingProgressProperties {
   currentStep: OnboardingStep;
-  locale: Locale;
+  onStepClick: (step: OnboardingStep) => void;
 }
 
-/**
- * Where the user is in the flow: "Schritt 2 von 4" over a bar of four segments. A step the flow
- * skipped on its own (already logged in, notifications already on) counts as done. Screens that
- * are not a question (loading, no connection) keep the space but show nothing.
- */
 export const OnboardingProgress: React.FC<OnboardingProgressProperties> = ({
   currentStep,
-  locale,
+  onStepClick,
 }) => {
-  const stepIndex = (onboardingQuestionSteps as readonly OnboardingStep[]).indexOf(currentStep);
-  if (stepIndex === -1) return <div className="flex-1" />;
-
-  const total = onboardingQuestionSteps.length;
-  const label = stepOfText[locale]
-    .replace('{step}', String(stepIndex + 1))
-    .replace('{total}', String(total));
+  // Determine step index. If checking, assume initial (0) to prevent layout jump/flash.
+  let stepIndex = steps.indexOf(currentStep);
+  if (stepIndex === -1 && currentStep === OnboardingStep.Checking) {
+    stepIndex = 0;
+  }
 
   return (
-    <div className="flex flex-1 flex-col gap-1.5">
-      <p className="text-center text-[13px] font-semibold text-green-700">{label}</p>
-      <div className="flex gap-1.5" aria-hidden="true">
-        {onboardingQuestionSteps.map((step, index) => (
-          <span
+    <div className="flex w-full justify-center gap-4 py-8">
+      {steps.map((step, index) => {
+        const isActive = index === stepIndex;
+        const isCompleted = index < stepIndex;
+
+        return (
+          <button
             key={step}
+            onClick={() => onStepClick(step)}
+            type="button"
+            disabled={!isCompleted && !isActive}
             className={cn(
-              'h-1.5 flex-1 rounded-full transition-colors duration-300',
-              index <= stepIndex ? 'bg-conveniat-green' : 'bg-chip',
+              'group relative flex items-center justify-center p-2 focus:outline-hidden',
+              !isCompleted && !isActive ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
             )}
-          />
-        ))}
-      </div>
+          >
+            <motion.div
+              initial={false}
+              animate={{
+                width: isActive ? 24 : 12,
+                height: 12,
+                backgroundColor: isActive || isCompleted ? '#B91C1C' : '#D1D5DB', // red-700 : gray-300
+              }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className={cn(
+                'rounded-full group-hover:bg-red-400 group-focus-visible:ring-2 group-focus-visible:ring-red-500',
+                isActive && 'group-hover:bg-red-800',
+              )}
+            />
+          </button>
+        );
+      })}
     </div>
   );
 };

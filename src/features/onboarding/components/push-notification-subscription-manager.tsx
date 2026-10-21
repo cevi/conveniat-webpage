@@ -6,8 +6,8 @@ import { PushNotificationNotSupported } from '@/features/onboarding/components/p
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie } from '@/types/types';
 import { isNativeAppWebView } from '@/utils/standalone-check';
-import Cookies from 'js-cookie';
 
+import Cookies from 'js-cookie';
 import React, { useSyncExternalStore } from 'react';
 
 const noopUnsubscribe = (): undefined => undefined;

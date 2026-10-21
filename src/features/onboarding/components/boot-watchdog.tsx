@@ -59,14 +59,13 @@ export const BootWatchdog: React.FC<{ locale: Locale }> = ({ locale }) => {
       <div
         id="konekta-boot-fallback"
         style={{ display: 'none' }}
-        className="border-line fixed inset-x-0 bottom-0 z-[9999] flex-col items-stretch gap-3 rounded-t-[14px] border-t bg-white px-5 pt-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center"
+        className="fixed inset-x-0 bottom-0 z-[9999] flex-col items-center gap-3 bg-white/95 p-6 text-center shadow-[0_-2px_16px_rgba(0,0,0,0.12)]"
       >
-        <p className="text-[15px] text-balance text-green-900">{bootStalledMessage[locale]}</p>
-        {/* Plain classes, not <Button>: this markup has to work before any app chunk loads. */}
+        <p className="max-w-sm text-balance text-gray-700">{bootStalledMessage[locale]}</p>
         <button
           id="konekta-boot-reload"
           type="button"
-          className="bg-conveniat-green h-11 cursor-pointer rounded-xl px-4 text-[15px] font-semibold text-white"
+          className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md"
         >
           {bootReloadLabel[locale]}
         </button>

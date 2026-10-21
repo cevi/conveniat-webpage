@@ -1,20 +1,10 @@
 'use client';
-import { Button } from '@/components/ui/buttons/button';
-import { IconTile } from '@/components/ui/icon-tile';
-import { OnboardingFrame } from '@/features/onboarding/components/onboarding-frame';
-import { OnboardingStepScreen } from '@/features/onboarding/components/onboarding-step';
+import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import type { StaticTranslationString } from '@/types/types';
 import { i18nConfig, type Locale } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
-import { LogIn } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
-
-const loginTitle: StaticTranslationString = {
-  en: 'Log in',
-  de: 'Anmelden',
-  fr: 'Connexion',
-};
 
 const loginText: StaticTranslationString = {
   en: 'Some app functionality require authentication, please log in.',
@@ -32,18 +22,19 @@ const LoginScreen: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <OnboardingFrame>
-      <OnboardingStepScreen
-        visual={<IconTile icon={LogIn} size="lg" />}
-        title={loginTitle[locale]}
-        description={loginText[locale]}
-        actions={
-          <Button variant="primary" size="touch" onClick={() => handleLogin()}>
-            {loginButtonText[locale]}
-          </Button>
-        }
-      />
-    </OnboardingFrame>
+    <article className="mx-4 flex h-full items-center justify-center">
+      <div className="flex flex-col rounded-lg p-8 text-center">
+        <CenteredConveniatLogo />
+
+        <p className="mb-4 text-balance text-gray-700">{loginText[locale]}</p>
+        <button
+          onClick={() => handleLogin()}
+          className="font-heading cursor-pointer rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
+        >
+          {loginButtonText[locale]}
+        </button>
+      </div>
+    </article>
   );
 };
 

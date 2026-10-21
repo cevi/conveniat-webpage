@@ -1,16 +1,12 @@
-import { Button } from '@/components/ui/buttons/button';
-import { IconTile } from '@/components/ui/icon-tile';
-import {
-  OnboardingNotice,
-  OnboardingStepScreen,
-} from '@/features/onboarding/components/onboarding-step';
-import {
-  pushNotificationReason,
-  pushNotificationTitle,
-} from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
-import { Bell, Loader2 } from 'lucide-react';
+
 import React from 'react';
+
+const notYetSubscribed: StaticTranslationString = {
+  en: 'You are not subscribed to push notifications.',
+  de: 'Du bist nicht für Push-Benachrichtigungen angemeldet.',
+  fr: "Vous n'êtes pas abonné aux notifications push.",
+};
 
 const subscribedText: StaticTranslationString = {
   en: 'You are subscribed to push notifications.',
@@ -40,7 +36,6 @@ interface PushNotificationActionsProperties {
   onContinue: () => void;
 }
 
-/** The notification step for Web Push: why it is asked, and the switch to turn it on or off. */
 export const PushNotificationActions: React.FC<PushNotificationActionsProperties> = ({
   locale,
   isSubscribed,
@@ -49,36 +44,32 @@ export const PushNotificationActions: React.FC<PushNotificationActionsProperties
   onToggle,
   onContinue,
 }) => {
-  const hasError = errorMessage !== undefined && errorMessage !== '';
-  const hasStatus = isSubscribed || hasError;
   return (
-    <OnboardingStepScreen
-      visual={<IconTile icon={Bell} size="lg" />}
-      title={pushNotificationTitle[locale]}
-      description={pushNotificationReason[locale]}
-      actions={
-        <Button
-          variant="primary"
-          size="touch"
-          onClick={() => {
-            void onToggle().then((success) => {
-              if (success) onContinue();
-            });
-          }}
-          disabled={isLoading || hasError}
-          aria-busy={isLoading}
-        >
-          {isLoading && <Loader2 className="animate-spin" aria-hidden="true" />}
-          {isSubscribed ? unsubscribeAcceptedText[locale] : subscribeAcceptedText[locale]}
-        </Button>
-      }
-    >
-      {hasStatus ? (
-        <div className="flex flex-col gap-3">
-          {isSubscribed && <OnboardingNotice>{subscribedText[locale]}</OnboardingNotice>}
-          {hasError && <OnboardingNotice role="alert">{errorMessage}</OnboardingNotice>}
-        </div>
-      ) : undefined}
-    </OnboardingStepScreen>
+    <div className="mb-0 flex flex-col items-center">
+      <p className="mb-4 text-balance text-gray-700">
+        {isSubscribed ? subscribedText[locale] : notYetSubscribed[locale]}
+      </p>
+
+      {errorMessage && (
+        <p className="mb-4 rounded bg-red-50 p-2 text-sm text-balance text-red-600">
+          {errorMessage}
+        </p>
+      )}
+
+      <button
+        className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+        onClick={() => {
+          void onToggle().then((success) => {
+            if (success) onContinue();
+          });
+        }}
+        disabled={isLoading || !!errorMessage}
+      >
+        {isLoading && (
+          <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
+        )}
+        {isSubscribed ? unsubscribeAcceptedText[locale] : subscribeAcceptedText[locale]}
+      </button>
+    </div>
   );
 };

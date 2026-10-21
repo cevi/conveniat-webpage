@@ -1,16 +1,6 @@
-import { Button } from '@/components/ui/buttons/button';
-import { IconTile } from '@/components/ui/icon-tile';
-import {
-  OnboardingNotice,
-  OnboardingStepScreen,
-} from '@/features/onboarding/components/onboarding-step';
-import {
-  pushNotificationReason,
-  pushNotificationTitle,
-} from '@/features/onboarding/onboarding-constants';
+import { offlineContentNotNowButton } from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
 import { isPWAStandalone } from '@/utils/standalone-check';
-import { BellOff } from 'lucide-react';
 import React from 'react';
 
 const notSupportedBrowserText: StaticTranslationString = {
@@ -25,20 +15,11 @@ const notSupportedDeviceText: StaticTranslationString = {
   fr: 'Les notifications push ne sont pas prises en charge sur cet appareil.',
 };
 
-// Not "Nicht jetzt": the step's own skip below already says that, and here there is nothing to
-// turn down, only a way on.
-const continueText: StaticTranslationString = {
-  en: 'Continue',
-  de: 'Weiter',
-  fr: 'Continuer',
-};
-
 interface PushNotificationNotSupportedProperties {
   locale: 'de' | 'fr' | 'en';
   onSkip: () => void;
 }
 
-/** The notification step where neither the browser nor the device can receive push. */
 export const PushNotificationNotSupported: React.FC<PushNotificationNotSupportedProperties> = ({
   locale,
   onSkip,
@@ -46,19 +27,18 @@ export const PushNotificationNotSupported: React.FC<PushNotificationNotSupported
   const isStandalone = isPWAStandalone();
 
   return (
-    <OnboardingStepScreen
-      visual={<IconTile icon={BellOff} size="lg" />}
-      title={pushNotificationTitle[locale]}
-      description={pushNotificationReason[locale]}
-      actions={
-        <Button variant="primary" size="touch" onClick={onSkip}>
-          {continueText[locale]}
-        </Button>
-      }
-    >
-      <OnboardingNotice>
-        {isStandalone ? notSupportedDeviceText[locale] : notSupportedBrowserText[locale]}
-      </OnboardingNotice>
-    </OnboardingStepScreen>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-center gap-2 rounded-lg bg-gray-100 p-3 text-gray-600">
+        <span className="font-semibold text-balance">
+          {isStandalone ? notSupportedDeviceText[locale] : notSupportedBrowserText[locale]}
+        </span>
+      </div>
+      <button
+        onClick={onSkip}
+        className="font-heading w-full transform cursor-pointer rounded-[8px] bg-gray-400 px-8 py-3 text-center text-lg leading-normal font-bold text-white shadow-md duration-100 hover:scale-[1.02] hover:bg-gray-500 active:scale-[0.98]"
+      >
+        {offlineContentNotNowButton[locale]}
+      </button>
+    </div>
   );
 };

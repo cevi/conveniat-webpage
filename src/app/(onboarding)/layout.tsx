@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
+import { BackgroundLogo } from '@/components/background-logo';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { environmentVariables } from '@/config/environment-variables';
 import { BootHydrationMarker } from '@/features/onboarding/components/boot-hydration-marker';
@@ -41,7 +42,7 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
       </head>
       <body
         suppressHydrationWarning
-        className="bg-page flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none"
+        className="flex h-svh w-screen flex-col overflow-x-hidden overflow-y-hidden overscroll-y-none bg-[#f8fafc]"
       >
         {/*
           Early capture script for native push notification clicks on cold start.
@@ -95,6 +96,10 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
         <BootWatchdog locale={locale} />
         <PostHogProvider>
           <BootHydrationMarker />
+          <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
+            {/* No height cap: the boot screen centres the mark in the full viewport. */}
+            <BackgroundLogo />
+          </div>
           {children}
         </PostHogProvider>
       </body>

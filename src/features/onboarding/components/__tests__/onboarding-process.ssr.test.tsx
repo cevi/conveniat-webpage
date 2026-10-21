@@ -58,9 +58,6 @@ jest.mock('@/features/onboarding/components/push-notification-manager', () => ({
   PushNotificationManagerEntrypointComponent: (): undefined => undefined,
   skipPushNotificationText: { de: '', fr: '', en: '' },
 }));
-jest.mock('@/components/svg-logos/conveniat-logo', () => ({
-  ConveniatLogo: (): undefined => undefined,
-}));
 jest.mock('@/features/onboarding/components/offline-content-component', () => ({
   OfflineContentEntrypointComponent: (): undefined => undefined,
 }));
@@ -83,6 +80,7 @@ describe('OnboardingProcessContent server-rendered markup', () => {
     mockedStep = OnboardingStep.Initial;
     const html = renderToString(<OnboardingProcessContent />);
 
+    expect(html).toContain('bg-red-700');
     expect(html).toContain('Akzeptieren');
     expect(html).toContain('Nur notwendige');
     expect(html).not.toMatch(INVISIBLE);

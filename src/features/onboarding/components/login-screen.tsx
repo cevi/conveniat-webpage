@@ -1,26 +1,14 @@
 'use client';
 
-import { Button } from '@/components/ui/buttons/button';
-import { IconTile } from '@/components/ui/icon-tile';
-import {
-  OnboardingNotice,
-  OnboardingStepScreen,
-} from '@/features/onboarding/components/onboarding-step';
 import type { StaticTranslationString } from '@/types/types';
 import { handleLogin } from '@/utils/login-handler';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-const loginTitle: StaticTranslationString = {
-  en: 'Log in',
-  de: 'Anmelden',
-  fr: 'Connexion',
-};
-
 const loginText: StaticTranslationString = {
-  en: 'The chat and your personal features need your Cevi.DB account.',
-  de: 'Für den Chat und deine persönlichen Funktionen brauchst du dein Cevi.DB-Konto.',
-  fr: 'Le chat et vos fonctions personnelles nécessitent votre compte Cevi.DB.',
+  en: 'Some app functionality require authentication, please log in.',
+  de: 'Einige Funktionen der App erfordern eine Authentifizierung, bitte melde dich an.',
+  fr: 'Cette application nécessite une authentification pour certaines fonctionnalités. Veuillez vous connecter.',
 };
 
 const loginButtonText: StaticTranslationString = {
@@ -36,21 +24,20 @@ const loadingText: StaticTranslationString = {
 };
 
 const errorText: StaticTranslationString = {
-  en: 'Cevi.DB did not answer. Check your connection and try again.',
-  de: 'Cevi.DB hat nicht geantwortet. Prüfe deine Verbindung und versuche es nochmals.',
-  fr: 'Cevi.DB n’a pas répondu. Vérifiez votre connexion et réessayez.',
+  en: 'Connection failed. Please try again.',
+  de: 'Verbindung fehlgeschlagen. Bitte erneut versuchen.',
+  fr: 'Échec de la connexion. Veuillez réessayer.',
 };
 
 export const loginDismissText: StaticTranslationString = {
-  en: 'Continue without logging in',
-  de: 'Ohne Anmeldung weiter',
-  fr: 'Continuer sans connexion',
+  en: 'Skip for now',
+  de: 'Überspringen',
+  fr: "Passer pour l'instant",
 };
 
 /** Timeout for the redirect to hitobito (not the full OAuth flow) */
 const REDIRECT_TIMEOUT_MS = 15_000;
 
-/** The login step; the way past it without logging in is rendered by the onboarding process. */
 export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -82,31 +69,31 @@ export const LoginScreen: React.FC<{ locale: 'de' | 'fr' | 'en' }> = ({ locale }
   }, []);
 
   return (
-    <OnboardingStepScreen
-      visual={<IconTile icon={LogIn} size="lg" />}
-      title={loginTitle[locale]}
-      description={loginText[locale]}
-      actions={
-        <Button
-          variant="primary"
-          size="touch"
-          onClick={handleLoginClick}
-          disabled={isLoading}
-          aria-busy={isLoading}
-          className="disabled:cursor-wait disabled:opacity-100"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="animate-spin" aria-hidden="true" />
-              <span>{loadingText[locale]}</span>
-            </>
-          ) : (
-            loginButtonText[locale]
-          )}
-        </Button>
-      }
-    >
-      {hasError ? <OnboardingNotice role="alert">{errorText[locale]}</OnboardingNotice> : undefined}
-    </OnboardingStepScreen>
+    <>
+      <p className="mb-8 text-lg text-balance text-gray-700">{loginText[locale]}</p>
+      <button
+        onClick={handleLoginClick}
+        disabled={isLoading}
+        className={`font-heading flex min-h-[52px] w-full transform items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 shadow-md duration-100 ${
+          isLoading
+            ? 'cursor-wait'
+            : 'cursor-pointer hover:scale-[1.02] hover:bg-red-800 active:scale-[0.98]'
+        }`}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>{loadingText[locale]}</span>
+          </>
+        ) : (
+          loginButtonText[locale]
+        )}
+      </button>
+      {hasError && (
+        <p className="mt-4 text-center text-sm text-red-600" role="alert">
+          {errorText[locale]}
+        </p>
+      )}
+    </>
   );
 };

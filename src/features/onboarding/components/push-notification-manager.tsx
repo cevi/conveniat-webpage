@@ -3,9 +3,9 @@ import { type StaticTranslationString } from '@/types/types';
 import React from 'react';
 
 export const skipPushNotificationText: StaticTranslationString = {
-  en: 'Not now',
-  de: 'Nicht jetzt',
-  fr: 'Pas maintenant',
+  en: 'Skip for now',
+  de: 'Überspringen',
+  fr: 'Passer pour l’instant',
 };
 
 export const PushNotificationManagerEntrypointComponent: React.FC<{
