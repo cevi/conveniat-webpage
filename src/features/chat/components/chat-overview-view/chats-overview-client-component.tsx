@@ -21,9 +21,9 @@ import type React from 'react';
 import { useMemo, useState } from 'react';
 
 const searchPlaceholderText: StaticTranslationString = {
-  en: 'Search conversations...',
-  de: 'Unterhaltungen durchsuchen...',
-  fr: 'Rechercher des conversations...',
+  en: 'Search chats',
+  de: 'Chats durchsuchen',
+  fr: 'Rechercher dans les chats',
 };
 
 const noChatsFoundText: StaticTranslationString = {
@@ -180,20 +180,8 @@ export const ChatsOverviewClientComponent: React.FC<{
 
   return (
     <div className="flex flex-col gap-4">
-      {createChatsEnabled === true ? (
-        <SetHeaderActions>
-          <Link
-            href="/app/chat/new"
-            aria-label={newChatLabel[locale]}
-            className="flex h-11 w-11 items-center justify-center rounded-xl"
-          >
-            <MessageSquarePlus className="h-[22px] w-[22px]" aria-hidden="true" />
-          </Link>
-          {qrCodeButton}
-        </SetHeaderActions>
-      ) : (
-        <SetHeaderActions />
-      )}
+      {/* the own code needs no right to create chats: a scanned code opens a private chat */}
+      <SetHeaderActions>{qrCodeButton}</SetHeaderActions>
 
       <RealtimeSyncBanner
         status={realtimeStatus}
@@ -217,9 +205,13 @@ export const ChatsOverviewClientComponent: React.FC<{
       {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
           {filteredChats.length > 0 ? (
-            <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+            <ul className="border-line -mx-4 border-y bg-white sm:mx-0 sm:overflow-hidden sm:rounded-[14px] sm:border">
               {filteredChats.map((chat) => (
-                <li key={chat.id}>
+                <li
+                  key={chat.id}
+                  // the line between rows starts at the text, as the avatar marks each row; above the swipe layer
+                  className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
+                >
                   <SwipeToDeleteChat chat={chat}>
                     <ChatPreview chat={chat} />
                   </SwipeToDeleteChat>
@@ -235,6 +227,17 @@ export const ChatsOverviewClientComponent: React.FC<{
             />
           )}
         </PullToRefresh>
+      )}
+
+      {/* the screen's main action floats over the list, above the tab bar */}
+      {createChatsEnabled === true && (
+        <Link
+          href="/app/chat/new"
+          className="bg-conveniat-green fixed right-4 bottom-[96px] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700 focus-visible:ring-2 focus-visible:ring-green-900 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
+          {newChatLabel[locale]}
+        </Link>
       )}
     </div>
   );

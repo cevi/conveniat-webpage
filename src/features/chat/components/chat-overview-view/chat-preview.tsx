@@ -1,9 +1,10 @@
 'use client';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
-import { useFormatDate } from '@/features/chat/hooks/use-format-date';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
+import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -125,10 +126,13 @@ export const ChatPreview: React.FC<{
   }
 
   const hasUnread = chat.unreadCount > 0;
-  const { formatMessageTime } = useFormatDate();
 
   const messageDate = chat.lastMessage?.createdAt ?? chat.lastUpdate;
-  const timestamp = formatMessageTime(new Date(messageDate));
+  const timestamp = formatChatListDate(messageDate, locale, new Date());
+
+  // a private chat is named after the partner: their Ceviname leads, the real name follows
+  const { primary: title, secondary: subtitle } =
+    chat.chatType === ChatType.ONE_TO_ONE ? splitDisplayName(chat.name) : { primary: chat.name };
 
   const rawPreview = chat.lastMessage?.messagePreview;
   let previewText = '';
@@ -156,18 +160,26 @@ export const ChatPreview: React.FC<{
         <ChatAvatar chat={chat} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-center gap-1.5">
             <p
               className={cn(
-                'min-w-0 flex-1 truncate text-[15px] leading-5 font-semibold text-green-900',
+                'min-w-0 truncate text-[15px] leading-5 text-green-900',
                 isEmergency && 'text-red-700',
               )}
             >
-              {chat.name}
+              <span className="font-semibold">{title}</span>
+              {subtitle !== undefined && <span className="text-green-700"> {subtitle}</span>}
             </p>
+            {chat.isPinned === true && (
+              <Pin
+                className="h-3.5 w-3.5 shrink-0 text-green-500"
+                aria-label={pinnedText[locale]}
+                role="img"
+              />
+            )}
             <span
               className={cn(
-                'shrink-0 text-xs whitespace-nowrap text-green-500 tabular-nums',
+                'ml-auto shrink-0 pl-1 text-xs whitespace-nowrap text-green-700 tabular-nums',
                 hasUnread && 'text-conveniat-green font-semibold',
                 isEmergency && 'text-red-700',
               )}
@@ -196,13 +208,6 @@ export const ChatPreview: React.FC<{
               {senderPrefix}
               {previewText}
             </p>
-            {chat.isPinned === true && (
-              <Pin
-                className="h-4 w-4 shrink-0 text-green-500"
-                aria-label={pinnedText[locale]}
-                role="img"
-              />
-            )}
             {hasUnread && (
               <span
                 className={cn(

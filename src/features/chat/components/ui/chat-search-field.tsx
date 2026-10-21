@@ -12,7 +12,7 @@ const clearLabel: StaticTranslationString = {
   fr: 'Effacer la recherche',
 };
 
-/** The search over a list of chats or contacts: a white pill, like the search on the map. */
+/** The search over a list of chats or contacts: a quiet field at the head of the list. */
 export const ChatSearchField: React.FC<{
   placeholder: string;
   value: string;
@@ -21,7 +21,7 @@ export const ChatSearchField: React.FC<{
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <label className="border-line flex h-11 min-w-0 items-center gap-2.5 rounded-full border bg-white pl-4">
+    <label className="bg-quiet focus-within:ring-conveniat-green flex h-11 min-w-0 items-center gap-2.5 rounded-xl pl-4 focus-within:ring-2">
       <Search className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
       <span className="sr-only">{placeholder}</span>
       <input
