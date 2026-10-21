@@ -4,7 +4,7 @@ import { useReleasePushSubscriptions } from '@/hooks/use-release-push-subscripti
 import { flushPersonalData } from '@/lib/flush-personal-data';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useState } from 'react';
@@ -54,10 +54,7 @@ export const LogoutButton: React.FC = () => {
           {loggingOutText[locale]}
         </>
       ) : (
-        <>
-          <LogOut aria-hidden="true" />
-          {logoutText[locale]}
-        </>
+        logoutText[locale]
       )}
     </Button>
   );

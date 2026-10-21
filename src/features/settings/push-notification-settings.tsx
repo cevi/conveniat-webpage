@@ -6,7 +6,7 @@ import { useNativePush } from '@/hooks/use-native-push';
 import { usePushNotificationState } from '@/hooks/use-push-notification-state';
 import { Cookie, type Locale, type StaticTranslationString } from '@/types/types';
 import Cookies from 'js-cookie';
-import { Bell, Bug, Check, Share2, X } from 'lucide-react';
+import { Bug, Check, Share2, X } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import React, { useCallback, useState } from 'react';
 
@@ -17,9 +17,9 @@ const pushNotificationSettingsTitle: StaticTranslationString = {
 };
 
 const pushNotificationDescription: StaticTranslationString = {
-  de: 'Erhalte wichtige Updates',
-  en: 'Get important updates',
-  fr: 'Recevez des mises à jour importantes',
+  de: 'Wichtige Updates zum Lager',
+  en: 'Important updates about the camp',
+  fr: 'Mises à jour importantes sur le camp',
 };
 
 const pleaseSignInForPushText: StaticTranslationString = {
@@ -237,7 +237,6 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
   return (
     <div onClick={handleTap} className="select-none">
       <SettingsRow
-        icon={Bell}
         title={pushNotificationSettingsTitle[locale]}
         subtitle={subtitle}
         error={errorMessage}

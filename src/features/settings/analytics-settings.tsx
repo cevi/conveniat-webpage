@@ -6,7 +6,6 @@ import { useAnalyticsConsent } from '@/hooks/use-analytics-consent';
 import { isPostHogConfigured } from '@/lib/posthog-client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { setAnalyticsConsent } from '@/utils/analytics-consent';
-import { ChartNoAxesColumn } from 'lucide-react';
 import type React from 'react';
 
 const analyticsSettingsTitle: StaticTranslationString = {
@@ -16,9 +15,9 @@ const analyticsSettingsTitle: StaticTranslationString = {
 };
 
 const analyticsSettingsSubtitle: StaticTranslationString = {
-  en: 'Detailed usage analysis with PostHog',
-  de: 'Detaillierte Nutzungsanalyse mit PostHog',
-  fr: "Analyse détaillée de l'utilisation avec PostHog",
+  en: 'Usage analysis with PostHog',
+  de: 'Nutzungsanalyse mit PostHog',
+  fr: "Analyse de l'utilisation avec PostHog",
 };
 
 /**
@@ -34,7 +33,6 @@ export const AnalyticsSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   return (
     <SettingsRow
-      icon={ChartNoAxesColumn}
       title={analyticsSettingsTitle[locale]}
       subtitle={analyticsSettingsSubtitle[locale]}
       action={

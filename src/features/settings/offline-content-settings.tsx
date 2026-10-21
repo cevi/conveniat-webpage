@@ -8,7 +8,7 @@ import { syncAllOfflineData } from '@/lib/chat-sync';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { motion } from 'framer-motion';
-import { Download, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import React from 'react';
 
 const offlineSettingsTitle: StaticTranslationString = {
@@ -62,7 +62,6 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
 
   return (
     <SettingsRow
-      icon={Download}
       title={offlineSettingsTitle[locale]}
       subtitle={
         displayStatus === 'has-content' ? downloadedText[locale] : notDownloadedText[locale]

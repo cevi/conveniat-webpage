@@ -1,26 +1,37 @@
 'use client';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { IconTile } from '@/components/ui/icon-tile';
 import { LinkComponent } from '@/components/ui/link-component';
 import { SectionLabel } from '@/components/ui/section-label';
 import { SettingsCard, SettingsRow } from '@/features/settings/components/settings-row';
 import { useNativeAppInfo } from '@/hooks/use-native-app-info';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Calendar, ExternalLink, Heart, Laptop, Mail, Server, Smartphone } from 'lucide-react';
-import React from 'react';
+import {
+  Calendar,
+  ChevronRight,
+  ExternalLink,
+  Heart,
+  Laptop,
+  Mail,
+  Server,
+  Smartphone,
+} from 'lucide-react';
+import React, { useState } from 'react';
+
+/** The version of the web app, from the build file. */
+export interface WebBuild {
+  version: string;
+  timestamp: string;
+  git: {
+    branch: string;
+    hash: string;
+  };
+}
 
 interface AboutSettingsProperties {
   locale: Locale;
-  webBuild?:
-    | {
-        version: string;
-        timestamp: string;
-        git: {
-          branch: string;
-          hash: string;
-        };
-      }
-    | undefined;
+  webBuild?: WebBuild | undefined;
 }
 
 const aboutTitle: StaticTranslationString = {
@@ -227,8 +238,13 @@ const renderHosttechDescription = (locale: Locale): React.ReactNode => {
   }
 };
 
+/**
+ * "Über diese App": a row in the settings that opens a sheet with who builds and hosts the app,
+ * how to reach them and which version runs.
+ */
 export const AboutSettings: React.FC<AboutSettingsProperties> = ({ locale, webBuild }) => {
   const nativeApp = useNativeAppInfo();
+  const [isOpen, setIsOpen] = useState(false);
 
   let platformName = nativeApp?.platform;
   if (nativeApp?.platform.toLowerCase() === 'ios') {
@@ -238,81 +254,93 @@ export const AboutSettings: React.FC<AboutSettingsProperties> = ({ locale, webBu
   }
 
   return (
-    <div className="space-y-6">
-      <section>
-        <SectionLabel className="mb-2 px-1">{aboutTitle[locale]}</SectionLabel>
-        <SettingsCard>
-          {/* Author & Contribution Row */}
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <IconTile icon={Heart} />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[15px] leading-5 font-semibold text-green-900">
-                {authorTitle[locale]}
-              </h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-green-700">
-                {renderAuthorDescription(locale)}
+    <>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="hover:bg-quiet flex min-h-[56px] w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-[15px] leading-5 font-medium text-green-900 transition-colors"
+      >
+        <span className="min-w-0 flex-1">{aboutTitle[locale]}</span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
+      </button>
+
+      <BottomSheet open={isOpen} onOpenChange={setIsOpen} title={aboutTitle[locale]}>
+        <div className="space-y-6">
+          <SettingsCard>
+            {/* Author & Contribution Row */}
+            <div className="flex items-start gap-3 px-4 py-3">
+              <IconTile icon={Heart} />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] leading-5 font-semibold text-green-900">
+                  {authorTitle[locale]}
+                </h3>
+                <p className="mt-1 text-[13px] leading-relaxed text-green-700">
+                  {renderAuthorDescription(locale)}
+                </p>
+              </div>
+            </div>
+
+            {/* Hosting Sponsor Row */}
+            <div className="flex items-start gap-3 px-4 py-3">
+              <IconTile icon={Server} />
+              <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-green-700">
+                {renderHosttechDescription(locale)}
               </p>
             </div>
-          </div>
 
-          {/* Hosting Sponsor Row */}
-          <div className="flex items-start gap-3 px-3.5 py-3">
-            <IconTile icon={Server} />
-            <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-green-700">
-              {renderHosttechDescription(locale)}
-            </p>
-          </div>
-
-          {/* Contact Row */}
-          <LinkComponent
-            href="mailto:info@cevi.tools"
-            className="hover:bg-quiet block transition-colors"
-            hideExternalIcon
-          >
-            <SettingsRow
-              icon={Mail}
-              title={contactTitle[locale]}
-              subtitle="Fachgruppe Informatik (info@cevi.tools)"
-              subtitleClassName="whitespace-normal text-balance"
-              action={<ExternalLink className="h-5 w-5 text-green-500" aria-hidden="true" />}
-            />
-          </LinkComponent>
-        </SettingsCard>
-      </section>
-
-      {/* Build Information */}
-      {(webBuild !== undefined || Boolean(nativeApp)) && (
-        <section>
-          <SectionLabel className="mb-2 px-1">{buildInfoTitle[locale]}</SectionLabel>
-          <SettingsCard>
-            {webBuild && (
+            {/* Contact Row */}
+            <LinkComponent
+              href="mailto:info@cevi.tools"
+              className="hover:bg-quiet block transition-colors"
+              hideExternalIcon
+            >
               <SettingsRow
-                icon={Laptop}
-                title={webBuildLabel[locale]}
-                subtitle={`v${webBuild.version} (${webBuild.git.hash})`}
-                subtitleClassName="font-mono text-xs"
+                icon={Mail}
+                title={contactTitle[locale]}
+                subtitle="Fachgruppe Informatik (info@cevi.tools)"
+                subtitleClassName="whitespace-normal text-balance"
+                action={<ExternalLink className="h-5 w-5 text-green-500" aria-hidden="true" />}
               />
-            )}
-
-            {nativeApp && (
-              <SettingsRow
-                icon={Smartphone}
-                title={`${nativeBuildLabel[locale]} (${platformName})`}
-                subtitle={`v${nativeApp.version} (${nativeApp.buildNumber})`}
-                subtitleClassName="font-mono text-xs"
-              />
-            )}
-
-            {webBuild?.timestamp && (
-              <SettingsRow
-                icon={Calendar}
-                title={buildDateLabel[locale]}
-                subtitle={webBuild.timestamp}
-              />
-            )}
+            </LinkComponent>
           </SettingsCard>
-        </section>
-      )}
-    </div>
+
+          {/* Build Information */}
+          {(webBuild !== undefined || Boolean(nativeApp)) && (
+            <section>
+              <SectionLabel as="h3" className="mb-2 px-1">
+                {buildInfoTitle[locale]}
+              </SectionLabel>
+              <SettingsCard>
+                {webBuild && (
+                  <SettingsRow
+                    icon={Laptop}
+                    title={webBuildLabel[locale]}
+                    subtitle={`v${webBuild.version} (${webBuild.git.hash})`}
+                    subtitleClassName="font-mono text-xs"
+                  />
+                )}
+
+                {nativeApp && (
+                  <SettingsRow
+                    icon={Smartphone}
+                    title={`${nativeBuildLabel[locale]} (${platformName})`}
+                    subtitle={`v${nativeApp.version} (${nativeApp.buildNumber})`}
+                    subtitleClassName="font-mono text-xs"
+                  />
+                )}
+
+                {webBuild?.timestamp && (
+                  <SettingsRow
+                    icon={Calendar}
+                    title={buildDateLabel[locale]}
+                    subtitle={webBuild.timestamp}
+                  />
+                )}
+              </SettingsCard>
+            </section>
+          )}
+        </div>
+      </BottomSheet>
+    </>
   );
 };

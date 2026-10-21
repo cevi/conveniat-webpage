@@ -1,15 +1,15 @@
 import { IconTile } from '@/components/ui/icon-tile';
-import { LinkComponent } from '@/components/ui/link-component';
 import { SectionLabel } from '@/components/ui/section-label';
-import { environmentVariables } from '@/config/environment-variables';
 import { CeviDatabaseGroupSync } from '@/features/settings/cevi-db-group-sync';
 import { LoginButton } from '@/features/settings/login-button';
 import { LogoutButton } from '@/features/settings/logout-button';
+import { displayNamesOf } from '@/features/settings/utils/display-names';
+import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
-import { auth } from '@/utils/auth';
+import { getCachedSession } from '@/utils/auth';
 import { isValidNextAuthUser } from '@/utils/auth-helpers';
 import { getLocaleFromCookies } from '@/utils/get-locale-from-cookies';
-import { ExternalLink, Hash, LifeBuoy, LogIn, Mail, MapPin, Tent } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import React from 'react';
 
 import {
@@ -17,7 +17,7 @@ import {
   getHofDirectory,
   type HofRole,
 } from '@/features/payload-cms/payload-cms/utils/hof-directory';
-import { SettingsCard, SettingsRow } from '@/features/settings/components/settings-row';
+import { SettingsCard, SettingsFactRow } from '@/features/settings/components/settings-row';
 import { ProfileAvatar } from '@/features/settings/profile-avatar';
 import prisma from '@/lib/db/prisma';
 import { getFeatureFlag } from '@/lib/db/redis';
@@ -104,60 +104,68 @@ const guestDescription: StaticTranslationString = {
 };
 
 const profileDetailsExplanation: StaticTranslationString = {
-  de: 'Daten aus deinem Cevi.DB Account',
+  de: 'Daten aus deinem Cevi.DB-Account',
   en: 'Data from your Cevi.DB account',
-  fr: 'Données de votre compte Cevi.DB',
+  fr: 'Données de ton compte Cevi.DB',
 };
 
-const supportTitle: StaticTranslationString = {
-  de: 'Hilfe & Support',
-  en: 'Help & Support',
-  fr: 'Aide & Support',
+const myCampTitle: StaticTranslationString = {
+  de: 'Mein Lager',
+  en: 'My camp',
+  fr: 'Mon camp',
 };
 
-const contactSupportText: StaticTranslationString = {
-  en: 'Contact Support',
-  de: 'Support kontaktieren',
-  fr: 'Contacter le support',
-};
+const factLabels = {
+  hof: { de: 'Hof', en: 'Hof', fr: 'Hof' },
+  quartier: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
+  email: { de: 'E-Mail', en: 'Email', fr: 'E-mail' },
+} satisfies Record<string, StaticTranslationString>;
 
-const userIdLabel: StaticTranslationString = {
-  de: 'Benutzer-ID',
-  en: 'User ID',
-  fr: "ID d'utilisateur",
-};
-
-const supportMailContent: StaticTranslationString = {
-  de: 'Guten Tag,\nIch habe ein App-Problem.\nMeine Benutzer ID: __ID__\n\n[Bitte beschreibe hier dein Problem]',
-  en: 'Hello,\nI have an app issue.\nMy user ID: __ID__\n\n[Please describe your issue here]',
-  fr: "Bonjour,\nJ'ai un problème avec l'application.\nMon ID utilisateur: __ID__\n\n[Veuillez décrire votre problème ici]",
-};
-
-const supportMailSubject: StaticTranslationString = {
-  de: '[conveniat27 App] Support Anfrage',
-  en: '[conveniat27 App] Support Request',
-  fr: '[conveniat27 App] Demande de support',
-};
-
-export const ProfileDetails: React.FC = async () => {
-  const locale = await getLocaleFromCookies();
-  let session;
+/** The logged-in user from the session, or undefined for a guest and when it cannot be read. */
+const sessionUser = async (): Promise<HitobitoNextAuthUser | undefined> => {
   try {
-    session = await auth();
+    const session = await getCachedSession();
+    return isValidNextAuthUser(session?.user) ? session.user : undefined;
   } catch {
     // Gracefully handle auth lookup errors when offline or db unavailable
+    return undefined;
   }
-  const user = isValidNextAuthUser(session?.user) ? session.user : undefined;
-  const isAuthenticated = !!user;
+};
+
+/** "Abmelden" at the foot of the settings, for a logged-in user. */
+export const LogoutSection: React.FC = async () => {
+  const user = await sessionUser();
+  return user === undefined ? <></> : <LogoutButton />;
+};
+
+/**
+ * The profile at the top of the settings: the avatar and the names from Cevi.DB, then "Mein
+ * Lager" with the Hof, the Quartier, the e-mail address and the groups. A guest gets the way to
+ * log in instead.
+ */
+export const ProfileDetails: React.FC = async () => {
+  const locale = await getLocaleFromCookies();
+  const user = await sessionUser();
+
+  if (user === undefined) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <IconTile icon={LogIn} size="lg" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-heading text-heading text-xl leading-tight font-extrabold">
+              {guestTitle[locale]}
+            </h2>
+            <p className="mt-0.5 text-[13px] text-green-700">{guestDescription[locale]}</p>
+          </div>
+        </div>
+        <LoginButton />
+      </div>
+    );
+  }
 
   const getDetail = (value: string | number | undefined | null): string =>
     value?.toString() ?? notAvailable[locale];
-
-  const mailSupportLink = `mailto:${environmentVariables.APP_SUPPORT_EMAIL}?subject=${encodeURIComponent(
-    supportMailSubject[locale],
-  )}&body=${encodeURIComponent(
-    supportMailContent[locale].replace('__ID__', getDetail(user?.uuid)),
-  )}`;
 
   let hideHofAndQuartier = false;
   try {
@@ -165,8 +173,7 @@ export const ProfileDetails: React.FC = async () => {
   } catch {
     // Default to false if Redis is unreachable
   }
-  const shouldShowHofAndQuartier = isAuthenticated && !hideHofAndQuartier;
-  const hofRoles = shouldShowHofAndQuartier ? await findHofRolesOfUser(user.uuid) : undefined;
+  const hofRoles = hideHofAndQuartier ? undefined : await findHofRolesOfUser(user.uuid);
   const hofSummary = hofRoles === undefined ? undefined : describeHofRolesForProfile(hofRoles);
   const hofText = (): string => {
     if (hofSummary === undefined) return notAvailable[locale];
@@ -179,89 +186,43 @@ export const ProfileDetails: React.FC = async () => {
   };
 
   let pictureUrl: string | undefined;
-  if (isAuthenticated) {
-    try {
-      const own = await prisma.user.findUnique({
-        where: { uuid: user.uuid },
-        select: { profilePictureVersion: true },
-      });
-      pictureUrl = profilePictureUrlOrUndefined(user.uuid, own?.profilePictureVersion);
-    } catch {
-      // the initials stand in, e.g. while the database is unreachable
-    }
+  try {
+    const own = await prisma.user.findUnique({
+      where: { uuid: user.uuid },
+      select: { profilePictureVersion: true },
+    });
+    pictureUrl = profilePictureUrlOrUndefined(user.uuid, own?.profilePictureVersion);
+  } catch {
+    // the initials stand in, e.g. while the database is unreachable
   }
+
+  const { ceviName, fullName } = displayNamesOf(user.name, user.nickname);
 
   return (
     <div className="space-y-6">
-      {/* Profile: who is logged in and what Cevi.DB knows about them */}
-      <div className="space-y-3">
-        <SettingsCard>
-          <div className="p-4">
-            {isAuthenticated ? (
-              <ProfileAvatar
-                userId={user.uuid}
-                name={user.name}
-                pictureUrl={pictureUrl}
-                locale={locale}
-              >
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-heading text-heading text-lg leading-tight font-bold">
-                    {getDetail(user.name)}
-                  </h2>
-                  <p className="mt-0.5 text-[13px] text-green-700">
-                    {profileDetailsExplanation[locale]}
-                  </p>
-                </div>
-              </ProfileAvatar>
-            ) : (
-              <div className="flex items-center gap-4">
-                <IconTile icon={LogIn} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-heading text-heading text-lg leading-tight font-bold">
-                    {guestTitle[locale]}
-                  </h2>
-                  <p className="mt-0.5 text-[13px] text-green-700">{guestDescription[locale]}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {isAuthenticated && (
-            <SettingsRow icon={Mail} title="E-Mail" subtitle={getDetail(user.email)} />
+      <ProfileAvatar userId={user.uuid} name={user.name} pictureUrl={pictureUrl} locale={locale}>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-heading text-heading text-xl leading-tight font-extrabold break-words">
+            {ceviName ?? fullName}
+          </h2>
+          {ceviName !== undefined && (
+            <p className="mt-0.5 text-[15px] text-green-900">{fullName}</p>
           )}
-          {shouldShowHofAndQuartier && <SettingsRow icon={Tent} title="Hof" subtitle={hofText()} />}
-          {shouldShowHofAndQuartier && (
-            <SettingsRow icon={MapPin} title="Quartier" subtitle={quartierText()} />
-          )}
-          {isAuthenticated && (
-            <SettingsRow
-              icon={Hash}
-              title={userIdLabel[locale]}
-              subtitle={getDetail(user.uuid)}
-              subtitleClassName="font-mono text-xs"
-            />
-          )}
-          {isAuthenticated && <CeviDatabaseGroupSync />}
-        </SettingsCard>
+          <p className="mt-0.5 text-[13px] text-green-700">{profileDetailsExplanation[locale]}</p>
+        </div>
+      </ProfileAvatar>
 
-        {isAuthenticated ? <LogoutButton /> : <LoginButton />}
-      </div>
-
-      {/* Support Section */}
       <section>
-        <SectionLabel className="mb-2 px-1">{supportTitle[locale]}</SectionLabel>
+        <SectionLabel className="mb-2 px-1">{myCampTitle[locale]}</SectionLabel>
         <SettingsCard>
-          <LinkComponent
-            href={mailSupportLink}
-            className="hover:bg-quiet block transition-colors"
-            hideExternalIcon
-          >
-            <SettingsRow
-              icon={LifeBuoy}
-              title={contactSupportText[locale]}
-              action={<ExternalLink className="h-5 w-5 text-green-500" aria-hidden="true" />}
-            />
-          </LinkComponent>
+          {!hideHofAndQuartier && (
+            <SettingsFactRow label={factLabels.hof[locale]} value={hofText()} />
+          )}
+          {!hideHofAndQuartier && (
+            <SettingsFactRow label={factLabels.quartier[locale]} value={quartierText()} />
+          )}
+          <SettingsFactRow label={factLabels.email[locale]} value={getDetail(user.email)} />
+          <CeviDatabaseGroupSync />
         </SettingsCard>
       </section>
     </div>

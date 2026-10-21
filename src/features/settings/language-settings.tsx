@@ -5,7 +5,6 @@ import { languageNames, languageOptions } from '@/config/language-options';
 import { SettingsRow } from '@/features/settings/components/settings-row';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Languages } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 
@@ -44,7 +43,7 @@ export const LanguageSettings: React.FC<{ locale: Locale }> = ({ locale }) => {
   };
 
   return (
-    <SettingsRow icon={Languages} title={languageLabel[locale]} subtitle={languageNames[locale]}>
+    <SettingsRow title={languageLabel[locale]} subtitle={languageNames[locale]}>
       <div role="group" aria-label={languageLabel[locale]} className={segmentedTrackClassName}>
         {languageOptions.map(({ value, label }) => (
           <button

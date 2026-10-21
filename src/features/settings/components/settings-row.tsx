@@ -5,7 +5,8 @@ import { AlertCircle } from 'lucide-react';
 import React from 'react';
 
 interface SettingsRowProperties {
-  icon: LucideIcon;
+  /** an icon tile before the title, for a row that stands for a place to go */
+  icon?: LucideIcon | undefined;
   title: string;
   subtitle?: React.ReactNode | undefined;
   error?: string | undefined;
@@ -16,9 +17,8 @@ interface SettingsRowProperties {
 }
 
 /**
- * A white card of settings rows. Its direct children are separated by a line that starts where
- * the text of a row starts, as in the facts card of a Programmpunkt, so a row wrapped in a link
- * or a tap handler still gets its divider.
+ * A white card of settings rows. Its direct children are separated by a line, so a row wrapped
+ * in a link or a tap handler still gets its divider.
  */
 export const SettingsCard: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
@@ -27,7 +27,7 @@ export const SettingsCard: React.FC<{ children: React.ReactNode; className?: str
   <div
     className={cn(
       'border-line overflow-hidden rounded-[14px] border bg-white',
-      '[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:top-0 [&>*+*]:before:right-0 [&>*+*]:before:left-16 [&>*+*]:before:h-px [&>*+*]:before:bg-green-100',
+      '[&>*+*]:relative [&>*+*]:before:absolute [&>*+*]:before:top-0 [&>*+*]:before:right-0 [&>*+*]:before:left-4 [&>*+*]:before:h-px [&>*+*]:before:bg-green-100',
       className,
     )}
   >
@@ -35,7 +35,7 @@ export const SettingsCard: React.FC<{ children: React.ReactNode; className?: str
   </div>
 );
 
-/** One setting: an icon on a soft tile, what it is, its state below and its control on the right. */
+/** One setting: what it is, its state below and its control on the right. */
 export const SettingsRow: React.FC<SettingsRowProperties> = ({
   icon,
   title,
@@ -48,10 +48,10 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
 }) => {
   return (
     <div className={className}>
-      <div className="flex min-h-[60px] items-center gap-3 px-3.5 py-2.5">
-        <IconTile icon={icon} />
+      <div className="flex min-h-[56px] items-center gap-3 px-4 py-2.5">
+        {icon !== undefined && <IconTile icon={icon} />}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] leading-5 font-semibold text-green-900">{title}</p>
+          <p className="text-[15px] leading-5 font-medium break-words text-green-900">{title}</p>
           {typeof error === 'string' && error.length > 0 ? (
             // in the warning colour and with a sign, so it is not read as the state of the setting
             <p className="text-live-text mt-px flex items-start gap-1 text-[13px] leading-[18px] font-medium">
@@ -63,10 +63,7 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
             subtitle !== null &&
             subtitle !== false && (
               <p
-                className={cn(
-                  'mt-px truncate text-[13px] leading-[18px] text-green-700',
-                  subtitleClassName,
-                )}
+                className={cn('mt-px text-[13px] leading-[18px] text-green-700', subtitleClassName)}
               >
                 {subtitle}
               </p>
@@ -78,8 +75,18 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
         )}
       </div>
       {children !== undefined && children !== null && children !== false && (
-        <div className="px-3.5 pb-3">{children}</div>
+        <div className="px-4 pb-3">{children}</div>
       )}
     </div>
   );
 };
+
+/** A fact about the user: its name on the left, the value right-aligned. */
+export const SettingsFactRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="flex min-h-[52px] items-center gap-4 px-4 py-2.5">
+    <span className="shrink-0 text-[15px] font-medium text-green-900">{label}</span>
+    <span className="min-w-0 flex-1 text-right text-[15px] break-words text-green-700">
+      {value}
+    </span>
+  </div>
+);
