@@ -42,3 +42,50 @@ model Star {
   @@index([userId])
   @@index([courseType])
 }
+
+/// A reminder the user set or switched off for one entry: one slot of a programme block, or a
+/// shift. Blocks and shifts the user is enrolled in remind them without a row; a row with
+/// `enabled = false` is how they opt out of that.
+model ScheduleReminder {
+  id String @id @default(uuid(7))
+
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  /// the objectID of the entry in `camp-schedule-entry` or `helper-shifts` in MongoDB
+  entryId   String
+  entryType CourseType @default(PROGRAM)
+
+  /// false switches off the automatic reminder of an enrolment
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, entryId])
+  @@index([entryId])
+}
+
+enum ScheduleReminderDeliveryKind {
+  /// the push some minutes before the start
+  LEAD
+  /// the push at the start
+  START
+}
+
+/// One reminder push that went out. Written before the push is sent and keyed by the start it
+/// was for, so several replicas and overlapping runs send it once, while a start moved in the
+/// CMS reminds again for the new time.
+model ScheduleReminderDelivery {
+  userId String
+  user   User   @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
+  entryId      String
+  kind         ScheduleReminderDeliveryKind
+  /// the moment the push was due, the start or the start less the lead time
+  scheduledFor DateTime
+  sentAt       DateTime                     @default(now())
+
+  @@id([userId, entryId, kind, scheduledFor])
+  @@index([sentAt])
+}
