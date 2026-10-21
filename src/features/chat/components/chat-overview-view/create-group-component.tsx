@@ -274,6 +274,46 @@ export const CreateNewGroupPage: React.FC = () => {
       }
       footer={
         <div className="flex flex-col gap-2">
+          {/* the chosen people sit down here, not above the list: a strip appearing over the
+              list would push every row down under the finger that is about to tap the next one */}
+          {selected.length > 0 && (
+            <ul
+              aria-label={text.chosenPeople[locale]}
+              className="-mx-4 flex [scrollbar-width:none] gap-x-2 overflow-x-auto px-4"
+            >
+              {selected.map((contact) => (
+                <li key={contact.userId} className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => toggle(contact)}
+                    aria-label={text.remove[locale].replace(
+                      '{name}',
+                      getContactDisplayName(contact),
+                    )}
+                    className="group flex h-11 cursor-pointer items-center focus-visible:outline-none"
+                  >
+                    <span className="bg-quiet group-focus-visible:focus-ring flex h-9 items-center gap-2 rounded-full pr-3 pl-1">
+                      <PersonAvatar
+                        seed={contact.userId}
+                        name={contact.name}
+                        pictureUrl={contact.pictureUrl}
+                        className="h-7 w-7 text-[11px]"
+                      />
+                      <span className="text-sm font-semibold whitespace-nowrap text-green-900">
+                        {getContactShortName(contact)}
+                      </span>
+                      <X className="h-4 w-4 text-green-700" aria-hidden="true" />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isAtLimit && (
+            <p className="text-center text-[13px] text-green-700">
+              {text.limit[locale].replace('{max}', String(maxGroupMembers))}
+            </p>
+          )}
           {!hasEnoughPeople && (
             <p id="new-group-helper" className="text-center text-[13px] text-green-700">
               {text.needPeople[locale]}
@@ -293,46 +333,6 @@ export const CreateNewGroupPage: React.FC = () => {
         </div>
       }
     >
-      {(selected.length > 0 || isAtLimit) && (
-        <div className="border-line border-b px-4 pt-2 pb-2">
-          {selected.length > 0 && (
-            <ul aria-label={text.chosenPeople[locale]} className="flex flex-wrap gap-x-2">
-              {selected.map((contact) => (
-                <li key={contact.userId}>
-                  <button
-                    type="button"
-                    onClick={() => toggle(contact)}
-                    aria-label={text.remove[locale].replace(
-                      '{name}',
-                      getContactDisplayName(contact),
-                    )}
-                    className="flex h-11 cursor-pointer items-center"
-                  >
-                    <span className="bg-quiet flex h-9 items-center gap-2 rounded-full pr-3 pl-1">
-                      <PersonAvatar
-                        seed={contact.userId}
-                        name={contact.name}
-                        pictureUrl={contact.pictureUrl}
-                        className="h-7 w-7 text-[11px]"
-                      />
-                      <span className="text-sm font-semibold text-green-900">
-                        {getContactShortName(contact)}
-                      </span>
-                      <X className="h-4 w-4 text-green-700" aria-hidden="true" />
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {isAtLimit && (
-            <p className="py-1 text-[13px] text-green-700">
-              {text.limit[locale].replace('{max}', String(maxGroupMembers))}
-            </p>
-          )}
-        </div>
-      )}
-
       {isLoading && (
         <div role="status" className="pt-2">
           <span className="sr-only">{text.loading[locale]}</span>
