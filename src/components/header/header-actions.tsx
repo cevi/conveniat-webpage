@@ -1,6 +1,7 @@
 'use client';
 
 import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
+import { useHideHeader } from '@/components/header/hide-header-context';
 import { useIsMobileMenuOpen } from '@/hooks/use-mobile-menu-navigation';
 import { cn } from '@/utils/tailwindcss-override';
 import type { ReactNode } from 'react';
@@ -39,6 +40,10 @@ export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children 
 export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign }) => {
   const actions = useContext(HeaderActionsContext);
   const mobileMenuOpen = useIsMobileMenuOpen();
+  // A page that hides the header, like the detail of a block, brings its own heading; the
+  // header's title is then only the desktop's label, not a second page heading.
+  const { hideHeader } = useHideHeader();
+  const Title = hideHeader ? 'span' : 'h1';
 
   if (actions === undefined && !inAppDesign) {
     return (
@@ -52,9 +57,9 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
   return (
     <div className="pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2">
       {/* the page's heading: the title is what every app page is called */}
-      <h1 className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
+      <Title className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
         <DynamicAppTitleName />
-      </h1>
+      </Title>
       {/* The open menu makes everything outside its dialog inert, the header included, which
           stays in sight above it: the buttons would show but do nothing. Hidden, not unmounted,
           so a page's button keeps its state. */}
