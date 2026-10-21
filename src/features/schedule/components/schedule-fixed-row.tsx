@@ -8,7 +8,6 @@ import type { TimelineStop, TimelineTransfer } from '@/features/schedule/utils/t
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { formatQuartierRange } from '@/utils/quartier-names';
-import { cn } from '@/utils/tailwindcss-override';
 import { ArrowDown, Clock, Moon, Sunrise, Utensils } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
@@ -52,7 +51,7 @@ export const ScheduleFixedRow: React.FC<{
 
   return (
     <ScheduleTimelineItem
-      className={cn(isPast && 'opacity-55')}
+      isPast={isPast}
       time={<time className="text-green-700">{start}</time>}
       node={<span className="border-rail-node bg-page h-2.5 w-2.5 rounded-full border-2" />}
       overlay={overlay}
@@ -115,7 +114,7 @@ export const ScheduleTransferRow: React.FC<{ transfer: TimelineTransfer; isPast:
   }
 
   return (
-    <ScheduleTimelineItem dashed className={cn(isPast && 'opacity-55')}>
+    <ScheduleTimelineItem dashed isPast={isPast}>
       <div className="flex items-center gap-1.5 pt-0.5 pb-4 text-[13px] leading-[18px] text-green-500">
         <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span>{text}</span>

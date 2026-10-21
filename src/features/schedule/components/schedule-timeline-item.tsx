@@ -12,11 +12,16 @@ export const ScheduleTimelineItem: React.FC<{
   time?: React.ReactNode;
   node?: React.ReactNode;
   dashed?: boolean;
+  /**
+   * Over: only the node on the rail fades. Text keeps its contrast, which dimming the whole item
+   * took below 4.5:1; the card says "past" with its quiet surface instead.
+   */
+  isPast?: boolean;
   className?: string;
   /** drawn over the item, such as the line of "now" through a block that is running */
   overlay?: React.ReactNode;
   children: React.ReactNode;
-}> = ({ time, node, dashed = false, className, overlay, children }) => (
+}> = ({ time, node, dashed = false, isPast = false, className, overlay, children }) => (
   <li className={cn('group/item relative grid grid-cols-[44px_28px_minmax(0,1fr)]', className)}>
     <div className="text-[15px] leading-5 tabular-nums">{time}</div>
     <div className="relative flex justify-center">
@@ -29,7 +34,11 @@ export const ScheduleTimelineItem: React.FC<{
             : 'bg-rail',
         )}
       />
-      {node !== undefined && <span className="relative mt-[5px] flex">{node}</span>}
+      {node !== undefined && (
+        <span className={cn('relative mt-[5px] flex', isPast && 'opacity-40 grayscale')}>
+          {node}
+        </span>
+      )}
     </div>
     <div className="min-w-0">{children}</div>
     {overlay}

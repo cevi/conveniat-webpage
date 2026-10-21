@@ -96,7 +96,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
 
   return (
     <ScheduleTimelineItem
-      className={cn(isPast && 'opacity-55')}
+      isPast={isPast}
       time={<time className="font-bold text-green-900">{start}</time>}
       node={
         <span
@@ -108,8 +108,9 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
     >
       <div
         className={cn(
-          'relative mb-3.5 overflow-hidden rounded-[14px] border bg-white',
+          'relative mb-3.5 overflow-hidden rounded-[14px] border',
           runningLabel === undefined ? 'border-line' : 'border-live-line',
+          isPast ? 'bg-quiet border-transparent' : 'bg-white',
         )}
       >
         <Link

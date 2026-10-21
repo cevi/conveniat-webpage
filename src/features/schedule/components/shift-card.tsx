@@ -75,7 +75,7 @@ export const ShiftCard: React.FC<{
 
   return (
     <ScheduleTimelineItem
-      className={cn(isPast && 'opacity-55')}
+      isPast={isPast}
       time={<time className="font-bold text-green-900">{start}</time>}
       node={
         <span
@@ -84,7 +84,12 @@ export const ShiftCard: React.FC<{
         />
       }
     >
-      <div className="border-line mb-3.5 overflow-hidden rounded-[14px] border bg-white">
+      <div
+        className={cn(
+          'mb-3.5 overflow-hidden rounded-[14px] border',
+          isPast ? 'bg-quiet border-transparent' : 'border-line bg-white',
+        )}
+      >
         <Link href={href} className="block px-3.5 py-3">
           {/* the pill sits on the line above the title, which keeps its full width on a phone */}
           {(accent.label !== '' || isEnrolled) && (
