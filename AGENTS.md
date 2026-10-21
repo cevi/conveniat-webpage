@@ -321,8 +321,8 @@ by its role once a second screen needs it, not before.
   icon. The favourite star is amber. Each programme category keeps its colour, and one that would
   read as red is shifted to pink.
 - **Controls.** Touch targets are at least 44×44px. One `primary` button per view, the rest
-  `quiet` or `outlined`; a destructive action is `outlined` in the `live` orange and either asks
-  before it acts or can be undone right after. A segmented control takes its track and segments
+  `quiet` or `outlined`; a destructive action is `outlined` in red (`danger`) and either asks before it acts or can
+  be undone right after. A segmented control takes its track and segments
   from `src/components/ui/segmented-control.ts`. A text field takes its frame from
   `src/components/ui/field.ts` and a search is `AppSearchBar`: 44px, 12px radius, a search filled
   grey and a form field white with a line, both focused by the same green ring. A field never
