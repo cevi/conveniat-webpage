@@ -21,7 +21,7 @@ import {
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, ChevronDown, ListFilter, Star } from 'lucide-react';
+import { Check, ListFilter, Star } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const labels = {
@@ -73,6 +73,20 @@ interface SearchFilterBarProperties {
   isSearchOpen: boolean;
   className?: string;
 }
+
+/** a round 44px button beside the view, as the design draws the favourites and the filter */
+const roundButtonClassName =
+  'border-line flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 transition-colors hover:border-green-300';
+
+/** how many filters are on, as a small green count */
+const CountBadge: React.FC<{ count: number }> = ({ count }) => (
+  <span
+    aria-hidden="true"
+    className="bg-conveniat-green flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
+  >
+    {count}
+  </span>
+);
 
 const chipClassName = (isActive: boolean): string =>
   cn(
@@ -188,17 +202,10 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
     });
 
   const activeCount = activeFilterCount(filters);
-
-  let placeLabel = labels.place[locale];
-  if (filters.selectedLocations.length === 1) {
-    placeLabel = filters.selectedLocations[0]?.title ?? placeLabel;
-  }
-  if (filters.selectedLocations.length > 1) {
-    placeLabel = labels.places[locale].replace(
-      '{{count}}',
-      String(filters.selectedLocations.length),
-    );
-  }
+  const filterButtonLabel =
+    activeCount > 0
+      ? `${labels.filter[locale]}, ${(activeCount === 1 ? labels.activeFilter : labels.activeFilters)[locale].replace('{{count}}', String(activeCount))}`
+      : labels.filter[locale];
 
   const footer = (
     <div className="flex items-center gap-4">
@@ -235,69 +242,62 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         />
       )}
 
-      {/* bleeds to the screen's edges, so a chip that does not fit shows that the row scrolls */}
-      <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 [&::-webkit-scrollbar]:hidden">
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={isOpen}
-          aria-label={
-            activeCount > 0
-              ? `${labels.filter[locale]}, ${(activeCount === 1 ? labels.activeFilter : labels.activeFilters)[locale].replace('{{count}}', String(activeCount))}`
-              : undefined
-          }
-          onClick={() => openAt()}
-          className={chipClassName(false)}
-        >
-          <ListFilter className="h-[18px] w-[18px]" aria-hidden="true" />
-          {labels.filter[locale]}
-          {activeCount > 0 && (
-            <span
-              aria-hidden="true"
-              className="bg-conveniat-green flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
-            >
-              {activeCount}
-            </span>
-          )}
-        </button>
+      {/*
+        One row: the view on the left, then two round buttons, the favourites and the filter. What
+        the filter narrows to is told by the count on its button; Kategorie, Ort and Tageszeit
+        live in its sheet.
+      */}
+      <div className="flex items-center gap-2">
+        {view === undefined ? (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
+            aria-label={filterButtonLabel}
+            onClick={() => openAt()}
+            className={chipClassName(false)}
+          >
+            <ListFilter className="h-[18px] w-[18px]" aria-hidden="true" />
+            {labels.filter[locale]}
+            {activeCount > 0 && <CountBadge count={activeCount} />}
+          </button>
+        ) : (
+          <div className="min-w-0 flex-1">{view}</div>
+        )}
 
         {isProgramme && (
           <button
             type="button"
             aria-pressed={filters.starredOnly}
+            aria-label={labels.favouritesOnly[locale]}
             onClick={() => update({ starredOnly: !filters.starredOnly })}
             className={cn(
-              chipClassName(false),
+              roundButtonClassName,
               filters.starredOnly && 'border-amber-700 bg-amber-50 text-amber-700',
             )}
           >
             <Star
-              className={cn('h-[18px] w-[18px]', filters.starredOnly && 'fill-amber-700')}
+              className={cn('h-5 w-5', filters.starredOnly && 'fill-amber-700')}
               aria-hidden="true"
             />
-            {labels.favourites[locale]}
           </button>
         )}
 
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          onClick={() => openAt('category')}
-          className={chipClassName(filters.selectedCategory !== undefined)}
-        >
-          {filters.selectedCategory?.title ?? labels.category[locale]}
-          <ChevronDown className="h-4 w-4" aria-hidden="true" />
-        </button>
-
-        {availableLocations.length > 0 && (
+        {view !== undefined && (
           <button
             type="button"
             aria-haspopup="dialog"
-            onClick={() => openAt('place')}
-            className={chipClassName(filters.selectedLocations.length > 0)}
+            aria-expanded={isOpen}
+            aria-label={filterButtonLabel}
+            onClick={() => openAt()}
+            className={cn(roundButtonClassName, 'relative')}
           >
-            <span className="max-w-40 truncate">{placeLabel}</span>
-            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+            <ListFilter className="h-5 w-5" aria-hidden="true" />
+            {activeCount > 0 && (
+              <span className="absolute -top-1 -right-1">
+                <CountBadge count={activeCount} />
+              </span>
+            )}
           </button>
         )}
       </div>

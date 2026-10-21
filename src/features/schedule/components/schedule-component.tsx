@@ -185,9 +185,6 @@ export const ScheduleComponent: React.FC = () => {
         </button>
       </SetHeaderActions>
 
-      {/* the view stays in sight above the list, and is repeated at the top of the filter */}
-      {viewToggles !== undefined && <div className="mb-3">{viewToggles}</div>}
-
       <SearchFilterBar
         filters={filters}
         onFiltersChange={handleFiltersChange}
