@@ -30,12 +30,20 @@ function getServerSnapshot(): boolean {
   return false;
 }
 
+/**
+ * Whether the mobile menu is open, without the route reads of `useMobileMenuNavigation`, so the
+ * prerendered header shell can follow it.
+ */
+export function useIsMobileMenuOpen(): boolean {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 export function useMobileMenuNavigation(): {
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (value: boolean | ((previous: boolean) => boolean)) => void;
   checkClickEvent: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
 } {
-  const mobileMenuOpen = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const mobileMenuOpen = useIsMobileMenuOpen();
   const pathname = usePathname();
   const searchParameters = useSearchParams();
 

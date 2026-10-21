@@ -1,6 +1,8 @@
 'use client';
 
 import { DynamicAppTitleName } from '@/components/header/dynamic-app-title-name';
+import { useIsMobileMenuOpen } from '@/hooks/use-mobile-menu-navigation';
+import { cn } from '@/utils/tailwindcss-override';
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -36,6 +38,7 @@ export const SetHeaderActions: React.FC<{ children?: ReactNode }> = ({ children 
  */
 export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign }) => {
   const actions = useContext(HeaderActionsContext);
+  const mobileMenuOpen = useIsMobileMenuOpen();
 
   if (actions === undefined && !inAppDesign) {
     return (
@@ -50,7 +53,17 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
       <span className="absolute top-0 left-[60px] flex h-[60px] items-center font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
         <DynamicAppTitleName />
       </span>
-      <div className="absolute top-0 right-2 z-[105] flex h-[60px] items-center">{actions}</div>
+      {/* The open menu makes everything outside its dialog inert, the header included, which
+          stays in sight above it: the buttons would show but do nothing. Hidden, not unmounted,
+          so a page's button keeps its state. */}
+      <div
+        className={cn(
+          'absolute top-0 right-2 z-[105] flex h-[60px] items-center',
+          mobileMenuOpen && 'hidden',
+        )}
+      >
+        {actions}
+      </div>
     </>
   );
 };
