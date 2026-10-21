@@ -7,7 +7,7 @@ import {
 import type React from 'react';
 
 /**
- * The chat overview while it loads, in the page's own layout: the "Mein Code" pill, the
+ * The chat overview while it loads, in the page's own layout: the "Mein Code" button, the
  * search, the rows and the floating "Neuer Chat".
  *
  * Only reached on a cold navigation: once the (static) chat shell is in the

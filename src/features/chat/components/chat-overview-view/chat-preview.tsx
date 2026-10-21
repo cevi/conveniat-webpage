@@ -1,16 +1,28 @@
 'use client';
 import { PersonAvatar } from '@/components/ui/person-avatar';
+import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
+import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ChatType } from '@prisma/client';
+import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
-import { CalendarDays, LifeBuoy, Loader2, Megaphone, Pin, Siren, Users } from 'lucide-react';
+import {
+  CalendarDays,
+  Check,
+  Clock,
+  LifeBuoy,
+  Loader2,
+  Megaphone,
+  Pin,
+  Siren,
+  Users,
+} from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link, { useLinkStatus } from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -93,6 +105,17 @@ const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
       />
     );
   }
+  if (chat.chatType === ChatType.GROUP) {
+    // a group gets its initials like a person, marked as a group by a small badge
+    return (
+      <span className="relative shrink-0">
+        <PersonAvatar seed={chat.id} name={chat.name} className="h-11 w-11 text-sm" />
+        <span className="ring-line absolute -right-0.5 -bottom-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-white ring-1">
+          <Users className="h-3 w-3 text-green-700" aria-hidden="true" />
+        </span>
+      </span>
+    );
+  }
   if (chat.chatType === ChatType.EMERGENCY) {
     return (
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 ring-2 ring-red-500">
@@ -109,6 +132,38 @@ const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
   return (
     <span className="text-conveniat-green bg-tint flex h-11 w-11 shrink-0 items-center justify-center rounded-full">
       <Icon className="h-5 w-5" aria-hidden="true" />
+    </span>
+  );
+};
+
+const groupCreatedText: StaticTranslationString = {
+  de: 'Du hast die Gruppe erstellt',
+  en: 'You created the group',
+  fr: 'Tu as créé le groupe',
+};
+
+const sentStatusText: Partial<Record<MessageEventType, StaticTranslationString>> = {
+  [MessageEventType.CREATED]: { de: 'Wird gesendet', en: 'Sending', fr: 'Envoi' },
+  [MessageEventType.STORED]: { de: 'Gesendet', en: 'Sent', fr: 'Envoyé' },
+  [MessageEventType.RECEIVED]: { de: 'Zugestellt', en: 'Delivered', fr: 'Distribué' },
+  [MessageEventType.READ]: { de: 'Gelesen', en: 'Read', fr: 'Lu' },
+};
+
+/** The tick in front of the user's own last message, as its bubble shows it. */
+const SentStatus: React.FC<{ status: MessageEventType; locale: Locale }> = ({ status, locale }) => {
+  const label = sentStatusText[status]?.[locale];
+  if (label === undefined) return <></>;
+  let icon: React.ReactNode;
+  if (status === MessageEventType.CREATED) {
+    icon = <Clock className="h-3.5 w-3.5" aria-hidden="true" />;
+  } else if (status === MessageEventType.STORED) {
+    icon = <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" />;
+  } else {
+    icon = <DoubleCheck className={status === MessageEventType.READ ? 'text-emerald-600' : ''} />;
+  }
+  return (
+    <span role="img" aria-label={label} className="mr-1 inline-flex align-[-2px] text-green-500">
+      {icon}
     </span>
   );
 };
@@ -163,7 +218,19 @@ export const ChatPreview: React.FC<{
   } else if (rawPreview) {
     previewText = rawPreview[locale];
   }
-  const senderPrefix = previewSenderPrefix(chat.lastMessage, chat.chatType, currentUserId, locale);
+  let senderPrefix = previewSenderPrefix(chat.lastMessage, chat.chatType, currentUserId, locale);
+  const isOwnMessage = currentUserId !== undefined && chat.lastMessage?.senderId === currentUserId;
+
+  // a group with nothing but its creation message, seen by the one who created it
+  const isFreshOwnGroup =
+    chat.chatType === ChatType.GROUP &&
+    chat.lastMessage?.senderId === SYSTEM_SENDER_ID &&
+    chat.messageCount <= 1 &&
+    chat.userChatPermission === ChatMembershipPermission.OWNER;
+  if (isFreshOwnGroup) {
+    previewText = groupCreatedText[locale];
+    senderPrefix = '';
+  }
 
   const isEmergency = chat.chatType === ChatType.EMERGENCY;
 
@@ -172,7 +239,8 @@ export const ChatPreview: React.FC<{
       href={chatDetailLink}
       // an emergency chat is the one row that may be red, so it stands out of the list
       className={cn(
-        'hover:bg-page block w-full bg-white',
+        'hover:bg-quiet block w-full bg-white',
+        hasUnread && 'bg-tint',
         isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}
       data-allow-red={isEmergency ? '' : undefined}
@@ -189,7 +257,7 @@ export const ChatPreview: React.FC<{
                 isEmergency && 'text-red-700',
               )}
             >
-              <span className="font-semibold">{title}</span>
+              <span className={hasUnread ? 'font-bold' : 'font-semibold'}>{title}</span>
               {subtitle !== undefined && <span className="text-green-700"> {subtitle}</span>}
             </p>
             {chat.isPinned === true && (
@@ -204,7 +272,7 @@ export const ChatPreview: React.FC<{
               locale={locale}
               className={cn(
                 'ml-auto shrink-0 pl-1 text-xs whitespace-nowrap text-green-700 tabular-nums',
-                hasUnread && 'text-conveniat-green font-semibold',
+                hasUnread && 'font-bold text-green-900',
                 isEmergency && 'text-red-700',
               )}
             />
@@ -227,6 +295,9 @@ export const ChatPreview: React.FC<{
                 hasUnread && 'font-semibold text-green-900',
               )}
             >
+              {isOwnMessage && chat.lastMessage !== undefined && (
+                <SentStatus status={chat.lastMessage.status} locale={locale} />
+              )}
               {senderPrefix}
               {previewText}
             </p>

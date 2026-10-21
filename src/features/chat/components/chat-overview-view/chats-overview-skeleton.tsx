@@ -3,7 +3,7 @@ import type React from 'react';
 const pulse = 'bg-quiet animate-pulse';
 
 /**
- * The chat list while it loads: the search and rows divided by a line from the text on, as the
+ * The chat list while it loads: the search, the filter pills and rows divided by a line from the text on, as the
  * loaded list.
  *
  * Shared between the route level `loading.tsx` and the client component so that both show
@@ -11,7 +11,14 @@ const pulse = 'bg-quiet animate-pulse';
  */
 export const ChatsOverviewSkeleton: React.FC = () => (
   <div className="flex flex-col gap-4" aria-hidden="true">
-    <div className={`h-[44px] w-full rounded-[12px] ${pulse}`} />
+    <div className="flex flex-col gap-3">
+      <div className={`h-[44px] w-full rounded-[12px] ${pulse}`} />
+      <div className="flex h-8 gap-2">
+        {['w-14', 'w-28', 'w-[84px]'].map((width) => (
+          <div key={width} className={`h-8 rounded-full ${width} ${pulse}`} />
+        ))}
+      </div>
+    </div>
     <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
       {[1, 2, 3, 4, 5].map((index) => (
         <li

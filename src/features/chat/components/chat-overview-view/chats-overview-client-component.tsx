@@ -3,6 +3,7 @@ import { SetHeaderActions } from '@/components/header/header-actions';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
+import { ChatFilterChips } from '@/features/chat/components/chat-overview-view/chat-filter-chips';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import {
   ChatsOverviewSkeleton,
@@ -13,11 +14,13 @@ import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-ban
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
+import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
+import { matchesChatListFilter } from '@/features/chat/utils/chat-list-filter';
 import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { MessageSquare, MessageSquarePlus } from 'lucide-react';
+import { CheckCheck, MessageSquare, MessageSquarePlus, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
@@ -65,6 +68,24 @@ const startConversationCTAText: StaticTranslationString = {
   fr: 'Démarrer une conversation',
 };
 
+const noUnreadText: StaticTranslationString = {
+  de: 'Alles gelesen',
+  en: 'All caught up',
+  fr: 'Tout est lu',
+};
+
+const noGroupsText: StaticTranslationString = {
+  de: 'Du bist in keiner Gruppe',
+  en: 'You are in no group',
+  fr: 'Tu n’es dans aucun groupe',
+};
+
+const showAllText: StaticTranslationString = {
+  de: 'Alle Chats zeigen',
+  en: 'Show all chats',
+  fr: 'Afficher tous les chats',
+};
+
 const newChatLabel: StaticTranslationString = {
   de: 'Neuer Chat',
   en: 'New chat',
@@ -73,11 +94,26 @@ const newChatLabel: StaticTranslationString = {
 
 const EmptyChatsState: React.FC<{
   searchQuery: string;
+  listFilter: ChatListFilter;
+  onShowAll: () => void;
   onClearSearch: () => void;
   /** Without it there is no way to start a chat, so the empty state offers none. */
   canCreateChats: boolean;
   locale: Locale;
-}> = ({ searchQuery, onClearSearch, canCreateChats, locale }) => {
+}> = ({ searchQuery, listFilter, onShowAll, onClearSearch, canCreateChats, locale }) => {
+  if (listFilter !== 'all' && searchQuery === '') {
+    return (
+      <EmptyState
+        icon={listFilter === 'unread' ? CheckCheck : Users}
+        title={(listFilter === 'unread' ? noUnreadText : noGroupsText)[locale]}
+        action={
+          <Button variant="quiet" size="touch" onClick={onShowAll}>
+            {showAllText[locale]}
+          </Button>
+        }
+      />
+    );
+  }
   if (searchQuery !== '') {
     return (
       <EmptyState
@@ -150,6 +186,8 @@ export const ChatsOverviewClientComponent: React.FC<{
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  // kept while the route stays mounted, so coming back from a chat keeps the chosen chip
+  const [listFilter, setListFilter] = useState<ChatListFilter>('all');
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   // Filter chats based on a search query. Pinned chats go first; the sort is stable, so both
@@ -166,6 +204,7 @@ export const ChatsOverviewClientComponent: React.FC<{
           previewText = rawPreview[locale];
         }
 
+        if (!matchesChatListFilter(chat, listFilter)) return false;
         const chatName = chat.name;
         return (
           chatName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -180,6 +219,7 @@ export const ChatsOverviewClientComponent: React.FC<{
   const isInitialLoad = chats === undefined && !isError;
 
   const hasChats = (chats?.length ?? 0) > 0 || searchQuery !== '';
+  const unreadChats = chats?.filter((chat) => chat.unreadCount > 0).length ?? 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -194,11 +234,19 @@ export const ChatsOverviewClientComponent: React.FC<{
 
       {/* only once there is something to search */}
       {hasChats && (
-        <ChatSearchField
-          placeholder={searchPlaceholderText[locale]}
-          value={searchQuery}
-          onChange={setSearchQuery}
-        />
+        <div className="flex flex-col gap-3">
+          <ChatSearchField
+            placeholder={searchPlaceholderText[locale]}
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
+          <ChatFilterChips
+            value={listFilter}
+            onChange={setListFilter}
+            unreadChats={unreadChats}
+            locale={locale}
+          />
+        </div>
       )}
 
       {/* Loading State - only when there is nothing cached to render */}
@@ -224,6 +272,8 @@ export const ChatsOverviewClientComponent: React.FC<{
           ) : (
             <EmptyChatsState
               searchQuery={searchQuery}
+              listFilter={listFilter}
+              onShowAll={() => setListFilter('all')}
               onClearSearch={() => setSearchQuery('')}
               canCreateChats={createChatsEnabled === true}
               locale={locale}

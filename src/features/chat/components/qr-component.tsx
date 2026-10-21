@@ -208,7 +208,7 @@ const ChatScanner: React.FC<{ locale: Locale; onScanned: (path: string) => void 
 
 /**
  * The QR code sheet: the own code to show, or the camera to read someone else's. Used by the
- * "Mein Code" pill of the chat list and by "QR-Code scannen" when starting a chat.
+ * "Mein Code" button of the chat list and by "QR-Code scannen" when starting a chat.
  */
 export const ChatQrSheet: React.FC<{
   open: boolean;
@@ -260,7 +260,7 @@ const toTab = (value: string | null): ChatQrTab | undefined =>
   value === 'mine' || value === 'scan' ? value : undefined;
 
 /**
- * The "Mein Code" pill of the chat list and the sheet it opens. A link to `/app/chat?qr=mine`
+ * The "Mein Code" button of the chat list and the sheet it opens. A link to `/app/chat?qr=mine`
  * or `?qr=scan` opens the sheet as well; closing it drops the parameter again, so a reload or
  * the back button does not bring it back.
  */
@@ -291,10 +291,10 @@ export const QRCodeClientComponent: React.FC = () => {
         type="button"
         onClick={() => onOpenChange(true)}
         aria-haspopup="dialog"
-        className="border-rail hover:bg-quiet flex h-11 cursor-pointer items-center gap-2 rounded-full border bg-white px-4 text-[15px] font-semibold text-green-900"
+        aria-label={text.myCode[locale]}
+        className="hover:bg-quiet flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900"
       >
-        <QrCode className="h-[18px] w-[18px]" aria-hidden="true" />
-        {text.myCode[locale]}
+        <QrCode className="h-[22px] w-[22px]" aria-hidden="true" />
       </button>
 
       <ChatQrSheet

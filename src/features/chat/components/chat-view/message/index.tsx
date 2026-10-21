@@ -19,6 +19,7 @@ import { SenderAvatar } from '@/features/chat/components/chat-view/message/sende
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
 import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
+import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
@@ -30,14 +31,6 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertCircle, Check, Clock, MessageSquare } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-
-/** two checks of the single tick's size, the second overlapping the first */
-const DoubleCheck: React.FC<{ className?: string }> = ({ className }) => (
-  <span className={cn('relative flex h-3.5 w-5 items-center', className)}>
-    <Check className="absolute left-0 h-3.5 w-3.5" strokeWidth={2.5} />
-    <Check className="absolute left-1.5 h-3.5 w-3.5" strokeWidth={2.5} />
-  </span>
-);
 
 const replyToMessageText: StaticTranslationString = {
   de: 'Antwort auf eine Nachricht',
