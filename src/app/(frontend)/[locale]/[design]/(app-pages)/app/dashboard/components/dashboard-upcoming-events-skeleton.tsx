@@ -1,4 +1,4 @@
-import { Card } from '@/components/ui/card';
+import { SectionLabel } from '@/components/ui/section-label';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import type React from 'react';
 
@@ -8,30 +8,26 @@ const upcomingProgramElementsTitle: StaticTranslationString = {
   fr: "Programme d'aujourd'hui",
 };
 
+/** "Programm von heute" before the first schedule entries arrive: three placeholder rows. */
 export const DashboardUpcomingEventsSkeleton: React.FC<{ locale: Locale }> = ({ locale }) => {
   return (
-    <Card
-      title={upcomingProgramElementsTitle[locale]}
-      showBorder={false}
-      contentClassName="p-6 pt-0"
-    >
-      <div className="space-y-3">
-        {/* Skeleton Card 1 */}
-        <div className="animate-pulse rounded-xl border border-gray-200 bg-white p-4">
-          <div className="mb-2 h-4 w-1/3 rounded bg-gray-200" />
-          <div className="h-4 w-2/3 rounded bg-gray-200" />
-        </div>
-        {/* Skeleton Card 2 */}
-        <div className="animate-pulse rounded-xl border border-gray-200 bg-white p-4">
-          <div className="mb-2 h-4 w-1/3 rounded bg-gray-200" />
-          <div className="h-4 w-2/3 rounded bg-gray-200" />
-        </div>
-        {/* Skeleton Card 3 */}
-        <div className="animate-pulse rounded-xl border border-gray-200 bg-white p-4">
-          <div className="mb-2 h-4 w-1/3 rounded bg-gray-200" />
-          <div className="h-4 w-2/3 rounded bg-gray-200" />
-        </div>
-      </div>
-    </Card>
+    <section className="space-y-2">
+      <SectionLabel>{upcomingProgramElementsTitle[locale]}</SectionLabel>
+      <ul
+        className="border-line divide-line divide-y rounded-[14px] border bg-white"
+        aria-hidden="true"
+      >
+        {Array.from({ length: 3 }).map((_, index) => (
+          <li key={index} className="flex gap-3 px-3.5 py-3">
+            <div className="bg-chip h-4 w-12 animate-pulse rounded" />
+            <div className="flex-1 space-y-2">
+              <div className="bg-quiet h-3 w-1/4 animate-pulse rounded" />
+              <div className="bg-chip h-4 w-2/3 animate-pulse rounded" />
+              <div className="bg-quiet h-3 w-1/2 animate-pulse rounded" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };

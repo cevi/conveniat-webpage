@@ -1,7 +1,10 @@
-import type { Locale } from '@/types/types';
+import { IconTile } from '@/components/ui/icon-tile';
+import { SectionLabel } from '@/components/ui/section-label';
+import type { Locale, StaticTranslationString } from '@/types/types';
 import {
   Calendar,
   CalendarCheck2,
+  ChevronRight,
   Compass,
   ImageUp,
   LucideMessageCircleQuestion,
@@ -11,6 +14,7 @@ import {
   Siren,
   Trophy,
   Truck,
+  type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -19,33 +23,30 @@ interface FeatureCardProperties {
   title: string;
   description: string;
   href: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }
 
-const FeatureCard: React.FC<FeatureCardProperties> = ({
-  title,
-  description,
-  href,
-  icon: IconComponent,
-}) => (
-  <Link href={href} className="block">
-    <div className="bg-conveniat-green/10 border-conveniat-green/20 hover:bg-conveniat-green/15 h-28 w-72 rounded-lg border p-4 transition-all duration-200 hover:shadow-md">
-      <div className="flex h-full items-center gap-3">
-        <div className="flex w-16 shrink-0 justify-center">
-          <div className="bg-conveniat-green/20 rounded-full p-2">
-            <IconComponent className="text-conveniat-green h-6 w-6" />
-          </div>
-        </div>
-        <div className="w-2/3 flex-1">
-          <h3 className="mb-1 text-base font-semibold text-gray-900">{title}</h3>
-          <p className="line-clamp-3 text-xs leading-tight text-balance text-gray-600">
-            {description}
-          </p>
-        </div>
-      </div>
-    </div>
-  </Link>
+/** One row of the feature list: icon tile, name and what it is for. */
+const FeatureRow: React.FC<FeatureCardProperties> = ({ title, description, href, icon }) => (
+  <li>
+    <Link href={href} className="hover:bg-page flex min-h-11 items-center gap-3 px-3.5 py-3">
+      <IconTile icon={icon} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] leading-5 font-semibold text-green-900">{title}</span>
+        <span className="mt-0.5 line-clamp-2 block text-[13px] leading-[18px] text-green-700">
+          {description}
+        </span>
+      </span>
+      <ChevronRight className="h-5 w-5 shrink-0 text-green-500" aria-hidden="true" />
+    </Link>
+  </li>
 );
+
+const featuresTitle: StaticTranslationString = {
+  de: 'Funktionen',
+  en: 'Features',
+  fr: 'Fonctionnalités',
+};
 
 type AppFeatureFlagKey =
   | 'helperShiftsEnabled'
@@ -64,6 +65,10 @@ interface FeatureDefinition extends FeatureCardProperties {
   featureFlagKey?: AppFeatureFlagKey;
 }
 
+/**
+ * The list of the app's features on Home, each a row that leads to it. Features behind a
+ * flag are left out when the flag is off.
+ */
 export const DashboardAppFeatures: React.FC<{
   locale: Locale;
   featureFlags: DashboardFeatureFlags;
@@ -198,14 +203,13 @@ export const DashboardAppFeatures: React.FC<{
   });
 
   return (
-    <div>
-      <div className="overflow-x-auto pb-4">
-        <div className="flex w-max gap-4">
-          {visibleFeatures.map((feature, index) => (
-            <FeatureCard key={index} {...feature} />
-          ))}
-        </div>
-      </div>
-    </div>
+    <section className="space-y-2">
+      <SectionLabel>{featuresTitle[locale]}</SectionLabel>
+      <ul className="border-line divide-line divide-y overflow-hidden rounded-[14px] border bg-white">
+        {visibleFeatures.map((feature) => (
+          <FeatureRow key={feature.href} {...feature} />
+        ))}
+      </ul>
+    </section>
   );
 };

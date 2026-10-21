@@ -1,39 +1,23 @@
 import type React from 'react';
 
 /**
- * Placeholder for the dashboard title while the (cached) landing page
- * configuration has not been loaded yet.
- */
-export const DashboardTitleSkeleton: React.FC = () => {
-  return <div className="mb-4 h-8 w-48 animate-pulse rounded bg-gray-200" />;
-};
-
-/**
- * Placeholder for the horizontally scrollable app feature cards.
+ * Placeholder for the feature list while the (cached) landing page configuration has not been
+ * loaded yet.
  */
 export const DashboardAppFeaturesSkeleton: React.FC = () => {
   return (
-    <div>
-      <div className="overflow-x-auto pb-4">
-        <div className="flex w-max gap-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-28 w-72 animate-pulse rounded-lg border border-gray-200 bg-gray-100 p-4"
-            >
-              <div className="flex h-full items-center gap-3">
-                <div className="flex w-16 shrink-0 justify-center">
-                  <div className="h-10 w-10 rounded-full bg-gray-200" />
-                </div>
-                <div className="w-2/3 flex-1 space-y-2">
-                  <div className="h-4 w-2/3 rounded bg-gray-200" />
-                  <div className="h-3 w-full rounded bg-gray-200" />
-                  <div className="h-3 w-3/4 rounded bg-gray-200" />
-                </div>
-              </div>
+    <div className="space-y-2" aria-hidden="true">
+      <div className="bg-chip h-3 w-24 animate-pulse rounded" />
+      <div className="border-line divide-line divide-y rounded-[14px] border bg-white">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div key={index} className="flex items-center gap-3 px-3.5 py-3">
+            <div className="bg-tint h-[38px] w-[38px] shrink-0 animate-pulse rounded-[10px]" />
+            <div className="flex-1 space-y-2">
+              <div className="bg-chip h-4 w-1/3 animate-pulse rounded" />
+              <div className="bg-quiet h-3 w-2/3 animate-pulse rounded" />
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -14,6 +14,8 @@ export interface DashboardEvent {
   time: string;
   location: CampMapAnnotation | undefined;
   category: string | CampCategory | null | undefined;
+  /** "hp" for a Hofprogramm, the second half of the category line; shifts have none */
+  form: CampScheduleEntryFrontendType['form'] | null;
   href: string;
   isShift: boolean;
 }
@@ -67,6 +69,7 @@ export const selectTodaysDashboardEvents = ({
       time: entry.timeslot.time,
       location: resolveLocation(entry.location),
       category: entry.category,
+      form: entry.form,
       href: `/app/schedule?id=${entry.id}`,
       isShift: false,
     }));
@@ -80,6 +83,7 @@ export const selectTodaysDashboardEvents = ({
       time: shift.timeslot.time,
       location: resolveLocation(shift.location),
       category: shift.category,
+      form: undefined,
       // shifts have no detail page of their own, the helper portal is where they are read
       href: '/app/helper-portal',
       isShift: true,

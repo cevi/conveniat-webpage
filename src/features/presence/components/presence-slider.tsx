@@ -1,5 +1,6 @@
 'use client';
 
+import { SectionLabel } from '@/components/ui/section-label';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -10,9 +11,9 @@ import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const statusLabel: StaticTranslationString = {
-  de: 'Dein Status:',
-  en: 'Your status:',
-  fr: 'Votre statut:',
+  de: 'Dein Status',
+  en: 'Your status',
+  fr: 'Ton statut',
 };
 
 const presentLabel: StaticTranslationString = {
@@ -181,6 +182,44 @@ export const PresenceSlider: React.FC = () => {
     [isProcessing],
   );
 
+  /** Moves the handle to the side asked for and saves the presence, by drag or by keyboard. */
+  const commitPresence = useCallback(
+    (targetPresentState: boolean): void => {
+      if (!trackReference.current) return;
+      const handleWidth = handleReference.current?.offsetWidth ?? 48;
+      const maxTranslateX = trackReference.current.offsetWidth - handleWidth - 16;
+
+      setIsProcessing(true);
+      setDisplayText(updatingText[locale]);
+
+      if (handleReference.current) {
+        handleReference.current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        handleReference.current.style.transform = `translateX(${targetPresentState ? maxTranslateX : 0}px)`;
+      }
+
+      updatePresenceMutation.mutate(
+        { presentAtCamp: targetPresentState },
+        {
+          onSuccess: () => {
+            void (async (): Promise<void> => {
+              await trpcUtils.presence.getPresence.invalidate();
+              await refetch();
+              if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                navigator.vibrate(50);
+              }
+              setIsProcessing(false);
+            })();
+          },
+          onError: (error) => {
+            console.error('Failed to update presence:', error);
+            resetSlider();
+          },
+        },
+      );
+    },
+    [locale, refetch, resetSlider, trpcUtils.presence.getPresence, updatePresenceMutation],
+  );
+
   const handlePointerUp = useCallback(
     function onPointerUp() {
       if (!isDraggingReference.current || !trackReference.current || isProcessing) return;
@@ -197,49 +236,22 @@ export const PresenceSlider: React.FC = () => {
       if (targetPresentState === isPresent) {
         resetSlider();
       } else {
-        setIsProcessing(true);
-        setDisplayText(updatingText[locale]);
-
-        if (handleReference.current) {
-          handleReference.current.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-          handleReference.current.style.transform = `translateX(${targetPresentState ? maxTranslateX : 0}px)`;
-        }
-
-        updatePresenceMutation.mutate(
-          { presentAtCamp: targetPresentState },
-          {
-            onSuccess: () => {
-              void (async (): Promise<void> => {
-                await trpcUtils.presence.getPresence.invalidate();
-                await refetch();
-                if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-                  navigator.vibrate(50);
-                }
-                setIsProcessing(false);
-              })();
-            },
-            onError: (error) => {
-              console.error('Failed to update presence:', error);
-              resetSlider();
-            },
-          },
-        );
+        commitPresence(targetPresentState);
       }
 
       globalThis.removeEventListener('pointermove', handlePointerMove);
       globalThis.removeEventListener('pointerup', onPointerUp);
     },
-    [
-      handlePointerMove,
-      resetSlider,
-      isProcessing,
-      isPresent,
-      locale,
-      trpcUtils.presence.getPresence,
-      refetch,
-      updatePresenceMutation,
-    ],
+    [handlePointerMove, resetSlider, isProcessing, isPresent, commitPresence],
   );
+
+  // the same as dragging the handle across, for a keyboard and a screen reader
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    if (isProcessing || isOutsideTrackingPeriod) return;
+    commitPresence(isPresent !== true);
+  };
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -298,72 +310,66 @@ export const PresenceSlider: React.FC = () => {
     return <ChevronRight className="relative z-10 text-white" size={24} />;
   };
 
+  const isActive = !isOutsideTrackingPeriod;
+  const isActivePresent = isActive && isPresent === true;
+
   return (
-    <div className="mx-auto w-full max-w-md rounded-2xl border border-gray-200/70 bg-white p-3.5 shadow-sm transition-all sm:p-4">
-      <div className="mb-3 flex items-center justify-between gap-2 px-1">
-        <span className="text-[11px] font-bold tracking-wider text-gray-500 uppercase sm:text-xs">
-          {statusLabel[locale]}
-        </span>
-        <div className="flex items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50/90 px-2.5 py-1">
+    <section className="space-y-2">
+      <SectionLabel>{statusLabel[locale]}</SectionLabel>
+      <div className="border-line rounded-[14px] border bg-white p-3">
+        <p className="mb-3 flex items-center gap-2 px-1 text-[15px] font-semibold text-green-900">
           <span
-            className={cn('inline-block h-2 w-2 rounded-full transition-colors', {
-              'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]':
-                isPresent && !isOutsideTrackingPeriod,
-              'bg-cevi-blue shadow-[0_0_8px_rgba(50,51,148,0.6)]':
-                !isPresent && !isOutsideTrackingPeriod,
-              'bg-gray-400': isOutsideTrackingPeriod,
+            className={cn('inline-block h-2.5 w-2.5 shrink-0 rounded-full transition-colors', {
+              'bg-conveniat-green ring-tint-line ring-4': isActivePresent,
+              'bg-green-400': isActive && isPresent !== true,
+              'bg-gray-300': isOutsideTrackingPeriod,
             })}
+            aria-hidden="true"
           />
-          <span className="text-xs font-semibold text-gray-800 sm:text-sm">
-            {displayStatusLabel}
-          </span>
-        </div>
-      </div>
-
-      <div
-        ref={trackReference}
-        className={cn(
-          'relative flex h-14 items-center rounded-full transition-all duration-500 sm:h-16',
-          {
-            'border border-green-500/20 bg-green-500/10': isPresent && !isOutsideTrackingPeriod,
-            'border-cevi-blue/20 bg-cevi-blue/10 border': !isPresent && !isOutsideTrackingPeriod,
-            'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60': isOutsideTrackingPeriod,
-            'cursor-grab': !isProcessing && !isOutsideTrackingPeriod,
-            'cursor-not-allowed': isProcessing,
-          },
-        )}
-        onPointerDown={handlePointerDown}
-        style={{ touchAction: 'none' }}
-      >
-        <div
-          ref={handleReference}
-          className={cn(
-            'relative z-10 flex h-11 w-11 items-center justify-center rounded-full shadow-md transition-all duration-300 sm:h-12 sm:w-12',
-            {
-              'absolute left-2': true,
-              'border border-green-700/10 bg-green-600': isPresent && !isOutsideTrackingPeriod,
-              'border-cevi-blue/10 bg-cevi-blue border': !isPresent && !isOutsideTrackingPeriod,
-              'cursor-not-allowed border-gray-300 bg-gray-400': isOutsideTrackingPeriod,
-              'hover:shadow-lg': !isOutsideTrackingPeriod,
-            },
-          )}
-        >
-          {renderHandleIcon()}
-        </div>
+          {displayStatusLabel}
+        </p>
 
         <div
+          ref={trackReference}
           className={cn(
-            'pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-[11px] font-bold tracking-wider whitespace-nowrap uppercase select-none sm:text-xs',
+            'focus-visible:ring-conveniat-green relative flex h-14 items-center rounded-full border transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
             {
-              'text-green-800': isPresent && !isOutsideTrackingPeriod,
-              'text-cevi-blue': !isPresent && !isOutsideTrackingPeriod,
-              'text-gray-400': isOutsideTrackingPeriod,
+              'border-tint-line bg-tint': isActivePresent,
+              'border-line bg-quiet': isActive && isPresent !== true,
+              'border-line bg-quiet cursor-not-allowed opacity-60': isOutsideTrackingPeriod,
+              'cursor-grab': !isProcessing && isActive,
+              'cursor-not-allowed': isProcessing,
             },
           )}
+          onPointerDown={handlePointerDown}
+          onKeyDown={handleKeyDown}
+          role="switch"
+          tabIndex={isActive ? 0 : -1}
+          aria-checked={isPresent === true}
+          aria-disabled={!isActive || isProcessing}
+          aria-label={statusLabel[locale]}
+          style={{ touchAction: 'none' }}
         >
-          {displayText}
+          <div
+            ref={handleReference}
+            className={cn(
+              'absolute left-2 z-10 flex h-11 w-11 items-center justify-center rounded-full',
+              isActive ? 'bg-conveniat-green' : 'cursor-not-allowed bg-gray-300',
+            )}
+          >
+            {renderHandleIcon()}
+          </div>
+
+          <div
+            className={cn(
+              'pointer-events-none absolute left-1/2 -translate-x-1/2 transform text-[13px] font-semibold whitespace-nowrap select-none',
+              isActive ? 'text-green-700' : 'text-green-500',
+            )}
+          >
+            {displayText}
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };

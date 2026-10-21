@@ -23,44 +23,38 @@ const Dashboard: React.FC<{
   const showPresence = environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING;
 
   return (
-    <>
-      <section className="container mx-auto mt-8 py-6">
-        <article className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-6 md:px-8">
-          {/* Presence Status Slider */}
-          {showPresence && (
-            <SafeErrorBoundary fallback={<></>}>
-              <Suspense
-                fallback={
-                  <div className="mx-auto h-[120px] w-full max-w-md animate-pulse rounded-2xl bg-gray-100" />
-                }
-              >
-                <PresenceSlider />
-              </Suspense>
-            </SafeErrorBoundary>
-          )}
+    <article className="mx-auto w-full max-w-2xl space-y-6 px-4 py-5 sm:px-6 md:px-8">
+      {/* Presence Status Slider */}
+      {showPresence && (
+        <SafeErrorBoundary fallback={<></>}>
+          <Suspense
+            fallback={<div className="bg-quiet h-[132px] w-full animate-pulse rounded-[14px]" />}
+          >
+            <PresenceSlider />
+          </Suspense>
+        </SafeErrorBoundary>
+      )}
 
-          {/*
-            Both sections are fed by the same batched tRPC request, so a
-            failure without any cached content is shared and handled by a
-            single error boundary.
-          */}
-          <DashboardContentErrorBoundary>
-            {/* Landing page section: title, welcome content, action cards */}
-            <DashboardLandingSection locale={locale}>
-              {/* Welcome content blocks can only be rendered on the server */}
-              <SafeErrorBoundary fallback={<></>}>
-                <Suspense fallback={<></>}>
-                  <DashboardWelcomeContent locale={locale} />
-                </Suspense>
-              </SafeErrorBoundary>
-            </DashboardLandingSection>
+      {/*
+        Both sections are fed by the same batched tRPC request, so a
+        failure without any cached content is shared and handled by a
+        single error boundary.
+      */}
+      <DashboardContentErrorBoundary>
+        {/* Landing page section: welcome content, today's programme, then the feature list */}
+        <DashboardLandingSection locale={locale}>
+          {/* Welcome content blocks can only be rendered on the server */}
+          <SafeErrorBoundary fallback={<></>}>
+            <Suspense fallback={<></>}>
+              <DashboardWelcomeContent locale={locale} />
+            </Suspense>
+          </SafeErrorBoundary>
 
-            {/* Upcoming Program Elements Section */}
-            <DashboardUpcomingEvents locale={locale} />
-          </DashboardContentErrorBoundary>
-        </article>
-      </section>
-    </>
+          {/* Upcoming Program Elements Section */}
+          <DashboardUpcomingEvents locale={locale} />
+        </DashboardLandingSection>
+      </DashboardContentErrorBoundary>
+    </article>
   );
 };
 

@@ -1,18 +1,15 @@
 'use client';
 
 import { DashboardAppFeatures } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-app-features';
-import {
-  DashboardAppFeaturesSkeleton,
-  DashboardTitleSkeleton,
-} from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-app-features-skeleton';
+import { DashboardAppFeaturesSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-app-features-skeleton';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
-import { HeadlineH1 } from '@/components/ui/typography/headline-h1';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import type React from 'react';
 
 /**
- * Title and action cards of the dashboard.
+ * Title and feature list of the dashboard. The CMS title is the app header's title; it is not
+ * repeated as a heading on the page.
  *
  * The data is fetched client side through the persisted react-query cache:
  * when navigating back to the dashboard the previously loaded content is
@@ -21,8 +18,8 @@ import type React from 'react';
  * server rendered (and therefore uncached) section would show on every
  * navigation.
  *
- * `children` holds the server rendered welcome content blocks which are
- * displayed between the title and the action cards.
+ * `children` holds the server rendered welcome content blocks and today's programme, which are
+ * displayed above the feature list.
  */
 export const DashboardLandingSection: React.FC<{
   locale: Locale;
@@ -43,7 +40,6 @@ export const DashboardLandingSection: React.FC<{
   if (dashboardConfig === undefined) {
     return (
       <>
-        <DashboardTitleSkeleton />
         {children}
         <DashboardAppFeaturesSkeleton />
       </>
@@ -53,7 +49,6 @@ export const DashboardLandingSection: React.FC<{
   return (
     <>
       <SetDynamicPageTitle newTitle={dashboardConfig.title} />
-      <HeadlineH1 className="mb-4">{dashboardConfig.title}</HeadlineH1>
       {children}
       {dashboardConfig.showActionCards && (
         <DashboardAppFeatures locale={locale} featureFlags={dashboardConfig.featureFlags} />

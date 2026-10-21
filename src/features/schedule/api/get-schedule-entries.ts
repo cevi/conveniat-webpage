@@ -74,6 +74,7 @@ const getScheduleEntriesForDashboardCached = async (
       timeslot: true,
       location: true,
       category: true,
+      form: true,
       enable_enrolment: true,
       participants_min: true,
       participants_max: true,
