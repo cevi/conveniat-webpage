@@ -1,7 +1,8 @@
+/* 44px, the touch target every other control on the map has */
 .maplibregl-ctrl-compass,
 .maplibregl-ctrl-geolocate {
-  width: 40px !important;
-  height: 40px !important;
+  width: 44px !important;
+  height: 44px !important;
 }
 
 /* The page draws its own locate button next to the search, which takes the top of the map. */
@@ -11,4 +12,12 @@
 
 .map-has-own-locate-button .maplibregl-ctrl-top-right {
   top: 56px;
+}
+
+/* the compass is round and floats like the locate button above it, on the same right edge */
+.map-has-own-locate-button .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
+  margin: 8px 16px 0 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.15);
 }
