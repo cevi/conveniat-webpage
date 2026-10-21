@@ -195,10 +195,34 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     globalThis.history.replaceState(undefined, '', `/app/schedule?${parameters.toString()}`);
   }, []);
 
+  // The block was the first page this document loaded, from a shared link or a push: there is
+  // nothing in the app to go back to.
+  const [isEntryPage] = useState(
+    () =>
+      typeof performance !== 'undefined' &&
+      performance.getEntriesByType('navigation')[0]?.name === globalThis.location.href,
+  );
+
+  /**
+   * Back to where the block was opened from, the list or a place on the Karte. Where the block
+   * is the entry page, `router.back()` would leave the app or land on a blank page, so it goes to
+   * the day's list instead.
+   */
+  const goBack = (): void => {
+    if (!isEntryPage) {
+      router.back();
+      return;
+    }
+    const parameters = new URLSearchParams(globalThis.location.search);
+    parameters.delete('id');
+    const query = parameters.toString();
+    router.replace(query === '' ? '/app/schedule' : `/app/schedule?${query}`);
+  };
+
   const backButton = (
     <button
       type="button"
-      onClick={() => router.back()}
+      onClick={goBack}
       className={floatingButtonClassName}
       aria-label={labels.back[locale]}
     >
@@ -228,7 +252,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
         <SetHideHeader value />
         <div className={cn(containerClassName, 'items-center justify-center p-8 text-center')}>
           <p className="mb-4 text-gray-500">{labels.notFound[locale]}</p>
-          <Button onClick={() => router.back()}>{labels.back[locale]}</Button>
+          <Button onClick={goBack}>{labels.back[locale]}</Button>
         </div>
       </>
     );
