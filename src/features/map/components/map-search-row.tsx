@@ -1,7 +1,7 @@
 'use client';
 
 import { useFitToSearchResults } from '@/features/map/hooks/use-fit-to-search-results';
-import { useLocateControl } from '@/features/map/hooks/use-locate-control';
+import { useLocateControl, useLocateOnArrival } from '@/features/map/hooks/use-locate-control';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
@@ -60,7 +60,8 @@ export const MapSearchRow: React.FC<{
 }> = ({ onSearch, results }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const [value, setValue] = useState('');
-  const { locate, state: locateState } = useLocateControl();
+  const { locate, tryLocate, state: locateState } = useLocateControl();
+  useLocateOnArrival(tryLocate);
   useFitToSearchResults(value, results);
 
   const search = (next: string): void => {

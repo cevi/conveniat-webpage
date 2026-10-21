@@ -8,6 +8,7 @@ import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-typ
 import type { LeaderNotes } from '@/features/schedule/api/viewer';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
+import { ScheduleDetailActions } from '@/features/schedule/components/schedule-detail-actions';
 import type { DetailTab } from '@/features/schedule/components/schedule-detail-tabs';
 import {
   DetailTabBar,
@@ -352,6 +353,16 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               )
             )}
           </header>
+
+          {/* the reminder is for the slot shown, the user's own where they have one */}
+          {!isEditing && (
+            <ScheduleDetailActions
+              entryId={shown.id}
+              timeslot={shown.timeslot}
+              locationId={location?.id}
+              locale={locale}
+            />
+          )}
 
           {tabs.length > 1 && !isEditing && (
             <DetailTabBar

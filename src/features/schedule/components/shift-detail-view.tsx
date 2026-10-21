@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FactRow } from '@/components/ui/fact-row';
 import { SectionLabel } from '@/components/ui/section-label';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
+import { ReminderButton, ReminderHint } from '@/features/schedule/components/reminder-button';
 import { mapCenterOf, ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
 import { formatSpotsFilled, ShiftCapacity } from '@/features/schedule/components/shift-capacity';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
@@ -262,6 +263,17 @@ export const ShiftDetailView: React.FC<{
                   <p className="text-base leading-relaxed text-green-700">{shift.description}</p>
                 )}
               </header>
+
+              {/* a Schichteinsatz the helper is enrolled in reminds them without being asked */}
+              <div className="space-y-3">
+                <ReminderButton
+                  entryId={shift.id}
+                  entryKind="shift"
+                  locale={locale}
+                  className="w-full"
+                />
+                <ReminderHint entryId={shift.id} entryKind="shift" locale={locale} />
+              </div>
 
               {/* When, where, how full, and until when one can step back */}
               <div className="border-line overflow-hidden rounded-[14px] border bg-white">

@@ -53,6 +53,10 @@ jest.mock('@/features/schedule/components/enrollment-action', () => ({
   EnrollmentAction: (): React.ReactNode => <></>,
 }));
 
+jest.mock('@/features/schedule/components/schedule-detail-actions', () => ({
+  ScheduleDetailActions: (): React.ReactNode => <></>,
+}));
+
 jest.mock('@/features/schedule/components/schedule-mini-map', () => ({
   mapCenterOf: (): undefined => undefined,
   ScheduleMiniMap: (): React.ReactNode => <></>,
