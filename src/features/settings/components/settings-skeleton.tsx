@@ -59,6 +59,7 @@ export const SettingsSkeleton: React.FC = () => (
             <div className={cn('h-4 w-48 rounded', pulse)} />
             <div className={cn('h-11 w-28 rounded-xl', pulse)} />
           </div>
+          <SettingRowSkeleton title="w-36" />
         </div>
       </section>
     </div>

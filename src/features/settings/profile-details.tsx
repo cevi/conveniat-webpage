@@ -1,8 +1,10 @@
 import { IconTile } from '@/components/ui/icon-tile';
 import { SectionLabel } from '@/components/ui/section-label';
+import { environmentVariables } from '@/config/environment-variables';
 import { CeviDatabaseGroupSync } from '@/features/settings/cevi-db-group-sync';
 import { LoginButton } from '@/features/settings/login-button';
 import { LogoutButton } from '@/features/settings/logout-button';
+import { PresenceSettings } from '@/features/settings/presence-settings';
 import { displayNamesOf } from '@/features/settings/utils/display-names';
 import type { HitobitoNextAuthUser } from '@/types/hitobito-next-auth-user';
 import type { StaticTranslationString } from '@/types/types';
@@ -223,6 +225,9 @@ export const ProfileDetails: React.FC = async () => {
           )}
           <SettingsFactRow label={factLabels.email[locale]} value={getDetail(user.email)} />
           <CeviDatabaseGroupSync />
+          {environmentVariables.FEATURE_ENABLE_PRESENCE_TRACKING && (
+            <PresenceSettings locale={locale} />
+          )}
         </SettingsCard>
       </section>
     </div>
