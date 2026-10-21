@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/components/ui/card';
 import { labels } from '@/features/material/components/material-labels';
 import {
   EmptyState,
@@ -124,9 +125,9 @@ export const CategoriesSheet: React.FC<{ onClose: () => void }> = ({ onClose }) 
         title={text.categories[locale]}
       >
         {categoryList.length === 0 && <EmptyState text={labels.empty[locale]} />}
-        <ul className="divide-line border-line divide-y rounded-lg border">
+        <Card as="ul" divided>
           {categoryList.map((category) => (
-            <li key={category.id} className="flex items-center gap-2 py-0.5 pr-1 pl-3 text-sm">
+            <li key={category.id} className="flex items-center gap-2 py-0.5 pr-1 pl-3 text-[15px]">
               <span className="w-8 font-mono text-xs text-green-500">{category.sortOrder}</span>
               <span className="min-w-0 flex-1 truncate font-semibold text-green-900">
                 {category.name}
@@ -141,7 +142,7 @@ export const CategoriesSheet: React.FC<{ onClose: () => void }> = ({ onClose }) 
               </MaterialButton>
             </li>
           ))}
-        </ul>
+        </Card>
         <SheetFooter>
           <MaterialButton variant="outlined" className="w-full" onClick={() => setEditing({})}>
             <Plus aria-hidden />

@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/components/ui/card';
 import { Segmented, Stepper } from '@/features/material/components/counter-ui';
 import { MaterialItemImage } from '@/features/material/components/material-item-image';
 import { format, labels } from '@/features/material/components/material-labels';
@@ -221,7 +222,7 @@ export const RequestSheet: React.FC<{
         )}
       </div>
 
-      <ul className="divide-line border-line divide-y rounded-xl border">
+      <Card as="ul" divided>
         {lines.map((line) => {
           const item = byId.get(line.itemId);
           const name = item?.name ?? '…';
@@ -250,7 +251,7 @@ export const RequestSheet: React.FC<{
                   aria-label={`${labels.remove[locale]}: ${name}`}
                   onClick={() => onLinesChange(lines.filter((entry) => entry !== line))}
                   className={cn(
-                    'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
+                    'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
                   )}
                 >
                   <Trash2 className="size-4" aria-hidden />
@@ -283,7 +284,7 @@ export const RequestSheet: React.FC<{
             </li>
           );
         })}
-      </ul>
+      </Card>
 
       <Field as="group" label={text.forWhom[locale]}>
         {whomOptions.length <= 3 ? (

@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/components/ui/card';
 import { HolderAvatar } from '@/features/material/components/counter-ui';
 import { Field, inputClass } from '@/features/material/components/material-ui';
 import { useDebouncedValue } from '@/features/material/hooks/use-debounced-value';
@@ -104,7 +105,7 @@ export const ResponsibleNameField: React.FC<{
         />
       </Field>
       {suggestions.length > 0 && (
-        <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border bg-white">
+        <Card as="ul" divided>
           {suggestions.map((person) => (
             <SuggestionRow
               key={person.uuid}
@@ -115,7 +116,7 @@ export const ResponsibleNameField: React.FC<{
               }}
             />
           ))}
-        </ul>
+        </Card>
       )}
     </div>
   );

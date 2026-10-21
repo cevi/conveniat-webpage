@@ -1,6 +1,8 @@
 'use client';
 
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { buttonVariants } from '@/components/ui/buttons/button';
+import { Card } from '@/components/ui/card';
 import { textInputClassName } from '@/components/ui/field';
 import { SectionLabel } from '@/components/ui/section-label';
 import { formatDay, labels } from '@/features/material/components/material-labels';
@@ -8,15 +10,13 @@ import { useMaterialLocale } from '@/features/material/hooks/use-material';
 import { fromDateInput } from '@/features/material/utils/dates';
 import { parseNumberDraft } from '@/features/material/utils/number-input';
 import { cn } from '@/utils/tailwindcss-override';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { CalendarDays, Loader2, X } from 'lucide-react';
 import type React from 'react';
 import { useId, useState } from 'react';
 
 /**
- * A dialog that sits at the bottom on a phone, where the thumb is, and centres on desktop.
- * Built on Radix directly rather than the shared dialog: the app shell's header and sidebar
- * stack above `z-50`, so the sheet has to sit where the chat dialogs do.
+ * A sheet of the depot: the app's shared `BottomSheet`, its content spaced as a form. Its main
+ * button goes into a `SheetFooter` at the end of the content.
  */
 export const MaterialSheet: React.FC<{
   open: boolean;
@@ -24,41 +24,16 @@ export const MaterialSheet: React.FC<{
   title: string;
   description?: string;
   children: React.ReactNode;
-}> = ({ open, onOpenChange, title, description, children }) => {
-  const locale = useMaterialLocale();
-  return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[99999] bg-gray-950/40" />
-        <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-[99999] grid max-h-[90dvh] gap-5 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-full sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5">
-          {/* the grip says "this slides up from the bottom"; Radix closes it on a tap outside */}
-          <div className="-mt-2 -mb-3 flex justify-center sm:hidden" aria-hidden>
-            <span className="bg-rail h-1.5 w-10 rounded-full" />
-          </div>
-          <div className="pr-10">
-            <DialogPrimitive.Title className="font-heading text-heading text-lg font-bold">
-              {title}
-            </DialogPrimitive.Title>
-            {description === undefined ? (
-              <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>
-            ) : (
-              <DialogPrimitive.Description className="mt-1 text-sm text-green-700">
-                {description}
-              </DialogPrimitive.Description>
-            )}
-          </div>
-          {children}
-          <DialogPrimitive.Close
-            className="hover:bg-quiet absolute top-3 right-3 flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500"
-            aria-label={labels.close[locale]}
-          >
-            <X className="size-5" aria-hidden />
-          </DialogPrimitive.Close>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
-  );
-};
+}> = ({ open, onOpenChange, title, description, children }) => (
+  <BottomSheet
+    open={open}
+    onOpenChange={onOpenChange}
+    title={title}
+    {...(description === undefined ? {} : { description })}
+  >
+    <div className="grid gap-5 pt-1">{children}</div>
+  </BottomSheet>
+);
 
 /**
  * The bottom of a sheet, where the thumb is: holds the step's main button in view while the
@@ -71,7 +46,9 @@ export const SheetFooter: React.FC<{ children: React.ReactNode; className?: stri
 }) => (
   <div
     className={cn(
-      'border-line sticky bottom-0 z-10 -mx-5 -mb-5 border-t bg-white px-5 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-5',
+      // the sheet keeps the safe area below its content already; the sheet's own 20px padding
+      // below the content would show the content scrolling under the footer, so it reaches over it
+      'border-line sticky -bottom-5 z-10 -mx-5 -mb-5 border-t bg-white px-5 py-3',
       className,
     )}
   >
@@ -186,7 +163,7 @@ export const DateInput: React.FC<{
           aria-label={labels.clearDate[locale]}
           onClick={() => onChange('')}
           className={cn(
-            'absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
+            'hover:bg-quiet absolute top-0 right-0 z-[2] flex size-11 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
           )}
         >
           <X className="size-4" aria-hidden />
@@ -247,12 +224,12 @@ export const NumberInput: React.FC<
 
 /**
  * The app's button at 44 px, big enough to hit with a cold thumb during a hectic hand-out, with
- * a spinner while its action runs. Destructive actions such as "Ablehnen" are `outlined`: red
- * belongs to the emergency screens.
+ * a spinner while its action runs. What destroys something, like "Ja, ablehnen", is `danger`,
+ * and only the step that does it: the button that asks first stays neutral.
  */
 export const MaterialButton: React.FC<
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: 'primary' | 'quiet' | 'outlined';
+    variant?: 'primary' | 'quiet' | 'outlined' | 'danger';
     loading?: boolean;
   }
 > = ({
@@ -291,8 +268,14 @@ export const Panel: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ title, count, action, children, className }) => {
-  const card = cn('border-line min-w-0 overflow-hidden rounded-[14px] border bg-white', className);
-  if (title === undefined) return <section className={card}>{children}</section>;
+  const card = cn('min-w-0', className);
+  if (title === undefined) {
+    return (
+      <Card as="section" className={card}>
+        {children}
+      </Card>
+    );
+  }
   return (
     <section className="min-w-0">
       <div className="mb-2 flex min-h-5 flex-wrap items-center justify-between gap-2 px-1">
@@ -302,7 +285,7 @@ export const Panel: React.FC<{
         </SectionLabel>
         {action}
       </div>
-      <div className={card}>{children}</div>
+      <Card className={card}>{children}</Card>
     </section>
   );
 };

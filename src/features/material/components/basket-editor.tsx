@@ -1,5 +1,6 @@
 'use client';
 
+import { Card } from '@/components/ui/card';
 import {
   holderInitials,
   SearchField,
@@ -240,7 +241,7 @@ const ItemSearch: React.FC<{
         }}
       />
       {matches.length > 0 && (
-        <ul className="divide-line border-line divide-y overflow-hidden rounded-xl border bg-white">
+        <Card as="ul" divided>
           {matches.map((item) => {
             const cap = basketLineCap({
               available: item.stock.available,
@@ -278,7 +279,7 @@ const ItemSearch: React.FC<{
               </li>
             );
           })}
-        </ul>
+        </Card>
       )}
     </div>
   );
@@ -351,7 +352,7 @@ const BasketLineRow: React.FC<{
           onClick={onRemove}
           aria-label={`${labels.remove[locale]}: ${name}`}
           className={cn(
-            'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-green-500 hover:text-green-900',
+            'hover:bg-quiet flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-500 hover:text-green-900',
           )}
         >
           <Trash2 className="size-4" aria-hidden />
@@ -682,7 +683,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
       <StickyAction>
         <MaterialButton
           className="w-full"
-          variant={cancelsAll ? 'outlined' : 'primary'}
+          variant={cancelsAll ? 'danger' : 'primary'}
           loading={book.isPending}
           disabled={!canSubmit || (lines.length === 0 && !cancelsAll)}
           onClick={submit}

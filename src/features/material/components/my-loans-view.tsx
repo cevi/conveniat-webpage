@@ -295,7 +295,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
             {labels.back[locale]}
           </MaterialButton>
           <MaterialButton
-            variant="outlined"
+            variant="danger"
             loading={cancel.isPending}
             onClick={() =>
               cancel.mutate(

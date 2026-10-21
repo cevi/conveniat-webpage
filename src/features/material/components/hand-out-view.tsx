@@ -286,7 +286,7 @@ const RequestCard: React.FC<{
               {labels.cancel[locale]}
             </MaterialButton>
             <MaterialButton
-              variant="outlined"
+              variant="danger"
               loading={reject.isPending}
               onClick={() =>
                 reject.mutate(

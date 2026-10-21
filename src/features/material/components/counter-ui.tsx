@@ -6,9 +6,9 @@ import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segme
 import { format, labels } from '@/features/material/components/material-labels';
 import { MaterialSheet, NumberInput } from '@/features/material/components/material-ui';
 import { useMaterialLocale } from '@/features/material/hooks/use-material';
-import { useQrScanner } from '@/features/material/hooks/use-qr-scanner';
 import { stepQuantity } from '@/features/material/utils/basket';
 import type { LoanHolder } from '@/features/material/utils/holders';
+import { useQrScanner } from '@/hooks/use-qr-scanner';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { Minus, Plus, ScanLine } from 'lucide-react';
