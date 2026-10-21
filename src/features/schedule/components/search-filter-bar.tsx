@@ -16,6 +16,7 @@ const labels = {
   search: { de: 'Suchen …', en: 'Search …', fr: 'Rechercher …' },
   clearSearch: { de: 'Suche leeren', en: 'Clear search', fr: 'Effacer la recherche' },
   filter: { de: 'Filter', en: 'Filters', fr: 'Filtres' },
+  activeFilter: { de: '1 aktiver Filter', en: '1 active filter', fr: '1 filtre actif' },
   activeFilters: {
     de: '{{count}} aktive Filter',
     en: '{{count}} active filters',
@@ -215,7 +216,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           aria-controls="filter-panel"
           aria-label={
             activeCount > 0
-              ? `${labels.filter[locale]}, ${labels.activeFilters[locale].replace('{{count}}', String(activeCount))}`
+              ? `${labels.filter[locale]}, ${(activeCount === 1 ? labels.activeFilter : labels.activeFilters)[locale].replace('{{count}}', String(activeCount))}`
               : undefined
           }
           onClick={() => toggle('all')}

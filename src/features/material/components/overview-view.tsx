@@ -59,8 +59,8 @@ const text = {
   available: { de: 'Verfügbar', en: 'Available', fr: 'Disponible' },
   holders: {
     de: 'bei {n} Höfen/Personen',
-    en: 'with {n} Hofs/people',
-    fr: 'chez {n} Hofs/personnes',
+    en: 'with {n} Höfe/people',
+    fr: 'chez {n} Höfe/personnes',
   },
   articles: { de: '{n} Artikel', en: '{n} items', fr: '{n} articles' },
   handOut: { de: 'Ausgeben', en: 'Hand out', fr: 'Remettre' },
