@@ -6,6 +6,7 @@ import { PayloadSettingsAdapter } from '@/features/billing/adapters/payload-sett
 import { RedisJobProgressAdapter } from '@/features/billing/adapters/redis-job-progress.adapter';
 import { S3StorageAdapter } from '@/features/billing/adapters/s3-storage.adapter';
 import type { BillingJobProgress } from '@/features/billing/ports/job-progress.port';
+import { describeActor } from '@/features/billing/services/describe-actor';
 import {
   buildLatestJobWhere,
   getJobDerivedStatus,
@@ -32,18 +33,6 @@ const describeCancelReason = (reason: unknown): string | undefined => {
   if (typeof reason === 'string') return reason;
   return JSON.stringify(reason);
 };
-
-/** Names the operator behind a manual action, for the participant's history. */
-function describeActor(user: unknown): string {
-  if (user !== null && typeof user === 'object') {
-    const record = user as Record<string, unknown>;
-    for (const key of ['name', 'email', 'id']) {
-      const value = record[key];
-      if (typeof value === 'string' && value !== '') return value;
-    }
-  }
-  return 'unbekannt';
-}
 
 const ParticipantIdSchema = z.object({
   participantId: z.string().trim().min(1, 'Missing participantId'),
@@ -571,6 +560,44 @@ export const billingWeeklyReportPdfHandler: PayloadHandler = async (request) => 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     request.payload.logger.error({ err: error }, `Weekly report download failed: ${message}`);
+    return Response.json({ error: message }, { status: 500 });
+  }
+};
+
+/**
+ * GET /api/confidential/billing/double-payments-pdf – Download the double payments now
+ *
+ * The same document the weekly finance mail attaches, from the payments as they stand right
+ * now. Read-only, so it leaves the mail's schedule alone.
+ */
+export const billingDoublePaymentsPdfHandler: PayloadHandler = async (request) => {
+  try {
+    const hasAccess = await canAccessBilling({ req: request });
+    if (hasAccess !== true) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { buildDoublePaymentAttachment, findDoublePaymentReport } =
+      await import('@/features/billing/services/double-payment-report');
+    const report = await findDoublePaymentReport(request.payload, new Date());
+    const { filename, content } = await buildDoublePaymentAttachment(report);
+
+    request.payload.logger.info(
+      `Double payment report generated on demand by ${describeActor(request.user)}.`,
+    );
+
+    return new Response(new Uint8Array(content), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        // Names and amounts: the browser must not keep a copy on disk.
+        'Cache-Control': 'no-store',
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    request.payload.logger.error({ err: error }, `Double payment report failed: ${message}`);
     return Response.json({ error: message }, { status: 500 });
   }
 };

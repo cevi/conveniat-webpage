@@ -1,25 +1,20 @@
-import {
-  PAYMENT_BOOKED_ACTION,
-  writeBackPayment,
-} from '@/features/billing/services/anmeldestatus-writeback';
+import { writeBackPayment } from '@/features/billing/services/anmeldestatus-writeback';
 import { PAID } from '@/features/billing/services/billing-status';
 import { createHitobitoService } from '@/features/billing/services/email-service';
-import type { BankPayment } from '@/features/billing/services/payment-csv';
-import { parsePaymentCsv } from '@/features/billing/services/payment-csv';
-import type { PaymentOutcome } from '@/features/billing/services/payment-matching';
+import { allocatedParticipantIds } from '@/features/billing/services/payment-allocation';
 import {
-  formatChf,
+  queuePaymentWriteBack,
+  reconcileParticipantPayments,
+} from '@/features/billing/services/payment-booking';
+import { parsePaymentCsv } from '@/features/billing/services/payment-csv';
+import type { PaymentMatch, PaymentOutcome } from '@/features/billing/services/payment-matching';
+import {
+  isConvertedReference,
   isValidQrReference,
   matchPayments,
 } from '@/features/billing/services/payment-matching';
-import { BillingTaskSlug } from '@/features/billing/types';
-import type { BillParticipant } from '@/features/payload-cms/payload-types';
+import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
 import type { Payload } from 'payload';
-
-/** The input of the `writeBackPayments` task. */
-export interface WriteBackPaymentsInput {
-  participantIds: string[];
-}
 
 /** What an import did, for the admin panel to report. */
 export interface PaymentImportSummary {
@@ -43,44 +38,52 @@ interface SyncHistoryEntry {
   reviewReason?: string;
 }
 
-const formatSwissDate = (isoDate: string): string => {
-  const [year, month, day] = isoDate.split('-');
-  return `${day ?? ''}.${month ?? ''}.${year ?? ''}`;
-};
-
-/** `CHF 0.04 mehr als die Rechnung über CHF 172.96`, for a payment above the bill's amount. */
-const describeOverpayment = (
-  payment: BankPayment,
-  invoiceAmount: number | null | undefined,
-): string | undefined => {
-  if (payment.amount === undefined || invoiceAmount === null || invoiceAmount === undefined) {
-    return undefined;
-  }
-  const overpaid = Math.round((payment.amount - invoiceAmount) * 100) / 100;
-  return overpaid > 0
-    ? `${formatChf(overpaid)} mehr als die Rechnung über ${formatChf(invoiceAmount)}`
-    : undefined;
-};
-
-const describePayment = (
-  payment: BankPayment,
-  invoiceAmount: number | null | undefined,
-  actor: string,
-): string =>
-  [
-    formatChf(payment.amount),
-    describeOverpayment(payment, invoiceAmount),
-    payment.bookingDate === undefined
-      ? undefined
-      : `gebucht am ${formatSwissDate(payment.bookingDate)}`,
-    payment.transactionReference === '' ? undefined : `Transaktion ${payment.transactionReference}`,
-    `importiert von ${actor}`,
-  ]
-    .filter((part) => part !== undefined)
-    .join(', ');
+/** The outcomes whose payment goes to the bill its reference named. */
+const ALLOCATED_OUTCOMES: ReadonlySet<PaymentOutcome> = new Set(['booked', 'double_payment']);
 
 /**
- * Books the payments of a bank CSV against the bills and queues the Cevi.DB write-back.
+ * Whether a payment is worth keeping as a row. One without a transaction id could never be
+ * told apart from a second import of it, a debit is no payment, and a reference a spreadsheet
+ * turned into a number says the row is no longer what the bank sent.
+ */
+const isStorable = ({ payment, outcome }: PaymentMatch): boolean =>
+  outcome !== 'already_booked' &&
+  payment.transactionReference !== '' &&
+  payment.amount !== undefined &&
+  payment.amount > 0 &&
+  !isConvertedReference(payment.reference);
+
+const toPaymentRow = (
+  { payment, outcome, participantId, message }: PaymentMatch,
+  actor: string,
+): Omit<BillPayment, 'id' | 'createdAt' | 'updatedAt'> => ({
+  transactionReference: payment.transactionReference,
+  amount: payment.amount ?? 0,
+  currency: payment.currency === '' ? 'CHF' : payment.currency,
+  ...(payment.bookingDate === undefined
+    ? {}
+    : { bookingDate: `${payment.bookingDate}T00:00:00.000Z` }),
+  reference: payment.reference,
+  payer: payment.payer,
+  message: payment.message,
+  ...(participantId === undefined ? {} : { matchedParticipant: participantId }),
+  importOutcome: outcome,
+  importedBy: actor,
+  ...(message === undefined ? {} : { importMessage: message }),
+  allocations:
+    ALLOCATED_OUTCOMES.has(outcome) && participantId !== undefined
+      ? [{ participant: participantId, amount: payment.amount ?? 0 }]
+      : [],
+});
+
+/**
+ * Stores the payments of a bank CSV, books the bills they pay, and queues the Cevi.DB
+ * write-back.
+ *
+ * Every payment becomes a row, booked or not, so one the import could not assign waits for
+ * finance in «Zahlungen». A second payment for a bill already paid is linked to that bill and
+ * flags it as paid twice. A transaction already stored is skipped, which is what makes
+ * importing the same file again harmless.
  *
  * Booking is done here, in the request, so the operator sees at once what was booked and
  * what was not. Writing to the Cevi.DB takes a few seconds per registration and runs as a
@@ -118,13 +121,29 @@ export async function importPayments(
       },
       pagination: false,
       depth: 0,
+      joins: false,
       context: { internal: true },
     });
     candidates.push(...found.docs);
   }
 
-  const matches = matchPayments(parsed.payments, candidates);
-  const now = new Date().toISOString();
+  const transactions = [
+    ...new Set(
+      parsed.payments
+        .map((payment) => payment.transactionReference)
+        .filter((transaction) => transaction !== ''),
+    ),
+  ];
+  const known = await payload.find({
+    collection: 'bill-payments',
+    where: { transactionReference: { in: transactions } },
+    pagination: false,
+    depth: 0,
+    context: { internal: true },
+  });
+  const knownTransactions = new Set(known.docs.map((payment) => payment.transactionReference));
+
+  const matches = matchPayments(parsed.payments, candidates, knownTransactions);
   const summary: PaymentImportSummary = {
     totalCount: matches.length,
     bookedCount: 0,
@@ -132,79 +151,52 @@ export async function importPayments(
     errors: [],
     outcomes: {},
   };
-  const bookedIds: string[] = [];
+  const saved: BillPayment[] = [];
+  const affected = new Set<string>();
 
   for (const match of matches) {
-    if (match.outcome !== 'booked' || match.participantId === undefined) {
-      summary.outcomes[match.outcome] = (summary.outcomes[match.outcome] ?? 0) + 1;
-      if (match.outcome === 'already_booked') summary.alreadyBookedCount++;
-      else if (match.message !== undefined) summary.errors.push(match.message);
-      continue;
-    }
-
-    const participant = candidates.find((candidate) => candidate.id === match.participantId);
-    const history = Array.isArray(participant?.syncHistory)
-      ? (participant.syncHistory as SyncHistoryEntry[])
-      : [];
-    const { payment } = match;
+    summary.outcomes[match.outcome] = (summary.outcomes[match.outcome] ?? 0) + 1;
+    if (match.outcome === 'already_booked') summary.alreadyBookedCount++;
+    else if (match.message !== undefined) summary.errors.push(match.message);
+    if (!isStorable(match) || knownTransactions.has(match.payment.transactionReference)) continue;
 
     try {
-      await payload.update({
-        collection: 'bill-participants',
-        id: match.participantId,
-        context: { internal: true },
-        data: {
-          status: PAID,
-          paidDate:
-            payment.bookingDate === undefined ? now : `${payment.bookingDate}T00:00:00.000Z`,
-          ...(payment.amount === undefined ? {} : { paidAmount: payment.amount }),
-          paymentTransactionReference: payment.transactionReference,
-          syncHistory: [
-            ...history,
-            {
-              date: now,
-              action: PAYMENT_BOOKED_ACTION,
-              value: describePayment(payment, participant?.invoiceAmount, actor),
-            },
-          ],
-        },
+      const row = await payload.create({
+        collection: 'bill-payments',
+        depth: 0,
+        // The bills are brought in line below, all at once, rather than once per row.
+        context: { internal: true, paymentImport: true },
+        data: toPaymentRow(match, actor),
       });
-      bookedIds.push(match.participantId);
-      summary.bookedCount++;
-      summary.outcomes.booked = (summary.outcomes.booked ?? 0) + 1;
+      knownTransactions.add(row.transactionReference);
+      saved.push(row);
+      for (const id of allocatedParticipantIds(row)) affected.add(id);
     } catch (error) {
-      // The status rule refuses the write when the row moved on since it was read, e.g. a
-      // cancellation in the same moment. The payment then needs a human like any other.
+      // Another import of the same file in the same moment stored the transaction first.
       const reason = error instanceof Error ? error.message : String(error);
       payload.logger.warn(
-        `Payment import could not book line ${String(payment.line)} on bill participant ${match.participantId}: ${reason}`,
+        `Payment import could not store transaction ${match.payment.transactionReference} from line ${String(match.payment.line)}: ${reason}`,
       );
       summary.errors.push(
-        `Zeile ${String(payment.line)}, ${formatChf(payment.amount)}: konnte nicht verbucht werden – ${reason}`,
+        `Zeile ${String(match.payment.line)}: Transaktion ${match.payment.transactionReference} konnte nicht gespeichert werden – ${reason}`,
       );
     }
   }
 
-  if (bookedIds.length > 0) {
-    try {
-      await payload.jobs.queue({
-        task: BillingTaskSlug.WriteBackPayments,
-        input: { participantIds: bookedIds } satisfies WriteBackPaymentsInput,
-      });
-    } catch (error) {
-      payload.logger.error(
-        { err: error },
-        `Payment import booked ${String(bookedIds.length)} payments but could not queue the Cevi.DB write-back.`,
-      );
-      summary.errors.push(
-        'Die Zahlungen sind verbucht, die Cevi.DB konnte aber nicht sofort nachgeführt werden. ' +
-          'Das holt der nächste nächtliche Abgleich nach.',
-      );
-    }
-  }
+  const reconciled = await reconcileParticipantPayments(
+    payload,
+    affected,
+    { actor, verb: 'importiert' },
+    saved,
+  );
+  summary.bookedCount = reconciled.bookedIds.length;
+  summary.errors.push(...reconciled.errors);
+  const writeBackError = await queuePaymentWriteBack(payload, reconciled.bookedIds);
+  if (writeBackError !== undefined) summary.errors.push(writeBackError);
 
   payload.logger.info(
     `Payment import by ${actor}: ${String(summary.totalCount)} payments, ${String(summary.bookedCount)} booked, ` +
+      `${String(summary.outcomes.double_payment ?? 0)} double payments, ` +
       `${String(summary.alreadyBookedCount)} already booked, ${String(summary.errors.length)} for manual review.`,
   );
   return summary;

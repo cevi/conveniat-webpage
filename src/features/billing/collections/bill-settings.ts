@@ -1032,6 +1032,16 @@ export const BillSettingsGlobal: GlobalConfig = {
                     },
                   },
                 },
+                {
+                  name: 'doublePaymentsDownload',
+                  type: 'ui',
+                  admin: {
+                    components: {
+                      Field:
+                        '@/features/billing/components/double-payments-download-button#DoublePaymentsDownloadButton',
+                    },
+                  },
+                },
               ],
             },
             {
