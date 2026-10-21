@@ -489,7 +489,7 @@ export const ChatTextAreaInput: React.FC = () => {
               // px, not rem: the root font is larger on desktop, and the line has to match the
               // button, which is 44px everywhere
               className={cn(
-                'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 placeholder:text-green-500 focus:ring-0 focus:outline-none',
+                'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 placeholder:truncate placeholder:text-green-500 focus:ring-0 focus:outline-none',
                 canUploadPictures ? 'pl-0' : 'pl-[14px]',
               )}
               rows={1}
