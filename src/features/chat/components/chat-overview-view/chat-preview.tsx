@@ -144,7 +144,12 @@ export const ChatPreview: React.FC<{
   return (
     <Link
       href={chatDetailLink}
-      className="hover:bg-page block w-full bg-white"
+      // an emergency chat is the one row that may be red, so it stands out of the list
+      className={cn(
+        'hover:bg-page block w-full bg-white',
+        isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
+      )}
+      data-allow-red={isEmergency ? '' : undefined}
       onMouseEnter={handlePrefetch}
     >
       <ChatPreviewRow>
@@ -176,7 +181,7 @@ export const ChatPreview: React.FC<{
               <span
                 className={cn(
                   'shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold',
-                  isEmergency ? 'bg-red-50 text-red-700' : 'bg-chip text-green-900',
+                  isEmergency ? 'bg-white text-red-700' : 'bg-chip text-green-900',
                 )}
               >
                 {chat.caseNumber}
