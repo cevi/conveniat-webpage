@@ -36,8 +36,14 @@ export const SystemMessage: React.FC<{
   isGroup?: boolean;
 }> = ({ message, creator, currentUserId, isGroup = false }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
+  const payload = message.messagePayload;
+  // stored as a string in the creator's language; a chat created here starts with all three
   const isCreation =
-    typeof message.messagePayload === 'string' && NEW_CHAT_TEXTS.has(message.messagePayload);
+    (typeof payload === 'string' && NEW_CHAT_TEXTS.has(payload)) ||
+    (typeof payload === 'object' &&
+      !Array.isArray(payload) &&
+      typeof payload['de'] === 'string' &&
+      NEW_CHAT_TEXTS.has(payload['de']));
 
   let content: React.ReactNode = formatMessageContent(message.messagePayload, locale);
   if (isCreation && creator !== undefined) {
