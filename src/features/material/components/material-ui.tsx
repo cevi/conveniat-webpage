@@ -312,51 +312,6 @@ export const Panel: React.FC<{
   );
 };
 
-/**
- * A key figure. Compact on a phone, where four of them should not push the list off screen.
- * `live` is the orange of a warning, such as something overdue.
- */
-export const StatTile: React.FC<{
-  label: string;
-  value: number | string;
-  hint?: string;
-  tone?: 'default' | 'live';
-}> = ({ label, value, hint, tone = 'default' }) => (
-  <div
-    className={cn(
-      'min-w-0 rounded-[14px] border px-3 py-2.5 sm:p-4',
-      tone === 'live' ? 'border-live-line bg-live-soft' : 'border-line bg-white',
-    )}
-  >
-    <div
-      className={cn(
-        'text-xs font-semibold break-words hyphens-auto',
-        tone === 'live' ? 'text-live-text' : 'text-green-700',
-      )}
-    >
-      {label}
-    </div>
-    <div
-      className={cn(
-        'font-heading mt-0.5 text-2xl font-extrabold tabular-nums sm:mt-1 sm:text-3xl',
-        tone === 'live' ? 'text-live-text' : 'text-heading',
-      )}
-    >
-      {value}
-    </div>
-    {hint !== undefined && (
-      <div
-        className={cn(
-          'mt-0.5 truncate text-xs',
-          tone === 'live' ? 'text-live-text' : 'text-green-700',
-        )}
-      >
-        {hint}
-      </div>
-    )}
-  </div>
-);
-
 export const EmptyState: React.FC<{ text: string }> = ({ text }) => (
   <p className="px-4 py-8 text-center text-[15px] text-green-700">{text}</p>
 );
