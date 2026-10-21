@@ -632,9 +632,9 @@ export const BillParticipantsCollection: CollectionConfig = {
               collection: 'bill-payments',
               on: 'allocations.participant',
               label: {
-                en: 'Payments',
-                de: 'Zahlungen',
-                fr: 'Paiements',
+                en: 'Bookings',
+                de: 'Buchungen',
+                fr: 'Écritures',
               },
               admin: {
                 defaultColumns: [
