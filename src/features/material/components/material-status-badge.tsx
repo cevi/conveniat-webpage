@@ -49,7 +49,8 @@ const loanStatusClass: Record<MaterialLoanDisplayStatus, string> = {
   RETURNED: chipTone.done,
   CONSUMED: chipTone.done,
   CANCELLED: cn(chipTone.done, 'text-green-500 line-through'),
-  REJECTED: chipTone.done,
+  // refused, unlike a loan that came back: the requester has to know and find another way
+  REJECTED: chipTone.warning,
 };
 
 export const ItemStatusBadge: React.FC<{ status: MaterialItemStatus; locale: Locale }> = ({

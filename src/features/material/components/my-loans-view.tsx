@@ -278,7 +278,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
         )}
       </div>
       {rejected && (
-        <p className="bg-quiet rounded-[10px] px-3 py-2 text-sm text-green-900">
+        <p className="bg-live-soft text-live-text rounded-[10px] px-3 py-2 text-sm">
           {loan.rejectionReason === '' || loan.rejectionReason === null
             ? text.rejectedNoReason[locale]
             : format(text.rejectedBecause, locale, { reason: loan.rejectionReason })}

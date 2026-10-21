@@ -101,12 +101,13 @@ interface LineState extends ReturnDraft {
 
 const CHIPS: MaterialCondition[] = ['OK', 'DAMAGED', 'MISSING'];
 
-// the chosen state: green when all is well, the live orange when something wants a hand
+// the chosen state, each its own: green when all is well, the live orange for a damage (strong
+// once it is broken), neutral grey with a dark edge for a piece that is gone
 const conditionTone: Record<MaterialCondition, string> = {
   OK: 'border-conveniat-green bg-conveniat-green text-white',
   LIGHT_DAMAGE: 'border-live bg-live-soft text-live-text',
-  DAMAGED: 'border-live bg-live-soft text-live-text',
-  MISSING: 'border-live bg-live-soft text-live-text',
+  DAMAGED: 'border-live bg-live text-white',
+  MISSING: 'border-green-700 bg-chip text-green-900',
 };
 
 /** One loan of the take-back: how many came back, and in which state. */
