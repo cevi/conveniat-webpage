@@ -13,6 +13,7 @@ import {
 import {
   FilterHeaderButton,
   SearchFilterBar,
+  SearchHeaderButton,
 } from '@/features/schedule/components/search-filter-bar';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
@@ -29,7 +30,6 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
-import { Search } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -173,9 +173,31 @@ export const ScheduleComponent: React.FC = () => {
     pluralSuffix = totalEventsCount === 1 ? '' : 's';
   }
 
+  // the header keeps its buttons while the list loads, so they do not pop in with it
+  const headerActions = (
+    <SetHeaderActions>
+      <SearchHeaderButton
+        label={programmeLabels.search[locale]}
+        isOpen={isSearchOpen}
+        onToggle={() => setIsSearchOpen((open) => !open)}
+      />
+      <FilterHeaderButton
+        filters={filters}
+        isOpen={isFilterOpen}
+        onOpen={() => setIsFilterOpen(true)}
+        locale={locale}
+      />
+    </SetHeaderActions>
+  );
+
   // Show loading skeleton while fetching data
   if (isLoading && effectiveScheduleEntries.length === 0) {
-    return <ScheduleLoadingSkeleton />;
+    return (
+      <>
+        {headerActions}
+        <ScheduleLoadingSkeleton />
+      </>
+    );
   }
 
   return (
@@ -185,23 +207,7 @@ export const ScheduleComponent: React.FC = () => {
       locale={locale}
       onDateSelect={actions.handleDateSelect}
     >
-      <SetHeaderActions>
-        <button
-          type="button"
-          aria-label={programmeLabels.search[locale]}
-          aria-expanded={isSearchOpen}
-          onClick={() => setIsSearchOpen((open) => !open)}
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
-        >
-          <Search className="h-[22px] w-[22px]" aria-hidden="true" />
-        </button>
-        <FilterHeaderButton
-          filters={filters}
-          isOpen={isFilterOpen}
-          onOpen={() => setIsFilterOpen(true)}
-          locale={locale}
-        />
-      </SetHeaderActions>
+      {headerActions}
 
       <SearchFilterBar
         filters={filters}
@@ -227,7 +233,7 @@ export const ScheduleComponent: React.FC = () => {
         <button
           type="button"
           onClick={() => actions.handleDateSelect(today)}
-          className="bg-quiet mb-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left text-[13px] text-green-700"
+          className="bg-quiet hover:bg-chip mb-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left text-[13px] text-green-700 transition-colors"
         >
           <span className="min-w-0 truncate">
             {programmeLabels[nowAndNext.current === undefined ? 'upNext' : 'now'][locale]}:{' '}

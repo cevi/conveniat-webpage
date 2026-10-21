@@ -34,19 +34,15 @@ const TimelineRow: React.FC<{ isBlock: boolean }> = ({ isBlock }) => (
 
 /**
  * The Programm while it loads, in the layout it loads into: the seven days, the line that
- * names the view, and a timeline of logistics rows and blocks. The route's loading screen shows the same, so nothing jumps when the data arrives.
- * The Schichteinsätze share the layout with the filter chips in place of that line, and shifts only.
+ * names the view, and a timeline of logistics rows and blocks. The route's loading screen shows
+ * the same, so nothing jumps when the data arrives. The Schichteinsätze share the layout without
+ * that line, which they only show while a filter is on, and with shifts only.
  */
 export const ScheduleLoadingSkeleton: React.FC<{
   showScope?: boolean;
   /** `true` for a card on the timeline, `false` for a logistics row */
   rows?: boolean[];
-  chips?: string[];
-}> = ({
-  showScope = true,
-  rows = [false, false, false, true, false, true, true],
-  chips = ['w-24', 'w-32', 'w-32', 'w-20'],
-}) => (
+}> = ({ showScope = true, rows = [false, false, false, true, false, true, true] }) => (
   <article className="mx-auto w-full max-w-2xl p-4 sm:p-6" aria-hidden="true">
     <div className="flex gap-1.5">
       {[1, 2, 3, 4, 5, 6, 7].map((index) => (
@@ -60,25 +56,15 @@ export const ScheduleLoadingSkeleton: React.FC<{
       ))}
     </div>
 
-    {/* the Programm: the line that names the view, its filter sits in the header;
-        Schichteinsätze: the filter chips */}
-    {showScope ? (
+    {/* the line that names the view; the search and the filter sit in the header */}
+    {showScope && (
       <div className="mt-4 flex h-8 items-center gap-1.5">
         <div className={cn('h-6 w-6 rounded-full', pulse)} />
         <div className={cn('h-3.5 w-16 rounded', pulse)} />
       </div>
-    ) : (
-      <div className="mt-4 flex gap-2 overflow-hidden">
-        {chips.map((width, index) => (
-          <div
-            key={index}
-            className={cn('border-line h-11 shrink-0 rounded-full border bg-white', width)}
-          />
-        ))}
-      </div>
     )}
 
-    <ol className={showScope ? 'mt-4' : 'mt-5'}>
+    <ol className="mt-4">
       {rows.map((isBlock, index) => (
         <TimelineRow key={index} isBlock={isBlock} />
       ))}

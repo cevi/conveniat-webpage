@@ -5,13 +5,17 @@ import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { DateCarouselViewWrapper } from '@/features/schedule/components/date-carousel-view-wrapper';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
-import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
+import {
+  FilterHeaderButton,
+  SearchFilterBar,
+  SearchHeaderButton,
+} from '@/features/schedule/components/search-filter-bar';
 import { ShiftCard } from '@/features/schedule/components/shift-card';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useShiftFilters } from '@/features/schedule/hooks/use-shift-filter';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { CalendarX, FilterX, Search } from 'lucide-react';
+import { CalendarX, FilterX } from 'lucide-react';
 import React, { useState } from 'react';
 
 const noShiftsText: StaticTranslationString = {
@@ -47,10 +51,11 @@ const searchShiftsText: StaticTranslationString = {
 /**
  * Client Component for the /app/helper-portal page.
  * The day strip, and the helper shifts of the selected day on a timeline like the programme's;
- * search and the category filter open from the app header.
+ * search and the filter open from the app header, as on the programme.
  */
 export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -73,8 +78,30 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   const pluralSuffix = currentShifts.length === 1 ? '' : 's';
 
+  // the header keeps its buttons while the shifts load, so they do not pop in with them
+  const headerActions = (
+    <SetHeaderActions>
+      <SearchHeaderButton
+        label={searchShiftsText[locale]}
+        isOpen={isSearchOpen}
+        onToggle={() => setIsSearchOpen((open) => !open)}
+      />
+      <FilterHeaderButton
+        filters={filters}
+        isOpen={isFilterOpen}
+        onOpen={() => setIsFilterOpen(true)}
+        locale={locale}
+      />
+    </SetHeaderActions>
+  );
+
   if (isLoading) {
-    return <ScheduleLoadingSkeleton />;
+    return (
+      <>
+        {headerActions}
+        <ScheduleLoadingSkeleton showScope={false} rows={[true, true, true]} />
+      </>
+    );
   }
 
   return (
@@ -84,17 +111,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
       locale={locale}
       onDateSelect={actions.handleDateSelect}
     >
-      <SetHeaderActions>
-        <button
-          type="button"
-          aria-label={searchShiftsText[locale]}
-          aria-expanded={isSearchOpen}
-          onClick={() => setIsSearchOpen((open) => !open)}
-          className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
-        >
-          <Search className="h-[22px] w-[22px]" aria-hidden="true" />
-        </button>
-      </SetHeaderActions>
+      {headerActions}
 
       <SearchFilterBar
         filters={filters}
@@ -103,6 +120,8 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
         availableLocations={availableLocations}
         isProgramme={false}
         shownCount={currentShifts.length}
+        isFilterOpen={isFilterOpen}
+        onFilterOpenChange={setIsFilterOpen}
         isSearchOpen={isSearchOpen}
         className="mb-3"
       />

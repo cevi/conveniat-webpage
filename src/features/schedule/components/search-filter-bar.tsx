@@ -1,8 +1,9 @@
 'use client';
 
 import type React from 'react';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId } from 'react';
 
+import { SetHeaderActions } from '@/components/header/header-actions';
 import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Button } from '@/components/ui/buttons/button';
@@ -22,7 +23,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
-import { Check, ListFilter, Shield, Star } from 'lucide-react';
+import { Check, ListFilter, Search, Shield } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 
 const labels = {
@@ -35,7 +36,6 @@ const labels = {
     fr: '{{count}} filtres actifs',
   },
   view: { de: 'Ansicht', en: 'View', fr: 'Affichage' },
-  favourites: { de: 'Favoriten', en: 'Favourites', fr: 'Favoris' },
   favouritesOnly: { de: 'Nur Favoriten', en: 'Favourites only', fr: 'Favoris seulement' },
   showLogistics: {
     de: 'Anreise & Essen anzeigen',
@@ -65,8 +65,6 @@ const labels = {
   },
 } satisfies Record<string, StaticTranslationString>;
 
-type Section = 'category' | 'place';
-
 interface SearchFilterBarProperties {
   filters: FilterState;
   onFiltersChange: (filters: FilterState) => void;
@@ -79,14 +77,11 @@ interface SearchFilterBarProperties {
   isProgramme?: boolean;
   /** the control for the view, own Quartier or whole camp, at the top of the filter sheet */
   view?: React.ReactNode;
-  /** the view as it is: named on the filter button, or leading the line of what applies */
+  /** the view as it is, leading the line of what applies */
   viewSummary?: React.ReactNode;
-  /**
-   * Given together, the filter button sits in the app header (see `FilterHeaderButton`) and
-   * the bar shows, instead of its row, one quiet line of what applies.
-   */
-  isFilterOpen?: boolean;
-  onFilterOpenChange?: (isOpen: boolean) => void;
+  /** the filter sheet, opened by `FilterHeaderButton` in the app header */
+  isFilterOpen: boolean;
+  onFilterOpenChange: (isOpen: boolean) => void;
   /** whether to offer "Für Leitende": to the people who may read the part for Leitende only */
   canFilterForLeaders?: boolean;
   /** how many entries the list shows with the filters as they are, for the closing button */
@@ -96,9 +91,41 @@ interface SearchFilterBarProperties {
   className?: string;
 }
 
-/** the round 44px favourites button beside the filter button */
-const roundButtonClassName =
-  'border-line flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 transition-colors hover:border-green-300';
+/** a 44px icon in the app header, like the buttons other pages put there */
+const headerButtonClassName =
+  'hover:bg-quiet relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-green-900 transition-colors';
+
+/** The search as a 44px icon in the app header; it opens the field over the list. */
+export const SearchHeaderButton: React.FC<{
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}> = ({ label, isOpen, onToggle }) => (
+  <button
+    type="button"
+    aria-label={label}
+    aria-expanded={isOpen}
+    onClick={onToggle}
+    className={headerButtonClassName}
+  >
+    <Search className="h-[22px] w-[22px]" aria-hidden="true" />
+  </button>
+);
+
+/**
+ * The search and the filter in the app header while the page loads, where and as they will be,
+ * so they do not pop in with the list.
+ */
+export const SearchFilterHeaderPlaceholder: React.FC = () => (
+  <SetHeaderActions>
+    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
+      <Search className="h-[22px] w-[22px]" />
+    </span>
+    <span aria-hidden="true" className={cn(headerButtonClassName, 'cursor-default')}>
+      <ListFilter className="h-[22px] w-[22px]" />
+    </span>
+  </SetHeaderActions>
+);
 
 /** how many filters are on, as a small green count */
 const CountBadge: React.FC<{ count: number }> = ({ count }) => (
@@ -132,7 +159,7 @@ export const FilterHeaderButton: React.FC<{
       aria-expanded={isOpen}
       aria-label={count > 0 ? `${labels.filter[locale]}, ${countText}` : labels.filter[locale]}
       onClick={onOpen}
-      className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
+      className={headerButtonClassName}
     >
       <ListFilter className="h-[22px] w-[22px]" aria-hidden="true" />
       {count > 0 && (
@@ -143,14 +170,6 @@ export const FilterHeaderButton: React.FC<{
     </button>
   );
 };
-
-const chipClassName = (isActive: boolean): string =>
-  cn(
-    'flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-[15px] font-semibold whitespace-nowrap transition-colors',
-    isActive
-      ? 'bg-conveniat-green border-conveniat-green text-white'
-      : 'border-line bg-white text-green-900 hover:border-green-300',
-  );
 
 /** One option in the filter: a pill that is pressed, filled and ticked while it is chosen. */
 const OptionPill: React.FC<{
@@ -211,10 +230,10 @@ const SwitchRow: React.FC<{
 };
 
 /**
- * The search field, opened from the header, and the filters as a row of chips under it: all
- * filters at once, the favourites, the category and the place. A chip says what it filters by
- * while it does. The filters open in a sheet from below, at the section of the chip tapped; the
- * list underneath follows every change at once, so the sheet's button only closes it.
+ * The search field, opened from the header, and under the days one quiet line of what the list
+ * shows: the view and the filters that are on. The filters open in a sheet from below, from the
+ * header or from that line; the list underneath follows every change at once, so the sheet's
+ * button only closes it.
  */
 export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   filters,
@@ -232,27 +251,11 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   className,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
-  const [ownIsOpen, setOwnIsOpen] = useState(false);
-  const isInHeader = isFilterOpen !== undefined && onFilterOpenChange !== undefined;
-  const isOpen = isInHeader ? isFilterOpen : ownIsOpen;
-  const setIsOpen = isInHeader ? onFilterOpenChange : setOwnIsOpen;
-  const [focusedSection, setFocusedSection] = useState<Section>();
 
   const update = useCallback(
     (change: Partial<FilterState>): void => onFiltersChange({ ...filters, ...change }),
     [filters, onFiltersChange],
   );
-  const openAt = (section?: Section): void => {
-    setFocusedSection(section);
-    setIsOpen(true);
-  };
-  // Opened from Kategorie or Ort, the sheet starts at that section. A stable callback runs
-  // once as the section mounts, so choosing an option does not jump the sheet back.
-  const scrollToSection = useCallback((section: HTMLElement | null): void => {
-    const scroller = section?.parentElement;
-    if (section === null || scroller === null || scroller === undefined) return;
-    scroller.scrollTop = section.offsetTop - scroller.offsetTop;
-  }, []);
 
   const isPlaceChosen = (place: CampMapAnnotation): boolean =>
     filters.selectedLocations.some(({ id }) => id === place.id);
@@ -270,13 +273,6 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
     });
 
   const activeCount = activeFilterCount(filters);
-  const activeCountText =
-    activeCount > 0
-      ? (activeCount === 1 ? labels.activeFilter : labels.activeFilters)[locale].replace(
-          '{{count}}',
-          String(activeCount),
-        )
-      : undefined;
 
   // the filters that are on, in words, for the line under the days
   const [onlyPlace] = filters.selectedLocations;
@@ -307,107 +303,62 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         variant="primary"
         size="touch"
         className="min-w-0 flex-1"
-        onClick={() => setIsOpen(false)}
+        onClick={() => onFilterOpenChange(false)}
       >
         {showEntriesLabel(shownCount, locale)}
       </Button>
     </div>
   );
 
-  return (
-    <div className={cn('space-y-3', className)}>
-      {(isSearchOpen || filters.searchText !== '') && (
-        <AppSearchBar
-          onPage
-          placeholder={labels.search[locale]}
-          value={filters.searchText}
-          onChange={(event) => update({ searchText: event.target.value })}
-          onClear={() => update({ searchText: '' })}
-          // opened by a tap on the search button, so the keyboard should come up with it
-          autoFocus={isSearchOpen}
-        />
-      )}
+  const isSearchShown = isSearchOpen || filters.searchText !== '';
+  const hasLine = viewSummary !== undefined || appliedFilters.length > 0;
 
-      {isInHeader ? (
-        // what the list shows, in words, under the days; a tap opens the filter to change it
-        (viewSummary !== undefined || appliedFilters.length > 0) && (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            onClick={() => openAt()}
-            className="flex min-h-[32px] w-full min-w-0 cursor-pointer items-center gap-1.5 text-left text-[13px] text-green-700"
-          >
-            <span className="sr-only">{labels.filter[locale]}: </span>
-            {viewSummary !== undefined && (
-              <span className="flex shrink-0 items-center gap-1.5 font-semibold text-green-900">
-                {viewSummary}
-              </span>
-            )}
-            {appliedFilters.length > 0 && (
-              <span className="truncate">
-                {viewSummary !== undefined && '· '}
-                {appliedFilters.join(' · ')}
-              </span>
-            )}
-          </button>
-        )
-      ) : (
-        <>
-          {/*
-          One row: the filter button, which names the view and counts the filters that are on, and
-          the favourites. The view, Kategorie, Ort and Tageszeit are chosen in its sheet.
-        */}
-          <div className="flex items-center gap-2">
+  return (
+    <>
+      {/* nothing to show takes no room: the list then starts right under the days */}
+      {(isSearchShown || hasLine) && (
+        <div className={cn('space-y-3', className)}>
+          {isSearchShown && (
+            <AppSearchBar
+              onPage
+              placeholder={labels.search[locale]}
+              value={filters.searchText}
+              onChange={(event) => update({ searchText: event.target.value })}
+              onClear={() => update({ searchText: '' })}
+              // opened by a tap on the search button, so the keyboard should come up with it
+              autoFocus={isSearchOpen}
+            />
+          )}
+
+          {/* what the list shows, in words, under the days; a tap opens the filter to change it */}
+          {hasLine && (
             <button
               type="button"
               aria-haspopup="dialog"
-              aria-expanded={isOpen}
-              onClick={() => openAt()}
-              className={cn(chipClassName(false), 'min-w-0')}
+              aria-expanded={isFilterOpen}
+              onClick={() => onFilterOpenChange(true)}
+              className="flex min-h-[32px] w-full min-w-0 cursor-pointer items-center gap-1.5 text-left text-[13px] text-green-700 hover:text-green-900"
             >
-              <ListFilter className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-              {/* read out as "Filter: Greif, 2 aktive Filter"; the view's name is what is seen */}
-              {viewSummary === undefined ? (
-                labels.filter[locale]
-              ) : (
-                <>
-                  <span className="sr-only">{labels.filter[locale]}: </span>
+              <span className="sr-only">{labels.filter[locale]}: </span>
+              {viewSummary !== undefined && (
+                <span className="flex shrink-0 items-center gap-1.5 font-semibold text-green-900">
                   {viewSummary}
-                </>
+                </span>
               )}
-              {activeCountText !== undefined && (
-                <>
-                  <span className="sr-only">, {activeCountText}</span>
-                  <CountBadge count={activeCount} />
-                </>
+              {appliedFilters.length > 0 && (
+                <span className="truncate">
+                  {viewSummary !== undefined && '· '}
+                  {appliedFilters.join(' · ')}
+                </span>
               )}
             </button>
-
-            {isProgramme && (
-              <button
-                type="button"
-                aria-pressed={filters.starredOnly}
-                aria-label={labels.favouritesOnly[locale]}
-                onClick={() => update({ starredOnly: !filters.starredOnly })}
-                className={cn(
-                  roundButtonClassName,
-                  filters.starredOnly && 'border-amber-700 bg-amber-50 text-amber-700',
-                )}
-              >
-                <Star
-                  className={cn('h-5 w-5', filters.starredOnly && 'fill-amber-700')}
-                  aria-hidden="true"
-                />
-              </button>
-            )}
-          </div>
-        </>
+          )}
+        </div>
       )}
 
       <BottomSheet
-        open={isOpen}
-        onOpenChange={setIsOpen}
+        open={isFilterOpen}
+        onOpenChange={onFilterOpenChange}
         title={labels.filter[locale]}
         footer={footer}
       >
@@ -443,10 +394,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           </div>
         )}
 
-        <section
-          ref={focusedSection === 'category' ? scrollToSection : undefined}
-          className={cn('space-y-2 pb-5', !isProgramme && 'pt-1')}
-        >
+        <section className={cn('space-y-2 pb-5', !isProgramme && 'pt-1')}>
           <SectionLabel as="h3">{labels.category[locale]}</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {availableCategories.map((category) => (
@@ -468,10 +416,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
         </section>
 
         {availableLocations.length > 0 && (
-          <section
-            ref={focusedSection === 'place' ? scrollToSection : undefined}
-            className="space-y-2 pb-5"
-          >
+          <section className="space-y-2 pb-5">
             <SectionLabel as="h3">{labels.place[locale]}</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {availableLocations.map((place) => (
@@ -502,6 +447,6 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
           </section>
         )}
       </BottomSheet>
-    </div>
+    </>
   );
 };
