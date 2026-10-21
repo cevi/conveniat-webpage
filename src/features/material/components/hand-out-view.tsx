@@ -374,9 +374,14 @@ const RequestCard: React.FC<{
   );
 };
 
-const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void }> = ({
-  onAdjust,
-}) => {
+/**
+ * Today's pickups and the open requests, then `children`: the rest of the screen waits for the
+ * queue, because the pickups arrive above it in any number and would push it down.
+ */
+const PreparedPickups: React.FC<{
+  onAdjust: (group: MaterialHolderGroup) => void;
+  children: React.ReactNode;
+}> = ({ onAdjust, children }) => {
   const locale = useMaterialLocale();
   const dayEnd = useDayEnd();
   const queue = trpc.material.getCounterQueue.useQuery(
@@ -384,7 +389,14 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
     { ...materialQueryOptions, refetchInterval: MATERIAL_POLL_INTERVAL_MS },
   );
   if (queue.isLoading) return <LoadingState text={labels.loading[locale]} />;
-  if (!queue.data) return <MaterialQueryError error={queue.error} />;
+  if (!queue.data) {
+    return (
+      <>
+        <MaterialQueryError error={queue.error} />
+        {children}
+      </>
+    );
+  }
   const { requests, pickups, later } = queue.data;
 
   return (
@@ -440,6 +452,7 @@ const PreparedPickups: React.FC<{ onAdjust: (group: MaterialHolderGroup) => void
           </div>
         </section>
       )}
+      {children}
     </>
   );
 };
@@ -579,20 +592,21 @@ const HandOutScreen: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <PreparedPickups onAdjust={(group) => open(basketStart(group, locale))} />
-      <section className="space-y-3">
-        <SectionTitle>{text.newHandOut[locale]}</SectionTitle>
-        <Segmented
-          label={text.whom[locale]}
-          value={kind}
-          onChange={setKind}
-          options={[
-            { value: 'HOF', label: labels.hof[locale] },
-            { value: 'PERSON', label: labels.person[locale] },
-          ]}
-        />
-        {kind === 'HOF' ? <HofChoice onPick={open} /> : <PersonChoice onPick={open} />}
-      </section>
+      <PreparedPickups onAdjust={(group) => open(basketStart(group, locale))}>
+        <section className="space-y-3">
+          <SectionTitle>{text.newHandOut[locale]}</SectionTitle>
+          <Segmented
+            label={text.whom[locale]}
+            value={kind}
+            onChange={setKind}
+            options={[
+              { value: 'HOF', label: labels.hof[locale] },
+              { value: 'PERSON', label: labels.person[locale] },
+            ]}
+          />
+          {kind === 'HOF' ? <HofChoice onPick={open} /> : <PersonChoice onPick={open} />}
+        </section>
+      </PreparedPickups>
     </div>
   );
 };
