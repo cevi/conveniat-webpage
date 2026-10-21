@@ -228,6 +228,22 @@ export const hasBillingOrAdminOrWebAccess: Access = (args) => {
   return canAccessBilling(args);
 };
 
+/**
+ * Who reads a user: the full admins and the web core team read everyone, every other person
+ * their own user document and nobody else's.
+ *
+ * Payload's account page in the admin panel loads the signed-in person's own document, and
+ * without the second half it showed «not found» to the billing and material teams, who may
+ * open the admin panel but not read users. Their own document is what `/api/users/me` hands
+ * them already.
+ */
+export const canReadUser = ({ req }: { req: PayloadRequest }): boolean | Where => {
+  if (hasAdminOrWebAccess({ req })) return true;
+  const userId = req.user?.id;
+  if (userId === undefined) return false;
+  return { id: { equals: userId } };
+};
+
 export const hasAccessToThisHelper = ({
   requiredRoles,
 }: {
