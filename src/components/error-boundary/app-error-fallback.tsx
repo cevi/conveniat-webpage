@@ -4,6 +4,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { unstable_rethrow } from 'next/navigation';
 import React, { useEffect } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
 
@@ -35,6 +36,8 @@ const tryAgain: StaticTranslationString = {
  * A user-friendly error fallback component for the App Shell.
  */
 export const AppErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
+  // notFound() and redirect() throw to reach Next.js; caught here they looked like a crash
+  unstable_rethrow(error);
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   useEffect(() => {
