@@ -523,8 +523,9 @@ export const ChatTextAreaInput: React.FC = () => {
         )}
       </div>
 
-      {/* keyboard hint only where there is a keyboard, and only while typing */}
-      <p className="hidden px-4 text-[11px] text-green-500 pointer-fine:group-focus-within:block">
+      {/* keyboard hint only where there is a keyboard, and only while typing; its line is kept
+          when hidden, so focusing the field does not push the conversation up */}
+      <p className="invisible hidden px-4 text-[11px] text-green-500 pointer-fine:block pointer-fine:group-focus-within:visible">
         {enterToSendHint[locale]}
       </p>
     </div>
