@@ -212,6 +212,7 @@ export const SearchField: React.FC<{
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onClear={() => onChange('')}
+        onPage
         className="flex-1"
       />
       {onScan !== undefined && (

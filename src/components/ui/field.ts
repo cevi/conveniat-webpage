@@ -5,7 +5,9 @@ import { cn } from '@/utils/tailwindcss-override';
  * field's frame is defined. Sizes are px, not rem: the root font is larger on desktop, and a
  * field has to stay as tall as the 44px buttons beside it.
  *
- * - a search field is filled grey, without a border, like the design's "Chats durchsuchen"
+ * - a field always stands out from what it sits on: on a white surface, like the head of Chats,
+ *   a search is filled grey without a border; on the grey page, like Material's "Hof suchen",
+ *   it is white with a thin line, as a form field always is
  * - a form field is white with a thin border, like the design's "Gruppenname"
  * - both are 44px high with the 12px radius of the scale, and both show focus as the same 2px
  *   brand-green ring, never as a changed border or the browser's outline
@@ -15,6 +17,12 @@ const focusRing = 'focus-within:ring-conveniat-green focus-within:ring-2';
 /** The frame around a search input: an icon, the input, and a clear button. */
 export const searchFieldClassName = cn(
   'bg-quiet flex h-[44px] min-w-0 items-center gap-[10px] rounded-[12px] pl-[14px]',
+  focusRing,
+);
+
+/** The frame around a search that sits on the grey page rather than on a white surface. */
+export const searchFieldOnPageClassName = cn(
+  'border-line flex h-[44px] min-w-0 items-center gap-[10px] rounded-[12px] border bg-white pl-[14px]',
   focusRing,
 );
 

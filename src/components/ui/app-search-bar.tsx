@@ -1,6 +1,10 @@
 'use client';
 
-import { fieldInputClassName, searchFieldClassName } from '@/components/ui/field';
+import {
+  fieldInputClassName,
+  searchFieldClassName,
+  searchFieldOnPageClassName,
+} from '@/components/ui/field';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
@@ -25,6 +29,8 @@ interface AppSearchBarProperties {
   label?: string;
   /** opened by a tap on a search button, so the keyboard comes up with it */
   autoFocus?: boolean;
+  /** sits on the grey page instead of a white surface, so it is white with a line */
+  onPage?: boolean;
   className?: string;
 }
 
@@ -41,12 +47,13 @@ export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
   onBlur,
   label,
   autoFocus = false,
+  onPage = false,
   className,
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <label className={cn(searchFieldClassName, className)}>
+    <label className={cn(onPage ? searchFieldOnPageClassName : searchFieldClassName, className)}>
       <Search className="h-[18px] w-[18px] shrink-0 text-green-500" aria-hidden="true" />
       <span className="sr-only">{label ?? placeholder}</span>
       <input

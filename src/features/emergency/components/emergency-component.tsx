@@ -539,6 +539,7 @@ export const EmergencyComponent: React.FC = () => {
                   setSearchTerm(event.target.value)
                 }
                 onClear={clearSearch}
+                onPage
               />
             </div>
           </div>
