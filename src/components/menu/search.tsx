@@ -1,10 +1,11 @@
 'use client';
 
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { useClose } from '@headlessui/react';
-import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import type React from 'react';
+import { useState } from 'react';
 
 const searchButtonText: StaticTranslationString = {
   de: 'Suchen',
@@ -18,40 +19,26 @@ export const SearchComponent: React.FC<{ locale: Locale; actionURL: string }> = 
 }) => {
   const router = useRouter();
   const close = useClose();
+  const [query, setQuery] = useState('');
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
-    const searchData = new FormData(event.currentTarget);
-    const searchInput = searchData.get('searchInput') as string;
+    const searchInput = query.trim();
     if (searchInput !== '') {
-      router.push(`/${locale}${actionURL}?q=${searchInput}`);
+      router.push(`/${locale}${actionURL}?q=${encodeURIComponent(searchInput)}`);
       router.refresh();
       close(); // close nav
     }
   };
 
   return (
-    <div className="w-full py-6">
-      <form
-        className="focus-within:ring-conveniat-green mx-2 flex overflow-hidden rounded-lg border border-[#cbd5d1] bg-white shadow-xs focus-within:ring-2"
-        id="search-form"
-        onSubmit={onSubmit}
-      >
-        <input
-          id="search-input"
-          name="searchInput"
-          className="h-12 grow px-4 font-['Inter'] text-sm text-[#333] placeholder-[#999] focus:outline-hidden"
-          type="text"
-          placeholder={searchButtonText[locale]}
-        />
-        <button
-          type="submit"
-          className="bg-conveniat-green flex h-12 cursor-pointer items-center justify-center px-4 text-white transition-colors duration-300 hover:bg-[#3b4a3f]"
-        >
-          <span className="sr-only">{searchButtonText[locale]}</span>
-          <Search className="text-lg" aria-hidden="true" />
-        </button>
-      </form>
-    </div>
+    <form className="px-3 py-4" id="search-form" role="search" onSubmit={onSubmit}>
+      <AppSearchBar
+        placeholder={searchButtonText[locale]}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onClear={() => setQuery('')}
+      />
+    </form>
   );
 };

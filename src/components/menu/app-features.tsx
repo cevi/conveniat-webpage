@@ -1,4 +1,6 @@
-import { LinkComponent } from '@/components/ui/link-component';
+import { MenuLink } from '@/components/menu/menu-link';
+import { menuRowClassName } from '@/components/menu/menu-row-class-name';
+import { SectionLabel } from '@/components/ui/section-label';
 import { environmentVariables } from '@/config/environment-variables';
 import { getAppFeatureFlagsCached } from '@/features/payload-cms/api/cached-globals';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -107,16 +109,18 @@ const AppFeatureMenuItem: React.FC<AppFeatureMenuItemProperties> = ({
   prefetch,
 }) => {
   return (
-    <LinkComponent
-      href={href}
-      openInNewTab={openInNewTab}
-      {...(prefetch === undefined ? {} : { prefetch })}
-    >
-      <span className="closeNavOnClick -mx-3 flex items-center gap-2 rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-        <Icon aria-hidden="true" className="size-5" />
+    <li>
+      <MenuLink
+        href={href}
+        openInNewTab={openInNewTab}
+        {...(prefetch === undefined ? {} : { prefetch })}
+        matchNested
+        className={menuRowClassName}
+      >
+        <Icon aria-hidden="true" className="size-5 shrink-0 text-green-700" />
         {text}
-      </span>
-    </LinkComponent>
+      </MenuLink>
+    </li>
   );
 };
 
@@ -131,10 +135,9 @@ export const AppFeatures: React.FC<{
   const featureFlags = await getAppFeatureFlagsCached();
 
   return (
-    <>
-      <div className="py-6">
-        <h3 className="text-conveniat-green mb-2 font-bold">{appFeaturesTitle[locale]}</h3>
-
+    <section className="py-4">
+      <SectionLabel className="mb-1 px-3">{appFeaturesTitle[locale]}</SectionLabel>
+      <ul>
         <AppFeatureMenuItem
           href="/app/chat"
           Icon={MessageSquare}
@@ -206,8 +209,7 @@ export const AppFeatures: React.FC<{
           Icon={Settings}
           text={settingsFeatureTranslation[locale]}
         />
-      </div>
-      <hr className="border-t-2 text-gray-100" />
-    </>
+      </ul>
+    </section>
   );
 };

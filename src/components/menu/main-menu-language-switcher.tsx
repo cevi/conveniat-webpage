@@ -1,9 +1,10 @@
 'use client';
 
+import { SectionLabel } from '@/components/ui/section-label';
 import { languageOptions } from '@/config/language-options';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { Disclosure, DisclosureButton, DisclosurePanel, useClose } from '@headlessui/react';
-import { ChevronDown, Languages } from 'lucide-react';
+import { cn } from '@/utils/tailwindcss-override';
+import { useClose } from '@headlessui/react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import React from 'react';
 
@@ -14,10 +15,9 @@ const language: StaticTranslationString = {
 };
 
 /**
- * Simple Drop Down Menu that allows to switch between languages.
- *
- * This is a client component.
- *
+ * The language switch of the main menu, a segmented control like the one in the settings. It
+ * reloads the page in the new language rather than navigating, so every server-rendered part of
+ * the page follows.
  */
 export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale }) => {
   const pathname = usePathname();
@@ -53,27 +53,29 @@ export const MainMenuLanguageSwitcher: React.FC<{ locale: Locale }> = ({ locale 
   };
 
   return (
-    <div className="w-full space-y-2 py-6">
-      <Disclosure as="div" className="-mx-3">
-        <DisclosureButton className="group flex w-full cursor-pointer items-center justify-between rounded-lg py-2 pr-3.5 pl-3 text-base/7 font-semibold text-gray-700 hover:bg-gray-50">
-          <div className="flex items-center gap-2">
-            <Languages aria-hidden="true" className="size-5" />
-            {language[locale]}
-          </div>
-          <ChevronDown aria-hidden="true" className="size-5 flex-none group-data-open:rotate-180" />
-        </DisclosureButton>
-        <DisclosurePanel className="mt-2 mb-4 space-y-2">
-          {languageOptions.map(({ value, label }) => (
-            <DisclosureButton
-              key={value}
-              onClick={() => handleLanguageChange(value)}
-              className="block w-full cursor-pointer rounded-lg py-2 pr-3 pl-6 text-left text-sm/7 font-semibold text-gray-500 hover:bg-gray-50"
-            >
-              {label}
-            </DisclosureButton>
-          ))}
-        </DisclosurePanel>
-      </Disclosure>
-    </div>
+    <section className="px-3 py-4">
+      <SectionLabel className="mb-2">{language[locale]}</SectionLabel>
+      <div
+        role="group"
+        aria-label={language[locale]}
+        className="bg-quiet flex h-11 rounded-xl p-[3px]"
+      >
+        {languageOptions.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            lang={value}
+            onClick={() => handleLanguageChange(value)}
+            aria-current={value === locale ? 'true' : undefined}
+            className={cn(
+              'flex-1 cursor-pointer rounded-[9px] text-sm font-semibold transition-colors',
+              value === locale ? 'bg-white text-green-900 shadow-xs' : 'text-green-700',
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </section>
   );
 };
