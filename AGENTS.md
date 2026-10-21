@@ -302,8 +302,8 @@ Shared styles first. The colours are named by role in `src/app/tailwind.config.t
 `border-line`, `text-heading`, `bg-tint` and `border-tint-line` for soft brand green, `bg-chip`,
 `bg-quiet` for neutral grey, and `live` for what is running and for warnings. The pieces live in
 `src/components/ui`: `SectionLabel`, `IconTile`, `EmptyState`, `Card`, the `primary`, `quiet` and
-`outlined` button variants with the `touch` and `touchIcon` sizes, `ShareLinkButton` and the
-`StarButton`. A hex value in a component is a token that does not exist yet; add it to the config
+`outlined` button variants with the `touch` and `touchIcon` sizes, `BottomSheet`,
+`ShareLinkButton` and the `StarButton`. A hex value in a component is a token that does not exist yet; add it to the config
 by its role once a second screen needs it, not before.
 
 - **Surfaces.** The page is `bg-page` with no background mark. A card is white, 14px radius,
@@ -332,7 +332,10 @@ by its role once a second screen needs it, not before.
   of a segmented control have `aria-pressed`, the current page and day have `aria-current`. Text
   reaches 4.5:1 contrast. Use real buttons and links, never a clickable `div`.
 - **Phones.** Lists scroll natively and snap; content follows the finger and is there before it
-  is released. Nothing floats over content that the user needs, except a map's controls.
+  is released. A choice or a set of filters that belongs to the page opens in the shared
+  `BottomSheet`, over the dimmed page; a menu of actions on one item does not float but expands in
+  place. The one floating button is a screen's main action where its list scrolls under it, like
+  "Neuer Chat"; nothing else floats over content the user needs, except a map's controls.
 
 ## Git and pull requests
 
