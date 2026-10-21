@@ -14,6 +14,7 @@ import {
   billingSendPflichtangabenReminderHandler,
   billingSendSingleHandler,
   billingSyncHandler,
+  billingSyncSingleHandler,
   billingSyncStatusHandler,
   billingWeeklyReportPdfHandler,
 } from '@/features/billing/api/bill-admin-api';
@@ -24,6 +25,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/sync',
     method: 'post',
     handler: billingSyncHandler,
+  },
+  {
+    path: '/confidential/billing/sync-single',
+    method: 'post',
+    handler: billingSyncSingleHandler,
   },
   {
     path: '/confidential/billing/sync-status',

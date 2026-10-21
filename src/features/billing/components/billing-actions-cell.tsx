@@ -127,6 +127,36 @@ const reminderBusyLabel: StaticTranslationString = {
   fr: 'Envoi...',
 };
 
+const syncTitle: StaticTranslationString = {
+  de: 'Mit der Cevi.DB abgleichen?',
+  en: 'Sync with the Cevi.DB?',
+  fr: 'Synchroniser avec la Cevi.DB ?',
+};
+
+const syncMessage: StaticTranslationString = {
+  de: 'Nur diese Anmeldung wird aus der Cevi.DB neu eingelesen, wie beim vollständigen Abgleich. Ausstehende Rückmeldungen an die Cevi.DB werden dabei nachgeholt. Eine bereits verrechnete Anmeldung mit geänderten Angaben wird zur manuellen Prüfung markiert.',
+  en: 'Only this registration is read again from the Cevi.DB, as in the full sync. Pending write-backs to the Cevi.DB are retried. A registration that has already been billed and whose data changed is flagged for manual review.',
+  fr: 'Seule cette inscription est relue depuis la Cevi.DB, comme lors de la synchronisation complète. Les mises à jour en attente vers la Cevi.DB sont réessayées. Une inscription déjà facturée dont les données ont changé est marquée pour vérification manuelle.',
+};
+
+const syncConfirm: StaticTranslationString = {
+  de: 'Abgleichen',
+  en: 'Sync',
+  fr: 'Synchroniser',
+};
+
+const syncLabel: StaticTranslationString = {
+  de: 'Mit Cevi.DB abgleichen',
+  en: 'Sync with Cevi.DB',
+  fr: 'Synchroniser avec la Cevi.DB',
+};
+
+const syncingLabel: StaticTranslationString = {
+  de: 'Wird abgeglichen...',
+  en: 'Syncing...',
+  fr: 'Synchronisation...',
+};
+
 interface RowData {
   id: string;
   billPdfs?: (string | { id: string })[];
@@ -136,7 +166,8 @@ interface RowData {
 
 /**
  * Custom Payload CMS Cell component for per-row actions in bill-participants.
- * Renders a three-dots dropdown menu with Preview, Download, and Regenerate actions.
+ * Renders a three-dots dropdown menu with the per-row actions: preview, download, sending,
+ * reminding, syncing with the Cevi.DB, regenerating and cancelling.
  */
 export const BillingActionsCell: React.FC<{
   rowData: RowData;
@@ -144,7 +175,7 @@ export const BillingActionsCell: React.FC<{
   const { code } = useLocale();
   const locale = resolveAdminLocale(code);
   const [confirmAction, setConfirmAction] = React.useState<
-    'regenerate' | 'send' | 'remove' | 'reminder' | undefined
+    'regenerate' | 'send' | 'remove' | 'reminder' | 'sync' | undefined
   >();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
@@ -226,6 +257,7 @@ export const BillingActionsCell: React.FC<{
   };
 
   const copyByAction = {
+    sync: { title: syncTitle, message: syncMessage, confirm: syncConfirm, busy: syncingLabel },
     send: { title: sendTitle, message: sendMessage, confirm: sendConfirm, busy: sendingLabel },
     regenerate: {
       title: regenerateTitle,
@@ -266,6 +298,13 @@ export const BillingActionsCell: React.FC<{
     await runAction(
       '/api/confidential/billing/send-pflichtangaben-reminder',
       'Die Erinnerung konnte nicht versendet werden.',
+    );
+  };
+
+  const handleSync = async (): Promise<void> => {
+    await runAction(
+      '/api/confidential/billing/sync-single',
+      'Die Anmeldung konnte nicht abgeglichen werden.',
     );
   };
 
@@ -331,6 +370,14 @@ export const BillingActionsCell: React.FC<{
           >
             {reminderLabel[locale]}
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(): void => {
+              setConfirmAction('sync');
+            }}
+            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            {syncLabel[locale]}
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(): void => {
@@ -373,6 +420,10 @@ export const BillingActionsCell: React.FC<{
             }
             case 'reminder': {
               await handleReminder();
+              break;
+            }
+            case 'sync': {
+              await handleSync();
               break;
             }
             case 'remove': {
