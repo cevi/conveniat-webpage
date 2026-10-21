@@ -6,6 +6,7 @@ import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import { describeContact } from '@/features/chat/utils/contact-search';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { getContactDisplayName } from '@/utils/format-user-name';
+import { cn } from '@/utils/tailwindcss-override';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -58,8 +59,10 @@ export const NewChatFrame: React.FC<{
   backLabel: string;
   head?: React.ReactNode;
   footer?: React.ReactNode;
+  /** the content sits on white instead of the grey page, e.g. a form with its grey search */
+  onWhite?: boolean;
   children: React.ReactNode;
-}> = ({ title, subtitle, backHref, backLabel, head, footer, children }) => (
+}> = ({ title, subtitle, backHref, backLabel, head, footer, onWhite = false, children }) => (
   <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
     <AppFooterController hideAppFooter />
 
@@ -86,7 +89,7 @@ export const NewChatFrame: React.FC<{
       {head !== undefined && <div className="mx-auto w-full max-w-xl px-4 pb-3">{head}</div>}
     </div>
 
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className={cn('min-h-0 flex-1 overflow-y-auto', onWhite && 'bg-white')}>
       <div className="mx-auto w-full max-w-xl">{children}</div>
     </div>
 

@@ -1,8 +1,8 @@
+import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { Button } from '@/components/ui/buttons/button';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
-import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import {
   describeContactFunktionen,
   describeContactHof,
@@ -108,10 +108,13 @@ export const AddParticipants: React.FC<AddParticipantsProperties> = ({
     <section className="flex flex-col gap-3">
       <SectionLabel>{addParticipantsText[locale]}</SectionLabel>
 
-      <ChatSearchField
+      {/* on the grey page of the details, so the white field with a line */}
+      <AppSearchBar
+        onPage
         placeholder={searchContactsPlaceholder[locale]}
         value={searchQuery}
-        onChange={onSearchChange}
+        onChange={(event) => onSearchChange(event.target.value)}
+        onClear={() => onSearchChange('')}
       />
 
       {selectedContacts.length > 0 && (

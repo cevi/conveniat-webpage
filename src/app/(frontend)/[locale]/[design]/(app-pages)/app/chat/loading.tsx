@@ -15,7 +15,7 @@ import type React from 'react';
  */
 export default function ChatLoading(): React.ReactNode {
   return (
-    <article className="container mx-auto px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
+    <article className="container mx-auto min-h-full bg-white px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
       <SetHeaderActions>
         <QrCodeIconSkeleton />
       </SetHeaderActions>

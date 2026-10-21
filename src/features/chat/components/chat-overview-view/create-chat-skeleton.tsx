@@ -66,6 +66,7 @@ export const CreateGroupSkeleton: React.FC = () => {
       title={newChatText.groupTitle[locale]}
       subtitle={newChatText.groupSelected[locale].replace('{n}', '0')}
       backHref="/app/chat/new"
+      onWhite
       backLabel={newChatText.groupBack[locale]}
       footer={
         <div className="flex flex-col gap-2" aria-hidden="true">

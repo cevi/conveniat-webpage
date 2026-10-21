@@ -208,7 +208,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       {!isInitialLoad && (
         <PullToRefresh onRefresh={handleRefresh}>
           {filteredChats.length > 0 ? (
-            <ul className="border-line -mx-4 border-y bg-white sm:mx-0 sm:overflow-hidden sm:rounded-[14px] sm:border">
+            <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
               {filteredChats.map((chat) => (
                 <li
                   key={chat.id}

@@ -12,7 +12,7 @@ const pulse = 'bg-quiet animate-pulse';
 export const ChatsOverviewSkeleton: React.FC = () => (
   <div className="flex flex-col gap-4" aria-hidden="true">
     <div className={`h-[44px] w-full rounded-[12px] ${pulse}`} />
-    <ul className="border-line -mx-4 border-y bg-white sm:mx-0 sm:overflow-hidden sm:rounded-[14px] sm:border">
+    <ul className="border-line -mx-4 border-t bg-white sm:mx-0">
       {[1, 2, 3, 4, 5].map((index) => (
         <li
           key={index}

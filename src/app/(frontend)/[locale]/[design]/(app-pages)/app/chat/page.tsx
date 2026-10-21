@@ -34,8 +34,9 @@ const ChatPage: React.FC<{
 
   return (
     <>
-      {/* the bottom room keeps the last row clear of the tab bar and the "Neuer Chat" button */}
-      <article className="container mx-auto px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
+      {/* white like the design, so the grey search contrasts; the bottom room keeps the last row
+          clear of the tab bar and the "Neuer Chat" button */}
+      <article className="container mx-auto min-h-full bg-white px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
         <div className="mx-auto w-full max-w-2xl">
           <ChatsOverviewClientComponent qrCodeButton={qrCodeButton} />
         </div>

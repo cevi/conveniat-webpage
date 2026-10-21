@@ -164,6 +164,7 @@ export const CreateNewGroupPage: React.FC = () => {
       title={newChatText.groupTitle[locale]}
       subtitle={newChatText.groupSelected[locale].replace('{n}', String(selected.length))}
       backHref="/app/chat/new"
+      onWhite
       backLabel={newChatText.groupBack[locale]}
       footer={
         <div className="flex flex-col gap-2">
