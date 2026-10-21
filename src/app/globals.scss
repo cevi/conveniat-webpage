@@ -5,6 +5,16 @@
 @config './tailwind.config.ts';
 /***************************************************/
 
+/* The preview banner sits on top of the fixed header and pushes it down, so everything placed
+   below the header has to move with it. Zero unless the banner is on the page. */
+:root {
+  --preview-banner-height: 0px;
+}
+
+:root:has([data-preview-banner]) {
+  --preview-banner-height: 32px;
+}
+
 /* Adjust Size for Desktop */
 @media (min-width: 1024px) {
   // tailwind lg <= x < xl

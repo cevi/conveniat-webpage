@@ -104,7 +104,7 @@ export const NavComponent: React.FC<{
             <span className="sr-only">{closeMenuText[locale]}</span>
             <X aria-hidden="true" className="size-6" />
           </button>
-          <DialogPanel className="fixed inset-y-0 right-0 left-0 z-[95] mt-[62px] w-full overflow-y-scroll bg-white px-4 pt-4 pb-6 shadow-2xl">
+          <DialogPanel className="fixed inset-y-0 right-0 left-0 z-[95] mt-[calc(62px+var(--preview-banner-height))] w-full overflow-y-scroll bg-white px-4 pt-4 pb-6 shadow-2xl">
             <div onClick={(event): void => checkClickEvent(event)}>{children}</div>
           </DialogPanel>
         </Dialog>
@@ -114,7 +114,7 @@ export const NavComponent: React.FC<{
       {showDesktopSidePanel && (
         <nav
           aria-label={menuDialogName[locale]}
-          className="fixed top-[62px] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white py-8 xl:block"
+          className="fixed top-[calc(62px+var(--preview-banner-height))] left-0 hidden h-full w-96 border-r-2 border-gray-200 bg-white py-8 xl:block"
         >
           {children}
         </nav>

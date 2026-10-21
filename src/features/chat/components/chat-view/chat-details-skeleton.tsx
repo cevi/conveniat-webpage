@@ -10,7 +10,7 @@ const Bar: React.FC<{ className: string }> = ({ className }) => (
 
 /** The chat details while they load: the name, the participants, the functions. */
 export const ChatDetailsPageSkeleton: React.FC = () => (
-  <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
     <AppFooterController hideAppFooter />
     <div className="border-line flex h-[60px] shrink-0 items-center gap-3 border-b bg-white pr-2 pl-3">
       <Bar className="h-8 w-8 rounded-full" />

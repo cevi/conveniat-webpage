@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.39.0](https://github.com/cevi/conveniat-webpage/compare/v1.38.0...v1.39.0) (2026-10-21)
+
+
+### Features
+
+* **billing:** sync history runs read as ordinary lines ([38cb87d](https://github.com/cevi/conveniat-webpage/commit/38cb87d6cf5a840bbc8f42648c8978adf6355129))
+* **billing:** tabs and actions on the Rechnungsverwaltung edit view ([262dd81](https://github.com/cevi/conveniat-webpage/commit/262dd817b36690b347e10600fc1d7dcf418e4e56))
+
+
+### Bug Fixes
+
+* **admin:** opt the admin panel out of instant navigation validation ([1512ef6](https://github.com/cevi/conveniat-webpage/commit/1512ef6699728fe5c2d8f5927985a56d59d40220))
+* **app:** preview banner pushes app content down instead of covering it ([e80a91d](https://github.com/cevi/conveniat-webpage/commit/e80a91da1a6466e5ec0960aba519c248ee8b8fbd))
+* **app:** preview banner pushes app content down instead of covering it ([150bbfa](https://github.com/cevi/conveniat-webpage/commit/150bbfa268e1c52390df26ba3eda32a845a22769))
+* **auth:** cookie-less requests no longer abort the render ([0b51969](https://github.com/cevi/conveniat-webpage/commit/0b5196969c48817e35760ad8a24e96a65bcbdcef))
+
+## [1.38.0](https://github.com/cevi/conveniat-webpage/compare/v1.37.0...v1.38.0) (2026-10-21)
+
+
+### Features
+
+* **billing:** sync a single participant from the actions menu ([14cc834](https://github.com/cevi/conveniat-webpage/commit/14cc83499e7afec66b7e850f848df8aaeec3ce43))
+* **billing:** sync a single participant from the actions menu ([823b52c](https://github.com/cevi/conveniat-webpage/commit/823b52ca18acb6b2fbcb5eeda8b0a49f2aa43890))
+* **billing:** the billing team reads the mails sent for its registrations ([a564b29](https://github.com/cevi/conveniat-webpage/commit/a564b292d4c7402e2ed84d7e8c6054fbc6f8b916))
+* **billing:** the billing team reads the mails sent for its registrations ([b56f7de](https://github.com/cevi/conveniat-webpage/commit/b56f7de96762b678f86dc9877205e0b89fea6957))
+
+
+### Bug Fixes
+
+* **access:** everyone in the admin panel can open their own account ([83c44b4](https://github.com/cevi/conveniat-webpage/commit/83c44b46d2ddbb037fed50eaa300093e6b4380a8))
+* **access:** everyone in the admin panel can open their own account ([edc2cf2](https://github.com/cevi/conveniat-webpage/commit/edc2cf267bd25771cb3c82abd57cdc9af0d803db))
+
 ## [1.37.0](https://github.com/cevi/conveniat-webpage/compare/v1.36.0...v1.37.0) (2026-10-21)
 
 

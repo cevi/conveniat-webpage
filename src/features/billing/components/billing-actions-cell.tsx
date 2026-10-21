@@ -7,314 +7,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ConfirmationModal } from '@/features/payload-cms/payload-cms/components/shared/confirmation-modal';
+import {
+  BillingActionDialog,
+  billingActionLabels,
+} from '@/features/billing/components/billing-action-dialog';
+import type { BillingActionsParticipant } from '@/features/billing/hooks/use-billing-actions';
+import { useBillingActions } from '@/features/billing/hooks/use-billing-actions';
 import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
-import type { StaticTranslationString } from '@/types/types';
-import { TextareaInput, useLocale } from '@payloadcms/ui';
-import React from 'react';
+import { useLocale } from '@payloadcms/ui';
+import type React from 'react';
 
-const regenerateTitle: StaticTranslationString = {
-  de: 'Rechnung neu generieren?',
-  en: 'Regenerate the bill?',
-  fr: 'Régénérer la facture ?',
-};
-
-const regenerateMessage: StaticTranslationString = {
-  de: 'Möchten Sie diese Rechnung wirklich neu generieren? Das bestehende PDF und die Rechnungsnummer werden unwiderruflich überschrieben.',
-  en: 'Do you really want to regenerate this bill? The existing PDF and invoice number are irreversibly overwritten.',
-  fr: 'Voulez-vous vraiment régénérer cette facture ? Le PDF et le numéro de facture existants seront écrasés définitivement.',
-};
-
-const regenerateConfirm: StaticTranslationString = {
-  de: 'Neu generieren',
-  en: 'Regenerate',
-  fr: 'Régénérer',
-};
-
-const regeneratingLabel: StaticTranslationString = {
-  de: 'Wird generiert...',
-  en: 'Regenerating...',
-  fr: 'Régénération...',
-};
-
-const sendTitle: StaticTranslationString = {
-  de: 'Rechnung versenden?',
-  en: 'Send the bill?',
-  fr: 'Envoyer la facture ?',
-};
-
-const sendMessage: StaticTranslationString = {
-  de: 'Die Rechnung wird als E-Mail an die für die Rechnung hinterlegte Adresse dieser Person versendet. Das lässt sich nicht rückgängig machen.',
-  en: 'The bill is emailed to the invoice address on file for this person. This cannot be undone.',
-  fr: "La facture sera envoyée par e-mail à l'adresse de facturation enregistrée. Cette action est irréversible.",
-};
-
-const sendConfirm: StaticTranslationString = {
-  de: 'Versenden',
-  en: 'Send',
-  fr: 'Envoyer',
-};
-
-const sendingLabel: StaticTranslationString = {
-  de: 'Wird versendet...',
-  en: 'Sending...',
-  fr: 'Envoi...',
-};
-
-const removeTitle: StaticTranslationString = {
-  de: 'Anmeldung stornieren?',
-  en: 'Cancel this registration?',
-  fr: 'Annuler cette inscription ?',
-};
-
-const removeMessage: StaticTranslationString = {
-  de: 'Die Anmeldung wird storniert und nicht mehr verrechnet oder abgeglichen. Eine bereits erstellte Rechnung bleibt zur Nachvollziehbarkeit erhalten. Der Grund erscheint im Sync-Verlauf. Rückgängig machen lässt sich das nur, indem die Anmeldung in der Cevi.DB wieder aktiviert wird.',
-  en: 'The registration is cancelled and is no longer billed or synced. Any bill already raised is kept for the record. The reason appears in the sync history. This can only be undone by reactivating the registration in the Cevi.DB.',
-  fr: "L'inscription est annulée et n'est plus facturée ni synchronisée. Une facture déjà émise est conservée. Le motif apparaît dans l'historique de synchronisation. Seule une réactivation de l'inscription dans la Cevi.DB permet d'annuler cette action.",
-};
-
-const removeReasonLabel: StaticTranslationString = {
-  de: 'Grund der Stornierung',
-  en: 'Reason for the cancellation',
-  fr: "Motif de l'annulation",
-};
-
-const removeReasonPlaceholder: StaticTranslationString = {
-  de: 'z.B. Abmeldung per E-Mail der AVP von Cevi Uster',
-  en: 'e.g. deregistered by email from the AVP of Cevi Uster',
-  fr: "p. ex. désinscription par e-mail de l'AVP de Cevi Uster",
-};
-
-const removeConfirm: StaticTranslationString = {
-  de: 'Stornieren',
-  en: 'Cancel registration',
-  fr: "Annuler l'inscription",
-};
-
-const removingLabel: StaticTranslationString = {
-  de: 'Wird storniert...',
-  en: 'Cancelling...',
-  fr: 'Annulation...',
-};
-
-const reminderTitle: StaticTranslationString = {
-  de: 'Erinnerung an Adressverwalter senden?',
-  en: 'Send a reminder to the address managers?',
-  fr: "Envoyer un rappel aux gestionnaires d'adresses ?",
-};
-
-const reminderMessage: StaticTranslationString = {
-  de: 'Die Adressverwalter/-innen dieses Hofs erhalten eine E-Mail mit dieser Anmeldung und den fehlenden Pflichtangaben. Sind für den Hof keine Empfänger hinterlegt, wird nichts versendet.',
-  en: 'The address managers of this Hof receive an email listing this registration and its missing mandatory fields. Nothing is sent if the Hof has no recipients configured.',
-  fr: "Les gestionnaires d'adresses de ce Hof reçoivent un e-mail avec cette inscription et les données obligatoires manquantes. Rien n'est envoyé si aucun destinataire n'est configuré.",
-};
-
-const reminderConfirm: StaticTranslationString = {
-  de: 'Erinnerung senden',
-  en: 'Send reminder',
-  fr: 'Envoyer le rappel',
-};
-
-const reminderLabel: StaticTranslationString = {
-  de: 'Erinnerung an Adressverwalter senden',
-  en: 'Send reminder to address managers',
-  fr: "Envoyer un rappel aux gestionnaires d'adresses",
-};
-
-const reminderBusyLabel: StaticTranslationString = {
-  de: 'Wird versendet...',
-  en: 'Sending...',
-  fr: 'Envoi...',
-};
-
-const syncTitle: StaticTranslationString = {
-  de: 'Mit der Cevi.DB abgleichen?',
-  en: 'Sync with the Cevi.DB?',
-  fr: 'Synchroniser avec la Cevi.DB ?',
-};
-
-const syncMessage: StaticTranslationString = {
-  de: 'Nur diese Anmeldung wird aus der Cevi.DB neu eingelesen, wie beim vollständigen Abgleich. Ausstehende Rückmeldungen an die Cevi.DB werden dabei nachgeholt. Eine bereits verrechnete Anmeldung mit geänderten Angaben wird zur manuellen Prüfung markiert.',
-  en: 'Only this registration is read again from the Cevi.DB, as in the full sync. Pending write-backs to the Cevi.DB are retried. A registration that has already been billed and whose data changed is flagged for manual review.',
-  fr: 'Seule cette inscription est relue depuis la Cevi.DB, comme lors de la synchronisation complète. Les mises à jour en attente vers la Cevi.DB sont réessayées. Une inscription déjà facturée dont les données ont changé est marquée pour vérification manuelle.',
-};
-
-const syncConfirm: StaticTranslationString = {
-  de: 'Abgleichen',
-  en: 'Sync',
-  fr: 'Synchroniser',
-};
-
-const syncLabel: StaticTranslationString = {
-  de: 'Mit Cevi.DB abgleichen',
-  en: 'Sync with Cevi.DB',
-  fr: 'Synchroniser avec la Cevi.DB',
-};
-
-const syncingLabel: StaticTranslationString = {
-  de: 'Wird abgeglichen...',
-  en: 'Syncing...',
-  fr: 'Synchronisation...',
-};
-
-interface RowData {
-  id: string;
-  billPdfs?: (string | { id: string })[];
-  invoiceNumber?: string;
-  status?: string;
-}
-
-/**
- * Custom Payload CMS Cell component for per-row actions in bill-participants.
- * Renders a three-dots dropdown menu with the per-row actions: preview, download, sending,
- * reminding, syncing with the Cevi.DB, regenerating and cancelling.
- */
-export const BillingActionsCell: React.FC<{
-  rowData: RowData;
-}> = ({ rowData }) => {
+const BillingActionsMenu: React.FC<{ participant: BillingActionsParticipant }> = ({
+  participant,
+}) => {
   const { code } = useLocale();
   const locale = resolveAdminLocale(code);
-  const [confirmAction, setConfirmAction] = React.useState<
-    'regenerate' | 'send' | 'remove' | 'reminder' | 'sync' | undefined
-  >();
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | undefined>();
-  const [removeReason, setRemoveReason] = React.useState('');
-
-  const hasPdf = Array.isArray(rowData.billPdfs) && rowData.billPdfs.length > 0;
-  // Only a registration the sync parked as incomplete has anything to remind about.
-  const isMissingPflichtangaben = rowData.status === 'pflichtangaben_missing';
-  // A paid or cancelled registration has no open bill to send.
-  const canSendBill = hasPdf && rowData.status !== 'paid' && rowData.status !== 'removed';
-
-  const handlePreview = (): void => {
-    window.open(
-      `/api/confidential/billing/preview-pdf?participantId=${encodeURIComponent(rowData.id)}`,
-      '_blank',
-    );
-  };
-
-  const handleDownload = (): void => {
-    const link = document.createElement('a');
-    link.href = `/api/confidential/billing/preview-pdf?participantId=${encodeURIComponent(rowData.id)}&download=true`;
-    link.download = `Rechnung-${rowData.invoiceNumber ?? 'Unbekannt'}.pdf`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-  };
-
-  /**
-   * Posts one of the per-row billing actions and reloads only if it actually worked.
-   *
-   * Both of these used to `await fetch(...)` and then reload unconditionally, which made a
-   * 401 or a 500 look exactly like success — the row came back unchanged and the operator
-   * was left believing the mail had gone out. A rejected promise is not the failure mode
-   * that matters here; a non-2xx response is.
-   */
-  const runAction = async (
-    path: string,
-    failureMessage: string,
-    extraBody: Record<string, string> = {},
-  ): Promise<void> => {
-    setLoading(true);
-    setError(undefined);
-    try {
-      const response = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ participantId: rowData.id, ...extraBody }),
-      });
-      const result = (await response.json().catch(() => ({}))) as {
-        success?: boolean;
-        error?: string;
-        errors?: string[];
-      };
-
-      if (!response.ok || result.success !== true) {
-        setError(result.error ?? result.errors?.[0] ?? failureMessage);
-        return;
-      }
-      // The run reports per-participant problems in `errors` while still answering 200.
-      if (result.errors !== undefined && result.errors.length > 0) {
-        setError(result.errors[0] ?? failureMessage);
-        return;
-      }
-
-      setConfirmAction(undefined);
-      globalThis.location.reload();
-    } catch (error_) {
-      setError(error_ instanceof Error ? error_.message : failureMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendEmail = async (): Promise<void> => {
-    await runAction(
-      '/api/confidential/billing/send-single',
-      'Die Rechnung konnte nicht versendet werden.',
-    );
-  };
-
-  const copyByAction = {
-    sync: { title: syncTitle, message: syncMessage, confirm: syncConfirm, busy: syncingLabel },
-    send: { title: sendTitle, message: sendMessage, confirm: sendConfirm, busy: sendingLabel },
-    regenerate: {
-      title: regenerateTitle,
-      message: regenerateMessage,
-      confirm: regenerateConfirm,
-      busy: regeneratingLabel,
-    },
-    remove: {
-      title: removeTitle,
-      message: removeMessage,
-      confirm: removeConfirm,
-      busy: removingLabel,
-    },
-    reminder: {
-      title: reminderTitle,
-      message: reminderMessage,
-      confirm: reminderConfirm,
-      busy: reminderBusyLabel,
-    },
-  } as const;
-
-  const active = copyByAction[confirmAction ?? 'regenerate'];
-  const copy = {
-    title: active.title[locale],
-    message: active.message[locale],
-    confirmLabel: active.confirm[locale],
-    submittingText: active.busy[locale],
-  };
-
-  const handleRegenerate = async (): Promise<void> => {
-    await runAction(
-      '/api/confidential/billing/regenerate-single',
-      'Die Rechnung konnte nicht neu generiert werden.',
-    );
-  };
-
-  const handleReminder = async (): Promise<void> => {
-    await runAction(
-      '/api/confidential/billing/send-pflichtangaben-reminder',
-      'Die Erinnerung konnte nicht versendet werden.',
-    );
-  };
-
-  const handleSync = async (): Promise<void> => {
-    await runAction(
-      '/api/confidential/billing/sync-single',
-      'Die Anmeldung konnte nicht abgeglichen werden.',
-    );
-  };
-
-  const handleRemove = async (): Promise<void> => {
-    await runAction(
-      '/api/confidential/billing/remove-participant',
-      'Die Anmeldung konnte nicht storniert werden.',
-      { reason: removeReason.trim() },
-    );
-  };
+  const actions = useBillingActions(participant);
 
   return (
     <>
@@ -339,130 +47,71 @@ export const BillingActionsCell: React.FC<{
           className="w-48 border-gray-200 bg-white text-gray-900 shadow-lg dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
         >
           <DropdownMenuItem
-            onClick={handlePreview}
-            disabled={!hasPdf}
+            onClick={actions.preview}
+            disabled={!actions.hasPdf}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            Vorschau
+            {billingActionLabels.preview[locale]}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={handleDownload}
-            disabled={!hasPdf}
+            onClick={actions.download}
+            disabled={!actions.hasPdf}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            Download
+            {billingActionLabels.download[locale]}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={(): void => {
-              setConfirmAction('send');
-            }}
-            disabled={!canSendBill}
+            onClick={(): void => actions.request('send')}
+            disabled={!actions.canSendBill}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            Email senden
+            {billingActionLabels.send[locale]}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={(): void => {
-              setConfirmAction('reminder');
-            }}
-            disabled={!isMissingPflichtangaben}
+            onClick={(): void => actions.request('reminder')}
+            disabled={!actions.canSendReminder}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            {reminderLabel[locale]}
+            {billingActionLabels.reminder[locale]}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={(): void => {
-              setConfirmAction('sync');
-            }}
+            onClick={(): void => actions.request('sync')}
             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
           >
-            {syncLabel[locale]}
+            {billingActionLabels.sync[locale]}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onClick={(): void => {
-              setConfirmAction('regenerate');
-            }}
+            onClick={(): void => actions.request('regenerate')}
             className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
           >
-            Neu generieren
+            {billingActionLabels.regenerate[locale]}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={(): void => {
-              setRemoveReason('');
-              setConfirmAction('remove');
-            }}
+            onClick={(): void => actions.request('remove')}
             className="cursor-pointer text-red-600 hover:bg-red-50 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
           >
-            Stornieren
+            {billingActionLabels.remove[locale]}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/*
-        Rendered through the shared modal, which portals to `document.body`. An overlay
-        written inline here cannot win on z-index at any value: Payload's table sets
-        `isolation: isolate` on `.table` and `position: relative; z-index: 1` on every
-        `th`/`td`, so the overlay was confined to its own cell's stacking context and any
-        cell later in the document painted straight over it.
-      */}
-      <ConfirmationModal
-        isOpen={confirmAction !== undefined}
-        onClose={(): void => {
-          setConfirmAction(undefined);
-          setError(undefined);
-        }}
-        onConfirm={async (): Promise<void> => {
-          switch (confirmAction) {
-            case 'send': {
-              await handleSendEmail();
-              break;
-            }
-            case 'reminder': {
-              await handleReminder();
-              break;
-            }
-            case 'sync': {
-              await handleSync();
-              break;
-            }
-            case 'remove': {
-              await handleRemove();
-              break;
-            }
-            default: {
-              await handleRegenerate();
-            }
-          }
-        }}
-        title={copy.title}
-        // The shared modal renders the body with `whitespace-pre-line`, so a failure is
-        // appended as its own paragraph rather than needing a second slot.
-        message={error === undefined ? copy.message : `${copy.message}\n\n⚠ ${error}`}
-        confirmLabel={copy.confirmLabel}
-        submittingText={copy.submittingText}
-        isSubmitting={loading}
-        locale={locale}
-        confirmVariant="danger"
-        confirmDisabled={confirmAction === 'remove' && removeReason.trim() === ''}
-      >
-        {/* `undefined` rather than `false` otherwise, or the modal reserves the slot. */}
-        {confirmAction === 'remove' ? (
-          <TextareaInput
-            path="cancellationReason"
-            label={removeReasonLabel[locale]}
-            placeholder={removeReasonPlaceholder[locale]}
-            required
-            rows={3}
-            value={removeReason}
-            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>): void =>
-              setRemoveReason(event.target.value)
-            }
-          />
-        ) : undefined}
-      </ConfirmationModal>
+      <BillingActionDialog actions={actions} locale={locale} />
     </>
   );
+};
+
+/**
+ * Custom Payload CMS Cell component for per-row actions in bill-participants.
+ * Renders a three-dots dropdown menu with the same actions the edit view offers.
+ */
+export const BillingActionsCell: React.FC<{
+  rowData?: BillingActionsParticipant;
+}> = ({ rowData }) => {
+  // Payload also renders a `ui` field's Cell while building the edit view's form state,
+  // without a row.
+  if (rowData === undefined) return <></>;
+  return <BillingActionsMenu participant={rowData} />;
 };
 
 export default BillingActionsCell;

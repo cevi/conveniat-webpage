@@ -5,7 +5,7 @@ import type React from 'react';
  */
 export default function EmergencyLoading(): React.ReactNode {
   return (
-    <div className="bg-page fixed top-[62px] left-0 z-30 h-[calc(100dvh-62px)] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
+    <div className="bg-page fixed top-(--app-content-top) left-0 z-30 h-[calc(100dvh-var(--app-content-top))] w-full overflow-y-auto xl:left-[480px] xl:w-[calc(100dvw-480px)]">
       <div className="mx-auto w-full max-w-2xl space-y-2.5 px-4 pt-4 pb-6">
         {[1, 2, 3, 4].map((index) => (
           <div

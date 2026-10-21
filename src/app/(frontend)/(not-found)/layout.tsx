@@ -33,7 +33,7 @@ const Layout: React.FC<{ children: ReactNode }> = async ({ children }) => {
               <BackgroundLogo className="max-h-[60vh]" />
             </div>
 
-            <div className="mt-[62px] h-[calc(100dvh-62px)] xl:ml-[480px]">
+            <div className="mt-[calc(62px+var(--preview-banner-height))] h-[calc(100dvh-62px-var(--preview-banner-height))] xl:ml-[480px]">
               <main className="flex min-h-full flex-col justify-between">{children}</main>
             </div>
           </DynamicAppTitleProvider>

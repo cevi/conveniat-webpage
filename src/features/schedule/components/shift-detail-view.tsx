@@ -77,7 +77,8 @@ const notFoundLabel: StaticTranslationString = {
 const floatingButtonClassName =
   'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white p-0 text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] hover:bg-white';
 
-const containerClassName = 'bg-page fixed inset-0 z-[110] flex flex-col overflow-hidden';
+const containerClassName =
+  'bg-page fixed inset-x-0 top-(--preview-banner-height) bottom-0 z-[110] flex flex-col overflow-hidden';
 
 /**
  * Everything about one shift, as a screen of its own.

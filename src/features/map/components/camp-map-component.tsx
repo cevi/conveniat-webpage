@@ -56,7 +56,7 @@ const CampMapComponentCached: React.FC<{
 
   return (
     <>
-      <div className="fixed top-[60px] left-0 h-[calc(100dvh-60px)] w-full pb-20 xl:left-[480px] xl:w-[calc(100vw-480px)]">
+      <div className="fixed top-(--app-header-height) left-0 h-[calc(100dvh-var(--app-header-height))] w-full pb-20 xl:left-[480px] xl:w-[calc(100vw-480px)]">
         <MapLibreRenderer
           initialMapPose={initialMapPoseObergoms}
           ceviLogoMarkers={[]}

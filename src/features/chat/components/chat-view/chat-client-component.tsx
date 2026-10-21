@@ -56,7 +56,7 @@ const noLongerMember: StaticTranslationString = {
 const ChatOfflineMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
-    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
         <span>
@@ -73,7 +73,7 @@ export const ChatErrorMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
 
   return (
-    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
         <span>
@@ -93,7 +93,7 @@ export const ChatErrorMessage: React.FC = () => {
 const ChatNotMemberMessage: React.FC = () => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   return (
-    <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+    <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
       <ChatHeaderSkeleton />
       <div className="flex flex-1 items-center justify-center p-4 text-center text-[15px] text-green-700">
         <b className="text-green-900">{noLongerMember[locale]}</b>
@@ -136,7 +136,7 @@ const ChatClientContent: React.FC = () => {
   return (
     <div
       ref={fitToVisualViewport}
-      className="bg-page fixed top-[var(--visual-viewport-top,0px)] z-[110] flex h-[var(--visual-viewport-height,100dvh)] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]"
+      className="bg-page fixed top-[calc(var(--visual-viewport-top,0px)+var(--preview-banner-height))] z-[110] flex h-[calc(var(--visual-viewport-height,100dvh)-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]"
     >
       <AppFooterController hideAppFooter />
       <ChatHeader />

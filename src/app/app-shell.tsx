@@ -73,12 +73,12 @@ export const AppShell: React.FC<AppShellProperties> = ({
                     that sticks right below it. --app-content-top and --app-content-left are the
                     corner of the free area under the header and right of the side panel, for
                     anything positioned with `fixed`: only side-nav has a panel, and the top-nav
-                    header grows on wide screens. */}
+                    header grows on wide screens. All three include the preview banner above the header. */}
                   <div
                     className={cn(
-                      'wco-content-wrapper mt-[62px] h-[calc(100dvh-62px)] [--app-content-left:0px] [--app-content-top:62px] [--app-header-height:60px]',
+                      'wco-content-wrapper mt-[calc(62px+var(--preview-banner-height))] h-[calc(100dvh-62px-var(--preview-banner-height))] [--app-content-left:0px] [--app-content-top:calc(62px+var(--preview-banner-height))] [--app-header-height:calc(60px+var(--preview-banner-height))]',
                       isTopNavMode
-                        ? 'xl:[--app-content-top:calc(4rem+2px)] xl:[--app-header-height:4rem]'
+                        ? 'xl:[--app-content-top:calc(4rem+2px+var(--preview-banner-height))] xl:[--app-header-height:calc(4rem+var(--preview-banner-height))]'
                         : 'xl:ml-[480px] xl:[--app-content-left:480px]',
                     )}
                   >

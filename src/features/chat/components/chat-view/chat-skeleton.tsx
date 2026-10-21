@@ -7,7 +7,7 @@ import React from 'react';
 
 /** A conversation while it loads: its header, a few bubbles on both sides, the input. */
 export const ChatSkeleton: React.FC = () => (
-  <div className="bg-page fixed top-0 z-[110] flex h-dvh w-screen flex-col xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
+  <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
     <AppFooterController hideAppFooter />
     <ChatHeaderSkeleton />
     <div className="flex flex-1 flex-col justify-end gap-3 overflow-y-auto p-4">
