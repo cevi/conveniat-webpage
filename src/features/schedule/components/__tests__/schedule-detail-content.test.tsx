@@ -199,14 +199,14 @@ describe('ScheduleDetailContent tabs', () => {
       timeslot: { date: '2027-07-27', time: '13:45 - 15:45' },
       // eslint-disable-next-line unicorn/no-null
       location: null,
-      quartiere: [{ id: 'q2', name: 'Quartier 2 - West' }],
+      quartiere: [{ id: 'q2', name: 'Quartier 2 - Kelpie', number: 2, rufname: 'Kelpie' }],
     };
 
     render(<ScheduleDetailContent entry={entryWith([])} locale="de" otherSlots={[other]} />);
 
     expect(screen.getByText('Weitere Zeitfenster')).toBeInTheDocument();
     expect(screen.getByText('13:45–15:45')).toBeInTheDocument();
-    expect(screen.getByText('· Q2 West')).toBeInTheDocument();
+    expect(screen.getByText('· Q2 Kelpie')).toBeInTheDocument();
   });
 });
 
@@ -219,15 +219,24 @@ const richText = (text: string): CampScheduleEntry['description'] =>
     },
   }) as unknown as CampScheduleEntry['description'];
 
-const q = (number: number, name: string): { id: string; name: string } => ({
+interface FixtureQuartier {
+  id: string;
+  name: string;
+  number: number;
+  rufname: string;
+}
+
+const q = (number: number, rufname: string): FixtureQuartier => ({
   id: `q${number}`,
-  name: `Quartier ${number} - ${name}`,
+  name: `Quartier ${number} - ${rufname}`,
+  number,
+  rufname,
 });
 
 const slot = (
   id: string,
   time: string,
-  quartiere: { id: string; name: string }[],
+  quartiere: FixtureQuartier[],
   extra: Partial<CampScheduleEntryFrontendType> = {},
 ): CampScheduleEntryFrontendType => ({
   id,

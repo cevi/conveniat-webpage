@@ -1,5 +1,7 @@
+import { QuartierDot } from '@/components/quartier/quartier-badge';
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { FactRow } from '@/components/ui/fact-row';
+import { textInputClassName } from '@/components/ui/field';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
@@ -28,6 +30,7 @@ import {
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
+import type { EntryQuartier } from '@/features/schedule/utils/programme-utils';
 import {
   isDescriptionRedundant,
   isForQuartiere,
@@ -36,7 +39,7 @@ import {
 } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { quartierNicknameOf, shortQuartierName } from '@/utils/quartier-names';
+import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
@@ -141,8 +144,8 @@ interface ScheduleDetailContentProperties {
 }
 
 /** "Q5 Greif", filled when it is the user's own Quartier. */
-const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
-  name,
+const QuartierChip: React.FC<{ quartier: EntryQuartier; isMine: boolean }> = ({
+  quartier,
   isMine,
 }) => (
   <span
@@ -151,8 +154,9 @@ const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
       isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
     )}
   >
-    <b className="font-bold">{shortQuartierName(name)}</b>
-    {quartierNicknameOf(name) !== shortQuartierName(name) && quartierNicknameOf(name)}
+    <QuartierDot quartier={quartier} />
+    <b className="font-bold">{shortQuartierName(quartier)}</b>
+    {quartierRufnameOf(quartier) !== shortQuartierName(quartier) && quartierRufnameOf(quartier)}
   </span>
 );
 
@@ -430,8 +434,12 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       className="flex flex-wrap gap-1.5"
                       aria-label={programmeLabels.quartiere[locale]}
                     >
-                      {quartiere.map(({ id, name }) => (
-                        <QuartierChip key={id} name={name} isMine={myQuartierIds.has(id)} />
+                      {quartiere.map((quartier) => (
+                        <QuartierChip
+                          key={quartier.id}
+                          quartier={quartier}
+                          isMine={myQuartierIds.has(quartier.id)}
+                        />
                       ))}
                     </div>
                   </FactRow>
@@ -468,7 +476,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       min={courseStatus?.enrolledCount ?? 0}
                       value={editData.maxParticipants || ''}
                       onChange={handleMaxParticipantsChange}
-                      className="font-body border-line focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 h-11 w-full rounded-xl border bg-white px-3 text-[15px] text-green-900 focus:ring-2 focus:outline-hidden"
+                      className={cn(textInputClassName, 'mt-1')}
                       placeholder={labels.unlimited[locale]}
                     />
                     {courseStatus && courseStatus.enrolledCount > 0 && (
@@ -499,9 +507,9 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                             </b>
                             {quartiereOf(other)
                               .filter(({ name }) => name !== undefined)
-                              .map(({ id, name }) => (
-                                <span key={id}>
-                                  · {shortQuartierName(name)} {quartierNicknameOf(name)}
+                              .map((quartier) => (
+                                <span key={quartier.id}>
+                                  · {shortQuartierName(quartier)} {quartierRufnameOf(quartier)}
                                 </span>
                               ))}
                             {/* the way back to the user's own slot after looking at another */}
