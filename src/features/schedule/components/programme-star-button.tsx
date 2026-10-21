@@ -64,13 +64,7 @@ export const ProgrammeStarButton: React.FC<{
           {reminderLabels.removeReminderTooDescription[locale]}
         </p>
         <div className="mt-4 flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="outlined"
-            size="touch"
-            className="border-danger-line text-danger-text hover:bg-danger-soft"
-            onClick={() => unstar(true)}
-          >
+          <Button type="button" variant="danger" size="touch" onClick={() => unstar(true)}>
             {reminderLabels.yesRemove[locale]}
           </Button>
           <Button type="button" variant="quiet" size="touch" onClick={() => unstar(false)}>

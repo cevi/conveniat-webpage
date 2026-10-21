@@ -308,13 +308,13 @@ export const EnrollmentAction: React.FC<{
               <CheckCircle className="text-conveniat-green h-5 w-5 shrink-0" aria-hidden="true" />
               {localizedEnrolled[locale]}
             </span>
+            {/* leaving is destructive, so red; it can be undone right after */}
             <Button
-              variant="outlined"
+              variant="danger"
               size="touch"
               onClick={() => unenroll.mutate({ courseId })}
               disabled={unenroll.isPending}
-              // leaving is destructive, so red; it can be undone right after
-              className="border-danger-line text-danger-text hover:bg-danger-soft ml-auto"
+              className="ml-auto"
             >
               {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {localizedUnenroll[locale]}

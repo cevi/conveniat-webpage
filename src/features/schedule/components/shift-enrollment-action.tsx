@@ -351,12 +351,11 @@ export const ShiftEnrollmentAction: React.FC<{
         </span>
       ) : (
         <Button
-          variant="outlined"
+          variant="danger"
           size="touch"
           onClick={() => unenroll.mutate({ shiftId })}
           disabled={unenroll.isPending}
-          // leaving is destructive, so red
-          className="border-danger-line text-danger-text hover:bg-danger-soft shrink-0"
+          className="shrink-0"
         >
           {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
           {localizedUnenroll[locale]}
@@ -379,11 +378,11 @@ export const ShiftEnrollmentAction: React.FC<{
           </span>
           {!isWithdrawalClosed && (
             <Button
-              variant="outlined"
+              variant="danger"
               size="touch"
               onClick={() => unenroll.mutate({ shiftId })}
               disabled={unenroll.isPending}
-              className="border-danger-line text-danger-text hover:bg-danger-soft ml-auto"
+              className="ml-auto"
             >
               {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {localizedUnenroll[locale]}
