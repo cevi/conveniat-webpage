@@ -414,7 +414,7 @@ export const ShiftEnrollmentAction: React.FC<{
       {isCard &&
         /*
           No counts here: the capacity line next to this button already says how full the shift
-          is, and once it is full that line says so in orange - a disabled "Ausgebucht" button
+          is, and once it is full that line says so in red - a disabled "Ausgebucht" button
           beside it would only repeat it.
         */
         !isFull && (
@@ -458,7 +458,7 @@ export const ShiftEnrollmentAction: React.FC<{
               {localizedEnrolWithoutExitWarning[locale]}
             </ChatAlertDialogDescription>
           </ChatAlertDialogHeader>
-          <div className="border-live-line bg-live-soft text-live-text flex w-full items-start gap-2 rounded-xl border p-3 text-left text-sm">
+          <div className="border-danger-line bg-danger-soft text-danger-text flex w-full items-start gap-2 rounded-xl border p-3 text-left text-sm">
             <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>{localizedUnenrollClosedHint[locale]}</p>
           </div>

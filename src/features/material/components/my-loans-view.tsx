@@ -183,7 +183,7 @@ const EditRequestSheet: React.FC<{ loan: MyLoan; onClose: () => void }> = ({ loa
           />
         </div>
         {!onStep && (
-          <p className="text-live-text text-right text-xs font-semibold">
+          <p className="text-danger-text text-right text-xs font-semibold">
             {format(labels.offStep, locale, { n: step })}
           </p>
         )}
@@ -251,7 +251,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
   }
 
   return (
-    <li className={cn('space-y-2 px-4 py-3', status === 'OVERDUE' && 'bg-live-soft')}>
+    <li className={cn('space-y-2 px-4 py-3', status === 'OVERDUE' && 'bg-danger-soft')}>
       {/* the badge drops below rather than squeezing the name: it can be wide */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <MaterialItemImage
@@ -266,7 +266,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
           <div
             className={cn(
               'text-sm',
-              status === 'OVERDUE' ? 'text-live-text font-semibold' : 'text-green-700',
+              status === 'OVERDUE' ? 'text-danger-text font-semibold' : 'text-green-700',
             )}
           >
             {out ? when : `#${loan.number}`}
@@ -281,7 +281,7 @@ const MyLoanRow: React.FC<{ loan: MyLoan; onEdit: (loan: MyLoan) => void }> = ({
         </span>
       </div>
       {rejected && (
-        <p className="bg-live-soft text-live-text rounded-[10px] px-3 py-2 text-sm">
+        <p className="bg-danger-soft text-danger-text rounded-[10px] px-3 py-2 text-sm">
           {loan.rejectionReason === '' || loan.rejectionReason === null
             ? text.rejectedNoReason[locale]
             : format(text.rejectedBecause, locale, { reason: loan.rejectionReason })}

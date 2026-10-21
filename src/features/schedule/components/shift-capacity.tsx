@@ -38,7 +38,7 @@ export const formatSpotsFilled = (
  * How full a shift is, quietly: the free spots and a rail in brand green under them.
  *
  * The only place on a card where a number about capacity appears. A full shift turns the rail
- * and the label orange - the warning colour of the app - so a glance down the list shows which
+ * and the label red - the colour of what is blocked - so a glance down the list shows which
  * shifts still need people without reading a single number. Once the shift is over, how full it
  * was stops being news and the line says so instead.
  */
@@ -72,7 +72,7 @@ export const ShiftCapacity: React.FC<{
           className={cn(
             'text-[13px] leading-[18px] tabular-nums',
             isPast && 'text-green-500',
-            !isPast && isFull && 'text-live-text font-semibold',
+            !isPast && isFull && 'text-danger-text font-semibold',
             !isPast && !isFull && 'text-green-700',
           )}
         >
@@ -91,7 +91,7 @@ export const ShiftCapacity: React.FC<{
           className={cn(
             'h-full rounded-full transition-[width] duration-300',
             isPast && 'bg-rail-node',
-            !isPast && isFull && 'bg-live',
+            !isPast && isFull && 'bg-danger',
             !isPast && !isFull && 'bg-conveniat-green',
           )}
           style={{ width: `${filledRatio * 100}%` }}

@@ -116,13 +116,13 @@ interface AttentionEntry {
 
 /**
  * The colour of a kind of attention, on its tile and its pill, so the list reads at a glance:
- * orange for what is overdue, blue for a pickup waiting, amber for stock running low, grey for
- * repairs. Red stays with the emergency.
+ * red for what is overdue; a pickup waiting, stock running low and repairs are neutral, told
+ * apart by their icon and pill.
  */
 const attentionTone = {
-  overdue: { tile: 'bg-live-soft text-live', pill: 'bg-live-soft text-live-text' },
-  pickup: { tile: 'bg-blue-50 text-blue-700', pill: 'bg-blue-50 text-blue-700' },
-  low: { tile: 'bg-amber-50 text-amber-700', pill: 'bg-amber-100 text-amber-800' },
+  overdue: { tile: 'bg-danger-soft text-danger', pill: 'bg-danger-soft text-danger-text' },
+  pickup: { tile: 'bg-quiet text-green-700', pill: 'bg-chip text-green-900' },
+  low: { tile: 'bg-quiet text-green-700', pill: 'bg-chip text-green-900' },
   repair: { tile: 'bg-quiet text-green-700', pill: 'bg-quiet text-green-700' },
 } as const;
 
@@ -319,7 +319,7 @@ const DayFigure: React.FC<{
     <dt
       className={cn(
         'order-2 text-xs leading-tight break-words hyphens-auto',
-        live ? 'text-live-text font-semibold' : 'text-green-700',
+        live ? 'text-danger-text font-semibold' : 'text-green-700',
       )}
     >
       {label}
@@ -327,7 +327,7 @@ const DayFigure: React.FC<{
     <dd
       className={cn(
         'font-heading order-1 text-xl font-extrabold tabular-nums',
-        live ? 'text-live' : 'text-heading',
+        live ? 'text-danger' : 'text-heading',
       )}
     >
       {value}

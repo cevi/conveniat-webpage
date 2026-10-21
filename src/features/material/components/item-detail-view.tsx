@@ -305,7 +305,7 @@ const WhereIsIt: React.FC<{ item: MaterialItemDetail }> = ({ item }) => {
                       key={line}
                       className={cn(
                         'block truncate text-sm',
-                        overdue ? 'text-live-text font-semibold' : 'text-green-700',
+                        overdue ? 'text-danger-text font-semibold' : 'text-green-700',
                       )}
                     >
                       {line}

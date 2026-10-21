@@ -90,7 +90,7 @@ export const ItemTexts: React.FC<{
         </div>
       ))}
       {hasNotes && (
-        <p className="bg-live-soft text-live-text rounded-[10px] px-3 py-2 text-sm leading-relaxed lg:col-span-2">
+        <p className="bg-danger-soft text-danger-text rounded-[10px] px-3 py-2 text-sm leading-relaxed lg:col-span-2">
           <span className="font-semibold">{labels.usageNotes[locale]}: </span>
           {item.usageNotes}
         </p>

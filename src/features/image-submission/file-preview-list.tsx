@@ -49,7 +49,7 @@ const FilePreviewItem: React.FC<{
     <div
       className={cn(
         'flex items-center justify-between gap-2 py-3 pr-2 pl-4 transition-colors',
-        errorMessage ? 'bg-live-soft' : 'bg-transparent',
+        errorMessage ? 'bg-danger-soft' : 'bg-transparent',
       )}
     >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -61,7 +61,7 @@ const FilePreviewItem: React.FC<{
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <LucideImageIcon
-                  className={cn('h-4 w-4', errorMessage ? 'text-live-text' : 'text-green-500')}
+                  className={cn('h-4 w-4', errorMessage ? 'text-danger-text' : 'text-green-500')}
                 />
               </div>
             )}
@@ -70,18 +70,20 @@ const FilePreviewItem: React.FC<{
             <span
               className={cn(
                 'truncate text-[15px] font-semibold',
-                errorMessage ? 'text-live-text' : 'text-green-900',
+                errorMessage ? 'text-danger-text' : 'text-green-900',
               )}
             >
               {file.name}
             </span>
-            <span className={cn('text-[13px]', errorMessage ? 'text-live-text' : 'text-green-700')}>
+            <span
+              className={cn('text-[13px]', errorMessage ? 'text-danger-text' : 'text-green-700')}
+            >
               {formatFileSize(file.size)}
             </span>
           </div>
         </div>
         {errorMessage && (
-          <p className="text-live-text mt-1 text-[13px] font-semibold">{errorMessage}</p>
+          <p className="text-danger-text mt-1 text-[13px] font-semibold">{errorMessage}</p>
         )}
       </div>
       <button

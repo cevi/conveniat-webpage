@@ -266,7 +266,7 @@ const ItemSearch: React.FC<{
                   <span
                     className={cn(
                       'shrink-0 text-xs tabular-nums',
-                      cap === 0 ? 'text-live-text font-semibold' : 'text-green-500',
+                      cap === 0 ? 'text-danger-text font-semibold' : 'text-green-500',
                     )}
                   >
                     {cap === 0
@@ -385,12 +385,12 @@ const BasketLineRow: React.FC<{
         />
       </div>
       {line.quantity > cap && (
-        <p role="alert" className="text-live-text text-xs font-semibold">
+        <p role="alert" className="text-danger-text text-xs font-semibold">
           {cap === 0 ? text.noneFreeInPeriod[locale] : format(text.onlyFree, locale, { n: cap })}
         </p>
       )}
       {preparing && item?.isReservable === false && (
-        <p className="text-live-text text-xs font-semibold">{text.counterOnly[locale]}</p>
+        <p className="text-danger-text text-xs font-semibold">{text.counterOnly[locale]}</p>
       )}
     </li>
   );
@@ -670,7 +670,7 @@ export const BasketEditor: React.FC<{ start: BasketStart; onClose: () => void }>
             </Field>
           )}
           {periodReversed && (
-            <p className="text-live-text text-sm font-semibold">{text.periodInvalid[locale]}</p>
+            <p className="text-danger-text text-sm font-semibold">{text.periodInvalid[locale]}</p>
           )}
           <Field label={text.comment[locale]}>
             <input

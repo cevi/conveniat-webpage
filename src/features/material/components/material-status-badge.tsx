@@ -8,8 +8,8 @@ import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
 /**
- * The app's chip, and its tones: neutral for the everyday, the live orange for what wants a hand
- * (strong once it is overdue), the soft green for what is ready. Red stays with the emergency.
+ * The app's chip, and its tones: neutral for the everyday, red for what wants a hand (strong
+ * once it is overdue), the soft green for what is ready.
  */
 export const chip =
   'inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold whitespace-nowrap';
@@ -17,8 +17,8 @@ export const chip =
 export const chipTone = {
   neutral: 'bg-chip text-green-900',
   ready: 'bg-tint text-conveniat-green',
-  warning: 'bg-live-soft text-live-text',
-  overdue: 'bg-live text-white',
+  warning: 'bg-danger-soft text-danger-text',
+  overdue: 'bg-danger text-white',
   done: 'bg-quiet text-green-700',
 } as const;
 

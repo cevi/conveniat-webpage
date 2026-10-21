@@ -101,12 +101,12 @@ interface LineState extends ReturnDraft {
 
 const CHIPS: MaterialCondition[] = ['OK', 'DAMAGED', 'MISSING'];
 
-// the chosen state, each its own: green when all is well, the live orange for a damage (strong
-// once it is broken), neutral grey with a dark edge for a piece that is gone
+// the chosen state, each its own: green when all is well, red for a damage (strong once it is
+// broken), neutral grey with a dark edge for a piece that is gone
 const conditionTone: Record<MaterialCondition, string> = {
   OK: 'border-conveniat-green bg-conveniat-green text-white',
-  LIGHT_DAMAGE: 'border-live bg-live-soft text-live-text',
-  DAMAGED: 'border-live bg-live text-white',
+  LIGHT_DAMAGE: 'border-danger bg-danger-soft text-danger-text',
+  DAMAGED: 'border-danger bg-danger text-white',
   MISSING: 'border-green-700 bg-chip text-green-900',
 };
 
@@ -166,7 +166,7 @@ const ReturnLine: React.FC<{
             {loan.item.name}
           </div>
           <div
-            className={cn('text-xs', overdue ? 'text-live-text font-semibold' : 'text-green-500')}
+            className={cn('text-xs', overdue ? 'text-danger-text font-semibold' : 'text-green-500')}
           >
             {format(text.out, locale, { n: line.issued })} ·{' '}
             {overdue
@@ -222,7 +222,7 @@ const ReturnLine: React.FC<{
           </div>
           {line.condition === 'DAMAGED' && (
             <div className="flex items-center justify-end gap-3 sm:pl-14">
-              <span className="text-live-text text-sm font-semibold">
+              <span className="text-danger-text text-sm font-semibold">
                 {text.ofWhichDamaged[locale]}
               </span>
               <Stepper
@@ -239,7 +239,9 @@ const ReturnLine: React.FC<{
               {format(consumable ? text.usedUpHint : text.missingHint, locale, { n: gone })}
             </p>
           )}
-          {!valid && <p className="text-live-text text-sm font-semibold">{text.invalid[locale]}</p>}
+          {!valid && (
+            <p className="text-danger-text text-sm font-semibold">{text.invalid[locale]}</p>
+          )}
           {line.condition !== 'OK' && (
             <div className="space-y-2 sm:pl-14">
               <input
@@ -342,7 +344,7 @@ export const ReturnEditor: React.FC<{
         </h1>
       </div>
       {scannedGone && (
-        <p className="bg-live-soft text-live-text rounded-[10px] px-3 py-2 text-sm">
+        <p className="bg-danger-soft text-danger-text rounded-[10px] px-3 py-2 text-sm">
           {format(text.notOut, locale, { n: scannedNumber })}
         </p>
       )}

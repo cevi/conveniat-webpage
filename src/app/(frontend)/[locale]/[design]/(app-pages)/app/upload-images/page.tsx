@@ -354,9 +354,9 @@ const ImageUploadPage: React.FC = () => {
             {errorMessage !== '' && (
               <div
                 role="alert"
-                className="border-live-line bg-live-soft text-live-text flex items-center gap-3 rounded-[14px] border p-4"
+                className="border-danger-line bg-danger-soft text-danger-text flex items-center gap-3 rounded-[14px] border p-4"
               >
-                <AlertCircle className="text-live h-5 w-5 shrink-0" aria-hidden="true" />
+                <AlertCircle className="text-danger h-5 w-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm font-medium">{errorMessage}</p>
               </div>
             )}
@@ -385,7 +385,7 @@ const ImageUploadPage: React.FC = () => {
                           onChange={(desc) => handleDescriptionChange(fileItem.file.name, desc)}
                         />
                         {fileItem.descriptionError && (
-                          <p className="text-live-text mt-2 text-[13px] font-semibold">
+                          <p className="text-danger-text mt-2 text-[13px] font-semibold">
                             {fileItem.descriptionError}
                           </p>
                         )}

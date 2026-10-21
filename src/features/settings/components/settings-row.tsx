@@ -54,7 +54,7 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
           <p className="text-[15px] leading-5 font-medium break-words text-green-900">{title}</p>
           {typeof error === 'string' && error.length > 0 ? (
             // in the warning colour and with a sign, so it is not read as the state of the setting
-            <p className="text-live-text mt-px flex items-start gap-1 text-[13px] leading-[18px] font-medium">
+            <p className="text-danger-text mt-px flex items-start gap-1 text-[13px] leading-[18px] font-medium">
               <AlertCircle className="mt-px h-4 w-4 shrink-0" aria-hidden="true" />
               {error}
             </p>

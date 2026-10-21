@@ -303,8 +303,8 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
         >
           {/* Edit Warning Banner */}
           {isEditing && (
-            <div className="border-live-line bg-live-soft text-live-text flex items-center gap-2 rounded-[14px] border px-3.5 py-3 text-[13px] font-medium">
-              <AlertTriangle className="text-live h-4 w-4 shrink-0" aria-hidden="true" />
+            <div className="bg-quiet flex items-center gap-2 rounded-[14px] px-3.5 py-3 text-[13px] font-medium text-green-900">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />
               {labels.editWarning[locale]}
             </div>
           )}
@@ -313,9 +313,9 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
           {editError && (
             <div
               role="alert"
-              className="border-live-line bg-live-soft text-live-text flex items-center gap-2 rounded-[14px] border px-3.5 py-3 text-[13px] font-medium"
+              className="border-danger-line bg-danger-soft text-danger-text flex items-center gap-2 rounded-[14px] border px-3.5 py-3 text-[13px] font-medium"
             >
-              <AlertTriangle className="text-live h-4 w-4 shrink-0" aria-hidden="true" />
+              <AlertTriangle className="text-danger h-4 w-4 shrink-0" aria-hidden="true" />
               {editError}
             </div>
           )}

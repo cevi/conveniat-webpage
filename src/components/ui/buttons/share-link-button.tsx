@@ -96,14 +96,14 @@ export const ShareLinkButton: React.FC<{
           {feedback === 'copied' ? (
             <Check className="h-5 w-5 text-green-600" aria-hidden="true" />
           ) : (
-            <X className="text-live-text h-5 w-5" aria-hidden="true" />
+            <X className="text-danger-text h-5 w-5" aria-hidden="true" />
           )}
           {!compact && (
             <span
               role="status"
               className={cn(
                 withLabel ? '' : 'text-xs font-medium',
-                feedback === 'copied' ? 'text-green-700' : 'text-live-text',
+                feedback === 'copied' ? 'text-green-700' : 'text-danger-text',
               )}
             >
               {currentLabel}

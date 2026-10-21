@@ -15,7 +15,7 @@ export const stockTone = {
   free: 'bg-conveniat-green',
   reserved: 'bg-blue-300',
   issued: 'bg-green-300',
-  broken: 'bg-live',
+  broken: 'bg-danger',
 } as const;
 
 interface Segment {

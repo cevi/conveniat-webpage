@@ -132,7 +132,7 @@ export const MapSearchRow: React.FC<{
           'mt-2 w-fit max-w-full rounded-full px-3.5 py-2 text-[13px] font-medium',
           floatingClassName,
           locateState === 'denied' || locateState === 'unavailable'
-            ? 'text-live-text'
+            ? 'text-danger-text'
             : 'text-green-900',
           message === undefined && 'sr-only',
         )}

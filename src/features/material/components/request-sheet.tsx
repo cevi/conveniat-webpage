@@ -219,7 +219,7 @@ export const RequestSheet: React.FC<{
           </div>
         </Field>
         {!periodValid && (
-          <p className="text-live-text text-sm font-semibold">{text.periodInvalid[locale]}</p>
+          <p className="text-danger-text text-sm font-semibold">{text.periodInvalid[locale]}</p>
         )}
       </div>
 
@@ -274,12 +274,12 @@ export const RequestSheet: React.FC<{
                 />
               </div>
               {line.quantity > cap && (
-                <p className="text-live-text text-right text-xs font-semibold">
+                <p className="text-danger-text text-right text-xs font-semibold">
                   {format(text.tooMany, locale, { n: cap })}
                 </p>
               )}
               {!isOnOrderStep(line.quantity, step) && (
-                <p className="text-live-text text-right text-xs font-semibold">
+                <p className="text-danger-text text-right text-xs font-semibold">
                   {format(labels.offStep, locale, { n: step })}
                 </p>
               )}

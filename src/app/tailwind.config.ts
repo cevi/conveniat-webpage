@@ -79,7 +79,10 @@ module.exports = {
       /** neutral grey: secondary buttons, soft cards such as "Danach" */
       quiet: '#EEF1EE',
       /** what is running now: the line of now and the "Läuft" badge */
+      // orange is "now" only: the line of now, what is running
       live: { DEFAULT: '#C2410C', soft: '#FFF1E8', text: '#9A3412', line: '#F2C6A8' },
+      // red is for what went wrong, is blocked or overdue, and for destructive actions
+      danger: { DEFAULT: '#C41333', soft: '#FFF1F1', text: '#9F1230', line: '#FECDD0' },
 
       red: {
         50: '#FFF1F1',

@@ -100,7 +100,7 @@ export const Field: React.FC<{
       </span>
       {children}
       {error !== undefined && (
-        <span className="text-live-text mt-1 block text-xs font-semibold">{error}</span>
+        <span className="text-danger-text mt-1 block text-xs font-semibold">{error}</span>
       )}
       {hint !== undefined && <span className="mt-1 block text-xs text-green-500">{hint}</span>}
     </>

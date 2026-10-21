@@ -149,7 +149,7 @@ export const ProfileAvatar: React.FC<{
   const failedAlert = (
     <p
       role="alert"
-      className="bg-live-soft text-live-text mt-3 rounded-[14px] p-3 text-[13px] font-medium"
+      className="bg-danger-soft text-danger-text mt-3 rounded-[14px] p-3 text-[13px] font-medium"
     >
       {labels.failed[locale]}
     </p>

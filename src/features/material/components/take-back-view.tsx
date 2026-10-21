@@ -144,7 +144,9 @@ const DueCard: React.FC<{
             )}
           </div>
           <p className="line-clamp-2 text-sm text-green-700">{loanSummary(group.loans)}</p>
-          <p className={cn('text-xs', overdue ? 'text-live-text font-semibold' : 'text-green-700')}>
+          <p
+            className={cn('text-xs', overdue ? 'text-danger-text font-semibold' : 'text-green-700')}
+          >
             {oldest !== undefined && overdue
               ? format(labels.overdueSince, locale, { day: formatDay(oldest.endDate, locale) })
               : format(labels.dueOn, locale, { day: formatDay(oldest?.endDate ?? now, locale) })}

@@ -64,7 +64,7 @@ export const loanSummary = (
 export const positionCount = (count: number, locale: Locale): string =>
   count === 1 ? labels.onePosition[locale] : format(labels.positions, locale, { n: count });
 
-/** A holder's tile: initials on the depot green, the live orange when something is overdue. */
+/** A holder's tile: initials on the depot green, red when something is overdue. */
 export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?: string }> = ({
   name,
   alert = false,
@@ -74,7 +74,7 @@ export const HolderAvatar: React.FC<{ name: string; alert?: boolean; className?:
     aria-hidden
     className={cn(
       'flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white',
-      alert ? 'bg-live' : 'bg-conveniat-green',
+      alert ? 'bg-danger' : 'bg-conveniat-green',
       className,
     )}
   >

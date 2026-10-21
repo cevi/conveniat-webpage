@@ -11,6 +11,7 @@ import {
   ChatAlertDialogHeader,
   ChatAlertDialogTitle,
 } from '@/features/chat/components/ui/chat-alert-dialog';
+import { cn } from '@/utils/tailwindcss-override';
 /* eslint-enable import/no-restricted-paths */
 import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
 import { useConflictingEntry } from '@/features/schedule/hooks/use-conflicting-entry';
@@ -223,7 +224,7 @@ export const ShiftConflictDialog: React.FC<{
             isMuted
             note={
               isSwitchBlocked ? (
-                <div className="text-live-text mt-1 flex items-center gap-1.5 text-[13px]">
+                <div className="text-danger-text mt-1 flex items-center gap-1.5 text-[13px]">
                   <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>
                     {localizedWithdrawalClosedShort[locale]}
@@ -249,7 +250,13 @@ export const ShiftConflictDialog: React.FC<{
             said what follows, in separate boxes a line apart. They are one thought.
           */}
           {(overlap !== undefined || isSwitchBlocked) && (
-            <div className="bg-live-soft text-live-text mt-1 w-full rounded-xl px-3 py-2 text-sm">
+            <div
+              className={cn(
+                'mt-1 w-full rounded-xl px-3 py-2 text-sm',
+                // a switch that is blocked is a problem; an overlap alone is something to know
+                isSwitchBlocked ? 'bg-danger-soft text-danger-text' : 'bg-quiet text-green-900',
+              )}
+            >
               {overlap !== undefined && (
                 <span className="flex items-center gap-1.5 font-medium">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />

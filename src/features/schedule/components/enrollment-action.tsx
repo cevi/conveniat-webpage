@@ -293,7 +293,7 @@ export const EnrollmentAction: React.FC<{
   const failedLine = hasFailed && (
     <p
       role="alert"
-      className="bg-live-soft text-live-text rounded-xl px-3 py-2 text-[13px] font-medium"
+      className="bg-danger-soft text-danger-text rounded-xl px-3 py-2 text-[13px] font-medium"
     >
       {localizedFailed[locale]}
     </p>
@@ -363,7 +363,7 @@ export const EnrollmentAction: React.FC<{
         <p
           className={cn(
             'flex items-center gap-2 text-[15px] text-green-700',
-            isFull && 'text-live-text font-semibold',
+            isFull && 'text-danger-text font-semibold',
           )}
         >
           <Users className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
@@ -409,7 +409,7 @@ export const EnrollmentAction: React.FC<{
               </div>
             </div>
             {isSwitchBlocked ? (
-              <p className="border-live-line bg-live-soft text-live-text w-full rounded-[14px] border px-3.5 py-2.5 text-center text-sm">
+              <p className="border-danger-line bg-danger-soft text-danger-text w-full rounded-[14px] border px-3.5 py-2.5 text-center text-sm">
                 {localizedSwitchBlockedShift[locale]}
               </p>
             ) : (
