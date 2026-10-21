@@ -66,12 +66,13 @@ const participantRow = (overrides: Record<string, unknown> = {}): Record<string,
 const payloadDouble = (
   row: Record<string, unknown>,
   browserCookie = 'cookie',
+  billSettings: Record<string, unknown> = {},
 ): { payload: Payload; updates: Record<string, unknown>[] } => {
   const updates: Record<string, unknown>[] = [];
   const payload = {
     logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
     findGlobal: ({ slug }: { slug: string }) =>
-      Promise.resolve(slug === 'registration-management' ? { browserCookie } : {}),
+      Promise.resolve(slug === 'registration-management' ? { browserCookie } : billSettings),
     find: () => Promise.resolve({ docs: [row] }),
     findByID: () => Promise.resolve({ filename: 'bill.pdf' }),
     update: ({ data }: { data: Record<string, unknown> }) => {
@@ -267,4 +268,57 @@ describe('sendBills hands a bulk run to the outgoing mail queue', () => {
       expect(summary.errors[0]).toContain('Max Mustermann');
     },
   );
+});
+
+/** The mail a bulk run queues for the one participant, under the given bill settings. */
+const queuedBillMail = async (
+  billSettings: Record<string, unknown>,
+  row: Record<string, unknown> = participantRow(),
+): Promise<{ subject: string; text: string }> => {
+  (queueBackgroundEmail as jest.Mock).mockClear();
+  const { payload } = payloadDouble(row, 'cookie', billSettings);
+
+  await sendBills(payload, undefined, {
+    hitobitoService: hitobitoDouble(jest.fn().mockResolvedValue({ changed: false })),
+  });
+
+  const [, mail] = (queueBackgroundEmail as jest.Mock).mock.calls[0] as [
+    unknown,
+    { subject: string; text: string },
+  ];
+  return mail;
+};
+
+describe('sendBills names the Anmeldenummer in the bill mail', () => {
+  it('uses the number stored with the bill, even after the template changed', async () => {
+    const mail = await queuedBillMail(
+      {
+        customReferenceTemplate: '{{year}}-{{participation-id}}',
+        invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+      },
+      participantRow({ registrationNumber: 'event-1-part-1' }),
+    );
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung event-1-part-1');
+  });
+
+  it('fills it from the template for a bill created before the number was stored', async () => {
+    const mail = await queuedBillMail({
+      customReferenceTemplate: '{{event-id}}-{{participation-id}}',
+      invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+      invoiceEmailBody: 'Deine Anmeldenummer: {{registrationNumber}}',
+    });
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung event-1-part-1');
+    expect(mail.text).toBe('Deine Anmeldenummer: event-1-part-1');
+  });
+
+  it('leaves no dangling placeholder when no Anmeldenummer is configured', async () => {
+    const mail = await queuedBillMail({
+      customReferenceTemplate: '',
+      invoiceEmailSubject: 'conveniat27 – Rechnung {{registrationNumber}}',
+    });
+
+    expect(mail.subject).toBe('conveniat27 – Rechnung');
+  });
 });
