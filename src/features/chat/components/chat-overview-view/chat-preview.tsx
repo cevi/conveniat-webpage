@@ -1,12 +1,12 @@
 'use client';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
+import { PersonName } from '@/features/chat/components/ui/person-name';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
 import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
-import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { SYSTEM_SENDER_ID } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import { i18nConfig, type Locale, type StaticTranslationString } from '@/types/types';
@@ -222,10 +222,6 @@ export const ChatPreview: React.FC<{
   const messageDate = chat.lastMessage?.createdAt ?? chat.lastUpdate;
   const timestamp = formatChatListDate(messageDate, locale, new Date());
 
-  // a private chat is named after the partner: their Ceviname leads, the real name follows
-  const { primary: title, secondary: subtitle } =
-    chat.chatType === ChatType.ONE_TO_ONE ? splitDisplayName(chat.name) : { primary: chat.name };
-
   const rawPreview = chat.lastMessage?.messagePreview;
   let previewText = '';
   if (typeof rawPreview === 'string') {
@@ -270,15 +266,24 @@ export const ChatPreview: React.FC<{
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p
-              className={cn(
-                'min-w-0 truncate text-[15px] leading-5 text-green-900',
-                isEmergency && 'text-red-700',
-              )}
-            >
-              <span className={hasUnread ? 'font-bold' : 'font-semibold'}>{title}</span>
-              {subtitle !== undefined && <span className="text-green-700"> {subtitle}</span>}
-            </p>
+            {/* a private chat is named after the partner, in the one way every screen names people */}
+            {chat.chatType === ChatType.ONE_TO_ONE ? (
+              <PersonName
+                name={chat.name}
+                className="min-w-0 text-[15px] leading-5"
+                primaryClassName={hasUnread ? 'font-bold' : undefined}
+              />
+            ) : (
+              <p
+                className={cn(
+                  'min-w-0 truncate text-[15px] leading-5 text-green-900',
+                  hasUnread ? 'font-bold' : 'font-semibold',
+                  isEmergency && 'text-red-700',
+                )}
+              >
+                {chat.name}
+              </p>
+            )}
             {chat.isPinned === true && (
               <Pin
                 className="h-3.5 w-3.5 shrink-0 text-green-500"

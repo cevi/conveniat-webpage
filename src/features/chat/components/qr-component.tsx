@@ -4,10 +4,10 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';
 import { environmentVariables } from '@/config/environment-variables';
+import { PersonName } from '@/features/chat/components/ui/person-name';
 import { useChatInviteUrl } from '@/features/chat/hooks/use-chat-invite-url';
 import { readChatInvitePath } from '@/features/chat/utils/chat-invite-link';
 import { isRateLimitError } from '@/features/chat/utils/send-errors';
-import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { QRCodeImage } from '@/features/payload-cms/payload-cms/components/qr-code/qr-code-image';
 import { useQrScanner } from '@/hooks/use-qr-scanner';
 import type { Locale, StaticTranslationString } from '@/types/types';
@@ -134,15 +134,19 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
 /** The own code, the name it belongs to and what to do with it. */
 const MyCode: React.FC<{ locale: Locale; hidden: boolean }> = ({ locale, hidden }) => {
   const { data: session } = useSession();
-  const { primary, secondary } = splitDisplayName(session?.user.name ?? '');
+  const name = session?.user.name?.trim() ?? '';
 
   return (
     <div hidden={hidden} className="flex flex-col items-center gap-1 pt-5 text-center">
       <ChatInviteQrCode locale={locale} />
-      {primary !== '' && (
-        <p className="font-heading text-heading mt-3 text-lg font-extrabold">{primary}</p>
+      {name !== '' && (
+        <PersonName
+          name={name}
+          layout="stacked"
+          className="mt-3 items-center"
+          primaryClassName="font-heading text-heading text-lg font-extrabold"
+        />
       )}
-      {secondary !== undefined && <p className="text-[13px] text-green-700">{secondary}</p>}
       <p className="mt-3 max-w-xs text-[15px] text-green-700">{text.hint[locale]}</p>
     </div>
   );

@@ -3,6 +3,7 @@
 import { AppFooterController } from '@/components/footer/hide-footer-context';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
+import { PersonName } from '@/features/chat/components/ui/person-name';
 import { describeContact } from '@/features/chat/utils/contact-search';
 import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { getContactDisplayName } from '@/utils/format-user-name';
@@ -20,7 +21,6 @@ export const contactListName = (contact: Contact): string =>
  * and one line of functions, Höfe and description under it.
  */
 export const ContactRowContent: React.FC<{ contact: Contact }> = ({ contact }) => {
-  const { primary, secondary } = splitDisplayName(getContactDisplayName(contact));
   const description = describeContact(contact);
   return (
     <>
@@ -31,10 +31,7 @@ export const ContactRowContent: React.FC<{ contact: Contact }> = ({ contact }) =
         className="h-11 w-11 text-sm"
       />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[15px] leading-5 text-green-900">
-          <span className="font-semibold">{primary}</span>
-          {secondary !== undefined && <span className="text-green-700"> {secondary}</span>}
-        </span>
+        <PersonName name={getContactDisplayName(contact)} className="text-[15px] leading-5" />
         {description !== '' && (
           <span className="mt-0.5 block truncate text-[13px] text-green-700">{description}</span>
         )}
@@ -47,6 +44,9 @@ export const ContactRowContent: React.FC<{ contact: Contact }> = ({ contact }) =
 export const contactRowItemClassName =
   'after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden';
 
+const backButtonClassName =
+  'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900';
+
 /**
  * The full-screen frame of starting a chat: a back arrow, the title with an optional line
  * under it, a fixed part under the header such as the search, the scrolling content and an
@@ -55,26 +55,49 @@ export const contactRowItemClassName =
 export const NewChatFrame: React.FC<{
   title: string;
   subtitle?: string | undefined;
-  backHref: string;
+  /** where the arrow leads, or what it does instead, e.g. a step back within the screen */
+  backHref?: string;
+  onBack?: () => void;
   backLabel: string;
   head?: React.ReactNode;
   footer?: React.ReactNode;
   /** the content sits on white instead of the grey page, e.g. a form with its grey search */
   onWhite?: boolean;
   children: React.ReactNode;
-}> = ({ title, subtitle, backHref, backLabel, head, footer, onWhite = false, children }) => (
+}> = ({
+  title,
+  subtitle,
+  backHref,
+  onBack,
+  backLabel,
+  head,
+  footer,
+  onWhite = false,
+  children,
+}) => (
   <div className="bg-page fixed top-(--preview-banner-height) z-[110] flex h-[calc(100dvh-var(--preview-banner-height))] w-screen flex-col overflow-y-hidden xl:top-(--app-content-top) xl:left-(--app-content-left) xl:z-0 xl:h-[calc(100dvh-var(--app-content-top))] xl:w-[calc(100dvw-var(--app-content-left))]">
     <AppFooterController hideAppFooter />
 
     <div className="border-line shrink-0 border-b bg-white">
       <div className="flex h-[60px] items-center gap-1 pr-3 pl-1">
-        <Link
-          href={backHref}
-          aria-label={backLabel}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-green-900"
-        >
-          <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
-        </Link>
+        {onBack === undefined ? (
+          <Link
+            href={backHref ?? '/app/chat'}
+            aria-label={backLabel}
+            className={backButtonClassName}
+          >
+            <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label={backLabel}
+            className={cn(backButtonClassName, 'cursor-pointer')}
+          >
+            <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="font-heading text-heading truncate text-xl leading-6 font-extrabold">
             {title}
