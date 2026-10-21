@@ -323,23 +323,57 @@ async function syncParticipation(
     const isRoleOk = isRoleAllowed(participation.roleType, rolePricingPatterns);
     const isMissing = !validationResult.isValid;
 
-    const hasChanges =
-      hasRoleChanged ||
-      hasNameChanged ||
-      hasFirstNameChanged ||
-      hasLastNameChanged ||
-      hasNicknameChanged ||
-      hasGroupIdChanged ||
-      hasEventNameChanged ||
-      hasStreetChanged ||
-      hasZipChanged ||
-      hasZipCodeChanged ||
-      hasTownChanged ||
-      hasEmailChanged ||
-      hasAnmeldestatusChanged ||
-      hasBirthdayChanged ||
-      hasGenderChanged ||
-      hasActiveChanged;
+    const diff: Record<string, { from: string; to: string }> = {};
+    if (hasRoleChanged)
+      diff['roleType'] = {
+        from: String(document_.roleType),
+        to: participation.roleType,
+      };
+    if (hasFirstNameChanged)
+      diff['firstName'] = {
+        from: String(document_.firstName),
+        to: participation.firstName,
+      };
+    if (hasLastNameChanged)
+      diff['lastName'] = {
+        from: String(document_.lastName),
+        to: participation.lastName,
+      };
+    if (hasNicknameChanged)
+      diff['nickname'] = {
+        from: String(document_.nickname),
+        to: participation.nickname,
+      };
+    if (hasNameChanged)
+      diff['fullName'] = {
+        from: String(document_.fullName),
+        to: participation.fullName,
+      };
+    if (hasGroupIdChanged) diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
+    if (hasEventNameChanged)
+      diff['eventName'] = { from: String(document_.eventName), to: event.eventName ?? '' };
+    if (hasStreetChanged)
+      diff['street'] = { from: String(document_.street), to: participation.street ?? '' };
+    if (hasZipChanged) diff['zip'] = { from: String(document_.zip), to: participation.zip ?? '' };
+    if (hasZipCodeChanged)
+      diff['zipCode'] = { from: String(document_.zipCode), to: participation.zipCode ?? '' };
+    if (hasTownChanged)
+      diff['town'] = { from: String(document_.town), to: participation.town ?? '' };
+    if (hasEmailChanged) diff['email'] = { from: String(document_.email), to: invoiceEmail ?? '' };
+    if (hasAnmeldestatusChanged)
+      diff['anmeldestatus'] = {
+        from: String(document_.anmeldestatus),
+        to: effectiveAnmeldestatus ?? '',
+      };
+    if (hasBirthdayChanged)
+      diff['birthday'] = { from: String(document_.birthday), to: participation.birthday ?? '' };
+    if (hasGenderChanged)
+      diff['gender'] = { from: String(document_.gender), to: participation.gender ?? '' };
+    if (hasActiveChanged)
+      diff['active'] = { from: String(document_.active), to: String(participation.active) };
+
+    // The diff so far is what the Cevi.DB changed; status and validation keys follow below.
+    const changedFields = Object.keys(diff);
 
     // A participation that has already been invoiced is never moved back into the
     // billing queue by a sync — see `resolveSyncStatus` for why.
@@ -348,69 +382,19 @@ async function syncParticipation(
       hasBill: hasRaisedBill(document_),
       isRoleOk,
       isMissingMandatoryData: isMissing,
-      hasChanges,
+      changedFields,
     });
 
     const statusChanged = (document_.status as string) !== newStatus;
     const history = (document_.syncHistory as SyncHistoryEntry[] | undefined) ?? [];
 
     if (
-      hasChanges ||
+      changedFields.length > 0 ||
       statusChanged ||
       hasMissingStammdatenChanged ||
       hasMissingAnmeldeangabenChanged ||
       writeBackEntries.length > 0
     ) {
-      const diff: Record<string, { from: string; to: string }> = {};
-      if (hasRoleChanged)
-        diff['roleType'] = {
-          from: String(document_.roleType),
-          to: participation.roleType,
-        };
-      if (hasFirstNameChanged)
-        diff['firstName'] = {
-          from: String(document_.firstName),
-          to: participation.firstName,
-        };
-      if (hasLastNameChanged)
-        diff['lastName'] = {
-          from: String(document_.lastName),
-          to: participation.lastName,
-        };
-      if (hasNicknameChanged)
-        diff['nickname'] = {
-          from: String(document_.nickname),
-          to: participation.nickname,
-        };
-      if (hasNameChanged)
-        diff['fullName'] = {
-          from: String(document_.fullName),
-          to: participation.fullName,
-        };
-      if (hasGroupIdChanged)
-        diff['groupId'] = { from: String(document_.groupId), to: event.groupId };
-      if (hasEventNameChanged)
-        diff['eventName'] = { from: String(document_.eventName), to: event.eventName ?? '' };
-      if (hasStreetChanged)
-        diff['street'] = { from: String(document_.street), to: participation.street ?? '' };
-      if (hasZipChanged) diff['zip'] = { from: String(document_.zip), to: participation.zip ?? '' };
-      if (hasZipCodeChanged)
-        diff['zipCode'] = { from: String(document_.zipCode), to: participation.zipCode ?? '' };
-      if (hasTownChanged)
-        diff['town'] = { from: String(document_.town), to: participation.town ?? '' };
-      if (hasEmailChanged)
-        diff['email'] = { from: String(document_.email), to: invoiceEmail ?? '' };
-      if (hasAnmeldestatusChanged)
-        diff['anmeldestatus'] = {
-          from: String(document_.anmeldestatus),
-          to: effectiveAnmeldestatus ?? '',
-        };
-      if (hasBirthdayChanged)
-        diff['birthday'] = { from: String(document_.birthday), to: participation.birthday ?? '' };
-      if (hasGenderChanged)
-        diff['gender'] = { from: String(document_.gender), to: participation.gender ?? '' };
-      if (hasActiveChanged)
-        diff['active'] = { from: String(document_.active), to: String(participation.active) };
       if (statusChanged) {
         diff['status'] = {
           from: String(document_.status),

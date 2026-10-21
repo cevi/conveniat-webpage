@@ -634,7 +634,7 @@ describe('Sync Service', () => {
     it('records why it needs a human, in the sync history', async () => {
       mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
       mockHitobitoService.fetchParticipations.mockResolvedValue([
-        externalParticipant({ town: 'Bern' }),
+        externalParticipant({ birthday: '2012-05-01' }),
       ]);
       mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
 
@@ -649,13 +649,47 @@ describe('Sync Service', () => {
       expect(update?.status).toBe('needs_manual_review');
       const history = update?.syncHistory as { action: string; reviewReason?: string }[];
       expect(history.at(-1)?.action).toBe('manual_review_required');
-      expect(history.at(-1)?.reviewReason).toContain('geändert');
+      expect(history.at(-1)?.reviewReason).toContain('Geburtsdatum');
+    });
+
+    it('takes a new address on a billed participant without parking the bill', async () => {
+      // The bill is still what they owe. The move is recorded, but nobody has to look at it.
+      mockParticipantRepo.findByParticipationUuid.mockResolvedValue(
+        billedRow({ anmeldestatus: 'Rechnung gestellt' }),
+      );
+      mockHitobitoService.fetchParticipations.mockResolvedValue([
+        externalParticipant({ street: 'Talstrasse', town: 'Bern' }),
+      ]);
+      mockHitobitoService.fetchParticipationAnswers.mockResolvedValue({
+        ...completeAnswers,
+        'Administrationsangaben Anmeldestatus': 'Rechnung gestellt',
+      });
+
+      const summary = await syncParticipantsUseCase(
+        mockParticipantRepo,
+        mockHitobitoService,
+        mockSettingsRepo,
+        mockLogger,
+      );
+
+      const [, update] = mockParticipantRepo.update.mock.calls[0] ?? [];
+      expect(update?.status).toBe('bill_sent');
+      expect(update?.street).toBe('Talstrasse');
+      const history = update?.syncHistory as {
+        action: string;
+        diff?: Record<string, unknown>;
+        reviewReason?: string;
+      }[];
+      expect(history.at(-1)?.action).toBe('participant_updated');
+      expect(history.at(-1)?.diff).toHaveProperty('street');
+      expect(history.at(-1)?.reviewReason).toBeUndefined();
+      expect(summary.needsReviewCount).toBe(0);
     });
 
     it('counts the parked participations so the toolbar can report them', async () => {
       mockParticipantRepo.findByParticipationUuid.mockResolvedValue(billedRow());
       mockHitobitoService.fetchParticipations.mockResolvedValue([
-        externalParticipant({ town: 'Bern' }),
+        externalParticipant({ birthday: '2012-05-01' }),
       ]);
       mockHitobitoService.fetchParticipationAnswers.mockResolvedValue(completeAnswers);
 

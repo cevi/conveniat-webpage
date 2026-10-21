@@ -10,6 +10,7 @@ import {
   billingRegenerateAllHandler,
   billingRegenerateSingleHandler,
   billingRemoveParticipantHandler,
+  billingResolveReviewHandler,
   billingSendHandler,
   billingSendPflichtangabenReminderHandler,
   billingSendSingleHandler,
@@ -55,6 +56,11 @@ export const billingEndpoints: Endpoint[] = [
     path: '/confidential/billing/remove-participant',
     method: 'post',
     handler: billingRemoveParticipantHandler,
+  },
+  {
+    path: '/confidential/billing/resolve-review',
+    method: 'post',
+    handler: billingResolveReviewHandler,
   },
   {
     path: '/confidential/billing/send',
