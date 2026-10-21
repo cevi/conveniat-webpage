@@ -6,6 +6,7 @@ import type {
 } from '@/features/billing/services/sync-history-summary';
 import { summarizeSyncHistory } from '@/features/billing/services/sync-history-summary';
 import { useField } from '@payloadcms/ui';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
 /**
@@ -94,64 +95,59 @@ const EntryRow: React.FC<{ entry: SyncHistoryEntry }> = ({ entry }) => (
 );
 
 /**
- * One line for a stretch of syncs that changed nothing worth reading, with the detail a
- * click away. A camp-long history is thousands of these; the few entries that say what
- * happened to this participation are what the operator came for.
+ * A stretch of syncs that changed nothing worth reading, shown as one ordinary line whose
+ * badge opens the entries. A camp-long history is thousands of these; the few entries that
+ * say what happened to this participation are what the operator came for, so the run must
+ * not stand out more than they do.
  */
 const RunRow: React.FC<{ run: SyncHistoryRunSection }> = ({ run }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const first = run.entries[0];
   const last = run.entries.at(-1);
+  const Chevron = isExpanded ? ChevronDown : ChevronRight;
 
   return (
     <div className="relative pl-6">
-      {/* Timeline marker: hollow, because nothing happened here */}
-      <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-900" />
+      {/* Timeline marker */}
+      <div className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white bg-gray-200 dark:border-gray-900 dark:bg-gray-700" />
 
-      <div className="rounded border border-dashed border-gray-200 p-2 dark:border-gray-700">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
-          <span className="min-w-[140px] text-sm font-medium text-gray-500 dark:text-gray-400">
-            {first === undefined ? '' : formatDate(first.date)}
-            {last !== undefined && last !== first && <> &ndash; {formatDate(last.date)}</>}
-          </span>
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {run.entries.length} Abgleiche ohne inhaltliche Änderung
-          </span>
-        </div>
-
-        <div className="mt-2 flex flex-wrap gap-1 text-xs text-gray-500 dark:text-gray-400">
-          {run.actionCounts.map(({ action, count }) => (
-            <span
-              key={action}
-              className="rounded bg-gray-100 px-2 py-0.5 dark:bg-gray-800 dark:text-gray-400"
-            >
-              {actionLabel(action)} &times;{count}
-            </span>
-          ))}
-        </div>
-
-        {run.changedFields.length > 0 && (
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Nur abgeleitete Felder wechselten: {run.changedFields.join(', ')}
-          </p>
-        )}
-
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3">
+        <span className="min-w-[140px] text-sm font-medium text-gray-900 dark:text-gray-100">
+          {first === undefined ? '' : formatDate(first.date)}
+        </span>
         <button
           type="button"
+          aria-expanded={isExpanded}
+          title={
+            isExpanded ? 'Einträge ausblenden' : `Alle ${run.entries.length} Einträge anzeigen`
+          }
           onClick={(): void => setIsExpanded((previous) => !previous)}
-          className="mt-2 text-xs font-medium text-blue-600 underline dark:text-blue-400"
+          className="inline-flex cursor-pointer items-center gap-1 self-start rounded border-0 bg-gray-100 px-2 py-0.5 text-sm text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
         >
-          {isExpanded ? 'Einträge ausblenden' : `Alle ${run.entries.length} Einträge anzeigen`}
+          {run.actionCounts
+            .map(({ action, count }) => `${actionLabel(action)} ×${count}`)
+            .join(' · ')}
+          <Chevron className="h-3.5 w-3.5" />
         </button>
+      </div>
 
-        {isExpanded && (
-          <div className="mt-3 space-y-4 border-l border-gray-200 pl-3 dark:border-gray-700">
+      {isExpanded && (
+        <div className="mt-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {first === undefined ? '' : formatDate(first.date)}
+            {last !== undefined && last !== first && <> &ndash; {formatDate(last.date)}</>}:{' '}
+            {run.entries.length} Abgleiche ohne inhaltliche Änderung
+            {run.changedFields.length > 0 && (
+              <>. Nur abgeleitete Felder wechselten: {run.changedFields.join(', ')}</>
+            )}
+          </p>
+          <div className="mt-3 space-y-4 border-l border-gray-200 dark:border-gray-700">
             {run.entries.map((entry, index) => (
               <EntryRow key={index} entry={entry} />
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
