@@ -67,7 +67,7 @@ export const ScheduleFixedRow: React.FC<{
                   {/* one group and its time stay together; the line breaks between groups */}
                   <span className="whitespace-nowrap">
                     <b className="font-bold text-green-900">
-                      {formatQuartierRange(quartiereOf(entry).map(({ name }) => name))}
+                      {formatQuartierRange(quartiereOf(entry))}
                     </b>{' '}
                     {timeRangeOf(entry)}
                   </span>

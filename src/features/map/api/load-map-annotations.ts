@@ -2,6 +2,7 @@ import type {
   CampMapAnnotationPoint,
   CampMapAnnotationPolygon,
   CampScheduleEntry,
+  MapQuartier,
 } from '@/features/map/types/types';
 import { resolveLinksInArray } from '@/features/payload-cms/payload-cms/utils/resolve-rich-text-links';
 import type { Locale } from '@/types/types';
@@ -43,17 +44,25 @@ export const loadMapAnnotations = async (
       limit: LIMIT,
       depth: 0,
       overrideAccess: true,
-      select: { name: true, mapAnnotation: true },
+      select: { name: true, number: true, rufname: true, mapAnnotation: true },
     }),
   ]);
 
   await resolveLinksInArray(annotations.docs, payload, locale);
   await resolveLinksInArray(scheduleEntries.docs, payload, locale);
 
-  const quartierNameOf = new Map(
+  const quartierOf = new Map(
     quartiere.docs.flatMap((quartier) => {
       const annotationId = idOf(quartier.mapAnnotation);
-      return annotationId === undefined ? [] : [[annotationId, quartier.name] as const];
+      if (annotationId === undefined) return [];
+      const label: MapQuartier = {
+        name: quartier.name,
+        ...(typeof quartier.number === 'number' ? { number: quartier.number } : {}),
+        ...(typeof quartier.rufname === 'string' && quartier.rufname !== ''
+          ? { rufname: quartier.rufname }
+          : {}),
+      };
+      return [[annotationId, label] as const];
     }),
   );
 
@@ -87,7 +96,7 @@ export const loadMapAnnotations = async (
           enableSupportChat: document_.enableSupportChat ?? true,
           hiddenOnDefaultMap: document_.hiddenOnDefaultMap ?? false,
           showLabel: document_.showLabel ?? true,
-          quartierName: quartierNameOf.get(document_.id),
+          quartier: quartierOf.get(document_.id),
         }) as CampMapAnnotationPoint,
     );
 
@@ -115,7 +124,7 @@ export const loadMapAnnotations = async (
         importance: document_.importance,
         enableSupportChat: isInteractive ? (document_.enableSupportChat ?? true) : false,
         hiddenOnDefaultMap: document_.hiddenOnDefaultMap ?? false,
-        quartierName: quartierNameOf.get(document_.id),
+        quartier: quartierOf.get(document_.id),
       } as CampMapAnnotationPolygon;
     });
 

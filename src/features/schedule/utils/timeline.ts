@@ -6,7 +6,7 @@ import {
   quartiereOf,
   slotOf,
 } from '@/features/schedule/utils/programme-utils';
-import { quartierNumberOf } from '@/utils/quartier-names';
+import { quartierOrderOf } from '@/utils/quartier-names';
 
 type Entry = CampScheduleEntryFrontendType;
 
@@ -45,7 +45,7 @@ const quartierIdsOf = (entry: Entry): string[] => quartiereOf(entry).map(({ id }
 
 const lowestQuartierOf = (entry: Entry): number =>
   Math.min(
-    ...quartiereOf(entry).map(({ name }) => quartierNumberOf(name) ?? Number.POSITIVE_INFINITY),
+    ...quartiereOf(entry).map((quartier) => quartierOrderOf(quartier)),
     Number.POSITIVE_INFINITY,
   );
 

@@ -39,13 +39,32 @@ export const timeOfDayOf = (
 
 export const formLabels: Record<string, string> = { rp: 'RP', hp: 'HP', hpStar: 'HP*' };
 
+/** A Quartier an entry names: its name, number and Rufname are absent while it is unpopulated. */
+export interface EntryQuartier {
+  id: string;
+  name: string | undefined;
+  number: number | undefined;
+  rufname: string | undefined;
+}
+
 /** The Quartiere an entry names, without the dangling ones. Empty means the whole camp. */
 export const quartiereOf = (
   entry: Pick<CampScheduleEntryFrontendType, 'quartiere'>,
-): { id: string; name: string | undefined }[] =>
-  (entry.quartiere ?? []).flatMap((quartier): { id: string; name: string | undefined }[] => {
-    if (typeof quartier === 'string') return [{ id: quartier, name: undefined }];
-    return quartier === null ? [] : [{ id: quartier.id, name: quartier.name }];
+): EntryQuartier[] =>
+  (entry.quartiere ?? []).flatMap((quartier): EntryQuartier[] => {
+    if (typeof quartier === 'string') {
+      return [{ id: quartier, name: undefined, number: undefined, rufname: undefined }];
+    }
+    if (quartier === null) return [];
+    return [
+      {
+        id: quartier.id,
+        name: quartier.name,
+        // read defensively: a phone restores yesterday's copy, from before these fields
+        number: typeof quartier.number === 'number' ? quartier.number : undefined,
+        rufname: typeof quartier.rufname === 'string' ? quartier.rufname : undefined,
+      },
+    ];
   });
 
 /** Whether an entry concerns one of the given Quartiere: it names one, or it names none. */

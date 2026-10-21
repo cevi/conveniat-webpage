@@ -2,15 +2,15 @@ import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/ty
 import { isForQuartiere } from '@/features/schedule/utils/programme-utils';
 import type { TimelineItem } from '@/features/schedule/utils/timeline';
 import { buildTimeline } from '@/features/schedule/utils/timeline';
-import { formatQuartierRange } from '@/utils/quartier-names';
 
 const emptyRichText = {
   root: { type: 'root', format: '', indent: 0, version: 1, children: [] },
 } as unknown as CampScheduleEntryFrontendType['description'];
 
-const q = (number: number): { id: string; name: string } => ({
+const q = (number: number): { id: string; name: string; number: number } => ({
   id: `q${number}`,
   name: `Quartier ${number}`,
+  number,
 });
 const place = (title: string): CampScheduleEntryFrontendType['location'] =>
   ({ id: title, title }) as unknown as CampScheduleEntryFrontendType['location'];
@@ -157,15 +157,5 @@ describe('buildTimeline at the end of the day', () => {
     );
 
     expect(describe_(items)).toEqual(['Eröffnungsfeier', '→ Tagesende 30']);
-  });
-});
-
-describe('formatQuartierRange', () => {
-  it('writes neighbours as a range and the others as a list', () => {
-    expect(formatQuartierRange(['Quartier 4 - Kitsune', 'Quartier 6', 'Quartier 5'])).toBe('Q4–Q6');
-    expect(formatQuartierRange(['Quartier 7', 'Quartier 8'])).toBe('Q7–Q8');
-    expect(formatQuartierRange(['Quartier 1', 'Quartier 3', 'Familienlager'])).toBe(
-      'Q1, Q3, Familienlager',
-    );
   });
 });

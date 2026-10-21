@@ -1,8 +1,8 @@
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
-import type { ScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
+import type { MyQuartier, ScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import type { Locale } from '@/types/types';
-import { quartierNicknameOf, shortQuartierName } from '@/utils/quartier-names';
+import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
@@ -12,7 +12,7 @@ import type React from 'react';
  * called by the Quartier's name, "Greif Q5"; with several Quartiere it is "Für mich".
  */
 export const ScheduleViewToggles: React.FC<{
-  myQuartiere: { id: string; name: string }[];
+  myQuartiere: MyQuartier[];
   scope: ScheduleScope;
   onScopeChange: (scope: ScheduleScope) => void;
   locale: Locale;
@@ -21,8 +21,8 @@ export const ScheduleViewToggles: React.FC<{
   if (myQuartiere.length === 0) return <></>;
   const [onlyQuartier] = myQuartiere;
   const mineLabel =
-    myQuartiere.length === 1 && quartierNicknameOf(onlyQuartier?.name) !== ''
-      ? quartierNicknameOf(onlyQuartier?.name)
+    myQuartiere.length === 1 && onlyQuartier !== undefined && quartierRufnameOf(onlyQuartier) !== ''
+      ? quartierRufnameOf(onlyQuartier)
       : programmeLabels.forMe[locale];
   return (
     <div
@@ -45,12 +45,12 @@ export const ScheduleViewToggles: React.FC<{
             {value === 'mine' ? mineLabel : programmeLabels.allQuartiere[locale]}
           </span>
           {value === 'mine' &&
-            myQuartiere.map(({ id, name }) => (
+            myQuartiere.map((quartier) => (
               <span
-                key={id}
+                key={quartier.id}
                 className="bg-chip shrink-0 rounded-md px-1.5 py-0.5 text-[11px] leading-4 font-bold text-green-700"
               >
-                {shortQuartierName(name)}
+                {shortQuartierName(quartier)}
               </span>
             ))}
         </button>

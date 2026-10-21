@@ -15,10 +15,12 @@ import type {
   CeviLogoMarker,
   InitialMapPose,
   MapControlOptions,
+  MapQuartier,
 } from '@/features/map/types/types';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 import { reactToDomElement } from '@/utils/react-to-dom-element';
 import { ServiceWorkerMessages } from '@/utils/service-worker-messages';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -30,15 +32,21 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
  * Used by the `useCeviLogoMarkers` hook.
  * @returns a DOM element with the Cevi Logo SVG
  */
-/** Whether a place answers a search: by its own name, or by the name of its Quartier. */
+/**
+ * Whether a place answers a search: by its own name, or by its Quartier's name, Rufname or
+ * short name, "Quartier 5 - Greif", "Greif" or "Q5".
+ */
 const matchesSearch = (
-  annotation: { title: string; quartierName?: string | undefined },
+  annotation: { title: string; quartier?: MapQuartier | undefined },
   searchTerm: string,
 ): boolean => {
   const term = searchTerm.toLowerCase();
-  return [annotation.title, annotation.quartierName ?? ''].some((name) =>
-    name.toLowerCase().includes(term),
-  );
+  const { quartier } = annotation;
+  const names =
+    quartier === undefined
+      ? [annotation.title]
+      : [annotation.title, quartier.name, quartierRufnameOf(quartier), shortQuartierName(quartier)];
+  return names.some((name) => name.toLowerCase().includes(term));
 };
 
 export const ceviLogoMarkerElementFactory = (): HTMLElement =>

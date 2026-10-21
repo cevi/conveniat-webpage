@@ -11,6 +11,7 @@ import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-resto
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
+import type { EntryQuartier } from '@/features/schedule/utils/programme-utils';
 import { isForQuartiere, quartiereOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import type { TimelineStop } from '@/features/schedule/utils/timeline';
@@ -42,8 +43,8 @@ interface ScheduleRowProperties {
 }
 
 /** "Q5", filled when it is the user's own Quartier. */
-const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
-  name,
+const QuartierChip: React.FC<{ quartier: EntryQuartier; isMine: boolean }> = ({
+  quartier,
   isMine,
 }) => (
   <span
@@ -52,7 +53,7 @@ const QuartierChip: React.FC<{ name: string | undefined; isMine: boolean }> = ({
       isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
     )}
   >
-    {shortQuartierName(name)}
+    {shortQuartierName(quartier)}
   </span>
 );
 
@@ -145,8 +146,12 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
           )}
           {showSlots && !isGrouped && quartiereOf(primary).length > 0 && (
             <span className="mt-2 flex flex-wrap gap-1">
-              {quartiereOf(primary).map(({ id, name }) => (
-                <QuartierChip key={id} name={name} isMine={myQuartierIds.has(id)} />
+              {quartiereOf(primary).map((quartier) => (
+                <QuartierChip
+                  key={quartier.id}
+                  quartier={quartier}
+                  isMine={myQuartierIds.has(quartier.id)}
+                />
               ))}
             </span>
           )}
@@ -186,8 +191,12 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                       mine ? 'border-tint-line bg-tint' : 'border-transparent',
                     )}
                   >
-                    {quartiereOf(entry).map(({ id, name }) => (
-                      <QuartierChip key={id} name={name} isMine={myQuartierIds.has(id)} />
+                    {quartiereOf(entry).map((quartier) => (
+                      <QuartierChip
+                        key={quartier.id}
+                        quartier={quartier}
+                        isMine={myQuartierIds.has(quartier.id)}
+                      />
                     ))}
                     <span className="ml-auto text-[13px] font-semibold text-green-900 tabular-nums">
                       {entry.timeslot.time.replace(' - ', '–')}

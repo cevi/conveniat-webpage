@@ -3,14 +3,12 @@ import { environmentVariables } from '@/config/environment-variables';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
 import { useStar } from '@/hooks/use-star';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { quartierNicknameOf } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import { Star, X } from 'lucide-react';
 import React from 'react';
 
 const labels = {
   close: { de: 'Schliessen', en: 'Close', fr: 'Fermer' },
-  quartier: { de: 'Quartier', en: 'Quartier', fr: 'Quartier' },
   favourite: { de: 'Favorit', en: 'Favourite', fr: 'Favori' },
 } satisfies Record<string, StaticTranslationString>;
 
@@ -44,10 +42,9 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
           <h2 className="font-heading text-heading text-[22px] leading-tight font-extrabold">
             {annotation.title}
           </h2>
-          {annotation.quartierName !== undefined && annotation.quartierName !== '' && (
-            <p className="mt-0.5 text-sm text-green-500">
-              {labels.quartier[locale]} · {quartierNicknameOf(annotation.quartierName)}
-            </p>
+          {/* read defensively: a phone can restore a map from before the Quartier was an object */}
+          {typeof annotation.quartier?.name === 'string' && annotation.quartier.name !== '' && (
+            <p className="mt-0.5 text-sm text-green-500">{annotation.quartier.name}</p>
           )}
         </div>
         <button

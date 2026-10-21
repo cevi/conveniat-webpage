@@ -3,6 +3,7 @@ import {
   hasAccessToThisUser,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { LEADER_NOTES_CONTEXT } from '@/features/payload-cms/payload-cms/collections/camp-schedule-entry-collection';
+import type { HofQuartier } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import { getHofDirectory } from '@/features/payload-cms/payload-cms/utils/hof-directory';
 import {
   hasLeadingRegistration,
@@ -20,10 +21,7 @@ interface Viewer {
   group_ids?: number[];
 }
 
-export interface ViewerQuartier {
-  id: string;
-  name: string;
-}
+export type ViewerQuartier = HofQuartier;
 
 /**
  * The Quartiere of the logged-in user, through the Höfe of their registration. Empty for a

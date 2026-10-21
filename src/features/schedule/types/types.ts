@@ -26,8 +26,18 @@ export interface CampScheduleEntryFrontendType {
    */
   kind?: CampScheduleEntry['kind'] | null | undefined;
   form?: CampScheduleEntry['form'] | undefined;
-  /** empty for the whole camp; an unpopulated or dangling Quartier arrives as an id or `null` */
-  quartiere?: (string | { id: string; name: string } | null)[] | null | undefined;
+  /**
+   * empty for the whole camp; an unpopulated or dangling Quartier arrives as an id or `null`, and
+   * `number` and `rufname` are newer than `name`
+   */
+  quartiere?:
+    | (
+        | string
+        | { id: string; name: string; number?: number | null; rufname?: string | null }
+        | null
+      )[]
+    | null
+    | undefined;
   bring?: CampScheduleEntry['bring'] | undefined;
   steps?: CampScheduleEntry['steps'] | undefined;
   organiser?:

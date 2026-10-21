@@ -1,10 +1,14 @@
 'use client';
 
 import { trpc } from '@/trpc/client';
+import type { QuartierLabel } from '@/utils/quartier-names';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
 export type ScheduleScope = 'mine' | 'all';
+
+/** One of the user's Quartiere: number and Rufname are absent in an older copy on the phone. */
+export type MyQuartier = { id: string; name: string } & QuartierLabel;
 
 const storageKey = 'schedule-scope';
 
@@ -18,7 +22,7 @@ const readNoScope = (): string | null => null;
 
 interface ScheduleScopeState {
   /** the Quartiere of the user; empty for a guest and for somebody without a Hof */
-  myQuartiere: { id: string; name: string }[];
+  myQuartiere: MyQuartier[];
   myQuartierIds: ReadonlySet<string>;
   /** `mine` narrows the programme to the user's Quartiere, `all` shows the whole camp */
   scope: ScheduleScope;
@@ -45,9 +49,8 @@ export const useScheduleScope = (): ScheduleScopeState => {
   // the persisted query cache may hold anything an older version stored under this key
   const myQuartiere = useMemo(
     () =>
-      (Array.isArray(data) ? data : []).filter(
-        (quartier): quartier is { id: string; name: string } =>
-          typeof quartier.id === 'string' && typeof quartier.name === 'string',
+      (Array.isArray(data) ? data : []).flatMap((quartier): MyQuartier[] =>
+        typeof quartier.id === 'string' && typeof quartier.name === 'string' ? [quartier] : [],
       ),
     [data],
   );
