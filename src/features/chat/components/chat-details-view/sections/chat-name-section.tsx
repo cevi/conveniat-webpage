@@ -29,7 +29,7 @@ const chatNameText: StaticTranslationString = {
 const chatNamePlaceholder: StaticTranslationString = {
   de: 'Chat-Namen eingeben',
   en: 'Enter chat name',
-  fr: 'Entrez le nom du chat',
+  fr: 'Saisis le nom du chat',
 };
 
 const editNameText: StaticTranslationString = {
@@ -169,18 +169,17 @@ export const ChatNameSection: React.FC<ChatNameSectionProperties> = ({
             {currentName}
           </h2>
           {canRename && (
-            <Button
-              variant="ghost"
-              size="touchIcon"
-              className="shrink-0 text-green-700"
+            <button
+              type="button"
+              className="hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
               onClick={() => {
                 setName(currentName);
                 setIsEditing(true);
               }}
               aria-label={editNameText[locale]}
             >
-              <Pencil aria-hidden="true" />
-            </Button>
+              <Pencil className="h-5 w-5" aria-hidden="true" />
+            </button>
           )}
         </div>
       )}

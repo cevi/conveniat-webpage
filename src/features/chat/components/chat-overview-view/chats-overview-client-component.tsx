@@ -264,9 +264,9 @@ export const ChatsOverviewClientComponent: React.FC<{
             type="button"
             onClick={listActions.dismissFailure}
             aria-label={dismissText[locale]}
-            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
+            className="hover:bg-danger-line/40 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
           >
-            <X className="h-4 w-4" aria-hidden="true" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </p>
       )}

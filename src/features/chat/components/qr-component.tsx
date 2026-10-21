@@ -1,6 +1,7 @@
 'use client';
 
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { EmptyState } from '@/components/ui/empty-state';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { APP_USER_AGENT, QR_CODE_BACKEND_URL } from '@/config/constants';
 import { environmentVariables } from '@/config/environment-variables';
@@ -14,7 +15,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { useQuery } from '@tanstack/react-query';
-import { QrCode, ScanLine } from 'lucide-react';
+import { CameraOff, QrCode, ScanLine } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -51,6 +52,16 @@ const text = {
     de: 'Dieser Code startet keinen Chat. Scanne den Code aus «Mein Code» einer anderen Person.',
     fr: 'Ce code ne démarre pas de chat. Scanne le code « Mon code » d’une autre personne.',
     en: 'This code does not start a chat. Scan the “My code” of someone else.',
+  },
+  deniedTitle: {
+    de: 'Kein Zugriff auf die Kamera',
+    fr: 'Pas d’accès à la caméra',
+    en: 'No access to the camera',
+  },
+  unsupportedTitle: {
+    de: 'Scannen geht hier nicht',
+    fr: 'Impossible de scanner ici',
+    en: 'Scanning does not work here',
   },
   denied: {
     de: 'Die App darf die Kamera nicht benutzen. Erlaube es in den Einstellungen des Browsers oder scanne den Code mit der Kamera-App.',
@@ -117,7 +128,7 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="border-line flex items-center justify-center rounded-2xl border bg-white p-4">
+      <div className="border-line flex items-center justify-center rounded-[14px] border bg-white p-4">
         <QRCodeImage
           qrImageSrc={qrImage.data}
           copied={false}
@@ -126,7 +137,11 @@ const ChatInviteQrCode: React.FC<{ locale: Locale }> = ({ locale }) => {
           isError={isError}
         />
       </div>
-      {isError && <p className="px-2 text-center text-[13px] text-green-700">{errorText}</p>}
+      {isError && (
+        <p role="alert" className="text-danger-text px-2 text-center text-[13px]">
+          {errorText}
+        </p>
+      )}
     </div>
   );
 };
@@ -184,16 +199,18 @@ const ChatScanner: React.FC<{ locale: Locale; onScanned: (path: string) => void 
 
   if (state === 'unsupported' || state === 'denied') {
     return (
-      <div className="flex flex-col items-center gap-3 px-2 pt-8 pb-4 text-center text-[15px] text-green-700">
-        <ScanLine className="text-rail-node h-10 w-10" aria-hidden="true" />
-        {state === 'denied' ? text.denied[locale] : text.unsupported[locale]}
-      </div>
+      <EmptyState
+        icon={CameraOff}
+        title={state === 'denied' ? text.deniedTitle[locale] : text.unsupportedTitle[locale]}
+        description={state === 'denied' ? text.denied[locale] : text.unsupported[locale]}
+        className="px-2 pt-8 pb-4"
+      />
     );
   }
 
   return (
     <div className="flex flex-col gap-3 pt-5">
-      <div className="relative overflow-hidden rounded-2xl bg-gray-950">
+      <div className="relative overflow-hidden rounded-[14px] bg-gray-950">
         <video
           ref={videoReference}
           className="aspect-square w-full object-cover"

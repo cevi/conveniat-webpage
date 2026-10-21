@@ -140,7 +140,7 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
             <button
               type="button"
               onClick={onAdd}
-              className={cn(rowClassName, 'hover:bg-page cursor-pointer')}
+              className={cn(rowClassName, 'hover:bg-quiet cursor-pointer')}
             >
               <IconTile icon={UserPlus} className="h-11 w-11 rounded-full" />
               <span className="text-[15px] font-semibold text-green-900">
@@ -163,7 +163,7 @@ export const ParticipantsList: React.FC<ParticipantsListProperties> = ({
                   type="button"
                   onClick={action.run}
                   aria-label={messageToText[locale].replace('{name}', displayName)}
-                  className={cn(rowClassName, 'hover:bg-page cursor-pointer')}
+                  className={cn(rowClassName, 'hover:bg-quiet cursor-pointer')}
                 >
                   {body}
                 </button>

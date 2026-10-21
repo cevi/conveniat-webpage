@@ -1,3 +1,4 @@
+import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
 const pulse = 'bg-quiet animate-pulse';
@@ -12,10 +13,10 @@ const pulse = 'bg-quiet animate-pulse';
 export const ChatsOverviewSkeleton: React.FC = () => (
   <div className="flex flex-col gap-4" aria-hidden="true">
     <div className="flex flex-col gap-3">
-      <div className={`h-[44px] w-full rounded-[12px] ${pulse}`} />
+      <div className={cn(pulse, 'h-[44px] w-full rounded-[12px]')} />
       <div className="flex h-8 gap-2">
         {['w-14', 'w-28', 'w-[84px]'].map((width) => (
-          <div key={width} className={`h-8 rounded-full ${width} ${pulse}`} />
+          <div key={width} className={cn(pulse, 'h-8 rounded-full', width)} />
         ))}
       </div>
     </div>
@@ -25,13 +26,13 @@ export const ChatsOverviewSkeleton: React.FC = () => (
           key={index}
           className="after:bg-line relative flex min-h-[72px] items-center gap-3 px-4 py-3 after:absolute after:right-0 after:bottom-0 after:left-[72px] after:h-px last:after:hidden"
         >
-          <div className={`h-11 w-11 shrink-0 rounded-full ${pulse}`} />
+          <div className={cn(pulse, 'h-11 w-11 shrink-0 rounded-full')} />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <div className={`h-4 w-40 rounded ${pulse}`} />
-              <div className={`h-3 w-10 rounded ${pulse}`} />
+              <div className={cn(pulse, 'h-4 w-40 rounded')} />
+              <div className={cn(pulse, 'h-3 w-10 rounded')} />
             </div>
-            <div className={`h-3.5 w-56 max-w-full rounded ${pulse}`} />
+            <div className={cn(pulse, 'h-3.5 w-56 max-w-full rounded')} />
           </div>
         </li>
       ))}
@@ -43,6 +44,6 @@ export const ChatsOverviewSkeleton: React.FC = () => (
 export const NewChatButtonSkeleton: React.FC = () => (
   <div
     aria-hidden="true"
-    className={`fixed right-4 bottom-[calc(5rem+16px)] z-30 h-12 w-[148px] rounded-2xl ${pulse}`}
+    className={cn(pulse, 'fixed right-4 bottom-[calc(5rem+16px)] z-30 h-12 w-[148px] rounded-2xl')}
   />
 );
