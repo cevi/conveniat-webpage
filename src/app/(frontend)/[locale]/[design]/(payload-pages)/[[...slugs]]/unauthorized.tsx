@@ -1,14 +1,18 @@
 'use client';
 
 import { SetHideHeader } from '@/components/header/hide-header-context';
+import { Button } from '@/components/ui/buttons/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SetHideBackgroundLogo } from '@/components/ui/hide-background-logo-context';
 import { LinkComponent } from '@/components/ui/link-component';
 import { CenteredConveniatLogo } from '@/features/onboarding/components/centered-conveniat-logo';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
+import { DesignCodes } from '@/utils/design-codes';
 import { handleLogin } from '@/utils/login-handler';
 import { LogIn } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
+import { useParams } from 'next/navigation';
 import type React from 'react';
 
 const loginText: StaticTranslationString = {
@@ -23,15 +27,51 @@ const loginButtonText: StaticTranslationString = {
   fr: 'Connexion avec Cevi.DB',
 };
 
+const loginTitle: StaticTranslationString = {
+  en: 'Login required',
+  de: 'Anmeldung nötig',
+  fr: 'Connexion requise',
+};
+
 const helpLinkText: StaticTranslationString = {
   en: 'What is Cevi.DB?',
   de: 'Was ist Cevi.DB?',
   fr: 'Qu’est-ce que Cevi.DB ?',
 };
 
+/** Shown to guests on a page that needs a login: in the app as an empty state, on the web as a card. */
 export const UnauthorizedPage = (): React.JSX.Element => {
   const currentLocale = useCurrentLocale(i18nConfig);
   const locale = (currentLocale ?? 'en') as Locale;
+  const { design } = useParams<{ design?: string }>();
+
+  if (design === DesignCodes.APP_DESIGN) {
+    return (
+      <article className="flex min-h-[calc(100dvh-200px)] items-center justify-center px-4">
+        <SetHideHeader value />
+        <SetHideBackgroundLogo value />
+        <EmptyState
+          icon={LogIn}
+          title={loginTitle[locale]}
+          description={loginText[locale]}
+          action={
+            <div className="flex flex-col items-center gap-2">
+              <Button variant="primary" size="touch" onClick={() => handleLogin()}>
+                {loginButtonText[locale]}
+              </Button>
+              <LinkComponent
+                href="https://wiki.cevi.ch/index.php/Cevi.DB"
+                openInNewTab
+                className="flex min-h-11 items-center text-[15px] font-semibold text-green-700 underline-offset-4 hover:underline"
+              >
+                {helpLinkText[locale]}
+              </LinkComponent>
+            </div>
+          }
+        />
+      </article>
+    );
+  }
 
   return (
     <article className="mx-4 flex min-h-[calc(100dvh-300px)] items-center justify-center py-16">

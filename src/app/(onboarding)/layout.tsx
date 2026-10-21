@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 
 // These styles apply to every route in the application
 import '@/app/globals.scss';
-import { BackgroundLogo } from '@/components/background-logo';
 import { ServiceWorkerManager } from '@/components/service-worker/service-worker-manager';
 import { environmentVariables } from '@/config/environment-variables';
 import { BootHydrationMarker } from '@/features/onboarding/components/boot-hydration-marker';
@@ -96,10 +95,6 @@ const AppEntrypointLayout: React.FC<LayoutProperties> = async ({ children }) => 
         <BootWatchdog locale={locale} />
         <PostHogProvider>
           <BootHydrationMarker />
-          <div className="absolute top-0 z-[-999] h-svh w-full p-[56px]">
-            {/* No height cap: the boot screen centres the mark in the full viewport. */}
-            <BackgroundLogo />
-          </div>
           {children}
         </PostHogProvider>
       </body>

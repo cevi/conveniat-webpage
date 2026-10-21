@@ -1,15 +1,20 @@
 'use client';
 
+import { Button } from '@/components/ui/buttons/button';
+import { IconTile } from '@/components/ui/icon-tile';
+import {
+  OnboardingNotice,
+  OnboardingStepScreen,
+} from '@/features/onboarding/components/onboarding-step';
+import {
+  pushNotificationReason,
+  pushNotificationTitle,
+} from '@/features/onboarding/onboarding-constants';
 import type { StaticTranslationString } from '@/types/types';
 import { Cookie } from '@/types/types';
 import Cookies from 'js-cookie';
+import { Bell, BellOff, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-
-const descriptionText: StaticTranslationString = {
-  en: 'You are not subscribed to push notifications.',
-  de: 'Du bist nicht für Push-Benachrichtigungen angemeldet.',
-  fr: "Vous n'êtes pas abonné aux notifications push.",
-};
 
 const enableButtonText: StaticTranslationString = {
   en: 'Enable Notifications',
@@ -155,33 +160,39 @@ export const NativePushSubscriptionManager: React.FC<{
 
   if (isDenied) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <div className="flex items-center justify-center rounded-lg bg-yellow-50 p-3 text-yellow-800">
-          <span className="text-sm font-semibold text-balance">{deniedText[locale]}</span>
-        </div>
-        <button
-          className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800"
-          onClick={handleOpenSettings}
-        >
-          {openSettingsButtonText[locale]}
-        </button>
-      </div>
+      <OnboardingStepScreen
+        visual={<IconTile icon={BellOff} size="lg" />}
+        title={pushNotificationTitle[locale]}
+        description={pushNotificationReason[locale]}
+        actions={
+          <Button variant="primary" size="touch" onClick={handleOpenSettings}>
+            {openSettingsButtonText[locale]}
+          </Button>
+        }
+      >
+        <OnboardingNotice tone="warning">{deniedText[locale]}</OnboardingNotice>
+      </OnboardingStepScreen>
     );
   }
 
   return (
-    <div className="mb-0 flex flex-col items-center">
-      <p className="mb-4 text-balance text-gray-700">{descriptionText[locale]}</p>
-      <button
-        className="font-heading flex cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-red-700 px-8 py-3 text-center text-lg leading-normal font-bold text-red-100 duration-100 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
-        onClick={handleEnable}
-        disabled={isRequesting}
-      >
-        {isRequesting && (
-          <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
-        )}
-        {enableButtonText[locale]}
-      </button>
-    </div>
+    <OnboardingStepScreen
+      visual={<IconTile icon={Bell} size="lg" />}
+      title={pushNotificationTitle[locale]}
+      description={pushNotificationReason[locale]}
+      actions={
+        <Button
+          variant="primary"
+          size="touch"
+          onClick={handleEnable}
+          disabled={isRequesting}
+          aria-busy={isRequesting}
+          className="disabled:cursor-wait disabled:opacity-100"
+        >
+          {isRequesting && <Loader2 className="animate-spin" aria-hidden="true" />}
+          {enableButtonText[locale]}
+        </Button>
+      }
+    />
   );
 };
