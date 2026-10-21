@@ -1,6 +1,6 @@
 import {
+  canReadOutgoingEmail,
   getRoleGroupIds,
-  isFullAdmin,
   Roles,
 } from '@/features/payload-cms/payload-cms/access-rules/roles';
 import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/admin-panel-dashboard-groups';
@@ -83,8 +83,9 @@ export const OutgoingEmails: CollectionConfig = {
     ],
   },
   access: {
-    // read only for admins, only access programmatically
-    read: isFullAdmin,
+    // Written only by the mail code. The billing team reads the mails of its bills, which the
+    // E-Mails tab of a registration lists.
+    read: canReadOutgoingEmail,
     create: () => false,
     update: () => false,
     delete: () => false,
@@ -151,8 +152,12 @@ export const OutgoingEmails: CollectionConfig = {
       admin: {
         position: 'sidebar',
         components: {
-          Field:
-            '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton',
+          Field: {
+            path: '@/features/payload-cms/payload-cms/components/resend-email/resend-email-button#ResendEmailButton',
+            clientProps: {
+              fullAdminGroupIds: getRoleGroupIds(Roles.FullAdmin),
+            },
+          },
         },
       },
     },

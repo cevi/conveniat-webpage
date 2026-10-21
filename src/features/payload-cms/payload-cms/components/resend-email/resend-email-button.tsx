@@ -1,13 +1,18 @@
 'use client';
 
 import type { SmtpResult } from '@/features/payload-cms/payload-cms/components/smtp-results/types';
-import { useDocumentInfo, useFormFields, useTranslation } from '@payloadcms/ui';
+import { useAuth, useDocumentInfo, useFormFields, useTranslation } from '@payloadcms/ui';
 import { RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 
-export const ResendEmailButton: React.FC = () => {
+export interface ResendEmailButtonProperties {
+  fullAdminGroupIds?: number[];
+}
+
+export const ResendEmailButton: React.FC<ResendEmailButtonProperties> = ({ fullAdminGroupIds }) => {
   const { id } = useDocumentInfo();
+  const { user } = useAuth();
   const [isResending, setIsResending] = useState(false);
   const { t } = useTranslation();
 
@@ -22,7 +27,15 @@ export const ResendEmailButton: React.FC = () => {
   // We only allow resend if it's a direct SMTP error (not a bounce report DSN)
   const canResend = lastResult?.success === false && lastResult.bounceReport !== true;
 
-  if (canResend !== true) {
+  // The resend endpoint only answers full admins. The billing team reads bill mails too, and
+  // must not get a button that can only fail.
+  const userGroups = user?.['groups'] as { id: number }[] | undefined;
+  const userGroupIds = Array.isArray(userGroups) ? userGroups.map((g) => g.id) : [];
+  const isFullAdmin =
+    Array.isArray(fullAdminGroupIds) &&
+    fullAdminGroupIds.some((groupId) => userGroupIds.includes(groupId));
+
+  if (canResend !== true || !isFullAdmin) {
     return;
   }
 
