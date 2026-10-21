@@ -284,30 +284,32 @@ export const ChatPreview: React.FC<{
                 {chat.name}
               </p>
             )}
-            {chat.isPinned === true && (
-              <Pin
-                className="h-3.5 w-3.5 shrink-0 text-green-500"
-                aria-label={pinnedText[locale]}
-                role="img"
-              />
-            )}
-            {chat.isMuted === true && (
-              <BellOff
-                className="ml-auto h-3.5 w-3.5 shrink-0 text-green-500"
-                aria-label={mutedText[locale]}
-                role="img"
-              />
-            )}
-            <ChatTimestamp
-              timestamp={timestamp}
-              locale={locale}
-              className={cn(
-                chat.isMuted !== true && 'ml-auto',
-                'shrink-0 pl-1 text-xs whitespace-nowrap text-green-700 tabular-nums',
-                hasUnread && 'font-bold text-green-900',
-                isEmergency && 'text-red-700',
+            {/* the state of the chat sits with its time at the right edge, whatever the name's length */}
+            <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-1">
+              {chat.isPinned === true && (
+                <Pin
+                  className="h-3.5 w-3.5 shrink-0 text-green-500"
+                  aria-label={pinnedText[locale]}
+                  role="img"
+                />
               )}
-            />
+              {chat.isMuted === true && (
+                <BellOff
+                  className="h-3.5 w-3.5 shrink-0 text-green-500"
+                  aria-label={mutedText[locale]}
+                  role="img"
+                />
+              )}
+              <ChatTimestamp
+                timestamp={timestamp}
+                locale={locale}
+                className={cn(
+                  'text-xs whitespace-nowrap text-green-700 tabular-nums',
+                  hasUnread && 'font-bold text-green-900',
+                  isEmergency && 'text-red-700',
+                )}
+              />
+            </span>
           </div>
 
           <div className="mt-0.5 flex items-center gap-2">
