@@ -3,7 +3,13 @@
 import React from 'react';
 
 /** The per-registration actions that ask for confirmation before they run. */
-export type BillingAction = 'regenerate' | 'send' | 'remove' | 'reminder' | 'sync';
+export type BillingAction = 'regenerate' | 'send' | 'remove' | 'reminder' | 'sync' | 'resolve';
+
+/** The actions that ask the operator for a written note, and the body key it is sent under. */
+const NOTE_FIELDS: Partial<Record<BillingAction, string>> = {
+  remove: 'reason',
+  resolve: 'comment',
+};
 
 /** What both the list row and the edit view know about the registration. */
 export interface BillingActionsParticipant {
@@ -34,12 +40,17 @@ const ACTION_REQUESTS: Record<BillingAction, { path: string; failureMessage: str
     path: '/api/confidential/billing/remove-participant',
     failureMessage: 'Die Anmeldung konnte nicht storniert werden.',
   },
+  resolve: {
+    path: '/api/confidential/billing/resolve-review',
+    failureMessage: 'Die Prüfung konnte nicht abgeschlossen werden.',
+  },
 };
 
 export interface BillingActions {
   hasPdf: boolean;
   canSendBill: boolean;
   canSendReminder: boolean;
+  canResolveReview: boolean;
   preview: () => void;
   download: () => void;
   /** Opens the confirmation for an action. */
@@ -48,8 +59,10 @@ export interface BillingActions {
   pending: BillingAction | undefined;
   loading: boolean;
   error: string | undefined;
-  removeReason: string;
-  setRemoveReason: (reason: string) => void;
+  /** Whether the pending action asks for a note: the cancellation reason or the review comment. */
+  needsNote: boolean;
+  note: string;
+  setNote: (note: string) => void;
   cancel: () => void;
   confirm: () => Promise<void>;
 }
@@ -63,13 +76,16 @@ export const useBillingActions = (participant: BillingActionsParticipant): Billi
   const [pending, setPending] = React.useState<BillingAction | undefined>();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>();
-  const [removeReason, setRemoveReason] = React.useState('');
+  const [note, setNote] = React.useState('');
 
   const hasPdf = Array.isArray(participant.billPdfs) && participant.billPdfs.length > 0;
   // A paid or cancelled registration has no open bill to send.
   const canSendBill = hasPdf && participant.status !== 'paid' && participant.status !== 'removed';
   // Only a registration the sync parked as incomplete has anything to remind about.
   const canSendReminder = participant.status === 'pflichtangaben_missing';
+  // Only a parked registration has a review to close.
+  const canResolveReview = participant.status === 'needs_manual_review';
+  const needsNote = pending !== undefined && NOTE_FIELDS[pending] !== undefined;
 
   const pdfUrl = `/api/confidential/billing/preview-pdf?participantId=${encodeURIComponent(participant.id)}`;
 
@@ -87,7 +103,7 @@ export const useBillingActions = (participant: BillingActionsParticipant): Billi
   };
 
   const request = (action: BillingAction): void => {
-    if (action === 'remove') setRemoveReason('');
+    setNote('');
     setError(undefined);
     setPending(action);
   };
@@ -108,7 +124,8 @@ export const useBillingActions = (participant: BillingActionsParticipant): Billi
   const confirm = async (): Promise<void> => {
     if (pending === undefined) return;
     const { path, failureMessage } = ACTION_REQUESTS[pending];
-    const extraBody = pending === 'remove' ? { reason: removeReason.trim() } : {};
+    const noteField = NOTE_FIELDS[pending];
+    const extraBody = noteField === undefined ? {} : { [noteField]: note.trim() };
 
     setLoading(true);
     setError(undefined);
@@ -149,14 +166,16 @@ export const useBillingActions = (participant: BillingActionsParticipant): Billi
     hasPdf,
     canSendBill,
     canSendReminder,
+    canResolveReview,
     preview,
     download,
     request,
     pending,
     loading,
     error,
-    removeReason,
-    setRemoveReason,
+    needsNote,
+    note,
+    setNote,
     cancel,
     confirm,
   };

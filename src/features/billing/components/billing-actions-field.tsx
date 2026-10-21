@@ -97,6 +97,15 @@ export const BillingActionsField: React.FC = () => {
         >
           {billingActionLabels.sync[locale]}
         </Button>
+        <Button
+          buttonStyle="secondary"
+          size="small"
+          margin={false}
+          disabled={!actions.canResolveReview}
+          onClick={(): void => actions.request('resolve')}
+        >
+          {billingActionLabels.resolve[locale]}
+        </Button>
       </div>
       <div className="flex flex-wrap gap-2">
         <Button

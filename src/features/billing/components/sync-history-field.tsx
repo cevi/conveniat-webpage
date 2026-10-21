@@ -20,6 +20,7 @@ const ACTION_LABELS: Record<string, string> = {
   participant_updated: 'Angaben aktualisiert',
   sync_confirmed: 'Abgleich bestätigt',
   manual_review_required: 'Manuelle Prüfung nötig',
+  manual_review_resolved: 'Prüfung abgeschlossen',
   removed_detected: 'In der Cevi.DB entfernt',
   manually_removed: 'Storniert',
   anmeldestatus_written_to_cevidb: 'Anmeldestatus in der Cevi.DB gesetzt',
