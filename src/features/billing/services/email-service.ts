@@ -14,6 +14,7 @@ import {
 import type { JobProgressReporter } from '@/features/billing/services/job-progress-reporter';
 import type { SendSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
+import { fillBillNumberTemplate } from '@/features/billing/utils';
 import {
   discardQueuedEmailsFor,
   queueBackgroundEmail,
@@ -125,9 +126,9 @@ async function sendBillsLocked(
     context: { internal: true },
   });
 
-  const emailSubject =
+  const emailSubjectTemplate =
     (settings.invoiceEmailSubject as string | undefined) ??
-    'conveniat27 – Anmeldebestätigung und Rechnung';
+    'conveniat27 – Anmeldebestätigung und Rechnung {{registrationNumber}}';
   const emailBodyTemplate =
     (settings.invoiceEmailBody as string | undefined) ??
     'Bitte finden Sie Ihre Rechnung im Anhang.';
@@ -271,18 +272,26 @@ async function sendBillsLocked(
         continue;
       }
 
-      // Prepare email body from template
-      const emailBody = emailBodyTemplate
-        .replaceAll('{{firstName}}', firstName)
-        .replaceAll('{{lastName}}', lastName)
-        .replaceAll('{{fullName}}', fullName)
-        .replaceAll('{{amount}}', String(invoiceAmount))
-        .replaceAll('{{reference}}', referenceNumber);
+      // The Anmeldenummer is not stored on the row, so it is filled again from the template
+      // the PDF was printed with.
+      const registrationNumber =
+        typeof settings.customReferenceTemplate === 'string'
+          ? fillBillNumberTemplate(settings.customReferenceTemplate, document_)
+          : '';
+      const fillMailTemplate = (template: string): string =>
+        template
+          .replaceAll('{{firstName}}', firstName)
+          .replaceAll('{{lastName}}', lastName)
+          .replaceAll('{{fullName}}', fullName)
+          .replaceAll('{{amount}}', String(invoiceAmount))
+          .replaceAll('{{reference}}', referenceNumber)
+          .replaceAll('{{registrationNumber}}', registrationNumber);
 
       const billMail = {
         to: email,
-        subject: emailSubject,
-        text: emailBody,
+        // Trimmed, so a subject ending in the placeholder reads cleanly without an Anmeldenummer.
+        subject: fillMailTemplate(emailSubjectTemplate).trim(),
+        text: fillMailTemplate(emailBodyTemplate),
         attachments: [
           {
             filename: `rechnung-${(document_.invoiceNumber as string | undefined) ?? 'bill'}.pdf`,

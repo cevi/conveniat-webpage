@@ -9317,9 +9317,12 @@ export interface BillSetting {
      */
     lastRunAt?: string | null;
   };
+  /**
+   * Same placeholders as the email body.
+   */
   invoiceEmailSubject?: string | null;
   /**
-   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.
+   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} as placeholders. {{registrationNumber}} is the Registration Number printed on the PDF.
    */
   invoiceEmailBody?: string | null;
   updatedAt?: string | null;

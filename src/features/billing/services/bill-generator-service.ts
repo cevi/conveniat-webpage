@@ -23,6 +23,7 @@ import type { GenerationSummary } from '@/features/billing/types';
 import { BillingTaskSlug } from '@/features/billing/types';
 import type { RoleOption } from '@/features/billing/utils';
 import {
+  fillBillNumberTemplate,
   formatBirthday,
   formatRoleName,
   generateQrReference,
@@ -602,40 +603,20 @@ export async function generateBillsUseCase(
         document_.participationUuid,
         currentReferenceNumber,
       );
-      const currentYear = new Date().getFullYear().toString();
-      const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-      const invoiceNumberPrefix = settings.invoiceNumberPrefix ?? '';
-      const prefix = invoiceNumberPrefix
-        .replaceAll('{{year}}', currentYear)
-        .replaceAll('{{month}}', currentMonth)
-        .replaceAll('{{event-id}}', document_.eventId)
-        .replaceAll('{{group-id}}', document_.groupId ?? '')
-        .replaceAll('{{participation-id}}', document_.participationUuid)
-        .replaceAll('{{people-id}}', document_.userId);
+      const now = new Date();
+      const prefix = fillBillNumberTemplate(settings.invoiceNumberPrefix ?? '', document_, now);
       const invoiceNumber = `${prefix}-${String(currentReferenceNumber).padStart(4, '0')}`;
 
       const customReferenceTemplate = settings.customReferenceTemplate;
       const customReference =
         typeof customReferenceTemplate === 'string' && customReferenceTemplate !== ''
-          ? customReferenceTemplate
-              .replaceAll('{{year}}', currentYear)
-              .replaceAll('{{month}}', currentMonth)
-              .replaceAll('{{event-id}}', document_.eventId)
-              .replaceAll('{{group-id}}', document_.groupId ?? '')
-              .replaceAll('{{participation-id}}', document_.participationUuid)
-              .replaceAll('{{people-id}}', document_.userId)
+          ? fillBillNumberTemplate(customReferenceTemplate, document_, now)
           : undefined;
 
       const eventNumberTemplate = settings.eventNumberTemplate;
       const eventNumber =
         typeof eventNumberTemplate === 'string' && eventNumberTemplate !== ''
-          ? eventNumberTemplate
-              .replaceAll('{{year}}', currentYear)
-              .replaceAll('{{month}}', currentMonth)
-              .replaceAll('{{event-id}}', document_.eventId)
-              .replaceAll('{{group-id}}', document_.groupId ?? '')
-              .replaceAll('{{participation-id}}', document_.participationUuid)
-              .replaceAll('{{people-id}}', document_.userId)
+          ? fillBillNumberTemplate(eventNumberTemplate, document_, now)
           : undefined;
 
       // Generate PDF

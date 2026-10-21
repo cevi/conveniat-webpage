@@ -112,6 +112,37 @@ export function generateQrReference(
   return describeQrReference(personId, eventId, participationId, counter).reference;
 }
 
+/** The ids of a registration a bill number template may refer to. */
+export interface BillTemplateIds {
+  eventId: string;
+  groupId?: string | null;
+  participationUuid: string;
+  userId: string;
+}
+
+/**
+ * Fills the placeholders of a bill number template from the bill settings, such as the
+ * Anmeldenummer or the invoice number prefix: `{{year}}`, `{{month}}`, `{{event-id}}`,
+ * `{{group-id}}`, `{{participation-id}}` and `{{people-id}}`.
+ *
+ * The bill PDF and the bill mail both fill the templates through here, so the mail names
+ * the same number the PDF prints, as long as the template uses no `{{year}}` or `{{month}}`
+ * that moved on between the two.
+ */
+export function fillBillNumberTemplate(
+  template: string,
+  ids: BillTemplateIds,
+  date: Date = new Date(),
+): string {
+  return template
+    .replaceAll('{{year}}', date.getFullYear().toString())
+    .replaceAll('{{month}}', String(date.getMonth() + 1).padStart(2, '0'))
+    .replaceAll('{{event-id}}', ids.eventId)
+    .replaceAll('{{group-id}}', ids.groupId ?? '')
+    .replaceAll('{{participation-id}}', ids.participationUuid)
+    .replaceAll('{{people-id}}', ids.userId);
+}
+
 /**
  * Groups a reference the way it is printed on a QR bill: blocks of five from the right,
  * which leaves the first block two digits short. The grouping is presentation only and
