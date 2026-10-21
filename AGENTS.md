@@ -313,8 +313,10 @@ by its role once a second screen needs it, not before.
   Inter at 15px, secondary text `text-green-700`, muted text `text-green-500` and never lighter.
   A section starts with a `SectionLabel`, not with a bold sentence.
 - **Colour.** Brand green marks the one primary action of a view, the selected day and the user's
-  own Quartier. Red is reserved for Notfall: the tab, the emergency screens and nothing else, not
-  even a destructive button or an overdue count. Warnings and "now" use the `live` orange. Each
+  own Quartier. Red is reserved for Notfall (the tab and the emergency screens) and for an action
+  that deletes something for everyone and cannot be undone, like "Chat für alle löschen", which
+  also says what it deletes. Leaving, removing yourself, an overdue count or any other warning is
+  the `live` orange, never red. Warnings and "now" use the `live` orange. Each
   programme category keeps its colour, and one that would read as red is shifted to pink.
 - **Controls.** Touch targets are at least 44×44px. One `primary` button per view, the rest
   `quiet` or `outlined`; a destructive action is `outlined` in the `live` orange and either asks
