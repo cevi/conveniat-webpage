@@ -2,7 +2,7 @@
 
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Share2 } from 'lucide-react';
+import { Check, Share2, X } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
 
@@ -16,6 +16,12 @@ const copiedLabel: StaticTranslationString = {
   en: 'Link copied',
   de: 'Link kopiert',
   fr: 'Lien copié',
+};
+
+const copyFailedLabel: StaticTranslationString = {
+  en: 'Could not copy the link',
+  de: 'Link nicht kopiert',
+  fr: 'Lien non copié',
 };
 
 /** How long the copied confirmation stays up before the button goes back to offering the share. */
@@ -35,7 +41,7 @@ export const ShareLinkButton: React.FC<{
   withLabel?: boolean;
   className?: string;
 }> = ({ url, title, locale, compact = false, withLabel = false, className }) => {
-  const [hasCopied, setHasCopied] = useState(false);
+  const [feedback, setFeedback] = useState<'copied' | 'failed'>();
 
   const share = async (): Promise<void> => {
     if (typeof navigator.share === 'function') {
@@ -52,12 +58,20 @@ export const ShareLinkButton: React.FC<{
 
     // No share sheet - every desktop browser, and any context without the API. The clipboard is
     // the fallback rather than nothing at all.
-    await navigator.clipboard.writeText(url);
-    setHasCopied(true);
-    setTimeout(() => setHasCopied(false), COPIED_FEEDBACK_MS);
+    // The clipboard is missing outside a secure context and may refuse the write; say so rather
+    // than look as if nothing was tapped.
+    try {
+      await navigator.clipboard.writeText(url);
+      setFeedback('copied');
+    } catch {
+      setFeedback('failed');
+    }
+    setTimeout(() => setFeedback(undefined), COPIED_FEEDBACK_MS);
   };
 
-  const currentLabel = hasCopied ? copiedLabel[locale] : shareLabel[locale];
+  let currentLabel = shareLabel[locale];
+  if (feedback === 'copied') currentLabel = copiedLabel[locale];
+  if (feedback === 'failed') currentLabel = copyFailedLabel[locale];
   // a labelled button is named by its text; an icon alone needs the name spelled out
   const iconOnlyLabel = withLabel ? undefined : currentLabel;
 
@@ -72,19 +86,29 @@ export const ShareLinkButton: React.FC<{
         className,
       )}
     >
-      {hasCopied ? (
-        <>
-          <Check className="h-5 w-5 text-green-600" />
-          {!compact && (
-            <span className={cn(withLabel ? '' : 'text-xs font-medium', 'text-green-700')}>
-              {copiedLabel[locale]}
-            </span>
-          )}
-        </>
-      ) : (
+      {feedback === undefined ? (
         <>
           <Share2 className="h-5 w-5" aria-hidden="true" />
           {withLabel && <span>{shareLabel[locale]}</span>}
+        </>
+      ) : (
+        <>
+          {feedback === 'copied' ? (
+            <Check className="h-5 w-5 text-green-600" aria-hidden="true" />
+          ) : (
+            <X className="text-live-text h-5 w-5" aria-hidden="true" />
+          )}
+          {!compact && (
+            <span
+              role="status"
+              className={cn(
+                withLabel ? '' : 'text-xs font-medium',
+                feedback === 'copied' ? 'text-green-700' : 'text-live-text',
+              )}
+            >
+              {currentLabel}
+            </span>
+          )}
         </>
       )}
     </button>
