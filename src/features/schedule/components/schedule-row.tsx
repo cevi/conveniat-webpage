@@ -81,6 +81,8 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
     primary.form ?? ''
   ]?.[locale];
   const eyebrow = [accent.label, form].filter((part) => part !== undefined && part !== '');
+  const starredSlots = stop.slots.filter(({ id }) => starredIds.has(id));
+  const isEnrolled = stop.slots.some(({ id }) => enrolledIds.has(id));
   const [start = ''] = stop.slots[0].timeslot.time.split(' - ');
   const [, end = ''] = primary.timeslot.time.split(' - ');
   const slot = slotOf(primary);
@@ -120,7 +122,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
           )}
           <h3 className="mt-0.5 flex items-center gap-1.5 text-[17px] leading-[22px] font-[650] text-green-900">
             <span className="truncate">{primary.title}</span>
-            {stop.slots.some(({ id }) => enrolledIds.has(id)) && (
+            {isEnrolled && (
               <CheckCircle
                 className="text-conveniat-green h-4 w-4 shrink-0"
                 aria-label={scheduleLabels.enrolledBadge[locale]}
@@ -159,8 +161,15 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
 
         <StarButton
           id={primary.id}
-          isStared={stop.slots.some(({ id }) => starredIds.has(id))}
-          toggleStar={onToggleStar}
+          isStared={starredSlots.length > 0}
+          // the star is the block's: off clears every starred slot, on stars the user's own
+          toggleStar={() => {
+            for (const { id } of starredSlots.length > 0 ? starredSlots : [primary]) {
+              onToggleStar(id);
+            }
+          }}
+          // an enrolled block stays a favourite, as on its page
+          isLocked={isEnrolled}
           className="absolute top-1 right-1"
         />
 

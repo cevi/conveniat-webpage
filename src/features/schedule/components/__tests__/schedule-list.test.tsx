@@ -172,4 +172,33 @@ describe('ScheduleList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zu Favoriten hinzufügen' }));
     expect(onToggleStar).toHaveBeenCalledWith('Ballspiele');
   });
+
+  it('unstars a grouped block whichever of its slots was starred', () => {
+    const onToggleStar = jest.fn();
+    renderList(
+      [
+        entry('Ballspiele', '17:00 - 17:30', { quartiere: [q(5)] }),
+        { ...entry('Ballspiele', '17:00 - 18:00', { quartiere: [q(7)] }), id: 'other' },
+      ],
+      {
+        groupSlots: true,
+        myQuartierIds: new Set(['q5']),
+        starredIds: new Set(['other']),
+        onToggleStar,
+      },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aus Favoriten entfernen' }));
+    expect(onToggleStar).toHaveBeenCalledTimes(1);
+    expect(onToggleStar).toHaveBeenCalledWith('other');
+  });
+
+  it('keeps an enrolled block a favourite', () => {
+    renderList([entry('Ballspiele', '17:00 - 17:30')], {
+      enrolledIds: new Set(['Ballspiele']),
+      starredIds: new Set(['Ballspiele']),
+    });
+
+    expect(screen.getByRole('button', { pressed: true })).toBeDisabled();
+  });
 });
