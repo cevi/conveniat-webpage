@@ -337,7 +337,7 @@ export const ShiftEnrollmentAction: React.FC<{
     const isWithdrawalClosed = isUnenrollmentWindowClosed || wasRejectedAsTooLate;
 
     if (isCard) {
-      // The badge in the card's corner already says "Angemeldet", so this row only has to carry
+      // The pill beside the card's title already says "Angemeldet", so this row only has to carry
       // the way out - or, once the window has shut, the fact that there is none.
       return isWithdrawalClosed ? (
         // a pill of the same height and shape as the buttons it stands in for, so a feed of
@@ -418,8 +418,9 @@ export const ShiftEnrollmentAction: React.FC<{
           beside it would only repeat it.
         */
         !isFull && (
+          // one primary per view: in a list of cards that is none, the shift's page has it
           <Button
-            variant={isAuthorized ? 'primary' : 'quiet'}
+            variant={isAuthorized ? 'outlined' : 'quiet'}
             size="touch"
             className={cn('shrink-0', enroll.isPending && 'opacity-80')}
             disabled={enroll.isPending || !isAuthorized}
