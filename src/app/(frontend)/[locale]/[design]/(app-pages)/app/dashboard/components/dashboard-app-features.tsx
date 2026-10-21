@@ -93,7 +93,7 @@ export const DashboardAppFeatures: React.FC<{
       icon: Siren,
     },
     {
-      title: { en: 'Location Map', de: 'Lagerplatz Map', fr: 'Carte des lieux' }[locale],
+      title: { en: 'Map', de: 'Karte', fr: 'Carte' }[locale],
       description: {
         en: 'Navigate through event locations and find your way',
         de: 'Navigiere durch Veranstaltungsorte und finde deinen Weg',

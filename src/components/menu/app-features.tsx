@@ -38,9 +38,9 @@ const emergencyInfoFeatureTranslation: StaticTranslationString = {
 };
 
 const campMapFeatureTranslation: StaticTranslationString = {
-  en: 'Campsite Map',
-  de: 'Lagerplatz Karte',
-  fr: 'Carte du terrain de camp',
+  en: 'Map',
+  de: 'Karte',
+  fr: 'Carte',
 };
 
 const scheduleFeatureTranslation: StaticTranslationString = {
