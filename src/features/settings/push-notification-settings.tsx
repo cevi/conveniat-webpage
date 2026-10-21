@@ -247,6 +247,7 @@ export const PushNotificationSettings: React.FC<{ locale: Locale }> = ({ locale 
             onCheckedChange={handleToggle}
             disabled={!isSupported || isLoading || !!errorMessage}
             loading={isLoading}
+            aria-label={pushNotificationSettingsTitle[locale]}
           />
         }
       >

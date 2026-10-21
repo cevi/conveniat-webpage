@@ -84,6 +84,7 @@ export const OfflineContentSettings: React.FC<OfflineContentSettingsProperties> 
             </Button>
           )}
           <Switch
+            aria-label={offlineSettingsTitle[locale]}
             checked={displayStatus === 'has-content' || displayStatus === 'downloading'}
             onCheckedChange={(checked) => {
               if (checked) {

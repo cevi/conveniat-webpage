@@ -1,6 +1,7 @@
 import { IconTile } from '@/components/ui/icon-tile';
 import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import React from 'react';
 
 interface SettingsRowProperties {
@@ -52,7 +53,11 @@ export const SettingsRow: React.FC<SettingsRowProperties> = ({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] leading-5 font-semibold text-green-900">{title}</p>
           {typeof error === 'string' && error.length > 0 ? (
-            <p className="mt-px text-[13px] leading-[18px] font-medium text-green-900">{error}</p>
+            // in the warning colour and with a sign, so it is not read as the state of the setting
+            <p className="text-live-text mt-px flex items-start gap-1 text-[13px] leading-[18px] font-medium">
+              <AlertCircle className="mt-px h-4 w-4 shrink-0" aria-hidden="true" />
+              {error}
+            </p>
           ) : (
             subtitle !== undefined &&
             subtitle !== null &&
