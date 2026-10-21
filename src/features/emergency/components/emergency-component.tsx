@@ -5,6 +5,7 @@ import { AppSearchBar } from '@/components/ui/app-search-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionLabel } from '@/components/ui/section-label';
 import type { EmergencyCardDto } from '@/features/emergency/api/emergency-card-dto';
+import { EmergencyCardsSkeleton } from '@/features/emergency/components/emergency-cards-skeleton';
 import { ConfirmationSlider } from '@/features/emergency/components/slide-to-confirm';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import { withLocaleParameter } from '@/features/payload-cms/payload-cms/utils/document-download-name';
@@ -37,27 +38,27 @@ const searchPlaceholder: StaticTranslationString = {
 };
 
 const descriptionLabel: StaticTranslationString = {
-  de: 'Beschreibung:',
-  en: 'Description:',
-  fr: 'Description:',
+  de: 'Beschreibung',
+  en: 'Description',
+  fr: 'Description',
 };
 
 const procedureLabel: StaticTranslationString = {
-  de: 'Vorgehen:',
-  en: 'Procedure:',
-  fr: 'Procédure:',
+  de: 'Vorgehen',
+  en: 'Procedure',
+  fr: 'Procédure',
 };
 
 const documentsHeading: StaticTranslationString = {
-  de: 'Zusätzliche Dokumente (PDFs):',
-  en: 'Additional Documents (PDFs):',
-  fr: 'Documents supplémentaires (PDFs):',
+  de: 'Dokumente',
+  en: 'Documents',
+  fr: 'Documents',
 };
 
 const imagesHeading: StaticTranslationString = {
-  de: 'Verknüpfte Bilder:',
-  en: 'Linked Images:',
-  fr: 'Images liées:',
+  de: 'Bilder',
+  en: 'Images',
+  fr: 'Images',
 };
 
 const noAlertsFound: StaticTranslationString = {
@@ -97,21 +98,21 @@ const offlineCallText: StaticTranslationString = {
 };
 
 const offlineStatusText: StaticTranslationString = {
-  de: 'Kein Netz - Bitte anrufen:',
-  en: 'No network - Please call:',
-  fr: 'Pas de réseau - Veuillez appeler:',
+  de: 'Kein Netz – bitte anrufen',
+  en: 'No network – please call',
+  fr: 'Pas de réseau – appelle',
 };
 
 const unauthenticatedStatusText: StaticTranslationString = {
-  de: 'Nicht angemeldet - Bitte anrufen:',
-  en: 'Not signed in - Please call:',
-  fr: 'Non connecté - Veuillez appeler:',
+  de: 'Nicht angemeldet – bitte anrufen',
+  en: 'Not signed in – please call',
+  fr: 'Non connecté – appelle',
 };
 
 const errorStatusText: StaticTranslationString = {
-  de: 'Fehler - Bitte anrufen:',
-  en: 'Error - Please call:',
-  fr: 'Erreur - Veuillez appeler:',
+  de: 'Alarm fehlgeschlagen – bitte anrufen',
+  en: 'Alert failed – please call',
+  fr: 'Échec de l’alerte – appelle',
 };
 
 export const EmergencyComponent: React.FC = () => {
@@ -328,20 +329,7 @@ export const EmergencyComponent: React.FC = () => {
 
   const renderAccordionContent = (): React.ReactNode => {
     if (isLoading && cards.length === 0) {
-      return Array.from({ length: 4 }).map((_, index) => (
-        <div
-          key={`skeleton-${index}`}
-          className="border-line animate-pulse overflow-hidden rounded-[14px] border bg-white px-3.5 py-3"
-        >
-          <div className="flex w-full items-center gap-3">
-            <div className="h-[38px] w-[38px] shrink-0 rounded-[10px] bg-red-50" />
-            <div className="flex flex-1 flex-col gap-2">
-              <div className="bg-chip h-4 w-1/3 rounded" />
-              <div className="bg-quiet h-3 w-1/4 rounded" />
-            </div>
-          </div>
-        </div>
-      ));
+      return <EmergencyCardsSkeleton />;
     }
 
     if (filteredAlerts.length === 0) {
@@ -374,7 +362,7 @@ export const EmergencyComponent: React.FC = () => {
           >
             <div className="flex w-full items-center gap-3 pr-3 text-left">
               {/* red is the emergency colour, and this is the emergency screen */}
-              <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px] bg-red-50 text-red-700">
+              <div className="bg-danger-soft text-danger flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[10px]">
                 <BriefcaseMedical className="h-5 w-5" aria-hidden="true" />
               </div>
               <div className="flex flex-1 flex-col">

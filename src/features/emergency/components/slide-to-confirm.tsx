@@ -271,7 +271,7 @@ export const ConfirmationSlider: React.FC<ConfirmationSliderProperties> = ({
           )}
         >
           {!isConfirmed && isAnimating && !isProcessing && (
-            <div className="absolute inset-0 animate-pulse rounded-full bg-gray-200 opacity-50"></div>
+            <div className="bg-quiet absolute inset-0 animate-pulse rounded-full opacity-50"></div>
           )}
 
           {isConfirmed && <Check className="text-conveniat-green relative z-10" size={24} />}
