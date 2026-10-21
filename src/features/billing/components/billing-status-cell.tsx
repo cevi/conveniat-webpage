@@ -8,7 +8,10 @@ import {
   BILLING_STATUS_LABELS_DE,
   formatBillingStatus,
 } from '@/features/billing/services/billing-status';
+import { resolveAdminLocale } from '@/features/payload-cms/payload-cms/components/shared/resolve-admin-locale';
+import type { StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
+import { useLocale } from '@payloadcms/ui';
 
 /**
  * Colour only. The German wording lives in `billing-status`, so a status is named the same
@@ -49,10 +52,21 @@ interface RowData {
   doublePayment?: unknown;
 }
 
+const doublePaymentLabel: StaticTranslationString = {
+  de: 'Doppelzahlung',
+  en: 'Double payment',
+  fr: 'Double paiement',
+};
+
 /** Shown under the status, which stays «Bezahlt»: the bill is paid, just more than once. */
-const DoublePaymentBadge: React.FC = () => (
-  <span className={cn(baseClasses, statusColors.removed)}>Doppelzahlung</span>
-);
+const DoublePaymentBadge: React.FC = () => {
+  const { code } = useLocale();
+  return (
+    <span className={cn(baseClasses, statusColors.removed)}>
+      {doublePaymentLabel[resolveAdminLocale(code)]}
+    </span>
+  );
+};
 
 /**
  * Custom Payload CMS Cell component for the `status` field in bill-participants.

@@ -2,8 +2,10 @@ import { PAYMENT_BOOKED_ACTION } from '@/features/billing/services/anmeldestatus
 import { PAID, PAYABLE_STATUSES } from '@/features/billing/services/billing-status';
 import type { AllocatablePayment } from '@/features/billing/services/payment-allocation';
 import {
+  allocatedParticipantIds,
   isDoublePayment,
   paymentsCountingFor,
+  settlingPayments,
   totalAllocatedTo,
 } from '@/features/billing/services/payment-allocation';
 import { formatChf, toRappen } from '@/features/billing/services/payment-matching';
@@ -88,14 +90,15 @@ export const describeBooking = (
     .join(', ');
 };
 
-/** Every payment allocated to a bill, refunded or not. */
+/** Every payment allocated to any of these bills, refunded or not. */
 export async function findPaymentsAllocatedTo(
   payload: Payload,
-  participantId: string,
+  participantIds: string[],
 ): Promise<BillPayment[]> {
+  if (participantIds.length === 0) return [];
   const found = await payload.find({
     collection: 'bill-payments',
-    where: { 'allocations.participant': { equals: participantId } },
+    where: { 'allocations.participant': { in: participantIds } },
     pagination: false,
     depth: 0,
     context: { internal: true },
@@ -119,22 +122,35 @@ export async function reconcileParticipantPayments(
   justSaved: BillPayment[] = [],
 ): Promise<ReconcileResult> {
   const result: ReconcileResult = { bookedIds: [], errors: [] };
+  const ids = [...new Set(participantIds)];
+  if (ids.length === 0) return result;
 
-  for (const id of new Set(participantIds)) {
-    const participant = await payload.findByID({
-      collection: 'bill-participants',
-      id,
-      depth: 0,
-      disableErrors: true,
-      context: { internal: true },
-    });
-    if (participant === null) continue;
+  // Two reads for the whole batch: a bank file after a mailing books hundreds of bills, and a
+  // read per bill would make the import's request as long as the file.
+  const participants = await payload.find({
+    collection: 'bill-participants',
+    where: { id: { in: ids } },
+    pagination: false,
+    depth: 0,
+    joins: false,
+    context: { internal: true },
+  });
+  const stored = await findPaymentsAllocatedTo(payload, ids);
+  const paymentsById = new Map<string, BillPayment>();
+  for (const payment of [...stored, ...justSaved]) paymentsById.set(payment.id, payment);
+  // Grouped once, so each bill only looks at its own payments rather than the whole file's.
+  const paymentsByParticipant = new Map<string, BillPayment[]>();
+  for (const payment of paymentsById.values()) {
+    for (const participantId of allocatedParticipantIds(payment)) {
+      const list = paymentsByParticipant.get(participantId) ?? [];
+      list.push(payment);
+      paymentsByParticipant.set(participantId, list);
+    }
+  }
 
-    const stored = await findPaymentsAllocatedTo(payload, id);
-    const payments = [
-      ...stored.filter((payment) => !justSaved.some((saved) => saved.id === payment.id)),
-      ...justSaved,
-    ];
+  for (const participant of participants.docs) {
+    const id = participant.id;
+    const payments = paymentsByParticipant.get(id) ?? [];
     const counting = paymentsCountingFor(payments, id);
     const allocated = totalAllocatedTo(payments, id);
     const invoiceAmount = participant.invoiceAmount;
@@ -144,21 +160,24 @@ export async function reconcileParticipantPayments(
       : [];
     const data: Partial<BillParticipant> = {};
 
-    const settles =
+    const settling =
       (PAYABLE_STATUSES as readonly string[]).includes(participant.status) &&
       invoiceAmount !== null &&
-      invoiceAmount !== undefined &&
-      allocated >= toRappen(invoiceAmount);
-    const last = counting.at(-1);
-    if (settles && last !== undefined) {
+      invoiceAmount !== undefined
+        ? settlingPayments(counting, id, toRappen(invoiceAmount))
+        : [];
+    const [first] = settling;
+    const last = settling.at(-1);
+    if (first !== undefined && last !== undefined) {
+      const settled = totalAllocatedTo(settling, id);
       data.status = PAID;
       data.paidDate = last.bookingDate ?? now;
-      data.paidAmount = allocated / 100;
-      data.paymentTransactionReference = (counting[0] ?? last).transactionReference;
+      data.paidAmount = settled / 100;
+      data.paymentTransactionReference = first.transactionReference;
       history.push({
         date: now,
         action: PAYMENT_BOOKED_ACTION,
-        value: describeBooking(counting, allocated, invoiceAmount, source),
+        value: describeBooking(settling, settled, invoiceAmount, source),
       });
     }
 
@@ -188,6 +207,7 @@ export async function reconcileParticipantPayments(
       await payload.update({
         collection: 'bill-participants',
         id,
+        depth: 0,
         context: { internal: true },
         data: { ...data, syncHistory: history },
       });

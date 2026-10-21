@@ -121,6 +121,7 @@ export async function importPayments(
       },
       pagination: false,
       depth: 0,
+      joins: false,
       context: { internal: true },
     });
     candidates.push(...found.docs);

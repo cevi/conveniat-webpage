@@ -15,6 +15,7 @@ export async function backfillBillPayments(payload: Payload): Promise<number> {
     where: { paymentTransactionReference: { exists: true } },
     pagination: false,
     depth: 0,
+    joins: false,
     context: { internal: true },
     select: {
       paymentTransactionReference: true,
@@ -67,11 +68,19 @@ export async function backfillBillPayments(payload: Payload): Promise<number> {
       known.add(transaction);
       created++;
     } catch (error) {
-      // A second replica starting at the same moment stored it first.
-      payload.logger.debug(
-        { err: error },
-        `Did not store the earlier booking ${transaction} as a payment`,
-      );
+      // A second replica starting at the same moment stored it first. Anything else would fail
+      // again on every start, and that bill's second payment would never read as double.
+      const alreadyStored = await payload.count({
+        collection: 'bill-payments',
+        where: { transactionReference: { equals: transaction } },
+        context: { internal: true },
+      });
+      if (alreadyStored.totalDocs === 0) {
+        payload.logger.warn(
+          { err: error },
+          `Could not store the earlier booking ${transaction} as a payment`,
+        );
+      }
     }
   }
   return created;

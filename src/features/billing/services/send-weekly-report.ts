@@ -235,6 +235,16 @@ export async function sendWeeklyReport(
       };
     }
 
+    // 2b. The double payments go with the finance mail. Built before anything is queued: a
+    // failure after the general mail is out would leave `lastSentAt` unset, and the next
+    // hourly run would send the general mail a second time.
+    let doublePaymentAttachment: { filename: string; content: Buffer } | undefined;
+    if (config?.attachExcel !== false && financeRecipients.length > 0) {
+      doublePaymentAttachment = await buildDoublePaymentAttachment(
+        await findDoublePaymentReport(payload, now),
+      );
+    }
+
     const sentAttachments: string[] = [];
 
     // 3. Send General Registration Report (ONLY PDF, NEVER EXCEL)
@@ -270,9 +280,7 @@ export async function sendWeeklyReport(
       if (pdfAttachment) financeAttachments.push(pdfAttachment);
       if (excelAttachment) financeAttachments.push(excelAttachment);
       // Attached even when empty, so the recipients can see the check ran.
-      financeAttachments.push(
-        await buildDoublePaymentAttachment(await findDoublePaymentReport(payload, now)),
-      );
+      if (doublePaymentAttachment) financeAttachments.push(doublePaymentAttachment);
 
       const defaultFinanceBody =
         'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen';

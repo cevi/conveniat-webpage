@@ -57,14 +57,39 @@ export const allocatedToParticipant = (
         .filter((allocation) => relationId(allocation.participant) === participantId)
         .reduce((sum, allocation) => sum + toRappen(allocation.amount), 0);
 
-/** The payments that count for a bill, oldest booking first. */
+/**
+ * The payments that count for a bill, oldest booking first. Payments booked the same day go
+ * by transaction, so the same payments always settle a bill in the same order.
+ */
 export const paymentsCountingFor = <T extends AllocatablePayment>(
   payments: T[],
   participantId: string,
 ): T[] =>
   payments
     .filter((payment) => allocatedToParticipant(payment, participantId) > 0)
-    .toSorted((a, b) => (a.bookingDate ?? '').localeCompare(b.bookingDate ?? ''));
+    .toSorted((a, b) => {
+      const byDate = (a.bookingDate ?? '').localeCompare(b.bookingDate ?? '');
+      return byDate === 0 ? a.transactionReference.localeCompare(b.transactionReference) : byDate;
+    });
+
+/**
+ * The first payments that together pay a bill, oldest first; empty while they fall short.
+ *
+ * A bill is booked with these, whether the payments after them arrive in the same bank file
+ * or a later one: what comes after is the double payment, not part of the booking.
+ */
+export const settlingPayments = <T extends AllocatablePayment>(
+  counting: T[],
+  participantId: string,
+  invoiceRappen: number,
+): T[] => {
+  let paid = 0;
+  for (const [index, payment] of counting.entries()) {
+    paid += allocatedToParticipant(payment, participantId);
+    if (paid >= invoiceRappen) return counting.slice(0, index + 1);
+  }
+  return [];
+};
 
 /** What all payments together pay towards a bill, in Rappen. */
 export const totalAllocatedTo = (payments: AllocatablePayment[], participantId: string): number =>

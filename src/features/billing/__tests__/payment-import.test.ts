@@ -306,19 +306,37 @@ describe('importPayments', () => {
     expect(fake.queue).toHaveBeenCalledTimes(1);
   });
 
-  it('books a bill paid twice in one file once, and flags it', async () => {
-    const fake = fakePayload([lea()]);
+  it('books a bill paid twice the same way, whether both payments came in one file or two', async () => {
+    const oneFile = fakePayload([lea()]);
+    const twoFiles = fakePayload([lea()]);
 
     const summary = await importPayments(
-      fake.payload,
-      bankFile([reference, 330, 'GS00000000000001'], [reference, 330, 'GS00000000000002']),
+      oneFile.payload,
+      bankFile([reference, 330, 'GS00000000000002'], [reference, 330, 'GS00000000000001']),
+      'Finanzen',
+    );
+    await importPayments(
+      twoFiles.payload,
+      bankFile([reference, 330, 'GS00000000000001']),
+      'Finanzen',
+    );
+    await importPayments(
+      twoFiles.payload,
+      bankFile([reference, 330, 'GS00000000000002']),
       'Finanzen',
     );
 
     expect(summary.bookedCount).toBe(1);
-    expect(fake.participant('lea')).toEqual(
-      expect.objectContaining({ status: 'paid', doublePayment: true }),
-    );
+    for (const fake of [oneFile, twoFiles]) {
+      expect(fake.participant('lea')).toEqual(
+        expect.objectContaining({
+          status: 'paid',
+          paidAmount: 330,
+          paymentTransactionReference: 'GS00000000000001',
+          doublePayment: true,
+        }),
+      );
+    }
   });
 
   it('adds nothing when the same file is imported again', async () => {

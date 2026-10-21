@@ -3,6 +3,7 @@ import {
   paymentsCountingFor,
   totalAllocatedTo,
 } from '@/features/billing/services/payment-allocation';
+import { findPaymentsAllocatedTo } from '@/features/billing/services/payment-booking';
 import { toRappen } from '@/features/billing/services/payment-matching';
 import { renderDoublePaymentReportPdf } from '@/features/billing/services/render-double-payment-report';
 import type { BillParticipant, BillPayment } from '@/features/payload-cms/payload-types';
@@ -88,18 +89,14 @@ export async function findDoublePaymentReport(
     where: { doublePayment: { equals: true } },
     pagination: false,
     depth: 0,
+    joins: false,
     context: { internal: true },
   });
-  const ids = participants.docs.map((participant) => participant.id);
-  if (ids.length === 0) return buildDoublePaymentReport([], [], now);
-  const payments = await payload.find({
-    collection: 'bill-payments',
-    where: { 'allocations.participant': { in: ids } },
-    pagination: false,
-    depth: 0,
-    context: { internal: true },
-  });
-  return buildDoublePaymentReport(participants.docs, payments.docs, now);
+  const payments = await findPaymentsAllocatedTo(
+    payload,
+    participants.docs.map((participant) => participant.id),
+  );
+  return buildDoublePaymentReport(participants.docs, payments, now);
 }
 
 /** Renders the report and names the file the way the finance mail attaches it. */

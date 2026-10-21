@@ -48,6 +48,7 @@ export const validatePaymentChange: CollectionBeforeChangeHook<BillPayment> = as
       collection: 'bill-participants',
       id: participantId,
       depth: 0,
+      joins: false,
       disableErrors: true,
       context: { internal: true },
     });
@@ -55,7 +56,7 @@ export const validatePaymentChange: CollectionBeforeChangeHook<BillPayment> = as
     const invoiceAmount = participant.invoiceAmount;
     if (invoiceAmount === null || invoiceAmount === undefined) continue;
 
-    const allocatedPayments = await findPaymentsAllocatedTo(req.payload, participantId);
+    const allocatedPayments = await findPaymentsAllocatedTo(req.payload, [participantId]);
     const others = allocatedPayments.filter((payment) => payment.id !== originalDoc.id);
     const remaining =
       totalAllocatedTo(others, participantId) + allocatedToParticipant(next, participantId);

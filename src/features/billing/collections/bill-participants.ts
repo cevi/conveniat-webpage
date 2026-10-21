@@ -481,6 +481,8 @@ export const BillParticipantsCollection: CollectionConfig = {
       access: { read: canAccessBillingField, update: canAccessBillingField },
       type: 'checkbox',
       defaultValue: false,
+      // The weekly finance mail looks the flagged bills up among every registration.
+      index: true,
       label: {
         en: 'Double payment',
         de: 'Doppelzahlung',

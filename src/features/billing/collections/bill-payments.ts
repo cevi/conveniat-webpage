@@ -14,7 +14,7 @@ import { AdminPanelDashboardGroups } from '@/features/payload-cms/payload-cms/ad
 import type { CollectionConfig, FieldAccess } from 'payload';
 
 /** What the bank sent is a fact: only the import writes it, nobody edits it afterwards. */
-const writtenByImport: FieldAccess = ({ req }) => req.context['internal'] === true;
+const writtenByImport: FieldAccess = () => false;
 
 const bankFact = {
   access: { read: canAccessBillingField, create: writtenByImport, update: writtenByImport },
@@ -61,7 +61,7 @@ export const BillPaymentsCollection: CollectionConfig = {
     read: canAccessBilling,
     // Only the payment import creates payments. A payment that came in some other way is
     // not on any bank file, and booking it would leave nothing to reconcile it against.
-    create: ({ req }): boolean => req.context['internal'] === true,
+    create: () => false,
     update: canAccessBilling,
     // A bank transaction does not stop having happened. A refund is recorded instead.
     delete: () => false,
