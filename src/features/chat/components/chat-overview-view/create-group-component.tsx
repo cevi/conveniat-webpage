@@ -44,7 +44,11 @@ const text = {
     en: `The name needs at least ${NAME_MIN} characters.`,
     fr: `Le nom doit compter au moins ${NAME_MIN} caractères.`,
   },
-  members: { de: 'Mitglieder', en: 'Members', fr: 'Membres' },
+  members: {
+    de: 'Mit dir in der Gruppe',
+    en: 'In the group with you',
+    fr: 'Avec toi dans le groupe',
+  },
   search: { de: 'Kontakte hinzufügen', en: 'Add contacts', fr: 'Ajouter des contacts' },
   remove: { de: '{name} entfernen', en: 'Remove {name}', fr: 'Retirer {name}' },
   chosenPeople: { de: 'Ausgewählte Personen', en: 'Selected people', fr: 'Personnes choisies' },
@@ -234,7 +238,7 @@ export const CreateNewGroupPage: React.FC = () => {
 
         <section className="border-line border-t pt-4 pb-6">
           <SectionLabel className="px-4">
-            {text.members[locale]} ({selected.length + 1})
+            {text.members[locale]} ({selected.length})
           </SectionLabel>
           <ul className="pt-2">
             {selected.map((contact) => (
