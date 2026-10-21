@@ -92,6 +92,24 @@ export const programmeLabels = {
     en: '{{duration}} transfer → {{place}}',
     fr: '{{duration}} de déplacement → {{place}}',
   },
+  // the transfer on the rail, short: the route icon says it is a walk
+  transferShortTo: {
+    de: '{{minutes}}′ → {{place}}',
+    en: '{{minutes}}′ → {{place}}',
+    fr: '{{minutes}}′ → {{place}}',
+  },
+  transferShort: { de: '{{minutes}}′', en: '{{minutes}}′', fr: '{{minutes}}′' },
+  transferPerQuartierTo: {
+    de: '→ {{place}} · je nach Quartier',
+    en: '→ {{place}} · depending on the Quartier',
+    fr: '→ {{place}} · selon le Quartier',
+  },
+  freeTime: { de: '{{minutes}}′ frei', en: '{{minutes}}′ free', fr: '{{minutes}}′ libre' },
+  freeTimeLong: {
+    de: '{{duration}} frei bis zum nächsten Programmpunkt',
+    en: '{{duration}} free before the next block',
+    fr: '{{duration}} de libre avant le prochain bloc',
+  },
   transferPerQuartier: {
     de: 'Verschiebung, je nach Quartier',
     en: 'Transfer, depending on the Quartier',

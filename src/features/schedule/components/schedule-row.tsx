@@ -2,7 +2,10 @@
 
 import { StarButton } from '@/components/star/star';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
-import { ScheduleTimelineItem } from '@/features/schedule/components/schedule-timeline-item';
+import {
+  ScheduleTimelineItem,
+  TimelineTimes,
+} from '@/features/schedule/components/schedule-timeline-item';
 import { programmeLabels, scheduleLabels } from '@/features/schedule/constants/schedule-labels';
 import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-restoration';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
@@ -15,7 +18,7 @@ import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle, Clock, MapPin } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -92,10 +95,17 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
     return `/app/schedule?${parameters.toString()}`;
   };
 
+  const meta = [
+    location?.title,
+    !isGrouped && slot !== undefined && slot.end > slot.start
+      ? formatDuration(slot.end - slot.start)
+      : undefined,
+  ].filter((part): part is string => part !== undefined && part !== '');
+
   return (
     <ScheduleTimelineItem
       isPast={isPast}
-      time={<time className="font-bold text-green-900">{start}</time>}
+      time={<TimelineTimes start={start} end={isGrouped ? undefined : end} isBlock />}
       node={
         <span
           className={cn('ring-page h-3 w-3 rounded-full ring-2', accent.bar)}
@@ -127,21 +137,12 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
               />
             )}
           </h3>
-          <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] leading-[18px] text-green-700">
-            {!isGrouped && slot !== undefined && slot.end > slot.start && (
-              <span className="flex items-center gap-1 tabular-nums">
-                <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                {programmeLabels.until[locale].replace('{{time}}', end)} ·{' '}
-                {formatDuration(slot.end - slot.start)}
-              </span>
-            )}
-            {location?.title !== undefined && location.title !== '' && (
-              <span className="flex min-w-0 items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{location.title}</span>
-              </span>
-            )}
-          </p>
+          {/* the place and how long, in one line: the start and end are in the time column */}
+          {meta.length > 0 && (
+            <p className="mt-1 truncate text-[13px] leading-[18px] text-green-700 tabular-nums">
+              {meta.join(' · ')}
+            </p>
+          )}
           {showSlots && !isGrouped && quartiereOf(primary).length > 0 && (
             <span className="mt-2 flex flex-wrap gap-1">
               {quartiereOf(primary).map(({ id, name }) => (

@@ -1,4 +1,7 @@
-import { ScheduleTimelineItem } from '@/features/schedule/components/schedule-timeline-item';
+import {
+  ScheduleTimelineItem,
+  TimelineTimes,
+} from '@/features/schedule/components/schedule-timeline-item';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
@@ -8,7 +11,7 @@ import type { TimelineStop, TimelineTransfer } from '@/features/schedule/utils/t
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { formatQuartierRange } from '@/utils/quartier-names';
-import { ArrowDown, Clock, Moon, Sunrise, Utensils } from 'lucide-react';
+import { Clock, Moon, Route, Sunrise, Utensils } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
@@ -32,7 +35,7 @@ const FixedRowIcon: React.FC<{ entry: Entry }> = ({ entry }) => {
 const timeRangeOf = (entry: Entry): string => entry.timeslot.time.replace(' - ', '–');
 
 /**
- * A meal or a fixed point: one compact line on a hollow node, "bis 12:30" on the right. In the
+ * A meal or a fixed point: one compact line on a hollow node, its end under its start. In the
  * view of the whole camp, a meal the Quartiere take one after the other is one line, with their
  * times under it: "Q1–Q3 17:30–18:00 · Q4–Q6 18:00–18:30".
  */
@@ -42,16 +45,14 @@ export const ScheduleFixedRow: React.FC<{
   /** "Läuft · noch 12 min", when it is running */
   runningLabel?: string | undefined;
 }> = ({ stop, isPast, runningLabel }) => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
   const first = stop.slots[0];
-  const slot = slotOf(first);
   const [start = '', end = ''] = first.timeslot.time.split(' - ');
   const isGrouped = stop.slots.length > 1;
 
   return (
     <ScheduleTimelineItem
       isPast={isPast}
-      time={<time className="text-green-700">{start}</time>}
+      time={<TimelineTimes start={start} end={isGrouped ? undefined : end} isBlock={false} />}
       node={<span className="border-rail-node bg-page h-2.5 w-2.5 rounded-full border-2" />}
     >
       <div className="flex items-start gap-2 pb-4">
@@ -81,19 +82,15 @@ export const ScheduleFixedRow: React.FC<{
             </span>
           )}
         </div>
-        {!isGrouped && slot !== undefined && slot.end !== slot.start && (
-          <time className="shrink-0 text-[13px] leading-5 text-green-500 tabular-nums">
-            {programmeLabels.until[locale].replace('{{time}}', end)}
-          </time>
-        )}
       </div>
     </ScheduleTimelineItem>
   );
 };
 
 /**
- * The walk to the next stop, as a dashed stretch of the rail: "15 min Verschiebung → Lagerplatz".
- * Where the Quartiere walk at different times it says so instead of naming a duration.
+ * The walk to the next stop, as a dashed stretch of the rail: the route icon, "15′ → Lagerplatz",
+ * and on the right the time left before the next stop, "15′ frei". Where the Quartiere walk at
+ * different times it says so instead of naming a duration. Screen readers get the words.
  */
 export const ScheduleTransferRow: React.FC<{ transfer: TimelineTransfer; isPast: boolean }> = ({
   transfer,
@@ -101,11 +98,25 @@ export const ScheduleTransferRow: React.FC<{ transfer: TimelineTransfer; isPast:
 }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const place = resolveLocation(transfer.to?.location)?.title;
+  const minutes = transfer.minutes === undefined ? '' : String(transfer.minutes);
   const duration = transfer.minutes === undefined ? '' : formatDuration(transfer.minutes);
 
-  let text: string = programmeLabels.transferPerQuartier[locale];
-  if (!transfer.perQuartier) {
-    text = (place === undefined ? programmeLabels.transfer : programmeLabels.transferTo)[locale]
+  let shown: string;
+  let spoken: string;
+  if (transfer.perQuartier) {
+    shown =
+      place === undefined
+        ? programmeLabels.transferPerQuartier[locale]
+        : programmeLabels.transferPerQuartierTo[locale].replace('{{place}}', place);
+    spoken = programmeLabels.transferPerQuartier[locale];
+  } else {
+    shown = (place === undefined ? programmeLabels.transferShort : programmeLabels.transferShortTo)[
+      locale
+    ]
+      .replace('{{minutes}}', minutes)
+      .replace('{{place}}', place ?? '')
+      .trim();
+    spoken = (place === undefined ? programmeLabels.transfer : programmeLabels.transferTo)[locale]
       .replace('{{duration}}', duration)
       .replace('{{place}}', place ?? '')
       .trim();
@@ -113,9 +124,28 @@ export const ScheduleTransferRow: React.FC<{ transfer: TimelineTransfer; isPast:
 
   return (
     <ScheduleTimelineItem dashed isPast={isPast}>
-      <div className="flex items-center gap-1.5 pt-0.5 pb-4 text-[13px] leading-[18px] text-green-500">
-        <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        <span>{text}</span>
+      <div className="flex items-center gap-2 pt-0.5 pb-4 text-[13px] leading-[18px] text-green-700">
+        <Route className="h-4 w-4 shrink-0 text-green-500" aria-hidden="true" />
+        <span aria-hidden="true" className="min-w-0 flex-1 truncate tabular-nums">
+          {shown}
+        </span>
+        <span className="sr-only">{spoken}</span>
+        {transfer.freeMinutes !== undefined && (
+          <span className="bg-tint text-conveniat-green shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums">
+            <span aria-hidden="true">
+              {programmeLabels.freeTime[locale].replace(
+                '{{minutes}}',
+                String(transfer.freeMinutes),
+              )}
+            </span>
+            <span className="sr-only">
+              {programmeLabels.freeTimeLong[locale].replace(
+                '{{duration}}',
+                formatDuration(transfer.freeMinutes),
+              )}
+            </span>
+          </span>
+        )}
       </div>
     </ScheduleTimelineItem>
   );

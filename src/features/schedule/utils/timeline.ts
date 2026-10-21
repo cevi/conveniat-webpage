@@ -28,6 +28,11 @@ export interface TimelineTransfer {
   to: Entry | undefined;
   /** the Quartiere walk at different times, as in the view of the whole camp */
   perQuartier: boolean;
+  /**
+   * the time to spare around the walk: from the end of the stop before to the start of the next,
+   * less the walk itself; only when there is one answer and some is left
+   */
+  freeMinutes: number | undefined;
   slots: [Entry, ...Entry[]];
 }
 
@@ -110,7 +115,7 @@ export const buildTimeline = (
     transfersBefore.set(next, [...(transfersBefore.get(next) ?? []), transfer]);
   }
 
-  const transferTo = (stop?: TimelineStop): TimelineTransfer[] => {
+  const transferTo = (stop?: TimelineStop, previous?: TimelineStop): TimelineTransfer[] => {
     const transfers = transfersBefore.get(stop);
     if (transfers === undefined) return [];
 
@@ -126,6 +131,17 @@ export const buildTimeline = (
     if (isOneDuration) minutes = durations[0];
     else if (!perQuartier) minutes = durations.reduce((sum, duration) => sum + duration, 0);
 
+    const nextStart = stop === undefined ? undefined : slotOf(stop.slots[0])?.start;
+    const previousEnd =
+      previous === undefined
+        ? undefined
+        : Math.max(...previous.slots.map((slot) => slotOf(slot)?.end ?? 0));
+    const spare =
+      perQuartier || minutes === undefined || nextStart === undefined || previousEnd === undefined
+        ? 0
+        : nextStart - previousEnd - minutes;
+    const freeMinutes = spare > 0 ? spare : undefined;
+
     return [
       {
         type: 'transfer',
@@ -133,12 +149,19 @@ export const buildTimeline = (
         minutes: minutes === 0 ? undefined : minutes,
         to: stop?.slots[0],
         perQuartier,
+        freeMinutes,
         slots: transfers as [Entry, ...Entry[]],
       },
     ];
   };
 
-  return [...stops.flatMap((stop): TimelineItem[] => [...transferTo(stop), stop]), ...transferTo()];
+  return [
+    ...stops.flatMap((stop, index): TimelineItem[] => [
+      ...transferTo(stop, stops[index - 1]),
+      stop,
+    ]),
+    ...transferTo(undefined, stops.at(-1)),
+  ];
 };
 
 /** The minutes from midnight a timeline item starts at: its first slot's. */

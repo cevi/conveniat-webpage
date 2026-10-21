@@ -2,6 +2,23 @@ import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
 /**
+ * The time column of a stop: when it starts, and under it, smaller, when it ends. A block's
+ * start is bold, a meal's or a fixed point's regular. Saying the end here keeps it off the card.
+ */
+export const TimelineTimes: React.FC<{
+  start: string;
+  end?: string | undefined;
+  isBlock: boolean;
+}> = ({ start, end, isBlock }) => (
+  <span className="flex flex-col">
+    <time className={isBlock ? 'font-bold text-green-900' : 'text-green-700'}>{start}</time>
+    {end !== undefined && end !== '' && end !== start && (
+      <time className="text-[12px] leading-4 text-green-500">{end}</time>
+    )}
+  </span>
+);
+
+/**
  * One stop on the timeline of a day: the start time, a node on the rail and what happens.
  *
  * Every item draws its own piece of the rail, so the rail needs no measuring: the first item

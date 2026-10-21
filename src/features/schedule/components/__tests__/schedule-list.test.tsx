@@ -90,11 +90,13 @@ describe('ScheduleList', () => {
     );
   });
 
-  it('shows the start once, in the time column, and the end on the card', () => {
+  it('shows the start and the end once, in the time column, and how long on the card', () => {
     renderList([entry('Kennenlernspiel', '15:45 - 17:45', { kind: 'program' })]);
 
     expect(screen.getAllByText('15:45')).toHaveLength(1);
-    expect(screen.getByText(/bis 17:45 · 2 h/)).toBeInTheDocument();
+    expect(screen.getAllByText('17:45')).toHaveLength(1);
+    expect(screen.getByText('2 h')).toBeInTheDocument();
+    expect(screen.queryByText(/bis 17:45/)).toBeNull();
   });
 
   it('shows meals and fixed points as lines that open nothing, and a transfer on the rail', () => {
@@ -109,11 +111,26 @@ describe('ScheduleList', () => {
     ]);
 
     expect(screen.queryByRole('link')).toBeNull();
-    expect(screen.getByText('07:30')).toBeInTheDocument();
-    expect(screen.queryByText('bis 07:30')).toBeNull();
-    expect(screen.getByText('bis 09:00')).toBeInTheDocument();
+    // a fixed point that has no length shows its time once
+    expect(screen.getAllByText('07:30')).toHaveLength(1);
+    expect(screen.getByText('09:00')).toBeInTheDocument();
+    expect(screen.queryByText(/^bis /)).toBeNull();
+    // short on screen, in words for a screen reader
+    expect(screen.getByText('30′ → Lagerplatz')).toBeInTheDocument();
     expect(screen.getByText('30 min Verschiebung → Lagerplatz')).toBeInTheDocument();
     expect(screen.queryByText('Verschiebung')).toBeNull();
+    // the walk ends when the next stop starts: no time left over
+    expect(screen.queryByText(/frei$/)).toBeNull();
+  });
+
+  it('says how much time is left after a walk', () => {
+    renderList([
+      entry('Essen', '08:00 - 09:00', { kind: 'meal' }),
+      entry('Verschiebung', '09:00 - 09:15', { kind: 'transfer' }),
+      entry('Lageraufbau', '09:30 - 11:00', { kind: 'program' }),
+    ]);
+
+    expect(screen.getByText('15′ frei')).toBeInTheDocument();
   });
 
   it('treats an entry saved before the kind existed as a programme block', () => {
