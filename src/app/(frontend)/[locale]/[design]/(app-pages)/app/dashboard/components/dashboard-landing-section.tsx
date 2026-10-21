@@ -1,7 +1,7 @@
 'use client';
 
 import { DashboardQuickAccess } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access';
-import { DashboardQuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-quick-access-skeleton';
+import { QuickAccessSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { SetDynamicPageTitle } from '@/components/header/set-dynamic-app-title';
 import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
@@ -42,7 +42,7 @@ export const DashboardLandingSection: React.FC<{
     return (
       <>
         {children}
-        <DashboardQuickAccessSkeleton />
+        <QuickAccessSkeleton />
       </>
     );
   }

@@ -1,5 +1,6 @@
 'use client';
 
+import { GreetingSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { useNow } from '@/features/schedule/hooks/use-now';
 import { displayNamesOf } from '@/features/settings/utils/display-names';
 import { trpc } from '@/trpc/client';
@@ -62,12 +63,7 @@ export const DashboardGreeting: React.FC<{ locale: Locale }> = ({ locale }) => {
 
   // the session is only known in the browser; until then the line keeps its place
   if (status === 'loading') {
-    return (
-      <div className="h-[64px]" aria-hidden="true">
-        <div className="bg-chip h-8 w-40 animate-pulse rounded" />
-        <div className="bg-quiet mt-2 h-4 w-48 animate-pulse rounded" />
-      </div>
-    );
+    return <GreetingSkeleton />;
   }
 
   return (

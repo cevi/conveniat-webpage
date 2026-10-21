@@ -1,5 +1,6 @@
 'use client';
 
+import { JetztSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
 import { selectJetzt } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/utils/select-jetzt';
 import { SectionLabel } from '@/components/ui/section-label';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
@@ -148,18 +149,6 @@ const JetztContent: React.FC<{
     </div>
   );
 };
-
-/** "Jetzt" before the first schedule entries arrive: the card and the rows as placeholders. */
-const JetztSkeleton: React.FC = () => (
-  <div className="space-y-3" aria-hidden="true">
-    <div className="border-line h-[104px] rounded-[14px] border bg-white p-4">
-      <div className="bg-quiet h-3 w-1/3 animate-pulse rounded" />
-      <div className="bg-chip mt-3 h-5 w-1/2 animate-pulse rounded" />
-      <div className="bg-quiet mt-3 h-3 w-2/5 animate-pulse rounded" />
-    </div>
-    <div className="border-line h-[106px] rounded-[14px] border bg-white" />
-  </div>
-);
 
 /**
  * "Jetzt" on Home: the block running now for the user's Quartier, or the next one, and what
