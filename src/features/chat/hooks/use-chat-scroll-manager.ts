@@ -10,7 +10,15 @@ interface ChatScrollManagerProperties {
   currentUserId: string | undefined;
   /** People typing below the last message; their dots are followed like a new message. */
   typingCount: number;
+  /**
+   * Where the chat opens instead of at the bottom, e.g. the line above the first unread
+   * message; empty when there is no such place.
+   */
+  initialAnchorReference?: React.RefObject<HTMLElement | null>;
 }
+
+/** Room left above an anchor for the sticky day label. */
+const ANCHOR_OFFSET_PX = 56;
 
 const AT_BOTTOM_THRESHOLD_PX = 100;
 
@@ -26,6 +34,7 @@ export const useChatScrollManager = ({
   isFetchingNextPage,
   currentUserId,
   typingCount,
+  initialAnchorReference,
 }: ChatScrollManagerProperties): {
   scrollContainerReference: React.RefObject<HTMLDivElement | null>;
   messagesEndReference: React.RefObject<HTMLDivElement | null>;
@@ -94,9 +103,31 @@ export const useChatScrollManager = ({
     const previousLastId = previousLastIdReference.current;
     previousLastIdReference.current = sortedMessages.at(-1)?.id;
 
-    if (!hasScrolledReference.current || isAtBottomReference.current) {
-      messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+    if (!hasScrolledReference.current) {
       hasScrolledReference.current = true;
+      const anchor = initialAnchorReference?.current;
+      const container = scrollContainerReference.current;
+      if (anchor && container) {
+        const offset =
+          anchor.getBoundingClientRect().top -
+          container.getBoundingClientRect().top -
+          ANCHOR_OFFSET_PX;
+        // the scroll event that follows decides whether the reader is still at the bottom
+        container.scrollTop += offset;
+        if (
+          container.scrollHeight - container.scrollTop - container.clientHeight >=
+          AT_BOTTOM_THRESHOLD_PX
+        ) {
+          isAtBottomReference.current = false;
+        }
+        return;
+      }
+      messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
+      return;
+    }
+
+    if (isAtBottomReference.current) {
+      messagesEndReference.current?.scrollIntoView({ behavior: 'instant' });
       return;
     }
 
@@ -111,7 +142,7 @@ export const useChatScrollManager = ({
       return;
     }
     setUnseenCount((count) => count + appended.length);
-  }, [sortedMessages, currentUserId]);
+  }, [sortedMessages, currentUserId, initialAnchorReference]);
 
   // Dots appearing at the bottom are followed like a message; above the fold they are not
   // news, so they neither scroll nor count

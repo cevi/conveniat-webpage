@@ -1,5 +1,6 @@
 'use client';
 
+import { avatarTextColorOf } from '@/components/ui/person-avatar';
 import type { ChatMessage } from '@/features/chat/api/types';
 import { AlertQuestionMessage } from '@/features/chat/components/chat-view/message/alert-question-message';
 import { AlertResponseMessage } from '@/features/chat/components/chat-view/message/alert-response-message';
@@ -17,19 +18,21 @@ import {
 import { ReactionDetailsDialog } from '@/features/chat/components/chat-view/message/reaction-details-dialog';
 import { SenderAvatar } from '@/features/chat/components/chat-view/message/sender-avatar';
 import { SystemMessage } from '@/features/chat/components/chat-view/message/system-message';
+import { ThreadSummary } from '@/features/chat/components/chat-view/message/thread-summary';
 import { extractMessageImages } from '@/features/chat/components/chat-view/message/utils/extract-message-images';
 import { formatMessageContent } from '@/features/chat/components/chat-view/message/utils/format-message-content';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
 import { useChatId } from '@/features/chat/context/chat-id-context';
 import { formatMessageTimeOnlyRaw } from '@/features/chat/hooks/use-format-date';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { MessageEventType, MessageType } from '@/lib/prisma/client';
 import { toast } from '@/lib/toast';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { AlertCircle, Check, Clock, MessageSquare } from 'lucide-react';
+import { AlertCircle, Check, Clock } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 const replyToMessageText: StaticTranslationString = {
@@ -38,15 +41,22 @@ const replyToMessageText: StaticTranslationString = {
   fr: 'Répondre à un message',
 };
 
-const repliesCountText: (count: number, locale: Locale) => string = (count, locale) => {
-  if (count === 1) {
-    if (locale === 'de') return '1 Antwort';
-    if (locale === 'fr') return '1 réponse';
-    return '1 reply';
+const youText: StaticTranslationString = {
+  de: 'Du',
+  en: 'You',
+  fr: 'Toi',
+};
+
+/** Rounder outside a run of bubbles, tighter where two bubbles of one sender meet. */
+const bubbleCornerClassName = (
+  isCurrentUser: boolean,
+  isFirstInGroup: boolean,
+  isLastInGroup: boolean,
+): string => {
+  if (isCurrentUser) {
+    return cn(!isFirstInGroup && 'rounded-tr-[6px]', !isLastInGroup && 'rounded-br-[6px]');
   }
-  if (locale === 'de') return `${count} Antworten`;
-  if (locale === 'fr') return `${count} réponses`;
-  return `${count} replies`;
+  return cn(!isFirstInGroup && 'rounded-tl-[6px]', !isLastInGroup && 'rounded-bl-[6px]');
 };
 
 const pendingOfflineText: StaticTranslationString = {
@@ -70,7 +80,8 @@ interface MessageProperties {
   senderPictureUrl?: string | undefined;
   chatType: string;
   hideReplyCount?: boolean;
-  isThreadRoot?: boolean;
+  /** The message this one quotes, when it is loaded, for the name of its author. */
+  quotedMessage?: ChatMessage | undefined;
   /** Opens a block of consecutive messages from one sender; only it shows the sender name. */
   isFirstInGroup?: boolean;
   /** Closes such a block; only it gets the bubble tail. */
@@ -93,7 +104,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   senderPictureUrl,
   chatType,
   hideReplyCount = false,
-  isThreadRoot = false,
+  quotedMessage,
   isFirstInGroup = true,
   isLastInGroup = true,
   locale,
@@ -188,6 +199,11 @@ export const MessageComponent: React.FC<MessageProperties> = ({
     typeof payload['quotedMessageId'] === 'string' ? payload['quotedMessageId'] : undefined;
   const quotedSnippet =
     typeof payload['quotedSnippet'] === 'string' ? payload['quotedSnippet'] : undefined;
+  let quotedAuthor: string | undefined;
+  if (quotedMessage === undefined) quotedAuthor = undefined;
+  else if (quotedMessage.senderId === currentUserId) quotedAuthor = youText[activeLocale];
+  else if (quotedMessage.senderName !== undefined)
+    quotedAuthor = splitDisplayName(quotedMessage.senderName).primary;
 
   const handlePointerDown = (event: React.PointerEvent): void => {
     // Only handle primary button
@@ -305,7 +321,17 @@ export const MessageComponent: React.FC<MessageProperties> = ({
   };
 
   if (message.type === MessageType.SYSTEM_MSG) {
-    return <SystemMessage message={message} />;
+    const owner = chatDetails?.participants.find(
+      (participant) => participant.chatPermission === 'OWNER',
+    );
+    return (
+      <SystemMessage
+        message={message}
+        creator={owner}
+        currentUserId={currentUserId}
+        isGroup={chatType === 'GROUP'}
+      />
+    );
   }
 
   const frameProperties = {
@@ -367,7 +393,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           />
           {/* the empty avatar slot is the one place a wide bubble leaves room for its time */}
           {!showMeta && isTimeRevealedOrHovered && (
-            <span className="pointer-events-none absolute inset-y-0 right-0 left-2 flex items-center justify-center text-[10px] text-green-500">
+            <span className="pointer-events-none absolute inset-y-0 right-0 left-2 flex items-center justify-center text-[11px] text-green-700">
               {formatMessageTimeOnlyRaw(message.createdAt, activeLocale)}
             </span>
           )}
@@ -381,11 +407,11 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         )}
       >
         {!isCurrentUser && isFirstInGroup && chatType === 'GROUP' && message.senderName && (
-          <span className="mb-1 px-1.5 text-xs font-semibold text-green-700">
-            {message.senderName}
-            {senderFunktionen !== '' && (
-              <span className="text-conveniat-green font-medium"> · {senderFunktionen}</span>
-            )}
+          <span className="mb-1 max-w-full truncate px-1.5 text-[13px] text-green-700">
+            <span className={cn('font-semibold', avatarTextColorOf(message.senderId ?? ''))}>
+              {splitDisplayName(message.senderName).primary}
+            </span>
+            {senderFunktionen !== '' && ` · ${senderFunktionen}`}
           </span>
         )}
         <div
@@ -437,30 +463,23 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           )}
           <div
             className={cn(
-              'relative rounded-2xl px-3.5 py-2 transition-transform duration-150',
+              'relative rounded-[16px] px-3.5 py-2 transition-transform duration-150',
               // `anywhere`, not `break-word`: only it lowers the min-content width, so a long URL
               // wraps inside the bubble instead of stretching it past the screen edge
-              'max-w-full min-w-[100px] wrap-anywhere',
+              'max-w-full min-w-[64px] wrap-anywhere',
               isCurrentUser
                 ? 'bg-conveniat-green text-white'
                 : 'border-line border bg-white text-green-900',
-              isLastInGroup && (isCurrentUser ? 'rounded-br-[4px]' : 'rounded-bl-[4px]'),
+              bubbleCornerClassName(isCurrentUser, isFirstInGroup, isLastInGroup),
               // pending shows as a quieter bubble and a clock, never a spinner
               message.status === MessageEventType.CREATED &&
                 message.sendFailed !== true &&
                 'opacity-80',
-              message.sendFailed === true && 'ring-live ring-2',
+              message.sendFailed === true && 'ring-danger ring-2',
               (isLongPressing || isSelected) && 'scale-[0.98]',
               isSelected && 'ring-conveniat-green/30 ring-2',
             )}
           >
-            {/* Thread Root Label */}
-            {isThreadRoot && (
-              <div className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-semibold tracking-wide uppercase opacity-70">
-                <MessageSquare className="h-3 w-3" />
-                <span>Thread</span>
-              </div>
-            )}
             {/* Quoted message preview */}
             {quotedMessageId && (
               <button
@@ -470,13 +489,25 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                   scrollToMessage(quotedMessageId);
                 }}
                 className={cn(
-                  'relative mb-2 block w-full cursor-pointer rounded-r-md border-l-[3px] py-1 pr-2 pl-3 text-left transition-colors',
+                  'relative mt-0.5 mb-2 block w-full cursor-pointer rounded-[8px] border-l-[3px] py-1.5 pr-2 pl-2.5 text-left transition-colors',
+                  // brand green on the white bubble; on the green one a white bar and white text,
+                  // both above 4.5:1 on the lightened green
                   isCurrentUser
-                    ? 'border-white/50 bg-white/15 text-white/90'
+                    ? 'border-white bg-white/15 text-white'
                     : 'border-conveniat-green bg-quiet text-green-700',
                 )}
               >
-                <span className="line-clamp-2 text-[0.8rem] leading-snug">
+                {quotedAuthor !== undefined && (
+                  <span
+                    className={cn(
+                      'block truncate text-[13px] leading-snug font-semibold',
+                      isCurrentUser ? 'text-white' : 'text-green-900',
+                    )}
+                  >
+                    {quotedAuthor}
+                  </span>
+                )}
+                <span className="line-clamp-2 text-[13px] leading-snug">
                   {typeof quotedSnippet === 'string' && quotedSnippet.length > 0
                     ? quotedSnippet
                     : replyToMessageText[activeLocale]}
@@ -484,7 +515,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               </button>
             )}
             {message.type === MessageType.IMAGE_MSG ? (
-              <div className="mb-2">
+              <div className={cn(showMeta && 'pb-4')}>
                 <ImageMessage message={message} />
               </div>
             ) : (
@@ -501,7 +532,17 @@ export const MessageComponent: React.FC<MessageProperties> = ({
                     ))}
                   </div>
                 )}
-                <div className="text-[15px] leading-[21px]">{renderedContent}</div>
+                <div className="text-[15px] leading-[21px]">
+                  {renderedContent}
+                  {/* keeps the end of the last line free for the time, which sits on it, or
+                      moves to a line of its own when the text runs to the edge */}
+                  {showMeta && (
+                    <span
+                      aria-hidden="true"
+                      className={cn('inline-block h-px', isCurrentUser ? 'w-[60px]' : 'w-[40px]')}
+                    />
+                  )}
+                </div>
               </>
             )}
             {/* Timestamp and status: in the bubble for the last of a block, beside it on demand
@@ -509,8 +550,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
             {showMeta ? (
               <div
                 className={cn(
-                  'mt-1 flex items-center justify-end gap-1 text-[10px]',
-                  isCurrentUser ? 'text-white/80' : 'text-green-500',
+                  'absolute right-3 bottom-[7px] flex items-center gap-1 text-[11px] leading-none',
+                  // 4.5:1 on both bubbles: white over the green, the secondary text on white
+                  isCurrentUser ? 'text-white/85' : 'text-green-700',
                 )}
               >
                 <span className="tabular-nums">
@@ -523,7 +565,7 @@ export const MessageComponent: React.FC<MessageProperties> = ({
               !hasAvatarSlot && (
                 <span
                   className={cn(
-                    'pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center text-[10px] whitespace-nowrap text-green-500',
+                    'pointer-events-none absolute top-1/2 flex -translate-y-1/2 items-center text-[11px] whitespace-nowrap text-green-700',
                     isCurrentUser ? 'right-full mr-2' : 'left-full ml-2',
                   )}
                 >
@@ -536,8 +578,9 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           {/* Reactions Badges */}
           {groupedReactions.length > 0 && (
             <div
+              // over the foot of the bubble, so they read as its own
               className={cn(
-                'mt-1.5 flex flex-wrap gap-1',
+                'relative z-10 -mt-1.5 flex flex-wrap gap-1 px-2',
                 isCurrentUser ? 'justify-end' : 'justify-start',
               )}
             >
@@ -563,38 +606,15 @@ export const MessageComponent: React.FC<MessageProperties> = ({
           <FailedMessageActions message={message} locale={activeLocale} />
         )}
 
-        {/* Thread Reply Count Indicator (Below Bubble) */}
+        {/* the thread hangs on its message, not between it and the next one */}
         {!hideReplyCount && message.replyCount !== undefined && message.replyCount > 0 && (
-          <button
-            type="button"
-            className={cn(
-              'relative flex min-h-11 cursor-pointer items-center gap-2 transition-opacity hover:opacity-85',
-              isCurrentUser ? 'justify-end self-end pr-2' : 'justify-start pl-8',
-            )}
-            onClick={(event_) => {
-              event_.preventDefault();
-              event_.stopPropagation();
-              replyInThread(message.id);
-            }}
-          >
-            {/* Curved connection line for incoming messages */}
-            {!isCurrentUser && (
-              <span className="border-l-1.5 border-b-1.5 border-rail absolute -top-2 left-3.5 h-[30px] w-3.5 rounded-bl-md" />
-            )}
-
-            <span className="text-conveniat-green relative flex items-center gap-1.5 text-xs font-semibold">
-              <MessageSquare className="h-3.5 w-3.5" aria-hidden="true" />
-              {message.hasUnreadReplies && activeThreadId !== message.id && (
-                <span className="absolute -top-1 -left-1 flex h-2 w-2">
-                  <span className="bg-conveniat-green absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
-                  <span className="bg-conveniat-green relative inline-flex h-2 w-2 rounded-full"></span>
-                </span>
-              )}
-              <span className="whitespace-nowrap">
-                {repliesCountText(message.replyCount, activeLocale)}
-              </span>
-            </span>
-          </button>
+          <ThreadSummary
+            message={message}
+            replyCount={message.replyCount}
+            hasUnreadReplies={message.hasUnreadReplies === true && activeThreadId !== message.id}
+            locale={activeLocale}
+            onOpen={() => replyInThread(message.id)}
+          />
         )}
       </div>
 

@@ -35,7 +35,7 @@ export const FailedMessageActions: React.FC<{ message: ChatMessage; locale: Loca
   const { retry, discard } = useFailedMessageActions();
 
   return (
-    <div className="text-live-text flex items-center gap-1 pr-1 text-xs">
+    <div className="text-danger-text flex items-center gap-1 pr-1 text-xs">
       <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
       <span>{notSentText[locale]}</span>
       <span aria-hidden="true">·</span>

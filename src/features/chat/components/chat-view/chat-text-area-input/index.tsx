@@ -1,5 +1,6 @@
 // hooks/use-message-input-logic.ts
 import { Button } from '@/components/ui/buttons/button';
+import { formFieldClassName } from '@/components/ui/field';
 import { useMessageInput } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-message-input';
 import { useStagedImage } from '@/features/chat/components/chat-view/chat-text-area-input/hooks/use-staged-image';
 import { useChatActions } from '@/features/chat/context/chat-actions-context';
@@ -8,22 +9,35 @@ import { useChatDetail } from '@/features/chat/hooks/use-chats';
 import { useImageUpload } from '@/features/chat/hooks/use-image-upload';
 import { useMessageSend } from '@/features/chat/hooks/use-message-send';
 import { generateMessageId } from '@/features/chat/utils';
+import { splitDisplayName } from '@/features/chat/utils/split-display-name';
 import { ChatCapability, ChatStatus } from '@/lib/chat-shared';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType } from '@prisma/client';
-import { Megaphone, Paperclip, Send, X } from 'lucide-react';
+import { Megaphone, Paperclip, Reply, Send, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import React from 'react';
 
 const MAX_MESSAGE_LENGTH = 2000;
 
+const messageToPlaceholder: StaticTranslationString = {
+  de: 'Nachricht an {name}',
+  en: 'Message {name}',
+  fr: 'Message à {name}',
+};
+
 const messagePlaceholder: StaticTranslationString = {
-  de: 'Nachricht eingeben...',
-  en: 'Type a message...',
-  fr: 'Tapez un message...',
+  de: 'Nachricht schreiben',
+  en: 'Write a message',
+  fr: 'Écrire un message',
+};
+
+const threadReplyPlaceholder: StaticTranslationString = {
+  de: 'Im Thread antworten',
+  en: 'Reply in thread',
+  fr: 'Répondre dans le fil',
 };
 
 const enterToSendHint: StaticTranslationString = {
@@ -93,9 +107,9 @@ const sendLabel: StaticTranslationString = {
 };
 
 const cancelQuoteText: StaticTranslationString = {
-  de: 'Zitat entfernen',
-  en: 'Remove quote',
-  fr: 'Retirer la citation',
+  de: 'Antwort abbrechen',
+  en: 'Cancel reply',
+  fr: 'Annuler la réponse',
 };
 
 const messageNotFoundText: StaticTranslationString = {
@@ -105,9 +119,21 @@ const messageNotFoundText: StaticTranslationString = {
 };
 
 const replyingToText: StaticTranslationString = {
-  de: 'Antwort auf',
-  en: 'Replying to',
-  fr: 'En réponse à',
+  de: 'Antwort an {name}',
+  en: 'Replying to {name}',
+  fr: 'Réponse à {name}',
+};
+
+const replyingToYourselfText: StaticTranslationString = {
+  de: 'Antwort auf deine Nachricht',
+  en: 'Replying to your message',
+  fr: 'Réponse à ton message',
+};
+
+const replyingText: StaticTranslationString = {
+  de: 'Antwort',
+  en: 'Reply',
+  fr: 'Réponse',
 };
 
 const chatLockedText: StaticTranslationString = {
@@ -354,9 +380,13 @@ export const ChatTextAreaInput: React.FC = () => {
   }
 
   const localizedError = getLocalizedError(sendError);
+  let placeholder = messagePlaceholder[locale];
+  if (activeThreadId !== undefined) placeholder = threadReplyPlaceholder[locale];
+  else if (chatDetails.name !== '')
+    placeholder = messageToPlaceholder[locale].replace('{name}', chatDetails.name);
 
   return (
-    <div className="group flex flex-col gap-1">
+    <div className="group flex flex-col gap-2">
       {/* Error message when sending fails */}
       {localizedError !== undefined && localizedError !== '' && (
         <div
@@ -374,75 +404,79 @@ export const ChatTextAreaInput: React.FC = () => {
 
       {/* Character count warning */}
       {isNearLimit && (
-        <div className={cn('text-live-text px-2 text-right text-xs', isTooLong && 'font-semibold')}>
+        <div
+          className={cn(
+            'px-2 text-right text-xs',
+            // a count while it fits, an error once it does not
+            isTooLong ? 'text-danger-text font-semibold' : 'text-green-700',
+          )}
+        >
           {messageLength}/{MAX_MESSAGE_LENGTH}
           {isTooLong && ` - ${messageTooLongText[locale]}`}
         </div>
       )}
 
-      <div className="border-line focus-within:ring-conveniat-green flex flex-col rounded-[12px] border bg-white focus-within:ring-2">
-        {/* Staged attachment sits above the text it will be sent with */}
-        {stagedImage !== undefined && (
-          <div className="flex items-end gap-3 px-3 pt-3">
-            <div className="relative">
-              <img
-                src={stagedImage.previewUrl}
-                alt=""
-                className={cn(
-                  'ring-line h-20 w-20 rounded-xl object-cover ring-1',
-                  isUploading && 'opacity-60',
-                  hasUploadFailed && 'ring-live ring-2',
-                )}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setHasUploadFailed(false);
-                  clearStagedImage();
-                }}
-                disabled={isUploading}
-                aria-label={removeAttachmentText[locale]}
-                className="absolute -top-3.5 -right-3.5 flex h-11 w-11 cursor-pointer items-center justify-center"
-              >
-                <span className="bg-heading flex h-6 w-6 items-center justify-center rounded-full text-white ring-2 ring-white">
-                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+      {/* The field has the frame of every form field in field.ts; the send button stands
+          beside it, at the foot of its last line however tall the field grows. A single line of
+          text inside the 1px border is 42px, so field and button are both 44px high. */}
+      <div className="flex items-end gap-2">
+        <div className={cn(formFieldClassName, 'flex-1 flex-col items-stretch')}>
+          {/* Staged attachment sits above the text it will be sent with */}
+          {stagedImage !== undefined && (
+            <div className="flex items-end gap-3 px-3 pt-3">
+              <div className="relative">
+                <img
+                  src={stagedImage.previewUrl}
+                  alt=""
+                  className={cn(
+                    'ring-line h-20 w-20 rounded-xl object-cover ring-1',
+                    isUploading && 'opacity-60',
+                    hasUploadFailed && 'ring-danger ring-2',
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHasUploadFailed(false);
+                    clearStagedImage();
+                  }}
+                  disabled={isUploading}
+                  aria-label={removeAttachmentText[locale]}
+                  className="absolute -top-3.5 -right-3.5 flex h-11 w-11 cursor-pointer items-center justify-center"
+                >
+                  <span className="bg-heading flex h-6 w-6 items-center justify-center rounded-full text-white ring-2 ring-white">
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </span>
+                </button>
+              </div>
+              {hasUploadFailed && (
+                <span className="text-danger-text pb-1 text-xs font-semibold">
+                  {uploadFailedText[locale]}
                 </span>
-              </button>
-            </div>
-            {hasUploadFailed && (
-              <span className="text-live-text pb-1 text-xs font-semibold">
-                {uploadFailedText[locale]}
-              </span>
-            )}
-          </div>
-        )}
-        {/* One inset on every side, and a line of text exactly as tall as the 44px buttons: a
-            single line sits on the buttons' centre, and as the field grows they stay at its foot.
-            It has the 12px radius and the focus ring of every field in field.ts; the buttons' 8px
-            is that less the 4px inset, so the corners stay concentric. */}
-        <div className="flex items-end gap-[4px] p-[4px]">
-          {canUploadPictures && (
-            <div>
-              <input
-                type="file"
-                ref={fileInputReference}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileSelect}
-              />
-              <Button
-                onClick={() => fileInputReference.current?.click()}
-                aria-label={attachImageText[locale]}
-                size="icon"
-                variant="ghost"
-                className="h-[44px] w-[44px] shrink-0 cursor-pointer rounded-[8px] text-green-700 hover:bg-transparent [&_svg]:size-5"
-              >
-                <Paperclip aria-hidden="true" />
-              </Button>
+              )}
             </div>
           )}
-          {/* Input box */}
-          <div className="flex-1">
+          <div className="flex items-end">
+            {canUploadPictures && (
+              <div>
+                <input
+                  type="file"
+                  ref={fileInputReference}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                />
+                <Button
+                  onClick={() => fileInputReference.current?.click()}
+                  aria-label={attachImageText[locale]}
+                  size="icon"
+                  variant="ghost"
+                  className="h-[42px] w-[42px] shrink-0 cursor-pointer rounded-[11px] text-green-700 hover:bg-transparent [&_svg]:size-5"
+                >
+                  <Paperclip aria-hidden="true" />
+                </Button>
+              </div>
+            )}
             <textarea
               {...textareaProps}
               onKeyDown={(event) => {
@@ -451,42 +485,42 @@ export const ChatTextAreaInput: React.FC = () => {
                   void sendWithAttachment();
                 }
               }}
-              placeholder={messagePlaceholder[locale]}
+              placeholder={placeholder}
               // px, not rem: the root font is larger on desktop, and the line has to match the
-              // buttons, which are 44px everywhere
-              className="block w-full resize-none [scrollbar-width:thin] border-0 bg-transparent px-2 py-[10px] text-[16px] leading-[24px] text-green-900 placeholder:text-green-500 focus:ring-0 focus:outline-none"
+              // button, which is 44px everywhere
+              className={cn(
+                'block min-w-0 flex-1 resize-none [scrollbar-width:thin] border-0 bg-transparent py-[9px] pr-[14px] text-[16px] leading-[24px] text-green-900 placeholder:text-green-500 focus:ring-0 focus:outline-none',
+                canUploadPictures ? 'pl-0' : 'pl-[14px]',
+              )}
               rows={1}
               enterKeyHint="send"
               // five lines, then the textarea scrolls instead of eating the conversation
-              style={{ minHeight: '44px', maxHeight: '140px' }}
-              aria-label={messagePlaceholder[locale]}
+              style={{ minHeight: '42px', maxHeight: '138px' }}
+              aria-label={placeholder}
             />
           </div>
-
-          {/* Send button, at the foot of the field however tall it grows */}
-          <div>
-            {isTooLong ? (
-              <Button
-                onClick={() => void handleSplitAndSend()}
-                size="sm"
-                className="bg-live h-[44px] shrink-0 rounded-[8px] px-4 font-semibold text-white"
-              >
-                {splitAndSendText[locale]}
-              </Button>
-            ) : (
-              <Button
-                onClick={() => void sendWithAttachment()}
-                size="icon"
-                variant="ghost"
-                aria-label={sendLabel[locale]}
-                className="bg-conveniat-green disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[8px] text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
-                disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
-              >
-                <Send aria-hidden="true" />
-              </Button>
-            )}
-          </div>
         </div>
+
+        {isTooLong ? (
+          <Button
+            onClick={() => void handleSplitAndSend()}
+            size="sm"
+            className="bg-danger h-[44px] shrink-0 rounded-[12px] px-4 font-semibold text-white"
+          >
+            {splitAndSendText[locale]}
+          </Button>
+        ) : (
+          <Button
+            onClick={() => void sendWithAttachment()}
+            size="icon"
+            variant="ghost"
+            aria-label={sendLabel[locale]}
+            className="bg-conveniat-green disabled:bg-quiet h-[44px] w-[44px] shrink-0 rounded-[12px] text-white hover:bg-green-700 disabled:text-green-500 disabled:opacity-100 [&_svg]:size-5"
+            disabled={stagedImage === undefined ? isSendButtonDisabled : isUploading}
+          >
+            <Send aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       {/* keyboard hint only where there is a keyboard, and only while typing */}
@@ -496,15 +530,21 @@ export const ChatTextAreaInput: React.FC = () => {
     </div>
   );
 };
+/**
+ * What the next message answers, above the composer: whom, a line of what they wrote, and a way
+ * to drop it.
+ */
 const QuotedMessagePreview: React.FC<{
   messageId: string;
   onCancel: () => void;
 }> = ({ messageId, onCancel }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const { data: message, isLoading } = trpc.chat.getMessage.useQuery({ messageId });
+  const { data: currentUser } = trpc.chat.user.useQuery({});
+  const { data: chatDetails } = useChatDetail(useChatId());
 
   const getSnippet = (): string => {
-    if (isLoading) return '...';
+    if (isLoading) return '…';
     if (!message) return messageNotFoundText[locale];
 
     const payload = message.messagePayload;
@@ -513,27 +553,32 @@ const QuotedMessagePreview: React.FC<{
     if ('text' in textPayload) {
       return String(textPayload['text']);
     }
-    return '...';
+    return '…';
   };
 
-  const snippet = getSnippet();
-  const truncatedSnippet = snippet.length > 100 ? snippet.slice(0, 100) + '...' : snippet;
+  let title = replyingText[locale];
+  if (message !== undefined && message.senderId === currentUser) {
+    title = replyingToYourselfText[locale];
+  } else {
+    // `getMessage` leaves out the sender's name; the chat's members have it
+    const senderName = chatDetails?.participants.find((p) => p.id === message?.senderId)?.name;
+    if (senderName !== undefined && senderName !== '') {
+      title = replyingToText[locale].replace('{name}', splitDisplayName(senderName).primary);
+    }
+  }
 
   return (
-    <div className="bg-quiet flex items-center justify-between rounded-xl py-1 pr-0.5 pl-3 text-xs">
-      <div className="border-conveniat-green flex flex-1 items-center gap-3 overflow-hidden border-l-[3px] pl-3">
-        <div className="flex flex-col overflow-hidden">
-          <span className="text-conveniat-green text-[11px] font-bold tracking-[0.08em] uppercase">
-            {replyingToText[locale]}
-          </span>
-          <span className="truncate text-[13px] text-green-700">{truncatedSnippet}</span>
-        </div>
+    <div className="bg-quiet flex items-center gap-3 rounded-[12px] py-1 pr-0.5 pl-3">
+      <Reply className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[13px] font-semibold text-green-900">{title}</span>
+        <span className="truncate text-[13px] text-green-700">{getSnippet()}</span>
       </div>
       <button
         type="button"
         onClick={onCancel}
         aria-label={cancelQuoteText[locale]}
-        className="ml-2 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
+        className="hover:bg-chip flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-green-700"
       >
         <X className="h-5 w-5" aria-hidden="true" />
       </button>

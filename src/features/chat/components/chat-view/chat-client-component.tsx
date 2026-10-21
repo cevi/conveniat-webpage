@@ -146,7 +146,7 @@ const ChatClientContent: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         <MessageList />
       </div>
-      <div className="border-line border-t bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="border-line border-t bg-white px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <ChatTextAreaInput />
       </div>
 
