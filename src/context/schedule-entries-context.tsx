@@ -293,12 +293,24 @@ export const ScheduleEntriesProvider: React.FC<ScheduleEntriesProviderProperties
 };
 
 /**
+ * What a component sees before the provider is there: no local entries yet.
+ *
+ * `ClientProviders` loads the provider without SSR and renders its children as the Suspense
+ * fallback meanwhile, so the server render, the build's prerender and the first client frames
+ * all run outside it. Throwing there fails `next build` on Home (see `useStar` for the same).
+ */
+const emptyContext: ScheduleEntriesContextType = {
+  entries: [],
+  isReady: false,
+  syncFromServer: () => {},
+  getEntriesForDate: () => [],
+  lastSyncedAt: undefined,
+};
+
+/**
  * Hook to access schedule entries from local DB.
  */
 export const useScheduleEntries = (): ScheduleEntriesContextType => {
   const context = useContext(ScheduleEntriesContext);
-  if (context === undefined) {
-    throw new Error('useScheduleEntries must be used within a ScheduleEntriesProvider');
-  }
-  return context;
+  return context ?? emptyContext;
 };
