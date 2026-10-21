@@ -313,7 +313,8 @@ export const EnrollmentAction: React.FC<{
               size="touch"
               onClick={() => unenroll.mutate({ courseId })}
               disabled={unenroll.isPending}
-              className="ml-auto"
+              // leaving is destructive, so red; it can be undone right after
+              className="border-danger-line text-danger-text hover:bg-danger-soft ml-auto"
             >
               {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {localizedUnenroll[locale]}
@@ -422,7 +423,7 @@ export const EnrollmentAction: React.FC<{
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
             <ChatAlertDialogAction
-              className="bg-conveniat-green hover:bg-conveniat-green-dark w-full text-white"
+              className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event) => {
                 event.preventDefault();
                 if (conflictInfo) {

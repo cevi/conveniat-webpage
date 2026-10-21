@@ -33,7 +33,7 @@ export const DetailTabBar: React.FC<{
           'focus-visible:focus-ring-inset flex h-11 shrink-0 cursor-pointer items-center gap-1 border-b-2 text-sm font-semibold',
           tab === active
             ? 'border-conveniat-green text-green-900'
-            : 'border-transparent text-green-700',
+            : 'border-transparent text-green-700 hover:text-green-900',
         )}
       >
         {LEADER_TABS.has(tab) && <Lock className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -138,7 +138,7 @@ export const MaterialTab: React.FC<{ notes: LeaderNotes; locale: Locale }> = ({
                   href={document.url ?? undefined}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex min-h-11 items-center gap-3 px-3.5 py-2.5 text-[15px]"
+                  className="focus-visible:focus-ring-inset hover:bg-quiet flex min-h-11 items-center gap-3 px-3.5 py-2.5 text-[15px] transition-colors"
                 >
                   <FileText className="text-conveniat-green h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate text-green-900">

@@ -9,6 +9,7 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { OrganiserContacts } from '@/features/schedule/components/organiser-contacts';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ReminderButton, ReminderHint } from '@/features/schedule/components/reminder-button';
+import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import {
   floatingButtonClassName,
   mapCenterOf,
@@ -157,10 +158,9 @@ export const ShiftDetailView: React.FC<{
           {chrome}
           <div className={containerClassName}>
             <div className="absolute inset-x-0 top-0 z-20 flex p-3">{backButton}</div>
-            <div className="flex-1 space-y-4 overflow-y-auto px-4 pt-[72px]">
-              <div className="bg-quiet h-8 w-3/4 animate-pulse rounded-lg" />
-              <div className="bg-quiet h-40 animate-pulse rounded-[14px]" />
-              <div className="bg-quiet h-24 animate-pulse rounded-[14px]" />
+            {/* the page it loads into is built like a block's */}
+            <div className="flex-1 overflow-y-auto">
+              <ScheduleDetailSkeleton />
             </div>
           </div>
         </>
@@ -251,7 +251,7 @@ export const ShiftDetailView: React.FC<{
                   {shift.title}
                 </h1>
                 {shift.description !== '' && (
-                  <p className="text-base leading-relaxed text-green-700">{shift.description}</p>
+                  <p className="text-[15px] leading-normal text-green-700">{shift.description}</p>
                 )}
               </header>
 

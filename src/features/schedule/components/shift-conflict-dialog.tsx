@@ -281,7 +281,7 @@ export const ShiftConflictDialog: React.FC<{
           )}
           {!isSwitchBlocked && (
             <ChatAlertDialogAction
-              className="bg-conveniat-green hover:bg-conveniat-green-dark w-full text-white"
+              className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
                 onSwitch();

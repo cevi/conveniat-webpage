@@ -34,12 +34,12 @@ interface ParticipantListProperties {
 
 const labels = {
   title: {
-    de: 'Teilnehmer',
+    de: 'Teilnehmende',
     en: 'Participants',
     fr: 'Participants',
   },
   noParticipants: {
-    de: 'Noch keine Teilnehmer',
+    de: 'Noch keine Teilnehmenden',
     en: 'No participants yet',
     fr: 'Pas encore de participants',
   },
@@ -117,7 +117,7 @@ export const ParticipantList: React.FC<ParticipantListProperties> = ({
       </SectionLabel>
 
       {participants.length === 0 ? (
-        <p className="font-body mt-2 text-sm text-green-700">
+        <p className="font-body mt-2 text-[15px] text-green-700">
           {(isShift ? labels.noShiftParticipants : labels.noParticipants)[locale]}
         </p>
       ) : (

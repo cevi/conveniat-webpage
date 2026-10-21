@@ -355,7 +355,8 @@ export const ShiftEnrollmentAction: React.FC<{
           size="touch"
           onClick={() => unenroll.mutate({ shiftId })}
           disabled={unenroll.isPending}
-          className="shrink-0"
+          // leaving is destructive, so red
+          className="border-danger-line text-danger-text hover:bg-danger-soft shrink-0"
         >
           {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
           {localizedUnenroll[locale]}
@@ -382,7 +383,7 @@ export const ShiftEnrollmentAction: React.FC<{
               size="touch"
               onClick={() => unenroll.mutate({ shiftId })}
               disabled={unenroll.isPending}
-              className="ml-auto"
+              className="border-danger-line text-danger-text hover:bg-danger-soft ml-auto"
             >
               {unenroll.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {localizedUnenroll[locale]}
@@ -464,7 +465,7 @@ export const ShiftEnrollmentAction: React.FC<{
           </div>
           <ChatAlertDialogFooter className="gap-3 sm:gap-0">
             <ChatAlertDialogAction
-              className="bg-conveniat-green hover:bg-conveniat-green-dark w-full text-white"
+              className="bg-conveniat-green w-full text-white hover:bg-green-700"
               onClick={(event: React.MouseEvent) => {
                 event.preventDefault();
                 enroll.mutate({ shiftId });
