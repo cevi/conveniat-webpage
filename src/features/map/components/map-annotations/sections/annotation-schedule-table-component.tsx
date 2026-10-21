@@ -32,7 +32,9 @@ const quartierIdsOf = (entry: CampScheduleEntry): string[] =>
 /**
  * The programme at a place, one row per block and day: the slot of the user's own Quartier
  * where the Quartiere take turns, else the first. What is still to come leads, in order; what is
- * over follows. Meals and walks are left out, they have no page to open.
+ * over follows. Meals, walks and Fixpunkte are left out: they have no page to open, and the
+ * Fixpunkte sit on catch-all places like "Lagerplatz", where a Tagwache a day would bury the
+ * programme.
  */
 const rowsOf = (
   schedule: readonly CampScheduleEntry[],
