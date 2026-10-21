@@ -55,7 +55,11 @@ export const ShiftOrganisers: React.FC<{
               <div className="min-w-0 flex-1 text-[15px] leading-5 font-semibold break-words text-green-900">
                 {displayName}
               </div>
-              <ChatLinkButton userId={organiser.id} className="shrink-0" />
+              {/* at least 44px high, like every other control on the page */}
+              <ChatLinkButton
+                userId={organiser.id}
+                className="border-rail hover:bg-quiet h-11 shrink-0 rounded-xl bg-white px-4 text-[15px] font-semibold text-green-900 shadow-none hover:text-green-900"
+              />
             </li>
           );
         })}
