@@ -1,15 +1,18 @@
+import { QuartierBadge, QuartierDot } from '@/components/quartier/quartier-badge';
 import { segmentClassName, segmentedTrackClassName } from '@/components/ui/segmented-control';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import type { MyQuartier, ScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import type { Locale } from '@/types/types';
-import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
+import { quartierRufnameOf } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
 /**
  * Switches the programme between the user's own Quartier and the whole camp. Somebody without a
  * Quartier sees the whole camp only, so there is nothing to switch for them. The own side is
- * called by the Quartier's name, "Greif Q5"; with several Quartiere it is "Für mich".
+ * called by the Quartier's icon and Rufname, "Greif": the icon is the one on the Q5 chips of the
+ * cards below, and a long Rufname such as Wolpertinger keeps its room. With several Quartiere it
+ * is "Für mich" with a chip for each.
  */
 export const ScheduleViewToggles: React.FC<{
   myQuartiere: MyQuartier[];
@@ -41,17 +44,16 @@ export const ScheduleViewToggles: React.FC<{
             'flex-1 gap-1.5 px-2 text-sm font-semibold',
           )}
         >
+          {value === 'mine' && onlyQuartier !== undefined && myQuartiere.length === 1 && (
+            <QuartierDot quartier={onlyQuartier} />
+          )}
           <span className="truncate">
             {value === 'mine' ? mineLabel : programmeLabels.allQuartiere[locale]}
           </span>
           {value === 'mine' &&
+            myQuartiere.length > 1 &&
             myQuartiere.map((quartier) => (
-              <span
-                key={quartier.id}
-                className="bg-chip shrink-0 rounded-md px-1.5 py-0.5 text-[11px] leading-4 font-bold text-green-700"
-              >
-                {shortQuartierName(quartier)}
-              </span>
+              <QuartierBadge key={quartier.id} quartier={quartier} className="shrink-0" />
             ))}
         </button>
       ))}

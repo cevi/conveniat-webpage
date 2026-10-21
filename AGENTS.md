@@ -319,7 +319,8 @@ by its role once a second screen needs it, not before.
   removing, deleting, the required-field asterisk. A delete that cannot be undone for everyone
   also says what it deletes. A notice that is only good to know is neutral, `bg-quiet` with an
   icon. The favourite star is amber. Each programme category keeps its colour, and one that would
-  read as red is shifted to pink.
+  read as red is shifted to pink. Each Quartier keeps its house colour from its banner, Kitsune's
+  dark red included: it is the house's identity, not a warning (`src/components/quartier`).
 - **Controls.** Touch targets are at least 44×44px. One `primary` button per view, the rest
   `quiet` or `outlined`; a destructive action is `outlined` in red (`danger`) and either asks before it acts or can
   be undone right after. A segmented control takes its track and segments

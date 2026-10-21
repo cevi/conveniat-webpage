@@ -1,5 +1,6 @@
 'use client';
 
+import { QuartierBadge } from '@/components/quartier/quartier-badge';
 import { StarButton } from '@/components/star/star';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
 import {
@@ -11,13 +12,11 @@ import { useScrollRestoration } from '@/features/schedule/hooks/use-scroll-resto
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
-import type { EntryQuartier } from '@/features/schedule/utils/programme-utils';
 import { isForQuartiere, quartiereOf, slotOf } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import type { TimelineStop } from '@/features/schedule/utils/timeline';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import { CheckCircle } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
@@ -41,21 +40,6 @@ interface ScheduleRowProperties {
   /** "Läuft · noch 18 min", when it is running */
   runningLabel?: string | undefined;
 }
-
-/** "Q5", filled when it is the user's own Quartier. */
-const QuartierChip: React.FC<{ quartier: EntryQuartier; isMine: boolean }> = ({
-  quartier,
-  isMine,
-}) => (
-  <span
-    className={cn(
-      'rounded-md px-1.5 py-0.5 text-xs font-bold',
-      isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
-    )}
-  >
-    {shortQuartierName(quartier)}
-  </span>
-);
 
 /** One block on the timeline: a card, its node in the category's colour. */
 export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
@@ -147,7 +131,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
           {showSlots && !isGrouped && quartiereOf(primary).length > 0 && (
             <span className="mt-2 flex flex-wrap gap-1">
               {quartiereOf(primary).map((quartier) => (
-                <QuartierChip
+                <QuartierBadge
                   key={quartier.id}
                   quartier={quartier}
                   isMine={myQuartierIds.has(quartier.id)}
@@ -192,13 +176,13 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                     )}
                   >
                     {quartiereOf(entry).map((quartier) => (
-                      <QuartierChip
+                      <QuartierBadge
                         key={quartier.id}
                         quartier={quartier}
                         isMine={myQuartierIds.has(quartier.id)}
                       />
                     ))}
-                    <span className="ml-auto text-[13px] font-semibold text-green-900 tabular-nums">
+                    <span className="ml-auto shrink-0 text-[13px] font-semibold whitespace-nowrap text-green-900 tabular-nums">
                       {entry.timeslot.time.replace(' - ', '–')}
                     </span>
                   </Link>

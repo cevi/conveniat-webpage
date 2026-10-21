@@ -1,3 +1,4 @@
+import { QuartierDot } from '@/components/quartier/quartier-badge';
 import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
 import { environmentVariables } from '@/config/environment-variables';
 import type { CampMapAnnotationPoint, CampMapAnnotationPolygon } from '@/features/map/types/types';
@@ -44,7 +45,10 @@ export const AnnotationDrawerHeader: React.FC<AnnotationDrawerHeaderProperties> 
           </h2>
           {/* read defensively: a phone can restore a map from before the Quartier was an object */}
           {typeof annotation.quartier?.name === 'string' && annotation.quartier.name !== '' && (
-            <p className="mt-0.5 text-sm text-green-500">{annotation.quartier.name}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-green-500">
+              <QuartierDot quartier={annotation.quartier} />
+              {annotation.quartier.name}
+            </p>
           )}
         </div>
         <button

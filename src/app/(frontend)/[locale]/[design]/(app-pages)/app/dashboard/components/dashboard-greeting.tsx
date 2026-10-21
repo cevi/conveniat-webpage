@@ -1,11 +1,13 @@
 'use client';
 
 import { GreetingSkeleton } from '@/app/(frontend)/[locale]/[design]/(app-pages)/app/dashboard/components/dashboard-skeleton';
+import { QuartierDot } from '@/components/quartier/quartier-badge';
 import { useNow } from '@/features/schedule/hooks/use-now';
 import { displayNamesOf } from '@/features/settings/utils/display-names';
 import { trpc } from '@/trpc/client';
 import { HitobitoNextAuthUserSchema } from '@/types/hitobito-next-auth-user';
 import type { Locale, StaticTranslationString } from '@/types/types';
+import type { QuartierLabel } from '@/utils/quartier-names';
 import { useSession } from 'next-auth/react';
 import type React from 'react';
 
@@ -21,12 +23,17 @@ const welcome: StaticTranslationString = {
   fr: 'Bienvenue',
 };
 
+type GreetedQuartier = { id: string; name: string } & QuartierLabel;
+
 const dateLocales: Record<Locale, string> = { de: 'de-CH', en: 'en-GB', fr: 'fr-CH' };
 
-/** "Sa., 24. Juli · Quartier 5 Greif", on the camp's clock; renders only in the browser. */
-const TodayLine: React.FC<{ locale: Locale; quartier: string | undefined }> = ({
+/**
+ * "Sa., 24. Juli · Quartier 5 - Greif", each Quartier behind its icon, on the camp's clock;
+ * renders only in the browser.
+ */
+const TodayLine: React.FC<{ locale: Locale; quartiere: GreetedQuartier[] }> = ({
   locale,
-  quartier,
+  quartiere,
 }) => {
   const now = useNow();
   const date = new Intl.DateTimeFormat(dateLocales[locale], {
@@ -36,8 +43,15 @@ const TodayLine: React.FC<{ locale: Locale; quartier: string | undefined }> = ({
     timeZone: 'Europe/Zurich',
   }).format(now);
   return (
-    <p className="mt-1 text-[15px] text-green-700">
-      {[date, quartier].filter((part) => part !== undefined && part !== '').join(' · ')}
+    <p className="mt-1 flex min-h-[22px] flex-wrap items-center gap-x-1.5 text-[15px] text-green-700">
+      <span>{date}</span>
+      {quartiere.map((quartier) => (
+        <span key={quartier.id} className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true">·</span>
+          <QuartierDot quartier={quartier} />
+          {quartier.name}
+        </span>
+      ))}
     </p>
   );
 };
@@ -56,10 +70,12 @@ export const DashboardGreeting: React.FC<{ locale: Locale }> = ({ locale }) => {
     enabled: user !== undefined,
   });
   // the persisted query cache may hold anything an older version stored under this key
-  const quartier = (Array.isArray(myQuartiere) ? myQuartiere : [])
-    .map((entry) => (typeof entry.name === 'string' ? entry.name : ''))
-    .filter((name) => name !== '')
-    .join(', ');
+  const quartiere = (Array.isArray(myQuartiere) ? myQuartiere : []).flatMap(
+    (entry): GreetedQuartier[] =>
+      typeof entry.id === 'string' && typeof entry.name === 'string' && entry.name !== ''
+        ? [entry]
+        : [],
+  );
 
   // the session is only known in the browser; until then the line keeps its place
   if (status === 'loading') {
@@ -73,7 +89,7 @@ export const DashboardGreeting: React.FC<{ locale: Locale }> = ({ locale }) => {
           ? welcome[locale]
           : hello[locale].replace('{{name}}', displayNamesOf(user.name, user.nickname).callName)}
       </h2>
-      <TodayLine locale={locale} quartier={user === undefined ? undefined : quartier} />
+      <TodayLine locale={locale} quartiere={user === undefined ? [] : quartiere} />
     </div>
   );
 };

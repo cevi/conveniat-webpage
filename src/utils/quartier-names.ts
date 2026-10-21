@@ -12,35 +12,20 @@ export interface QuartierLabel {
   rufname?: string | null | undefined;
 }
 
-/**
- * A bare name is a Quartier known only by its full name.
- * TODO: drop the string once schedule-detail-content passes the Quartier, not its name.
- */
-type QuartierOrName = QuartierLabel | string | undefined;
-
-const labelOf = (quartier: QuartierOrName): QuartierLabel =>
-  typeof quartier === 'object' ? quartier : { name: quartier };
-
 const numberOf = (quartier: QuartierLabel): number | undefined =>
   typeof quartier.number === 'number' ? quartier.number : undefined;
 
 /** "Q5", or the full name of a Quartier without a number. */
-export const shortQuartierName = (quartier: QuartierOrName): string => {
-  const label = labelOf(quartier);
-  const number = numberOf(label);
-  return number === undefined ? (label.name ?? '') : `Q${number}`;
+export const shortQuartierName = (quartier: QuartierLabel): string => {
+  const number = numberOf(quartier);
+  return number === undefined ? (quartier.name ?? '') : `Q${number}`;
 };
 
 /** "Greif", the name people call the Quartier by, or its full name while it has none. */
-export const quartierRufnameOf = (quartier: QuartierOrName): string => {
-  const label = labelOf(quartier);
-  return typeof label.rufname === 'string' && label.rufname !== ''
-    ? label.rufname
-    : (label.name ?? '');
-};
-
-/** @deprecated the old name of {@link quartierRufnameOf}, still used by schedule-detail-content */
-export const quartierNicknameOf = quartierRufnameOf;
+export const quartierRufnameOf = (quartier: QuartierLabel): string =>
+  typeof quartier.rufname === 'string' && quartier.rufname !== ''
+    ? quartier.rufname
+    : (quartier.name ?? '');
 
 /** The order of the Quartiere by number; one without a number comes last. */
 export const quartierOrderOf = (quartier: QuartierLabel): number =>
