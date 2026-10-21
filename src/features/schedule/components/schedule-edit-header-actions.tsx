@@ -20,15 +20,15 @@ interface ScheduleEditHeaderActionsProperties {
   onStartEdit: () => void;
   onCancelEdit: () => void;
   onSave: () => void;
-  /** the look of the round buttons, such as white and floating over a map */
-  buttonClassName?: string;
+  /** the look of the round buttons: white and floating over the map */
+  buttonClassName: string;
   /** shown before the star, such as sharing */
   before?: React.ReactNode;
 }
 
 /**
- * Shared header actions for schedule detail edit mode.
- * Used by both standalone and modal schedule detail views.
+ * The buttons over the top of a block's page: editing for its organisers, then sharing and the
+ * star, and while editing the way out and saving.
  */
 export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProperties> = ({
   entryId,
@@ -39,7 +39,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
   onStartEdit,
   onCancelEdit,
   onSave,
-  buttonClassName = 'hover:bg-quiet flex h-11 w-11 items-center justify-center rounded-full text-green-900 transition-colors',
+  buttonClassName,
   before,
 }) => {
   return (
@@ -68,12 +68,12 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="bg-conveniat-green hover:bg-conveniat-green-dark flex h-11 items-center gap-1 rounded-full px-4 text-sm font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors disabled:opacity-50"
+            className="bg-conveniat-green flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-4 text-[15px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors hover:bg-green-700 disabled:opacity-50"
           >
             {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Check className="h-4 w-4" />
+              <Check className="h-4 w-4" aria-hidden="true" />
             )}
             {labels.save[locale]}
           </button>

@@ -1,15 +1,14 @@
-import { QuartierDot } from '@/components/quartier/quartier-badge';
-import { ChatLinkButton } from '@/components/ui/buttons/chat-link-button';
+import { QuartierBadge, QuartierGroupBadge } from '@/components/quartier/quartier-badge';
 import { FactRow } from '@/components/ui/fact-row';
 import { textInputClassName } from '@/components/ui/field';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
-import { PersonAvatar } from '@/components/ui/person-avatar';
 import { SectionLabel } from '@/components/ui/section-label';
 import { LexicalRichTextSection } from '@/features/payload-cms/components/content-blocks/lexical-rich-text-section';
 import type { CampScheduleEntry, User } from '@/features/payload-cms/payload-types';
 import type { LeaderNotes } from '@/features/schedule/api/viewer';
 import { BringChecklist } from '@/features/schedule/components/bring-checklist';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { OrganiserContacts } from '@/features/schedule/components/organiser-contacts';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ScheduleDetailActions } from '@/features/schedule/components/schedule-detail-actions';
 import type { DetailTab } from '@/features/schedule/components/schedule-detail-tabs';
@@ -30,8 +29,8 @@ import {
 import type { CampScheduleEntryFrontendType } from '@/features/schedule/types/types';
 import { getCategoryAccent } from '@/features/schedule/utils/category-utils';
 import { resolveLocation } from '@/features/schedule/utils/location-utils';
-import type { EntryQuartier } from '@/features/schedule/utils/programme-utils';
 import {
+  hasRichText,
   isDescriptionRedundant,
   isForQuartiere,
   quartiereOf,
@@ -39,22 +38,14 @@ import {
 } from '@/features/schedule/utils/programme-utils';
 import { formatDuration } from '@/features/schedule/utils/time-utils';
 import { useOnlineStatus } from '@/hooks/use-online-status';
-import { quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 
-import type { Locale, StaticTranslationString } from '@/types/types';
+import type { Locale } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
-import { formatUserFullName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
 import { AlertTriangle, ChevronRight, Clock, MapPin, Target, Users } from 'lucide-react';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
-
-const contactAdminText: StaticTranslationString = {
-  de: 'Kontakt mit Organisator',
-  en: 'Contact Organiser',
-  fr: "Contacter l'organisateur",
-};
 
 const labels = {
   location: { de: 'Ort', en: 'Location', fr: 'Lieu' },
@@ -143,23 +134,6 @@ interface ScheduleDetailContentProperties {
   leaderNotes?: LeaderNotes | null | undefined;
 }
 
-/** "Q5 Greif", filled when it is the user's own Quartier. */
-const QuartierChip: React.FC<{ quartier: EntryQuartier; isMine: boolean }> = ({
-  quartier,
-  isMine,
-}) => (
-  <span
-    className={cn(
-      'inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[13px]',
-      isMine ? 'bg-conveniat-green text-white' : 'bg-chip text-green-900',
-    )}
-  >
-    <QuartierDot quartier={quartier} />
-    <b className="font-bold">{shortQuartierName(quartier)}</b>
-    {quartierRufnameOf(quartier) !== shortQuartierName(quartier) && quartierRufnameOf(quartier)}
-  </span>
-);
-
 const startOf = (entry: Pick<CampScheduleEntryFrontendType, 'timeslot'>): string =>
   entry.timeslot.time.split(' - ')[0] ?? '';
 
@@ -174,7 +148,10 @@ const WhatComesNextCard: React.FC<{
   /** wraps the card in a link to the next block, or leaves it as it is */
   link: (content: React.ReactNode, className: string) => React.ReactNode;
 }> = ({ next, nextBlock, locale, link }) => {
-  const className = 'mt-2 flex min-h-16 items-center gap-3 rounded-[14px] bg-quiet px-3.5 py-3';
+  const className = cn(
+    'mt-2 flex min-h-16 items-center gap-3 rounded-[14px] bg-quiet px-3.5 py-3',
+    nextBlock !== undefined && 'hover:bg-chip transition-colors',
+  );
   const content = (
     <>
       <div className="min-w-0 flex-1">
@@ -289,16 +266,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
     <ScheduleStatusProvider courseIds={[entry.id]} isOnline={isOnline}>
       <article className="mx-auto w-full max-w-xl overflow-x-hidden pb-6">
         {/* Where it is, first: the question people open a block with */}
-        {location !== undefined && hasMap && (
-          <ScheduleMiniMap
-            location={location}
-            interactive={false}
-            showOpenInMap={false}
-            zoom={16}
-            // the panel below overlaps the map's bottom edge; the swisstopo credit stays above it
-            className="mt-0 h-[220px] rounded-none border-0 [&_.maplibregl-ctrl-bottom-right]:bottom-5"
-          />
-        )}
+        {location !== undefined && hasMap && <ScheduleMiniMap location={location} />}
 
         <div
           className={cn(
@@ -352,7 +320,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               />
             ) : (
               showDescription && (
-                <div className="prose prose-gray max-w-none text-base leading-relaxed text-green-700">
+                <div className="prose prose-gray max-w-none text-[15px] leading-normal text-green-700">
                   <LexicalRichTextSection richTextSection={entry.description} locale={locale} />
                 </div>
               )
@@ -435,10 +403,11 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       aria-label={programmeLabels.quartiere[locale]}
                     >
                       {quartiere.map((quartier) => (
-                        <QuartierChip
+                        <QuartierBadge
                           key={quartier.id}
                           quartier={quartier}
                           isMine={myQuartierIds.has(quartier.id)}
+                          withRufname
                         />
                       ))}
                     </div>
@@ -446,7 +415,8 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 )}
 
                 {/* Target Group */}
-                {(entry.target_group || isEditing) && (
+                {/* a draft can hold an empty target group, which would leave the label alone */}
+                {(hasRichText(entry.target_group) || isEditing) && (
                   <FactRow icon={Target} title={labels.targetGroup[locale]}>
                     {isEditing && editData ? (
                       <MarkdownEditor
@@ -457,7 +427,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       />
                     ) : undefined}
                     {!isEditing && entry.target_group && (
-                      <div className="font-body mt-0.5 text-sm text-green-700">
+                      <div className="font-body mt-px text-[13px] leading-[18px] text-green-700">
                         <LexicalRichTextSection
                           richTextSection={entry.target_group}
                           locale={locale}
@@ -496,33 +466,41 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 <section>
                   <SectionLabel>{programmeLabels.otherTimeSlots[locale]}</SectionLabel>
                   <ul className="mt-2 space-y-1.5">
-                    {otherSlots.map((other) => (
-                      <li key={other.id}>
-                        {entryLink(
-                          other,
-                          'flex min-h-11 items-center gap-1.5 rounded-xl bg-quiet px-3.5 py-2 text-sm text-green-900',
-                          <>
-                            <b className="font-semibold tabular-nums">
-                              {other.timeslot.time.replace(' - ', '–')}
-                            </b>
-                            {quartiereOf(other)
-                              .filter(({ name }) => name !== undefined)
-                              .map((quartier) => (
-                                <span key={quartier.id}>
-                                  · {shortQuartierName(quartier)} {quartierRufnameOf(quartier)}
-                                </span>
-                              ))}
-                            {/* the way back to the user's own slot after looking at another */}
-                            {quartiereOf(other).length > 0 &&
-                              isForQuartiere(other, myQuartierIds) && (
-                                <span className="text-conveniat-green ml-auto shrink-0 text-xs font-semibold">
+                    {otherSlots.map((other) => {
+                      // the way back to the user's own slot after looking at another
+                      const isMine =
+                        quartiereOf(other).length > 0 && isForQuartiere(other, myQuartierIds);
+                      return (
+                        <li key={other.id}>
+                          {entryLink(
+                            other,
+                            // as the slots of a block in the Programm: the Quartiere, their time
+                            cn(
+                              'flex min-h-11 items-center gap-3 rounded-xl border px-3 py-1.5 transition-colors',
+                              isMine
+                                ? 'border-tint-line bg-tint'
+                                : 'bg-quiet hover:bg-chip border-transparent',
+                            ),
+                            <>
+                              <span className="flex min-w-0 flex-1">
+                                <QuartierGroupBadge
+                                  quartiere={quartiereOf(other)}
+                                  myQuartierIds={myQuartierIds}
+                                />
+                              </span>
+                              <span className="shrink-0 text-[13px] font-semibold whitespace-nowrap text-green-900 tabular-nums">
+                                {other.timeslot.time.replace(' - ', '–')}
+                              </span>
+                              {isMine && (
+                                <span className="sr-only">
                                   {programmeLabels.yourQuartier[locale]}
                                 </span>
                               )}
-                          </>,
-                        )}
-                      </li>
-                    ))}
+                            </>,
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </section>
               )}
@@ -549,33 +527,7 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                 <ParticipantList courseId={entry.id} courseStatus={courseStatus} />
               )}
 
-              {/* Contact Organisers Section */}
-              {organisers.length > 0 && !isEditing && (
-                <section>
-                  <SectionLabel>{contactAdminText[locale]}</SectionLabel>
-                  <ul className="border-line divide-line mt-2 divide-y overflow-hidden rounded-[14px] border bg-white">
-                    {organisers.map((organiser) => (
-                      <li
-                        key={organiser.id}
-                        className="flex min-h-[60px] items-center gap-3 px-3.5 py-2.5"
-                      >
-                        <PersonAvatar
-                          seed={organiser.id}
-                          name={organiser.fullName}
-                          className="h-10 w-10 shrink-0 text-sm font-bold"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-green-900">
-                          {formatUserFullName(organiser.fullName, organiser.nickname)}
-                        </span>
-                        <ChatLinkButton
-                          userId={organiser.id}
-                          className="border-rail hover:bg-quiet h-11 shrink-0 rounded-xl bg-white px-4 text-[15px] font-semibold text-green-900 shadow-none hover:text-green-900"
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
+              {!isEditing && <OrganiserContacts organisers={organisers} locale={locale} />}
             </>
           )}
 

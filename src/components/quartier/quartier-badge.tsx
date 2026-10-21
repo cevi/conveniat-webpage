@@ -1,6 +1,6 @@
 import { quartierHouseOf } from '@/components/quartier/quartier-houses';
 import type { QuartierLabel } from '@/utils/quartier-names';
-import { formatQuartierRange, shortQuartierName } from '@/utils/quartier-names';
+import { formatQuartierRange, quartierRufnameOf, shortQuartierName } from '@/utils/quartier-names';
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
@@ -44,14 +44,18 @@ export const QuartierDot: React.FC<{
 
 /**
  * A Quartier as a chip, its dot and "Q5", filled brand green when it is the user's own. A
- * Quartier without a known number keeps the plain text chip with its name.
+ * Quartier without a known number keeps the plain text chip with its name. With its Rufname,
+ * "Q5 Greif", where the Quartiere of a block are listed one by one.
  */
 export const QuartierBadge: React.FC<{
   quartier: QuartierLabel;
   isMine?: boolean;
+  withRufname?: boolean;
   className?: string | undefined;
-}> = ({ quartier, isMine = false, className }) => {
+}> = ({ quartier, isMine = false, withRufname = false, className }) => {
   const hasDot = quartierHouseOf(quartier) !== undefined;
+  const shortName = shortQuartierName(quartier);
+  const rufname = quartierRufnameOf(quartier);
   return (
     <span
       className={cn(
@@ -62,7 +66,8 @@ export const QuartierBadge: React.FC<{
       )}
     >
       <QuartierDot quartier={quartier} size="sm" />
-      {shortQuartierName(quartier)}
+      {shortName}
+      {withRufname && rufname !== shortName && <span className="font-medium">{rufname}</span>}
     </span>
   );
 };

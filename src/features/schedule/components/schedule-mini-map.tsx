@@ -6,37 +6,11 @@ import { MiniMapLibreRenderer } from '@/features/map/components/map-renderer-wra
 import type { CampMapAnnotationPolygon } from '@/features/map/types/types';
 import type { CampMapAnnotation, Image } from '@/features/payload-cms/payload-types';
 import { trpc } from '@/trpc/client';
-import { i18nConfig, type Locale } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { MapPin } from 'lucide-react';
-import { useCurrentLocale } from 'next-i18n-router/client';
-import Link from 'next/link';
 import React from 'react';
 
-interface ScheduleMiniMapProperties {
-  location: CampMapAnnotation;
-  /**
-   * Sizes the map box, replacing the default fixed height.
-   *
-   * The schedule detail wants a strip of a known height; the helper portal wants one that keeps
-   * its proportions across phone widths. Passing the box in leaves both to the caller rather
-   * than growing a second copy of this component.
-   */
-  className?: string;
-  /**
-   * Whether the map may be touched at all.
-   *
-   * A map that answers taps is a map that can be made to say something else: pan away from the
-   * shift, open a neighbouring annotation, and what is on screen is no longer the meeting point
-   * the page is about. Where the map is there to state a fact rather than to be explored, the
-   * "open in map" button is the way out to a map that does respond.
-   */
-  interactive?: boolean;
-  /** the "open in map" button; left out where something else on the page leads to the map */
-  showOpenInMap?: boolean;
-  /** how close the map starts; a wide map can come closer and still show the surroundings */
-  zoom?: number;
-}
+/** a round white button floating over the map at the top of a block's or a shift's page */
+export const floatingButtonClassName =
+  'hover:bg-quiet flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white p-0 text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors';
 
 interface CoordinateObject {
   lat?: number;
@@ -44,14 +18,6 @@ interface CoordinateObject {
   lng?: number;
   longitude?: number;
 }
-
-const labels = {
-  openInMap: {
-    de: 'Auf Karte öffnen',
-    en: 'Open in map',
-    fr: 'Ouvrir dans la carte',
-  },
-} as const;
 
 /**
  * Parse polygon coordinates from various formats to [lng, lat][] format.
@@ -96,17 +62,14 @@ export const mapCenterOf = (location: CampMapAnnotation): [number, number] | und
 };
 
 /**
- * A mini map component for the schedule details page.
- * Displays the location with a marker/polygon and all other polygons with reduced opacity.
+ * The strip of map at the top of a block's or a shift's page: its place, marker or polygon, and
+ * the other polygons around it with reduced opacity.
+ *
+ * It states where the place is and does not answer taps: a map that answers can be panned away
+ * from the place, or open a neighbouring one, and then no longer says what the page is about.
+ * The place's row in the facts leads to the Karte, which does answer.
  */
-export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
-  location,
-  className,
-  interactive = true,
-  showOpenInMap = true,
-  zoom = 13.5,
-}) => {
-  const locale = useCurrentLocale(i18nConfig) as Locale;
+export const ScheduleMiniMap: React.FC<{ location: CampMapAnnotation }> = ({ location }) => {
   // Fetch all polygon annotations for context
   const { data: allAnnotations } = trpc.map.getAnnotations.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -171,21 +134,15 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
   }
 
   return (
-    <div
-      className={cn(
-        'border-line relative mt-2 w-full overflow-hidden rounded-[14px] border',
-        className,
-      )}
-      // the inline height is the default only; a caller that sizes the box owns it entirely
-      style={className === undefined ? { height: '160px' } : undefined}
-    >
+    // the panel below overlaps the map's bottom edge; the swisstopo credit stays above it
+    <div className="relative h-[220px] w-full overflow-hidden [&_.maplibregl-ctrl-bottom-right]:bottom-5">
       {/* Map container with explicit dimensions */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
         <MiniMapLibreRenderer
           key={location.id}
           initialMapPose={{
             initialMapCenter: [longitude, latitude],
-            zoom,
+            zoom: 16,
           }}
           ceviLogoMarkers={[]}
           campMapAnnotationPoints={
@@ -223,24 +180,8 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
         />
       </div>
 
-      {/*
-        Swallows every pointer event before it reaches the map. Sits under the button below,
-        which keeps its own higher layer, so the way out to the full map still works.
-      */}
-      {!interactive && <div className="absolute inset-0 z-[5]" aria-hidden="true" />}
-
-      {/* The way from here to the full map, which answers taps */}
-      {showOpenInMap && (
-        <div className="absolute top-3 right-3 z-10">
-          <Link
-            href={`/app/map?locationId=${location.id}`}
-            className="flex h-11 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors"
-          >
-            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {labels.openInMap[locale]}
-          </Link>
-        </div>
-      )}
+      {/* swallows every pointer event before it reaches the map */}
+      <div className="absolute inset-0 z-[5]" aria-hidden="true" />
     </div>
   );
 };

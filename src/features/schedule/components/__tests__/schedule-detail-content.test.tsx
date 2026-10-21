@@ -206,7 +206,8 @@ describe('ScheduleDetailContent tabs', () => {
 
     expect(screen.getByText('Weitere Zeitfenster')).toBeInTheDocument();
     expect(screen.getByText('13:45–15:45')).toBeInTheDocument();
-    expect(screen.getByText('· Q2 Kelpie')).toBeInTheDocument();
+    // the Quartiere as one chip, as the slots of a block in the Programm
+    expect(screen.getByText('Q2')).toBeInTheDocument();
   });
 });
 

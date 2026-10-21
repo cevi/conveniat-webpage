@@ -6,13 +6,17 @@ import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FactRow } from '@/components/ui/fact-row';
 import { SectionLabel } from '@/components/ui/section-label';
+import { OrganiserContacts } from '@/features/schedule/components/organiser-contacts';
 import { ParticipantList } from '@/features/schedule/components/participant-list';
 import { ReminderButton, ReminderHint } from '@/features/schedule/components/reminder-button';
-import { mapCenterOf, ScheduleMiniMap } from '@/features/schedule/components/schedule-mini-map';
+import {
+  floatingButtonClassName,
+  mapCenterOf,
+  ScheduleMiniMap,
+} from '@/features/schedule/components/schedule-mini-map';
 import { formatSpotsFilled, ShiftCapacity } from '@/features/schedule/components/shift-capacity';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
 import { ShiftMainContent } from '@/features/schedule/components/shift-main-content';
-import { ShiftOrganisers } from '@/features/schedule/components/shift-organisers';
 import { ShiftShareButton } from '@/features/schedule/components/shift-share-button';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
@@ -73,10 +77,6 @@ const notFoundLabel: StaticTranslationString = {
   de: 'Schichteinsatz nicht gefunden',
   fr: 'Service introuvable',
 };
-
-/** a round white button floating over the map */
-const floatingButtonClassName =
-  'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white p-0 text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] hover:bg-white';
 
 const containerClassName =
   'bg-page fixed inset-x-0 top-(--preview-banner-height) bottom-0 z-[110] flex flex-col overflow-hidden';
@@ -226,16 +226,7 @@ export const ShiftDetailView: React.FC<{
               Where on the camp the shift is, first: the meeting point below says which tent,
               this says where to walk.
             */}
-            {location !== undefined && hasMap && (
-              <ScheduleMiniMap
-                location={location}
-                interactive={false}
-                showOpenInMap={false}
-                zoom={16}
-                // the panel below overlaps the map's bottom edge; the swisstopo credit stays above it
-                className="mt-0 h-[220px] rounded-none border-0 [&_.maplibregl-ctrl-bottom-right]:bottom-5"
-              />
-            )}
+            {location !== undefined && hasMap && <ScheduleMiniMap location={location} />}
 
             <div
               className={cn(
@@ -352,7 +343,7 @@ export const ShiftDetailView: React.FC<{
                 </section>
               )}
 
-              <ShiftOrganisers organisers={shift.organiser} locale={locale} />
+              <OrganiserContacts organisers={shift.organiser} locale={locale} />
             </div>
           </article>
         </div>

@@ -227,6 +227,10 @@ export const isDescriptionRedundant = (description: unknown, title: string): boo
   return normalized === '' || normalized === normalizedText(title);
 };
 
+/** Whether rich text holds any words: a draft can save an empty document. */
+export const hasRichText = (value: unknown): boolean =>
+  normalizedText(textOfRichText(value)) !== '';
+
 /**
  * What comes after a block on its own timeline, the one of the Quartiere it is for: the next
  * stop, often a meal, and the next block, which has a page to open.

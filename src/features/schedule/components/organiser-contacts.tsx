@@ -15,12 +15,10 @@ const contactOrganisersText: StaticTranslationString = {
 };
 
 /**
- * The organisers of a helper shift, with a shortcut into a direct chat with each of them.
- *
- * This is the shift-portal counterpart of the "Organisatoren kontaktieren" block on the
- * workshop detail page: a section of the shift's page, one row per organiser.
+ * The organisers of a block or a helper shift, one row each with a shortcut into a direct chat:
+ * a section of the block's and of the shift's page.
  */
-export const ShiftOrganisers: React.FC<{
+export const OrganiserContacts: React.FC<{
   /**
    * Optional against the type of the shift it comes from: the card renders whatever the
    * persisted React Query cache holds, and that blob can have been written by a build that

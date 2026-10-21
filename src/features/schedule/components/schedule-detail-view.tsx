@@ -11,6 +11,7 @@ import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
 import { ScheduleDetailContent } from '@/features/schedule/components/schedule-detail-content';
 import { ScheduleDetailSkeleton } from '@/features/schedule/components/schedule-detail-skeleton';
 import { ScheduleEditHeaderActions } from '@/features/schedule/components/schedule-edit-header-actions';
+import { floatingButtonClassName } from '@/features/schedule/components/schedule-mini-map';
 import { useScheduleEdit } from '@/features/schedule/hooks/use-schedule-edit';
 import { useScheduleScope } from '@/features/schedule/hooks/use-schedule-scope';
 import {
@@ -38,10 +39,6 @@ const labels = {
     fr: "Une erreur est survenue lors du chargement de l'entrée du planning.",
   },
 } as const;
-
-/** a round white button floating over the map */
-const floatingButtonClassName =
-  'flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full bg-white p-0 text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] hover:bg-white';
 
 /** below the preview banner, when there is one, and above the bottom navigation, which is `h-20` */
 const containerClassName =
@@ -227,7 +224,7 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
       className={floatingButtonClassName}
       aria-label={labels.back[locale]}
     >
-      <ArrowLeft className="h-[22px] w-[22px]" />
+      <ArrowLeft className="h-[22px] w-[22px]" aria-hidden="true" />
     </button>
   );
 

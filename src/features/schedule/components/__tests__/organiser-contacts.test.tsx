@@ -3,7 +3,7 @@
  */
 
 import type { HelperShiftOrganiser } from '@/features/schedule/api/get-helper-shifts';
-import { ShiftOrganisers } from '@/features/schedule/components/shift-organisers';
+import { OrganiserContacts } from '@/features/schedule/components/organiser-contacts';
 import { render, screen } from '@testing-library/react';
 
 // The organiser rows carry a chat button that creates the chat through tRPC.
@@ -27,9 +27,9 @@ const anna: HelperShiftOrganiser = {
   fullName: 'Anna Muster',
 };
 
-describe('ShiftOrganisers', () => {
+describe('OrganiserContacts', () => {
   it('lists every organiser as a contact', () => {
-    render(<ShiftOrganisers organisers={[anna]} locale="de" />);
+    render(<OrganiserContacts organisers={[anna]} locale="de" />);
 
     expect(screen.getByText('Organisatoren kontaktieren')).toBeInTheDocument();
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe('ShiftOrganisers', () => {
    * contact list does - "Vorname Nachname v/o Ceviname" - rather than by the civil name alone.
    */
   it('spells out the Ceviname of an organiser who has one', () => {
-    render(<ShiftOrganisers organisers={[{ ...anna, nickname: 'Ameise' }]} locale="de" />);
+    render(<OrganiserContacts organisers={[{ ...anna, nickname: 'Ameise' }]} locale="de" />);
 
     expect(screen.getByText('Anna Muster v/o Ameise')).toBeInTheDocument();
   });
@@ -50,13 +50,13 @@ describe('ShiftOrganisers', () => {
    * the field is simply absent there - the row must still render the plain name.
    */
   it('falls back to the plain name when no Ceviname is set', () => {
-    render(<ShiftOrganisers organisers={[anna]} locale="de" />);
+    render(<OrganiserContacts organisers={[anna]} locale="de" />);
 
     expect(screen.getByText('Anna Muster')).toBeInTheDocument();
   });
 
   it('renders nothing for a shift without organisers', () => {
-    const { container } = render(<ShiftOrganisers organisers={[]} locale="de" />);
+    const { container } = render(<OrganiserContacts organisers={[]} locale="de" />);
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -67,7 +67,7 @@ describe('ShiftOrganisers', () => {
    * whole helper portal down to the error boundary until the entry aged out.
    */
   it('renders nothing when the field is absent from a payload written by an older build', () => {
-    const { container } = render(<ShiftOrganisers organisers={undefined} locale="de" />);
+    const { container } = render(<OrganiserContacts organisers={undefined} locale="de" />);
 
     expect(container).toBeEmptyDOMElement();
   });
