@@ -4693,6 +4693,10 @@ export interface BillParticipant {
   referenceNumber?: string | null;
   invoiceNumber?: string | null;
   /**
+   * The Registration Number printed on the bill PDF.
+   */
+  registrationNumber?: string | null;
+  /**
    * Gross amount, i.e. the net camp fee plus VAT.
    */
   invoiceAmount?: number | null;
@@ -7470,6 +7474,7 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   reAddedDate?: T;
   referenceNumber?: T;
   invoiceNumber?: T;
+  registrationNumber?: T;
   invoiceAmount?: T;
   netAmount?: T;
   vatExempt?: T;
@@ -9434,9 +9439,12 @@ export interface BillSetting {
      */
     lastRunAt?: string | null;
   };
+  /**
+   * Same placeholders as the email body.
+   */
   invoiceEmailSubject?: string | null;
   /**
-   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}} as placeholders.
+   * Use {{firstName}}, {{lastName}}, {{fullName}}, {{amount}}, {{reference}}, {{registrationNumber}} as placeholders. {{registrationNumber}} is the Registration Number printed on the PDF.
    */
   invoiceEmailBody?: string | null;
   updatedAt?: string | null;
