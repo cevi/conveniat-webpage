@@ -1,6 +1,7 @@
 import type { BankPayment } from '@/features/billing/services/payment-csv';
 import type { MatchableParticipant } from '@/features/billing/services/payment-matching';
 import {
+  isConvertedReference,
   isValidQrReference,
   matchPayments,
   OVERPAYMENT_TOLERANCE,
@@ -138,22 +139,30 @@ describe('matchPayments', () => {
     expect(match?.outcome).toBe('already_booked');
   });
 
-  it('flags a second payment of a paid bill as a possible double payment', () => {
+  it('links a second payment of a paid bill to it as a double payment', () => {
     const [match] = matchPayments(
       [payment({ transactionReference: 'GS00000000000002' })],
       [bill({ status: 'paid', paymentTransactionReference: 'GS00000000000001' })],
     );
 
-    expect(match?.outcome).toBe('already_paid');
+    expect(match?.outcome).toBe('double_payment');
+    expect(match?.participantId).toBe('row-1');
   });
 
-  it('books a bill paid twice in the same file only once', () => {
+  it('books a bill paid twice in the same file once, and links the second as a double payment', () => {
     const matches = matchPayments(
       [payment(), payment({ line: 3, transactionReference: 'GS00000000000003' })],
       [bill()],
     );
 
-    expect(matches.map((match) => match.outcome)).toEqual(['booked', 'already_paid']);
+    expect(matches.map((match) => match.outcome)).toEqual(['booked', 'double_payment']);
+  });
+
+  it('recognises a transaction already stored as a payment, whatever bill it went to', () => {
+    // Finance may have moved the payment to a sibling's bill since: the file still adds nothing.
+    const [match] = matchPayments([payment()], [bill()], new Set(['GS00000000000001']));
+
+    expect(match?.outcome).toBe('already_booked');
   });
 
   it('does not book a payment the bank gave no transaction reference', () => {
@@ -168,5 +177,18 @@ describe('matchPayments', () => {
       'wrong_currency',
     );
     expect(matchPayments([payment({ amount: -330 })], [bill()])[0]?.outcome).toBe('invalid_amount');
+  });
+});
+
+describe('isConvertedReference', () => {
+  it.each(['-9.2233720368547758e+18', '1.23457E+26'])(
+    'recognises %s as a reference a program turned into a number',
+    (value) => {
+      expect(isConvertedReference(value)).toBe(true);
+    },
+  );
+
+  it('leaves a real reference alone', () => {
+    expect(isConvertedReference(reference)).toBe(false);
   });
 });

@@ -8,6 +8,7 @@ import {
   BILLING_STATUS_LABELS_DE,
   formatBillingStatus,
 } from '@/features/billing/services/billing-status';
+import { cn } from '@/utils/tailwindcss-override';
 
 /**
  * Colour only. The German wording lives in `billing-status`, so a status is named the same
@@ -45,7 +46,13 @@ interface RowData {
   id: string;
   missingStammdaten?: unknown;
   missingAnmeldeangaben?: unknown;
+  doublePayment?: unknown;
 }
+
+/** Shown under the status, which stays «Bezahlt»: the bill is paid, just more than once. */
+const DoublePaymentBadge: React.FC = () => (
+  <span className={cn(baseClasses, statusColors.removed)}>Doppelzahlung</span>
+);
 
 /**
  * Custom Payload CMS Cell component for the `status` field in bill-participants.
@@ -132,6 +139,11 @@ export const BillingStatusCell: React.FC<{
   return (
     <div className="my-1 flex flex-col gap-1">
       <div>{badge}</div>
+      {rowData.doublePayment === true && (
+        <div>
+          <DoublePaymentBadge />
+        </div>
+      )}
     </div>
   );
 };

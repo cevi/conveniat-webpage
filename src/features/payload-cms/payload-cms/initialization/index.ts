@@ -1,4 +1,5 @@
 import { environmentVariables } from '@/config/environment-variables';
+import { backfillBillPayments } from '@/features/billing/services/backfill-bill-payments';
 import { deleteDatabase } from '@/features/payload-cms/payload-cms/initialization/deleting';
 import { ensureIndexes } from '@/features/payload-cms/payload-cms/initialization/ensure-indexes';
 import {
@@ -213,6 +214,16 @@ export const onPayloadInit = async (payload: Payload): Promise<void> => {
       // Awaited, so existing form placeholders are localized before an editor saves them in admin.
       await withSpan('payload.init.migrateFormPlaceholders', async () => {
         await migrateFormPlaceholders(payload);
+      });
+
+      // Awaited, so no payment import runs before the earlier bookings are payments too: a
+      // second payment for one of those bills would otherwise not read as a double payment.
+      await withSpan('payload.init.backfillBillPayments', async () => {
+        const created = await backfillBillPayments(payload);
+        if (created > 0)
+          payload.logger.info(`Stored ${String(created)} earlier bookings as payments`);
+      }).catch((error: unknown) => {
+        payload.logger.error({ err: error }, 'Storing the earlier bookings as payments failed');
       });
 
       // In the background: fills the Höfe of every user the first time, and afterwards

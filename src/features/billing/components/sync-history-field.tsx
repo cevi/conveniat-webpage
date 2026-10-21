@@ -28,6 +28,8 @@ const ACTION_LABELS: Record<string, string> = {
   payment_booked: 'Zahlung verbucht',
   payment_written_to_cevidb: 'In der Cevi.DB als bezahlt eingetragen',
   payment_writeback_failed: 'Konnte in der Cevi.DB nicht als bezahlt eingetragen werden',
+  double_payment_detected: 'Doppelzahlung erkannt',
+  double_payment_resolved: 'Doppelzahlung erledigt',
 };
 
 const actionLabel = (action: string): string => {

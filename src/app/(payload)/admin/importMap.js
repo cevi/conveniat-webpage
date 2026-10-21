@@ -112,6 +112,7 @@ import { default as default_95aac01a1d24126400a908467acf9d8a } from '@/features/
 import { FeatureFlagToggle as FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49 } from '@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle'
 import { WeeklyReportDownloadButton as WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11 } from '@/features/billing/components/weekly-report-download-button'
 import { FinanceOverviewDownloadButton as FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0 } from '@/features/billing/components/finance-overview-download-button'
+import { DoublePaymentsDownloadButton as DoublePaymentsDownloadButton_41d9ab87954b036d3722d2b9a61e8a94 } from '@/features/billing/components/double-payments-download-button'
 import { ReferenceNumberExplainer as ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64 } from '@/features/billing/components/reference-number-explainer'
 import { BillPreviewComponent as BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236 } from '@/features/billing/components/bill-preview-component'
 import { FieldsRowLabel as FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae } from '@/features/hof-dashboard/payload-cms/components/fields-row-label'
@@ -247,6 +248,7 @@ export const importMap = {
   "@/features/payload-cms/payload-cms/components/fields/feature-flag-toggle#FeatureFlagToggle": FeatureFlagToggle_970a7ebdf4155aada53759bd86956a49,
   "@/features/billing/components/weekly-report-download-button#WeeklyReportDownloadButton": WeeklyReportDownloadButton_4feb29f94908f9b1a61df99625cd4f11,
   "@/features/billing/components/finance-overview-download-button#FinanceOverviewDownloadButton": FinanceOverviewDownloadButton_ff022ac0ed53841b3398e8154467b8f0,
+  "@/features/billing/components/double-payments-download-button#DoublePaymentsDownloadButton": DoublePaymentsDownloadButton_41d9ab87954b036d3722d2b9a61e8a94,
   "@/features/billing/components/reference-number-explainer#ReferenceNumberExplainer": ReferenceNumberExplainer_3438cefe1bd20b8f7d90da4caac51a64,
   "@/features/billing/components/bill-preview-component#BillPreviewComponent": BillPreviewComponent_d78523c13a506b78b722b6b8ac6d4236,
   "@/features/hof-dashboard/payload-cms/components/fields-row-label#FieldsRowLabel": FieldsRowLabel_ca3224a51f3b058ed80bfbc2a7b266ae,

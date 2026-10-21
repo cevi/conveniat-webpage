@@ -76,6 +76,7 @@ export interface Config {
     funktionen: Funktion;
     'presence-logs': PresenceLog;
     'bill-participants': BillParticipant;
+    'bill-payments': BillPayment;
     'bill-pdfs': BillPdf;
     hoefe: Hof;
     'outgoing-emails': OutgoingEmail;
@@ -114,6 +115,8 @@ export interface Config {
       holders: 'users';
     };
     'bill-participants': {
+      payments: 'bill-payments';
+      matchedPayments: 'bill-payments';
       relatedEmails: 'outgoing-emails';
       reminderEmails: 'outgoing-emails';
     };
@@ -150,6 +153,7 @@ export interface Config {
     funktionen: FunktionenSelect<false> | FunktionenSelect<true>;
     'presence-logs': PresenceLogsSelect<false> | PresenceLogsSelect<true>;
     'bill-participants': BillParticipantsSelect<false> | BillParticipantsSelect<true>;
+    'bill-payments': BillPaymentsSelect<false> | BillPaymentsSelect<true>;
     'bill-pdfs': BillPdfsSelect<false> | BillPdfsSelect<true>;
     hoefe: HoefeSelect<false> | HoefeSelect<true>;
     'outgoing-emails': OutgoingEmailsSelect<false> | OutgoingEmailsSelect<true>;
@@ -4661,6 +4665,26 @@ export interface BillParticipant {
    */
   paymentTransactionReference?: string | null;
   /**
+   * More was paid for this bill than it asks for. Refund the payment or assign it to another bill under «Payments».
+   */
+  doublePayment?: boolean | null;
+  /**
+   * The payments assigned to this bill.
+   */
+  payments?: {
+    docs?: (string | BillPayment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
+   * Every payment that came in with this bill’s reference, including ones assigned to another bill or not yet assigned.
+   */
+  matchedPayments?: {
+    docs?: (string | BillPayment)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  /**
    * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
    */
   financeNote?: string | null;
@@ -4755,6 +4779,64 @@ export interface BillParticipant {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Every payment from an imported bank file. Assign a payment the import could not book, move a double payment to the bill it was meant for, or split one payment across several bills.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-payments".
+ */
+export interface BillPayment {
+  id: string;
+  /**
+   * Identifies the payment: importing the same bank file again adds nothing.
+   */
+  transactionReference: string;
+  amount: number;
+  currency?: string | null;
+  bookingDate?: string | null;
+  reference?: string | null;
+  payer?: string | null;
+  message?: string | null;
+  /**
+   * The registration whose bill carries the paid reference. Kept when the payment is assigned elsewhere.
+   */
+  matchedParticipant?: (string | null) | BillParticipant;
+  importOutcome?:
+    | (
+        | 'booked'
+        | 'already_booked'
+        | 'double_payment'
+        | 'amount_mismatch'
+        | 'unknown_reference'
+        | 'invalid_reference'
+        | 'superseded_bill'
+        | 'cancelled'
+        | 'not_payable'
+        | 'wrong_currency'
+        | 'invalid_amount'
+        | 'missing_transaction_reference'
+      )
+    | null;
+  importedBy?: string | null;
+  importMessage?: string | null;
+  /**
+   * The bills this payment pays. A bill counts as paid once its assigned amounts reach its total. To split one payment for two children, add both bills with their amounts.
+   */
+  allocations?:
+    | {
+        participant: string | BillParticipant;
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Set once the money went back. The payment then counts for no bill, and a double payment is no longer flagged.
+   */
+  refundedDate?: string | null;
+  note?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -5384,6 +5466,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bill-participants';
         value: string | BillParticipant;
+      } | null)
+    | ({
+        relationTo: 'bill-payments';
+        value: string | BillPayment;
       } | null)
     | ({
         relationTo: 'bill-pdfs';
@@ -7376,6 +7462,9 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   paidDate?: T;
   paidAmount?: T;
   paymentTransactionReference?: T;
+  doublePayment?: T;
+  payments?: T;
+  matchedPayments?: T;
   financeNote?: T;
   removedDate?: T;
   reAddedDate?: T;
@@ -7412,6 +7501,34 @@ export interface BillParticipantsSelect<T extends boolean = true> {
   syncHistory?: T;
   relatedEmails?: T;
   reminderEmails?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-payments_select".
+ */
+export interface BillPaymentsSelect<T extends boolean = true> {
+  transactionReference?: T;
+  amount?: T;
+  currency?: T;
+  bookingDate?: T;
+  reference?: T;
+  payer?: T;
+  message?: T;
+  matchedParticipant?: T;
+  importOutcome?: T;
+  importedBy?: T;
+  importMessage?: T;
+  allocations?:
+    | T
+    | {
+        participant?: T;
+        amount?: T;
+        id?: T;
+      };
+  refundedDate?: T;
+  note?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -10196,6 +10313,7 @@ export interface TaskCreateCollectionExport {
       | 'funktionen'
       | 'presence-logs'
       | 'bill-participants'
+      | 'bill-payments'
       | 'bill-pdfs'
       | 'hoefe'
       | 'outgoing-emails'

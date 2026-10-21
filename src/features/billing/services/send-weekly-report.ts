@@ -1,4 +1,8 @@
 import { buildFinanceCsvRows } from '@/features/billing/services/csv-export-service';
+import {
+  buildDoublePaymentAttachment,
+  findDoublePaymentReport,
+} from '@/features/billing/services/double-payment-report';
 import { buildFinanceOverviewWorkbook } from '@/features/billing/services/finance-overview-export';
 import type { WeeklyReport } from '@/features/billing/services/weekly-report';
 import { buildWeeklyReport } from '@/features/billing/services/weekly-report';
@@ -133,8 +137,8 @@ export function applyReportPlaceholders(template: string, report: WeeklyReport):
  * Clean separation between General Report and Finance Mail:
  * - `config.recipients` receives the general registration report (PDF).
  *   Crucially, this email NEVER contains the confidential billing Excel sheet.
- * - `settings.financeEmailRecipients` receives the finance overview with the Excel sheet
- *   (and the overview PDF).
+ * - `settings.financeEmailRecipients` receives the finance overview with the Excel sheet,
+ *   the overview PDF and the double payments PDF.
  *
  * Uses a Redis run lock (`BillingTaskSlug.SendWeeklyReport`) to guarantee that only one
  * worker across all replicas can build and send the report simultaneously.
@@ -265,6 +269,10 @@ export async function sendWeeklyReport(
       const financeAttachments: { filename: string; content: Buffer }[] = [];
       if (pdfAttachment) financeAttachments.push(pdfAttachment);
       if (excelAttachment) financeAttachments.push(excelAttachment);
+      // Attached even when empty, so the recipients can see the check ran.
+      financeAttachments.push(
+        await buildDoublePaymentAttachment(await findDoublePaymentReport(payload, now)),
+      );
 
       const defaultFinanceBody =
         'Guten Morgen\n\nAnbei die aktuelle Rechnungsübersicht für das conveniat27.\n\nAngemeldet: {{total}}\nNeu diese Woche: {{new}}\nNoch nicht verrechenbar: {{blocked}}\n\nDie detaillierten Buchungszeilen befinden sich in der angehängten Excel-Datei.\n\nFreundliche Grüsse\nconveniat27 – Ressort Finanzen';

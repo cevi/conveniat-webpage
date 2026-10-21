@@ -474,6 +474,65 @@ export const BillParticipantsCollection: CollectionConfig = {
         },
       },
     },
+    // Kept in line with the payments by `reconcileParticipantPayments`; stored rather than
+    // derived so the list can be filtered by it.
+    {
+      name: 'doublePayment',
+      access: { read: canAccessBillingField, update: canAccessBillingField },
+      type: 'checkbox',
+      defaultValue: false,
+      label: {
+        en: 'Double payment',
+        de: 'Doppelzahlung',
+        fr: 'Double paiement',
+      },
+      admin: {
+        readOnly: true,
+        description: {
+          en: 'More was paid for this bill than it asks for. Refund the payment or assign it to another bill under «Payments».',
+          de: 'Für diese Rechnung wurde mehr bezahlt, als sie verlangt. Die Zahlung zurückerstatten oder unter «Zahlungen» einer anderen Rechnung zuordnen.',
+          fr: 'Cette facture a reçu plus que son montant. Remboursez le paiement ou attribuez-le à une autre facture sous «Paiements».',
+        },
+      },
+    },
+    {
+      name: 'payments',
+      type: 'join',
+      collection: 'bill-payments',
+      on: 'allocations.participant',
+      label: {
+        en: 'Payments',
+        de: 'Zahlungen',
+        fr: 'Paiements',
+      },
+      admin: {
+        defaultColumns: ['transactionReference', 'bookingDate', 'amount', 'payer', 'refundedDate'],
+        description: {
+          en: 'The payments assigned to this bill.',
+          de: 'Die Zahlungen, die dieser Rechnung zugeordnet sind.',
+          fr: 'Les paiements attribués à cette facture.',
+        },
+      },
+    },
+    {
+      name: 'matchedPayments',
+      type: 'join',
+      collection: 'bill-payments',
+      on: 'matchedParticipant',
+      label: {
+        en: 'Payments with this Reference',
+        de: 'Zahlungen mit dieser Referenz',
+        fr: 'Paiements avec cette référence',
+      },
+      admin: {
+        defaultColumns: ['transactionReference', 'bookingDate', 'amount', 'payer', 'importOutcome'],
+        description: {
+          en: 'Every payment that came in with this bill’s reference, including ones assigned to another bill or not yet assigned.',
+          de: 'Alle Zahlungen, die mit der Referenz dieser Rechnung eingegangen sind, auch solche, die einer anderen Rechnung oder noch keiner zugeordnet sind.',
+          fr: 'Tous les paiements reçus avec la référence de cette facture, y compris ceux attribués à une autre facture ou pas encore attribués.',
+        },
+      },
+    },
     {
       name: 'financeNote',
       access: { read: canAccessBillingField, update: canAccessBillingField },
