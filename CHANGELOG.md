@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.39.0](https://github.com/cevi/conveniat-webpage/compare/v1.38.0...v1.39.0) (2026-10-21)
+
+
+### Features
+
+* **billing:** sync history runs read as ordinary lines ([38cb87d](https://github.com/cevi/conveniat-webpage/commit/38cb87d6cf5a840bbc8f42648c8978adf6355129))
+* **billing:** tabs and actions on the Rechnungsverwaltung edit view ([262dd81](https://github.com/cevi/conveniat-webpage/commit/262dd817b36690b347e10600fc1d7dcf418e4e56))
+
+
+### Bug Fixes
+
+* **admin:** opt the admin panel out of instant navigation validation ([1512ef6](https://github.com/cevi/conveniat-webpage/commit/1512ef6699728fe5c2d8f5927985a56d59d40220))
+* **app:** preview banner pushes app content down instead of covering it ([e80a91d](https://github.com/cevi/conveniat-webpage/commit/e80a91da1a6466e5ec0960aba519c248ee8b8fbd))
+* **app:** preview banner pushes app content down instead of covering it ([150bbfa](https://github.com/cevi/conveniat-webpage/commit/150bbfa268e1c52390df26ba3eda32a845a22769))
+* **auth:** cookie-less requests no longer abort the render ([0b51969](https://github.com/cevi/conveniat-webpage/commit/0b5196969c48817e35760ad8a24e96a65bcbdcef))
+
 ## [1.38.0](https://github.com/cevi/conveniat-webpage/compare/v1.37.0...v1.38.0) (2026-10-21)
 
 
