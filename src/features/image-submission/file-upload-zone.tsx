@@ -65,7 +65,9 @@ export const FileUploadZone: React.FC<FileUploadZoneProperties & { compact?: boo
         className="border-rail hover:bg-quiet peer-focus-visible:ring-conveniat-green flex cursor-pointer flex-col items-center gap-3 rounded-[14px] border-2 border-dashed bg-white px-6 py-10 text-center transition-colors peer-focus-visible:ring-2"
       >
         <IconTile icon={LucideImageIcon} size="lg" />
-        <span className="font-heading text-heading text-lg font-bold">{selectImages[locale]}</span>
+        <span className="font-heading text-heading text-lg font-bold">
+          {selectImages[locale]} <span className="text-live">*</span>
+        </span>
         <span className="text-[13px] text-green-700">{fileTypeText[locale]}</span>
       </label>
     </div>

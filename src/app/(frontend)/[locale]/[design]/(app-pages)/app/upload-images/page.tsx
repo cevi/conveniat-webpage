@@ -352,8 +352,11 @@ const ImageUploadPage: React.FC = () => {
 
           <form onSubmit={(event) => void handleFormSubmit(event)} className="space-y-6">
             {errorMessage !== '' && (
-              <div className="bg-quiet flex items-center gap-3 rounded-[14px] p-4 text-green-900">
-                <AlertCircle className="h-5 w-5 shrink-0 text-green-700" aria-hidden="true" />
+              <div
+                role="alert"
+                className="border-live-line bg-live-soft text-live-text flex items-center gap-3 rounded-[14px] border p-4"
+              >
+                <AlertCircle className="text-live h-5 w-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm font-medium">{errorMessage}</p>
               </div>
             )}

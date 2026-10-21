@@ -28,7 +28,7 @@ export const DescriptionInput: React.FC<DescriptionInputProperties> = ({ value, 
   return (
     <div className="space-y-2">
       <label htmlFor="description" className="block text-[13px] font-semibold text-green-900">
-        {imageDescription[locale]} <span className="text-green-700">*</span>
+        {imageDescription[locale]} <span className="text-live">*</span>
       </label>
       <textarea
         id="description"
