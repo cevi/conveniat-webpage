@@ -72,8 +72,10 @@ interface SearchFilterBarProperties {
    * none of these, so they leave them out.
    */
   isProgramme?: boolean;
-  /** the control for the view, own Quartier or whole camp, repeated at the top of the filter */
+  /** the control for the view, own Quartier or whole camp, at the top of the filter sheet */
   view?: React.ReactNode;
+  /** the view as it is, named on the filter button instead of "Filter" */
+  viewSummary?: React.ReactNode;
   /** whether to offer "Für Leitende": to the people who may read the part for Leitende only */
   canFilterForLeaders?: boolean;
   /** how many entries the list shows with the filters as they are, for the closing button */
@@ -83,7 +85,7 @@ interface SearchFilterBarProperties {
   className?: string;
 }
 
-/** a round 44px button beside the view, as the design draws the favourites and the filter */
+/** the round 44px favourites button beside the filter button */
 const roundButtonClassName =
   'border-line flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-full border bg-white text-green-900 transition-colors hover:border-green-300';
 
@@ -176,6 +178,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
   availableCategories,
   isProgramme = true,
   view,
+  viewSummary,
   canFilterForLeaders = false,
   shownCount,
   isSearchOpen,
@@ -217,10 +220,13 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
     });
 
   const activeCount = activeFilterCount(filters);
-  const filterButtonLabel =
+  const activeCountText =
     activeCount > 0
-      ? `${labels.filter[locale]}, ${(activeCount === 1 ? labels.activeFilter : labels.activeFilters)[locale].replace('{{count}}', String(activeCount))}`
-      : labels.filter[locale];
+      ? (activeCount === 1 ? labels.activeFilter : labels.activeFilters)[locale].replace(
+          '{{count}}',
+          String(activeCount),
+        )
+      : undefined;
 
   const footer = (
     <div className="flex items-center gap-4">
@@ -258,27 +264,34 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
       )}
 
       {/*
-        One row: the view on the left, then two round buttons, the favourites and the filter. What
-        the filter narrows to is told by the count on its button; Kategorie, Ort and Tageszeit
-        live in its sheet.
+        One row: the filter button, which names the view and counts the filters that are on, and
+        the favourites. The view, Kategorie, Ort and Tageszeit are chosen in its sheet.
       */}
       <div className="flex items-center gap-2">
-        {view === undefined ? (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            aria-label={filterButtonLabel}
-            onClick={() => openAt()}
-            className={chipClassName(false)}
-          >
-            <ListFilter className="h-[18px] w-[18px]" aria-hidden="true" />
-            {labels.filter[locale]}
-            {activeCount > 0 && <CountBadge count={activeCount} />}
-          </button>
-        ) : (
-          <div className="min-w-0 flex-1">{view}</div>
-        )}
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          onClick={() => openAt()}
+          className={cn(chipClassName(false), 'min-w-0')}
+        >
+          <ListFilter className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+          {/* read out as "Filter: Greif, 2 aktive Filter"; the view's name is what is seen */}
+          {viewSummary === undefined ? (
+            labels.filter[locale]
+          ) : (
+            <>
+              <span className="sr-only">{labels.filter[locale]}: </span>
+              {viewSummary}
+            </>
+          )}
+          {activeCountText !== undefined && (
+            <>
+              <span className="sr-only">, {activeCountText}</span>
+              <CountBadge count={activeCount} />
+            </>
+          )}
+        </button>
 
         {isProgramme && (
           <button
@@ -295,24 +308,6 @@ export const SearchFilterBar: React.FC<SearchFilterBarProperties> = ({
               className={cn('h-5 w-5', filters.starredOnly && 'fill-amber-700')}
               aria-hidden="true"
             />
-          </button>
-        )}
-
-        {view !== undefined && (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            aria-label={filterButtonLabel}
-            onClick={() => openAt()}
-            className={cn(roundButtonClassName, 'relative')}
-          >
-            <ListFilter className="h-5 w-5" aria-hidden="true" />
-            {activeCount > 0 && (
-              <span className="absolute -top-1 -right-1">
-                <CountBadge count={activeCount} />
-              </span>
-            )}
           </button>
         )}
       </div>

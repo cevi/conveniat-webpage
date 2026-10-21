@@ -6,7 +6,10 @@ import { DateCarouselViewWrapper } from '@/features/schedule/components/date-car
 import { NoProgramPlaceholder } from '@/features/schedule/components/no-program-placeholder';
 import { ScheduleList } from '@/features/schedule/components/schedule-list';
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
-import { ScheduleViewToggles } from '@/features/schedule/components/schedule-view-toggles';
+import {
+  ScheduleViewSummary,
+  ScheduleViewToggles,
+} from '@/features/schedule/components/schedule-view-toggles';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
 import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { ScheduleStatusProvider } from '@/features/schedule/context/schedule-status-context';
@@ -196,6 +199,11 @@ export const ScheduleComponent: React.FC = () => {
         availableLocations={availableLocations}
         availableCategories={availableCategories}
         view={viewToggles}
+        viewSummary={
+          myQuartiere.length > 0 ? (
+            <ScheduleViewSummary myQuartiere={myQuartiere} scope={scope} locale={locale} />
+          ) : undefined
+        }
         canFilterForLeaders={leaderAccess === true}
         shownCount={shownCount}
         isSearchOpen={isSearchOpen}

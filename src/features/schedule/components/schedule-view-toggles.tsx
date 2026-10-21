@@ -14,6 +14,36 @@ import type React from 'react';
  * cards below, and a long Rufname such as Wolpertinger keeps its room. With several Quartiere it
  * is "Für mich" with a chip for each.
  */
+const mineLabelOf = (myQuartiere: MyQuartier[], locale: Locale): string => {
+  const [onlyQuartier] = myQuartiere;
+  return myQuartiere.length === 1 &&
+    onlyQuartier !== undefined &&
+    quartierRufnameOf(onlyQuartier) !== ''
+    ? quartierRufnameOf(onlyQuartier)
+    : programmeLabels.forMe[locale];
+};
+
+/**
+ * The view the programme shows, as the filter button names it: "Greif" with its icon, or "Alle
+ * Quartiere". The switch itself lives in the filter sheet.
+ */
+export const ScheduleViewSummary: React.FC<{
+  myQuartiere: MyQuartier[];
+  scope: ScheduleScope;
+  locale: Locale;
+}> = ({ myQuartiere, scope, locale }) => {
+  const [onlyQuartier] = myQuartiere;
+  if (scope === 'all') return <span>{programmeLabels.allQuartiere[locale]}</span>;
+  return (
+    <>
+      {onlyQuartier !== undefined && myQuartiere.length === 1 && (
+        <QuartierDot quartier={onlyQuartier} />
+      )}
+      <span className="truncate">{mineLabelOf(myQuartiere, locale)}</span>
+    </>
+  );
+};
+
 export const ScheduleViewToggles: React.FC<{
   myQuartiere: MyQuartier[];
   scope: ScheduleScope;
@@ -23,10 +53,7 @@ export const ScheduleViewToggles: React.FC<{
 }> = ({ myQuartiere, scope, onScopeChange, locale, className }) => {
   if (myQuartiere.length === 0) return <></>;
   const [onlyQuartier] = myQuartiere;
-  const mineLabel =
-    myQuartiere.length === 1 && onlyQuartier !== undefined && quartierRufnameOf(onlyQuartier) !== ''
-      ? quartierRufnameOf(onlyQuartier)
-      : programmeLabels.forMe[locale];
+  const mineLabel = mineLabelOf(myQuartiere, locale);
   return (
     <div
       role="group"
