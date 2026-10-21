@@ -6,7 +6,6 @@ import { SectionLabel } from '@/components/ui/section-label';
 import { FRAME_EDGE, usePhotoFraming } from '@/features/settings/hooks/use-photo-framing';
 import { useProfilePicture } from '@/features/settings/hooks/use-profile-picture';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
 import { Camera, Check, Loader2, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
@@ -111,11 +110,21 @@ export const ProfileAvatar: React.FC<{
   const save = async (): Promise<void> => {
     const cropped = await framing.crop();
     if (cropped === undefined) return;
-    await upload(cropped);
+    // a failed upload keeps the framing open, so another try needs no new crop
+    if (!(await upload(cropped))) return;
     setStep('idle');
     setChosenFile(undefined);
     setConfirmation(labels.saved[locale]);
   };
+
+  const failedAlert = (
+    <p
+      role="alert"
+      className="bg-live-soft text-live-text mt-4 rounded-[14px] p-3 text-[13px] font-medium"
+    >
+      {labels.failed[locale]}
+    </p>
+  );
 
   return (
     <div>
@@ -257,6 +266,9 @@ export const ProfileAvatar: React.FC<{
             {labels.visibility[locale]}
           </p>
 
+          {/* next to the button it is about, so a failed save is not read as a saved one */}
+          {hasFailed && failedAlert}
+
           <div className="mt-3 flex gap-2">
             <Button
               variant="outlined"
@@ -307,7 +319,9 @@ export const ProfileAvatar: React.FC<{
               disabled={isBusy}
               onClick={() => {
                 setStep('idle');
-                void remove().then(() => setConfirmation(labels.removed[locale]));
+                void remove().then((isRemoved) => {
+                  if (isRemoved) setConfirmation(labels.removed[locale]);
+                });
               }}
             >
               <Trash2 aria-hidden="true" />
@@ -317,14 +331,7 @@ export const ProfileAvatar: React.FC<{
         </section>
       )}
 
-      {hasFailed && (
-        <p
-          role="alert"
-          className={cn('bg-quiet mt-4 rounded-[14px] p-3 text-[13px] font-medium text-green-900')}
-        >
-          {labels.failed[locale]}
-        </p>
-      )}
+      {hasFailed && step !== 'framing' && failedAlert}
     </div>
   );
 };
