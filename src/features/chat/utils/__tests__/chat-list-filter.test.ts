@@ -17,6 +17,7 @@ describe('matchesChatListFilter', () => {
     expect(matchesChatListFilter(privateUnread, 'unread')).toBe(true);
     expect(matchesChatListFilter(announcements, 'unread')).toBe(true);
     expect(matchesChatListFilter(privateRead, 'unread')).toBe(false);
+    expect(matchesChatListFilter({ ...privateRead, isMarkedUnread: true }, 'unread')).toBe(true);
   });
 
   it('keeps groups, not private chats or channels, under "Gruppen"', () => {

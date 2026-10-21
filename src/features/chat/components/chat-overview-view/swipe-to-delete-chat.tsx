@@ -3,7 +3,7 @@
 import { ArchiveChatConfirmDialog } from '@/features/chat/components/archive-chat-confirm-dialog';
 import { useArchiveChatMutation } from '@/features/chat/hooks/use-archive-chat-mutation';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
-import { ChatMembershipPermission, ChatType } from '@/lib/prisma';
+import { canDeleteChat } from '@/features/chat/utils/can-delete-chat';
 import { cn } from '@/utils/tailwindcss-override';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
@@ -25,16 +25,7 @@ export const SwipeToDeleteChat: React.FC<SwipeToDeleteChatProperties> = ({ chat,
   const [pastThreshold, setPastThreshold] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const canDelete =
-    chat.chatType !== ChatType.ANNOUNCEMENT &&
-    (chat.isArchived === true ||
-      chat.chatType === ChatType.EMERGENCY ||
-      (
-        [
-          ChatMembershipPermission.OWNER,
-          ChatMembershipPermission.ADMIN,
-        ] as ChatMembershipPermission[]
-      ).includes(chat.userChatPermission));
+  const canDelete = canDeleteChat(chat);
 
   // Transforms for right swipe (draggingX is positive)
   const binOpacity = useTransform(draggingX, [0, 30], [0, 1]);

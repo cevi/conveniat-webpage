@@ -33,8 +33,12 @@ export const BottomSheet: React.FC<{
   showClose?: boolean;
   /** stays at the foot of the sheet while its content scrolls, e.g. the action it ends in */
   footer?: React.ReactNode;
+  /** before the title, e.g. the avatar of the chat a sheet of actions is about */
+  leading?: React.ReactNode;
+  /** a smaller line under the title, e.g. "Gruppe · stummgeschaltet" */
+  description?: string;
   children: React.ReactNode;
-}> = ({ open, onOpenChange, title, showClose = true, footer, children }) => {
+}> = ({ open, onOpenChange, title, showClose = true, footer, leading, description, children }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const dragControls = useDragControls();
   const reduceMotion = useReducedMotion() ?? false;
@@ -49,8 +53,8 @@ export const BottomSheet: React.FC<{
         <DialogPrimitive.Overlay className="fixed inset-0 z-[200] bg-green-900/40" />
         <DialogPrimitive.Content
           asChild
-          // the title names the sheet; it has no separate description
-          aria-describedby={undefined}
+          // the title names the sheet; a description is read with it where there is one
+          {...(description === undefined ? { 'aria-describedby': undefined } : {})}
         >
           <motion.div
             className="fixed inset-x-0 bottom-0 z-[201] mx-auto flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] focus:outline-none"
@@ -73,9 +77,23 @@ export const BottomSheet: React.FC<{
                 <span aria-hidden="true" className="bg-rail h-1 w-9 rounded-full" />
               </div>
               <div className="flex min-h-11 items-center gap-3 px-5 pt-1 pb-2">
-                <DialogPrimitive.Title className="text-heading min-w-0 flex-1 font-['Montserrat'] text-[22px] leading-7 font-extrabold">
-                  {title}
-                </DialogPrimitive.Title>
+                {leading}
+                <div className="min-w-0 flex-1">
+                  <DialogPrimitive.Title
+                    className={
+                      description === undefined && leading === undefined
+                        ? "text-heading font-['Montserrat'] text-[22px] leading-7 font-extrabold"
+                        : "text-heading truncate font-['Montserrat'] text-[17px] leading-6 font-bold"
+                    }
+                  >
+                    {title}
+                  </DialogPrimitive.Title>
+                  {description !== undefined && (
+                    <DialogPrimitive.Description className="truncate text-[13px] text-green-700">
+                      {description}
+                    </DialogPrimitive.Description>
+                  )}
+                </div>
                 {showClose && (
                   <DialogPrimitive.Close
                     aria-label={closeLabel[locale]}

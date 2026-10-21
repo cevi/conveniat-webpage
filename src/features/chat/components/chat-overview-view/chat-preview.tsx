@@ -2,6 +2,7 @@
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import { DoubleCheck } from '@/features/chat/components/ui/double-check';
 import { CHAT_PAGE_SIZE } from '@/features/chat/constants';
+import { useLongPress } from '@/features/chat/hooks/use-long-press';
 import type { ChatWithMessagePreview } from '@/features/chat/types/api-dto-types';
 import { formatChatListDate } from '@/features/chat/utils/format-chat-list-date';
 import { previewSenderPrefix } from '@/features/chat/utils/preview-sender-prefix';
@@ -13,6 +14,7 @@ import { cn } from '@/utils/tailwindcss-override';
 import { ChatMembershipPermission, ChatType, MessageEventType } from '@prisma/client';
 import type { LucideIcon } from 'lucide-react';
 import {
+  BellOff,
   CalendarDays,
   Check,
   Clock,
@@ -94,7 +96,7 @@ const ChatTimestamp: React.FC<{ timestamp: string; className: string; locale: Lo
 };
 
 /** The round picture at the start of a row: the partner, or what kind of chat it is. */
-const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
+export const ChatAvatar: React.FC<{ chat: ChatWithMessagePreview }> = ({ chat }) => {
   if (chat.chatType === ChatType.ONE_TO_ONE) {
     return (
       <PersonAvatar
@@ -168,9 +170,19 @@ const SentStatus: React.FC<{ status: MessageEventType; locale: Locale }> = ({ st
   );
 };
 
+const mutedText: StaticTranslationString = {
+  de: 'Stummgeschaltet',
+  en: 'Muted',
+  fr: 'En sourdine',
+};
+
 export const ChatPreview: React.FC<{
   chat: ChatWithMessagePreview;
-}> = ({ chat }) => {
+  /** opens the chat's actions on a long press, a right click or the context-menu key */
+  onOpenActions?: (chat: ChatWithMessagePreview) => void;
+  /** the element that tells a screen reader how to reach those actions */
+  actionsHintId?: string;
+}> = ({ chat, onOpenActions, actionsHintId }) => {
   const locale = useCurrentLocale(i18nConfig) as Locale;
   const searchParameters = useSearchParams();
   const trpcUtils = trpc.useUtils();
@@ -202,7 +214,10 @@ export const ChatPreview: React.FC<{
     chatDetailLink += `?${params.toString()}`;
   }
 
-  const hasUnread = chat.unreadCount > 0;
+  const longPress = useLongPress(() => onOpenActions?.(chat));
+  const hasUnread = chat.unreadCount > 0 || chat.isMarkedUnread === true;
+  // a chat marked unread counts as one, also in a cached list from before the mark existed
+  const unreadCount = Math.max(chat.unreadCount, hasUnread ? 1 : 0);
 
   const messageDate = chat.lastMessage?.createdAt ?? chat.lastUpdate;
   const timestamp = formatChatListDate(messageDate, locale, new Date());
@@ -239,12 +254,16 @@ export const ChatPreview: React.FC<{
       href={chatDetailLink}
       // an emergency chat is the one row that may be red, so it stands out of the list
       className={cn(
-        'hover:bg-quiet block w-full bg-white',
+        'hover:bg-quiet block w-full bg-white select-none',
         hasUnread && 'bg-tint',
         isEmergency && 'border-l-4 border-l-red-600 bg-red-50 hover:bg-red-100',
       )}
       data-allow-red={isEmergency ? '' : undefined}
       onMouseEnter={handlePrefetch}
+      aria-describedby={onOpenActions === undefined ? undefined : actionsHintId}
+      // a held finger opens the actions, not the phone's own menu or a text selection
+      style={{ WebkitTouchCallout: 'none' }}
+      {...(onOpenActions === undefined ? {} : longPress)}
     >
       <ChatPreviewRow>
         <ChatAvatar chat={chat} />
@@ -267,11 +286,19 @@ export const ChatPreview: React.FC<{
                 role="img"
               />
             )}
+            {chat.isMuted === true && (
+              <BellOff
+                className="ml-auto h-3.5 w-3.5 shrink-0 text-green-500"
+                aria-label={mutedText[locale]}
+                role="img"
+              />
+            )}
             <ChatTimestamp
               timestamp={timestamp}
               locale={locale}
               className={cn(
-                'ml-auto shrink-0 pl-1 text-xs whitespace-nowrap text-green-700 tabular-nums',
+                chat.isMuted !== true && 'ml-auto',
+                'shrink-0 pl-1 text-xs whitespace-nowrap text-green-700 tabular-nums',
                 hasUnread && 'font-bold text-green-900',
                 isEmergency && 'text-red-700',
               )}
@@ -308,9 +335,9 @@ export const ChatPreview: React.FC<{
                   isEmergency ? 'bg-red-600' : 'bg-conveniat-green',
                 )}
               >
-                <span aria-hidden="true">{chat.unreadCount > 99 ? '99+' : chat.unreadCount}</span>
+                <span aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>
                 <span className="sr-only">
-                  {unreadText(chat.unreadCount, chat.isLarge === true, locale)}
+                  {unreadText(unreadCount, chat.isLarge === true, locale)}
                 </span>
               </span>
             )}

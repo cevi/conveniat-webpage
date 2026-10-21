@@ -3,6 +3,7 @@ import { SetHeaderActions } from '@/components/header/header-actions';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
+import { ChatActionsSheet } from '@/features/chat/components/chat-overview-view/chat-actions-sheet';
 import { ChatFilterChips } from '@/features/chat/components/chat-overview-view/chat-filter-chips';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
 import {
@@ -12,6 +13,7 @@ import {
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
+import { useChatListActions } from '@/features/chat/hooks/use-chat-list-actions';
 import { useChatSSE } from '@/features/chat/hooks/use-chat-sse';
 import { useChats } from '@/features/chat/hooks/use-chats';
 import type { ChatListFilter } from '@/features/chat/utils/chat-list-filter';
@@ -20,11 +22,11 @@ import { CapabilityAction, CapabilitySubject } from '@/lib/capabilities/types';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { CheckCheck, MessageSquare, MessageSquarePlus, Users } from 'lucide-react';
+import { CheckCheck, MessageSquare, MessageSquarePlus, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 
 const searchPlaceholderText: StaticTranslationString = {
   en: 'Search chats',
@@ -84,6 +86,24 @@ const showAllText: StaticTranslationString = {
   de: 'Alle Chats zeigen',
   en: 'Show all chats',
   fr: 'Afficher tous les chats',
+};
+
+const actionsHintText: StaticTranslationString = {
+  de: 'Lange drücken oder Kontextmenü-Taste für Aktionen',
+  en: 'Long-press or use the context menu key for actions',
+  fr: 'Appui long ou touche de menu contextuel pour les actions',
+};
+
+const actionFailedText: StaticTranslationString = {
+  de: 'Das hat nicht geklappt. Versuche es nochmals.',
+  en: 'That did not work. Please try again.',
+  fr: 'Cela n’a pas fonctionné. Réessaie.',
+};
+
+const dismissText: StaticTranslationString = {
+  de: 'Hinweis schliessen',
+  en: 'Dismiss',
+  fr: 'Fermer le message',
 };
 
 const newChatLabel: StaticTranslationString = {
@@ -219,12 +239,43 @@ export const ChatsOverviewClientComponent: React.FC<{
   const isInitialLoad = chats === undefined && !isError;
 
   const hasChats = (chats?.length ?? 0) > 0 || searchQuery !== '';
-  const unreadChats = chats?.filter((chat) => chat.unreadCount > 0).length ?? 0;
+  const unreadChats = chats?.filter((chat) => matchesChatListFilter(chat, 'unread')).length ?? 0;
+  const listActions = useChatListActions();
+  const [actionsChatId, setActionsChatId] = useState<string | undefined>();
+  // read from the list, so the sheet follows an optimistic change and closes if the chat goes
+  const actionsChat = chats?.find((chat) => chat.id === actionsChatId);
+  const actionsHintId = useId();
 
   return (
     <div className="flex flex-col gap-4">
       {/* the own code needs no right to create chats: a scanned code opens a private chat */}
       <SetHeaderActions>{qrCodeButton}</SetHeaderActions>
+
+      <span id={actionsHintId} hidden>
+        {actionsHintText[locale]}
+      </span>
+      {listActions.hasFailed && (
+        <p
+          role="alert"
+          className="bg-live-soft text-live-text flex min-h-11 items-center justify-between gap-3 rounded-xl py-1 pr-1 pl-4 text-sm"
+        >
+          {actionFailedText[locale]}
+          <button
+            type="button"
+            onClick={listActions.dismissFailure}
+            aria-label={dismissText[locale]}
+            className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </p>
+      )}
+      <ChatActionsSheet
+        chat={actionsChat}
+        onClose={() => setActionsChatId(undefined)}
+        actions={listActions}
+        locale={locale}
+      />
 
       <RealtimeSyncBanner
         status={realtimeStatus}
@@ -264,7 +315,11 @@ export const ChatsOverviewClientComponent: React.FC<{
                   className="after:bg-line relative after:absolute after:right-0 after:bottom-0 after:left-[72px] after:z-20 after:h-px last:after:hidden"
                 >
                   <SwipeToDeleteChat chat={chat}>
-                    <ChatPreview chat={chat} />
+                    <ChatPreview
+                      chat={chat}
+                      onOpenActions={(pressed) => setActionsChatId(pressed.id)}
+                      actionsHintId={actionsHintId}
+                    />
                   </SwipeToDeleteChat>
                 </li>
               ))}
@@ -287,7 +342,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       {createChatsEnabled === true && (
         <Link
           href="/app/chat/new"
-          className="bg-conveniat-green fixed right-4 bottom-[96px] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700 focus-visible:ring-2 focus-visible:ring-green-900 focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="bg-conveniat-green fixed right-4 bottom-[calc(5rem+16px)] z-30 flex h-12 items-center gap-2 rounded-2xl px-5 text-[15px] font-semibold text-white shadow-lg hover:bg-green-700 focus-visible:ring-2 focus-visible:ring-green-900 focus-visible:ring-offset-2 focus-visible:outline-none"
         >
           <MessageSquarePlus className="h-5 w-5" aria-hidden="true" />
           {newChatLabel[locale]}

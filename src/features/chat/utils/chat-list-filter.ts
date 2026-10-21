@@ -14,10 +14,10 @@ const GROUP_TYPES = new Set<ChatType>([ChatType.GROUP, ChatType.COURSE_GROUP]);
  * @param filter - the chosen chip
  */
 export const matchesChatListFilter = (
-  chat: Pick<ChatWithMessagePreview, 'chatType' | 'unreadCount'>,
+  chat: Pick<ChatWithMessagePreview, 'chatType' | 'unreadCount' | 'isMarkedUnread'>,
   filter: ChatListFilter,
 ): boolean => {
-  if (filter === 'unread') return chat.unreadCount > 0;
+  if (filter === 'unread') return chat.unreadCount > 0 || chat.isMarkedUnread === true;
   if (filter === 'groups') return GROUP_TYPES.has(chat.chatType);
   return true;
 };
