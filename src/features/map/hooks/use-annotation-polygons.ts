@@ -84,6 +84,7 @@ const beneathMarkers = (map: { getLayer: (id: string) => unknown }): string | un
 // IDs for the single source and layer used for the selection outline
 const SELECTED_POLYGON_SOURCE_ID = 'selected-polygon-source';
 const SELECTED_POLYGON_LAYER_ID = 'selected-polygon-outline-layer';
+const SELECTED_POLYGON_CASING_LAYER_ID = 'selected-polygon-casing-layer';
 
 export const useAnnotationPolygons = (
   annotations: CampMapAnnotationPolygon[],
@@ -279,6 +280,19 @@ export const useAnnotationPolygons = (
         });
       }
 
+      // a white casing under the outline, so the dark line reads on dark ground as well
+      if (!map.getLayer(SELECTED_POLYGON_CASING_LAYER_ID)) {
+        map.addLayer(
+          {
+            id: SELECTED_POLYGON_CASING_LAYER_ID,
+            type: 'line',
+            source: SELECTED_POLYGON_SOURCE_ID,
+            paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.85 },
+          },
+          beneathMarkers(map),
+        );
+      }
+
       if (!map.getLayer(SELECTED_POLYGON_LAYER_ID)) {
         map.addLayer(
           {
@@ -301,6 +315,9 @@ export const useAnnotationPolygons = (
 
       // Remove the single selection layer and source
       if (map.getLayer(SELECTED_POLYGON_LAYER_ID)) map.removeLayer(SELECTED_POLYGON_LAYER_ID);
+      if (map.getLayer(SELECTED_POLYGON_CASING_LAYER_ID)) {
+        map.removeLayer(SELECTED_POLYGON_CASING_LAYER_ID);
+      }
       if (map.getSource(SELECTED_POLYGON_SOURCE_ID)) map.removeSource(SELECTED_POLYGON_SOURCE_ID);
 
       // Remove the batched polygon layers and sources
