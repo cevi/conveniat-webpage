@@ -291,15 +291,16 @@ export const MessageComponent: React.FC<MessageProperties> = ({
         </span>
       );
     }
+    // sent and delivered stay faint; read takes a colour of its own, so it shows at a glance
     switch (message.status) {
       case MessageEventType.STORED: {
-        return <Check className="ml-1 h-3.5 w-3.5 text-white/60" />;
+        return <Check className="ml-1 h-3.5 w-3.5 text-white/50" />;
       }
       case MessageEventType.RECEIVED: {
-        return <DoubleCheck className="ml-1 text-white/60" />;
+        return <DoubleCheck className="ml-1 text-white/50" />;
       }
       case MessageEventType.READ: {
-        return <DoubleCheck className="ml-1 text-white" />;
+        return <DoubleCheck className="ml-1 text-emerald-300" />;
       }
 
       default: {
