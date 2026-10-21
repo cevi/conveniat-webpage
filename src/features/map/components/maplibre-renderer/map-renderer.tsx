@@ -195,6 +195,7 @@ export const MapLibreRenderer = ({
     limitUsage,
     validateStyle,
     ...(mapStyle !== undefined && { style: mapStyle }),
+    locale,
   });
 
   useMapUrlSync(
