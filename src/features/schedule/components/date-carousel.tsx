@@ -49,7 +49,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
   return (
     <div className="flex w-full items-center gap-1.5">
       <Button
-        variant="ghost"
+        variant="plain"
         size="sm"
         onClick={() => scrollByDays(-1)}
         disabled={!canScrollBack}
@@ -108,7 +108,7 @@ export const DateCarousel: React.FC<DateCarouselProperties> = ({
       </div>
 
       <Button
-        variant="ghost"
+        variant="plain"
         size="sm"
         onClick={() => scrollByDays(1)}
         disabled={!canScrollForward}

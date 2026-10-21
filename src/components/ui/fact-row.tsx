@@ -1,4 +1,5 @@
 import { IconTile } from '@/components/ui/icon-tile';
+import { cn } from '@/utils/tailwindcss-override';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
@@ -37,7 +38,7 @@ export const FactRow: React.FC<{
   return href === undefined ? (
     <div className={className}>{body}</div>
   ) : (
-    <Link href={href} className={className}>
+    <Link href={href} className={cn(className, 'hover:bg-quiet transition-colors')}>
       {body}
     </Link>
   );

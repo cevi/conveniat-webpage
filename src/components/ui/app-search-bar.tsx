@@ -71,7 +71,7 @@ export const AppSearchBar: React.FC<AppSearchBarProperties> = ({
           type="button"
           onClick={onClear}
           aria-label={clearLabel[locale]}
-          className="flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-green-500"
+          className="flex h-[44px] w-[44px] shrink-0 cursor-pointer items-center justify-center rounded-[12px] text-green-500 hover:text-green-900"
         >
           <X className="h-[18px] w-[18px]" aria-hidden="true" />
         </button>

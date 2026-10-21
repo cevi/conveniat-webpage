@@ -53,7 +53,7 @@ export const StarButton: React.FC<{
       aria-label={ariaLabel}
       aria-pressed={isStared}
       className={cn(
-        'h-11 w-11 shrink-0 rounded-xl',
+        'h-11 w-11 shrink-0 rounded-full',
         isLocked && 'cursor-default opacity-80',
         className,
       )}
