@@ -154,8 +154,8 @@ const mockPrisma = {
     // eslint-disable-next-line unicorn/no-null
     findUnique: (): Promise<null> => Promise.resolve(null),
     count: (): Promise<number> => Promise.resolve(0),
-    create: record('messageReaction.create'),
-    delete: record('messageReaction.delete'),
+    createMany: record('messageReaction.createMany'),
+    deleteMany: record('messageReaction.deleteMany'),
   },
 };
 

@@ -101,7 +101,8 @@ export const toggleReaction = trpcBaseProcedure
     });
 
     if (existingReaction) {
-      await prisma.messageReaction.delete({
+      // a second tap that crossed the first may already have removed it
+      await prisma.messageReaction.deleteMany({
         where: {
           uuid: existingReaction.uuid,
         },
@@ -114,12 +115,11 @@ export const toggleReaction = trpcBaseProcedure
         throw new TRPCError({ code: 'BAD_REQUEST', message: tooManyReactionsText[locale] });
       }
 
-      await prisma.messageReaction.create({
-        data: {
-          messageId,
-          userId: user.uuid,
-          emoji,
-        },
+      // Two taps that cross both find no reaction. Skipping the duplicate keeps the second from
+      // failing on the unique index, which would also abort the transaction it runs in.
+      await prisma.messageReaction.createMany({
+        data: [{ messageId, userId: user.uuid, emoji }],
+        skipDuplicates: true,
       });
     }
 
