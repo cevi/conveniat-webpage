@@ -705,9 +705,17 @@ export interface Hof {
 export interface Quartier {
   id: string;
   /**
-   * Shown next to the Hof, e.g. "Quartier 3".
+   * The full name, shown next to the Hof, e.g. "Quartier 5 - Greif".
    */
   name: string;
+  /**
+   * Shown as "Q5" on chips; it also picks the Quartier's icon and colour in the app.
+   */
+  number: number;
+  /**
+   * The name people call the Quartier by, e.g. "Greif".
+   */
+  rufname?: string | null;
   /**
    * The area of this Quartier, drawn as a polygon on the camp map.
    */
@@ -7212,6 +7220,8 @@ export interface CampMapAnnotationsSelect<T extends boolean = true> {
  */
 export interface QuartiereSelect<T extends boolean = true> {
   name?: T;
+  number?: T;
+  rufname?: T;
   mapAnnotation?: T;
   hoefe?: T;
   updatedAt?: T;
