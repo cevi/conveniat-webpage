@@ -40,16 +40,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { formatScheduleDateTime } from '@/utils/format-schedule-date-time';
 import { formatUserFullName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import {
-  AlertTriangle,
-  Check,
-  ChevronRight,
-  Clock,
-  MapPin,
-  MessageCircle,
-  Target,
-  Users,
-} from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Clock, MapPin, Target, Users } from 'lucide-react';
 import type React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
@@ -72,6 +63,12 @@ const labels = {
   },
   dateTime: { de: 'Datum & Zeit', en: 'Date & Time', fr: 'Date & Heure' },
   enrollment: { de: 'Anmeldung', en: 'Enrollment', fr: 'Inscription' },
+  unlimited: { de: '0 = unbegrenzt', en: '0 = unlimited', fr: '0 = illimité' },
+  minimumEnrolled: {
+    de: 'Mindestens {{count}}, so viele sind angemeldet.',
+    en: 'At least {{count}}, that many are enrolled.',
+    fr: 'Au moins {{count}}, autant sont inscrits.',
+  },
 } as const;
 
 const EnrollmentSection: React.FC<{
@@ -306,16 +303,19 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
         >
           {/* Edit Warning Banner */}
           {isEditing && (
-            <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800 shadow-xs">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+            <div className="border-live-line bg-live-soft text-live-text flex items-center gap-2 rounded-[14px] border px-3.5 py-3 text-[13px] font-medium">
+              <AlertTriangle className="text-live h-4 w-4 shrink-0" aria-hidden="true" />
               {labels.editWarning[locale]}
             </div>
           )}
 
           {/* Error Banner */}
           {editError && (
-            <div className="flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-800 shadow-xs">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+            <div
+              role="alert"
+              className="border-live-line bg-live-soft text-live-text flex items-center gap-2 rounded-[14px] border px-3.5 py-3 text-[13px] font-medium"
+            >
+              <AlertTriangle className="text-live h-4 w-4 shrink-0" aria-hidden="true" />
               {editError}
             </div>
           )}
@@ -358,7 +358,6 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
               tabs={tabs}
               active={activeTab}
               onSelect={setSelectedTab}
-              accentText={accent.text}
               locale={locale}
             />
           )}
@@ -457,12 +456,15 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
                       min={courseStatus?.enrolledCount ?? 0}
                       value={editData.maxParticipants || ''}
                       onChange={handleMaxParticipantsChange}
-                      className="font-body focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm focus:bg-white focus:ring-2 focus:outline-hidden"
-                      placeholder="0 = unbegrenzt"
+                      className="font-body border-line focus:border-conveniat-green focus:ring-conveniat-green/20 mt-1 h-11 w-full rounded-xl border bg-white px-3 text-[15px] text-green-900 focus:ring-2 focus:outline-hidden"
+                      placeholder={labels.unlimited[locale]}
                     />
                     {courseStatus && courseStatus.enrolledCount > 0 && (
-                      <p className="font-body mt-1 text-xs text-gray-500">
-                        Min: {courseStatus.enrolledCount} ({courseStatus.enrolledCount} angemeldet)
+                      <p className="font-body mt-1 text-[13px] text-green-700">
+                        {labels.minimumEnrolled[locale].replace(
+                          '{{count}}',
+                          String(courseStatus.enrolledCount),
+                        )}
                       </p>
                     )}
                   </FactRow>
@@ -527,14 +529,12 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
               {/* Admin Actions (when admin & not editing) */}
               {isAdmin && !isEditing && (
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-                  <WorkshopAdminActions
-                    courseId={entry.id}
-                    courseTitle={entry.title}
-                    isAdmin={isAdmin}
-                    courseStatus={courseStatus}
-                  />
-                </div>
+                <WorkshopAdminActions
+                  courseId={entry.id}
+                  courseTitle={entry.title}
+                  isAdmin={isAdmin}
+                  courseStatus={courseStatus}
+                />
               )}
 
               {/* Enrollment Section (when enabled & not editing) */}
@@ -547,47 +547,27 @@ export const ScheduleDetailContent: React.FC<ScheduleDetailContentProperties> = 
 
               {/* Contact Organisers Section */}
               {organisers.length > 0 && !isEditing && (
-                <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-conveniat-green/10 text-conveniat-green flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-bold">
-                      <MessageCircle className="h-4 w-4" />
-                    </div>
-                    <h3 className="font-heading text-xs font-semibold tracking-wider text-gray-700 uppercase">
-                      {contactAdminText[locale]}
-                    </h3>
-                  </div>
-                  <div className="space-y-2.5">
-                    {organisers.map((organiser) => {
-                      const displayName = formatUserFullName(
-                        organiser.fullName,
-                        organiser.nickname,
-                      );
-
-                      return (
-                        <div
-                          key={organiser.id}
-                          className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/60 p-3.5"
-                        >
-                          <div className="flex min-w-0 flex-1 items-center gap-3">
-                            <PersonAvatar
-                              seed={organiser.id}
-                              name={organiser.fullName}
-                              className="h-10 w-10 text-sm font-bold shadow-xs"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="font-body truncate text-sm font-semibold text-gray-900">
-                                {displayName}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="shrink-0">
-                            <ChatLinkButton userId={organiser.id} />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <section>
+                  <SectionLabel>{contactAdminText[locale]}</SectionLabel>
+                  <ul className="border-line divide-line mt-2 divide-y overflow-hidden rounded-[14px] border bg-white">
+                    {organisers.map((organiser) => (
+                      <li key={organiser.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                        <PersonAvatar
+                          seed={organiser.id}
+                          name={organiser.fullName}
+                          className="h-10 w-10 shrink-0 text-sm font-bold"
+                        />
+                        <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-green-900">
+                          {formatUserFullName(organiser.fullName, organiser.nickname)}
+                        </span>
+                        <ChatLinkButton
+                          userId={organiser.id}
+                          className="border-rail h-11 shrink-0 rounded-xl px-4 text-[15px] font-semibold text-green-900 shadow-none"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               )}
             </>
           )}

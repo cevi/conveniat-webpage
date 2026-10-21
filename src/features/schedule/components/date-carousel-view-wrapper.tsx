@@ -27,7 +27,7 @@ interface DateCarouselViewWrapperProperties {
 }
 
 const dayLinkClassName =
-  'flex h-13 w-full cursor-pointer items-center gap-1.5 rounded-2xl border border-gray-200 bg-white px-4 text-left text-[15px] text-gray-500 transition-colors hover:border-gray-300';
+  'flex h-13 w-full cursor-pointer items-center gap-1.5 rounded-[14px] border border-line bg-white px-4 text-left text-[15px] text-green-700 transition-colors hover:border-rail';
 
 const slideVariants = {
   enter: (direction_: number): { x: number; opacity: number } => ({
@@ -119,9 +119,12 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
                       className={dayLinkClassName}
                       onClick={() => onDateSelect(previousDay)}
                     >
-                      <ArrowLeft className="text-conveniat-green h-5 w-5 shrink-0" />
+                      <ArrowLeft
+                        className="text-conveniat-green h-5 w-5 shrink-0"
+                        aria-hidden="true"
+                      />
                       <span>{previousDayLabel[locale]}</span>
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-green-900">
                         {previousDay.toLocaleDateString(locale, {
                           weekday: 'long',
                           day: 'numeric',
@@ -138,10 +141,13 @@ export const DateCarouselViewWrapper: React.FC<DateCarouselViewWrapperProperties
                       onClick={() => onDateSelect(nextDate)}
                     >
                       <span>{nextDayLabel[locale]}</span>
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-green-900">
                         {nextDate.toLocaleDateString(locale, { weekday: 'long', day: 'numeric' })}
                       </span>
-                      <ArrowRight className="text-conveniat-green ml-auto h-5 w-5 shrink-0" />
+                      <ArrowRight
+                        className="text-conveniat-green ml-auto h-5 w-5 shrink-0"
+                        aria-hidden="true"
+                      />
                     </button>
                   )}
                 </div>

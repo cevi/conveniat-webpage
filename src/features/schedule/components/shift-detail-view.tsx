@@ -328,7 +328,7 @@ export const ShiftDetailView: React.FC<{
                 nothing for everyone else - the decision is the server's, `getShiftStatus` leaves
                 `participants` empty unless the caller organises the shift.
               */}
-              <ParticipantList courseId={shift.id} courseType="shift" variant="inline" />
+              <ParticipantList courseId={shift.id} courseType="shift" />
 
               {hasShiftMainContent(shift.mainContent) && (
                 <section>

@@ -4,6 +4,7 @@ import { SafeErrorBoundary } from '@/components/error-boundary/safe-error-bounda
 import { SetHideHeader } from '@/components/header/hide-header-context';
 import { Button } from '@/components/ui/buttons/button';
 import { ShareLinkButton } from '@/components/ui/buttons/share-link-button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { environmentVariables } from '@/config/environment-variables';
 import { useScheduleEntries } from '@/context/schedule-entries-context';
 import type { CampScheduleEntry } from '@/features/payload-cms/payload-types';
@@ -22,7 +23,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { ArrowLeft } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CalendarX } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -250,9 +251,16 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     return (
       <>
         <SetHideHeader value />
-        <div className={cn(containerClassName, 'items-center justify-center p-8 text-center')}>
-          <p className="mb-4 text-gray-500">{labels.notFound[locale]}</p>
-          <Button onClick={goBack}>{labels.back[locale]}</Button>
+        <div className={cn(containerClassName, 'items-center justify-center')}>
+          <EmptyState
+            icon={CalendarX}
+            title={labels.notFound[locale]}
+            action={
+              <Button variant="quiet" size="touch" onClick={goBack}>
+                {labels.back[locale]}
+              </Button>
+            }
+          />
         </div>
       </>
     );
@@ -263,8 +271,11 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
     return (
       <>
         <SetHideHeader value />
-        <div className={cn(containerClassName, 'items-center justify-center')}>
-          <div className="text-gray-400">Loading...</div>
+        <div className={containerClassName}>
+          <div className="absolute inset-x-0 top-0 z-20 flex p-3">{backButton}</div>
+          <div className="flex-1 overflow-y-auto">
+            <ScheduleDetailSkeleton />
+          </div>
         </div>
       </>
     );
@@ -305,12 +316,16 @@ export const ScheduleDetailView: React.FC<ScheduleDetailViewProperties> = ({ id:
         <div key={id} className="flex-1 overflow-x-hidden overflow-y-auto">
           <SafeErrorBoundary
             fallback={
-              <div className="flex h-full flex-col items-center justify-center p-8 text-center text-gray-500">
-                <p>{labels.errorLoading[locale]}</p>
-                <Button onClick={() => globalThis.location.reload()} className="mt-4">
-                  {labels.retry[locale]}
-                </Button>
-              </div>
+              <EmptyState
+                icon={AlertTriangle}
+                title={labels.errorLoading[locale]}
+                className="h-full justify-center"
+                action={
+                  <Button variant="quiet" size="touch" onClick={() => globalThis.location.reload()}>
+                    {labels.retry[locale]}
+                  </Button>
+                }
+              />
             }
           >
             <ScheduleDetailContent

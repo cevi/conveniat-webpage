@@ -1,7 +1,7 @@
 import { cn } from '@/utils/tailwindcss-override';
 import type React from 'react';
 
-const pulse = 'animate-pulse bg-gray-200';
+const pulse = 'animate-pulse bg-quiet';
 
 /** The schedule list while it loads: day cards, scope switch, search and a timeline. */
 export const ScheduleLoadingSkeleton: React.FC = () => {
@@ -30,7 +30,7 @@ export const ScheduleLoadingSkeleton: React.FC = () => {
             <div className="flex justify-center">
               <div className="w-0.5 bg-green-100" />
             </div>
-            <div className={cn('mb-3 h-24 rounded-2xl', pulse)} />
+            <div className={cn('mb-3 h-24 rounded-[14px]', pulse)} />
           </li>
         ))}
       </ol>

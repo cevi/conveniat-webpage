@@ -39,7 +39,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
   onStartEdit,
   onCancelEdit,
   onSave,
-  buttonClassName = 'rounded-lg p-2 transition-colors hover:bg-gray-100',
+  buttonClassName = 'hover:bg-quiet flex h-11 w-11 items-center justify-center rounded-full text-green-900 transition-colors',
   before,
 }) => {
   return (
@@ -51,7 +51,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
           className={buttonClassName}
           aria-label={labels.edit[locale]}
         >
-          <Edit className="h-5 w-5 text-gray-700" />
+          <Edit className="h-5 w-5" aria-hidden="true" />
         </button>
       )}
       {isEditing && (
@@ -62,7 +62,7 @@ export const ScheduleEditHeaderActions: React.FC<ScheduleEditHeaderActionsProper
             className={buttonClassName}
             aria-label={labels.cancel[locale]}
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
           <button
             type="button"

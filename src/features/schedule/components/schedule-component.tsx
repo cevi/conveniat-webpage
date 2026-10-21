@@ -188,7 +188,7 @@ export const ScheduleComponent: React.FC = () => {
         <button
           type="button"
           onClick={() => actions.handleDateSelect(today)}
-          className="mb-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-left text-xs text-gray-600"
+          className="bg-quiet mb-3 flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-2 text-left text-[13px] text-green-700"
         >
           <span className="min-w-0 truncate">
             {programmeLabels[nowAndNext.current === undefined ? 'upNext' : 'now'][locale]}:{' '}
@@ -202,7 +202,7 @@ export const ScheduleComponent: React.FC = () => {
 
       {/* Results Summary */}
       {hasActiveFilters && hasProgram && (
-        <div className="mb-3 text-xs font-medium text-gray-500">
+        <div className="mb-3 text-[13px] font-medium text-green-700">
           <span>
             {foundEventsText[locale]
               .replace('{{count}}', String(totalEventsCount))

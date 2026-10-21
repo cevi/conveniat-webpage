@@ -173,7 +173,7 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
   return (
     <div
       className={cn(
-        'relative mt-2 w-full overflow-hidden rounded-xl border border-gray-200',
+        'border-line relative mt-2 w-full overflow-hidden rounded-[14px] border',
         className,
       )}
       // the inline height is the default only; a caller that sizes the box owns it entirely
@@ -234,9 +234,9 @@ export const ScheduleMiniMap: React.FC<ScheduleMiniMapProperties> = ({
         <div className="absolute top-3 right-3 z-10">
           <Link
             href={`/app/map?locationId=${location.id}`}
-            className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-semibold text-gray-900 shadow-md transition-colors hover:bg-gray-50"
+            className="flex h-11 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-green-900 shadow-[0_2px_8px_rgba(0,0,0,0.16)] transition-colors"
           >
-            <MapPin className="h-4 w-4 shrink-0" />
+            <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
             {labels.openInMap[locale]}
           </Link>
         </div>

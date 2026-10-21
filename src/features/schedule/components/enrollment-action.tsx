@@ -403,17 +403,17 @@ export const EnrollmentAction: React.FC<{
             </ChatAlertDialogDescription>
           </ChatAlertDialogHeader>
           <div className="flex flex-col items-center justify-center space-y-4">
-            <div className="w-full rounded-lg bg-gray-50 p-4 text-center">
-              <div className="text-lg font-bold text-gray-900">
+            <div className="bg-quiet w-full rounded-[14px] p-4 text-center">
+              <div className="font-heading text-heading text-[17px] font-bold">
                 {conflictInfo?.conflictingCourseName}
               </div>
             </div>
             {isSwitchBlocked ? (
-              <p className="w-full rounded-lg bg-amber-50 px-3 py-2 text-center text-sm text-amber-800">
+              <p className="border-live-line bg-live-soft text-live-text w-full rounded-[14px] border px-3.5 py-2.5 text-center text-sm">
                 {localizedSwitchBlockedShift[locale]}
               </p>
             ) : (
-              <p className="text-center text-sm text-gray-500">
+              <p className="text-center text-sm text-green-700">
                 {conflictType === 'shift'
                   ? localizedSwitchQuestionShift[locale]
                   : localizedSwitchQuestionWorkshop[locale]}
