@@ -2,7 +2,7 @@
 
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
 import { ScheduleTimelineItem } from '@/features/schedule/components/schedule-timeline-item';
-import { ShiftCapacity } from '@/features/schedule/components/shift-capacity';
+import { localizedPast, ShiftCapacity } from '@/features/schedule/components/shift-capacity';
 import { ShiftEnrollmentAction } from '@/features/schedule/components/shift-enrollment-action';
 import { programmeLabels, scheduleLabels } from '@/features/schedule/constants/schedule-labels';
 import { useShiftStatus } from '@/features/schedule/hooks/use-shift-status';
@@ -13,7 +13,7 @@ import { formatDuration } from '@/features/schedule/utils/time-utils';
 import { isShiftOver } from '@/features/schedule/utils/unenrollment-deadline';
 import type { Locale } from '@/types/types';
 import { cn } from '@/utils/tailwindcss-override';
-import { CheckCircle, Clock, MapPin } from 'lucide-react';
+import { Check, Clock, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import type React from 'react';
@@ -70,7 +70,8 @@ export const ShiftCard: React.FC<{
   const href = `${pathname}?${parameters.toString()}`;
 
   const hasCapacity = status?.maxParticipants !== undefined && status.maxParticipants > 0;
-  const hasEnrolment = shift.enable_enrolment === true && (!isPast || isEnrolled);
+  // a shift that is over takes nobody in and lets nobody out any more
+  const hasEnrolment = shift.enable_enrolment === true && !isPast;
 
   return (
     <ScheduleTimelineItem
@@ -85,17 +86,20 @@ export const ShiftCard: React.FC<{
     >
       <div className="border-line mb-3.5 overflow-hidden rounded-[14px] border bg-white">
         <Link href={href} className="block px-3.5 py-3">
-          {accent.label !== '' && (
-            <div className={cn('text-xs font-semibold', accent.text)}>{accent.label}</div>
+          {/* the pill sits on the line above the title, which keeps its full width on a phone */}
+          {(accent.label !== '' || isEnrolled) && (
+            <div className="flex min-h-6 items-center justify-between gap-2">
+              <span className={cn('text-xs font-semibold', accent.text)}>{accent.label}</span>
+              {isEnrolled && (
+                <span className="border-tint-line bg-tint text-conveniat-green inline-flex h-6 shrink-0 items-center gap-1 rounded-full border px-2 text-xs font-semibold">
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  {scheduleLabels.enrolledBadge[locale]}
+                </span>
+              )}
+            </div>
           )}
-          <h3 className="mt-0.5 flex items-center gap-1.5 text-[17px] leading-[22px] font-[650] text-green-900">
-            <span className="truncate">{shift.title}</span>
-            {isEnrolled && (
-              <CheckCircle
-                className="text-conveniat-green h-4 w-4 shrink-0"
-                aria-label={scheduleLabels.enrolledBadge[locale]}
-              />
-            )}
+          <h3 className="mt-0.5 truncate text-[17px] leading-[22px] font-[650] text-green-900">
+            {shift.title}
           </h3>
           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[13px] leading-[18px] text-green-700">
             {slot !== undefined && slot.end > slot.start && (
@@ -112,15 +116,28 @@ export const ShiftCard: React.FC<{
               </span>
             )}
           </p>
+          {shift.description !== '' && (
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-[18px] text-green-700">
+              {shift.description}
+            </p>
+          )}
         </Link>
 
         {/*
           How full it is and the way in, under a line the way the programme card carries its
           enrolment. Outside the link, so enrolling never opens the detail page.
         */}
-        {(hasCapacity || hasEnrolment) && (
+        {(hasCapacity || hasEnrolment || isPast) && (
           <div className="border-line flex min-h-[60px] items-center gap-3 border-t px-3.5 py-2">
-            <ShiftCapacity status={status} locale={locale} isPast={isPast} className="flex-1" />
+            {hasCapacity ? (
+              <ShiftCapacity status={status} locale={locale} isPast={isPast} className="flex-1" />
+            ) : (
+              isPast && (
+                <span className="flex-1 text-[13px] leading-[18px] text-green-700">
+                  {localizedPast[locale]}
+                </span>
+              )
+            )}
             {hasEnrolment && (
               <span className="ml-auto shrink-0">
                 <ShiftEnrollmentAction

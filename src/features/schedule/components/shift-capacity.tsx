@@ -12,7 +12,7 @@ const localizedFull: StaticTranslationString = {
   fr: 'Complet',
 };
 
-const localizedPast: StaticTranslationString = {
+export const localizedPast: StaticTranslationString = {
   de: 'Vorbei',
   en: 'Over',
   fr: 'Terminé',
