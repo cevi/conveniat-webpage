@@ -33,7 +33,7 @@ const Switch = React.forwardRef<HTMLButtonElement, SwitchProperties>(
         className={cn(
           'peer inline-flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
           !disabled && !loading && 'cursor-pointer',
-          checked ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-800',
+          checked ? 'bg-conveniat-green' : 'bg-chip',
           className,
         )}
         {...properties}
