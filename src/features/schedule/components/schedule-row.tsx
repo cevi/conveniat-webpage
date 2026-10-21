@@ -162,7 +162,7 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
         />
 
         {showSlots && isGrouped && (
-          <ul className="flex flex-col gap-1.5 px-2.5 pb-2.5">
+          <ul className="flex flex-col gap-[6px] px-[12px] pb-[12px]">
             {stop.slots.map((entry) => {
               const mine = isMine(entry);
               return (
@@ -170,19 +170,23 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                   <Link
                     href={hrefOf(entry)}
                     onClick={saveScrollPosition}
+                    // px, not rem: the root font is larger on desktop. The chips wrap in their
+                    // own group, so the time keeps its room at the right however many there are.
                     className={cn(
-                      'flex min-h-11 items-center gap-1 rounded-[10px] border px-2.5',
+                      'flex min-h-[44px] items-center gap-[12px] rounded-[10px] border px-[10px] py-[6px]',
                       mine ? 'border-tint-line bg-tint' : 'border-transparent',
                     )}
                   >
-                    {quartiereOf(entry).map((quartier) => (
-                      <QuartierBadge
-                        key={quartier.id}
-                        quartier={quartier}
-                        isMine={myQuartierIds.has(quartier.id)}
-                      />
-                    ))}
-                    <span className="ml-auto shrink-0 text-[13px] font-semibold whitespace-nowrap text-green-900 tabular-nums">
+                    <span className="flex min-w-0 flex-1 flex-wrap gap-[6px]">
+                      {quartiereOf(entry).map((quartier) => (
+                        <QuartierBadge
+                          key={quartier.id}
+                          quartier={quartier}
+                          isMine={myQuartierIds.has(quartier.id)}
+                        />
+                      ))}
+                    </span>
+                    <span className="shrink-0 text-[13px] font-semibold whitespace-nowrap text-green-900 tabular-nums">
                       {entry.timeslot.time.replace(' - ', '–')}
                     </span>
                   </Link>
