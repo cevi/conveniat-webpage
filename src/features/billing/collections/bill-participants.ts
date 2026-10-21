@@ -44,7 +44,16 @@ export const BillParticipantsCollection: CollectionConfig = {
     hideAPIURL: true,
     group: AdminPanelDashboardGroups.BackofficeBilling.label,
     useAsTitle: 'fullName',
-    listSearchableFields: ['fullName', 'registrationNumber'],
+    // The reference is what finance has in hand from a bank statement. The issued bills are
+    // searched too, so a payment against a replaced bill still finds its registration, the
+    // same two places the payment import matches on. The Anmeldenummer is what a participant
+    // quotes from their bill.
+    listSearchableFields: [
+      'fullName',
+      'referenceNumber',
+      'issuedBills.referenceNumber',
+      'registrationNumber',
+    ],
     groupBy: true,
     defaultColumns: [
       'fullName',
