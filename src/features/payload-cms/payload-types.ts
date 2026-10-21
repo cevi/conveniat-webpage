@@ -4619,42 +4619,65 @@ export interface PushNotificationSubscription {
  */
 export interface BillParticipant {
   id: string;
+  status:
+    | 'new'
+    | 'pflichtangaben_missing'
+    | 'invalid_anmeldeangaben'
+    | 'needs_manual_review'
+    | 'bill_created'
+    | 'bill_mail_pending'
+    | 'bill_sent'
+    | 'removed'
+    | 're_added'
+    | 'updated'
+    | 'reminder_sent'
+    | 'paid';
   /**
-   * The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.
+   * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
    */
-  participationUuid: string;
+  financeNote?: string | null;
+  invoiceNumber?: string | null;
   /**
-   * The person ID in the Cevi.DB. Stable across re-enrollments.
+   * The Registration Number printed on the bill PDF.
    */
-  userId: string;
-  eventId: string;
-  groupId?: string | null;
-  eventName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  nickname?: string | null;
-  fullName: string;
+  registrationNumber?: string | null;
+  referenceNumber?: string | null;
   /**
-   * Cevi.DB event role type (e.g. Event::Camp::Role::Participant)
+   * Gross amount, i.e. the net camp fee plus VAT.
    */
-  roleType?: string | null;
-  street?: string | null;
-  zip?: string | null;
-  zipCode?: string | null;
-  town?: string | null;
-  email?: string | null;
+  invoiceAmount?: number | null;
+  netAmount?: number | null;
+  vatExempt?: boolean | null;
   /**
-   * The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.
+   * The VAT lines as they were printed on the bill.
    */
-  anmeldestatus?: string | null;
-  birthday?: string | null;
-  gender?: string | null;
-  active?: boolean | null;
-  enrollmentDate?: string | null;
-  firstSyncDate?: string | null;
-  lastSyncDate?: string | null;
+  vatBreakdown?:
+    | {
+        label?: string | null;
+        share?: number | null;
+        netAmount?: number | null;
+        vatCode?: string | null;
+        vatAmount?: number | null;
+        id?: string | null;
+      }[]
+    | null;
   billCreatedDate?: string | null;
   billSentDate?: string | null;
+  billPdfs?: (string | BillPdf)[] | null;
+  /**
+   * Every bill raised for this registration, including replaced and cancelled ones.
+   */
+  issuedBills?:
+    | {
+        invoiceNumber: string;
+        referenceNumber?: string | null;
+        invoiceAmount?: number | null;
+        billCreatedDate?: string | null;
+        cancelledDate?: string | null;
+        cancelReason?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * The booking date of the payment in the bank file.
    */
@@ -4684,65 +4707,27 @@ export interface BillParticipant {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  fullName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  nickname?: string | null;
+  email?: string | null;
+  street?: string | null;
+  zipCode?: string | null;
+  zip?: string | null;
+  town?: string | null;
+  birthday?: string | null;
+  gender?: string | null;
+  eventName?: string | null;
   /**
-   * Free text carried into the finance overview export. Never touched by a Cevi.DB sync.
+   * The "Administrationsangaben » Anmeldestatus" answer from the Cevi.DB.
    */
-  financeNote?: string | null;
-  removedDate?: string | null;
-  reAddedDate?: string | null;
-  referenceNumber?: string | null;
-  invoiceNumber?: string | null;
+  anmeldestatus?: string | null;
   /**
-   * The Registration Number printed on the bill PDF.
+   * Cevi.DB event role type (e.g. Event::Camp::Role::Participant)
    */
-  registrationNumber?: string | null;
-  /**
-   * Gross amount, i.e. the net camp fee plus VAT.
-   */
-  invoiceAmount?: number | null;
-  netAmount?: number | null;
-  vatExempt?: boolean | null;
-  /**
-   * The VAT lines as they were printed on the bill.
-   */
-  vatBreakdown?:
-    | {
-        label?: string | null;
-        share?: number | null;
-        netAmount?: number | null;
-        vatCode?: string | null;
-        vatAmount?: number | null;
-        id?: string | null;
-      }[]
-    | null;
-  billPdfs?: (string | BillPdf)[] | null;
-  /**
-   * Every bill raised for this registration, including replaced and cancelled ones.
-   */
-  issuedBills?:
-    | {
-        invoiceNumber: string;
-        referenceNumber?: string | null;
-        invoiceAmount?: number | null;
-        billCreatedDate?: string | null;
-        cancelledDate?: string | null;
-        cancelReason?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  status:
-    | 'new'
-    | 'pflichtangaben_missing'
-    | 'invalid_anmeldeangaben'
-    | 'needs_manual_review'
-    | 'bill_created'
-    | 'bill_mail_pending'
-    | 'bill_sent'
-    | 'removed'
-    | 're_added'
-    | 'updated'
-    | 'reminder_sent'
-    | 'paid';
+  roleType?: string | null;
+  active?: boolean | null;
   missingStammdaten?:
     | {
         [k: string]: unknown;
@@ -4761,6 +4746,31 @@ export interface BillParticipant {
     | number
     | boolean
     | null;
+  enrollmentDate?: string | null;
+  removedDate?: string | null;
+  reAddedDate?: string | null;
+  /**
+   * The UUID of the event_participation object in the Cevi.DB. Changes on re-enrollment.
+   */
+  participationUuid: string;
+  /**
+   * The person ID in the Cevi.DB. Stable across re-enrollments.
+   */
+  userId: string;
+  eventId: string;
+  groupId?: string | null;
+  relatedEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  reminderEmails?: {
+    docs?: (string | OutgoingEmail)[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  firstSyncDate?: string | null;
+  lastSyncDate?: string | null;
   /**
    * Array of { date, action } entries for audit trail.
    */
@@ -4773,18 +4783,27 @@ export interface BillParticipant {
     | number
     | boolean
     | null;
-  relatedEmails?: {
-    docs?: (string | OutgoingEmail)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
-  reminderEmails?: {
-    docs?: (string | OutgoingEmail)[];
-    hasNextPage?: boolean;
-    totalDocs?: number;
-  };
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bill-pdfs".
+ */
+export interface BillPdf {
+  id: string;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * Every payment from an imported bank file. Assign a payment the import could not book, move a double payment to the bill it was meant for, or split one payment across several bills.
@@ -4843,25 +4862,6 @@ export interface BillPayment {
   note?: string | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bill-pdfs".
- */
-export interface BillPdf {
-  id: string;
-  _objectKey?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -7439,42 +7439,11 @@ export interface PresenceLogsSelect<T extends boolean = true> {
  * via the `definition` "bill-participants_select".
  */
 export interface BillParticipantsSelect<T extends boolean = true> {
-  participationUuid?: T;
-  userId?: T;
-  eventId?: T;
-  groupId?: T;
-  eventName?: T;
-  firstName?: T;
-  lastName?: T;
-  nickname?: T;
-  fullName?: T;
-  roleType?: T;
-  street?: T;
-  zip?: T;
-  zipCode?: T;
-  town?: T;
-  email?: T;
-  anmeldestatus?: T;
-  birthday?: T;
-  gender?: T;
-  active?: T;
-  enrollmentDate?: T;
-  firstSyncDate?: T;
-  lastSyncDate?: T;
-  billCreatedDate?: T;
-  billSentDate?: T;
-  paidDate?: T;
-  paidAmount?: T;
-  paymentTransactionReference?: T;
-  doublePayment?: T;
-  payments?: T;
-  matchedPayments?: T;
+  status?: T;
   financeNote?: T;
-  removedDate?: T;
-  reAddedDate?: T;
-  referenceNumber?: T;
   invoiceNumber?: T;
   registrationNumber?: T;
+  referenceNumber?: T;
   invoiceAmount?: T;
   netAmount?: T;
   vatExempt?: T;
@@ -7488,6 +7457,8 @@ export interface BillParticipantsSelect<T extends boolean = true> {
         vatAmount?: T;
         id?: T;
       };
+  billCreatedDate?: T;
+  billSentDate?: T;
   billPdfs?: T;
   issuedBills?:
     | T
@@ -7500,12 +7471,41 @@ export interface BillParticipantsSelect<T extends boolean = true> {
         cancelReason?: T;
         id?: T;
       };
-  status?: T;
+  paidDate?: T;
+  paidAmount?: T;
+  paymentTransactionReference?: T;
+  doublePayment?: T;
+  payments?: T;
+  matchedPayments?: T;
+  fullName?: T;
+  firstName?: T;
+  lastName?: T;
+  nickname?: T;
+  email?: T;
+  street?: T;
+  zipCode?: T;
+  zip?: T;
+  town?: T;
+  birthday?: T;
+  gender?: T;
+  eventName?: T;
+  anmeldestatus?: T;
+  roleType?: T;
+  active?: T;
   missingStammdaten?: T;
   missingAnmeldeangaben?: T;
-  syncHistory?: T;
+  enrollmentDate?: T;
+  removedDate?: T;
+  reAddedDate?: T;
+  participationUuid?: T;
+  userId?: T;
+  eventId?: T;
+  groupId?: T;
   relatedEmails?: T;
   reminderEmails?: T;
+  firstSyncDate?: T;
+  lastSyncDate?: T;
+  syncHistory?: T;
   updatedAt?: T;
   createdAt?: T;
 }

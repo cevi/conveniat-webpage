@@ -58,11 +58,13 @@ import { ImportListMenuItem as ImportListMenuItem_cdf7e044479f899a31f804427d568b
 import { default as default_de57a7a0310123dd259a53c03db574b9 } from '@/features/payload-cms/components/push-notification/push-notification-panel'
 import { FunktionenSyncButton as FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198 } from '@/features/payload-cms/payload-cms/components/funktionen-sync-button'
 import { default as default_720f56d8cf9ba0434ee963ba588968d8 } from '@/features/billing/components/billing-status-cell'
-import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
-import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
-import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
-import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
 import { default as default_06b30d36d4fec532358cb0f29e42cc3e } from '@/features/billing/components/billing-actions-cell'
+import { default as default_861a0172410057db13945839747e3602 } from '@/features/billing/components/billing-actions-field'
+import { default as default_90d0188c5b32bd3d10c2e47fb1e9e710 } from '@/features/billing/components/hitobito-link-cell'
+import { default as default_8fab6db47fe75a227550f4f88fec6865 } from '@/features/billing/components/hitobito-link-field'
+import { default as default_fb0edca85ff4d5747b6689eaa2656c54 } from '@/features/billing/components/missing-data-field'
+import { default as default_213735919c76873cbbfc040670fae11b } from '@/features/billing/components/related-emails-cell'
+import { default as default_76bea7d0da84feab859623aecb60b1b6 } from '@/features/billing/components/sync-history-field'
 import { default as default_7e46c70b38f19ab508dd58722ced6657 } from '@/features/billing/components/billing-list-toolbar'
 import { EventRowLabel as EventRowLabel_7fd9e802aba4470ba78c74210269ca9c } from '@/features/billing/components/event-row-label'
 import { PopulateSubeventsButton as PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678 } from '@/features/billing/components/populate-subevents-button'
@@ -194,11 +196,13 @@ export const importMap = {
   "@/features/payload-cms/components/push-notification/push-notification-panel#default": default_de57a7a0310123dd259a53c03db574b9,
   "@/features/payload-cms/payload-cms/components/funktionen-sync-button#FunktionenSyncButton": FunktionenSyncButton_9dd20bcf5b197469cfbb411fdb50e198,
   "@/features/billing/components/billing-status-cell#default": default_720f56d8cf9ba0434ee963ba588968d8,
-  "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
-  "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
-  "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
-  "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
   "@/features/billing/components/billing-actions-cell#default": default_06b30d36d4fec532358cb0f29e42cc3e,
+  "@/features/billing/components/billing-actions-field#default": default_861a0172410057db13945839747e3602,
+  "@/features/billing/components/hitobito-link-cell#default": default_90d0188c5b32bd3d10c2e47fb1e9e710,
+  "@/features/billing/components/hitobito-link-field#default": default_8fab6db47fe75a227550f4f88fec6865,
+  "@/features/billing/components/missing-data-field#default": default_fb0edca85ff4d5747b6689eaa2656c54,
+  "@/features/billing/components/related-emails-cell#default": default_213735919c76873cbbfc040670fae11b,
+  "@/features/billing/components/sync-history-field#default": default_76bea7d0da84feab859623aecb60b1b6,
   "@/features/billing/components/billing-list-toolbar#default": default_7e46c70b38f19ab508dd58722ced6657,
   "@/features/billing/components/event-row-label#EventRowLabel": EventRowLabel_7fd9e802aba4470ba78c74210269ca9c,
   "@/features/billing/components/populate-subevents-button#PopulateSubeventsButton": PopulateSubeventsButton_86724c46a81ed646b2583a53129c1678,
