@@ -1,14 +1,17 @@
 'use client';
 import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { fieldInputClassName, formFieldClassName } from '@/components/ui/field';
 import { PersonAvatar } from '@/components/ui/person-avatar';
 import type { Contact } from '@/features/chat/api/queries/list-contacts';
 import {
   contactListName,
   ContactRowContent,
   contactRowItemClassName,
+  ContactRowsSkeleton,
   NewChatFrame,
 } from '@/features/chat/components/chat-overview-view/contact-row';
+import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
 import { useCreateChat } from '@/features/chat/hooks/use-create-chat';
 import { matchesContactSearch } from '@/features/chat/utils/contact-search';
@@ -17,7 +20,7 @@ import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { getContactDisplayName, getContactShortName } from '@/utils/format-user-name';
 import { cn } from '@/utils/tailwindcss-override';
-import { Check, Loader2, Users, X } from 'lucide-react';
+import { Check, Users, X } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { usePathname, useRouter } from 'next/navigation';
 import type React from 'react';
@@ -30,9 +33,6 @@ const NAME_MAX = 50;
 const MIN_SELECTED = 2;
 
 const text = {
-  title: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
-  selected: { de: '{n} ausgewählt', en: '{n} selected', fr: '{n} sélectionné(s)' },
-  back: { de: 'Zurück zu «Neuer Chat»', en: 'Back to “New chat”', fr: 'Retour à « Nouveau chat »' },
   nameLabel: { de: 'Gruppenname', en: 'Group name', fr: 'Nom du groupe' },
   namePlaceholder: { de: 'Name der Gruppe', en: 'Name of the group', fr: 'Nom du groupe' },
   nameRule: {
@@ -161,10 +161,10 @@ export const CreateNewGroupPage: React.FC = () => {
 
   return (
     <NewChatFrame
-      title={text.title[locale]}
-      subtitle={text.selected[locale].replace('{n}', String(selected.length))}
+      title={newChatText.groupTitle[locale]}
+      subtitle={newChatText.groupSelected[locale].replace('{n}', String(selected.length))}
       backHref="/app/chat/new"
-      backLabel={text.back[locale]}
+      backLabel={newChatText.groupBack[locale]}
       footer={
         <div className="flex flex-col gap-2">
           {helper !== undefined && (
@@ -188,19 +188,21 @@ export const CreateNewGroupPage: React.FC = () => {
       }
     >
       <div className="border-line border-b bg-white px-4 pt-4 pb-3">
-        <label htmlFor={nameId} className="text-[13px] font-semibold text-green-900">
+        <span id={nameId} className="block text-[13px] font-semibold text-green-900">
           {text.nameLabel[locale]}
+        </span>
+        <label className={cn(formFieldClassName, 'mt-1.5')}>
+          <input
+            value={groupName}
+            maxLength={NAME_MAX}
+            placeholder={text.namePlaceholder[locale]}
+            onChange={(event) => setGroupName(event.target.value)}
+            aria-labelledby={nameId}
+            aria-describedby={nameRuleId}
+            aria-invalid={trimmedName.length > 0 && !hasValidName}
+            className={fieldInputClassName}
+          />
         </label>
-        <input
-          id={nameId}
-          value={groupName}
-          maxLength={NAME_MAX}
-          placeholder={text.namePlaceholder[locale]}
-          onChange={(event) => setGroupName(event.target.value)}
-          aria-describedby={nameRuleId}
-          aria-invalid={trimmedName.length > 0 && !hasValidName}
-          className="border-rail-node focus:border-conveniat-green focus:ring-conveniat-green/30 mt-1.5 h-12 w-full rounded-xl border bg-white px-4 text-[15px] text-green-900 outline-none placeholder:text-green-500 focus:ring-4"
-        />
         <div
           id={nameRuleId}
           className="mt-1 flex justify-between text-xs text-green-700 tabular-nums"
@@ -254,12 +256,9 @@ export const CreateNewGroupPage: React.FC = () => {
       </div>
 
       {isLoading && (
-        <div
-          className="flex items-center justify-center gap-3 py-12 text-[15px] text-green-700"
-          role="status"
-        >
-          <Loader2 className="h-5 w-5 animate-spin text-green-500" aria-hidden="true" />
-          {text.loading[locale]}
+        <div role="status">
+          <span className="sr-only">{text.loading[locale]}</span>
+          <ContactRowsSkeleton withMark />
         </div>
       )}
 

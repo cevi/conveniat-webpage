@@ -16,14 +16,20 @@ export const ChatSkeleton: React.FC = () => (
           <div
             className={cn(
               'h-14 animate-pulse rounded-2xl',
-              index % 2 === 0 ? 'border-line w-64 border bg-white' : 'bg-tint w-48',
+              index % 2 === 0 ? 'border-line w-64 border bg-white' : 'bg-quiet w-48',
             )}
           />
         </div>
       ))}
     </div>
     <div className="border-line border-t bg-white p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-      <div className="bg-quiet h-12 w-full animate-pulse rounded-[22px]" />
+      {/* the message field: a bordered box with the send button at its end */}
+      <div className="border-line flex items-end gap-[4px] rounded-[16px] border bg-white p-[4px]">
+        <div className="flex h-[44px] flex-1 items-center px-2">
+          <div className="bg-quiet h-4 w-36 animate-pulse rounded" />
+        </div>
+        <div className="bg-quiet h-[44px] w-[44px] shrink-0 animate-pulse rounded-[12px]" />
+      </div>
     </div>
   </div>
 );

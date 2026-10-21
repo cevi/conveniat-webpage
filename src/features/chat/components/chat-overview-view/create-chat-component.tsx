@@ -7,8 +7,10 @@ import {
   contactListName,
   ContactRowContent,
   contactRowItemClassName,
+  ContactRowsSkeleton,
   NewChatFrame,
 } from '@/features/chat/components/chat-overview-view/contact-row';
+import { newChatText } from '@/features/chat/components/chat-overview-view/create-chat-skeleton';
 import type { ChatQrTab } from '@/features/chat/components/qr-component';
 import { ChatQrSheet } from '@/features/chat/components/qr-component';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
@@ -17,7 +19,7 @@ import { groupContactsByLetter, matchesContactSearch } from '@/features/chat/uti
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
-import { Loader2, QrCode, UserPlus, Users } from 'lucide-react';
+import { QrCode, UserPlus, Users } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -25,8 +27,6 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 
 const text = {
-  title: { de: 'Neuer Chat', en: 'New chat', fr: 'Nouveau chat' },
-  back: { de: 'Zurück zu den Chats', en: 'Back to chats', fr: 'Retour aux discussions' },
   search: {
     de: 'Name, Pfadiname oder Quartier',
     en: 'Name, Cevi name or Quartier',
@@ -34,7 +34,6 @@ const text = {
   },
   newGroup: { de: 'Neue Gruppe', en: 'New group', fr: 'Nouveau groupe' },
   scanCode: { de: 'QR-Code scannen', en: 'Scan QR code', fr: 'Scanner un code QR' },
-  contacts: { de: 'Kontakte', en: 'Contacts', fr: 'Contacts' },
   loading: { de: 'Lade Kontakte …', en: 'Loading contacts …', fr: 'Chargement des contacts …' },
   noContacts: {
     de: 'Keine Kontakte verfügbar',
@@ -105,11 +104,12 @@ export const CreateNewChatPage: React.FC = () => {
 
   return (
     <NewChatFrame
-      title={text.title[locale]}
+      title={newChatText.title[locale]}
       backHref="/app/chat"
-      backLabel={text.back[locale]}
+      backLabel={newChatText.back[locale]}
       head={
-        hasContacts ? (
+        // also while loading, so the field is in place before the contacts arrive
+        hasContacts || isLoading ? (
           <ChatSearchField
             placeholder={text.search[locale]}
             value={searchQuery}
@@ -141,12 +141,12 @@ export const CreateNewChatPage: React.FC = () => {
       )}
 
       {isLoading && (
-        <div
-          className="flex items-center justify-center gap-3 py-12 text-[15px] text-green-700"
-          role="status"
-        >
-          <Loader2 className="h-5 w-5 animate-spin text-green-500" aria-hidden="true" />
-          {text.loading[locale]}
+        <div role="status" className="pt-4">
+          <span className="sr-only">{text.loading[locale]}</span>
+          <SectionLabel className="px-4">{newChatText.contacts[locale]}</SectionLabel>
+          <div className="pt-2">
+            <ContactRowsSkeleton />
+          </div>
         </div>
       )}
 
@@ -161,11 +161,13 @@ export const CreateNewChatPage: React.FC = () => {
       {!isLoading && filteredContacts.length > 0 && (
         <section aria-labelledby="new-chat-contacts" className="pt-4 pb-8">
           <SectionLabel className="px-4">
-            <span id="new-chat-contacts">{text.contacts[locale]}</span>
+            <span id="new-chat-contacts">{newChatText.contacts[locale]}</span>
           </SectionLabel>
           {groups.map(({ letter, contacts }) => (
-            <div key={letter}>
-              <h3 className="px-4 pt-3 pb-1 text-xs font-bold text-green-700">{letter}</h3>
+            <div key={letter ?? 'all'} className={letter === undefined ? 'pt-2' : undefined}>
+              {letter !== undefined && (
+                <h3 className="px-4 pt-3 pb-1 text-xs font-bold text-green-700">{letter}</h3>
+              )}
               <ul>
                 {contacts.map((contact) => (
                   <li key={contact.userId} className={contactRowItemClassName}>

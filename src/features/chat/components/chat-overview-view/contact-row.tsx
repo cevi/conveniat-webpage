@@ -97,3 +97,24 @@ export const NewChatFrame: React.FC<{
     )}
   </div>
 );
+
+/** Contact rows while the contacts load, the same height as the loaded ones. */
+export const ContactRowsSkeleton: React.FC<{ count?: number; withMark?: boolean }> = ({
+  count = 6,
+  withMark = false,
+}) => (
+  <ul aria-hidden="true">
+    {Array.from({ length: count }, (_, index) => (
+      <li key={index} className={contactRowItemClassName}>
+        <div className="flex min-h-16 items-center gap-3 px-4 py-2.5">
+          <div className="bg-quiet h-11 w-11 shrink-0 animate-pulse rounded-full" />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="bg-quiet h-4 w-44 animate-pulse rounded" />
+            <div className="bg-quiet h-3 w-56 max-w-full animate-pulse rounded" />
+          </div>
+          {withMark && <div className="border-rail h-6 w-6 shrink-0 rounded-full border-2" />}
+        </div>
+      </li>
+    ))}
+  </ul>
+);

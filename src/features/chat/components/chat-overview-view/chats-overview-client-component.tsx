@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/buttons/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { ChatPreview } from '@/features/chat/components/chat-overview-view/chat-preview';
-import { ChatsOverviewSkeleton } from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
+import {
+  ChatsOverviewSkeleton,
+  NewChatButtonSkeleton,
+} from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
 import { SwipeToDeleteChat } from '@/features/chat/components/chat-overview-view/swipe-to-delete-chat';
 import { RealtimeSyncBanner } from '@/features/chat/components/realtime-sync-banner';
 import { ChatSearchField } from '@/features/chat/components/ui/chat-search-field';
@@ -230,6 +233,7 @@ export const ChatsOverviewClientComponent: React.FC<{
       )}
 
       {/* the screen's main action floats over the list, above the tab bar */}
+      {createChatsEnabled === undefined && <NewChatButtonSkeleton />}
       {createChatsEnabled === true && (
         <Link
           href="/app/chat/new"

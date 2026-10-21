@@ -65,10 +65,17 @@ const BackLink: React.FC = () => {
   );
 };
 
+/** The header while the chat loads: the name and the line under it, the details button. */
 export const ChatHeaderSkeleton: React.FC = () => (
   <div className={headerClassName}>
     <BackLink />
-    <div className="bg-quiet h-5 w-48 animate-pulse rounded" />
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5 pl-1">
+      <div className="bg-quiet h-[18px] w-40 animate-pulse rounded" />
+      <div className="bg-quiet h-3 w-20 animate-pulse rounded" />
+    </div>
+    <div className={iconButtonClassName}>
+      <div className="bg-quiet h-[22px] w-[22px] animate-pulse rounded-full" />
+    </div>
   </div>
 );
 

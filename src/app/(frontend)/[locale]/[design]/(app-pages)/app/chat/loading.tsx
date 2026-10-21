@@ -1,19 +1,28 @@
-import { ChatsOverviewSkeleton } from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
+import { SetHeaderActions } from '@/components/header/header-actions';
+import { QrCodeIconSkeleton } from '@/features/chat/components/chat-overview-view/chat-qr-code-button';
+import {
+  ChatsOverviewSkeleton,
+  NewChatButtonSkeleton,
+} from '@/features/chat/components/chat-overview-view/chats-overview-skeleton';
 import type React from 'react';
 
 /**
- * Skeleton loading component for the Chat overview page.
- * Shows chat list placeholders.
+ * The chat overview while it loads, in the page's own layout: the "Mein Code" pill, the
+ * search, the rows and the floating "Neuer Chat".
  *
  * Only reached on a cold navigation: once the (static) chat shell is in the
  * router cache the overview renders the cached chats right away.
  */
 export default function ChatLoading(): React.ReactNode {
   return (
-    <div className="bg-page fixed top-(--app-content-top) left-(--app-content-left) z-30 flex h-[calc(100dvh-var(--app-content-top))] w-[calc(100dvw-var(--app-content-left))] flex-col overflow-y-hidden">
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+    <article className="container mx-auto px-4 pt-4 pb-[168px] sm:px-6 md:px-8">
+      <SetHeaderActions>
+        <QrCodeIconSkeleton />
+      </SetHeaderActions>
+      <div className="mx-auto w-full max-w-2xl">
         <ChatsOverviewSkeleton />
       </div>
-    </div>
+      <NewChatButtonSkeleton />
+    </article>
   );
 }
