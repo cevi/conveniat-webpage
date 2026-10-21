@@ -228,6 +228,26 @@ export const hasBillingOrAdminOrWebAccess: Access = (args) => {
   return canAccessBilling(args);
 };
 
+/**
+ * Who reads the outgoing mails: the full admins all of them, the billing team the mails sent
+ * for a registration, the bills and the reminders about missing details, which the E-Mails
+ * tab of a registration lists. Form submission mails stay with the admins: they carry what
+ * someone typed into a form.
+ *
+ * The mail's `type` is derived on read and cannot be queried, so the rule asks for the stored
+ * links instead, and turns away anything linked to a form submission as well.
+ */
+export const canReadOutgoingEmail = ({ req }: { req: PayloadRequest }): boolean | Where => {
+  if (isFullAdmin({ req })) return true;
+  if (!hasAccessToThis({ req, requiredRoles: BILLING_ROLES })) return false;
+  return {
+    and: [
+      { formSubmission: { exists: false } },
+      { or: [{ billParticipant: { exists: true } }, { billParticipants: { exists: true } }] },
+    ],
+  };
+};
+
 export const hasAccessToThisHelper = ({
   requiredRoles,
 }: {

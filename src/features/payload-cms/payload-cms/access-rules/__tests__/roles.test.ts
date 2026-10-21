@@ -14,6 +14,7 @@ jest.mock('@/config/environment-variables', () => ({
 import {
   canAccessBilling,
   canOpenAdminPanel,
+  canReadOutgoingEmail,
   getRolesOfGroups,
   hasAdminOrWebAccess,
   hasBillingOrAdminOrWebAccess,
@@ -161,6 +162,34 @@ describe('hasBillingOrAdminOrWebAccess', () => {
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PROGRAM_TEAM) })).toBe(false);
     expect(hasBillingOrAdminOrWebAccess({ req: requestFor(PARTICIPANT) })).toBe(false);
     expect(hasBillingOrAdminOrWebAccess({ req: anonymous })).toBe(false);
+  });
+});
+
+describe('canReadOutgoingEmail', () => {
+  it('lets the full admins read every mail', () => {
+    expect(canReadOutgoingEmail({ req: requestFor(FULL_ADMIN) })).toBe(true);
+  });
+
+  it('narrows the billing team to the mails of its registrations', () => {
+    expect(canReadOutgoingEmail({ req: requestFor(BILLING) })).toEqual({
+      and: [
+        { formSubmission: { exists: false } },
+        { or: [{ billParticipant: { exists: true } }, { billParticipants: { exists: true } }] },
+      ],
+    });
+  });
+
+  it('stops everyone else, the web core team included', () => {
+    for (const group of [
+      WEB_CORE_TEAM,
+      TRANSLATION_TEAM,
+      PROGRAM_TEAM,
+      MATERIAL_TEAM,
+      PARTICIPANT,
+    ]) {
+      expect(canReadOutgoingEmail({ req: requestFor(group) })).toBe(false);
+    }
+    expect(canReadOutgoingEmail({ req: anonymous })).toBe(false);
   });
 });
 
