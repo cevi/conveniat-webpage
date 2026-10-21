@@ -20,6 +20,9 @@ import type { Payload } from 'payload';
  * import and for an allocation finance changes by hand alike, so both book the same way.
  */
 
+/** How many bills are written at once; enough to hide the round trips, few enough for Mongo. */
+const PARALLEL_WRITES = 4;
+
 export const DOUBLE_PAYMENT_DETECTED_ACTION = 'double_payment_detected';
 export const DOUBLE_PAYMENT_RESOLVED_ACTION = 'double_payment_resolved';
 
@@ -148,6 +151,7 @@ export async function reconcileParticipantPayments(
     }
   }
 
+  const writes: { participant: BillParticipant; data: Partial<BillParticipant> }[] = [];
   for (const participant of participants.docs) {
     const id = participant.id;
     const payments = paymentsByParticipant.get(id) ?? [];
@@ -202,25 +206,34 @@ export async function reconcileParticipantPayments(
     }
 
     if (Object.keys(data).length === 0) continue;
+    writes.push({ participant, data: { ...data, syncHistory: history } });
+  }
 
-    try {
-      await payload.update({
-        collection: 'bill-participants',
-        id,
-        depth: 0,
-        context: { internal: true },
-        data: { ...data, syncHistory: history },
-      });
-      if (data.status === PAID) result.bookedIds.push(id);
-    } catch (error) {
-      // The status rule refuses the write when the row moved on since it was read, e.g. a
-      // cancellation in the same moment. The payment then needs a human like any other.
-      const reason = error instanceof Error ? error.message : String(error);
-      payload.logger.warn(
-        `Could not bring bill participant ${id} in line with its payments: ${reason}`,
-      );
-      result.errors.push(`${participant.fullName}: konnte nicht verbucht werden – ${reason}`);
-    }
+  // Each update re-reads its bill with every join, a few milliseconds that add up over a
+  // file of thousands. The bills are independent of each other, so a few run at once.
+  for (let start = 0; start < writes.length; start += PARALLEL_WRITES) {
+    await Promise.all(
+      writes.slice(start, start + PARALLEL_WRITES).map(async ({ participant, data }) => {
+        try {
+          await payload.update({
+            collection: 'bill-participants',
+            id: participant.id,
+            depth: 0,
+            context: { internal: true },
+            data,
+          });
+          if (data.status === PAID) result.bookedIds.push(participant.id);
+        } catch (error) {
+          // The status rule refuses the write when the row moved on since it was read, e.g. a
+          // cancellation in the same moment. The payment then needs a human like any other.
+          const reason = error instanceof Error ? error.message : String(error);
+          payload.logger.warn(
+            `Could not bring bill participant ${participant.id} in line with its payments: ${reason}`,
+          );
+          result.errors.push(`${participant.fullName}: konnte nicht verbucht werden – ${reason}`);
+        }
+      }),
+    );
   }
 
   return result;
