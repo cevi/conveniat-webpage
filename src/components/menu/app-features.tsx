@@ -9,14 +9,12 @@ import {
   Calendar,
   CalendarCheck2,
   ImageUp,
-  LucideMessageCircleQuestion,
   Map,
   MessageSquare,
   Package,
   Settings,
   Siren,
   Trophy,
-  Truck,
 } from 'lucide-react';
 import { io } from 'next/cache';
 import type React from 'react';
@@ -31,12 +29,6 @@ const chatFeatureTranslation: StaticTranslationString = {
   en: 'Chat',
   de: 'Chat',
   fr: 'Chat',
-};
-
-const qaForumFeatureTranslation: StaticTranslationString = {
-  en: 'conveniat27 Forum',
-  de: 'conveniat27 Forum',
-  fr: 'Forum conveniat27',
 };
 
 const emergencyInfoFeatureTranslation: StaticTranslationString = {
@@ -73,12 +65,6 @@ const uploadPicturesFeatureTranslation: StaticTranslationString = {
   en: 'Upload Pictures',
   de: 'Bilder hochladen',
   fr: 'Télécharger des photos',
-};
-
-const reservationsFeatureTranslation: StaticTranslationString = {
-  en: 'Reservations',
-  de: 'Reservationen',
-  fr: 'Réservations',
 };
 
 const materialFeatureTranslation: StaticTranslationString = {
@@ -144,13 +130,6 @@ export const AppFeatures: React.FC<{
           text={chatFeatureTranslation[locale]}
           prefetch
         />
-        {featureFlags.forumEnabled !== false && (
-          <AppFeatureMenuItem
-            href="/app/forum"
-            Icon={LucideMessageCircleQuestion}
-            text={qaForumFeatureTranslation[locale]}
-          />
-        )}
         <AppFeatureMenuItem
           href="/app/emergency"
           Icon={Siren}
@@ -188,13 +167,6 @@ export const AppFeatures: React.FC<{
             href="/app/photo-contest"
             Icon={Trophy}
             text={photoContestFeatureTranslation[locale]}
-          />
-        )}
-        {featureFlags.reservationsEnabled !== false && (
-          <AppFeatureMenuItem
-            href="/app/reservations"
-            Icon={Truck}
-            text={reservationsFeatureTranslation[locale]}
           />
         )}
         {environmentVariables.FEATURE_ENABLE_MATERIAL_MANAGEMENT && (

@@ -7,13 +7,11 @@ import {
   ChevronRight,
   Compass,
   ImageUp,
-  LucideMessageCircleQuestion,
   MapIcon,
   MessageCircle,
   Settings,
   Siren,
   Trophy,
-  Truck,
   type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -146,32 +144,6 @@ export const DashboardAppFeatures: React.FC<{
       href: '/app/photo-contest',
       icon: Trophy,
       featureFlagKey: 'photoContestEnabled',
-    },
-    {
-      title: { en: 'conveniat27 Forum', de: 'conveniat27 Forum', fr: 'Forum conveniat27' }[locale],
-      description: {
-        en: 'Discuss topics and share ideas with the community',
-        de: 'Diskutiere Themen und teile Ideen mit der Community',
-        fr: 'Discutez de sujets et partagez des idées avec la communauté',
-      }[locale],
-      href: '/app/forum',
-      icon: LucideMessageCircleQuestion,
-      featureFlagKey: 'forumEnabled',
-    },
-    {
-      title: {
-        en: 'Reservations',
-        de: 'Reservationen',
-        fr: 'Réservations',
-      }[locale],
-      description: {
-        en: 'Reserve a vehicle for your needs during the event',
-        de: 'Reserviere ein Fahrzeug für deine Bedürfnisse während der Veranstaltung',
-        fr: "Réservez un véhicule pour vos besoins pendant l'événement",
-      }[locale],
-      href: '/app/reservations',
-      icon: Truck,
-      featureFlagKey: 'reservationsEnabled',
     },
     {
       title: { en: 'Settings', de: 'Einstellungen', fr: 'Paramètres' }[locale],
