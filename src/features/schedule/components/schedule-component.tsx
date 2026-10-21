@@ -24,8 +24,7 @@ import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
 import { i18nConfig } from '@/types/types';
 import { campClockOf } from '@/utils/camp-clock';
-import { cn } from '@/utils/tailwindcss-override';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useCurrentLocale } from 'next-i18n-router/client';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -45,7 +44,6 @@ export const ScheduleComponent: React.FC = () => {
   const searchParameters = useSearchParams();
   const { starredEntries, toggleStar } = useStar();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const isOnline = useOnlineStatus();
   const now = useNow();
   const { syncFromServer, entries: localEntries } = useScheduleEntries();
@@ -180,19 +178,14 @@ export const ScheduleComponent: React.FC = () => {
         >
           <Search className="h-[22px] w-[22px]" aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          aria-label={programmeLabels.filter[locale]}
-          aria-expanded={isFilterOpen}
-          onClick={() => setIsFilterOpen((open) => !open)}
-          className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
-        >
-          <SlidersHorizontal className="h-[22px] w-[22px]" aria-hidden="true" />
-          {filters.selectedCategory !== undefined && (
-            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-emerald-500" />
-          )}
-        </button>
       </SetHeaderActions>
+
+      <ScheduleViewToggles
+        myQuartiere={myQuartiere}
+        scope={scope}
+        onScopeChange={setScope}
+        locale={locale}
+      />
 
       <SearchFilterBar
         filters={filters}
@@ -200,18 +193,7 @@ export const ScheduleComponent: React.FC = () => {
         availableLocations={availableLocations}
         availableCategories={availableCategories}
         isSearchOpen={isSearchOpen}
-        isFilterOpen={isFilterOpen}
-        onFilterOpenChange={setIsFilterOpen}
-        className={cn((isSearchOpen || isFilterOpen || hasActiveFilters) && 'mb-3')}
-      />
-
-      <ScheduleViewToggles
-        myQuartiere={myQuartiere}
-        scope={scope}
-        onScopeChange={setScope}
-        starredOnly={filters.starredOnly}
-        onStarredOnlyChange={(starredOnly) => handleFiltersChange({ ...filters, starredOnly })}
-        locale={locale}
+        className="mb-3"
       />
 
       {isToday && !hasActiveFilters && (

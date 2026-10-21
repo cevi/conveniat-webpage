@@ -1,9 +1,13 @@
 'use client';
 
-import type { CampCategory } from '@/features/payload-cms/payload-types';
+import type { CampCategory, CampMapAnnotation } from '@/features/payload-cms/payload-types';
 import type { HelperShiftFrontendType } from '@/features/schedule/api/get-helper-shifts';
 import type { FilterState } from '@/features/schedule/components/search-filter-bar';
-import { extractShiftCategories, filterShifts } from '@/features/schedule/utils/shift-filter-utils';
+import {
+  extractShiftCategories,
+  extractShiftLocations,
+  filterShifts,
+} from '@/features/schedule/utils/shift-filter-utils';
 import { useCallback, useMemo, useState } from 'react';
 
 const emptyFilters: FilterState = {
@@ -14,7 +18,7 @@ const emptyFilters: FilterState = {
 };
 
 /**
- * Search and category filtering for helper shifts.
+ * Search, category and place filtering for helper shifts.
  *
  * Mirrors {@link useScheduleFilters} so the helper portal behaves like the camp schedule;
  * helper shifts cannot be starred, hence the starred filter is left untouched.
@@ -30,6 +34,7 @@ export const useShiftFilters = (
   filters: FilterState;
   filteredShifts: HelperShiftFrontendType[];
   availableCategories: CampCategory[];
+  availableLocations: CampMapAnnotation[];
   hasActiveFilters: boolean;
   handleFiltersChange: (newFilters: FilterState) => void;
   clearFilters: () => void;
@@ -37,6 +42,7 @@ export const useShiftFilters = (
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
 
   const availableCategories = useMemo(() => extractShiftCategories(allShifts), [allShifts]);
+  const availableLocations = useMemo(() => extractShiftLocations(allShifts), [allShifts]);
 
   const filteredShifts = useMemo(() => filterShifts(shifts, filters), [shifts, filters]);
 
@@ -49,7 +55,10 @@ export const useShiftFilters = (
   }, []);
 
   const hasActiveFilters = useMemo(
-    () => filters.searchText !== '' || filters.selectedCategory !== undefined,
+    () =>
+      filters.searchText !== '' ||
+      filters.selectedCategory !== undefined ||
+      filters.selectedLocations.length > 0,
     [filters],
   );
 
@@ -57,6 +66,7 @@ export const useShiftFilters = (
     filters,
     filteredShifts,
     availableCategories,
+    availableLocations,
     hasActiveFilters,
     handleFiltersChange,
     clearFilters,

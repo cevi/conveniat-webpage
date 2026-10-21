@@ -7,13 +7,11 @@ import { DateCarouselViewWrapper } from '@/features/schedule/components/date-car
 import { ScheduleLoadingSkeleton } from '@/features/schedule/components/schedule-loading-skeleton';
 import { SearchFilterBar } from '@/features/schedule/components/search-filter-bar';
 import { ShiftCard } from '@/features/schedule/components/shift-card';
-import { programmeLabels } from '@/features/schedule/constants/schedule-labels';
 import { useSchedule } from '@/features/schedule/hooks/use-schedule';
 import { useShiftFilters } from '@/features/schedule/hooks/use-shift-filter';
 import { trpc } from '@/trpc/client';
 import type { Locale, StaticTranslationString } from '@/types/types';
-import { cn } from '@/utils/tailwindcss-override';
-import { CalendarX, FilterX, Search, SlidersHorizontal } from 'lucide-react';
+import { CalendarX, FilterX, Search } from 'lucide-react';
 import React, { useState } from 'react';
 
 const noShiftsText: StaticTranslationString = {
@@ -53,7 +51,6 @@ const searchShiftsText: StaticTranslationString = {
  */
 export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const { data: shifts, isLoading } = trpc.schedule.getHelperShifts.useQuery(undefined, {
     staleTime: 1000 * 60 * 5,
@@ -66,6 +63,7 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
     filters,
     filteredShifts: currentShifts,
     availableCategories,
+    availableLocations,
     hasActiveFilters,
     handleFiltersChange,
     clearFilters,
@@ -96,29 +94,16 @@ export const ShiftsComponent: React.FC<{ locale: Locale }> = ({ locale }) => {
         >
           <Search className="h-[22px] w-[22px]" aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          aria-label={programmeLabels.filter[locale]}
-          aria-expanded={isFilterOpen}
-          onClick={() => setIsFilterOpen((open) => !open)}
-          className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl"
-        >
-          <SlidersHorizontal className="h-[22px] w-[22px]" aria-hidden="true" />
-          {filters.selectedCategory !== undefined && (
-            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-emerald-500" />
-          )}
-        </button>
       </SetHeaderActions>
 
       <SearchFilterBar
         filters={filters}
         onFiltersChange={handleFiltersChange}
         availableCategories={availableCategories}
+        availableLocations={availableLocations}
         showStarredToggle={false}
         isSearchOpen={isSearchOpen}
-        isFilterOpen={isFilterOpen}
-        onFilterOpenChange={setIsFilterOpen}
-        className={cn((isSearchOpen || isFilterOpen || hasActiveFilters) && 'mb-3')}
+        className="mb-3"
       />
 
       {hasActiveFilters && hasShifts && (
