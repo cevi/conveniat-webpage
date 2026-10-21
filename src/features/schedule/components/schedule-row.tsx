@@ -1,8 +1,8 @@
 'use client';
 
 import { QuartierGroupBadge } from '@/components/quartier/quartier-badge';
-import { StarButton } from '@/components/star/star';
 import { EnrollmentAction } from '@/features/schedule/components/enrollment-action';
+import { ProgrammeStarButton } from '@/features/schedule/components/programme-star-button';
 import {
   ScheduleTimelineItem,
   TimelineTimes,
@@ -101,8 +101,10 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
       <div
         className={cn(
           // the link fills the card, which clips it: the card shows its focus
-          'has-[>a:focus-visible]:focus-ring relative mb-3.5 overflow-hidden rounded-[14px] border',
-          runningLabel === undefined ? 'border-line' : 'border-live-line',
+          'has-[>a:focus-visible]:focus-ring relative mb-3.5 overflow-hidden rounded-[14px] border transition-colors',
+          runningLabel === undefined
+            ? 'border-line has-[>a:hover]:border-rail'
+            : 'border-live-line',
           isPast ? 'bg-quiet border-transparent' : 'bg-white',
         )}
       >
@@ -142,11 +144,12 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
           )}
         </Link>
 
-        <StarButton
-          id={primary.id}
-          isStared={starredSlots.length > 0}
+        <ProgrammeStarButton
+          // its reminder is the one asked about when the star comes off
+          entryId={starredSlots[0]?.id ?? primary.id}
+          isStarred={starredSlots.length > 0}
           // the star is the block's: off clears every starred slot, on stars the user's own
-          toggleStar={() => {
+          onToggle={() => {
             for (const { id } of starredSlots.length > 0 ? starredSlots : [primary]) {
               onToggleStar(id);
             }
@@ -168,8 +171,8 @@ export const ScheduleRow: React.FC<ScheduleRowProperties> = ({
                     // px, not rem: the root font is larger on desktop. The Quartiere of a slot
                     // are one chip, so the row keeps to one line beside its time.
                     className={cn(
-                      'flex min-h-[44px] items-center gap-[12px] rounded-[10px] border px-[10px] py-[6px]',
-                      mine ? 'border-tint-line bg-tint' : 'border-transparent',
+                      'flex min-h-[44px] items-center gap-[12px] rounded-[10px] border px-[10px] py-[6px] transition-colors',
+                      mine ? 'border-tint-line bg-tint' : 'hover:bg-quiet border-transparent',
                     )}
                   >
                     <span className="flex min-w-0 flex-1">

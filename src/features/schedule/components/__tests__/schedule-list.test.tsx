@@ -27,6 +27,12 @@ jest.mock('@/features/schedule/hooks/use-scroll-restoration', () => ({
   }),
 }));
 
+const setReminder = jest.fn();
+let isReminderOn = false;
+jest.mock('@/features/schedule/hooks/use-reminder', () => ({
+  useReminder: (): unknown => ({ isOn: isReminderOn, isAutomatic: false, setReminder }),
+}));
+
 jest.mock('@/features/schedule/components/enrollment-action', () => ({
   EnrollmentAction: (): React.ReactNode => <div>Anmelden</div>,
 }));
@@ -212,6 +218,22 @@ describe('ScheduleList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aus Favoriten entfernen' }));
     expect(onToggleStar).toHaveBeenCalledTimes(1);
     expect(onToggleStar).toHaveBeenCalledWith('other');
+  });
+
+  it('asks about the reminder before taking the star off, as the block page does', () => {
+    isReminderOn = true;
+    const onToggleStar = jest.fn();
+    renderList([entry('Ballspiele', '17:00 - 17:30')], {
+      starredIds: new Set(['Ballspiele']),
+      onToggleStar,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aus Favoriten entfernen' }));
+    expect(onToggleStar).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Ja, entfernen' }));
+    expect(onToggleStar).toHaveBeenCalledWith('Ballspiele');
+    expect(setReminder).toHaveBeenCalledWith(false);
+    isReminderOn = false;
   });
 
   it('keeps an enrolled block a favourite', () => {
