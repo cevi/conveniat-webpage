@@ -71,19 +71,23 @@ export const NavComponent: React.FC<{
           </button>
         )}
 
-        {mobileMenuOpen && (
-          <button
-            type="button"
-            className="relative top-[18px] z-[105] cursor-pointer outline-hidden"
-            onClick={handleClose}
-          >
-            <span className="sr-only">{closeMenuText[locale]}</span>
-            <X aria-hidden="true" className="size-6" />
-          </button>
-        )}
-
         <Dialog open={mobileMenuOpen} onClose={handleClose}>
           <div className="fixed inset-0 z-[90] cursor-pointer bg-black/20" />
+          {/* The close button sits where the menu button was, in the header's own box, but inside
+              the dialog: everything outside an open dialog is inert, so a button left in the
+              header could not be reached by keyboard or screen reader. */}
+          <div className="fixed inset-x-0 top-0 z-[106] h-[60px]">
+            <div className="mx-auto h-full w-full max-w-2xl px-6 xl:ml-4">
+              <button
+                type="button"
+                className="relative top-[18px] cursor-pointer outline-hidden"
+                onClick={handleClose}
+              >
+                <span className="sr-only">{closeMenuText[locale]}</span>
+                <X aria-hidden="true" className="size-6" />
+              </button>
+            </div>
+          </div>
           <DialogPanel className="fixed inset-y-0 right-0 left-0 z-[95] mt-[62px] w-full overflow-y-scroll bg-white px-4 pt-4 pb-6 shadow-2xl">
             <div onClick={(event): void => checkClickEvent(event)}>{children}</div>
           </DialogPanel>
