@@ -51,9 +51,10 @@ export const AppHeaderTitle: React.FC<{ inAppDesign: boolean }> = ({ inAppDesign
   // one row, so a long title ends where the page's buttons begin instead of running under them
   return (
     <div className="pointer-events-none absolute top-0 right-2 left-[60px] z-[105] flex h-[60px] items-center gap-2">
-      <span className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
+      {/* the page's heading: the title is what every app page is called */}
+      <h1 className="min-w-0 flex-1 truncate font-['Montserrat'] text-[22px] leading-none font-extrabold xl:hidden">
         <DynamicAppTitleName />
-      </span>
+      </h1>
       {/* The open menu makes everything outside its dialog inert, the header included, which
           stays in sight above it: the buttons would show but do nothing. Hidden, not unmounted,
           so a page's button keeps its state. */}
